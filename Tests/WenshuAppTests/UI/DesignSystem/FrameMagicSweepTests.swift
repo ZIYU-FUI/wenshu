@@ -71,13 +71,15 @@ struct FrameMagicSweepTests {
 
     @Test("Round 9 — PreviewPane 64×64 hero card thumbnail preserved as sweep boundary exception")
     func previewPaneHeroCardException() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/PreviewPane.swift")
+        // The hero card moved out of `PreviewPane.swift` and into
+        // `PreviewPaneCard.swift` (= the A33 extraction), so the boundary
+        // exception follows it: the 64 PT hero card thumbnail (= the
+        // .resizable() + .aspectRatio() + .symbolRenderingMode(.monochrome)
+        // pattern = SFIcon does not own hero card surfaces) now lives in
+        // the card file.
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/PreviewPaneCard.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        // L1569 is the 64 PT hero card thumbnail (= round 6 sweep
-        // boundary exception; = .resizable() + .aspectRatio() +
-        // .symbolRenderingMode(.monochrome) pattern = SFIcon does not
-        // own hero card surfaces).
         #expect(content.contains(".frame(width: 64, height: 64)"),
-                "PreviewPane L1569 must keep the 64×64 hero card thumbnail literal (= sweep boundary exception)")
+                "PreviewPaneCard must keep the 64×64 hero card thumbnail literal (= sweep boundary exception)")
     }
 }

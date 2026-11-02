@@ -352,18 +352,37 @@ struct SFIcon: View {
     /// override wins).
     let pointSizeOverride: CGFloat?
 
+    /// Optional per-call weight override (= the same 1:1 per-icon optical
+    /// strategy `pointSizeOverride` serves, on the weight axis).
+    ///
+    /// RATIONALE 2026-11-02: the library sidebar's pinyin letter-circle
+    /// glyphs need the SF Symbols 6 `.thin` weight (= the second-thinnest
+    /// weight Apple ships, = the canonical body-content weight for
+    /// reading-heavy surfaces), but they are 18 PT, = one tier above every
+    /// `.regular` style the factory offers. The weight was a property of
+    /// the STYLE alone, so a call site that needed `.thin` at 18 PT had
+    /// either to reach past the factory for a naked `Image(systemName:)`
+    /// (= the v3.0 sweep's blocked form) or to lose the weight.
+    ///
+    /// nil = use `style.fontWeight`. The override is set on the `Image`
+    /// (= applied AFTER the factory's `.font(.system(size:weight:))` =
+    /// SwiftUI modifier order = the override wins).
+    let weightOverride: Font.Weight?
+
     init(
         _ name: String,
         style: IconStyle,
         color: Color = Color.secondary,
         rendering: IconRendering? = nil,
-        pointSizeOverride: CGFloat? = nil
+        pointSizeOverride: CGFloat? = nil,
+        weightOverride: Font.Weight? = nil
     ) {
         self.name = name
         self.style = style
         self.color = color
         self.rendering = rendering
         self.pointSizeOverride = pointSizeOverride
+        self.weightOverride = weightOverride
     }
 
     /// Convenience initializer accepting an `IconColor` semantic token (= the
@@ -376,13 +395,15 @@ struct SFIcon: View {
         style: IconStyle,
         color: IconColor,
         rendering: IconRendering? = nil,
-        pointSizeOverride: CGFloat? = nil
+        pointSizeOverride: CGFloat? = nil,
+        weightOverride: Font.Weight? = nil
     ) {
         self.name = name
         self.style = style
         self.color = color.style
         self.rendering = rendering
         self.pointSizeOverride = pointSizeOverride
+        self.weightOverride = weightOverride
     }
 
     var body: some View {
@@ -392,7 +413,7 @@ struct SFIcon: View {
         // The .sidebar tier uses plainImage so it can call .resizable() first.
         let plainImage = Image(systemName: name)
         let styledImage = plainImage
-            .font(.system(size: pointSizeOverride ?? style.pointSize, weight: style.fontWeight))
+            .font(.system(size: pointSizeOverride ?? style.pointSize, weight: weightOverride ?? style.fontWeight))
 
         // .sidebar uses .monochrome so .foregroundStyle(Color.primary) surfaces as the
         // actual system primary (= black on light mode, white on dark mode).

@@ -30,11 +30,23 @@ struct SidebarRowViewIconMigrationTests {
                 "SidebarRowView must drop naked Image(systemName:) for the v3.0 sweep")
     }
 
-    @Test("SidebarRowView row uses the central SFLabelRow factory (= Apple HIG sidebar row surface)")
-    func rowUsesCentralLabelRowFactory() throws {
+    @Test("SidebarRowView row leading glyph renders through the central icon factory")
+    func rowUsesCentralIconFactory() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Features/Library/View/SidebarRowView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFLabelRow("),
-                "SidebarRowView row must render via the central SFLabelRow factory (= Apple HIG sidebar-row surface)")
+        // The row's leading glyph goes through the central icon factory,
+        // with a semantic colour token and the metrics from the token
+        // file. The row does NOT render via the `SFLabelRow` wrapper:
+        // that wrapper's slot is the canonical 16 PT one, and this row's
+        // glyph is a pinyin letter circle that the 16 PT slot clips (=
+        // the row draws its own slot, = the tree's own tier).
+        #expect(content.contains("SFIcon("),
+                "SidebarRowView's leading glyph must render via the central SFIcon factory")
+        #expect(content.contains("IconColor."),
+                "SidebarRowView's leading glyph must carry an IconColor token (= no inline colour)")
+        #expect(content.contains("DesignTokens.listRowLeadingIconColumnWidth"),
+                "SidebarRowView's leading icon slot must size itself from the token file")
+        #expect(!content.contains("SFLabelRow("),
+                "SidebarRowView must not render via SFLabelRow (= its 16 PT slot clips the letter-circle glyph)")
     }
 }

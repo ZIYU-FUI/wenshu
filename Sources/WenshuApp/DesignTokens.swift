@@ -438,6 +438,27 @@ enum DesignTokens {
     /// a painting behind it, so its words are white over a wash.
     static let coverInk = Color(red: 0.17, green: 0.13, blue: 0.11)
 
+    /// The paper wash a card with no picture shows, from its lightest corner
+    /// to its darkest.
+    ///
+    /// A card with no cover stands in for the thing it replaces: a card
+    /// whose cover is a Chinese scroll painting on pale paper gets a warm
+    /// paper wash, not a cool grey. The three stops run from the paper's
+    /// lit corner (= top leading) to its shaded corner (= bottom trailing),
+    /// so the gradient reads as one sheet of paper under raking light.
+    static let coverPaperTop = Color(red: 0.968, green: 0.949, blue: 0.906)
+    static let coverPaperMiddle = Color(red: 0.910, green: 0.878, blue: 0.816)
+    static let coverPaperBottom = Color(red: 0.780, green: 0.733, blue: 0.659)
+
+    /// The watermark glyph on the paper wash, as ink on that paper.
+    ///
+    /// The glyph sits in the middle of the sheet, so it is drawn in a
+    /// deeper ink than the card's words use (= `coverInk` = 0.17/0.13/0.11
+    /// = the near-black the text is set in; = this token = 0.28/0.24/0.20 =
+    /// the softer brown the wash reads as ink), at the opacity a
+    /// watermark reads at (= present, not legible).
+    static let coverPaperWatermarkInk = Color(red: 0.28, green: 0.24, blue: 0.20)
+
     /// The shape of a card's picture tile.
     ///
     /// 4:3, which is the shape the picture is generated in

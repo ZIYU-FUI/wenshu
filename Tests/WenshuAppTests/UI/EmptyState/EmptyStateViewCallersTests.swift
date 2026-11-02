@@ -38,8 +38,13 @@ struct EmptyStateViewCallersTests {
             // EditorView = editor zone (= v1.34 ticket 001 extracted
             // the WorkspaceView empty state into EditorView.swift)
             "Sources/WenshuApp/Features/Editor/View/EditorView.swift",
-            // PreviewPane = middle-left assets column (the middle-left cards area)
-            "Sources/WenshuApp/Features/Editor/View/PreviewPane.swift",
+            // PreviewPaneGrids = middle-left assets column (the
+            // middle-left cards area). The empty state moved out of
+            // PreviewPane.swift into PreviewPaneGrids.swift (= the A81
+            // scope-view extraction), and PreviewPane.swift now calls
+            // `emptyScopeView()`, which is DEFINED there, so the file
+            // list follows the definition.
+            "Sources/WenshuApp/Features/Editor/View/PreviewPaneGrids.swift",
             // ChatHelpTextOverlay = chat empty state with inline Settings link
             "Sources/WenshuApp/Features/Chat/View/ChatHelpTextOverlay.swift",
         ]

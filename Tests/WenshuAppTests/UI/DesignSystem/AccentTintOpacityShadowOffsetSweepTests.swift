@@ -41,8 +41,12 @@ struct AccentTintOpacityShadowOffsetSweepTests {
         // surfaces). The invariant is unchanged: wherever an accent
         // tint is applied, the opacity comes from the token (= never
         // a magic literal).
+        //
+        // The site that applies it is `KanbanTicketDetailSheet.swift`
+        // (= the board's own cards carry the group's status tone, so the
+        // board applies no accent tint at all).
         let sweptFiles = [
-            ("Features/Kanban/View/KanbanView.swift", "accentTintOpacityHero"),
+            ("Features/Kanban/View/KanbanTicketDetailSheet.swift", "accentTintOpacityHero"),
         ]
 
         for (relative, expectedToken) in sweptFiles {

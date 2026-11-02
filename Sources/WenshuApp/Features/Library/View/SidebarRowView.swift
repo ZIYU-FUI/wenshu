@@ -272,9 +272,6 @@ struct SidebarRowView: View {
             // for downstream consumers; = `SidebarRowView` opts into
             // the new behaviour via this rendering path.
             HStack(spacing: DesignTokens.spacingIconic) {
-                Image(systemName: SidebarIconResolver.sfSymbol(
-                    forTitle: node.title
-                ))
                 // Per boss 2026-10-16 OOB "目录树的 ICON, 没有用 SF
                 // 符号的纤细体, 就是倒数第二个细的选项": the
                 // sidebar pinyin letter icons render with SF
@@ -284,10 +281,32 @@ struct SidebarRowView: View {
                 // Apple HIG body-content weight for 16-24 PT icons
                 // per the SF Symbols 6 weight-split rule for
                 // reading-heavy surfaces like sidebar monograms).
-                .font(.system(size: 16, weight: .thin))
-                .symbolRenderingMode(.monochrome)
-                .foregroundStyle(.primary)
-                .frame(width: 18, height: 18)
+                //
+                // The glyph goes through the central factory (= a
+                // naked `Image(systemName:)` is the blocked form).
+                // The `.sidebarTree` tier is the library tree's own
+                // row-icon tier, and the call carries the two values
+                // the tier alone cannot: the `.thin` weight (= the
+                // letter glyph's optical weight; = no sub-38 PT tier
+                // offers it) and an explicit `.monochrome` rendering
+                // (= the factory's default below 38 PT is
+                // `.hierarchical`, and a hierarchical
+                // `IconColor.primary` resolves to the accent tint
+                // (= blue) rather than the system primary the sidebar
+                // rows use). The explicit rendering also keeps the
+                // glyph on the font-sized path (= the tier's resizable
+                // frame path would change the rendered size).
+                SFIcon(
+                    SidebarIconResolver.sfSymbol(forTitle: node.title),
+                    style: .sidebarTree,
+                    color: IconColor.primary,
+                    rendering: .monochrome,
+                    weightOverride: .thin
+                )
+                .frame(
+                    width: DesignTokens.listRowLeadingIconColumnWidth,
+                    height: DesignTokens.listRowLeadingIconColumnWidth
+                )
                 Text(node.title)
                     .font(.body)
                     .lineLimit(1)

@@ -302,101 +302,101 @@ struct Card: View {
             // that landed in the same slot.
             LinearGradient(
                 colors: [
-                    Color(red: 0.968, green: 0.949, blue: 0.906),
-                    Color(red: 0.910, green: 0.878, blue: 0.816),
-                    Color(red: 0.780, green: 0.733, blue: 0.659),
+                    DesignTokens.coverPaperTop,
+                    DesignTokens.coverPaperMiddle,
+                    DesignTokens.coverPaperBottom,
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-                // The symbol is a watermark in the middle of the paper,
-                // in ink, not a badge in the corner: the ZStack
-                // aligns its children to the bottom left (= that is
-                // where the words go), so the symbol carries its own
-                // frame to sit in the middle.
-                //
-                // Per wenshu-icon-policy v1.5: 64 PT (= empty-state threshold >=38 PT)
-                // MUST pin .symbolRenderingMode(.monochrome). SF
-                // Symbols 6 on macOS 27 silently falls back to the
-                // .fill variant (= the bold-blue book icon. Pinning
-                // .monochrome forces the outline glyph at 64 PT.
-                // Trade-off: .tint(.opacity 0.85) blue is replaced by
-                // default .secondary blue tint via .foregroundStyle.
-                Image(systemName: source.iconName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 64, height: 64)
-                    .symbolRenderingMode(.monochrome)
-                    .foregroundStyle(Color(red: 0.28, green: 0.24, blue: 0.20).opacity(0.32))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                // A card with a generated cover shows the picture in
-                // the SAME slot, over the gradient and the symbol. The
-                // gradient and the symbol stay underneath, so a card
-                // whose picture is still loading, or whose file has
-                // gone missing, degrades to what it showed before.
-                //
-                // The slot's size does not change: the cover is a wide
-                // banner (100pt tall, 216-316pt wide depending on the
-                // pane), and the stored picture is 768x320 (= 2.40:1),
-                // which fills it and trims only the sides.
-                // A card with a moving cover shows the STILL picture
-                // until the pointer arrives, and the clip while it is
-                // there. The grid of stills is what the user sees
-                // normally; a grid of moving clips would be noise.
-                if coverVideoURL != nil {
-                    LoopingCoverView(
-                        videoURL: coverVideoURL,
-                        isHovered: isHovered,
-                        stillImageURL: coverImageURL
-                    )
-                } else {
-                    CardCoverView(imageURL: coverImageURL)
+            // The symbol is a watermark in the middle of the paper,
+            // in ink, not a badge in the corner: the ZStack
+            // aligns its children to the bottom left (= that is
+            // where the words go), so the symbol carries its own
+            // frame to sit in the middle.
+            //
+            // Per wenshu-icon-policy v1.5: 64 PT (= empty-state threshold >=38 PT)
+            // MUST pin .symbolRenderingMode(.monochrome). SF
+            // Symbols 6 on macOS 27 silently falls back to the
+            // .fill variant (= the bold-blue book icon. Pinning
+            // .monochrome forces the outline glyph at 64 PT.
+            // Trade-off: .tint(.opacity 0.85) blue is replaced by
+            // default .secondary blue tint via .foregroundStyle.
+            Image(systemName: source.iconName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 64, height: 64)
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(DesignTokens.coverPaperWatermarkInk.opacity(0.32))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // A card with a generated cover shows the picture in
+            // the SAME slot, over the gradient and the symbol. The
+            // gradient and the symbol stay underneath, so a card
+            // whose picture is still loading, or whose file has
+            // gone missing, degrades to what it showed before.
+            //
+            // The slot's size does not change: the cover is a wide
+            // banner (100pt tall, 216-316pt wide depending on the
+            // pane), and the stored picture is 768x320 (= 2.40:1),
+            // which fills it and trims only the sides.
+            // A card with a moving cover shows the STILL picture
+            // until the pointer arrives, and the clip while it is
+            // there. The grid of stills is what the user sees
+            // normally; a grid of moving clips would be noise.
+            if coverVideoURL != nil {
+                LoopingCoverView(
+                    videoURL: coverVideoURL,
+                    isHovered: isHovered,
+                    stillImageURL: coverImageURL
+                )
+            } else {
+                CardCoverView(imageURL: coverImageURL)
+            }
+            // A cover is being drawn, or a clip is being made: the
+            // card says so, in place. The work takes seconds and
+            // the user asked for it, so the card must not sit
+            // there looking finished.
+            if isCoverWorkInFlight {
+                ZStack {
+                    Color.black.opacity(0.15)
+                    ProgressView()
+                        .controlSize(.small)
                 }
-                // A cover is being drawn, or a clip is being made: the
-                // card says so, in place. The work takes seconds and
-                // the user asked for it, so the card must not sit
-                // there looking finished.
-                if isCoverWorkInFlight {
-                    ZStack {
-                        Color.black.opacity(0.15)
-                        ProgressView()
-                            .controlSize(.small)
-                    }
-                }
-                // A card that MOVES says so in the corner.
-                //
-                // The mark is the one the Photos app puts on a picture
-                // that moves (= the Live Photo mark), and it is a HINT
-                // and not a control: the clip plays when the pointer
-                // arrives, and the mark says the card can do that. It
-                // is small, because a card whose picture is the card
-                // must not have a button on top of it.
-                if coverVideoURL != nil {
-                    SFIcon(
-                        CoverClipControl.symbol,
-                        style: .inlineSmall,
-                        color: .white,
-                        rendering: .monochrome,
-                        pointSizeOverride: CoverClipControl.badgeSize
-                    )
-                    .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
-                    .padding(DesignTokens.spacingStandard)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .allowsHitTesting(false)
-                }
-                // The last attempt failed: the card carries the mark
-                // (= the Apple HIG "needs attention" pattern, in the
-                // corner the completion badge does not use).
-                if showsFailureMark {
-                    SFIcon(
-                        "exclamationmark.triangle.fill",
-                        style: .inlineSmall,
-                        color: Color.orange
-                    )
-                    .padding(DesignTokens.spacingCaption)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .allowsHitTesting(false)
-                }
+            }
+            // A card that MOVES says so in the corner.
+            //
+            // The mark is the one the Photos app puts on a picture
+            // that moves (= the Live Photo mark), and it is a HINT
+            // and not a control: the clip plays when the pointer
+            // arrives, and the mark says the card can do that. It
+            // is small, because a card whose picture is the card
+            // must not have a button on top of it.
+            if coverVideoURL != nil {
+                SFIcon(
+                    CoverClipControl.symbol,
+                    style: .inlineSmall,
+                    color: .white,
+                    rendering: .monochrome,
+                    pointSizeOverride: CoverClipControl.badgeSize
+                )
+                .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
+                .padding(DesignTokens.spacingStandard)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .allowsHitTesting(false)
+            }
+            // The last attempt failed: the card carries the mark
+            // (= the Apple HIG "needs attention" pattern, in the
+            // corner the completion badge does not use).
+            if showsFailureMark {
+                SFIcon(
+                    "exclamationmark.triangle.fill",
+                    style: .inlineSmall,
+                    color: Color.orange
+                )
+                .padding(DesignTokens.spacingCaption)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .allowsHitTesting(false)
+            }
             // The wash the words sit in.
             //
             // The App Store washes the bottom of its artwork so the

@@ -83,6 +83,14 @@ struct AccentTintOpacitySweepTests {
     @Test("DesignTokens.accentTintOpacityHero usage covers kanban sites")
     func accentTintOpacityHeroUsage() throws {
         // Verify the 3 known call sites use the token (not the literal).
+        //
+        // The accent tint MOVED off `KanbanView.swift` (the board's cards
+        // carry the group's status tone, = `status.boardTone`, so the
+        // board applies no accent tint at all) and onto
+        // `KanbanTicketDetailSheet.swift`, which is the surface that
+        // draws it (= `.tint.opacity(DesignTokens.accentTintOpacityHero)`
+        // in a Capsule). This file's own comment already said the sites
+        // moved; the expectation now names where they moved TO.
         let content = try String(
             contentsOf: SourceLocator.repoRoot
                 .appendingPathComponent("Sources/WenshuApp/Features/Kanban/View/KanbanView.swift"),
@@ -94,11 +102,15 @@ struct AccentTintOpacitySweepTests {
             encoding: .utf8
         )
 
-        // KanbanView + KanbanTicketDetailSheet should both use the token.
-        #expect(content.contains("DesignTokens.accentTintOpacityHero"),
-                "KanbanView should use DesignTokens.accentTintOpacityHero")
+        // KanbanTicketDetailSheet is the surface that applies the accent
+        // tint, so it is the one that must read the token.
         #expect(content2.contains("DesignTokens.accentTintOpacityHero"),
                 "KanbanTicketDetailSheet should use DesignTokens.accentTintOpacityHero")
+        // KanbanView applies the group's status tone instead of an accent
+        // tint, so it must NOT carry the token (= the tint belongs to the
+        // detail sheet alone).
+        #expect(!content.contains("DesignTokens.accentTintOpacityHero"),
+                "KanbanView applies the group's status tone, not the accent tint")
     }
 
     @Test("accentTintOpacityHero value is 0.18 (hero accent canonical)")
