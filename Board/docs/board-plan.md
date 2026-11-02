@@ -95,10 +95,13 @@ Two consequences for this client:
 - **The LLM authoring.** Milanote has no model for it. The generation view is
   Wenshu's own; Milanote contributes the container shape only.
 - **The canvas regime's expensive extras.** The regime itself is borrowed;
-  these parts of it are not: collision reflow (cards that push each other when
-  one grows), locked position, the 3D drag effects, the connector mode, and
-  the per-board brush and shape settings. The dot grid and the z-order are
-  borrowed.
+  these parts of it are not: the collision reflow (cards push each other when
+  one grows), the locked position, the 3D drag effects, the connector mode,
+  and the per-board brush and shape settings. The z-order is borrowed.
+  The reference's reflow is now measured: a grid-aligned cascade with a
+  hard cap of 150 candidates and a five-second cooldown, and it never runs
+  while a card is being dragged, resized or edited. The grid alignment is
+  worth copying; the cascade is not.
 - **`attrs.key`.** Every block in Milanote's ProseMirror document carries a
   short random id, because ProseMirror needs a node identity to reconcile a
   re-parse. Wenshu's text is Markdown, and Markdown does not need it. Copying

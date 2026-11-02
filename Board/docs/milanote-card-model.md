@@ -471,3 +471,78 @@ curl -sS https://static.milanote.com/main-0d527f601f26-modern.js -o main.js
 ```
 
 Bundle URLs are version-pinned by content hash; the names above are from version `3.18.142` and will move on the next release.
+
+## 17. The canvas interaction rules, in the reference's own source
+
+### 17.1 The collision engine: an auto-shift measured in grid points
+
+The reference pushes a card out of the way when another card grows into it.
+The engine (main bundle, module 64955, channel `element.collision`) is a
+pure function of the geometry, and its rules are:
+
+| Rule | The source says |
+| --- | --- |
+| **It only runs in the canvas regime** | `if (!a || a.section !== CANVAS) return;` — a list never pushes anything |
+| **The overlap is measured in grid points** | the warning reads `shifting %s by %s grid points`; the grid unit is `A` and the shift is `round((bottom + 4) / A) + overlap - (top mod A)` |
+| **The collision box is the neighbour's box grown by four grid units** | `{...z, bottom: z.bottom + 4 * A}` |
+| **A push is snapped to the grid** | the new top is `floor(top / A) * A + shift + offset`, so a pushed card lands on the lattice |
+| **The shift is at least two grid points once the overlap exceeds three** | `const g = u > 3 ? 2 : u` |
+| **A card is never pushed above where it started** | the new y is `max(computed, original)` |
+| **Locked cards are not pushed, and a card in another parent is not a neighbour** | `if (isInList(t) && (isLocked(t) || parentOf(t) !== parentOf(moved))) return;` |
+| **A card with no area is skipped** | it warns `Neighbour element has no area` and continues |
+| **The push cascades** | the pushed cards are re-checked with their new measurements, so a push travels down the column |
+| **If a card is pushed twice, the larger push wins** | a dedupe pass keeps the record with the greatest y |
+| **The original position is saved, but only for a downward push with an overlap over three** | `saveOriginalLocation: s && u > 3` — so a push can be undone |
+| **A card that is not pushed but overlaps is recorded locally only** | `autoPush: false, saveOriginalLocation: true, noSync: true` |
+| **There is a hard cap of 150 candidates** | `if (candidates.length > 150 && !disableAutoShiftLimit) return []` — past 150 neighbours the auto-shift is skipped entirely |
+| **The cap is lifted by a server-side feature flag** | `disableAutoShiftLimit` is one of the app-init feature flags, so it is per account, not per user |
+| **A card that is being resized, dragged or edited does not trigger it** | three guards return early, so the engine never fights a live manipulation |
+| **It runs at most every five seconds** | the cooldown is `5 * SECOND` |
+| **There is a recursion guard** | `Blocked collision recursion for %s` |
+
+⇒ The whole behaviour is **a grid-aligned cascade with a cap**, not a
+constraint solver. A replica that wants the same feel has to copy the grid
+alignment and the cap, and can leave the cascade out.
+
+### 17.2 The element action vocabulary
+
+The element context menu is a list of actions, each with an availability
+predicate and a locale key:
+
+| Action | Predicate | Locale key |
+| --- | --- | --- |
+| group into a column | `canGroupIntoColumn` | `element.groupIntoColumn` |
+| lock / unlock | `willEnableLock` | `element.lockPosition` |
+| bring to front | `canBringToFront` | `element.bringToFront` |
+| send to back | `canSendToBack` | `element.sendToBack` |
+
+and the capability set the predicates are drawn from:
+`canBringToFront`, `canSendToBack`, `canGroupIntoColumn`, `canConnectWithLines`,
+`canConvertTemplate`, `canConvertToBoard`, `canConvertToDocument`,
+`canConvertToNote`, `canConvertToSketch`, `isSelectedBoardTemplate`,
+`willEnableLock`.
+
+⇒ **Every element action has a predicate**, so the same list is both the
+feature set and the availability rule. A replica that copies the list without
+the predicates shows actions that cannot work.
+
+### 17.3 `gridSize` is a card unit, not a canvas grid
+
+`gridSize` is the unit an element's own text box snaps to: the auto-grow
+bounds are `minHeight: n * gridSize` and `maxHeight: r * gridSize`, and it
+also positions the popups. It is **not** a dot grid on the canvas — the
+reference has no canvas dot grid at all, unlike Freeform (§4 of the other
+teardown).
+
+### 17.4 The feature-flag list
+
+The app-init payload carries the flags the client reads: `betterAuth`,
+`notificationsJobApm`, `disableInviteLimit`, `disableAutoShiftLimit`,
+`bypassRecaptchaChecks`, `publicTemplateCreation`,
+`renderSecureImagesThroughCF`, `customTemplatesGraphMigration`,
+`disableGraphDbAppInit`, `graphDbSynced`, `boardSearchIndexComplete`,
+`clientPersistence`, `fetchLocalesFromCDN`, and a set of per-locale flags.
+
+⇒ **Some behaviour is switched off by the server, not by the user.** The
+auto-shift cap is one of them, so a replica that copies the rule has to
+decide whether its cap is a setting or a constant.
