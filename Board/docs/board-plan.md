@@ -42,7 +42,11 @@ Has:
 - `BoardOrderKey` — the order key, with the insert, the head rung, the rebalance and the ordering.
 - `ChapterFileReader` — where a chapter actually comes from.
 - `ChapterColumnBuilder` — the join: a chapter becomes a board and a column of cards.
-- `WenshuBoardApp` — one window, one column of cards, showing a demo column.
+- `BoardViewport` — the viewport as a pure function: the world-to-screen mapping and its inverse, the zoom clamp, the visible rectangle.
+- `BoardCanvasView` — the infinite canvas view, built from the public pieces.
+- `BoardCanvasDemo` — the demo elements the canvas renders.
+- `RenderProof` — the offscreen proof: the canvas rendered into a bitmap, with no window and no human.
+- `WenshuBoardApp` — one window with two tabs: a column of cards, and the canvas.
 
 Does not have yet:
 
@@ -194,9 +198,9 @@ decision that shapes the client's architecture. Two ways to honour it:
 The two teardowns are the evidence, and both are reproducible:
 
 - `milanote-card-model.md` — the element envelope, nineteen kinds, the two
-  placement regimes, the 65536-step order key, the 142 registered content
-  paths, the ProseMirror document, the read endpoints, and the one write
-  endpoint.
+  placement regimes, the 65536-step order key, the 142 registered property
+  paths (122 content, 11 location, 9 meta), the ProseMirror document, the read
+  endpoints, and the one write endpoint.
 - `freeform-card-model.md` — the two exported UTIs, the nineteen App Intents,
   the item type enum, the board entity's properties, the internal `CRL*`
   classes, the CloudKit persistence, and the SDK quotes for the Apple-canonical

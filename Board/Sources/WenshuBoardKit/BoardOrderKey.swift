@@ -5,8 +5,7 @@
 //  The one mechanism the reference teaches that Wenshu needs and does not
 //  have: a list order that an insert does not have to renumber.
 //
-//  Milanote's measured scheme (docs/agents/2026-11-02-milanote-card-model-teardown.md
-//  §4.1): every list child carries a `score`, the step between neighbouring
+//  Milanote's measured scheme (Board/docs/milanote-card-model.md §4.1): every list child carries a `score`, the step between neighbouring
 //  scores is 65536, and an item placed above the head takes a negative
 //  multiple. The score alone totally orders the list, so the ordinal is
 //  redundant and a card can be inserted between two neighbours by writing one

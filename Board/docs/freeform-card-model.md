@@ -9,26 +9,28 @@ Its sibling: `milanote-card-model.md` (a third-party board app = the reference f
 
 ## 1. Method and evidence grade
 
-Measured against a real account, one workspace, one board.
+Read out of the installed app and the installed SDK. There is no account, no
+HTTP API and no JavaScript bundle here: Freeform is a local app whose state
+lives in CloudKit, so every fact below comes from its Mach-O, its bundle's
+metadata, the SDK, or the running app.
 
 | Evidence | How | Grade |
 | --- | --- | --- |
-| Element envelope, field names, live values | `GET /api/boards?loadAncestors=true&ids=1TRVcg19Es2pe6` | measured |
-| Type registry, property paths, enums, action names | static read of the app's own JS bundles (26 chunks, 9.2 MB) | measured |
-| Toolbar palette, preferences text | `locales-en-f9788f827ce4-modern.js` (the app's own English strings) | measured |
-| View-layer component contract | `propTypes` of the element component in `main-…-modern.js` | measured |
-| Canvas layout semantics, ordering key | live values across 32 elements | measured |
-| Per-type rendering, drag mechanics, animation | not inspected | not measured |
+| The App Intent surface: 19 intents, their entities and their parameters | `Freeform.app/Contents/Resources/Metadata.appintents/extract.actionsdata` | measured |
+| The class model: 959 `CRL*` classes, their ivars and their properties | `otool -oV` on a thin `arm64e` slice of the Mach-O | measured |
+| Every Objective-C method's selector, type encoding and entry point | the same metadata: 21,580 methods over 955 classes (§6) | measured |
+| The method bodies: the geometry, the guides, the snapping, the zoom, the autoscroll, the positioning engine | Ghidra 12.1.4 headless decompile, addressed by entry point (§7, §8, §9) | measured |
+| The live app's own state: 85 boards, one board's 62 items, the zoom ladder, the dot grid's period | the running app, read in the background (§5) | measured |
+| The Apple-canonical answer | the installed SDK (`MacOSX27.2.sdk`), quoted by signature (§3) | measured |
+| Per-type rendering, animation, the drawing implementation behind `PKCanvasView` | not inspected | not measured |
 
-Auth: `POST /api/auth/login` with `{"email","password"}` returns `{"token","userId"}`. Every later call carries `authorization: Bearer <token>`. No AWS WAF challenge on the JSON API from a plain client, even though the web app loads `static.milanote.com/awswaf/…/challenge.compact.js`.
-
-Reproduction: see §17.
+Reproduction: see §4.1 (the method) and §6.1 (how the map was built).
 
 ## 2. The second reference: Apple Freeform
 
 `/System/Applications/Freeform.app`, version **5.0** (build 656.1.2), bundle id `com.apple.freeform`. The app ships localized names; on this machine it runs Chinese-localized, which is why the menus in §5.3 were read in Chinese.
 
-### 15.1 What Apple ships as a document type
+### 2.1 What Apple ships as a document type
 
 Freeform declares two exported UTIs, both **composite packages**, not flat files:
 
@@ -40,9 +42,9 @@ Freeform declares two exported UTIs, both **composite packages**, not flat files
 Two consequences:
 
 - **Apple's own "board" is a package on disk** — the same shape as Wenshu's `.ws` package (AGENTS.md §3.1, `WSPC`). A board-as-package is not a Wenshu invention; it is Apple's.
-- **No public `UTType` constant exists** for either. `UniformTypeIdentifiers` exposes no `freeform` identifier in the SDK, so Wenshu would have to declare the UTI itself to read them. And the *package layout* inside `com.apple.freeform.board` is not public API — Apple documents no format for it. **Reading or writing a Freeform board is therefore not a safe v1 claim** (§17).
+- **No public `UTType` constant exists** for either. `UniformTypeIdentifiers` exposes no `freeform` identifier in the SDK, so Wenshu would have to declare the UTI itself to read them. And the *package layout* inside `com.apple.freeform.board` is not public API — Apple documents no format for it. **Reading or writing a Freeform board is therefore not a safe v1 claim** (§3.3, §5.4).
 
-### 15.2 No automation surface
+### 2.2 No automation surface
 
 - No `.sdef`, `NSAppleScriptEnabled` not declared ⇒ **Freeform has no AppleScript dictionary**.
 - `NSUserActivityTypes` = `com.apple.freeform.viewModelItemHandoff`, `com.apple.freeform.viewModelDrag` ⇒ it publishes handoff and drag activities, not a scripting API.
@@ -50,13 +52,13 @@ Two consequences:
 
 So Freeform cannot be driven programmatically by a third-party app the way Milanote's REST API can. The two references are not substitutable: **Milanote gives a data model, Freeform gives an interaction vocabulary and a package precedent.**
 
-### 15.3 Freeform's element vocabulary
+### 2.3 Freeform's element vocabulary
 
 From Freeform's own binary strings: `StickyNote` / `Sticky`, `Shape`, `TextBox`, `Table`, `Media`, `Drawing`, `Link`, `File`, `SystemSymbol`.
 
 Compare with Milanote's 19 element types. Freeform's vocabulary is **smaller and Apple-shaped**: a sticky note is a card, a shape is a vector, a text box is text, a media item is a photo/video/scan/file, a drawing is PencilKit ink. There is no column, no ordered list, no nested board, no comment thread, no clone.
 
-### 15.4 What Freeform links (= how Apple builds it)
+### 2.4 What Freeform links (= how Apple builds it)
 
 `PencilKit` (ink), `PaperKit` + `PDFKit` (scanned documents), `CoreTransferable` (drag and drop), `AppIntents`, `UniformTypeIdentifiers`, `Symbols`, `CloudKit` + `CloudDocs` + `CloudSharing` + `CoreDataUI` (shared boards), `RealityFoundation` + `RealityKit` + `Metal` + `MetalKit` (3D objects), `Vision` + `VisionKitCore`, `TranslationUIServices`, `PhotosUI` + `PhotosFormats` + `ImageIO`, `QuickLookUI` + `QuickLookThumbnailing`, `CoreSpotlight`, `LinkPresentation`, `CoreText`, `CryptoKit`, `StoreKit`, `SwiftUI`, `AppKit`.
 
@@ -134,7 +136,7 @@ Checked in the installed SDK (`MacOSX27.2.sdk`), because the rule is to quote a 
 | Need | Canonical symbol | Verified fact |
 | --- | --- | --- |
 | Drawing data | `PencilKit.PKDrawing` | `public struct PKDrawing : Sendable`, `@available(iOS 13.0, macOS 10.15, *)`; `PKStroke`, `PKInk`, `PKInkingTool`, `PKEraserTool`, `PKLassoTool`; `PKDrawing.draw(in:frame:from:darkUserInterfaceStyle:) async` |
-| Drawing view | **none on macOS** | There is **no public `PKCanvasView`** in the macOS SDK — the only occurrence is a doc comment in `PKTool.h` ("An interaction behavior for a PKCanvasView"). macOS gets the data model, not the canvas. |
+| Drawing view | **exported, not public** | The class exists and is exported (`PencilKit.tbd`: `objc-classes: [ PKCanvasView, ... ]`), Apple ships **no header** for it on macOS (`Headers/PKCanvasView.h` is absent, while `PencilKit.h` line 11 imports it), and the macOS **Swift interface does not expose it** (0 occurrences). It appears in four header doc comments (`PKTool.h:12`, `PKDrawing.h:31`, `PKInkingTool.h:23`, `PKToolPickerInkingItem.h:73`). So the data model is public (`PKDrawing`) and the view is not. See §4.7. |
 | Canvas view | `SwiftUICore.Canvas` | `nonisolated public struct Canvas<Symbols> : ~Sendable where Symbols : SwiftUICore::View`; `SwiftUICore.GraphicsContext`; `SwiftUICore.ImageRenderer` |
 | Image generation | `ImagePlayground` | `@MainActor public func imagePlaygroundSheet(isPresented: Binding<Bool>, concepts: [ImagePlaygroundConcept] = [], sourceImage: Image? = nil, onCompletion: @escaping (URL) -> Void, onCancellation: (() -> Void)? = nil) -> some View` (macOS 15.1+) |
 | Image generation, programmatic | `ImagePlayground.ImageCreator` | `@available(iOS 18.4, macOS 15.4, *)` **and deprecated in 27.0**: "Use ImagePlaygroundViewController or imagePlaygroundSheet." `public init() async throws`; `images(for:style:limit:) -> some AsyncSequence<CreatedImage, any Error>`; `CreatedImage.cgImage` |
@@ -189,16 +191,16 @@ bitmap, with no window and no human in it.
 **Still not borrowed:** the collision reflow, the locked position, the 3D drag
 effects, the connector mode.
 
-### 16.1 The consequence for the content generation view
+### 3.2 The consequence for the content generation view
 
 `ImageCreator` is the programmatic path and it is **deprecated on Wenshu's own floor**. So the canonical route is the sheet (SwiftUI) or `ImagePlaygroundViewController` (AppKit), and the generated image arrives as a **file URL** (`onCompletion: @escaping (URL) -> Void`), not as a `CGImage`.
 
 That is a design decision with consequences, not a detail: a generation view that produces several candidate images has to write them to disk (or to the app's own storage) before it can attach them to a card. A card image is then a **file reference**, like Milanote's `content.image.regular` / `.thumb` URL ladder and `content.file.url`.
 
-### 16.2 What Apple does not ship
+### 3.3 What Apple does not ship
 
 - **No ordered-list board.** Freeform is canvas-only. The card-based chapter organization Milanote models has no Apple equivalent — Wenshu's chapter list is Wenshu's own design, and the Apple-canonical container for it is `List` + `.onMove` (or `LazyVGrid` for a board view), not a free canvas.
-- **No canvas view on macOS.** If Wenshu ever wants a Freeform-like ink surface, it hand-rolls it on `SwiftUICore.Canvas` and stores `PKDrawing` data. That is a real cost and it is why §17 says the canvas regime is out of v1 scope.
+- **No canvas view on macOS.** A Freeform-like ink surface has to be hand-rolled on `SwiftUICore.Canvas`, with `PKDrawing` as the data model. That is a real cost, and the client pays it: the canvas regime is IN scope and built (§4.6, §4.7), not deferred.
 - **No public Freeform file format.** The UTI is declared, the package layout is not documented.
 
 ## 4. The canvas implementation, read out of the binary

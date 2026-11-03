@@ -28,7 +28,7 @@ bundles, and from Apple Freeform, read out of the installed app and the
 installed SDK. Both teardowns live in this directory:
 `docs/milanote-card-model.md` and `docs/freeform-card-model.md`.
 
-Three things came across:
+Four things came across:
 
 - **One envelope, many kinds.** A board, a column and a card are the same
   record (`BoardElement`); only the kind differs. A container holds cards and
@@ -38,11 +38,12 @@ Three things came across:
 - **The order key.** A list order an insert does not have to renumber: the
   step is 65536, and a card placed above the head takes a negative rung
   (`BoardOrderKey`).
+- **A canvas that is a view, not a migration.** The section decides which
+  placement regime reads which field of the position, so the same record moves
+  between the column and the free canvas (`BoardViewport`, `BoardCanvasView`).
 
 ## What it does not borrow
 
-- No canvas. Freeform's canvas view is not public on macOS (`PKCanvasView` is
-  absent from the SDK), and a chapter list does not need one.
 - No freeform file format. Apple's board package is not documented.
 - No second writer. One library, one writer: this client does not open the
   same `.ws` the desktop app has open.
