@@ -578,15 +578,21 @@ the earlier sections only hinted at:
   an unscaled `CGPoint`, so the autoscroll step does not change with the
   zoom.
 
-### 6.4 What is still out of reach
+### 6.4 The one gap in this map, and how it was closed
 
 The dot-grid classes (`CRLCanvasDotGridLayer`, `CRLCanvasDotGridBackground`,
 `CRLCanvasDotGridLayerImageStorage`) appear in the class-name strings but
 carry **no Objective-C methods**: they are Swift classes with no
 Objective-C face, so their implementations are not in the Objective-C
-metadata and the map above does not reach them. The dot grid's spacing rule
-is therefore still measured only from the running app (§5.2: 74.1 pt at 25%
-zoom).
+metadata and the map above does not reach them.
+
+They were reached anyway, and §8.1 has the result. The route is that a
+Swift class's **names** are plain text in the binary's reflection strings,
+and a Swift global constant can be exposed to Objective-C — so
+`kCRLUnscaledSpacingBetweenDotCenters` appears in the map after all, as a
+method that returns `25.0`. The lesson is narrower than "the map is
+complete": **the map covers the Objective-C surface, and a class with no
+Objective-C surface needs a different route.**
 ## 7. The method bodies
 
 512 of the mapped methods were decompiled (all 512 succeeded). The bodies are
