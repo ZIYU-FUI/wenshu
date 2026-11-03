@@ -226,32 +226,45 @@ method, and the script prints the method next to the number.
 5. **`main`'s pre-existing whole-suite failures.** They are the tree's
    known set and are not this session's: the record's own partition
    (= 6 that pass alone + 5 that do not = 11 sites) is in the inventory.
-   **Measured on the merged tree AND on the pre-session base, under the
-   same load, and the two sets are identical.** The whole suite at
-   `main` = `d032512bf7`: `WenshuDataTests` 143 tests in 32 suites
-   passed, `WenshuAppTests` 3219 tests in 513 suites with **5 issues**,
-   `WenshuAgentTests` 208 tests in 24 suites passed. The same suite at
-   the base `f224ad6f26`: the same three summaries, the same five
-   issues, and the same five sites, one for one:
+   **Measured on the merged tree AND on the pre-session base, on BOTH
+   test frameworks.** The whole suite at `main` = `d032512bf7`:
+   `WenshuDataTests` 143 tests in 32 suites passed, `WenshuAppTests`
+   3219 tests in 513 suites with **5 issues**, `WenshuAgentTests` 208
+   tests in 24 suites passed, and **zero XCTest failures** (= 56 XCTest
+   `Executed` lines, every one of them 0 failures, and the trailer names
+   exactly one failing target: `WenshuAppTests (Swift Testing)`). The
+   same suite at the base `f224ad6f26`: the same three summaries, **zero
+   XCTest failures**, the same trailer, and **4 issues in one run and 5
+   in another**.
 
-   | the site | in the record's set? | why it fails here |
-   | --- | --- | --- |
-   | `ChatViewHistoryShortcutTests.swift:35` | yes | the record's own line |
-   | `EditorTabTitleTests.swift:60` | yes (= the deferred source-precedence case) | the boss's deferred behaviour, not a test defect |
-   | `AsyncDelegationRegistryTests.swift:104` | yes | the record's own line |
-   | `EditorPersistenceTests.swift:253` | no | load-sensitive (= the test waits 3 seconds); ALONE it passes on BOTH trees (= 11 tests in 1 suite, 3.0 s) |
-   | `WenshuConductorToolRegistryWiringTests.swift:237` | no | load-sensitive (= `warmToolCache` gives the process-global cache a 10-SECOND deadline and then gives up silently, so a loaded machine reads an empty dict); ALONE the suite passes on the merged tree (= 5 tests in 1 suite) |
+   | the site | in the record's set? | on the merged tree | on the base | why |
+   | --- | --- | --- | --- | --- |
+   | `ChatViewHistoryShortcutTests.swift:35` | yes | every run | every run | the record's own line |
+   | `EditorTabTitleTests.swift:60` | yes | every run | every run | the boss's deferred behaviour, not a test defect |
+   | `AsyncDelegationRegistryTests.swift:104` | yes | every run | every run | the record's own line |
+   | `EditorPersistenceTests.swift:253` | no | every run | every run | load-sensitive (= the test waits 3 seconds); ALONE it passes on BOTH trees (= 11 tests in 1 suite, 3.0 s) |
+   | `WenshuConductorToolRegistryWiringTests.swift:237` | no | one run | **one of two runs** | load-sensitive (= `warmToolCache` gives the process-global cache a 10-SECOND deadline and then gives up silently, so a loaded machine reads an empty dict); ALONE the suite passes on the merged tree (= 5 tests in 1 suite) |
 
-   So this session's landings changed the whole suite's failing set by
-   NOTHING: no new site, and no site fixed. The two sites the record
-   does not name are load-sensitive by construction, and both trees
-   produce them identically.
+   **So this session's landings changed the whole suite's failing set by
+   NOTHING.** The three DETERMINISTIC sites are identical on both trees
+   and appear in every run, and no site appeared that is not in the
+   record's set plus these two load-sensitive ones. The two load-
+   sensitive sites FLOAT (= the wiring site was in the base's first run
+   and absent from its second), so the honest claim is about the
+   deterministic core (= 3 sites), not about a count that moves with the
+   machine's load.
+
+   **And the XCTest side has to be measured too.** A summary that reads
+   only `Test run with` sees the Swift Testing half and nothing else:
+   the XCTest bundles print `Executed N tests, with M failures` and
+   `Test Case '-[...]' failed` instead, and a report that quotes only
+   the Swift Testing numbers is quoting half the suite.
 
    **The suite hangs sometimes.** One run stopped in Core Spotlight at
    0% CPU (= `com.apple.CoreSpotlight` / `com.apple.SpotlightLinguistics`
    in the sample) even with `CSSearchableIndexSearchTests` skipped, and
    the sibling lane's own run has been in that state for six hours. The
-   run quoted above completed. So the number is reproducible when the
+   runs quoted above completed. So the number is reproducible when the
    machine is not competing with a hung run, and a record that quotes
    it must say which run it came from.
 
