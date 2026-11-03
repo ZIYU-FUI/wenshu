@@ -285,6 +285,7 @@ reference, LOC, and content tag.
 | `Sources/WenshuApp/App/WenshuAppDelegate.swift` (now 570 LOC, under cap) | `Sources/WenshuApp/App/WenshuAppDelegate+SubAgentDrainLoop.swift` | 112 | the app delegate's sub-agent drain loop (= `startSubAgentDrainLoop`, `stopSubAgentDrainLoop`, `sharedSubAgentRunner`, `subAgentDrainTask`) |
 | `Sources/WenshuApp/Features/Editor/View/PreviewPaneCard.swift` (now 341 LOC, under cap) | `Sources/WenshuApp/Features/Editor/View/PreviewPaneCard+Body.swift` | 467 | the preview card's body (= the cover, the wash, the words on the picture, and the card's double-click and context menu) |
 | `Board/AGENTS.md` | `Board/Tests/WenshuBoardTests/BoardElementTests.swift` | 80 | | the two placement regimes and the switch between them (= the section decides which fields of the position carry the meaning, = and the order key exists only in the list regime) |
+| `Sources/WenshuAgent/Sources/WenshuAgent/Streaming/RequestHelpers.swift` (now 496 LOC, under cap) | `Sources/WenshuAgent/Sources/WenshuAgent/Streaming/RequestHelpers+OpenAI.swift` | 191 | extension RequestHelpers { buildOpenAIRequest, buildOpenAIMessages, decodeOpenAIResponse } = the OpenAI chat-completions wire (= the request builder, the messages builder only it calls, and the response decoder). |
 
 <!-- Append new rows at the END of the table above. The key-level merge
      driver keeps both rows when two cards add one each. -->
