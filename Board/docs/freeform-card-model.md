@@ -684,3 +684,149 @@ the snapped rect** — and the body is a single call into a private C function
 with the rect's origin and a row of flags. So the snapping arithmetic is not
 in Objective-C at all, and the Objective-C layer is only the entry point and
 the guide bookkeeping.
+
+## 8. The dot grid, the snap tolerance, and the positioning engine
+
+The dot-grid classes carry no Objective-C face, so the earlier map missed
+them. Their **names** are plain text in the binary's Swift reflection
+strings, though, and one of those names turned out to be the constant that
+settles the grid question.
+
+### 8.1 The dot spacing is 25 points, and it is unscaled
+
+`CRLCanvasDotGridLayer` exposes its spacing constant as a method, and the
+body is one line:
+
+```c
+double CRLCanvasDotGridLayer::kCRLUnscaledSpacingBetweenDotCenters()
+{
+  return 25.0;
+}
+```
+
+⇒ **The distance between dot centres is 25 points, in unscaled (world)
+coordinates.** The name says "unscaled" on purpose: the dot grid does not
+change spacing as the canvas zooms. The dots themselves grow
+(`scaledDotDiameter`), so the grid stays put in the world and only its
+rendering scales.
+
+The measured grid in the running app (a period of about 75 world points at
+25% zoom) is therefore **3 × 25** — the visible grid is every third dot,
+which is why the minor spacing and the visible spacing differ by exactly
+three.
+
+The rest of the dot grid's surface, from the same name dump:
+
+| What | The name |
+| --- | --- |
+| The spacing constant | `kCRLUnscaledSpacingBetweenDotCenters` |
+| The dot's rendered size | `scaledDotDiameter` |
+| The dot count | `columnAndRowCountOfDots` |
+| The first dot's offset | `leftAndTopScaledOffsetToCenterOfFirstDot` |
+| The grid spacing, per section | `p_gridSpacingForSection:` |
+| The preferred grid spacing | `p_preferredGridSpacingForSection:` |
+| The per-board visibility | `isCanvasDotGridEnabled`, `setCanvasDotGridVisible(_:)` |
+| The menu | `Show/Hide Dot Grid` |
+
+⇒ **The dot grid's visibility is per board**, not per user and not global —
+the string `State of the dot grid for a board (shown or hidden)` says so
+plainly. A replica that puts the toggle in app settings would be wrong.
+
+### 8.2 The snap tolerance scales with the zoom, through a tanh
+
+`p_maxSnapForSnapDistance:` is the ceiling on how far a card may be pulled
+before it snaps, and its body is:
+
+```c
+double CRLCanvasGuideController::p_maxSnapForSnapDistance(double snapDistance)
+{
+    float t = (float)(viewScale - 1.0);
+    return snapDistance / (tanhf(t) + 1.0);
+}
+```
+
+⇒ **The tolerance is the base distance divided by `tanh(viewScale − 1) + 1`.**
+With the base distance of 7 pt from §7.2:
+
+| Zoom | `tanh(scale − 1)` | Max snap |
+| --- | --- | --- |
+| 25% | −0.635 | **19.2 pt** |
+| 100% | 0 | **7.0 pt** |
+| 400% | 0.995 | **3.5 pt** |
+
+⇒ **Zoomed out, the tolerance is nearly three times the base; zoomed in, it
+is half.** The reason is the same in both directions: a fixed world distance
+shrinks on screen as you zoom out, so a tolerance that felt right at 100%
+would snap to nothing at 25%, and a tolerance that felt right at 25% would
+snap to everything at 400%. The curve is `tanh` because it has to be smooth
+at 100% and bounded at both ends.
+
+### 8.3 The positioning engine is a C function, like Milanote's
+
+`CRLBoardItemPositioner` is Freeform's counterpart to Milanote's collision
+engine, and it has the same shape: the Objective-C layer is a thin wrapper
+and the algorithm is in a private C function.
+
+| Selector | What the body does |
+| --- | --- |
+| `positionBoardItems:` | one call into a private C function with the items |
+| `boundsByFittingBoardItem:` | `visibleBoundsForPositioning` |
+| `i_boundsForPositioningBoardItem:` | the item's own bounds |
+| `canvasBoundsOfBoardItem:` | the item's bounds in canvas space |
+| `positionOffset` | the offset the positioner applied |
+| `initWithCanvasEditor:targetCenter:validGeometry:` | the positioner's target |
+
+⇒ **Both references keep their collision engine out of Objective-C.** For a
+replica this is the cheapest possible outcome: the algorithm can live in
+plain Swift with no bridging at all, and the Objective-C surface stays a
+single entry point. The difference between the two is not the algorithm but
+the unit — Milanote's works in **grid units** (§18.3 of the Milanote
+document), Freeform's works against **visible bounds for positioning**.
+
+The positioner's own vocabulary is the clearest statement of what Freeform's
+collision engine actually does — 29 methods, of which these are the load
+bearing ones:
+
+| Selector | What it says |
+| --- | --- |
+| `p_infos:collideWithRect:orTargetCenter:` | the collision test — do these items collide with this rect, or with this target centre |
+| `p_hasAnyCollisionForIndividualInfos:currentTotalFrame:…` | the collision check, against the running total frame |
+| `pPinnedCenter:andSize:toBounds:` | the solve — **pin a centre and a size into bounds** |
+| `p_applyFramesToBoardItems:withDelta:` | the commit — apply the solved frames |
+| `avoidCollisions` / `setAvoidCollisions:` | collisions are **optional**, not automatic |
+| `clampToVisibleBounds` | the clamp to the visible rectangle is also a separate switch |
+| `shouldPreserveRelativePositions` | a third switch: keep the items' relative positions |
+| `boardItemsToIgnoreForCollisions` | a per-item exclusion list |
+| `useOriginalPositions` | ignore the solved positions entirely |
+| `resizeItemsToFitContainer:` | the fit variant |
+| `positionBoardItemsSpatially:icc:spatialBaseTransform:…` | the spatial variant, with the inter-item spacing context |
+
+⇒ **Freeform's positioning is: detect collisions, then pin the item's centre
+and size into the visible bounds, then apply the result.** Three independent
+switches (`avoidCollisions`, `clampToVisibleBounds`,
+`shouldPreserveRelativePositions`) mean a caller can ask for any subset of
+those behaviours.
+
+⇒ **The two references solve the same problem with different shapes.**
+Milanote quantises to a grid and cascades neighbours into a column.
+Freeform detects a collision and pins the item's centre into the bounds. A
+replica that wants Milanote's behaviour of a card nudging its neighbours
+cannot get it from Freeform, and vice versa — this is the one place where
+copying one reference means deliberately not copying the other.
+
+### 8.4 The drag-time snap starts from the alignment frame
+
+`snapRectForDynamicDragWithOffset:` is one line:
+
+```c
+CGRect CRLCanvasRep::snapRectForDynamicDragWithOffset(CGPoint offset)
+{
+    CGRect r = layout.alignmentFrameInRoot;
+    return CGRectOffset(r, offset.x, offset.y);
+}
+```
+
+⇒ **The drag snap starts from the item's alignment frame in the root, and
+offsets it.** The alignment frame — not the raw bounds — is the thing that
+snaps, which is what makes a card's *text* line up with a neighbour's *text*
+rather than their boxes.

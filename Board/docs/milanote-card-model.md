@@ -546,3 +546,78 @@ The app-init payload carries the flags the client reads: `betterAuth`,
 ⇒ **Some behaviour is switched off by the server, not by the user.** The
 auto-shift cap is one of them, so a replica that copies the rule has to
 decide whether its cap is a setting or a constant.
+
+## 18. The action payloads, field by field
+
+The action vocabulary (§17.2) lists the names. This section is the other half:
+what each action actually carries. All of it comes from the bundle's own
+action creators, not from guessing.
+
+### 18.1 The three canonical creators
+
+| Action | The payload the client builds |
+| --- | --- |
+| **Create** | `{ elementType, location, content, currentBoardId, transactionId, creationSource }` |
+| **Update** | `{ id, updateType, changes, location, transactionId }` |
+| **Delete** | `{ id, elementType, location, sync, transactionId }` |
+| **Move** | `{ moves: [{ id, location }], moveOperation, transactionId }` |
+| **Move, many** | `{ moves: [...], moveOperation, transactionId, actionOrigin, initialMeasurements }` |
+
+Three things fall out of that table:
+
+- **Create carries no id.** The server assigns it, which is why the envelope
+  needs `__v` and an id slot that the client fills in afterwards.
+- **Delete carries the element type and the parent**, not just the id. The
+  server is told what is being deleted and where it was, so it can decide
+  whether this is a trash move or a real delete.
+- **Update carries `updateType`** — an enum, not a boolean. The reference
+  distinguishes kinds of update (a table's content version, a card's text, a
+  card's position) rather than sending a diff and letting the server guess.
+
+### 18.2 The location schema: six position variants
+
+The bundle registers one accessor per position field, and the set of those
+accessors is the schema:
+
+| Position variant | The keys it carries |
+| --- | --- |
+| Canvas | `x`, `y`, `score` |
+| List | `index`, `score` |
+| Attached | `attachMode` — `inline`, `withBackground`, `withoutBackground` |
+| Restore | `restoreLocation`, plus `parentId` and `section` |
+| Trashed | `deletedDate`, plus `addedDate` |
+| Any | `addedDate` |
+
+And the section enum is exactly six values:
+
+```
+CANVAS   INBOX   TRASH   DELETED   ATTACHED   QUICK_NOTES
+```
+
+⇒ **The position is a tagged union discriminated by which keys are present,
+not by a tag field.** A replica that adds an explicit `kind` discriminator
+would be *more* explicit than the reference and still wire-compatible, but it
+must accept the reference's shape, because a card's position changes meaning
+by which key is there: `x`/`y` means the canvas, `index` means the column,
+`attachMode` means the parent card's edge.
+
+### 18.3 The collision engine runs in a Worker, in grid units
+
+The measurement worker receives the elements and their sizes and returns the
+layout, and the sizes it is given are **divided by the grid size**:
+
+```js
+{ id, width:  measurements[id].width  / gridSize,
+        height: measurements[id].height / gridSize }
+```
+
+⇒ **The collision engine works in grid units, not in points.** That is the
+same rule as §17.1 (the 4-cell margin, the 2-cell minimum shift) — the
+engine's unit *is* the grid, and the card's footprint is measured in it.
+
+### 18.4 The live-edit pair
+
+`ELEMENT_EDIT_START` carries more than the element: `{ id, user, userId,
+timestamp, sync, type }`. The edit session is attributed and timestamped on
+the wire, which is what makes a concurrent edit resolvable rather than merely
+last-writer-wins.
