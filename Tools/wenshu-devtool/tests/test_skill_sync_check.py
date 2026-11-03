@@ -347,6 +347,88 @@ def case_14_a_wording_difference_is_drift() -> None:
         check("a warning is raised", bool(result["warnings"]), True)
 
 
+def case_15_json_mode_still_reports_failures() -> None:
+    """The reviewer found this: the --json branch returned 0 before the
+    failure check, so the tool handed a caller a green light while its own
+    summary said "3 skill(s) need attention"."""
+    import io
+    import contextlib
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / ".hermes"
+        for profile in ("pocock", "wenshu-review"):
+            (root / "profiles" / profile / "skills").mkdir(parents=True)
+            write_config(root, profile, names_shared_tree=False)
+        mod.HERMES = root
+        mod.SHARED_TREE = root / "shared" / "wenshu-skills"
+        mod.READER_OF = {"sdlc-review": "wenshu-review"}
+        out = io.StringIO()
+        err = io.StringIO()
+        argv = sys.argv
+        sys.argv = ["skill_sync_check.py", "--json"]
+        try:
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = mod.main()
+        finally:
+            sys.argv = argv
+        check("the json mode exits 1 when there are problems", code, 1)
+        check("stdout is still pure JSON", bool(json.loads(out.getvalue())), True)
+        check(
+            "the summary still says so",
+            "need attention" in err.getvalue(),
+            True,
+        )
+
+
+def case_16_missing_from_is_read_from_the_disk() -> None:
+    """The reviewer found this: `missing_from` still read the hardcoded
+    constant, so it named profiles that do not exist and omitted the real
+    one that lacks the skill."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / ".hermes"
+        for profile in ("alpha", "beta", "gamma"):
+            (root / "profiles" / profile / "skills").mkdir(parents=True)
+            write_config(root, profile, names_shared_tree=False)
+        mod.HERMES = root
+        mod.SHARED_TREE = root / "shared" / "wenshu-skills"
+        mod.READER_OF = {}
+        result = mod.check("own-skill", None)
+        check(
+            "every real profile is reported",
+            sorted(result["missing_from"]),
+            ["alpha", "beta", "gamma"],
+        )
+        check(
+            "no invented profile",
+            "pocock" in result["missing_from"],
+            False,
+        )
+
+
+def case_17_the_headline_does_not_say_identical_when_the_words_differ() -> None:
+    """The reviewer found this: the headline keyed on `drift` only, so it
+    printed "copies identical: yes" in the exact case F4 was filed for."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / ".hermes"
+        for profile in ("pocock", "wenshu-review"):
+            write_skill(
+                root / "profiles" / profile / "skills" / "devops" / "own-skill",
+                "SKILL.md",
+                skill_md("own-skill", "the skill", ["Same Heading"])
+                + "the shared words\n",
+            )
+            write_config(root, profile, names_shared_tree=False)
+        reader = root / "profiles" / "wenshu-review" / "skills" / "devops" / "own-skill" / "SKILL.md"
+        reader.write_text(reader.read_text() + "an extra lesson only the reader has\n")
+        mod.HERMES = root
+        mod.SHARED_TREE = root / "shared" / "wenshu-skills"
+        mod.READER_OF = {}
+        result = mod.check("own-skill", None)
+        check("the wording difference is reported", result["wording_drift"], True)
+        same = not (result["drift"] or result.get("wording_drift"))
+        check("the headline would say DRIFT", same, False)
+
+
 def main() -> int:
     cases = [
         case_1_shared_tree_is_carried_by_every_profile,
@@ -363,6 +445,9 @@ def main() -> int:
         case_12_the_reader_missing_the_skill_is_a_failure,
         case_13_shared_tree_needs_the_profile_to_name_it,
         case_14_a_wording_difference_is_drift,
+        case_15_json_mode_still_reports_failures,
+        case_16_missing_from_is_read_from_the_disk,
+        case_17_the_headline_does_not_say_identical_when_the_words_differ,
     ]
     for case in cases:
         print(f"== {case.__name__}")

@@ -50,11 +50,12 @@ HERMES = Path.home() / ".hermes"
 # only by that profile.
 SHARED_TREE = HERMES / "shared" / "wenshu-skills"
 
-# The profiles that dispatch work on the board. This is READ FROM THE DISK,
-# never a hardcoded list: a hardcoded list asserts facts about profiles
-# that may not exist (= the review lane's `wenshu-dev` has no directory at
-# all), and a profile that does not exist cannot be a reader.
-PROFILES = ("pocock", "wenshu-review")
+# The fallback when the profiles directory cannot be read at all. It is a
+# FALLBACK and never the truth: a hardcoded list asserts facts about
+# profiles that may not exist (= the review lane's `wenshu-dev` has no
+# directory at all), and a profile that does not exist cannot be a reader.
+# Every real lookup goes through `discover_profiles()`.
+_FALLBACK_PROFILES = ("pocock", "wenshu-review")
 
 
 def discover_profiles() -> tuple:
@@ -65,7 +66,7 @@ def discover_profiles() -> tuple:
     """
     root = HERMES / "profiles"
     if not root.exists():
-        return PROFILES
+        return _FALLBACK_PROFILES
     found = tuple(
         sorted(
             p.name
@@ -73,7 +74,7 @@ def discover_profiles() -> tuple:
             if p.is_dir() and (p / "config.yaml").exists()
         )
     )
-    return found or PROFILES
+    return found or _FALLBACK_PROFILES
 
 # The skills that carry the board's flow rules.
 SHARED_SKILLS = ("sdlc-review", "wenshu-parallel-dev", "wenshu-pocock-workflow")
@@ -165,7 +166,11 @@ def check(skill: str, rule: str | None) -> dict:
     result: dict = {
         "skill": skill,
         "profiles_with_the_skill": sorted(paths),
-        "missing_from": [p for p in PROFILES if p not in paths],
+        # The profiles are READ FROM THE DISK. A hardcoded list asserts
+        # facts about profiles that do not exist on this machine (= it named
+        # a profile that has no directory) and omits the real ones that lack
+        # the skill (= the case this column exists to report).
+        "missing_from": [p for p in discover_profiles() if p not in paths],
         "drift": False,
         "wording_drift": False,
         "differing_sections": {},
@@ -273,16 +278,23 @@ def main() -> int:
         # The JSON is the ONLY thing on stdout in this mode: a caller pipes
         # it into json.loads, and a summary line after the array makes that
         # fail with "Extra data". The summary goes to stderr.
+        #
+        # AND THE EXIT CODE STILL REPORTS THE FAILURES. An early `return 0`
+        # here would hand a caller a green light while the tool's own
+        # summary says "3 skill(s) need attention" = a gate that cannot
+        # fail, which is the exact defect this tool exists to prevent.
         print(json.dumps(results, indent=2))
         _summary(results)
-        return 0
+        bad = [r for r in results if r["problems"]]
+        return 1 if bad else 0
     else:
         for r in results:
             print(f"=== {r['skill']} ===")
             print(f"  carried by: {', '.join(r['profiles_with_the_skill']) or '(nobody)'}")
             if r["missing_from"]:
                 print(f"  missing from: {', '.join(r['missing_from'])}")
-            print(f"  copies identical: {'no (DRIFT)' if r['drift'] else 'yes'}")
+            same = not (r["drift"] or r.get("wording_drift"))
+            print(f"  copies identical: {'yes' if same else 'no (DRIFT)'}")
             if args.rule:
                 print(f"  rule {args.rule!r} in: {', '.join(r['rule_present_in']) or '(nobody)'}")
             if r["description"]:
@@ -310,8 +322,9 @@ def _summary(results: list) -> None:
         )
         if r["missing_from"]:
             print(f"  missing from: {', '.join(r['missing_from'])}", file=sys.stderr)
+        same = not (r["drift"] or r.get("wording_drift"))
         print(
-            f"  copies identical: {'no (DRIFT)' if r['drift'] else 'yes'}",
+            f"  copies identical: {'yes' if same else 'no (DRIFT)'}",
             file=sys.stderr,
         )
         for p in r["problems"]:
