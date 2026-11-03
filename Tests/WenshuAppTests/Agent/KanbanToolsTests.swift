@@ -35,7 +35,7 @@ struct KanbanToolsTests {
     @MainActor
     func testCreateAndShow() async throws {
         let store = try Self.makeKanbanRepository()
-        let tools = KanbanTools(store: WSKanbanRepository.shared)
+        let tools = KanbanTools(store: store)
         let createResult = await tools.kanban(
             action: "create",
             params: KanbanTools.KanbanParams(title: "Write chapter 1", body: "outline: foo")
@@ -59,7 +59,7 @@ struct KanbanToolsTests {
     @MainActor
     func testListFilters() async throws {
         let store = try Self.makeKanbanRepository()
-        let tools = KanbanTools(store: WSKanbanRepository.shared)
+        let tools = KanbanTools(store: store)
         _ = await tools.kanban(
             action: "create",
             params: KanbanTools.KanbanParams(title: "Listable")
@@ -75,7 +75,7 @@ struct KanbanToolsTests {
     @MainActor
     func testCompleteTransition() async throws {
         let store = try Self.makeKanbanRepository()
-        let tools = KanbanTools(store: WSKanbanRepository.shared)
+        let tools = KanbanTools(store: store)
         let createResult = await tools.kanban(
             action: "create",
             params: KanbanTools.KanbanParams(title: "Complete me")
@@ -100,7 +100,7 @@ struct KanbanToolsTests {
     @MainActor
     func testBlockUnblock() async throws {
         let store = try Self.makeKanbanRepository()
-        let tools = KanbanTools(store: WSKanbanRepository.shared)
+        let tools = KanbanTools(store: store)
         let createResult = await tools.kanban(
             action: "create",
             params: KanbanTools.KanbanParams(title: "Block me")
@@ -124,7 +124,7 @@ struct KanbanToolsTests {
     @MainActor
     func testUnknownAction() async throws {
         let store = try Self.makeKanbanRepository()
-        let tools = KanbanTools(store: WSKanbanRepository.shared)
+        let tools = KanbanTools(store: store)
         let result = await tools.kanban(action: "delete")
         #expect(result.success == false)
         #expect(result.output.contains("Unknown kanban action"))
