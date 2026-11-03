@@ -69,6 +69,29 @@ struct FrameMagicSweepTests {
         }
     }
 
+    /// The card's source, across the two files it lives in.
+    ///
+    /// The card was ONE file and was split under the tree's 600-LOC cap
+    /// into the card's own file and the body's extension file. The
+    /// assertion below reads the source, so it reads the CARD's source
+    /// (= both files), not one file's slice of it: a move is not a
+    /// disappearance.
+    private static let cardSourceFiles = [
+        "Sources/WenshuApp/Features/Editor/View/PreviewPaneCard.swift",
+        "Sources/WenshuApp/Features/Editor/View/PreviewPaneCard+Body.swift",
+    ]
+
+    /// The two files' source, joined.
+    ///
+    /// The join is a newline, so a line never runs into the next file's
+    /// first line, and an assertion that counts a token counts it the
+    /// same way it counted it when the card was one file.
+    private static func cardSource() throws -> String {
+        try cardSourceFiles
+            .map { try String(contentsOf: SourceLocator.url($0), encoding: .utf8) }
+            .joined(separator: "\n")
+    }
+
     @Test("Round 9 — PreviewPane 64×64 hero card thumbnail preserved as sweep boundary exception")
     func previewPaneHeroCardException() throws {
         // The hero card moved out of `PreviewPane.swift` and into
@@ -77,8 +100,7 @@ struct FrameMagicSweepTests {
         // .resizable() + .aspectRatio() + .symbolRenderingMode(.monochrome)
         // pattern = SFIcon does not own hero card surfaces) now lives in
         // the card file.
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/PreviewPaneCard.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.cardSource()
         #expect(content.contains(".frame(width: 64, height: 64)"),
                 "PreviewPaneCard must keep the 64×64 hero card thumbnail literal (= sweep boundary exception)")
     }
