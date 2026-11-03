@@ -224,9 +224,12 @@ to re-derive them.
 
   | the site | the assertion | the base (`5442b96f12`, before this session's first commit) | the merged tree (`ccbb47db6d`) |
   | --- | --- | --- | --- |
-  | `ChatViewHistoryShortcutTests.swift:35` | the chat's history shortcut | **FAILS** | **FAILS** |
-  | `EditorTabTitleTests.swift:60` | `displayTitle` prefers the document's path | **FAILS** | **FAILS** |
-  | `AsyncDelegationRegistryTests.swift:104` | `Expectation failed: mentionsReported` | **FAILS** | **FAILS** |
+  | `ChatViewHistoryShortcutTests.swift:35` | `body_logs_history_metadata()`: `Expectation failed: block.contains("totalTokens")` | **FAILS** | **FAILS** |
+  | `EditorTabTitleTests.swift:60` | `displayTitle_documentPathBasenameWins_overTitle`: `Expectation failed: title == <the document's basename>` | **FAILS** | **FAILS** |
+  | `AsyncDelegationRegistryTests.swift:104` | "the chat's @-mention path registers into the shared registry": `Expectation failed: mentionsReported` | **FAILS** | **FAILS** |
+
+  (the second assertion's expected value is a CJK title, which this
+  document does not quote, because the document itself carries no CJK.)
 
   The fourth site is **not** deterministic: `HermesTodoStoreConcurrencyTests.swift:268`
   is a TIMING assertion (`judged.elapsed < 5.0`), and it PASSES when its
