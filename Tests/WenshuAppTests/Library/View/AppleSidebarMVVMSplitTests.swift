@@ -24,6 +24,27 @@ import Foundation
 @Suite("AppleSidebarView MVVM split + folder→cards chain")
 struct AppleSidebarMVVMSplitTests {
 
+    /// The service's two files, joined.
+    ///
+    /// The service's classification (= the reference library's own
+    /// bucketing and its two-level tag tree) lives in its own file,
+    /// so an assertion about the service reads both.
+    private static let sidebarServiceSourceFiles = [
+        "Sources/WenshuApp/Features/Library/View/SidebarService.swift",
+        "Sources/WenshuApp/Features/Library/View/SidebarService+ReferenceLibrary.swift",
+    ]
+
+    /// The two files' source, joined.
+    ///
+    /// The join is a newline, so a line never runs into the next
+    /// file's first line, and an assertion that counts a token counts
+    /// it the same way it counted it when the service was one file.
+    private static func sidebarServiceSource() throws -> String {
+        try sidebarServiceSourceFiles
+            .map { try String(contentsOf: SourceLocator.url($0), encoding: .utf8) }
+            .joined(separator: "\n")
+    }
+
     /// The signature of the book-document loader, matched across the
     /// line breaks the declaration is written on (= the loader is a
     /// static on PreviewPaneOps that takes the store).
@@ -196,7 +217,7 @@ struct AppleSidebarMVVMSplitTests {
         // outline / draft / idea rows) renders an "X items"
         // subtitle (= the .md file count under that folder),
         // mirroring the reference-library category row shape.
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Library/View/SidebarService.swift")
+        let src = try Self.sidebarServiceSource()
         #expect(src.contains("loadFolderDocCount"),
                 "SidebarService MUST inject a loadFolderDocCount closure (= the count loader)")
         #expect(src.contains("\\(count) 项"),
@@ -211,7 +232,7 @@ struct AppleSidebarMVVMSplitTests {
         // those holds the tags that belong to it (= a two-level
         // tree). Individual references are NOT rendered as leaves
         // in the sidebar.
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Library/View/SidebarService.swift")
+        let src = try Self.sidebarServiceSource()
         #expect(src.contains("referenceCategoryKey"),
                 "SidebarService MUST bucket references by category")
         #expect(src.contains("EntityCategoryFromDirectoryName"),
@@ -271,7 +292,7 @@ struct AppleSidebarMVVMSplitTests {
         //   hint. The fix: displayName in
         //   title (user-readable); routingKey in dedicated
         //   field (forwardSelection reads it).
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Library/View/SidebarService.swift")
+        let src = try Self.sidebarServiceSource()
         #expect(src.contains("title: folder.displayName") || src.contains("title: category.displayName"),
                 "category rows MUST use displayName as the title (= the user-facing Chinese label; = current source uses folder.displayName for the folder row)")
         #expect(src.contains("routingKey: tag") || src.contains("routingKey: category.directoryName"),
