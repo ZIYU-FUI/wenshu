@@ -68,7 +68,7 @@ exists.
 | A drag gesture | `.draggable` / `.dropDestination` | — |
 | Rich text in a card | `SwiftUI.TextEditor` | — |
 | Generated imagery | `ImagePlayground.imagePlaygroundSheet` | `ImageCreator` is **deprecated in 27.0** (= this client's floor), so the programmatic path is out |
-| A canvas | `SwiftUICore.Canvas` + `MagnifyGesture` + `DragGesture` + `ScrollGeometry` + `zIndex` | **`PKCanvasView` is not in the macOS SDK at all**, and macOS 27 adds no infinite canvas of its own. PencilKit ships the drawing data model and not the canvas view |
+| A canvas | `SwiftUICore.Canvas` + `MagnifyGesture` + `DragGesture` + `ScrollGeometry` + `zIndex` | **PencilKit ships the drawing data model and not the canvas view**: `PKCanvasView` is exported by PencilKit, but Apple ships no header for it on macOS and the macOS Swift interface does not expose it. macOS 27 adds no infinite canvas of its own. PencilKit ships the drawing data model and not the canvas view |
 | Icons | SF Symbols 6 | The desktop app's icon factory is in the app target and is **not consumable** |
 
 Two consequences for this client:
@@ -192,6 +192,11 @@ decision that shapes the client's architecture. Two ways to honour it:
 7. Does the board open in the list regime or the canvas regime by default, and
    does a chapter keep both? Milanote's board holds both at once (a section
    decides which), so the client can too.
+8. Does the client get its own CI job? The repository's runner (`macos-14`, Xcode 15.4) is
+   behind the repository's own macOS 27 floor, so a job for `Board/` would be red on
+   arrival. Until a runner that can build the floor exists, the client's build and test
+   gates are manual (`cd Board && swift build`, `cd Board && swift test`).
+
 
 ## 11. The measured facts behind this plan
 

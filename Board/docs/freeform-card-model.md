@@ -62,7 +62,7 @@ Compare with Milanote's 19 element types. Freeform's vocabulary is **smaller and
 
 `PencilKit` (ink), `PaperKit` + `PDFKit` (scanned documents), `CoreTransferable` (drag and drop), `AppIntents`, `UniformTypeIdentifiers`, `Symbols`, `CloudKit` + `CloudDocs` + `CloudSharing` + `CoreDataUI` (shared boards), `RealityFoundation` + `RealityKit` + `Metal` + `MetalKit` (3D objects), `Vision` + `VisionKitCore`, `TranslationUIServices`, `PhotosUI` + `PhotosFormats` + `ImageIO`, `QuickLookUI` + `QuickLookThumbnailing`, `CoreSpotlight`, `LinkPresentation`, `CoreText`, `CryptoKit`, `StoreKit`, `SwiftUI`, `AppKit`.
 
-Plus two **system-private** frameworks that are not in the SDK: `AppImageGenerationModel` and `AppImageGenerationUI`. Freeform's image generation is therefore not something Wenshu can copy — but Apple ships a public equivalent (§16).
+Plus two **system-private** frameworks that are not in the SDK: `AppImageGenerationModel` and `AppImageGenerationUI`. Freeform's image generation is therefore not something Wenshu can copy — but Apple ships a public equivalent (§3.2).
 
 ### 2.5 Freeform's official surface is App Intents, not a file format
 

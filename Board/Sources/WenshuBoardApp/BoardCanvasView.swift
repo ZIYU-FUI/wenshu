@@ -6,9 +6,12 @@
 //
 //  Apple ships the canvas surface (`SwiftUICore.Canvas`), the magnify gesture,
 //  the drag gesture, the scroll geometry, `zIndex` and `drawingGroup`. It does
-//  not ship the product: there is no public infinite canvas on macOS, and
-//  `PKCanvasView` is not in the macOS SDK at all, so Freeform's ink layer is
-//  its own private classes. This view is the product.
+//  not ship the product: there is no public infinite canvas on macOS.
+//  PencilKit ships the drawing data model and not the canvas view
+//  (`PKCanvasView` is exported by PencilKit, but Apple ships no header for
+//  it on macOS and the macOS Swift interface does not expose it), and the
+//  reference reaches it through its own classes (`CRLPKDrawingProvider`).
+//  This view is the product.
 //
 //  The shape of it: a world coordinate space, a viewport that maps it to the
 //  screen (`BoardViewport`), and the items placed in the world. The world

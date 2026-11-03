@@ -132,8 +132,8 @@ tablet client is at Mobile/. This file governs the card board.
 
 | #   | Gate | Reference |
 | --- | ---- | --------- |
-| 7.1 | `swift build` exits 0 in Board/. | CI. |
-| 7.2 | `swift test` exits 0 in Board/. No skipped test without // TODO + tracker id. | CI. |
+| 7.1 | `swift build` exits 0 in Board/. | Manual until CI has a job for `Board/` (= 7.2's reason). |
+| 7.2 | `swift test` exits 0 in Board/. No skipped test without // TODO + tracker id. | Manual until CI has a job for `Board/`: the repository's runner (`macos-14`, Xcode 15.4) is behind the repository's own macOS 27 floor, so a job added today would be red on arrival. |
 | 7.3 | Design sweep: zero naked `Image(systemName:)`, zero inline `.cornerRadius(N)`, zero `.font(.system(size:))`, zero magic spacing in the changed view files. | Tools/wenshu-devtool/design-sweep.sh (the desktop copy is the semantic SSOT). |
 | 7.4 | Dual-axis audit: Standards axis (code-review + codebase-design) + Spec axis (the card's 4-section spec). Both read-only, parallel. | docs/agents/parallel-development.md; wenshu-parallel-dev. |
 | 7.5 | CJK comment audit: zero new CJK in the modified file. | CI lint-commits job. |
