@@ -21,15 +21,14 @@ another lane.
 | `BookChapterTool.swift` | 760 | 449 + 325 | `853290031e` |
 | `BookEntityTool.swift` | 718 | 436 + 300 | `03ac3e9684` |
 | `BookOutlineTool.swift` | 648 | 381 + 288 | `10725edba9` |
-| `WenshuConductorImportRouter.swift` | 616 | 530 + 101 | (= in review, `t_366060c8`) |
+| `WenshuConductorImportRouter.swift` | 616 | 530 + 101 | `96faf0eed6` |
 
-The over-cap count at `main` went from 18 to 8 with these landings
-(measured at `main` = `c6e8ce3255`: 490 production files, 8 over the
-cap). The eight that remain are `ConversationLoop.swift` (1109),
+The over-cap count at `main` went from 18 to 7 with these landings
+(measured at `main` = `96faf0eed6`: 490 production files, 7 over the
+cap). The seven that remain are `ConversationLoop.swift` (1109),
 `ChatSessionViewModel.swift` (942), `ChatView.swift` (892),
 `PreviewPaneCard.swift` (790), `LayoutTreeState.swift` (773),
-`RequestHelpers.swift` (673), `WenshuAppDelegate.swift` (655) and
-`WenshuConductorImportRouter.swift` (616, = the one still in review).
+`RequestHelpers.swift` (673) and `WenshuAppDelegate.swift` (655).
 
 Two records also landed: the project inventory of record (with its
 measurement script) and the comment policy's eight densest files.
@@ -211,17 +210,19 @@ method, and the script prints the method next to the number.
    still need new prose. The branch must not land until they are written.
    The commit message now states this plainly instead of claiming every
    block was rewritten.
-2. **The import router's second request** (= card `t_366060c8`). The
-   split itself was approved; the registry row's LOC cell and the commit
-   body's line count were one line short, and both are corrected.
+2. **The import router's second request** (= card `t_366060c8`): APPROVED
+   and landed as `96faf0eed6`. The split itself was approved; the
+   registry row's LOC cell and the commit body's line count were one
+   line short, and both were corrected. The rebase that followed the
+   approval reproduced the same change-id, so the verdict still bound.
 3. **The inventory's sixth request** (= card `t_5ea7fc28`). One label
    said "The other seven:" over a block of eleven assertion sites.
 4. **Three files of the settings card** (`PreviewPaneCard.swift`,
    `RequestHelpers.swift`, `WenshuAppDelegate.swift`) and **four of the
    chat card** (`ConversationLoop.swift`, `ChatSessionViewModel.swift`,
    `ChatView.swift`, `LayoutTreeState.swift`), the latter four waiting on
-   the comment policy. Together with the import router (= item 2) that is
-   the eight files still over the cap.
+   the comment policy. Together those are the seven files still over the
+   cap.
 5. **`main`'s pre-existing whole-suite failures.** They are the tree's
    known set and are not this session's: the record's own partition
    (= 6 that pass alone + 5 that do not = 11 sites) is in the inventory.
