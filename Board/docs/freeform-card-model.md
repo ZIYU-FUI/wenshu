@@ -716,10 +716,19 @@ change spacing as the canvas zooms. The dots themselves grow
 (`scaledDotDiameter`), so the grid stays put in the world and only its
 rendering scales.
 
-The measured grid in the running app (a period of about 75 world points at
-25% zoom) is therefore **3 × 25** — the visible grid is every third dot,
-which is why the minor spacing and the visible spacing differ by exactly
-three.
+The grid measured in the running app had a period of **20 image pixels at
+25% zoom**, which is 80 world points — about **3.2 dot centres**. The
+source-level fact is the 25; the ratio is an observation, and the gap
+between the two is that the visible grid is not the same thing as the dot
+spacing. What the source settles, and the measurement cannot, is that the
+dot spacing itself is fixed in world coordinates: the constant is unscaled,
+so a zoom changes the rendered size of a dot and nothing about the
+distance between them. The 80-versus-25 ratio is consistent with a visible
+grid drawn every third or fourth dot, and the binary's own
+`min-unit-grid-%.3f-%.3f` / `mid-unit-grid-%.3f-%.3f` /
+`max-unit-grid-%.3f-%.3f` format strings say the unit grid comes in three
+tiers — so the exact multiple is a tier, not a constant, and which tier the
+canvas sits in is the open detail.
 
 The rest of the dot grid's surface, from the same name dump:
 
