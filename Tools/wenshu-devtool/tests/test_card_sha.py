@@ -207,6 +207,114 @@ def case_9_the_gate_reader_is_reproduced() -> None:
     check("a sha named later is not read", mod.first_paragraph_sha(late), None)
 
 
+def case_10_an_uppercase_guess_is_caught() -> None:
+    """The reviewer found this: the candidate detector only recognised
+    LOWERCASE hex, so a guess typed in uppercase was never checked and
+    --check gave a false green.
+
+    NOTE: an UPPERCASE form of a REAL sha is legal (= git's object names
+    are case-insensitive), so the case uses an uppercase string that does
+    NOT exist. A detector that only recognises lowercase hex cannot see
+    it, which is exactly the hole.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        full, short = make_repo(repo)
+        guess = ("deadbeef" * 5).upper()  # 40 uppercase hex characters, absent
+        body = (
+            "# [T2] x\n\n## WHAT TO BUILD\n\n"
+            f"A verdict on `{short}` (branch `wt/x`).\n\n"
+            f"The sha under review: **{guess}**\n"
+        )
+        path = Path(tmp) / "card.md"
+        path.write_text(body)
+        sys.argv = ["card_sha.py", "--check", str(path), "--repo", str(repo)]
+        check("exit 1", mod.main(), 1)
+
+
+def case_11_a_guess_with_a_non_hex_character_is_caught() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        full, short = make_repo(repo)
+        body = (
+            "# [T2] x\n\n## WHAT TO BUILD\n\n"
+            f"A verdict on `{short}` (branch `wt/x`).\n\n"
+            f"The sha under review: **{full[:-1]}z**\n"
+        )
+        path = Path(tmp) / "card.md"
+        path.write_text(body)
+        sys.argv = ["card_sha.py", "--check", str(path), "--repo", str(repo)]
+        check("exit 1", mod.main(), 1)
+
+
+def case_12_write_does_not_claim_success_when_it_changed_nothing() -> None:
+    """The reviewer found this: --write printed "the body now names <sha>"
+    and exited 0 on a body whose first paragraph named no sha to replace,
+    and the file was byte-identical afterwards (= a gate that reports
+    success while the defect is present)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        make_repo(repo)
+        path = Path(tmp) / "card.md"
+        body = "# [T2] x\n\n## WHAT TO BUILD\n\nA verdict on the change (branch `wt/x`).\n"
+        path.write_text(body)
+        before = path.read_bytes()
+        sys.argv = [
+            "card_sha.py", "--write", str(path), "--branch", "HEAD",
+            "--repo", str(repo),
+        ]
+        check("exit 1", mod.main(), 1)
+        check("the file was left alone", path.read_bytes() == before, True)
+
+
+def case_13_write_rewrites_a_sha_line_in_any_shape() -> None:
+    """The board phrases that line many ways, so the rewrite matches the
+    line rather than one exact form."""
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        full, short = make_repo(repo)
+        path = Path(tmp) / "card.md"
+        path.write_text(
+            "# [T2] x\n\n## WHAT TO BUILD\n\n"
+            f"A verdict on `{short}` (branch `wt/x`).\n\n"
+            f"The sha under review is {full} on branch `wt/x`.\n"
+        )
+        sys.argv = [
+            "card_sha.py", "--write", str(path), "--branch", "HEAD",
+            "--repo", str(repo),
+        ]
+        check("exit 0", mod.main(), 0)
+        out = path.read_text()
+        check("the line now carries the real sha", full in out, True)
+        check("the old sha is gone", out.count(full) == 1, True)
+
+
+def case_14_a_long_token_that_is_not_a_sha_is_not_reported() -> None:
+    """The candidate filter (= a long token that holds enough HEX characters
+    to be a sha) exists so an ordinary long word in a body is not reported
+    as a broken sha. A mutation that dropped it left the suite green, so
+    the filter needs its own case.
+
+    Measured 2026-11-03: the rule flags 0 additional candidates across all
+    384 board bodies (= it costs nothing on real bodies).
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        full, short = make_repo(repo)
+        # 40 characters, and only 4 of them are hex digits
+        word = "z" * 36 + "1234"
+        body = (
+            "# [T2] x\n\n## WHAT TO BUILD\n\n"
+            f"A verdict on `{short}` (branch `wt/x`).\n\n"
+            f"## WHY\n\nThe word {word} is not a sha.\n\n"
+            f"The sha under review: **{full}**\n"
+        )
+        path = Path(tmp) / "card.md"
+        path.write_text(body)
+        sys.argv = ["card_sha.py", "--check", str(path), "--repo", str(repo)]
+        check("exit 0 (= not reported as a broken sha)", mod.main(), 0)
+
+
 def main() -> int:
     cases = [
         case_1_read_prints_the_sha_from_git,
@@ -218,6 +326,11 @@ def main() -> int:
         case_7_write_replaces_both_sha_lines,
         case_8_write_on_a_body_without_what_to_build_fails,
         case_9_the_gate_reader_is_reproduced,
+        case_10_an_uppercase_guess_is_caught,
+        case_11_a_guess_with_a_non_hex_character_is_caught,
+        case_12_write_does_not_claim_success_when_it_changed_nothing,
+        case_13_write_rewrites_a_sha_line_in_any_shape,
+        case_14_a_long_token_that_is_not_a_sha_is_not_reported,
     ]
     for case in cases:
         print(f"== {case.__name__}")

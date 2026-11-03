@@ -42,11 +42,37 @@ import review_gate  # the gate's own reader, called rather than copied
 
 SHA_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
 FULL_SHA_RE = re.compile(r"\b[0-9a-f]{40}\b")
-# A sha is 40 hex characters. A run of 34 or more that is NOT 40 is a sha
-# somebody typed wrong (= the failure measured 2026-11-03: a short sha with
-# random characters appended, sometimes landing on 41), so those runs are
-# checked against the repo as well.
-SUSPECT_SHA_RE = re.compile(r"\b[0-9a-f]{34,}\b")
+# A sha is 40 hex characters, LOWERCASE. A run of 34 or more that is NOT 40
+# is a sha somebody typed wrong (= the failure measured 2026-11-03: a short
+# sha with random characters appended, sometimes landing on 41), so those
+# runs are checked against the repo as well.
+#
+# AND THE CANDIDATE IS NOT REQUIRED TO BE LOWERCASE HEX. A guess typed in
+# UPPERCASE, or one with a non-hex character in it, is still a guess, and a
+# detector that only recognises lowercase hex lets it through with a false
+# green (= `git cat-file -t` accepts uppercase hex and returns 128 for a
+# sha that does not exist, so `exists()` was already correct: the hole was
+# purely the detector). So the candidate is a run of >=34 word characters
+# that holds >=30 hex characters, in either case.
+SUSPECT_SHA_RE = re.compile(r"\b[0-9A-Za-z]{34,}\b")
+
+
+def sha_candidates(body: str) -> list[str]:
+    """The sha-shaped tokens in a body, including the ones that are not
+    valid lowercase hex (= a guess typed in uppercase, or with a non-hex
+    character in it).
+
+    A token is a candidate when it is long enough to be a sha (= >=34
+    characters) and holds enough hex characters to be one (= >=30). A real
+    sha is 40 hex characters, so a real sha always qualifies, and a guess
+    that got the case or one character wrong still qualifies.
+    """
+    out: set[str] = set()
+    for token in SUSPECT_SHA_RE.findall(body):
+        hexish = sum(1 for c in token if c in "0123456789abcdefABCDEF")
+        if hexish >= 30:
+            out.add(token)
+    return sorted(out)
 
 
 def git(args: list[str], repo: str) -> tuple[int, str, str]:
@@ -127,11 +153,33 @@ def main() -> int:
             r"[0-9a-f]{7,40}", short, para, count=1
         )
         body = body[: m.start(3)] + new_para + body[m.end(3) :]
-        body = re.sub(
-            r"(The sha under review:\s*\*\*)[0-9a-f]{7,40}(\*\*)",
-            rf"\g<1>{full}\g<2>",
-            body,
-        )
+        # The board phrases that line many ways ("The sha under review:
+        # <sha>", "The sha under review is <sha> on branch ...", with or
+        # without bold), so the rewrite matches the LINE and replaces the
+        # sha inside it, rather than one exact form.
+        def _rewrite_sha_line(line: str) -> str:
+            if "sha under review" not in line.lower():
+                return line
+            return re.sub(r"[0-9a-fA-F]{7,40}", full, line, count=1)
+
+        body = "\n".join(_rewrite_sha_line(l) for l in body.splitlines())
+        # AND CHECK THE SLOT THE GATE ACTUALLY READS BEFORE WRITING. A
+        # --write that reports success without setting that slot is the
+        # defect this branch has been about, three rounds running: a gate
+        # that reports success while the defect is present. So the new body
+        # is checked FIRST (= the gate's own reader, called on the text
+        # that would be written), and a body the gate would still read as
+        # no-sha FAILS WITHOUT TOUCHING THE FILE.
+        gate_sha = review_gate.reviewed_sha(body)
+        if gate_sha != short:
+            print(
+                f"the body does not name {short} where the merge gate reads "
+                f"it: it reads {gate_sha!r} from the first paragraph of "
+                f"WHAT TO BUILD. Put the sha there (= 'A verdict on "
+                f"`<sha>` (branch `<branch>`).') and run this again. "
+                f"The file was NOT changed."
+            )
+            return 1
         path.write_text(body, encoding="utf-8")
         print(f"the body now names {short} (full {full})")
         return 0
@@ -151,11 +199,11 @@ def main() -> int:
             problems.append(
                 f"the sha the gate reads ({gate_sha}) does not exist in the repo"
             )
-        for full in sorted(set(SUSPECT_SHA_RE.findall(body))):
+        for full in sha_candidates(body):
             if not exists(full, repo):
                 problems.append(
                     f"a sha in the body does not exist: {full} "
-                    f"({len(full)} characters; a sha is 40)"
+                    f"({len(full)} characters; a sha is 40 lowercase hex)"
                 )
         if problems:
             for p in problems:
