@@ -330,6 +330,50 @@ tree and per-profile skills), so it stays valid when the real skills change:
 python3 Tools/wenshu-devtool/tests/test_skill_sync_check.py
 ```
 
+## Mutation check
+
+A separate tool, because it reads the TESTS and the code they guard. It
+answers the question a passing test suite cannot: **does this suite
+actually bite?**
+
+A regression test that asserts on its OWN arithmetic instead of on the
+code's output is a guard that cannot fail, and the review lane found
+exactly that, three rounds in (2026-11-03): a case that was meant to guard
+a headline fix re-implemented the headline's formula inside the test and
+asserted on that, so reverting the guarded code left the suite green while
+the tool still printed the defective string. The acceptance criterion is
+therefore not "the suite passes" but:
+
+```
+revert the guarded code  ->  the suite goes RED
+leave the code alone     ->  the suite stays GREEN
+```
+
+A suite that passes in both states is decoration.
+
+The tool runs the suite against a COPY of the tree with the mutation
+applied, in a fresh temporary directory, with a fresh subprocess (= no
+bytecode cache, and the real worktree is never edited). It reports the
+control run and the mutated run together, so a green control beside a red
+mutation is a guard that bites.
+
+```bash
+# Prove a guard bites: revert the guarded line and the suite must go red
+python3 Tools/wenshu-devtool/mutation_check.py \
+    --suite Tools/wenshu-devtool/tests/test_skill_sync_check.py \
+    --guard Tools/wenshu-devtool/skill_sync_check.py \
+    --mutate 'return not (result.get("drift") or result.get("wording_drift"))' \
+    --replace 'return not result.get("drift")'
+
+# The control alone (= the suite is green, so it CAN bite)
+python3 Tools/wenshu-devtool/mutation_check.py \
+    --suite Tools/wenshu-devtool/tests/test_skill_sync_check.py \
+    --control
+```
+
+Exit code: 0 = the suite bit, 1 = it did not (= the guard is empty), 2 = the
+suite was already red (= no verdict).
+
 ## AGENTS.md contract gate
 
 Another separate tool, because it reads the SSOT instead of the source tree
