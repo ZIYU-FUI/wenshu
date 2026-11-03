@@ -508,3 +508,179 @@ and foreground delivery needs the operator's approval.
 menus, the accessibility surface. The interactive behaviours — the zoom
 ladder's actual levels, the snap while dragging, the connector's magnet
 behaviour — remain **measured from the model in §4, not from the running app**.
+
+## 6. The method-level map
+
+### 6.1 How it was built, and why it was needed
+
+Freeform's canvas classes are **Swift with an Objective-C face**. The
+Objective-C metadata in the Mach-O carries every method's implementation
+pointer, and the selector behind that pointer is a chained pointer whose low
+32 bits are an offset **from the image base (0x100000000)** — into the
+image's own `__TEXT`, not into the shared cache. Resolving that gives, for
+every method:
+
+> (class, selector, Objective-C type encoding, entry point)
+
+**955 classes, 21,580 methods, 1,762 of them geometry-relevant.**
+
+The binary is stripped, so no symbol carries the class names: Ghidra's
+function manager names the implementations `FUN_xxxxxxxx`, and a filter on the
+name finds nothing. The map above is what makes the bodies reachable at all
+— the decompiler is then addressed by the entry point.
+
+### 6.2 The geometry classes
+
+| Class | Methods | What it is |
+| --- | --- | --- |
+| `CRLCanvasInfoGeometry` | 47 | the geometry of one item: position, size, angle, two flips |
+| `CRLCanvasMutableInfoGeometry` | 10 | the mutable half of the geometry |
+| `CRLCanvasAbstractLayout` | 68 | the layout tree: the chain to the root, the clip, the cull |
+| `CRLCanvasGuideController` | 66 | the snapping controller |
+| `CRLCanvasAlignmentGuide` | 25 | one guide |
+| `CRLCanvasSpacing` | 14 | a spacing guide |
+| `CRLCanvasLayer` | 60 | the viewport layer |
+| `CRLCanvasZoomTracker` | 17 | the zoom gesture |
+| `CRLCanvasAutoscroll` | 25 | the edge autoscroll |
+
+### 6.3 The entry points that matter
+
+| What | Selector and signature |
+| --- | --- |
+| **The snap** | `snapRectToGuides:forKnobTag:snapSize:` → `CGPoint` (the snap delta, not the snapped rect) |
+| **The snap, with a knob tag** | `snapRectToGuides:forKnobTag:` |
+| **The guides** | `showGuidesAlignedWithRect:shouldRenderX:shouldRenderY:` |
+| **The sizing guides** | `showSizingGuideUIForRep:matchingWidth:matchingHeight:` |
+| **The snap threshold** | `snapDistanceToUseForGuides` → `double` |
+| **The snap ceiling** | `p_maxSnapForSnapDistance:` |
+| **The zoom** | `zoomWithScale:velocity:locationInView:phase:` — the phase is an enum, so the gesture has stages |
+| **The zoom's end** | `p_finishZoomWithFinalScaleFactor:contentOffset:` |
+| **The autoscroll's step** | `p_unscaledDeltaForCount:` → `CGPoint` |
+| **The autoscroll's decision** | `p_autoscrollIfPossibleWithDelta:` |
+| **The geometry** | `initWithPosition:size:widthValid:heightValid:horizontalFlip:verticalFlip:` |
+| **A guide** | `initWithGeneratingObjectUnscaledRect:edge:` and `initWithType:offset:` |
+| **A guide's hit test** | `canBeSnappedToByEdge:ofFrame:inVisibleUnscaledRect:` |
+| **A spacing guide** | `initWithGuideType:withSpacingRect:forFrame:andFrame:` |
+
+Three of these are worth naming out, because they are the answers to questions
+the earlier sections only hinted at:
+
+- **The snap returns a delta, not a position.** `snapRectToGuides:...` returns
+  a `CGPoint`, so the caller applies the offset. The snapping is therefore a
+  pure function of the rect, the guides and the knob tag, and the knob tag is
+  what tells it which edge or handle is being dragged.
+- **The zoom gesture has phases.** `zoomWithScale:velocity:locationInView:phase:`
+  takes a phase enum and a velocity, and there is a separate
+  `p_finishZoomWithFinalScaleFactor:contentOffset:` for the end of the
+  gesture. The scale is committed at the end, which is the same live-edit
+  discipline as the layout (§4.3).
+- **The autoscroll is in unscaled units.** `p_unscaledDeltaForCount:` returns
+  an unscaled `CGPoint`, so the autoscroll step does not change with the
+  zoom.
+
+### 6.4 What is still out of reach
+
+The dot-grid classes (`CRLCanvasDotGridLayer`, `CRLCanvasDotGridBackground`,
+`CRLCanvasDotGridLayerImageStorage`) appear in the class-name strings but
+carry **no Objective-C methods**: they are Swift classes with no
+Objective-C face, so their implementations are not in the Objective-C
+metadata and the map above does not reach them. The dot grid's spacing rule
+is therefore still measured only from the running app (§5.2: 74.1 pt at 25%
+zoom).
+## 7. The method bodies
+
+512 of the mapped methods were decompiled (all 512 succeeded). The bodies are
+readable because the decompiler renders every Objective-C message as a named
+call, so a body reads as a message flow.
+
+### 7.1 The geometry is derived, not stored
+
+`CRLCanvasInfoGeometry` stores three things — `_position`, `_size`, `_flags` —
+and everything else is computed:
+
+| Selector | What the body does |
+| --- | --- |
+| `boundsBeforeRotation` | `position` → `size` → `CGRectWithOriginAndSize` |
+| `center` | `boundsBeforeRotation` → `NSCenterOfRect` |
+| `transform` | `boundsBeforeRotation` → `transformBasedOnRect:` |
+
+⇒ **An item's transform is a function of its rect, not a fourth stored
+value.** A replica that stores a transform has to keep it consistent with the
+rect; the reference never has to.
+
+The convenience initialiser shows the defaults:
+`initWithPosition:size:` forwards to
+`initWithPosition:size:widthValid:heightValid:horizontalFlip:verticalFlip:angle:`
+with **widthValid = 1, heightValid = 1, horizontalFlip = 0, verticalFlip = 0** —
+the size is valid by default and there is no flip.
+
+### 7.2 The snap distance is 7 points
+
+`snapDistanceToUseForGuides` returns **7.0**, unless the canvas background has
+an alignment provider, in which case the background's value is asked for
+instead. The body reads:
+
+```
+if (isCanvasBackgroundAlignmentSnappingEnabled) {
+    if (canvasBackground.alignmentProvider == nil) return 7.0;
+    return alignmentProvider.<ask>(1.0);
+}
+return 7.0;
+```
+
+⇒ **The reference's snap threshold is 7 pt in world units**, and it is
+overridable by whatever owns the canvas background. That is a number a
+replica can copy outright, and it is the kind of number that is impossible to
+guess.
+
+### 7.3 The autoscroll's step is 60 units, time-scaled and eased
+
+`p_unscaledDeltaForCount:` is the autoscroll's per-tick step, and the body has
+three constants in it:
+
+```
+step = 60.0;                                  // the base step
+if (target responds to maximumAutoscrollDeltaForCount:) {
+    step = target.maximumAutoscrollDeltaForCount(count);   // the target may override
+}
+step = (long)(step * ((now - lastTick) / interval));        // scaled by the elapsed time
+if (count <= 0x18) {
+    step = (long)((1.0f / (0x1a - count)) * (float)step);  // divided by (26 - count)
+}
+```
+
+⇒ The autoscroll's base step is **60 unscaled units per tick**, the step
+**scales with the elapsed time** so the motion is not frame-dependent, and it
+is **divided by (26 − count)** so the ramp eases as the tick count grows. The
+target may override the base step entirely.
+
+### 7.4 The zoom is a phase machine over an affine transform
+
+`zoomWithScale:velocity:locationInView:phase:` is the longest body in the
+canvas, and its shape is:
+
+```
+cancelPreviousPerformRequestsWithTarget:selector:object:
+controller → enclosingScrollView → canvasView
+… setAffineTransform: …
+… setDynamicTransform: …
+associatedBackgroundLayer → …
+… affineTransform …
+… timeIntervalSinceReferenceDate …
+viewScale ×3 …
+```
+
+⇒ The zoom **cancels the previous in-flight work**, then reads the canvas
+view and the enclosing scroll view, applies an **affine transform** to the
+canvas view, applies a **dynamic transform** to the background layer, and
+reads the current `viewScale` three times over (the ladder's neighbours).
+The `phase` enum is what chooses between the branches, which is how a fast
+pinch and a slow pinch take different paths without two code paths.
+
+### 7.5 The snap itself is a C function
+
+`snapRectToGuides:forKnobTag:snapSize:` returns a `CGPoint` — **the delta, not
+the snapped rect** — and the body is a single call into a private C function
+with the rect's origin and a row of flags. So the snapping arithmetic is not
+in Objective-C at all, and the Objective-C layer is only the entry point and
+the guide bookkeeping.
