@@ -226,18 +226,34 @@ method, and the script prints the method next to the number.
 5. **`main`'s pre-existing whole-suite failures.** They are the tree's
    known set and are not this session's: the record's own partition
    (= 6 that pass alone + 5 that do not = 11 sites) is in the inventory.
-   Two more sites are load-sensitive and were measured on both trees:
-   `EditorPersistenceTests.swift:253` and `:259` (= the two assertions
-   of one test that waits 3 seconds) fail only under the whole suite's
-   load, and the suite passes ALONE on the merged tree AND on the
-   pre-session base (= 11 tests in 1 suite, 3.0 s, both). The whole
-   suite has no reproducible number on this machine: it hangs in Core
-   Spotlight at 0% CPU even with `CSSearchableIndexSearchTests`
-   skipped (= the skip does not cover the suite that indexes), and the
-   sibling lane's own run has been in that state for six hours. What
-   the merged tree DID produce is the first target's summary (= 143
-   tests in 32 suites passed, = the baseline's number) and the five
-   sites above.
+   **Measured on the merged tree AND on the pre-session base, under the
+   same load, and the two sets are identical.** The whole suite at
+   `main` = `d032512bf7`: `WenshuDataTests` 143 tests in 32 suites
+   passed, `WenshuAppTests` 3219 tests in 513 suites with **5 issues**,
+   `WenshuAgentTests` 208 tests in 24 suites passed. The same suite at
+   the base `f224ad6f26`: the same three summaries, the same five
+   issues, and the same five sites, one for one:
+
+   | the site | in the record's set? | why it fails here |
+   | --- | --- | --- |
+   | `ChatViewHistoryShortcutTests.swift:35` | yes | the record's own line |
+   | `EditorTabTitleTests.swift:60` | yes (= the deferred source-precedence case) | the boss's deferred behaviour, not a test defect |
+   | `AsyncDelegationRegistryTests.swift:104` | yes | the record's own line |
+   | `EditorPersistenceTests.swift:253` | no | load-sensitive (= the test waits 3 seconds); ALONE it passes on BOTH trees (= 11 tests in 1 suite, 3.0 s) |
+   | `WenshuConductorToolRegistryWiringTests.swift:237` | no | load-sensitive (= `warmToolCache` gives the process-global cache a 10-SECOND deadline and then gives up silently, so a loaded machine reads an empty dict); ALONE the suite passes on the merged tree (= 5 tests in 1 suite) |
+
+   So this session's landings changed the whole suite's failing set by
+   NOTHING: no new site, and no site fixed. The two sites the record
+   does not name are load-sensitive by construction, and both trees
+   produce them identically.
+
+   **The suite hangs sometimes.** One run stopped in Core Spotlight at
+   0% CPU (= `com.apple.CoreSpotlight` / `com.apple.SpotlightLinguistics`
+   in the sample) even with `CSSearchableIndexSearchTests` skipped, and
+   the sibling lane's own run has been in that state for six hours. The
+   run quoted above completed. So the number is reproducible when the
+   machine is not competing with a hung run, and a record that quotes
+   it must say which run it came from.
 
 ## What is NOT in this session's work
 
