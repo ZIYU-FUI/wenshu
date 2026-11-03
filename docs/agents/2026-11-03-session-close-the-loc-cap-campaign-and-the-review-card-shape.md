@@ -226,6 +226,18 @@ method, and the script prints the method next to the number.
 5. **`main`'s pre-existing whole-suite failures.** They are the tree's
    known set and are not this session's: the record's own partition
    (= 6 that pass alone + 5 that do not = 11 sites) is in the inventory.
+   Two more sites are load-sensitive and were measured on both trees:
+   `EditorPersistenceTests.swift:253` and `:259` (= the two assertions
+   of one test that waits 3 seconds) fail only under the whole suite's
+   load, and the suite passes ALONE on the merged tree AND on the
+   pre-session base (= 11 tests in 1 suite, 3.0 s, both). The whole
+   suite has no reproducible number on this machine: it hangs in Core
+   Spotlight at 0% CPU even with `CSSearchableIndexSearchTests`
+   skipped (= the skip does not cover the suite that indexes), and the
+   sibling lane's own run has been in that state for six hours. What
+   the merged tree DID produce is the first target's summary (= 143
+   tests in 32 suites passed, = the baseline's number) and the five
+   sites above.
 
 ## What is NOT in this session's work
 
