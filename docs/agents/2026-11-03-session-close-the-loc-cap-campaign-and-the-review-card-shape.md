@@ -24,8 +24,11 @@ another lane.
 | `WenshuConductorImportRouter.swift` | 616 | 530 + 101 | `96faf0eed6` |
 
 The over-cap count at `main` went from 18 to 7 with these landings
-(measured at `main` = `96faf0eed6`: 490 production files, 7 over the
-cap). The seven that remain are `ConversationLoop.swift` (1109),
+(measured at `main` = `8333b13181` by the inventory's own script: 505
+production files, median 155, p90 451, and **7** over the cap; the
+baseline it measures against, `e9a85dcad9`, reads 490 / 150.5 / 470 / 18,
+and the file count grew because the card board client's package landed
+in between). The seven that remain are `ConversationLoop.swift` (1109),
 `ChatSessionViewModel.swift` (942), `ChatView.swift` (892),
 `PreviewPaneCard.swift` (790), `LayoutTreeState.swift` (773),
 `RequestHelpers.swift` (673) and `WenshuAppDelegate.swift` (655).
@@ -215,8 +218,10 @@ method, and the script prints the method next to the number.
    registry row's LOC cell and the commit body's line count were one
    line short, and both were corrected. The rebase that followed the
    approval reproduced the same change-id, so the verdict still bound.
-3. **The inventory's sixth request** (= card `t_5ea7fc28`). One label
-   said "The other seven:" over a block of eleven assertion sites.
+3. **The inventory's sixth request** (= card `t_5ea7fc28`): APPROVED and
+   landed as `8333b13181`. One label said "The other seven:" over a block
+   of eleven assertion sites, and the registry row's tail position was
+   repaired.
 4. **Three files of the settings card** (`PreviewPaneCard.swift`,
    `RequestHelpers.swift`, `WenshuAppDelegate.swift`) and **four of the
    chat card** (`ConversationLoop.swift`, `ChatSessionViewModel.swift`,
