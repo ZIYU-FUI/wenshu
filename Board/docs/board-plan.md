@@ -68,7 +68,7 @@ exists.
 | A drag gesture | `.draggable` / `.dropDestination` | — |
 | Rich text in a card | `SwiftUI.TextEditor` | — |
 | Generated imagery | `ImagePlayground.imagePlaygroundSheet` | `ImageCreator` is **deprecated in 27.0** (= this client's floor), so the programmatic path is out |
-| A canvas | `SwiftUICore.Canvas` + `MagnifyGesture` + `DragGesture` + `ScrollGeometry` + `zIndex` | **PencilKit ships the drawing data model and not the canvas view**: `PKCanvasView` is exported by PencilKit, but Apple ships no header for it on macOS and the macOS Swift interface does not expose it. macOS 27 adds no infinite canvas of its own. PencilKit ships the drawing data model and not the canvas view |
+| A canvas | `SwiftUICore.Canvas` + `MagnifyGesture` + `DragGesture` + `zIndex` (= the scroll geometry and the offscreen composite are for the later slices) | **PencilKit ships the drawing data model and not the canvas view**: `PKCanvasView` is exported by PencilKit, but Apple ships no header for it on macOS and the macOS Swift interface does not expose it. macOS 27 adds no infinite canvas of its own. PencilKit ships the drawing data model and not the canvas view |
 | Icons | SF Symbols 6 | The desktop app's icon factory is in the app target and is **not consumable** |
 
 Two consequences for this client:
@@ -76,8 +76,9 @@ Two consequences for this client:
 - **The canvas is hand-rolled, and that is the point.** Apple ships the
   pieces and not the product: there is no public infinite canvas on macOS, and
   the reference's own canvas is private classes. The client builds it from
-  `SwiftUICore.Canvas`, `MagnifyGesture`, `DragGesture`, `ScrollGeometry`,
-  `zIndex` and `drawingGroup`. The arithmetic that matters is the viewport,
+  `SwiftUICore.Canvas`, `MagnifyGesture`, `DragGesture` and `zIndex`; the
+  scroll geometry and the offscreen composite come with the later slices.
+  The arithmetic that matters is the viewport,
   and it is a pure function, so it is testable without a window.
 
   The first slice of it exists: `BoardViewport` + `BoardCanvasView`, with an
@@ -145,6 +146,12 @@ array, and the decode failure is swallowed into an empty list).
 So the client reads the same files the desktop app writes
 (`ChapterFileReader`), and the row path stays for a library that has been
 migrated.
+
+The order is worth stating, because the two sides do not agree: the client
+takes the file name's order (= UUID order, because the file name is a
+UUID), and the desktop app's own document list is sorted by the document's
+last update, newest first. Neither is a chapter number, and no tie-break
+between them is promised.
 
 ## 8. The writer rule
 

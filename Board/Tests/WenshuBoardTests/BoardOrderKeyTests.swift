@@ -129,3 +129,48 @@ struct ChapterColumnTests {
         #expect(board.content.title == "Chapter One")
     }
 }
+
+
+@Suite("The order key, in batches")
+struct BoardOrderKeyBatchTests {
+
+    @Test("A batch insert divides the gap by the count plus one")
+    func batchSplitsTheGap() {
+        let keys = BoardOrderKey.insertKeys(at: 1, among: [0, 131_072], count: 2)
+        #expect(keys != nil)
+        let inserted = keys ?? []
+        #expect(inserted.count == 2)
+        #expect(inserted[0] > 0)
+        #expect(inserted[1] > inserted[0])
+        #expect(inserted[1] < 131_072)
+    }
+
+    @Test("A batch of one is the single insert")
+    func batchOfOneIsTheSingleInsert() {
+        let single = BoardOrderKey.insertKey(at: 1, among: [0, 131_072])
+        let batch = BoardOrderKey.insertKeys(at: 1, among: [0, 131_072], count: 1)
+        #expect(single != nil)
+        #expect(batch != nil)
+        #expect(batch?.first == single)
+    }
+
+    @Test("A batch above the head takes the next rungs of the negative ladder")
+    func batchAboveTheHead() {
+        let keys = BoardOrderKey.insertKeys(at: 0, among: [0, 65_536], count: 2)
+        #expect(keys == [-65_536, -131_072])
+    }
+
+    @Test("A batch with no room between the neighbours asks for a rebalance")
+    func batchWithNoRoom() {
+        #expect(BoardOrderKey.insertKeys(at: 1, among: [0, 3], count: 3) == nil)
+    }
+
+    @Test("A rebalance takes the keys in list order and pairs them positionally")
+    func rebalancePairsPositionally() {
+        // The keys in LIST ORDER, so the n-th returned key belongs to the
+        // n-th card. A caller that sorts its cards by key first can write
+        // the result back without a mapping table.
+        let rebased = BoardOrderKey.rebalance([0, 65_536, 131_072])
+        #expect(rebased == [0, 65_536, 131_072])
+    }
+}

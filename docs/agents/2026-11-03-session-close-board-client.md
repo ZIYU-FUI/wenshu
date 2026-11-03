@@ -188,3 +188,75 @@ method map and the decompiled bodies under the REA skill's `references/`.
 
 Removed: this session's scratch probes, and the Freeform instance this
 session launched.
+
+## Addendum — the dual-axis audit, run after the landing
+
+The scope landed with three independent review rounds behind it, 32 green
+tests, and an approving verdict. The dual-axis dispatch that
+`Board/AGENTS.md` §7.4 names as a merge-blocking gate had never run on it.
+Run after the landing, it returned CHANGES_REQUESTED on both axes, and it
+found three defects that every earlier pass had passed.
+
+### What it found, and what changed
+
+| # | Finding | Fix |
+| --- | --- | --- |
+| 1 | The pan gesture measured its delta from the start of the drag and handed it to an additive viewport, so every event re-sent the whole displacement: the world accelerated away from the cursor. | `BoardViewport.panned(from:to:)` measures the increment, and the gesture tracks the previous point. A test pins ten ten-pixel events to a hundred pixels of travel. |
+| 2 | The magnify gesture's magnification is a ratio that starts at 1, and it was handed to an absolute-scale API: the first callback reset the board to 1.0, and every later frame tracked the raw ratio. | `BoardViewport.zoomed(by:about:)` multiplies, and the gesture applies it to the viewport the gesture STARTED from (= applying it to the current viewport compounds the zoom on every frame). |
+| 3 | `location.section` was never read, so the client's central claim (= one record, two regimes) was true in the documents and false in the code. | `BoardElement.isOnCanvas` and `isInList` decide which regime reads which fields, the order key now exists only in the list regime, the canvas draws the canvas records and the column lists the list records, and the demo is ONE record set read by both. |
+
+The findings that were true and cheap are fixed too: the batch insert rule
+the documents promised and the Kit did not have (it does now, and it is the
+reference's `(n + 1)` division), the title that only looked at the first
+line, the `orderedCards` the app never called, the unused imports, the magic
+numbers in the app target, the dot grid attributed to the reference that has
+no canvas dot grid, the dot period stated as two different numbers in one
+document, and three claims in the client's own SSOT that the code did not
+support (the sort rule, the list of canvas pieces, the layout tree).
+
+### The lesson the three rounds missed
+
+The review rounds compared the code against the rules, and the tests compared
+the viewport's arithmetic against the viewport's arithmetic. Nobody compared
+the code against the user's hands. A test that pins `panned(by:)` proves the
+additive contract, not that the caller sends an increment, and the gestures
+were wrong in the two ways a gesture can be wrong while 32 green tests said
+nothing about either.
+
+**A test pins the thing it measures.** The fix therefore moves the gestures'
+shape into the Kit, where a test can reach it: 17 new tests, 49 in 8 suites.
+
+### The by-rule inventory (§8.5)
+
+Thirteen rule families, run over the landed scope: twelve clean. The two
+non-zero lines are not violations: the client's own SSOT names the forbidden
+words (= rules 1.3 and 1.4 list them), and the same kind of CJK appears in
+23 of the desktop's 35 ADRs. The one that IS a finding is the scope's shape:
+the Board client is one scope in fourteen commits, and rule 1.10 says one
+ticket = one commit.
+
+### The spec, and how it came back
+
+The ticket's 4-section spec was written to the card worktree's untracked
+`.scratch/`, and `git worktree remove --force` deleted it with no commit and
+no trace: §8.3 had no artifact, and nothing in the repository said the spec
+had ever existed. It was recovered byte-for-byte (245 lines, 15,607 bytes)
+from the session database, then corrected: three of its claims were wrong
+(the production model, the file tier, `PKCanvasView`), and its scope had
+been re-scoped twice by the boss's own rulings, so it now carries a banner
+and ADR-0036 records what was built.
+
+### Left open, on purpose
+
+- The desktop app's document order and the client's order do not agree (= UUID
+  order against newest-first). Neither is a chapter number, and no tie-break
+  is promised.
+- A card's identity is still derived from its position in the chapter, so an
+  insert renames the cards after it. That is the design question in
+  `Board/docs/board-plan.md` §10 decision 3, and it is the boss's to answer.
+- The client still has no icon factory of its own (§5.3), no CI job (§7.1),
+  and no write channel (ADR-0035).
+- The shared skill tree's two central skills are over the runtime's
+  100,000-character cap, so `skill_manage` can no longer patch them, and the
+  tree is not a git repository, so there is no version control behind it
+  either.

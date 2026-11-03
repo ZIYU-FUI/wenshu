@@ -85,3 +85,23 @@ struct ChapterFileReaderTests {
         #expect(try ChapterFileReader.readChapters(inBookDirectory: root).isEmpty)
     }
 }
+
+
+@Suite("A chapter's title")
+struct ChapterTitleTests {
+
+    @Test("The title is the first level-one heading, wherever it is")
+    func titleIsFoundAnywhere() {
+        // The desktop app scans every line for the heading, so a chapter
+        // that opens with a paragraph still has its title on both sides.
+        #expect(
+            ChapterFileReader.title(in: "a preamble\n\n# The Real Title\n\n## First\n", fallback: "ch-1")
+                == "The Real Title"
+        )
+    }
+
+    @Test("A body with no level-one heading takes the fallback")
+    func titleFallsBack() {
+        #expect(ChapterFileReader.title(in: "## Only a subheading\n", fallback: "ch-1") == "ch-1")
+    }
+}

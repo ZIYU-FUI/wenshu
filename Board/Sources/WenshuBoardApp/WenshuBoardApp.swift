@@ -42,6 +42,18 @@ struct WenshuBoardApp: App {
     }
 }
 
+/// The column's own metrics.
+///
+/// The client's design token layer is an open decision (AGENTS.md 5.3), so
+/// the values live here, named, until it lands. Nothing in this file spells a
+/// bare number into a layout call.
+private enum ColumnMetrics {
+    static let titleInset: CGFloat = 20
+    static let titleSpacing: CGFloat = 16
+    static let cardSpacing: CGFloat = 4
+    static let cardInset: CGFloat = 8
+}
+
 /// One column of cards.
 struct BoardColumnView: View {
     let column: BoardColumn
@@ -50,18 +62,18 @@ struct BoardColumnView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text(column.title)
                 .font(.headline)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
+                .padding(.horizontal, ColumnMetrics.titleInset)
+                .padding(.vertical, ColumnMetrics.titleSpacing)
             Divider()
-            List(column.cards, id: \.id) { card in
-                VStack(alignment: .leading, spacing: 4) {
+            List(column.orderedCards, id: \.id) { card in
+                VStack(alignment: .leading, spacing: ColumnMetrics.cardSpacing) {
                     Text(card.content.title ?? card.id)
                         .font(.body)
                     Text(card.content.body ?? "")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, ColumnMetrics.cardInset)
             }
         }
     }
@@ -72,38 +84,24 @@ struct BoardColumn {
     var title: String
     var cards: [BoardElement]
 
-    /// The cards in order, by their order key.
+    /// The cards of the list regime, in order by their order key.
+    ///
+    /// The section decides which regime reads which fields of the position,
+    /// so the column reads the index and the order key, and the canvas
+    /// records are not listed here.
     var orderedCards: [BoardElement] {
-        BoardOrderKey.ordered(cards) { $0.orderKey ?? 0 }
+        BoardOrderKey.ordered(cards.filter { $0.isInList }) { $0.orderKey ?? 0 }
     }
 
     /// A column with no library behind it, so the app can be looked at
     /// without a writer conflict.
+    ///
+    /// It reads the demo record set, so the column and the canvas show two
+    /// views of the SAME records.
     static var demo: BoardColumn {
-        let board = BoardElement(
-            id: "demo-board",
-            kind: .board,
-            location: BoardLocation(section: .canvas),
-            content: BoardContent(title: "A column of cards")
+        BoardColumn(
+            title: "A column of cards",
+            cards: BoardCanvasDemo.elements
         )
-        let cards = (0..<5).map { index in
-            BoardElement(
-                id: "demo-card-\(index)",
-                kind: .card,
-                location: BoardLocation(
-                    parentID: board.id,
-                    section: .inbox,
-                    position: BoardLocation.Position(
-                        index: index,
-                        score: BoardOrderKey.key(forIndex: index)
-                    )
-                ),
-                content: BoardContent(
-                    title: "Card \(index + 1)",
-                    body: "The order key of this card is \(BoardOrderKey.key(forIndex: index))."
-                )
-            )
-        }
-        return BoardColumn(title: board.content.title ?? "Board", cards: cards)
     }
 }

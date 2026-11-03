@@ -48,8 +48,10 @@ public enum ChapterFileReader {
     /// Every chapter body file in a book directory, in file-name order.
     ///
     /// The order is the file name's, and it is stated rather than implied:
-    /// the desktop app sorts a book's documents by pinyin, creation date or
-    /// modification date, and none of those is a chapter number.
+    /// the file name is a UUID, so this is UUID order, and the desktop app's
+    /// own document list is sorted by the document's last update, newest
+    /// first. The two do not agree, and that is a fact about the library
+    /// rather than a defect in the reader.
     public static func readChapters(inBookDirectory bookDirectory: URL) throws -> [ChapterFile] {
         let folder = bookDirectory.appendingPathComponent(chaptersFolderName)
         guard FileManager.default.fileExists(atPath: folder.path) else {
@@ -76,10 +78,16 @@ public enum ChapterFileReader {
     }
 
     /// The first level-one heading of a body, or the fallback.
+    ///
+    /// The heading is looked for in the WHOLE body, not in its first line: a
+    /// chapter that opens with a paragraph still has its title, and the
+    /// desktop app reads it the same way.
     public static func title(in markdown: String, fallback: String) -> String {
-        let first = markdown.split(separator: "\n", omittingEmptySubsequences: false).first ?? ""
-        guard first.hasPrefix("# ") else { return fallback }
-        let heading = String(first.dropFirst(2)).trimmingCharacters(in: .whitespaces)
-        return heading.isEmpty ? fallback : heading
+        for line in markdown.split(separator: "\n", omittingEmptySubsequences: false) {
+            guard line.hasPrefix("# ") else { continue }
+            let heading = String(line.dropFirst(2)).trimmingCharacters(in: .whitespaces)
+            if !heading.isEmpty { return heading }
+        }
+        return fallback
     }
 }

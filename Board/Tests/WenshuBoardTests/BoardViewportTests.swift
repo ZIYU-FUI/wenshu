@@ -127,3 +127,69 @@ struct BoardViewportTests {
         #expect(panned.isVisible(item, in: size))
     }
 }
+
+
+@Suite("The canvas gestures")
+struct CanvasGestureTests {
+
+    @Test("A pan between two points moves the world by their difference")
+    func panMovesByTheDifference() {
+        let viewport = BoardViewport()
+        let panned = viewport.panned(from: CGPoint(x: 100, y: 50), to: CGPoint(x: 130, y: 20))
+        #expect(panned.offset == CGPoint(x: 30, y: -30))
+    }
+
+    @Test("A pan measured from the previous point does not accumulate")
+    func panDoesNotAccumulate() {
+        // The regression this pins: a viewport that ADDS its delta, fed a
+        // displacement measured from the start of the gesture, re-sends the
+        // first event's movement on every event, so the world runs away from
+        // the cursor. Ten events of ten pixels must move the world by a
+        // hundred pixels, not by five hundred and fifty.
+        var viewport = BoardViewport()
+        var previous = CGPoint(x: 0, y: 0)
+        for step in 1...10 {
+            let current = CGPoint(x: CGFloat(step * 10), y: 0)
+            viewport = viewport.panned(from: previous, to: current)
+            previous = current
+        }
+        #expect(viewport.offset == CGPoint(x: 100, y: 0))
+    }
+
+    @Test("A relative magnification multiplies the scale instead of replacing it")
+    func relativeMagnificationMultiplies() {
+        let viewport = BoardViewport(scale: 2)
+        let zoomed = viewport.zoomed(by: 1.5, about: .zero)
+        #expect(abs(zoomed.scale - 3.0) < 0.0001)
+    }
+
+    @Test("A relative magnification of one leaves the board where it was")
+    func relativeMagnificationOfOneIsNoChange() {
+        let viewport = BoardViewport(scale: 1.75, offset: CGPoint(x: 12, y: -8))
+        let zoomed = viewport.zoomed(by: 1, about: CGPoint(x: 40, y: 40))
+        #expect(zoomed == viewport)
+    }
+
+    @Test("A relative magnification keeps the world point under the anchor")
+    func relativeMagnificationKeepsTheAnchor() {
+        let viewport = BoardViewport(scale: 1.5, offset: CGPoint(x: 20, y: 10))
+        let anchor = CGPoint(x: 300, y: 200)
+        let worldBefore = viewport.worldPoint(for: anchor)
+        let zoomed = viewport.zoomed(by: 1.2, about: anchor)
+        let worldAfter = zoomed.worldPoint(for: anchor)
+        #expect(abs(worldBefore.x - worldAfter.x) < 0.0001)
+        #expect(abs(worldBefore.y - worldAfter.y) < 0.0001)
+    }
+
+    @Test("A pinch applied to the already-zoomed viewport would compound, and the base does not")
+    func theBaseIsWhatTheMagnificationAppliesTo() {
+        // The gesture's magnification is relative to the viewport the gesture
+        // started from. Applying it twice to the current viewport would give
+        // 1.5 x 1.5; applying it to the base gives 1.5.
+        let base = BoardViewport(scale: 1)
+        let once = base.zoomed(by: 1.5, about: .zero)
+        let appliedToTheCurrent = once.zoomed(by: 1.5, about: .zero)
+        #expect(abs(once.scale - 1.5) < 0.0001)
+        #expect(abs(appliedToTheCurrent.scale - 2.25) < 0.0001)
+    }
+}

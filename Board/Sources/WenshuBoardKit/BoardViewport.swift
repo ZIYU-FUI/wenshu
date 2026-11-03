@@ -16,7 +16,6 @@
 //
 
 import CoreGraphics
-import Foundation
 
 /// The mapping between a board's world coordinates and the screen.
 public struct BoardViewport: Equatable, Sendable {
@@ -71,6 +70,30 @@ public struct BoardViewport: Equatable, Sendable {
             scale: scale,
             offset: CGPoint(x: offset.x + delta.width, y: offset.y + delta.height)
         )
+    }
+
+    /// The same viewport, panned by the movement between two screen points.
+    ///
+    /// The delta is measured from the PREVIOUS point, not from the start of
+    /// the gesture. `panned(by:)` adds to the offset, so a caller that keeps
+    /// sending the displacement from the gesture's start makes the world
+    /// accelerate away from the cursor: the second event re-sends the first
+    /// event's movement, and the tenth sends nine times as much.
+    public func panned(from previous: CGPoint, to current: CGPoint) -> BoardViewport {
+        panned(by: CGSize(width: current.x - previous.x, height: current.y - previous.y))
+    }
+
+    /// The same viewport, zoomed by a pinch magnification RELATIVE to it.
+    ///
+    /// A magnify gesture's magnification is a ratio that starts at 1, not a
+    /// target scale, so it cannot be handed to `zoomed(to:about:)` as if it
+    /// were one: the first callback would reset the board to 1.0.
+    ///
+    /// The multiplication happens here so that the caller applies it to the
+    /// viewport the gesture STARTED from. Applying a relative magnification to
+    /// the already-zoomed viewport compounds the zoom on every frame.
+    public func zoomed(by magnification: CGFloat, about anchor: CGPoint) -> BoardViewport {
+        zoomed(to: scale * magnification, about: anchor)
     }
 
     /// The part of the world that is on screen, in world coordinates.

@@ -204,5 +204,22 @@ public struct BoardElement: Identifiable, Hashable, Sendable {
     }
 
     /// The order key of this element among its siblings.
-    public var orderKey: Int64? { location.position.score }
+    ///
+    /// The score means two different things: on a canvas it is the z-order,
+    /// in a list it is the order key. The key is therefore only defined in
+    /// the list regime, and reading it on a canvas element would silently
+    /// hand back a z-index.
+    public var orderKey: Int64? {
+        location.section == .inbox ? location.position.score : nil
+    }
+
+    /// Whether this element sits in the canvas regime.
+    ///
+    /// The section is the switch between the two placement regimes, and it is
+    /// read here so that a reader can tell which fields of the position carry
+    /// the meaning.
+    public var isOnCanvas: Bool { location.section == .canvas }
+
+    /// Whether this element sits in the ordered-list regime.
+    public var isInList: Bool { location.section == .inbox }
 }

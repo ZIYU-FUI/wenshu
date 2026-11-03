@@ -5,8 +5,8 @@
 //  The infinite canvas, assembled from the pieces Apple ships.
 //
 //  Apple ships the canvas surface (`SwiftUICore.Canvas`), the magnify gesture,
-//  the drag gesture, the scroll geometry, `zIndex` and `drawingGroup`. It does
-//  not ship the product: there is no public infinite canvas on macOS.
+//  the drag gesture and `zIndex`. It does not ship the product: there is no
+//  public infinite canvas on macOS.
 //  PencilKit ships the drawing data model and not the canvas view
 //  (`PKCanvasView` is exported by PencilKit, but Apple ships no header for
 //  it on macOS and the macOS Swift interface does not expose it), and the
@@ -47,13 +47,21 @@ struct BoardCanvasView: View {
 
     /// The items on the canvas.
     let elements: [BoardElement]
-    /// The world-space size of one grid cell. Milanote calls this `gridSize`.
+    /// The world-space size of one grid cell.
+    ///
+    /// This is the CLIENT's choice, and it is not either reference's: the
+    /// board reference has no canvas dot grid at all (= its `gridSize` is a
+    /// card text-box unit), and the Apple board's own dot spacing is 25
+    /// unscaled units.
     let gridSize: CGFloat
     /// The size of one card, in world units.
     let cardSize: CGSize
 
     @State private var viewport: BoardViewport
-    @State private var dragAnchor: CGPoint?
+    /// Where the pointer was at the previous pan event.
+    @State private var lastPanLocation: CGPoint?
+    /// The viewport the current pinch started from.
+    @State private var zoomBase: BoardViewport?
 
     init(
         elements: [BoardElement],
@@ -156,27 +164,43 @@ struct BoardCanvasView: View {
     // MARK: - Gestures
 
     /// Panning: dragging the background drags the world.
+    ///
+    /// The delta is measured from the PREVIOUS event, not from the start of
+    /// the gesture. The viewport adds the delta to its offset, so a
+    /// displacement from the start would be re-sent on every event and the
+    /// world would accelerate away from the cursor.
     private var panGesture: some Gesture {
         DragGesture(minimumDistance: 2)
             .onChanged { value in
-                let anchor = dragAnchor ?? value.startLocation
-                dragAnchor = anchor
-                viewport = viewport.panned(by: CGSize(
-                    width: value.location.x - anchor.x,
-                    height: value.location.y - anchor.y
-                ))
+                if let previous = lastPanLocation {
+                    viewport = viewport.panned(from: previous, to: value.location)
+                }
+                lastPanLocation = value.location
             }
             .onEnded { _ in
-                dragAnchor = nil
+                lastPanLocation = nil
             }
     }
 
     /// Zooming: a magnify gesture keeps the world point under the cursor under
     /// the cursor.
+    ///
+    /// The gesture's magnification is a ratio that starts at 1, not a target
+    /// scale, and it is applied to the viewport the gesture STARTED from:
+    /// applying it to the current viewport would compound the zoom on every
+    /// frame, and handing it to the absolute-scale API would reset the board
+    /// to 1.0 on the first callback.
     private var zoomGesture: some Gesture {
         MagnifyGesture()
             .onChanged { value in
-                viewport = viewport.zoomed(to: value.magnification, about: value.startLocation)
+                let base = zoomBase ?? viewport
+                if zoomBase == nil {
+                    zoomBase = base
+                }
+                viewport = base.zoomed(by: value.magnification, about: value.startLocation)
+            }
+            .onEnded { _ in
+                zoomBase = nil
             }
     }
 
@@ -196,17 +220,33 @@ struct BoardCanvasView: View {
     /// A board with thousands of items is only fast because most of them are
     /// off screen.
     private func visibleElements(in size: CGSize) -> [BoardElement] {
-        elements.filter { element in
+        canvasElements.filter { element in
             let position = worldPosition(of: element)
             let rect = CGRect(origin: position, size: cardSize)
             return viewport.isVisible(rect, in: size)
         }
     }
 
+    /// The elements of the canvas regime.
+    ///
+    /// The section decides which regime reads which fields of the position,
+    /// and this view reads the x and the y, so the list regime is not drawn
+    /// here.
+    private var canvasElements: [BoardElement] {
+        elements.filter { $0.isOnCanvas }
+    }
+
     /// The world extent the layer covers: enough to hold every item.
     private var worldExtent: CGSize {
-        let maximumX = elements.map { $0.location.position.x ?? 0 }.max() ?? 0
-        let maximumY = elements.map { $0.location.position.y ?? 0 }.max() ?? 0
-        return CGSize(width: maximumX + cardSize.width, height: maximumY + cardSize.height)
+        let xs = canvasElements.map { $0.location.position.x ?? 0 }
+        let ys = canvasElements.map { $0.location.position.y ?? 0 }
+        let minimumX = xs.min() ?? 0
+        let minimumY = ys.min() ?? 0
+        let maximumX = xs.max() ?? 0
+        let maximumY = ys.max() ?? 0
+        return CGSize(
+            width: maximumX - minimumX + cardSize.width,
+            height: maximumY - minimumY + cardSize.height
+        )
     }
 }
