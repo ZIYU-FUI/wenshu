@@ -406,8 +406,23 @@ def case_16_missing_from_is_read_from_the_disk() -> None:
 
 
 def case_17_the_headline_does_not_say_identical_when_the_words_differ() -> None:
-    """The reviewer found this: the headline keyed on `drift` only, so it
-    printed "copies identical: yes" in the exact case F4 was filed for."""
+    """The headline must not say "copies identical: yes" when the WORDS
+    differ.
+
+    The reviewer found that the FIRST version of this case re-implemented
+    the headline's formula inside the test, so it asserted on its own
+    arithmetic and never on the tool's OUTPUT: reverting either headline
+    hunk left the suite green while the tool printed "copies identical:
+    yes". A guard that cannot fail is the defect class this tool exists to
+    catch, so the case now OBSERVES what the tool prints.
+
+    The headline is printed in TWO independent places (= the text branch's
+    stdout and `_summary`'s stderr), and either one can be reverted on its
+    own, so both are pinned.
+    """
+    import io
+    import contextlib
+
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp) / ".hermes"
         for profile in ("pocock", "wenshu-review"):
@@ -418,15 +433,69 @@ def case_17_the_headline_does_not_say_identical_when_the_words_differ() -> None:
                 + "the shared words\n",
             )
             write_config(root, profile, names_shared_tree=False)
-        reader = root / "profiles" / "wenshu-review" / "skills" / "devops" / "own-skill" / "SKILL.md"
-        reader.write_text(reader.read_text() + "an extra lesson only the reader has\n")
+        reader = (
+            root
+            / "profiles"
+            / "wenshu-review"
+            / "skills"
+            / "devops"
+            / "own-skill"
+            / "SKILL.md"
+        )
+        reader.write_text(
+            reader.read_text() + "an extra lesson only the reader has\n"
+        )
         mod.HERMES = root
         mod.SHARED_TREE = root / "shared" / "wenshu-skills"
         mod.READER_OF = {}
-        result = mod.check("own-skill", None)
-        check("the wording difference is reported", result["wording_drift"], True)
-        same = not (result["drift"] or result.get("wording_drift"))
-        check("the headline would say DRIFT", same, False)
+
+        # The text branch's stdout.
+        out = io.StringIO()
+        argv = sys.argv
+        sys.argv = ["skill_sync_check.py", "--skill", "own-skill"]
+        try:
+            with contextlib.redirect_stdout(out):
+                mod.main()
+        finally:
+            sys.argv = argv
+        text_out = out.getvalue()
+        check(
+            "the text headline says DRIFT",
+            "copies identical: no (DRIFT)" in text_out,
+            True,
+        )
+        check(
+            "the text headline does not say identical",
+            "copies identical: yes" in text_out,
+            False,
+        )
+
+        # The json branch's stderr (= `_summary`).
+        out = io.StringIO()
+        err = io.StringIO()
+        argv = sys.argv
+        sys.argv = ["skill_sync_check.py", "--json", "--skill", "own-skill"]
+        try:
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                mod.main()
+        finally:
+            sys.argv = argv
+        json_err = err.getvalue()
+        check(
+            "the json headline says DRIFT",
+            "copies identical: no (DRIFT)" in json_err,
+            True,
+        )
+        check(
+            "the json headline does not say identical",
+            "copies identical: yes" in json_err,
+            False,
+        )
+        check(
+            "the wording warning is still shown",
+            "differ in their WORDS" in json_err,
+            True,
+        )
 
 
 def main() -> int:

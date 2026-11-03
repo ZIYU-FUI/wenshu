@@ -145,6 +145,21 @@ def sections(text: str) -> dict[str, str]:
     return out
 
 
+def copies_are_the_same(result: dict) -> bool:
+    """Whether two copies of a skill are the same.
+
+    Two copies are the same only when their rule headings match AND every
+    section's words match. The headline used to key on the headings alone,
+    so it printed "copies identical: yes" in the exact case F4 was filed
+    for (= same headings, one copy holds a lesson the other does not).
+
+    This lives in ONE place because the headline is printed in two places
+    (= the text branch's stdout and `_summary`'s stderr), and a formula
+    written twice is a formula that gets fixed once.
+    """
+    return not (result.get("drift") or result.get("wording_drift"))
+
+
 def frontmatter(text: str) -> dict:
     """The skill's frontmatter, parsed without a YAML dependency."""
     if not text.startswith("---"):
@@ -293,7 +308,7 @@ def main() -> int:
             print(f"  carried by: {', '.join(r['profiles_with_the_skill']) or '(nobody)'}")
             if r["missing_from"]:
                 print(f"  missing from: {', '.join(r['missing_from'])}")
-            same = not (r["drift"] or r.get("wording_drift"))
+            same = copies_are_the_same(r)
             print(f"  copies identical: {'yes' if same else 'no (DRIFT)'}")
             if args.rule:
                 print(f"  rule {args.rule!r} in: {', '.join(r['rule_present_in']) or '(nobody)'}")
@@ -322,7 +337,7 @@ def _summary(results: list) -> None:
         )
         if r["missing_from"]:
             print(f"  missing from: {', '.join(r['missing_from'])}", file=sys.stderr)
-        same = not (r["drift"] or r.get("wording_drift"))
+        same = copies_are_the_same(r)
         print(
             f"  copies identical: {'yes' if same else 'no (DRIFT)'}",
             file=sys.stderr,
