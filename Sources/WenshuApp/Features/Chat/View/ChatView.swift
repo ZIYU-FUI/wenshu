@@ -190,9 +190,9 @@ struct ChatView: View {
             // canonical chat content width observed in Hermes desktop = roughly
             // 75% of a 960 PT detail pane). Apple's HIG 'Readable Content'
             // default is around 60-75 characters per line; 720 PT × ~10 PT char ≈
-            // 72 chars per line, in the right band. round-19 boss directive ",,
-            // 10 " — applied to the ScrollView chain below (= the 10 PT top
-            // padding applies to the ScrollView's content area; = the sticky user
+            // 72 chars per line, in the right band. The 10 PT top padding
+            // applies to the ScrollView chain below (= the ScrollView's content area;
+            // = the sticky user
             // message bubble (= the first item in `LazyVStack(pinnedViews:
             // [.sectionHeaders])`) is pushed down 10 PT inside the scroll
             // viewport; = 10 PT visible gap between the editor zone's bottom
@@ -307,7 +307,7 @@ struct ChatView: View {
             .accessibilityHidden(true)
             // ⌘N = new chat (= the standard macOS File > New shortcut; = matches
             // Pages / TextEdit / Xcode behavior). Wenshu's chat is a
-            // single-session at a time (= no session tab bar in v0.x; = ⌘N clears
+            // single-session at a time (= there is no session tab bar; = ⌘N clears
             // the current chat AND starts a new session). Same hidden-Button
             // pattern as (=.frame(0,0) +.opacity(0) +.accessibilityHidden).
             Button("New chat") {

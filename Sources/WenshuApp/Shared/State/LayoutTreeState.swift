@@ -1,5 +1,5 @@
-// Sources/WenshuApp/State/LayoutTreeState.swift Bumped from v1 (= flat array of
-// panes) to v2 (= recursive split tree). 1:1 port of /Volumes/ANAN/.hermes/hermes-agent/apps/desktop/src/
+// Sources/WenshuApp/Shared/State/LayoutTreeState.swift = the recursive split tree.
+// 1:1 port of /Volumes/ANAN/.hermes/hermes-agent/apps/desktop/src/
 // components/pane-shell/tree/model.ts (650 LOC TypeScript). Two node kinds: -
 // SplitNode: children laid out along an orientation with fractional weights. -
 // GroupNode: a stack of panes (tabs) with one active; may be minimized to its

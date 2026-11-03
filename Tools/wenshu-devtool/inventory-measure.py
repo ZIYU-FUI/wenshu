@@ -17,7 +17,9 @@ import sys
 import tempfile
 
 CJK = re.compile(r"[\u4e00-\u9fff]")
-TICKET_ID = re.compile(r"\b[A-Z]{1,3}\d{2,4}\b")
+TICKET_ID = re.compile(
+    r"\b(?:T|P|A|B|C|Q|OOB|E|W|F|H|S|R)-\d+[A-Z0-9.-]*|\b[A-Z]{1,3}\d{1,4}\b"
+)
 RECEIPT = re.compile(r"rationale lines collapsed")
 
 
@@ -183,11 +185,19 @@ def main():
         for line in read(base, p).splitlines():
             if not is_comment(line):
                 continue
+            # the collapse receipts carry their own A112/A115 labels; those are
+            # measure 2's business, not a ticket reference
+            if RECEIPT.search(line) or line.strip().startswith("// /"):
+                continue
             for m in TICKET_ID.finditer(line):
                 ids += 1
                 distinct.add(m.group(0))
     print("5. ticket ids")
-    print("   method: `\\b[A-Z]{1,3}\\d{2,4}\\b` in a production comment line")
+    print("   method: a form-complete ticket-id match in a production comment line:")
+    print("   `\\b(?:T|P|A|B|C|Q|OOB|E|W|F|H|S|R)-\\d+[A-Z0-9.-]*|\\b[A-Z]{1,3}\\d{1,4}\\b`")
+    print("   (= the tree's real forms: T4-, T8-, P1-02, A112, Q112, round-19, ...;")
+    print("   the collapse receipts are skipped, because their own A112/A115")
+    print("   labels are measure 2's business, not a ticket reference)")
     print(f"   {ids} occurrences, {len(distinct)} distinct")
     print()
 

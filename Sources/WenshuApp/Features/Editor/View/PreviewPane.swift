@@ -73,8 +73,8 @@ struct PreviewPane: View {
     /// spec), and the grid owns it.
     @Binding var previewSortOrder: EntitySortOrder
 
-    /// The search query for the preview pane. PreviewPane owns it (= previously a
-    /// local state fed from the external `.searchable` modifier).
+    /// The search query for the preview pane. PreviewPane owns it: an optional
+    /// external binding, with the legacy internal `@State` as the nil fallback.
     @Binding var searchQuery: String?
 
     /// The SidebarItem.tag preview-pane filter: the active tag filter (= the
@@ -85,8 +85,8 @@ struct PreviewPane: View {
     /// below the title and the divider, above the first card.
     var customLeadingSearch: AnyView?
 
-    /// The legacy internal search state. It is used when `searchQuery` (= the new
-    /// binding) is nil, so the old behavior is unchanged.
+    /// The legacy internal search state. It is used when `searchQuery` is nil, so
+    /// the pane reads the same query either way.
     @State private var previewSearchQuery: String = ""
 
     /// Resolved search query used by `searchFilteredEntities`. Reads from the

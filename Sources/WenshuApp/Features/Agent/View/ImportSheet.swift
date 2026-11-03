@@ -1,4 +1,4 @@
-// ImportSheet.swift · Wenshu T3 of the v2.7 markdown import feature. A
+// ImportSheet.swift · Wenshu's markdown import feature. A
 // single-page sheet (= Apple HIG canonical macOS 14+ pattern) for the user to
 // pick: 1. The source directory on disk (= the directory containing their
 // existing markdown files; = e.g. an Obsidian vault). 2. The target book (= a
@@ -207,7 +207,7 @@ struct ImportSheet: View {
             )
         }
         // Auto-advance from.running to.results once the import finishes (= the
-        // user doesn't have to tap "" to see the results; = the orchestrator's
+        // user doesn't have to tap the next-step button to see the results; = the orchestrator's
         // `isImporting` flag flips to false when the import completes; = the
         // `isRunComplete` derived state becomes true; = the `.onChange` modifier
         // below advances the wizard to.results automatically). The transition is
@@ -350,7 +350,7 @@ struct ImportSheet: View {
     /// cancel-and-rollback path.
     func showCancelConfirmation() {
         // The cancel-confirmation dialog is only meaningful while an import is
-        // mid-flight (; = an empty sheet's "" click = no partial batch to confirm
+        // mid-flight (; = an empty sheet's cancel click = no partial batch to confirm
         // = the dialog would feel like a roadblock for a no-op dismiss). Two
         // paths: - `isImporting == true` (= the click arrives after; = the
         // partial batch is on disk; = the dialog is). - `isImporting == false` (=

@@ -411,7 +411,7 @@ final class SubAgentRunner {
         )
     }
 
-    /// Runs the real LLM-backed sub-agent (= v2.7d). It builds the run and
+    /// Runs the real LLM-backed sub-agent. It builds the run and
     /// reports a typed error on a transport, decode or provider failure.
     private func runRealSubAgent(
         handleID: String,

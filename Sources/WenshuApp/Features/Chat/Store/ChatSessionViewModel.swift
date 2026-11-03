@@ -250,7 +250,7 @@ final class ChatViewModel {
     @ObservationIgnored
     private var streamBuffer: StreamBuffer?
     /// 'check split, check dead code'. Removed dead `activeSubAgentName` +
-    /// `currentAgentTurn` fields (= T4-SUBAGENT-UI + T8-CHATVIEWMODEL-WIRE) —
+    /// `currentAgentTurn` fields —
     /// these were read by ChatSubAgentTag + ChatTurnProgress (. both files
     /// deleted). No view in the codebase consumes these values anymore; = dead
     /// reactive state. The corresponding `[wenshu.subagent]` + `[wenshu.agent]
@@ -359,7 +359,7 @@ final class ChatViewModel {
     // the previous default; = used when no book is selected, e.g.
     // onboarding-before-book-selection chats). The view layer is expected to call
     // setCurrentBookID(_:) when the user picks a different book so the chat panel
-    // reloads against the new scope. Until the view wires this up . P2-02 audit:
+    // reloads against the new scope. Until the view wires this up:
     // BookID brand wrapper.
     @MainActor var currentBookID: BookID?
 
@@ -837,9 +837,9 @@ final class ChatViewModel {
                     model: currentModel,
                     bookID: currentBookID?.rawValue,
                     streamCallback: { [weak self] block in
-                        // T1-THINKING-VISIBLE: log each stream block (= dev can
+                        // Log each stream block (= dev can
                         // confirm which part kinds the LLM actually emits). Tag
-                        // with PATH=.. so it grep-parity with T0 logs.
+                        // with PATH=.. so it grep-parity with the other logs.
                         let kindTag: String = {
                             switch block {
                             case .text: return "text"

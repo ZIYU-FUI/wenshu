@@ -154,7 +154,7 @@ public actor ConversationLoop {
 
         // Resolve system prompt (= systemMessage override > persistent
         // systemPrompt) Per hermes-port wire-up: compose stable + dynamic tiers
-        // via PromptBuilder instead of the v0.35 placeholder string that wrapped
+        // via PromptBuilder instead of a placeholder string that wrapped
         // the ephemeral hint with a Context: prefix. The dynamic tier composes
         // from ContextEngine + MemoryAdapter + SkillAdapter + caller extras; for
         // the minimum surface, those are empty (= ContextEngine + SkillAdapter
@@ -450,9 +450,9 @@ public actor ConversationLoop {
                       turnCount < maxAgentTurns
                 {
                     turnCount += 1
-                    // Dead `[wenshu.agent] turn N/M` marker emission removed (=
-                    // ChatTurnProgress.swift deleted in v1.83; = no view consumes
-                    // the marker). The loop counter is still kept internally (=
+                    // The dead `[wenshu.agent] turn N/M` marker is gone (= no view
+                    // consumes it). The loop counter is still kept internally (= it
+                    // bounds the while condition); = only the user-visible
                     // it bounds the while condition); = only the user-visible
                     // marker is dropped. "Executing tools".
                     await progressTracker.setStep(
@@ -462,7 +462,7 @@ public actor ConversationLoop {
                         etaSeconds: nil
                     )
                     let executor = ToolExecutor(safetyLedger: safetyLedger)
-                    // T2-TOOL-UI: forward streamCallback so ToolExecutor
+                    // Forward the stream callback so ToolExecutor
                     // emits.toolUse +.toolResult blocks to ChatView (= the
                     // ChatToolUsePartView / ChatToolResultPartView cards appear
                     // live, not only when the whole turn finishes).
