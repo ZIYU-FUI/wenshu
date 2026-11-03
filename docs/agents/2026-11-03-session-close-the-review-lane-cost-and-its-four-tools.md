@@ -203,27 +203,40 @@ to re-derive them.
 
 ## THE GATES ON THE MERGED TREE
 
-- `swift build --build-tests` = **Build complete**
+- `swift build --build-tests` = **Build complete** (5 s)
 - `swift test --skip CSSearchableIndexSearchTests` = **3200 tests in 512
   suites failed with 4 issues**, and **those 4 issues are NOT this session's**
-  (= measured, not reasoned):
+  (= measured on both trees, not reasoned).
 
-  | the failing test | the suite that holds it | the base (`5442b96f12`, before this session's first commit) | the merged tree |
+  **Both frameworks are covered**, because they report differently and a
+  report that reads only one of them quotes half the suite:
+
+  | the framework | what it prints | this run |
+  | --- | --- | --- |
+  | Swift Testing | `Test run with N tests in M suites ... with K issues` | **143/32 passed**, **3200/512 failed with 4 issues**, **208/24 passed** |
+  | XCTest | `Executed N tests, with M failures` and `Test Case '-[...]' failed` | **57 `Executed` lines, every one 0 failures**, and **0** `Test Case ... failed` |
+
+  and the trailer names the failing target AND its framework: `Note: Some
+  test targets reported failures: - WenshuAppTests (Swift Testing)`.
+
+  **The deterministic core is 3 sites, and all three fail on BOTH trees**,
+  with the same assertion:
+
+  | the site | the assertion | the base (`5442b96f12`, before this session's first commit) | the merged tree (`ccbb47db6d`) |
   | --- | --- | --- | --- |
-  | `displayTitle_documentPathBasenameWins_overTitle` | `EditorTabTitleTests` | **FAILS** (= pre-existing) | FAILS |
-  | `body_logs_history_metadata()` | `IntegrationPlanEndToEndTests` | PASS when the suite runs alone | PASS when the suite runs alone |
-  | `ChatView history shortcut (T92)` | `ChatViewHistoryShortcutTests` | PASS when the suite runs alone | PASS when the suite runs alone |
-  | `TodoStoreTool.execute() returns in under 5 seconds` | `HermesTodoStoreConcurrencyTests` | PASS in 0.646 s | PASS in 0.365 s |
+  | `ChatViewHistoryShortcutTests.swift:35` | the chat's history shortcut | **FAILS** | **FAILS** |
+  | `EditorTabTitleTests.swift:60` | `displayTitle` prefers the document's path | **FAILS** | **FAILS** |
+  | `AsyncDelegationRegistryTests.swift:104` | `Expectation failed: mentionsReported` | **FAILS** | **FAILS** |
 
-  The same four suites, run alone on both trees, give the **same result**
-  (= 24 tests in 4 suites, **2 issues** on the base and **2 issues** on the
-  merged tree, and the two failures are the same `EditorTab.displayTitle`
-  assertion). The other two appear only in the full 3200-test run, where the
-  store's timing assertions run under load (= a timing-sensitive suite, and
-  the rule is to name a TIMING SUITE as a suite and not as a line, because
-  the failing line inside it moves between runs).
+  The fourth site is **not** deterministic: `HermesTodoStoreConcurrencyTests.swift:268`
+  is a TIMING assertion (`judged.elapsed < 5.0`), and it PASSES when its
+  suite runs alone on **both** trees (= 0.646 s on the base, 0.365 s on the
+  merged tree) and fails only in the full concurrent run. So the honest
+  claim is about the 3 deterministic sites, not about an issue count (= the
+  same tree measures 5 issues in one run and 4 in the next, because a
+  load-sensitive site appears and disappears).
 
-  And the proof that they cannot be this session's: **the eight commits
+  And the proof that none of them can be this session's: **the eight commits
   touched nine paths, all of them under `Tools/wenshu-devtool/`** (four
   tools, four test suites and the README), and **zero `.swift` files**. So
   no Swift source and no Swift test moved.
