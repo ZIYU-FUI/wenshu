@@ -287,6 +287,49 @@ python3 Tools/wenshu-devtool/tests/test_review_lane_cost.py
 The meter is READ-ONLY: it never writes to the board or to the profile logs,
 and a board it cannot read yields zeros rather than a crash.
 
+## Skill-sync check
+
+A separate tool, because it reads the SKILL TREE rather than the source
+tree. It answers the question a rule-writing session always gets wrong:
+**is the rule I just wrote a rule the READER will see?**
+
+A rule that nobody reads is not a rule. Measured on board `wenshu-par`
+(2026-11-03): the review lane loads `sdlc-review` **209** times and
+`wenshu-parallel-dev` **34** times, so a rule written into the 1199-line
+review-round reference is nearly invisible to the worker that has to follow
+it. And a skill in the shared tree (`~/.hermes/shared/wenshu-skills`, on
+every profile's `skills.external_dirs`) is loaded by EVERY profile, while a
+skill in a profile's own directory is loaded only by that profile = two
+copies of one skill can drift silently.
+
+So the check answers:
+
+- **who carries the skill** (= the shared tree carries it everywhere; a
+  profile's own copy shadows the shared one);
+- **do the copies carry the same rules** (= the same `##`/`###` headings,
+  not the same bytes: a profile's copy may legitimately carry extra prose,
+  but the RULE SET must match, or the reader runs a different rule set
+  than the author wrote);
+- **is the reader among the carriers** (= a rule written where the reader
+  never looks is not a rule);
+- **does the named rule appear in the reader's copy.**
+
+```bash
+# Every flow skill: who carries it, and do the copies agree
+python3 Tools/wenshu-devtool/skill_sync_check.py
+
+# One skill, and one rule that must be in its reader's copy
+python3 Tools/wenshu-devtool/skill_sync_check.py \
+    --skill sdlc-review --rule "THE COST OF A REVIEW"
+```
+
+Its test suite runs on a fixture tree (a temporary `.hermes` with a shared
+tree and per-profile skills), so it stays valid when the real skills change:
+
+```bash
+python3 Tools/wenshu-devtool/tests/test_skill_sync_check.py
+```
+
 ## AGENTS.md contract gate
 
 Another separate tool, because it reads the SSOT instead of the source tree
