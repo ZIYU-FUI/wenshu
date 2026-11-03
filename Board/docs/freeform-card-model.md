@@ -845,3 +845,164 @@ CGRect CRLCanvasRep::snapRectForDynamicDragWithOffset(CGPoint offset)
 offsets it.** The alignment frame — not the raw bounds — is the thing that
 snaps, which is what makes a card's *text* line up with a neighbour's *text*
 rather than their boxes.
+
+## 9. The layout node, in full
+
+`CRLCanvasLayout` is the base class of the layout tree, and all **214 of its
+methods** were decompiled. This is the richest single source in the
+reference: it is the shape a canvas's layout layer has to have.
+
+A caveat that applies to every body in this section: the Objective-C method
+is a thin wrapper and the arithmetic lives in a private C or Swift function
+(`FUN_1013…`). What is visible here is the **protocol** — which calls happen
+in which order, which state is read and written — not the arithmetic
+itself.
+
+### 9.1 What every layout node must provide
+
+| The node answers | The selector |
+| --- | --- |
+| Its own geometry | `pureGeometry` |
+| The same, in the root's space | `pureGeometryInRoot` |
+| The same, in its parent's space | `pureGeometryInParent` |
+| Its transform | `pureTransformInRoot`, `originalPureTransformInRoot` |
+| Its transform in model space | `layoutTransformInInfoSpace` |
+| Its angle, for the inspector | `inspectorGeometry`, `inspectorGeometryAngleInDegrees`, `canInspectGeometry` |
+| The rectangle to cull by | `frameForCulling`, `frameForCullingWithBaseFrame` |
+| The rectangle to partition by | `frameForPartitioning` |
+| Its place in the draw order | `orderedBefore` |
+| Its children | `childInfosForChildLayouts`, `updateChildrenFromInfo` |
+| The guides it offers | `additionalGuides`, `shouldProvideSizingGuides`, `shouldDisplayGuides` |
+| The path that clips its connections | `pathForClippingConnectionLines`, `wrapPath` |
+| Its ancestors | `rootLayout`, `parent`, `layoutController` |
+
+⇒ **A layout node is not a rectangle.** It is a rectangle plus a place in
+the draw order, a set of guides it offers, a set of children it owns, a
+culling rectangle, a clipping path, and its place in the dependency graph.
+A replica that models a canvas item as `{x, y, w, h}` will not have enough
+state to reproduce any of this.
+
+### 9.2 The coordinate spaces
+
+There are four, and they are not interchangeable:
+
+| Space | What it is |
+| --- | --- |
+| **natural** | the item's own space, before any transform — `convertNaturalPointFromUnscaledCanvas`, `convertNaturalPointToUnscaledCanvas` |
+| **pure** | the untransformed geometry — `pureGeometry`, `pureTransformInRoot` |
+| **info** | the persisted model — `layoutTransformInInfoSpace`, `infoGeometryForCommiting…` |
+| **root** | the canvas — `pureGeometryInRoot`, `frameForCulling` |
+
+And `pureGeometryInRoot` is literally **the pure geometry run through the
+parent's transform chain** — one private call, one answer:
+
+```c
+ID CRLCanvasLayout::pureGeometryInRoot() {
+    return FUN_1013ed720(self, pureGeometry());
+}
+```
+
+⇒ **The root space is computed by composing, never by storing.** The layout
+tree keeps no world-space copy of its items.
+
+### 9.3 Live edit is a per-gesture triple
+
+Every manipulation has the same three beats, and each gesture has its own
+family of them:
+
+| Gesture | Begin | Take | End |
+| --- | --- | --- | --- |
+| Drag | `beginDrag` | `dragBy`, `dragByUnscaled` | `endDrag` |
+| Rotate | `beginRotate` | `takeRotationFromTracker` | `endRotate` |
+| Resize | `beginResize` | `takeSizeFromTracker`, `resizeWithTransform` | `endResize` |
+| Free transform | `beginFreeTransformWithTracker` | `takeFreeTransformFromTracker` | `endFreeTransform` |
+| Any | `beginDynamicOperationWithRealTimeCommands` | — | `endDynamicOperation` |
+
+And the commit geometry is **per gesture**:
+`finalInfoGeometryForResize`, `finalInfoGeometryForFreeTransform`, and the
+general `infoGeometryForCommitingAnchorHintAtEndOfDynamicOperation`.
+
+`endDynamicOperation` is the commit point, and its whole body is three
+stores:
+
+```c
+assert(mBaseGeometry != nil);      // "…foreDynamicOperation"
+mBaseGeometry = 0;
+mLayoutState = 0;
+mIsInRealTimeDynamicOperation = 0;
+```
+
+⇒ **Live edit is three pieces of state on the layout**: the geometry
+captured at the start, the layout state, and the real-time flag. The commit
+is clearing them. A replica that keeps the drag's transient geometry in a
+separate "drag state" object has the same shape; a replica that mutates the
+persisted geometry during the drag does not.
+
+### 9.4 The dependency graph crosses the tree
+
+`dependentLayouts` is the interesting one:
+
+```c
+result = parent's dependents that depend on me
+       + the canvas controller's board items that depend on me
+```
+
+⇒ **A layout depends on more than its own children.** It depends on its
+**parent's** dependents, and on **board items registered with the canvas
+controller** — items that are not its descendants at all.
+
+So the invalidation graph is **not** the layout tree. It is a second graph,
+laid over the tree, and a replica that assumes "invalidate the subtree"
+will get the wrong answer the moment an item depends on something that is
+not its ancestor. The graph has three shapes of edge: `dependentLayouts`,
+`bidirectionalSizeDependentLayouts` (size dependencies that go both ways),
+and `reliedOnLayouts` (one-way). `dependentLayoutsForDrag` is a separate
+narrower graph for the duration of a drag.
+
+### 9.5 The magnets live on the layout, in local space
+
+Connection-line attachment points are the layout's own business:
+
+| The magnet | The selector |
+| --- | --- |
+| North, east, south, west | `cardinalNorthPosition`, `cardinalEastPosition`, `cardinalSouthPosition`, `cardinalWestPosition` |
+| The centre for a new connection | `centerForConnecting` |
+| The centre for a rotation | `centerForRotation` |
+| Edge and floating magnets | `adjustEdgeMagnetPosition`, `adjustFloatingMagnetPosition` |
+| The custom magnet set | `adjustCustomMagnetPositions`, `shouldBringCardinalMagnetsInward` |
+| Normalised positions | `convertNormalizedPositionFromLayoutToPureGeometry` |
+| The hull around them | `convexHullPath`, `getIntersectionsForTestPath` |
+
+And `cardinalNorthPosition` shows where they are stored:
+
+```c
+CGPoint CRLCanvasLayout::cardinalNorthPosition() {
+    CGAffineTransform t = geometry ? geometry.transform : identity;
+    CGPoint p = mCardinalNorthPosition;      // stored, local
+    return apply(t, p);
+}
+```
+
+⇒ **The magnet positions are stored in the item's local space and transformed
+to the canvas on demand.** They are not world coordinates, and they are not
+recomputed when the item moves — the item's transform moves them.
+
+### 9.6 What is fully mapped now
+
+| Class | Mapped |
+| --- | --- |
+| `CRLCanvasLayout` | **214 / 214** |
+| `CRLCanvasRepAccessibility` | **170 / 170** |
+| `CRLImageRep` | **228 / 228** |
+| `CRLShapeRep` | **158 / 158** |
+| `CRLMacCanvasViewController` | **183 / 183** |
+| `CRLCanvasRep` | 258 / 423 |
+| `CRLInteractiveCanvasController` | 282 / 529 |
+| `CRLWPRep` | 255 / 313 |
+| `CRLMacCanvasZoomMagnificationGestureRecognizer` | 187 / 243 |
+
+⇒ **2,415 method bodies in total — 11.2% of the 21,580 reachable
+Objective-C methods.** The classes that hold the geometry, the guides, the
+snapping, the autoscroll, the zoom and the positioning are at 100%. What is
+left is the item-type-specific surface (text, shapes, media) and the
+controller plumbing, which is the part a replica does not need to copy.
