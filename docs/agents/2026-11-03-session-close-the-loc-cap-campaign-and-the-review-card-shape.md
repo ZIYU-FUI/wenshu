@@ -22,19 +22,37 @@ another lane.
 | `BookEntityTool.swift` | 718 | 436 + 300 | `03ac3e9684` |
 | `BookOutlineTool.swift` | 648 | 381 + 288 | `10725edba9` |
 | `WenshuConductorImportRouter.swift` | 616 | 530 + 101 | `96faf0eed6` |
+| `WenshuAppDelegate.swift` | 655 | 570 + 112 | `2e23aea130` |
 
-The over-cap count at `main` went from 18 to 7 with these landings
-(measured at `main` = `8333b13181` by the inventory's own script: 505
-production files, median 155, p90 451, and **7** over the cap; the
-baseline it measures against, `e9a85dcad9`, reads 490 / 150.5 / 470 / 18,
-and the file count grew because the card board client's package landed
-in between). The seven that remain are `ConversationLoop.swift` (1109),
-`ChatSessionViewModel.swift` (942), `ChatView.swift` (892),
-`PreviewPaneCard.swift` (790), `LayoutTreeState.swift` (773),
-`RequestHelpers.swift` (673) and `WenshuAppDelegate.swift` (655).
+The over-cap count at `main` went from 18 to 6 with these landings
+(measured at `main` = `2e23aea130`: 505 production files, median 155, p90
+451, and **6** over the cap; the baseline it measures against,
+`e9a85dcad9`, reads 490 / 150.5 / 470 / 18, and the file count grew
+because the card board client's package landed in between). The six that
+remain are `ConversationLoop.swift` (1109), `ChatSessionViewModel.swift`
+(942), `ChatView.swift` (892), `PreviewPaneCard.swift` (790),
+`LayoutTreeState.swift` (773) and `RequestHelpers.swift` (673).
 
 Two records also landed: the project inventory of record (with its
 measurement script) and the comment policy's eight densest files.
+
+## The app delegate's split, and the Swift rule the review caught
+
+The split moved the delegate's drain loop (= `startSubAgentDrainLoop`,
+`stopSubAgentDrainLoop`) and its two static members into an extension, and
+the review REJECTED the first cut for one thing: the new file's header
+stated as its design reason that "an extension cannot hold a stored
+property". That is a false rule (= the rule is about stored INSTANCE
+properties; a stored STATIC property in an extension is legal, and the
+tree declares stored statics in extensions in fourteen files). The fix was
+not to reword the claim but to remove the need for it: the two members
+were read ONLY by the moved cluster, so they moved into the extension as
+`private` there, and the parent's diff against the base became a PURE
+DELETION (= 0 added lines, 85 deleted) with **no access promotion at
+all**. So the first question at a seam is not "what must be promoted" but
+"what can go with the cluster", and a Swift rule quoted in a commit
+message must be proved by execution (= the reviewer checks the rule, not
+the reasoning).
 
 ## The seam rule, and what it cost
 
