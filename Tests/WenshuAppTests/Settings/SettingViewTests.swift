@@ -51,26 +51,34 @@ import WenshuAgent
 @Suite("SettingView (v0.93 ticket 005 — Settings tab)")
 struct SettingViewTests {
 
-    /// Resolved through SourceLocator (= a Package.swift probe), so this test
-    /// keeps working wherever it sits in the tree.
-    private static var settingViewPath: String {
-        SourceLocator.path("Sources/WenshuApp/Features/Settings/View/SettingView.swift")
+    /// The view's two files, resolved through SourceLocator (= a
+    /// Package.swift probe), so this test keeps working wherever they sit
+    /// in the tree.
+    ///
+    /// The view's provider pane, model pane and SettingsOps plumbing live
+    /// in their own file, so an assertion about the view reads both.
+    private static var settingViewPaths: [String] {
+        [
+            SourceLocator.path("Sources/WenshuApp/Features/Settings/View/SettingView.swift"),
+            SourceLocator.path("Sources/WenshuApp/Features/Settings/View/SettingView+Providers.swift"),
+        ]
     }
 
     private func readSettingViewSource() throws -> String {
-        return try String(contentsOfFile: Self.settingViewPath, encoding: .utf8)
+        try Self.settingViewPaths
+            .map { try String(contentsOfFile: $0, encoding: .utf8) }
+            .joined(separator: "\n")
     }
 
-    /// Extract the SettingView struct section (= until the closing brace
-    /// of the type). Section delimiter = the closing brace of the top-level
-    /// type (= 499 LOC source ends with "\n}\n").
+    /// Extract the SettingView section (= the struct and the extension that
+    /// carries the view's provider and model panes).
+    ///
+    /// The join is a newline, so a line never runs into the next file's
+    /// first line, and an assertion that counts a token counts it the same
+    /// way it counted it when the view was one file.
     private func settingViewSection(_ source: String) -> String {
         let startRange = source.range(of: "struct SettingView: View")!
-        let section = String(source[startRange.lowerBound...])
-        // The file ends with "\n}\n" (= the type's closing brace)
-        let endRange = section.range(of: "\n}\n", options: .literal)?.upperBound
-            ?? section.endIndex
-        return String(section[..<endRange])
+        return String(source[startRange.lowerBound...])
     }
 
     // MARK: - Structural tests
