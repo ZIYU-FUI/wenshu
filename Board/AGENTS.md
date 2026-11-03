@@ -178,6 +178,7 @@ tablet client is at Mobile/. This file governs the card board.
 | Apple Freeform: the board app, the App Intents, the SDK quotes | Board/docs/freeform-card-model.md |
 | The client's package boundary | Board/docs/adr/0034-the-board-client-is-its-own-package.md |
 | The client's writer rule | Board/docs/adr/0035-one-library-one-writer.md |
+| The client's supersession of the desktop card ticket | Board/docs/adr/0036-the-board-client-supersedes-the-desktop-card-ticket.md |
 | Swift standards + AI self-check | wenshu-pocock-workflow/references/wenshu-swift-standards.md |
 | PO methodology | universal-pocock-workflow/SKILL.md |
 | Apple HIG canonical | wenshu-apple-api-first/SKILL.md |
