@@ -235,6 +235,58 @@ not be read, 3 = a card owes a verdict it does not have. The merge gate
 (`Scripts/merge-preflight.sh`) runs the record check for the branch it is
 asked to bless and refuses the merge until the verdict is on the record.
 
+## Review-lane cost meter
+
+A separate tool, because it reads the BOARD and the REVIEWER PROFILE rather
+than the source tree. It answers one question: **what does a review run
+actually cost, and which of its numbers can a change move?**
+
+The lane's cost is the ROUND TRIP, not the gate's runtime. Every tool call
+is one API call, and every API call re-sends the whole history, so a run's
+price grows with the SQUARE of its round count. Measured on board
+`wenshu-par` over the wenshu-review profile's whole log (2026-11-03, 310
+review sessions, 25219 API calls):
+
+- **83% of the wall clock is API latency** (181 h of 219 h); the terminal
+  work is the rest. So the gate's width is NOT what makes a review slow.
+- a completed review makes **105 shell calls**, and it WRITES its own
+  scripts to do it (3894 scratch files written, 3331 of them distinct, so
+  the same measurement gets reinvented and rewritten).
+- the terminal call correlates **+0.717** with the wall clock and every tool
+  call +0.700, while a scratch write alone is +0.400 and a repo gate call is
+  far below both. So the scripts the reviewer writes ARE the cost.
+- the median latency is 5 s below 50k input tokens and 22 s above 350k, the
+  context grows 9x inside a session, and the last third of a session's calls
+  eats 37% of its API time.
+- **54% of the lane's runs end without a verdict** (timed out, rate limited,
+  or crashed), and a retry starts from zero.
+- the CARD's shape predicts almost nothing: body length correlates +0.295
+  with the call count and nothing else does, and once the body size is held
+  constant every other card feature falls to |r| < 0.1. **So there is no
+  card-side cost gate**: a card moves the wall clock only by naming the
+  command that answers each question, and the meter is how that is checked.
+
+```bash
+# The review lane, as a text report
+python3 Tools/wenshu-devtool/review_lane_cost.py
+
+# The same numbers, machine-readable (= the before/after of a change)
+python3 Tools/wenshu-devtool/review_lane_cost.py --json
+
+# Another lane or board
+python3 Tools/wenshu-devtool/review_lane_cost.py --profile wenshu-dev
+```
+
+Its test suite runs on fixtures (a temporary board DB and a temporary
+agent.log), so it stays valid when the real board and the real logs change:
+
+```bash
+python3 Tools/wenshu-devtool/tests/test_review_lane_cost.py
+```
+
+The meter is READ-ONLY: it never writes to the board or to the profile logs,
+and a board it cannot read yields zeros rather than a crash.
+
 ## AGENTS.md contract gate
 
 Another separate tool, because it reads the SSOT instead of the source tree
