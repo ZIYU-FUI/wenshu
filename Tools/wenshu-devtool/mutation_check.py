@@ -57,7 +57,14 @@ def run_suite(
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp) / root.name
         shutil.copytree(root, work)
-        target = work / guard.resolve().relative_to(root)
+        try:
+            target = work / guard.resolve().relative_to(root)
+        except ValueError:
+            return -1, (
+                f"the guarded file is outside the suite's package directory "
+                f"({guard} is not under {root}) = this tool copies that "
+                f"directory, so it cannot mutate a file elsewhere"
+            )
         if mutate is not None and replace is not None:
             text = target.read_text()
             if mutate not in text:
@@ -102,7 +109,10 @@ def main() -> int:
     if args.control:
         print("CONTROL ONLY: the suite is green, so it CAN bite.")
         print("(run it again with --mutate/--replace to see whether it does)")
-        return 0
+        # A DIFFERENT exit code from "the suite bit": the control proves
+        # the suite is green, and nothing more. A caller that gates on the
+        # exit code must not read it as a proven bite.
+        return 3
 
     if args.mutate is None or args.replace is None:
         print("--mutate and --replace go together", file=sys.stderr)

@@ -374,6 +374,45 @@ python3 Tools/wenshu-devtool/mutation_check.py \
 Exit code: 0 = the suite bit, 1 = it did not (= the guard is empty), 2 = the
 suite was already red (= no verdict).
 
+## Card sha
+
+A separate tool, because it reads the GIT REPO and the card body. It
+answers the question a card author gets wrong by hand: **is the sha in this
+card real?**
+
+A sha is 40 hex characters, and it is read by the merge gate
+(`review_gate.reviewed_sha(body)` reads the FIRST PARAGRAPH of the
+`## WHAT TO BUILD` section and takes its first `[0-9a-f]{7,40}` match).
+Measured 2026-11-03 on the wenshu-par board: three cards carried a "full
+sha" that was a hand-written guess (= a short sha with random characters
+appended), and nothing caught it = the gate could not tell a guess from a
+sha. The short sha in the first paragraph was real in every case, so the
+cards worked by accident.
+
+So: never type a sha. Read it.
+
+```bash
+# The sha a branch points at, read from git
+python3 Tools/wenshu-devtool/card_sha.py --read wt/review-lane-cost
+
+# Put a branch's REAL sha into a card body (both sha lines)
+python3 Tools/wenshu-devtool/card_sha.py --write card.md --branch wt/review-lane-cost
+
+# Check a card body: every sha it names, and the one the gate would read
+python3 Tools/wenshu-devtool/card_sha.py --check card.md
+```
+
+`--check` exits 1 when a sha in the body does not exist, when a sha has the
+wrong length (= a typed sha), or when the first paragraph names no sha at
+all (= the gate reads none, so no verdict on the card can cover the branch).
+
+Its test suite runs on a fixture repo (a temporary directory with two real
+commits), so it stays valid when the real repo changes:
+
+```bash
+python3 Tools/wenshu-devtool/tests/test_card_sha.py
+```
+
 ## AGENTS.md contract gate
 
 Another separate tool, because it reads the SSOT instead of the source tree
