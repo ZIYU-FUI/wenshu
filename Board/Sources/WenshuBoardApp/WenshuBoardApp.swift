@@ -20,8 +20,9 @@ struct WenshuBoardApp: App {
         // The proof path renders the canvas into a bitmap and leaves. It is
         // how a geometry claim gets looked at without a human and a window.
         if let directory = RenderProof.requestedDirectory() {
-            RenderProof.write(to: directory)
-            exit(0)
+            // A proof run that produced nothing must not report success.
+            let written = RenderProof.write(to: directory)
+            exit(written == RenderProof.expectedBitmaps ? 0 : 1)
         }
     }
 

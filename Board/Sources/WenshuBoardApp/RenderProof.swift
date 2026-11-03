@@ -24,13 +24,21 @@ enum RenderProof {
         return arguments[flag + 1]
     }
 
+    /// How many bitmaps a successful run writes.
+    static let expectedBitmaps = 2
+
     /// Renders the canvas at two viewports and writes both bitmaps.
+    ///
+    /// - Returns: the number of bitmaps written. A proof that cannot fail is
+    ///   not a proof: the caller exits non-zero when the count is short, so a
+    ///   run that produced nothing is distinguishable from a passing one.
     @MainActor
-    static func write(to directory: String) {
+    static func write(to directory: String) -> Int {
         let cases: [(name: String, viewport: BoardViewport)] = [
             ("canvas-1x", BoardViewport(scale: 1, offset: CGPoint(x: 60, y: 40))),
             ("canvas-zoom", BoardViewport(scale: 1.6, offset: CGPoint(x: -40, y: -20))),
         ]
+        var written = 0
         for testCase in cases {
             let canvas = BoardCanvasView(
                 elements: BoardCanvasDemo.elements,
@@ -52,9 +60,11 @@ enum RenderProof {
             do {
                 try png.write(to: path)
                 print("rendered \(path.path)")
+                written += 1
             } catch {
                 FileHandle.standardError.write(Data("write failed: \(error)\n".utf8))
             }
         }
+        return written
     }
 }
