@@ -177,7 +177,9 @@ def case_5_same_headings_are_not_drift() -> None:
         mod.HERMES = root
         mod.SHARED_TREE = root / "shared" / "wenshu-skills"
         result = mod.check("own-skill", None)
-        check("no drift", result["drift"], False)
+        check("the rule set is the same", result["drift"], False)
+        check("the wording difference is reported", result["wording_drift"], True)
+        check("it is a warning, not a failure", result["problems"], [])
 
 
 def case_6_rule_reported_only_where_it_is() -> None:
@@ -315,6 +317,36 @@ def case_13_shared_tree_needs_the_profile_to_name_it() -> None:
         check("the reviewer is not", "wenshu-review" in paths, False)
 
 
+def case_14_a_wording_difference_is_drift() -> None:
+    """Two copies can carry the SAME headings and different WORDS (= a lesson
+    one copy gained and the other did not). A heading comparison cannot see
+    it, so the checker compares the body of every section too."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / ".hermes"
+        for profile in ("pocock", "wenshu-review"):
+            write_skill(
+                root / "profiles" / profile / "skills" / "devops" / "own-skill",
+                "SKILL.md",
+                skill_md("own-skill", "the skill", ["Same Heading"])
+                + "the shared words\n",
+            )
+            write_config(root, profile, names_shared_tree=False)
+        # the reader gains one line
+        reader = root / "profiles" / "wenshu-review" / "skills" / "devops" / "own-skill" / "SKILL.md"
+        reader.write_text(reader.read_text() + "an extra lesson only the reader has\n")
+        mod.HERMES = root
+        mod.SHARED_TREE = root / "shared" / "wenshu-skills"
+        mod.READER_OF = {}
+        result = mod.check("own-skill", None)
+        check("the wording difference is reported", result["wording_drift"], True)
+        check(
+            "the differing section is named",
+            "Same Heading" in result["differing_sections"],
+            True,
+        )
+        check("a warning is raised", bool(result["warnings"]), True)
+
+
 def main() -> int:
     cases = [
         case_1_shared_tree_is_carried_by_every_profile,
@@ -330,6 +362,7 @@ def main() -> int:
         case_11_a_profile_that_does_not_exist_is_not_reported,
         case_12_the_reader_missing_the_skill_is_a_failure,
         case_13_shared_tree_needs_the_profile_to_name_it,
+        case_14_a_wording_difference_is_drift,
     ]
     for case in cases:
         print(f"== {case.__name__}")

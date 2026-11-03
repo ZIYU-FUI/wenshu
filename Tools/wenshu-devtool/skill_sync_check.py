@@ -128,6 +128,22 @@ def skill_paths(skill: str) -> dict[str, Path]:
     return found
 
 
+def sections(text: str) -> dict[str, str]:
+    """A skill's body, split by its `##`/`###` headings.
+
+    Two copies can carry the same headings and different WORDS (= a lesson
+    one copy gained and the other did not). Splitting by heading makes that
+    difference nameable, so the check can report WHICH section differs and
+    not just that something does.
+    """
+    marks = list(re.finditer(r"^#{2,3} (.+)$", text, re.M))
+    out: dict[str, str] = {}
+    for i, m in enumerate(marks):
+        end = marks[i + 1].start() if i + 1 < len(marks) else len(text)
+        out[m.group(1).strip()] = text[m.start():end]
+    return out
+
+
 def frontmatter(text: str) -> dict:
     """The skill's frontmatter, parsed without a YAML dependency."""
     if not text.startswith("---"):
@@ -151,6 +167,9 @@ def check(skill: str, rule: str | None) -> dict:
         "profiles_with_the_skill": sorted(paths),
         "missing_from": [p for p in PROFILES if p not in paths],
         "drift": False,
+        "wording_drift": False,
+        "differing_sections": {},
+        "warnings": [],
         "rule_present_in": [],
         "frontmatter_ok": True,
         "description": "",
@@ -187,6 +206,41 @@ def check(skill: str, rule: str | None) -> dict:
             f"(= the reader may run a different rule set than the author wrote)"
         )
     result["headings"] = {k: sorted(v) for k, v in markers.items()}
+
+    # The HEADINGS are not enough. Two copies can carry the same headings and
+    # still differ in the WORDS (= a lesson one copy gained and the other
+    # did not), and that difference is invisible to a heading comparison.
+    # So compare the BODY of every section too, and report which section
+    # differs.
+    bodies_by_section: dict[str, dict[str, str]] = {}
+    for profile, text in bodies.items():
+        bodies_by_section[profile] = sections(text)
+    all_sections = sorted(
+        {name for per in bodies_by_section.values() for name in per}
+    )
+    differing: dict[str, list[str]] = {}
+    for name in all_sections:
+        variants = {
+            profile: per.get(name, "")
+            for profile, per in bodies_by_section.items()
+        }
+        if len(set(variants.values())) > 1:
+            differing[name] = sorted(variants)
+    result["differing_sections"] = differing
+    if differing:
+        # A wording difference is REPORTED but it is not by itself a failure:
+        # one copy may legitimately carry extra prose (= a note, a
+        # profile-specific aside) while the RULE is the same. What cannot
+        # be told apart automatically is "extra prose" from "a lesson one
+        # copy gained and the other did not", so the difference is named and
+        # a human decides. The exit code is driven by the heading check
+        # (= the rule set), and this is the warning that the words differ.
+        result["wording_drift"] = True
+        result["warnings"].append(
+            "these sections differ in their WORDS across "
+            f"{sorted(bodies)}: {', '.join(differing)} (= one copy may hold "
+            "a lesson the other does not; a heading comparison cannot see it)"
+        )
 
     # The reader must be among the carriers. This is the check that matters
     # most, so it is a PROBLEM (= the tool exits 1), never a note.
@@ -235,6 +289,8 @@ def main() -> int:
                 print(f"  description: {r['description'][:90]}")
             for p in r["problems"]:
                 print(f"  !! {p}")
+            for w in r["warnings"]:
+                print(f"  ?? {w}")
             print()
     bad = [r for r in results if r["problems"]]
     if bad:
@@ -260,6 +316,8 @@ def _summary(results: list) -> None:
         )
         for p in r["problems"]:
             print(f"  !! {p}", file=sys.stderr)
+        for w in r["warnings"]:
+            print(f"  ?? {w}", file=sys.stderr)
     bad = [r for r in results if r["problems"]]
     if bad:
         print(f"{len(bad)} skill(s) need attention", file=sys.stderr)
