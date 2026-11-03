@@ -278,6 +278,45 @@ def case_9_json_report_is_complete() -> None:
         check("empty dict does not crash", "THE ROUND TRIP" in empty, True)
 
 
+def case_10_a_blob_body_does_not_crash() -> None:
+    """The reviewer found this: sqlite hands back BYTES for a BLOB body, and
+    `body or ""` does not help (a non-empty bytes is truthy), so the branch
+    regex raised 'cannot use a string pattern on a bytes-like object'."""
+    with tempfile.TemporaryDirectory() as tmp:
+        board_dir = Path(tmp) / "boards"
+        board_dir.mkdir(parents=True)
+        db_path = board_dir / "kanban.db"
+        conn = sqlite3.connect(db_path)
+        conn.execute("CREATE TABLE tasks (id TEXT PRIMARY KEY, title TEXT, body BLOB)")
+        conn.execute(
+            "CREATE TABLE task_runs (task_id TEXT, profile TEXT, started_at TEXT, "
+            "ended_at TEXT, outcome TEXT, metadata TEXT)"
+        )
+        # a BLOB body, exactly as the board stores a few of them
+        conn.execute(
+            "INSERT INTO tasks (id, title, body) VALUES (?, ?, ?)",
+            ("t1", "blob", sqlite3.Binary(b"branch wt/alpha")),
+        )
+        conn.execute(
+            "INSERT INTO task_runs (task_id, profile, started_at, ended_at, "
+            "outcome, metadata) VALUES ('t1', 'wenshu-review', "
+            "'2026-11-01T00:00:00Z', '2026-11-01T01:00:00Z', 'completed', NULL)"
+        )
+        conn.commit()
+        conn.close()
+        mod.product_lines.board_db = lambda board: str(db_path)
+        runs = mod.lane_runs("any", "wenshu-review")
+        check("the run was read", runs["runs"], 1)
+        check("the blob body was decoded", runs["branches"], 1)
+
+
+def case_11_bytes_become_text() -> None:
+    check("bytes decode", mod.as_text(b"branch wt/alpha"), "branch wt/alpha")
+    check("None becomes empty", mod.as_text(None), "")
+    check("text passes through", mod.as_text("plain"), "plain")
+    check("undecodable bytes survive", mod.as_text(b"\xff\xfe"), "\ufffd\ufffd")
+
+
 def main() -> int:
     cases = [
         case_1_api_lines_count_rounds,
@@ -289,6 +328,8 @@ def main() -> int:
         case_7_re_review_share_counts_a_card_once,
         case_8_missing_profile_is_zeros_not_a_crash,
         case_9_json_report_is_complete,
+        case_10_a_blob_body_does_not_crash,
+        case_11_bytes_become_text,
     ]
     for case in cases:
         print(f"== {case.__name__}")

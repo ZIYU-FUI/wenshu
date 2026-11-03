@@ -25,6 +25,8 @@ Exit: 0 = every case passed, 1 = at least one case failed.
 from __future__ import annotations
 
 import importlib.util
+import json
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -61,8 +63,21 @@ def skill_md(name: str, description: str, headings: list[str]) -> str:
     return text
 
 
+def write_config(root: Path, profile: str, names_shared_tree: bool = True) -> None:
+    """A profile's config.yaml. The shared tree is reached through
+    `skills.external_dirs`, so a profile loads it only when it names it."""
+    cfg = root / "profiles" / profile / "config.yaml"
+    cfg.parent.mkdir(parents=True, exist_ok=True)
+    shared = str(root / "shared" / "wenshu-skills") if names_shared_tree else "/elsewhere"
+    cfg.write_text(f"skills:\n  external_dirs:\n    - {shared}\n")
+
+
 def make_tree(root: Path) -> None:
-    """A fixture tree: a shared skill and two profile copies."""
+    """A fixture tree: a shared skill and two profile copies.
+
+    Every profile here names the shared tree in its config.yaml, because
+    that is how the real tree is wired (= the profiles' `external_dirs`).
+    """
     write_skill(
         root / "shared" / "wenshu-skills" / "shared-skill",
         "SKILL.md",
@@ -78,6 +93,8 @@ def make_tree(root: Path) -> None:
         "SKILL.md",
         skill_md("own-skill", "the author's skill", ["Rule A", "Rule B"]),
     )
+    write_config(root, "pocock")
+    write_config(root, "wenshu-review")
 
 
 def case_1_shared_tree_is_carried_by_every_profile() -> None:
@@ -90,7 +107,7 @@ def case_1_shared_tree_is_carried_by_every_profile() -> None:
         check(
             "every profile carries it",
             sorted(paths),
-            ["pocock", "wenshu-dev", "wenshu-review"],
+            ["pocock", "wenshu-review"],
         )
 
 
@@ -216,6 +233,88 @@ def case_9_frontmatter_parses_without_yaml() -> None:
     check("description", meta.get("description"), "Review Kanban handoffs.")
 
 
+def case_10_json_mode_keeps_stdout_pure() -> None:
+    """The reviewer found this: a summary line after the JSON array makes
+    json.loads fail with 'Extra data'."""
+    import io
+    import contextlib
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / ".hermes"
+        make_tree(root)
+        mod.HERMES = root
+        mod.SHARED_TREE = root / "shared" / "wenshu-skills"
+        mod.READER_OF = {"own-skill": "wenshu-review"}
+        out = io.StringIO()
+        err = io.StringIO()
+        argv = sys.argv
+        sys.argv = ["skill_sync_check.py", "--json", "--skill", "own-skill"]
+        try:
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = mod.main()
+        finally:
+            sys.argv = argv
+        payload = out.getvalue()
+        parsed = json.loads(payload)
+        check("stdout is pure JSON", isinstance(parsed, list), True)
+        check("the summary went to stderr", "=== own-skill ===" in err.getvalue(), True)
+        check("stdout holds only the JSON", payload.strip().startswith("["), True)
+
+
+def case_11_a_profile_that_does_not_exist_is_not_reported() -> None:
+    """The reviewer found this: a hardcoded profile list asserts facts about
+    profiles that have no directory."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / ".hermes"
+        make_tree(root)
+        mod.HERMES = root
+        mod.SHARED_TREE = root / "shared" / "wenshu-skills"
+        found = mod.discover_profiles()
+        check("only real profiles", "wenshu-dev" in found, False)
+        check("the real ones are found", "pocock" in found, True)
+
+
+def case_12_the_reader_missing_the_skill_is_a_failure() -> None:
+    """The reviewer found this: the tool false-greened when the reader held
+    no copy (= it printed 'missing from' and still exited 0)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / ".hermes"
+        make_tree(root)
+        # the reader holds nothing: its local copy goes, and no profile's
+        # config names the shared tree
+        shutil.rmtree(root / "profiles" / "wenshu-review" / "skills" / "devops" / "own-skill")
+        write_config(root, "pocock", names_shared_tree=False)
+        write_config(root, "wenshu-review", names_shared_tree=False)
+        mod.HERMES = root
+        mod.SHARED_TREE = root / "shared" / "wenshu-skills"
+        mod.READER_OF = {"own-skill": "wenshu-review"}
+        result = mod.check("own-skill", None)
+        check(
+            "the reader is reported as missing",
+            any("wenshu-review" in p for p in result["problems"]),
+            True,
+        )
+
+
+def case_13_shared_tree_needs_the_profile_to_name_it() -> None:
+    """A profile loads the shared tree only if its config names it."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / ".hermes"
+        make_tree(root)
+        # pocock's config names the tree; the reviewer's does not, and the
+        # reviewer holds no local copy of its own
+        write_config(root, "pocock", names_shared_tree=True)
+        write_config(root, "wenshu-review", names_shared_tree=False)
+        shutil.rmtree(root / "profiles" / "wenshu-review" / "skills" / "devops" / "own-skill")
+        mod.HERMES = root
+        mod.SHARED_TREE = root / "shared" / "wenshu-skills"
+        check("pocock reaches the tree", mod.shared_tree_reaches("pocock"), True)
+        check("the reviewer does not", mod.shared_tree_reaches("wenshu-review"), False)
+        paths = mod.skill_paths("own-skill")
+        check("pocock is carried", "pocock" in paths, True)
+        check("the reviewer is not", "wenshu-review" in paths, False)
+
+
 def main() -> int:
     cases = [
         case_1_shared_tree_is_carried_by_every_profile,
@@ -227,6 +326,10 @@ def main() -> int:
         case_7_reader_without_the_skill_is_reported,
         case_8_broken_frontmatter_is_reported,
         case_9_frontmatter_parses_without_yaml,
+        case_10_json_mode_keeps_stdout_pure,
+        case_11_a_profile_that_does_not_exist_is_not_reported,
+        case_12_the_reader_missing_the_skill_is_a_failure,
+        case_13_shared_tree_needs_the_profile_to_name_it,
     ]
     for case in cases:
         print(f"== {case.__name__}")

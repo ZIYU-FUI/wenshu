@@ -50,10 +50,30 @@ HERMES = Path.home() / ".hermes"
 # only by that profile.
 SHARED_TREE = HERMES / "shared" / "wenshu-skills"
 
-# The profiles that dispatch work on the board, and the skill each one is
-# expected to carry. A review rule that is only in the author's profile is
-# only half a rule.
-PROFILES = ("pocock", "wenshu-dev", "wenshu-review")
+# The profiles that dispatch work on the board. This is READ FROM THE DISK,
+# never a hardcoded list: a hardcoded list asserts facts about profiles
+# that may not exist (= the review lane's `wenshu-dev` has no directory at
+# all), and a profile that does not exist cannot be a reader.
+PROFILES = ("pocock", "wenshu-review")
+
+
+def discover_profiles() -> tuple:
+    """The profiles that actually exist on this machine.
+
+    A profile is a directory under `~/.hermes/profiles`. A name that is
+    not a directory is not a profile, and this tool must not report on it.
+    """
+    root = HERMES / "profiles"
+    if not root.exists():
+        return PROFILES
+    found = tuple(
+        sorted(
+            p.name
+            for p in root.iterdir()
+            if p.is_dir() and (p / "config.yaml").exists()
+        )
+    )
+    return found or PROFILES
 
 # The skills that carry the board's flow rules.
 SHARED_SKILLS = ("sdlc-review", "wenshu-parallel-dev", "wenshu-pocock-workflow")
@@ -67,6 +87,23 @@ READER_OF = {
 }
 
 
+def shared_tree_reaches(profile: str) -> bool:
+    """Does this profile's config name the shared skill tree?
+
+    The shared tree is reached through `skills.external_dirs` in the
+    profile's config.yaml. A profile that does not exist, or that does not
+    name the tree, does NOT load its skills.
+    """
+    config = HERMES / "profiles" / profile / "config.yaml"
+    if not config.exists():
+        return False
+    try:
+        text = config.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return str(SHARED_TREE) in text
+
+
 def skill_paths(skill: str) -> dict[str, Path]:
     """Every carrier of a skill, by profile name.
 
@@ -77,9 +114,10 @@ def skill_paths(skill: str) -> dict[str, Path]:
     found: dict[str, Path] = {}
     shared = SHARED_TREE / skill / "SKILL.md"
     if shared.exists():
-        for profile in PROFILES:
-            found[profile] = shared
-    for profile in PROFILES:
+        for profile in discover_profiles():
+            if shared_tree_reaches(profile):
+                found[profile] = shared
+    for profile in discover_profiles():
         root = HERMES / "profiles" / profile / "skills"
         if not root.exists():
             continue
@@ -150,7 +188,8 @@ def check(skill: str, rule: str | None) -> dict:
         )
     result["headings"] = {k: sorted(v) for k, v in markers.items()}
 
-    # The reader must be among the carriers.
+    # The reader must be among the carriers. This is the check that matters
+    # most, so it is a PROBLEM (= the tool exits 1), never a note.
     reader = READER_OF.get(skill)
     if reader and reader not in paths:
         result["problems"].append(
@@ -177,7 +216,12 @@ def main() -> int:
     results = [check(s, args.rule) for s in skills]
 
     if args.json:
+        # The JSON is the ONLY thing on stdout in this mode: a caller pipes
+        # it into json.loads, and a summary line after the array makes that
+        # fail with "Extra data". The summary goes to stderr.
         print(json.dumps(results, indent=2))
+        _summary(results)
+        return 0
     else:
         for r in results:
             print(f"=== {r['skill']} ===")
@@ -198,6 +242,31 @@ def main() -> int:
         return 1
     print("every skill's copies are in step with its reader")
     return 0
+
+
+def _summary(results: list) -> None:
+    """The human summary, on stderr (= stdout carries the JSON alone)."""
+    for r in results:
+        print(f"=== {r['skill']} ===", file=sys.stderr)
+        print(
+            f"  carried by: {', '.join(r['profiles_with_the_skill']) or '(nobody)'}",
+            file=sys.stderr,
+        )
+        if r["missing_from"]:
+            print(f"  missing from: {', '.join(r['missing_from'])}", file=sys.stderr)
+        print(
+            f"  copies identical: {'no (DRIFT)' if r['drift'] else 'yes'}",
+            file=sys.stderr,
+        )
+        for p in r["problems"]:
+            print(f"  !! {p}", file=sys.stderr)
+    bad = [r for r in results if r["problems"]]
+    if bad:
+        print(f"{len(bad)} skill(s) need attention", file=sys.stderr)
+    else:
+        print(
+            "every skill's copies are in step with its reader", file=sys.stderr
+        )
 
 
 if __name__ == "__main__":

@@ -75,6 +75,22 @@ TOOL_RE = re.compile(
 SHA_RE = re.compile(r"\b[0-9a-f]{40}\b")
 
 
+def as_text(value) -> str:
+    """A board column as text. sqlite hands back BYTES for a BLOB column.
+
+    A task body is TEXT for most cards and BLOB for a few, and `value or ""`
+    does not fix it (= a non-empty bytes object is truthy, so it survives the
+    `or`), so the bytes have to be decoded explicitly. A BLOB body that
+    reaches a regex as bytes raises "cannot use a string pattern on a
+    bytes-like object".
+    """
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", "replace")
+    return str(value)
+
+
 def ts(value) -> float:
     """A task_run timestamp as epoch seconds. The board stores ISO text."""
     if value is None:
@@ -220,7 +236,7 @@ def lane_runs(board: str, profile: str) -> dict:
         card_wall[task_id] += mins
         if outcome != "completed":
             wasted += mins
-        for br in set(BRANCH_RE.findall(body or "")):
+        for br in set(BRANCH_RE.findall(as_text(body))):
             branch_cards[br].add(task_id)
 
     multi = {b: c for b, c in branch_cards.items() if len(c) > 1}
