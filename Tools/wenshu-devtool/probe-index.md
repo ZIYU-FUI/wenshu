@@ -78,13 +78,13 @@ touch the band this probe measures: = it changed what the band PAINTS
 (= the shared `ChromeTopBar` takes `usesMaterial: false` there now, = so
 the band shows the column's own background through it), = and its own
 message says the band's shape, its content row height, its horizontal
-inset and its Divider are unchanged. So of the probe's four numbers, the
-two GEOMETRY ones (= the content band's centre, = the bottom hairline's
-row) still describe the later tree, = while the two SURFACE ones (= the
-band surface's top and bottom, = read from the band's own surface
-luminance) describe `ab0de05659` ONLY, = because after `8f45e5dbba` the
-assets band's own surface is not there to measure. The recorded NUMBERS
-are untouched by this note.
+inset and its Divider are unchanged. So of what the probe
+recorded, the GEOMETRY number (= the content band's centre, = read from
+the rows that hold glyphs) still describes the later tree, = while the
+SURFACE numbers (= the band surface's top and bottom, = read from the
+band's own surface luminance) describe `ab0de05659` ONLY, = because after
+`8f45e5dbba` the assets band's own surface is not there to measure. The
+recorded NUMBERS are untouched by this note.
 
 ```
 probe: column_chrome_band
