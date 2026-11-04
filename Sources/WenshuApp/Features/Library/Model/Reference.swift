@@ -54,6 +54,24 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
         }
     }
 
+    /// What this layer is FOR, = in the words the user would use.
+    ///
+    /// Why this exists: = the layer is described in exactly one place
+    /// (= here), = and that place said only what the layer is CALLED.
+    /// It never said what the layer IS FOR, = so a user who found a
+    /// document in the raw layer (= the librarian's report names
+    /// them) had no way to tell whether the document was lost, = or
+    /// whether the raw layer is where originals are kept on purpose.
+    /// **⇒ It is on purpose, = and this is where that says so.**
+    var purpose: String {
+        switch self {
+        case .layerRaw:
+            return "the originals, kept for ingestion (= the file as it arrived, = not the entities drawn from it)"
+        case .layerEntities:
+            return "the entities you browse (= what the library shows you, = and what a search finds)"
+        }
+    }
+
     /// SF Symbols 6 icon name (= for direct SF Symbol lookup via
     /// Image(systemName:)). All layers return outline (= non-.fill)
     /// icons.

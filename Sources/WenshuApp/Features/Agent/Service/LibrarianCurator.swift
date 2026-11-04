@@ -46,6 +46,19 @@ struct LibrarianCurator: Sendable {
         /// How many documents were looked at.
         let scanned: Int
 
+        /// The documents that live in a layer the user cannot browse.
+        ///
+        /// The raw layer holds the ORIGINAL sources (= the imported
+        /// file, = the agent's own scratch notes). = The library's
+        /// grid shows the entities layer only, = so a raw document is
+        /// written and never seen. = The report names them, = because
+        /// a finding about a document the user cannot open is a
+        /// finding the user cannot act on.
+        let rawLayerDocuments: [String]
+
+        /// The documents the user can see (= the entities layer).
+        let visibleLayerDocuments: Int
+
         /// The checks that could NOT run, = and why.
         ///
         /// Nil = every check ran. A check that could not run is named
@@ -57,10 +70,14 @@ struct LibrarianCurator: Sendable {
         init(
             findings: [CurationFinding] = [],
             scanned: Int = 0,
+            rawLayerDocuments: [String] = [],
+            visibleLayerDocuments: Int = 0,
             unavailableChecks: [String] = []
         ) {
             self.findings = findings
             self.scanned = scanned
+            self.rawLayerDocuments = rawLayerDocuments
+            self.visibleLayerDocuments = visibleLayerDocuments
             self.unavailableChecks = unavailableChecks
         }
     }
@@ -103,6 +120,11 @@ struct LibrarianCurator: Sendable {
         return Report(
             findings: report.findings,
             scanned: report.totalEntitiesScanned,
+            rawLayerDocuments: references
+                .filter { $0.layer == .layerRaw }
+                .map(\.title)
+                .sorted(),
+            visibleLayerDocuments: references.filter { $0.layer == .layerEntities }.count,
             unavailableChecks: unavailable
         )
     }

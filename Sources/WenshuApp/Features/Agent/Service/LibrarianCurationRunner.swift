@@ -69,6 +69,25 @@ struct LibrarianCurationRunner {
     nonisolated static func text(for report: LibrarianCurator.Report) -> String {
         var lines: [String] = []
         lines.append("Library curation: \(report.scanned) document(s) examined.")
+        lines.append(
+            "\(report.visibleLayerDocuments) in the layer you can browse, "
+                + "\(report.rawLayerDocuments.count) in the raw layer (= the originals, = which the grid does not show)."
+        )
+
+        // The raw layer is named document by document. = A count tells
+        // the user that something is there; = the names tell them
+        // WHICH, = and a raw-layer document cannot be found by
+        // browsing (= the grid does not show it, = and the sidebar
+        // counts it as if it were there).
+        if !report.rawLayerDocuments.isEmpty {
+            lines.append("")
+            lines.append(
+                "In the raw layer (= \(ReferenceLayer.layerRaw.purpose), = and the grid does not show it, = so you cannot browse these):"
+            )
+            for title in report.rawLayerDocuments {
+                lines.append("- \(title)")
+            }
+        }
 
         if report.findings.isEmpty {
             lines.append("")

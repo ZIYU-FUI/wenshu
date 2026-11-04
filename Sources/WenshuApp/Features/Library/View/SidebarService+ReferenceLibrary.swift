@@ -39,7 +39,15 @@ extension SidebarService {
         var tagCounts: [String: Int] = [:]
         // How many references put each tag under each category.
         var votes: [String: [String: Int]] = [:]
-        for reference in references {
+        //
+        // The count is of what the user can ACTUALLY SEE. = The
+        // material zone's grid shows the entities layer only (= the
+        // raw layer holds the originals, = and the grid does not show
+        // them), = so counting the raw layer here would put a number
+        // on a row that opens to fewer documents than the number
+        // says. = A count the user can check against what he sees is
+        // the only count worth showing.
+        for reference in references where reference.layer == .layerEntities {
             let bucket = bucketKey(for: reference)
             for tag in reference.tags {
                 tagCounts[tag, default: 0] += 1
