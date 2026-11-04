@@ -72,9 +72,14 @@ final class SubAgentRunner {
     let archivistStorage: ArchivistStorage?
 
     // / Auditor sub-agent storage adapter (= read-only memory access).
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale line collapsed; = A112 docblock collapse per §1.8)
     // / Production code injects `LiveAuditorStorage`.
     let auditorStorage: AuditorStorage?
+
+    // / The ledger every run writes to.
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / archive pane reads; = without it the rows never exist).
+    let ledger: SubAgentLedger?
 
     // / The registry this runner drains handles from. Always
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -96,7 +101,8 @@ final class SubAgentRunner {
         maxBatchSize: Int = 3,
         maxSubAgentTurns: Int = 5,
         archivistStorage: ArchivistStorage? = nil,
-        auditorStorage: AuditorStorage? = nil
+        auditorStorage: AuditorStorage? = nil,
+        ledger: SubAgentLedger? = nil
     ) {
         self.connector = connector
         self.toolRegistry = toolRegistry
@@ -104,6 +110,7 @@ final class SubAgentRunner {
         self.maxSubAgentTurns = maxSubAgentTurns
         self.archivistStorage = archivistStorage
         self.auditorStorage = auditorStorage
+        self.ledger = ledger
         self._isolatedRegistry = nil
         self._isolatedToolRegistry = nil
     }
@@ -126,6 +133,7 @@ final class SubAgentRunner {
         self.maxSubAgentTurns = maxSubAgentTurns
         self.archivistStorage = archivistStorage
         self.auditorStorage = auditorStorage
+        self.ledger = nil
         self._isolatedRegistry = isolatedRegistry
         self._isolatedToolRegistry = nil
     }
@@ -148,6 +156,7 @@ final class SubAgentRunner {
         self.maxSubAgentTurns = maxSubAgentTurns
         self.archivistStorage = archivistStorage
         self.auditorStorage = auditorStorage
+        self.ledger = nil
         self._isolatedRegistry = isolatedRegistry
         self._isolatedToolRegistry = isolatedToolRegistry
     }
@@ -225,6 +234,27 @@ final class SubAgentRunner {
         running.state = .running
         await registry.update(running)
 
+        // 3b. Open the run's ledger row.
+        //
+        // The row is written BEFORE the run, = so a run that crashes
+        // leaves a row that says it started and never finished, =
+        // which is the fact the user needs. A ledger that only learns
+        // about finished runs cannot answer "what is the agent doing
+        // right now".
+        //
+        // A ledger failure must not stop the run: = the ledger
+        // records what happened, = it does not decide whether it
+        // happens.
+        if let ledger {
+            try? ledger.openRun(
+                runID: liveHandle.id,
+                agentName: liveHandle.agentName,
+                task: liveHandle.userMessage,
+                parentSessionID: liveHandle.scope?.sessionID.rawValue,
+                bookID: liveHandle.scope?.bookID?.rawValue
+            )
+        }
+
         // 4. Run the sub-agent LLM call (= real LLM, multi-turn,
         // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // through to the existing real-LLM runTurn path.
@@ -252,11 +282,25 @@ final class SubAgentRunner {
             // Re-throw typed errors unchanged so the caller's
             // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // message.
+            closeRunInLedger(
+                runID: liveHandle.id,
+                status: "failed",
+                output: nil,
+                error: String(describing: error),
+                bookID: liveHandle.scope?.bookID?.rawValue
+            )
             throw error
         } catch {
             // System-fault: the underlying LLMConnector or
             // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // a typed message.
+            closeRunInLedger(
+                runID: liveHandle.id,
+                status: "failed",
+                output: nil,
+                error: String(describing: error),
+                bookID: liveHandle.scope?.bookID?.rawValue
+            )
             throw SubAgentRunnerError.subAgentLLMFailed(
                 handleID: liveHandle.id,
                 agentName: liveHandle.agentName,
@@ -268,6 +312,35 @@ final class SubAgentRunner {
         // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // via the kanban task description).
         await registry.markCompleted(id: liveHandle.id, result: summary)
+        closeRunInLedger(
+            runID: liveHandle.id,
+            status: "done",
+            output: summary,
+            error: nil,
+            bookID: liveHandle.scope?.bookID?.rawValue
+        )
+    }
+
+    /// Close the run's ledger row, if the runner has a ledger.
+    ///
+    /// A failure here is swallowed: = the ledger records what
+    /// happened, = and a ledger that cannot be written must not turn
+    /// a successful run into a failed one.
+    private func closeRunInLedger(
+        runID: String,
+        status: String,
+        output: String?,
+        error: String?,
+        bookID: String?
+    ) {
+        guard let ledger else { return }
+        try? ledger.closeRun(
+            runID: runID,
+            status: status,
+            output: output,
+            error: error,
+            bookID: bookID
+        )
     }
 
     // / Run the real LLM-backed sub-agent (= v2.7d). Builds an

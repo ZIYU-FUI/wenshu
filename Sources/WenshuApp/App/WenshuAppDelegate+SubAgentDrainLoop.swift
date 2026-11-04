@@ -21,6 +21,7 @@
 import Foundation
 import os
 import WenshuAgent
+import WenshuData
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuappdelegate")
 
@@ -80,7 +81,12 @@ extension WenshuAppDelegate {
             connector: WenshuAppDelegateLLMHelpers.activeLLMConnector(),
             toolRegistry: ToolRegistry.shared,
             archivistStorage: archivist,
-            auditorStorage: auditor
+            auditorStorage: auditor,
+            // The ledger every run writes to. Without it the rows
+            // never exist, = and the archive pane has nothing to
+            // show. The repository is the shared singleton (= the
+            // same one the chat writes through).
+            ledger: SubAgentLedger(repository: WSChatRepository.shared)
         )
         sharedSubAgentRunner = runner
 

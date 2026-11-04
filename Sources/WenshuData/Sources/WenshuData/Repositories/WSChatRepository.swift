@@ -64,11 +64,37 @@ public final class WSChatRepository {
     /// row that already carries the key is returned as it is, and no
     /// second row is written.
     @discardableResult
-    public func createSession(sessionID: String, title: String? = nil, bookID: String? = nil) throws -> WSSession {
+    public func createSession(
+        sessionID: String,
+        title: String? = nil,
+        bookID: String? = nil,
+        source: String? = nil,
+        parentSessionID: String? = nil,
+        agentName: String? = nil
+    ) throws -> WSSession {
         if let existing = try getSession(sessionID: sessionID, bookID: bookID) {
+            // A row that already carries the key is returned as it is,
+            // but the ledger fields are filled in: = a run's row is
+            // opened once and closed later, = and the second call
+            // (= the close) must not lose the tag that says "this is a
+            // run" and "this agent did it".
+            if existing.source == nil, let source {
+                existing.source = source
+                existing.parentSessionID = parentSessionID
+                existing.agentName = agentName
+                existing.updatedAt = Date()
+                try context.save()
+            }
             return existing
         }
-        let session = WSSession(sessionID: sessionID, title: title, bookID: bookID)
+        let session = WSSession(
+            sessionID: sessionID,
+            title: title,
+            bookID: bookID,
+            source: source,
+            parentSessionID: parentSessionID,
+            agentName: agentName
+        )
         context.insert(session)
         try context.save()
         return session
@@ -97,6 +123,43 @@ public final class WSChatRepository {
                 sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
             )
         }
+        return try context.fetch(descriptor)
+    }
+
+    /// List the sessions that record agent work (= the archive's read
+    /// path).
+    ///
+    /// A chat session and a run are different things and must not land
+    /// in the same list: = a chat carries no `source`, = a run carries
+    /// one (= `WSSessionSource.subagent`). So this is the query the
+    /// archive pane issues, and it is the only query that can answer
+    /// "which runs happened, and which agent did each one".
+    ///
+    /// - Parameters:
+    ///   - source: the source tag to match (= nil matches every
+    ///     tagged row; = a chat row carries no tag and never appears
+    ///     here).
+    ///   - agentName: the agent that did the work (= nil matches every
+    ///     agent).
+    ///   - includeArchived: whether the archived rows are included.
+    /// - Returns: the matching sessions, newest first.
+    public func listRuns(
+        source: String? = nil,
+        agentName: String? = nil,
+        includeArchived: Bool = false
+    ) throws -> [WSSession] {
+        let sourceLocal = source
+        let agentNameLocal = agentName
+        let descriptor = FetchDescriptor<WSSession>(
+            predicate: #Predicate { session in
+                // A row with no source is a chat, not a run.
+                session.source != nil
+                && (sourceLocal == nil || session.source == sourceLocal)
+                && (agentNameLocal == nil || session.agentName == agentNameLocal)
+                && (includeArchived || session.archivedAt == nil)
+            },
+            sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
+        )
         return try context.fetch(descriptor)
     }
 
@@ -394,6 +457,14 @@ public final class WSChatRepository {
     /// lived here.
     public func insertAndSave(_ model: WSSubAgentRun) throws {
         context.insert(model)
+        try context.save()
+    }
+
+    /// Save a session row (= the ledger's rows change after they are
+    /// inserted: = a run's row is opened with the tag and closed with
+    /// the outcome).
+    public func save(_ session: WSSession) throws {
+        context.insert(session)
         try context.save()
     }
 
