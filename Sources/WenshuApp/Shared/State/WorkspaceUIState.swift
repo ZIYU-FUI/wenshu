@@ -54,7 +54,6 @@ import Foundation
 @MainActor
 @Observable
 final class WorkspaceUIState {
-
     /// Preview card-grid sort order (= shared across
     /// PreviewPane's cards / unwrap sort menu in the preview
     /// pane's tab bar trailing slot + WorkspaceView's
@@ -92,14 +91,23 @@ final class WorkspaceUIState {
     /// column-local state; = single source of truth lives here).
     var chatVisible: Bool = true
 
-    /// The active page of the trailing inspector column (= one of the
-    /// four pages the column's segmented control switches between).
+    /// The active page of the trailing inspector column's DYNAMIC
+    /// section (= one of the three pages that section's segmented
+    /// control switches between).
     /// The column's toolbar toggle writes here, so the selection
     /// survives the column being hidden and shown.
     ///
     /// Lives here (= not as `@State` inside the inspector column)
     /// because the column reads it across the view boundary.
     var inspectorPage: InspectorPage = .status
+
+    /// The active MAJOR SECTION of the trailing inspector column (= the
+    /// dynamic series, = or the format inspector).
+    ///
+    /// Lives here (= next to `inspectorPage`, = for the same reason)
+    /// because the column reads it across the view boundary, = and so
+    /// the section survives the column being hidden and shown.
+    var inspectorSection: InspectorSection = .dynamic
 
     /// Sidebar tree selection (= the row the user picked; = nil = nothing
     /// selected). Drives Preview pane scope (= see
@@ -114,7 +122,7 @@ final class WorkspaceUIState {
     /// (= JSON via Codable; = set by didSet = write back on every
     /// change; = read by WorkspaceUIState.init() at launch).
     /// The previous ShellState behavior is preserved 1:1.
-    var sidebarSelection: SidebarItem? = nil {
+    var sidebarSelection: SidebarItem? {
         didSet {
             // didSet is NOT called during init (= Swift property
             // wrapper semantics), so this does NOT trigger a write
@@ -128,7 +136,8 @@ final class WorkspaceUIState {
             selections[currentSidebarPart] = sidebarSelection
             persistSelections()
             if let item = sidebarSelection,
-               let data = try? JSONEncoder().encode(item) {
+               let data = try? JSONEncoder().encode(item)
+            {
                 store.setData(data, forKey: .sidebarSelection)
             } else {
                 store.remove(.sidebarSelection)
@@ -222,35 +231,37 @@ final class WorkspaceUIState {
         // here in init() restores the last value (= didSet is
         // suppressed during init = no write-back triggered).
         if let data = store.data(forKey: .sidebarSelection),
-           let decoded = try? JSONDecoder().decode(SidebarItem.self, from: data) {
-            self.sidebarSelection = decoded
+           let decoded = try? JSONDecoder().decode(SidebarItem.self, from: data)
+        {
+            sidebarSelection = decoded
         }
 
         // The per-part selections (= one dictionary; = read back before
         // the part, so the part's remembered selection wins).
         if let data = store.data(forKey: .sidebarSelections),
-           let decoded = try? JSONDecoder().decode([String: SidebarItem].self, from: data) {
-            self.selections = decoded.reduce(into: [:]) { acc, pair in
+           let decoded = try? JSONDecoder().decode([String: SidebarItem].self, from: data)
+        {
+            selections = decoded.reduce(into: [:]) { acc, pair in
                 guard let part = SidebarPart(rawValue: pair.key) else { return }
                 acc[part] = pair.value
             }
         }
         if let part = SidebarPart(rawValue: store.string(forKey: .sidebarPart)) {
-            self.currentSidebarPart = part
+            currentSidebarPart = part
             // The part's remembered selection is the selection, so the
             // sidebar and the preview pane agree after a relaunch.
             if let remembered = selections[part] {
-                self.sidebarSelection = remembered
+                sidebarSelection = remembered
             }
         }
         // The layout mode persists the same way (= the raw value
         // of the enum; = an unknown or absent value falls back to
         // `.automatic`, which is the default).
         if let mode = EditorLayoutMode(rawValue: store.string(forKey: .editorLayoutMode)) {
-            self.editorLayoutMode = mode
+            editorLayoutMode = mode
         }
         // The restore is over: the observers write from now on.
-        self.isRestoring = false
+        isRestoring = false
     }
 }
 
@@ -273,7 +284,9 @@ enum SidebarPart: String, CaseIterable, Codable, Hashable, Sendable, Identifiabl
     /// Reserved for whole books imported as ebooks.
     case referenceBooks
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     /// The key of the display name in the string catalog.
     var displayNameKey: String {
@@ -306,22 +319,28 @@ enum EditorLayoutMode: String, CaseIterable, Sendable {
 
     var localizedTitle: String {
         switch self {
-        case .automatic:   return String(localized: "menu.view.editor_layout.automatic")
-        case .stacked:     return String(localized: "menu.view.editor_layout.stacked")
-        case .sideBySide:  return String(localized: "menu.view.editor_layout.side_by_side")
+        case .automatic: return String(localized: "menu.view.editor_layout.automatic")
+        case .stacked: return String(localized: "menu.view.editor_layout.stacked")
+        case .sideBySide: return String(localized: "menu.view.editor_layout.side_by_side")
         }
     }
 }
 
 // MARK: - InspectorPage
 
-/// The pages of the trailing inspector column: Todos, Sub-Agents, Tasks.
+/// The pages of the trailing inspector column's DYNAMIC section: Todos,
+/// Sub-Agents, Tasks.
 ///
-/// The column's chrome band carries a segmented control that switches
-/// between the pages; the selected page owns the column's content.
+/// The dynamic section's chrome band carries a segmented control that
+/// switches between these pages; the selected page owns the section's
+/// content.
 ///
-/// The case order IS the segment order (= the column's segmented
-/// control reads `InspectorPage.allCases`).
+/// The case order IS the segment order (= the segmented control reads
+/// `InspectorPage.allCases`).
+///
+/// The format inspector is NOT one of these cases: = it is a MAJOR
+/// SECTION of its own (= `InspectorSection`), = because it describes
+/// the document rather than the runtime's state.
 enum InspectorPage: Hashable, CaseIterable {
     /// The todo list (= the todos the assistant wrote).
     case todo
@@ -332,18 +351,12 @@ enum InspectorPage: Hashable, CaseIterable {
     case status
     /// The task board (= the board of long-running work).
     case task
-    /// The format inspector (= the document's format commands, grouped
-    /// the way Pages groups them). The case is the page's own: the
-    /// commands it carries used to live in the editor zone's icon row,
-    /// and the row is gone.
-    case format
 
     var localizedTitle: String {
         switch self {
         case .todo: return String(localized: "inspector.page.todo")
         case .status: return String(localized: "inspector.page.status")
         case .task: return String(localized: "inspector.page.task")
-        case .format: return String(localized: "inspector.page.format")
         }
     }
 
@@ -352,7 +365,31 @@ enum InspectorPage: Hashable, CaseIterable {
         case .todo: return "checklist"
         case .status: return "waveform.path.ecg"
         case .task: return "square.grid.2x2"
-        case .format: return "textformat.size"
+        }
+    }
+}
+
+/// The trailing inspector column's MAJOR SECTIONS.
+///
+/// The column's own chrome band carries a segmented control that picks
+/// the section; = the section then carries its own content (= and, for
+/// the dynamic section, = its own tab strip).
+///
+/// The two sections are the column's two kinds of subject: = the DYNAMIC
+/// one is what the runtime produces (= the todos, = the sub-agent
+/// tasks, = the task board), = and the FORMAT one is the document's own
+/// (= the format commands, = grouped the way Pages groups them).
+enum InspectorSection: Hashable, CaseIterable {
+    /// The dynamic series (= the todos, = the sub-agent tasks, = the task
+    /// board).
+    case dynamic
+    /// The format inspector (= the document's format commands).
+    case format
+
+    var localizedTitle: String {
+        switch self {
+        case .dynamic: return String(localized: "inspector.section.dynamic")
+        case .format: return String(localized: "inspector.section.format")
         }
     }
 }

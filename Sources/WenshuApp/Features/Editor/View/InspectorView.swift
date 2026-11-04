@@ -6,17 +6,25 @@
 //  detail split; = the Apple HIG `.inspector` surface).
 //
 //  Layout (= the Apple HIG three-column pattern):
-//  - the column's chrome band carries the segmented control that
-//    picks the column's page (= Todos, Sub-Agents, Tasks, Format),
-//  - the column body carries the selected page's content,
+//  - the column's chrome band carries the segmented control that picks
+//    the column's MAJOR SECTION (= the dynamic series, = or the format
+//    inspector),
+//  - the dynamic section carries its own band with the three tabs it
+//    has always carried (= Todos, Sub-Agents, Tasks),
+//  - the column body carries the selected section's content,
 //  - the column's visibility toggle sits in the window toolbar
 //    (= ToolbarItemGroup placement .principal).
 //
-//  The column has four pages (= the todos, the sub-agent tasks, the
-//  task board and the format inspector). The page enum stays (= the seam a future page
-//  tool plugs into) and each page renders its own content from its
-//  own file, so a page can be filled in without the column knowing
-//  anything about its contents.
+//  The column has TWO major sections, = because it carries two kinds of
+//  subject: = the DYNAMIC one (= what the runtime produces: = the todos,
+//  = the sub-agent tasks, = the task board) = and the FORMAT one (= the
+//  document's own format commands). = The three dynamic tabs are
+//  UNCHANGED by that split: = they are the same control, = in the same
+//  band, = with the same three pages under them.
+//
+//  The page enum stays (= the seam a future page tool plugs into) and
+//  each page renders its own content from its own file, so a page can be
+//  filled in without the column knowing anything about its contents.
 //
 //
 
@@ -46,17 +54,17 @@ struct InspectorView: View {
                 title: String(localized: "inspector.column.title"),
                 trailingInset: false
             )
-            // The band's switcher picks the column's page. It is the
-            // same control the left column's band carries, at the
-            // same size (= the switcher is a column-top chrome
-            // control, not a body tab strip; = AppKit's `.small` = 20
-            // PT; = the size Apple ships for a compact switcher), so
-            // the two columns' controls read as one pair.
+            // The column's own band picks the MAJOR SECTION. It is a
+            // wider control than the section's own tab strip (= it
+            // stretches to the column's width, = so the two read as one
+            // big switch and one narrow strip), = and it is the same
+            // control the section's tab strip uses, = so the column
+            // keeps one switcher shape.
             ChromeTopBar(
                 horizontalPadding: DesignTokens.spacingRelaxed,
                 // The band belongs to the column's body (= it sits inside
                 // the column's VStack under the column's own header and
-                // holds the column's own page switcher, = not the window
+                // holds the column's own section switcher, = not the window
                 // toolbar), so the column's background shows through it
                 // (= the same opt-out the left column's band and the
                 // assets column's band make, = the two columns' bands
@@ -64,9 +72,9 @@ struct InspectorView: View {
                 usesMaterial: false
             ) {
                 LabelSegmentedControl(
-                    selection: $workspaceUI.inspectorPage,
-                    labels: InspectorPage.allCases,
-                    displayStrings: InspectorPage.allCases.map(\.localizedTitle),
+                    selection: $workspaceUI.inspectorSection,
+                    labels: InspectorSection.allCases,
+                    displayStrings: InspectorSection.allCases.map(\.localizedTitle),
                     iconStyle: .paneTab,
                     controlSize: .small
                 )
@@ -86,23 +94,45 @@ struct InspectorView: View {
             // column's band is, so the two columns' chrome bands
             // measure the same.
             .frame(height: DesignTokens.paneTabHotArea)
-            // The page content goes here. Each page renders its own
-            // content from its own file.
-            switch workspaceUI.inspectorPage {
-            case .todo:
-                // The todo page owns the list of todos the assistant
-                // wrote.
-                InspectorTodoPageView()
-            case .status:
-                // The status page owns the column's sub-agent
-                // content: it lists the focused chat session's
-                // sub-agent tasks.
-                InspectorStatusView(appState: appState)
-            case .task:
-                // The task page owns the board of long-running work.
-                InspectorTaskPageView(workspaceUI: workspaceUI, appState: appState)
+
+            switch workspaceUI.inspectorSection {
+            case .dynamic:
+                // The dynamic section keeps the three tabs it has always
+                // carried: = the same control, = in the same band, =
+                // with the same three pages under it. = The split into
+                // major sections did not touch them.
+                ChromeTopBar(
+                    horizontalPadding: DesignTokens.spacingRelaxed,
+                    usesMaterial: false
+                ) {
+                    LabelSegmentedControl(
+                        selection: $workspaceUI.inspectorPage,
+                        labels: InspectorPage.allCases,
+                        displayStrings: InspectorPage.allCases.map(\.localizedTitle),
+                        iconStyle: .paneTab,
+                        controlSize: .small
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: DesignTokens.paneTabHotArea)
+                }
+                .frame(height: DesignTokens.paneTabHotArea)
+                switch workspaceUI.inspectorPage {
+                case .todo:
+                    // The todo page owns the list of todos the assistant
+                    // wrote.
+                    InspectorTodoPageView()
+                case .status:
+                    // The status page owns the column's sub-agent
+                    // content: it lists the focused chat session's
+                    // sub-agent tasks.
+                    InspectorStatusView(appState: appState)
+                case .task:
+                    // The task page owns the board of long-running work.
+                    InspectorTaskPageView(workspaceUI: workspaceUI, appState: appState)
+                }
             case .format:
-                // The format page owns the document's format commands
+                // The format section owns the document's format commands
                 // (= they used to live in the editor zone's icon row).
                 InspectorFormatPageView()
             }

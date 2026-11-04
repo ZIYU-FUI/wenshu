@@ -4,12 +4,13 @@
 //
 //  The shell test reads the column's SOURCE, which proves the wiring
 //  and nothing about what AppKit paints. This suite renders the
-//  switcher the way the column configures it and reads the real
-//  NSSegmentedControl back, so the three facts a source read cannot
-//  reach are measured on the control itself:
+//  switchers the way the column configures them and reads the real
+//  NSSegmentedControl back, so the facts a source read cannot reach
+//  are measured on the controls themselves:
 //
-//  1. The control carries THREE segments, and their labels are the
-//     three page titles in the segment order.
+//  1. The dynamic section's control carries THREE segments, and their
+//     labels are the three page titles in the segment order; = and the
+//     column's own control carries TWO segments, = the major sections.
 //  2. The control's size is the column-top chrome size (.small =
 //     20 PT), because AppKit draws the capsule to fill the control's
 //     height (= a control at the default .large draws a 28 PT pill
@@ -20,26 +21,51 @@
 //  swift test --filter InspectorColumnSwitcherRenderTests
 //
 
-import Testing
+import AppKit
 import Foundation
 import SwiftUI
-import AppKit
+import Testing
 @testable import WenshuApp
 
 @Suite("Inspector column switcher, rendered")
 struct InspectorColumnSwitcherRenderTests {
-
     /// The control the column's band hosts, found by walking the
     /// rendered view hierarchy for the NSSegmentedControl.
     @MainActor
     private func renderedControl(
         selection: Binding<InspectorPage>
     ) -> NSSegmentedControl? {
+        renderedControl(
+            selection: selection,
+            labels: InspectorPage.allCases,
+            displayStrings: InspectorPage.allCases.map(\.localizedTitle)
+        )
+    }
+
+    /// The column's OWN control (= the major sections), rendered the
+    /// way the column configures it.
+    @MainActor
+    private func renderedControl(
+        selection: Binding<InspectorSection>
+    ) -> NSSegmentedControl? {
+        renderedControl(
+            selection: selection,
+            labels: InspectorSection.allCases,
+            displayStrings: InspectorSection.allCases.map(\.localizedTitle)
+        )
+    }
+
+    @MainActor
+    private func renderedControl<Selection: Hashable>(
+        selection: Binding<Selection>,
+        labels: [Selection],
+        displayStrings: [String]
+    ) -> NSSegmentedControl? {
         let host = NSHostingView(rootView: AnyView(
             LabelSegmentedControl(
                 selection: selection,
-                labels: InspectorPage.allCases,
-                displayStrings: InspectorPage.allCases.map(\.localizedTitle),
+                labels: labels,
+                displayStrings: displayStrings,
                 iconStyle: .paneTab,
                 controlSize: .small
             )
@@ -61,9 +87,13 @@ struct InspectorColumnSwitcherRenderTests {
 
     @MainActor
     private func findSegmentedControl(in view: NSView) -> NSSegmentedControl? {
-        if let control = view as? NSSegmentedControl { return control }
+        if let control = view as? NSSegmentedControl {
+            return control
+        }
         for subview in view.subviews {
-            if let found = findSegmentedControl(in: subview) { return found }
+            if let found = findSegmentedControl(in: subview) {
+                return found
+            }
         }
         return nil
     }
@@ -77,20 +107,58 @@ struct InspectorColumnSwitcherRenderTests {
         )
     }
 
-    @Test("the switcher carries four segments in the page order")
+    /// The binding the column's OWN switcher writes (= the shared
+    /// state's major-section selection).
+    private func sectionBinding(_ state: WorkspaceUIState) -> Binding<InspectorSection> {
+        Binding(
+            get: { state.inspectorSection },
+            set: { newValue in state.inspectorSection = newValue }
+        )
+    }
+
+    @Test("the dynamic section's switcher carries three segments in the page order")
     @MainActor
-    func theSwitcherCarriesFourSegments() {
+    func theSwitcherCarriesThreeSegments() {
         let state = WorkspaceUIState()
         guard let control = renderedControl(selection: pageBinding(state)) else {
             Issue.record("the rendered column carries no NSSegmentedControl")
             return
         }
-        #expect(control.segmentCount == 4,
-                "the column's switcher carries one segment per page")
+        #expect(control.segmentCount == 3,
+                "the dynamic section's switcher carries one segment per page")
         // The labels are the page titles, in the case order.
-        let labels = (0..<control.segmentCount).map { control.label(forSegment: $0) }
+        let labels = (0 ..< control.segmentCount).map { control.label(forSegment: $0) }
         #expect(labels == InspectorPage.allCases.map(\.localizedTitle),
                 "the segments read the three page titles in the page order")
+    }
+
+    @Test("the column's own switcher carries the two major sections")
+    @MainActor
+    func theColumnCarriesTwoSectionSegments() {
+        let state = WorkspaceUIState()
+        guard let control = renderedControl(selection: sectionBinding(state)) else {
+            Issue.record("the rendered column carries no NSSegmentedControl")
+            return
+        }
+        #expect(control.segmentCount == 2,
+                "the column's own switcher carries one segment per major section")
+        let labels = (0 ..< control.segmentCount).map { control.label(forSegment: $0) }
+        #expect(labels == InspectorSection.allCases.map(\.localizedTitle),
+                "the segments read the dynamic series and the format inspector")
+    }
+
+    @Test("choosing a major section writes it to the shared state")
+    @MainActor
+    func choosingASectionWritesTheSection() {
+        let state = WorkspaceUIState()
+        guard let control = renderedControl(selection: sectionBinding(state)) else {
+            Issue.record("the rendered column carries no NSSegmentedControl")
+            return
+        }
+        control.selectedSegment = 1
+        control.sendAction(control.action, to: control.target)
+        #expect(state.inspectorSection == .format,
+                "choosing a section must write the section back to the shared state")
     }
 
     @Test("the switcher draws at the column-top chrome size")
