@@ -99,6 +99,10 @@ enum ReferenceLibraryAction: String, Sendable, Codable, CaseIterable, Equatable 
 enum ReferenceLibraryError: Error, LocalizedError, Sendable, Equatable {
     case emptyTitle
     case entryNotFound(id: UUID)
+    /// A document with this title already exists (= the id of the one
+    /// that does). The create path refuses the write rather than
+    /// adding a second copy of the same document.
+    case duplicateTitle(title: String, existingID: UUID)
     case invalidInput(reason: String)
     case underlying(String)
 
@@ -108,6 +112,8 @@ enum ReferenceLibraryError: Error, LocalizedError, Sendable, Equatable {
             return "ReferenceLibraryTool: reference title was empty or whitespace-only."
         case .entryNotFound(let id):
             return "ReferenceLibraryTool: reference \(id.uuidString) not found."
+        case .duplicateTitle(let title, let existingID):
+            return "ReferenceLibraryTool: a reference titled '\(title)' already exists (id \(existingID.uuidString)). Use upsert to update it, or extend to add a section to it."
         case .invalidInput(let reason):
             return "ReferenceLibraryTool: invalid input — \(reason)."
         case .underlying(let msg):

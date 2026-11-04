@@ -235,13 +235,12 @@ extension FileSystemReferenceStore {
         entityType: EntityType,
         summary: String
     ) throws -> Reference {
-        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         var existing = (try? loadReferencesFromFileSystem(
             referenceLibraryRoot: referenceLibraryRoot,
             layer: layer
         )) ?? []
         if let idx = existing.firstIndex(where: {
-            $0.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedTitle
+            Reference.titlesMatch($0.title, title)
         }) {
             // Update existing.
             var updated = existing[idx]

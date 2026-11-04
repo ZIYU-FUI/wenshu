@@ -80,6 +80,24 @@ final class ReferenceLibraryActor {
         let parsedLayer = parseLayer(layer)
         let parsedCategory = category.flatMap { EntityCategory(rawValue: $0) }
         let parsedType = EntityType(rawValue: entityType) ?? .other
+        // A create must not produce a second copy of a document that
+        // already exists.
+        //
+        // The upsert path matched on the title, the import path
+        // matched on the title, and only this path did not: = the same
+        // noun written twice by two callers ended up in the library
+        // twice, = and neither copy knew about the other. The tool's
+        // description told the model to `find` before it created;
+        // = that is a request, = this is the mechanism. A caller that
+        // means to refine an existing document uses `upsert` (or
+        // `extend`), which is what the protocol asks for anyway.
+        if let existing = try referenceStore.loadReferences(layer: parsedLayer)
+            .first(where: { Self.titlesMatch($0.title, trimmed) }) {
+            throw ReferenceLibraryError.duplicateTitle(
+                title: trimmed,
+                existingID: existing.id
+            )
+        }
         // A document without a summary cannot be routed (= the agent
         // cannot tell whether it constrains the chapter it is
         // writing), so the model writes one when the caller did not.
@@ -237,6 +255,20 @@ final class ReferenceLibraryActor {
         }
     }
 
+    // MARK: - Identity
+
+    /// Whether two titles name the same document.
+    ///
+    /// The comparison is the one the upsert path and the import path
+    /// already used: = trimmed, = case-insensitive, = exact. It lives
+    /// on the model (= `Reference.titlesMatch`), because the caller
+    /// that owns the rule is not the only one that needs it: = three
+    /// copies of the same rule is how the corpus ended up with three
+    /// identities.
+    static func titlesMatch(_ lhs: String, _ rhs: String) -> Bool {
+        Reference.titlesMatch(lhs, rhs)
+    }
+
     /// / Merge `## <sectionTitle>` into `existingBody`. If a section with that
     /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     /// / convention).
@@ -360,9 +392,8 @@ final class ReferenceLibraryActor {
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // ones). For a fresh entry, the tags land as-is.
             let existingRefs = (try? referenceStore.loadReferences(layer: parsedLayer)) ?? []
-            let normalizedTitle = trimmed.lowercased()
             let existingMatch = existingRefs.first { ref in
-                ref.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedTitle
+                Self.titlesMatch(ref.title, trimmed)
             }
             let mergedTags: Set<String>
             if let existingTags = existingMatch?.tags {

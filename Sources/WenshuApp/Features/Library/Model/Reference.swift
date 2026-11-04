@@ -304,6 +304,37 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         lhs.id == rhs.id
     }
 
+    /// Whether two titles name the same document in the library.
+    ///
+    /// The library's ONE identity rule: = whitespace runs collapse to
+    /// one space, = trimmed, = case-insensitive, = exact.
+    ///
+    /// The whitespace collapse is the strictest of the rules the
+    /// writers used: = the tool's upsert compared the trimmed title,
+    /// = the import compared the collapsed one. So the import saw
+    /// "Ming  tax" and "Ming tax" as one document and the upsert saw
+    /// two. Two rules over one corpus means the corpus holds both a
+    /// document and a near-copy of it, and which path a writer takes
+    /// decides whether the user sees one card or two.
+    ///
+    /// It lives on the model (= not on a caller), because the caller
+    /// that owns the rule is not the only one that needs it.
+    static func titlesMatch(_ lhs: String, _ rhs: String) -> Bool {
+        normalizeTitle(lhs) == normalizeTitle(rhs)
+    }
+
+    /// The comparison form of a title (= whitespace runs collapsed,
+    /// trimmed, case-folded).
+    static func normalizeTitle(_ raw: String) -> String {
+        raw.replacingOccurrences(
+            of: "[\\s]+",
+            with: " ",
+            options: .regularExpression
+        )
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .lowercased()
+    }
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }

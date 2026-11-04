@@ -82,14 +82,12 @@ enum ImportServiceDedup {
     /// whitespace + lowercase" transform; = matches the import's LLM output
     /// even when the LLM varies whitespace or capitalization across runs).
     static func normalizeTitle(_ s: String) -> String {
-        let collapsed = s.replacingOccurrences(
-            of: "[\\s]+",
-            with: " ",
-            options: .regularExpression
-        )
-        return collapsed
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
+        // The library's one identity rule (= `Reference.titlesMatch`).
+        // The import used to own a second copy of it, and the two
+        // copies disagreed: = this one collapsed whitespace runs, =
+        // the tool's upsert did not. So the import saw "Ming  tax"
+        // and "Ming tax" as one document and the upsert saw two.
+        Reference.normalizeTitle(s)
     }
 
     /// filename basename (= the previous UUID-only filename made the sidebar
