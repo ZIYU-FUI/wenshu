@@ -130,6 +130,15 @@ actor ReferenceLibraryTool: Tool {
 
     private let actor: ReferenceLibraryActor
 
+    /// The library the tool writes to.
+    ///
+    /// The librarian's `curate` procedure reads the same library the
+    /// tool writes to, = and it must be the one the user has open, =
+    /// so the procedure goes through the tool's actor rather than
+    /// building a second one. (= A second actor with its own store
+    /// would analyse a different library than the one the user sees.)
+    var libraryActor: ReferenceLibraryActor { actor }
+
     init(actor: ReferenceLibraryActor) {
         self.actor = actor
     }

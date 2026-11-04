@@ -160,6 +160,40 @@ final class ChatViewModel {
     var isSending: Bool = false
     var lastError: String?
 
+    /// Run the librarian's `curate` procedure and show what it found.
+    ///
+    /// The run is deterministic (= the analyser's own code, = no
+    /// model), = and it reports; = it never deletes. = The report
+    /// lands in the conversation as the librarian's own message, =
+    /// because it is the librarian's output, = and it is written to
+    /// the session as well, = because a report the user has to run
+    /// again after a restart is a report that reads as never having
+    /// happened.
+    private func runCuration() async {
+        let runner = LibrarianCurationRunner(
+            library: await ReferenceLibraryTool.shared.libraryActor
+        )
+        let outcome = await runner.run()
+
+        let content: String
+        switch outcome {
+        case .reported(let report):
+            content = LibrarianCurationRunner.text(for: report)
+        case .failed(let reason):
+            content = "The curation run could not read the library: \(reason)"
+        }
+
+        let message = ChatMessage(
+            role: .agentResult,
+            source: .agentResult,
+            content: content
+        )
+        messages.append(message)
+
+        // Persist it, = so the report survives a restart.
+        try? await repository.append(message, sessionId: sessionId, bookID: currentBookID)
+    }
+
     /// Write one coalesced batch into the streaming message.
     ///
     /// The accumulator is updated in place, and the message is rebuilt once
@@ -541,6 +575,10 @@ final class ChatViewModel {
                             // analyser is pure data analysis, = and a
                             // model asked to do it would have had no
                             // tool for it, = so it would have guessed.
+                            if librarianTask.procedure == .curate {
+                                await runCuration()
+                                continue
+                            }
                             taskText = LibrarianActivation.encodedTask(for: librarianTask)
                         case .notALibrarianTask, .unknownProcedure:
                             taskText = mention.task

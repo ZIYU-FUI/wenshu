@@ -345,6 +345,20 @@ final class ReferenceLibraryActor {
         return sorted.map { ReferenceDescriptor($0) }
     }
 
+    /// Every reference in the user-managed layers, = whole.
+    ///
+    /// `listReferences` returns a descriptor (= the light view the
+    /// tool shows), = and a descriptor does not carry the
+    /// cross-references. The curator needs them: = an entity with no
+    /// cross-reference is an orphan, = and "orphan" is one of the
+    /// three findings a curation run reports. = So this returns the
+    /// full references, = for the one caller that needs the whole
+    /// thing.
+    func allReferencesForCuration() async throws -> [Reference] {
+        let all = (try? referenceStore.loadAllReferences()) ?? []
+        return all.filter { $0.layer == .layerRaw || $0.layer == .layerEntities }
+    }
+
     func findReference(title: String, layer: String? = nil) async throws -> ReferenceDescriptor? {
         let normalized = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let all = (try? referenceStore.loadAllReferences()) ?? []
