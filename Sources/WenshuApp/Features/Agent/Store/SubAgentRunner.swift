@@ -304,7 +304,7 @@ final class SubAgentRunner {
             // message.
             closeRunInLedger(
                 runID: liveHandle.id,
-                status: "failed",
+                status: .failed,
                 output: nil,
                 error: String(describing: error),
                 bookID: liveHandle.scope?.bookID?.rawValue
@@ -325,7 +325,7 @@ final class SubAgentRunner {
             // a typed message.
             closeRunInLedger(
                 runID: liveHandle.id,
-                status: "failed",
+                status: .failed,
                 output: nil,
                 error: String(describing: error),
                 bookID: liveHandle.scope?.bookID?.rawValue
@@ -348,7 +348,7 @@ final class SubAgentRunner {
         await registry.markCompleted(id: liveHandle.id, result: summary)
         closeRunInLedger(
             runID: liveHandle.id,
-            status: "done",
+            status: .done,
             output: summary,
             error: nil,
             bookID: liveHandle.scope?.bookID?.rawValue
@@ -393,7 +393,7 @@ final class SubAgentRunner {
     /// a successful run into a failed one.
     private func closeRunInLedger(
         runID: String,
-        status: String,
+        status: SubAgentRunStatus,
         output: String?,
         error: String?,
         bookID: String?

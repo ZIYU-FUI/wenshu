@@ -23,6 +23,20 @@ import Foundation
 
 extension ImportService {
 
+    /// The document in the library that already carries this title.
+    ///
+    /// The lookup is a pure question about the library's contents, =
+    /// so it is a static function on a type of its own: = the writer
+    /// is an actor's method, = and a decision that can be tested
+    /// without an actor is a decision that gets tested.
+    @MainActor
+    static func existingDocument(
+        in store: any ReferenceStoring,
+        title: String
+    ) -> Reference? {
+        let all = (try? store.loadAllReferences()) ?? []
+        return Reference.firstMatchingTitle(in: all, title: title, layer: .layerEntities)
+    }
 
     /// Write the file to the reference library. Reuses the existing
     /// `FileSystemReferenceStore.saveReferenceToFileSystem` (= see the e2e
@@ -50,6 +64,43 @@ extension ImportService {
             entityType: EntityType.fromPromptNumber(Int(routing.entityType) ?? 0),
             summary: routing.summary
         )
+        // The identity rule, = the same one every other writer uses.
+        //
+        // The import used to write by CONTENT HASH alone, = so an
+        // import of a document whose title already existed landed a
+        // SECOND document with the same title. = The corpus said "one
+        // document, = one identity", = and the import was the writer
+        // that did not honour it. = The rule lives in
+        // `Reference.titlesMatch`, = and this writer reads it like the
+        // others.
+        let existing = await Self.existingDocument(in: target.referenceStore, title: routing.title)
+
+        if existing != nil {
+            // The document is already in the library. = Update that one
+            // rather than adding a second copy of the same name, =
+            // which is what the tool's create path refuses to do.
+            let updated = try await MainActor.run {
+                try target.referenceStore.upsertReference(
+                    title: routing.title,
+                    bodyMarkdown: body,
+                    layer: .layerEntities,
+                    category: routing.category.flatMap { EntityCategory(rawValue: $0) },
+                    tags: routing.tags,
+                    source: reference.source,
+                    url: nil,
+                    entityType: reference.entityType,
+                    summary: routing.summary
+                )
+            }
+            writtenURLs.append(
+                target.wsRoot
+                    .appendingPathComponent("reference-library")
+                    .appendingPathComponent("entities")
+                    .appendingPathComponent("\(updated.id.uuidString).md")
+            )
+            return
+        }
+
         // Write through the existing storage layer (= the FileSystemReferenceStore
         // handles the index file at `entities/entities.json`).
         try await MainActor.run { try target.referenceStore.saveReference(reference, bodyMarkdown: body) }

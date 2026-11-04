@@ -70,16 +70,26 @@ enum LibrarianActivation {
         var dryRun = false
 
         // The dry-run flag may sit anywhere in the arguments.
-        for flag in ["--dry-run", "-n"] {
-            if remainder.contains(flag) {
-                dryRun = true
-                remainder = remainder.replacingOccurrences(of: flag, with: " ")
-            }
-        }
-        let sourcePaths = remainder
+        //
+        // The flags are matched as WHOLE TOKENS, = never as
+        // substrings. = A source path is the whole point of the
+        // procedure, = and a substring scan turns
+        // `/tmp/lin-notes.md` into a dry run against two garbage
+        // paths, = because the `-n` inside the file name looks like
+        // the flag. = The activation surface has to work on the input
+        // it exists for.
+        let arguments = remainder
             .split(separator: " ")
             .map(String.init)
             .filter { !$0.isEmpty }
+        var sourcePaths: [String] = []
+        for argument in arguments {
+            if argument == "--dry-run" || argument == "-n" {
+                dryRun = true
+                continue
+            }
+            sourcePaths.append(argument)
+        }
 
         let task = LibrarianTask(
             procedure: procedure,

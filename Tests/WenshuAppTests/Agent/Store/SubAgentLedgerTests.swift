@@ -61,7 +61,7 @@ struct SubAgentLedgerTests {
         )
         try ledger.closeRun(
             runID: "run-1",
-            status: "done",
+            status: .done,
             output: "The tax system was this.",
             error: nil,
             bookID: nil
@@ -93,7 +93,7 @@ struct SubAgentLedgerTests {
         )
         try ledger.closeRun(
             runID: "run-1",
-            status: "done",
+            status: .done,
             output: "The tax system was this.",
             error: nil,
             bookID: "book-1"
@@ -117,7 +117,7 @@ struct SubAgentLedgerTests {
         )
         try ledger.closeRun(
             runID: "run-1",
-            status: "failed",
+            status: .failed,
             output: nil,
             error: "the LLM refused"
         )
@@ -198,6 +198,6 @@ struct SubAgentLedgerTests {
     func closingAnUnknownRunIsHarmless() throws {
         let (ledger, _) = try Self.makeLedger()
         // No open first: the close must not throw.
-        try ledger.closeRun(runID: "never-opened", status: "done", output: "x", error: nil)
+        try ledger.closeRun(runID: "never-opened", status: .done, output: "x", error: nil)
     }
 }

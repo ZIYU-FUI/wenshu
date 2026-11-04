@@ -325,6 +325,31 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
 
     /// The comparison form of a title (= whitespace runs collapsed,
     /// trimmed, case-folded).
+    /// The document in a collection that already carries this title.
+    ///
+    /// Every writer that must not create a second copy of a name asks
+    /// here, = because the answer has to be the SAME answer: = the
+    /// tool's create refuses a duplicate, = the tool's find looks for
+    /// one, = and the import must not land a second document beside
+    /// the first. = Three readers of one rule, = and a rule copied
+    /// into three places is a rule that drifts.
+    ///
+    /// - Parameters:
+    ///   - references: the documents to search.
+    ///   - title: the title to look for.
+    ///   - layer: the layer to search in (= nil = any layer).
+    /// - Returns: the first document whose title matches, = or nil.
+    static func firstMatchingTitle(
+        in references: [Reference],
+        title: String,
+        layer: ReferenceLayer? = nil
+    ) -> Reference? {
+        references.first { reference in
+            if let layer, reference.layer != layer { return false }
+            return titlesMatch(reference.title, title)
+        }
+    }
+
     static func normalizeTitle(_ raw: String) -> String {
         raw.replacingOccurrences(
             of: "[\\s]+",

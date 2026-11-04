@@ -360,7 +360,6 @@ final class ReferenceLibraryActor {
     }
 
     func findReference(title: String, layer: String? = nil) async throws -> ReferenceDescriptor? {
-        let normalized = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let all = (try? referenceStore.loadAllReferences()) ?? []
         let candidates: [Reference]
         if let layer {
@@ -374,8 +373,14 @@ final class ReferenceLibraryActor {
             // Default: search across both raw + entities (= user-managed).
             candidates = all.filter { $0.layer == .layerRaw || $0.layer == .layerEntities }
         }
+        // The SAME rule `create` uses. = The two must agree, = or the
+        // tool's own protocol (= find before you create) traps the
+        // caller: = `find` says the title is absent, = and `create`
+        // then refuses the write as a duplicate, = and the caller has
+        // no way out. = The rule lives in `Reference.titlesMatch`, =
+        // so every reader is on the one rule.
         let match = candidates.first { ref in
-            ref.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalized
+            Reference.titlesMatch(ref.title, title)
         }
         return match.map { ReferenceDescriptor($0) }
     }

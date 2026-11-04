@@ -181,4 +181,49 @@ struct ReferenceLibraryIdentityTests {
             "the two titles name one document; = the import's rule and the upsert's rule have to agree"
         )
     }
+
+    // MARK: - Find and create agree
+
+    /// The tool's own protocol says find before you create. = If the
+    /// two disagree, = the protocol traps the caller: = find says the
+    /// title is absent, = and create then refuses the write as a
+    /// duplicate, = and the caller has no way out.
+    @Test("find and create agree on a title whose whitespace is doubled")
+    func findAndCreateAgreeOnADoubledWhitespaceTitle() async throws {
+        let (actor, _) = try Self.makeActor()
+        _ = try await actor.createReference(
+            title: "Ming  tax",
+            bodyMarkdown: "# Ming tax\n\nThe first body.",
+            layer: "entities",
+            summary: "The first summary."
+        )
+
+        // Find says it is there.
+        let found = try await actor.findReference(title: "Ming tax")
+        #expect(found != nil, "find must see the document that create would refuse to duplicate")
+
+        // And create refuses the second copy, = so the two agree.
+        await #expect(throws: ReferenceLibraryError.self) {
+            try await actor.createReference(
+                title: "Ming tax",
+                bodyMarkdown: "# Ming tax\n\nA second body.",
+                layer: "entities",
+                summary: "A second summary."
+            )
+        }
+    }
+
+    @Test("find sees a document whose title differs only by case")
+    func findSeesADocumentByCaseAlone() async throws {
+        let (actor, _) = try Self.makeActor()
+        _ = try await actor.createReference(
+            title: "Ming Tax System",
+            bodyMarkdown: "# Ming tax\n\nThe first body.",
+            layer: "entities",
+            summary: "The first summary."
+        )
+
+        #expect(try await actor.findReference(title: "ming tax system") != nil)
+    }
+
 }

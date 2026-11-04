@@ -222,4 +222,67 @@ struct ChapterResolverTests {
         )
         #expect(resolved.isEmpty)
     }
+
+    // MARK: - The order
+
+    @Test("the chapters the index describes keep the index's order (= the order they were created in)")
+    func indexedChaptersKeepTheIndexOrder() throws {
+        let (bookId, chaptersDir, indexURL) = try Self.makeBook()
+
+        // Three actor-written chapters, = named after their ids, = and
+        // their ids are chosen so that the UUID order is NOT the
+        // creation order. = Otherwise this test would pass for the
+        // wrong reason.
+        let first = UUID(uuidString: "FFFFFFFF-0000-0000-0000-000000000001")!
+        let second = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+        let third = UUID(uuidString: "88888888-0000-0000-0000-000000000003")!
+
+        for id in [first, second, third] {
+            try Self.write("# Chapter \(id.uuidString)", to: chaptersDir.appendingPathComponent("\(id.uuidString).md"))
+        }
+        try Self.writeIndex([
+            Document(id: first, bookId: bookId, category: .chapter, title: "First"),
+            Document(id: second, bookId: bookId, category: .chapter, title: "Second"),
+            Document(id: third, bookId: bookId, category: .chapter, title: "Third")
+        ], to: indexURL)
+
+        let resolved = ChapterResolver.resolveChapters(
+            bookId: bookId,
+            chaptersDirectory: chaptersDir,
+            indexURL: indexURL
+        )
+
+        // The file names sort as third, second, first (= the uuid
+        // order); = the index says first, second, third. = A reader
+        // that sorts by file name would reorder the book.
+        #expect(resolved.map(\.title) == ["First", "Second", "Third"])
+    }
+
+    @Test("an imported chapter follows the indexed ones, = and the imported ones keep a stable order among themselves")
+    func importedChaptersFollowTheIndexedOnes() throws {
+        let (bookId, chaptersDir, indexURL) = try Self.makeBook()
+
+        let indexed = UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!
+        try Self.write("# Indexed", to: chaptersDir.appendingPathComponent("\(indexed.uuidString).md"))
+        try Self.writeIndex([
+            Document(id: indexed, bookId: bookId, category: .chapter, title: "Indexed")
+        ], to: indexURL)
+
+        // Two imported chapters, = title-named, = no index row.
+        try Self.write("# Imported A", to: chaptersDir.appendingPathComponent("Imported A.md"))
+        try Self.write("# Imported B", to: chaptersDir.appendingPathComponent("Imported B.md"))
+
+        let resolved = ChapterResolver.resolveChapters(
+            bookId: bookId,
+            chaptersDirectory: chaptersDir,
+            indexURL: indexURL
+        )
+
+        #expect(resolved.count == 3)
+        // The indexed chapter leads, = because the user created it
+        // through the app. = The imported ones follow.
+        #expect(resolved.first?.title == "Indexed")
+        #expect(resolved.map(\.title).dropFirst() == ["Imported A", "Imported B"])
+    }
+
 }

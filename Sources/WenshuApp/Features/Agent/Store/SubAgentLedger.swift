@@ -96,13 +96,15 @@ struct SubAgentLedger {
     ///
     /// - Parameters:
     ///   - runID: the run's id.
-    ///   - status: the outcome (= `SubAgentRunStatus`'s raw value).
+    ///   - status: the outcome (= the app's own vocabulary, = not a
+    ///     free string, = so a second vocabulary cannot grow up
+    ///     beside this one).
     ///   - output: what the run produced.
     ///   - error: what went wrong (= nil on success).
     ///   - inputTokens / outputTokens: the token usage.
     func closeRun(
         runID: String,
-        status: String,
+        status: SubAgentRunStatus,
         output: String?,
         error: String?,
         inputTokens: Int = 0,
@@ -120,7 +122,7 @@ struct SubAgentLedger {
             id: runID,
             sessionID: sessionID,
             taskDescription: session.title ?? "",
-            status: status
+            status: status.rawValue
         )
         run.completedAt = Date()
         run.outputText = output

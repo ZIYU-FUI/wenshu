@@ -192,4 +192,59 @@ struct LibrarianActivationTests {
             "free text is not a librarian procedure; = the runner must be able to tell"
         )
     }
+
+    // MARK: - The flags are tokens
+
+    /// The flags are matched as whole tokens. = A source path is the
+    /// whole point of the procedure, = and a substring scan turns
+    /// `/tmp/lin-notes.md` into a dry run against two garbage paths,
+    /// = because the `-n` inside the file name looks like the flag.
+    @Test("a path containing -n is a path, not the dry-run flag")
+    func aPathContainingDashNIsNotTheFlag() {
+        let parsed = LibrarianActivation.parse("import /tmp/lin-notes.md")
+
+        guard case .task(let task) = parsed else {
+            Issue.record("expected a librarian task")
+            return
+        }
+        #expect(task.dryRun == false, "a file name must not turn the run into a dry run")
+        #expect(task.sourcePaths == ["/tmp/lin-notes.md"], "the path must survive whole")
+    }
+
+    @Test("a path containing --dry-run inside it is still a path")
+    func aPathContainingTheLongFlagIsStillAPath() {
+        let parsed = LibrarianActivation.parse("import /tmp/--dry-run-notes.md")
+
+        guard case .task(let task) = parsed else {
+            Issue.record("expected a librarian task")
+            return
+        }
+        #expect(task.sourcePaths == ["/tmp/--dry-run-notes.md"])
+        #expect(task.dryRun == false)
+    }
+
+    @Test("the dry-run flag still works when it is a whole token")
+    func theWholeTokenFlagStillWorks() {
+        let parsed = LibrarianActivation.parse("import /tmp/notes.md --dry-run")
+
+        guard case .task(let task) = parsed else {
+            Issue.record("expected a librarian task")
+            return
+        }
+        #expect(task.dryRun == true)
+        #expect(task.sourcePaths == ["/tmp/notes.md"])
+    }
+
+    @Test("several sources, one of which contains -n, all survive")
+    func severalSourcesAllSurvive() {
+        let parsed = LibrarianActivation.parse("import /tmp/a.md /tmp/b-n.md /tmp/c.md")
+
+        guard case .task(let task) = parsed else {
+            Issue.record("expected a librarian task")
+            return
+        }
+        #expect(task.sourcePaths == ["/tmp/a.md", "/tmp/b-n.md", "/tmp/c.md"])
+        #expect(task.dryRun == false)
+    }
+
 }

@@ -67,9 +67,10 @@ enum ChapterResolver {
     ///   - indexURL: the folder's index file (= `chapters.json`). The
     ///     index is optional: a book whose chapters were all imported
     ///     has no index at all.
-    /// - Returns: one entry per `.md` file in the folder, ordered by
-    ///   file name (= the order the card grid shows them in, = the
-    ///   order a reader expects a book's chapters to be in).
+    /// - Returns: one entry per `.md` file in the folder. The
+    ///   chapters the index describes come first, = in the index's
+    ///   order (= the order the user created them in); = the imported
+    ///   ones, = which no index describes, = follow by file name.
     static func resolveChapters(
         bookId: UUID,
         chaptersDirectory: URL,
@@ -84,18 +85,24 @@ enum ChapterResolver {
 
         // The index, keyed by the file name it describes (= the index
         // row's id names its file, = `<id>.md`).
-        let indexedByFileName: [String: Document] = {
-            let rows = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
-                bookDirectory: chaptersDirectory.deletingLastPathComponent(),
-                chaptersDirectory: chaptersDirectory,
-                indexURL: indexURL
-            )) ?? []
-            var map: [String: Document] = [:]
-            for row in rows {
-                map[row.filename] = row
-            }
-            return map
-        }()
+        //
+        // The index's OWN order is kept, = because that order is the
+        // order the writer appended the rows in, = which is the order
+        // the user created the chapters in. = Sorting the whole set
+        // by file name would reorder every chapter of every book
+        // whose files are named after their ids, = because a uuid
+        // sorts by nothing a reader recognises.
+        let indexedRows: [Document] = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+            bookDirectory: chaptersDirectory.deletingLastPathComponent(),
+            chaptersDirectory: chaptersDirectory,
+            indexURL: indexURL
+        )) ?? []
+        var indexedByFileName: [String: Document] = [:]
+        var indexOrder: [String: Int] = [:]
+        for (position, row) in indexedRows.enumerated() {
+            indexedByFileName[row.filename] = row
+            indexOrder[row.filename] = position
+        }
 
         var resolved: [ResolvedChapter] = []
         for url in entries where url.pathExtension.lowercased() == "md" {
@@ -111,9 +118,35 @@ enum ChapterResolver {
             ))
         }
 
-        // Ordered by file name (= the card grid's order). A book's
-        // chapters read in the order the user sees them.
-        return resolved.sorted { $0.fileURL.lastPathComponent < $1.fileURL.lastPathComponent }
+        // The order a book reads in:
+        //
+        // - The chapters the index describes come first, = in the
+        //   index's order, = which is the order the user created
+        //   them in.
+        // - The chapters the index does not describe (the imported
+        //   ones, = whose files carry no index row) follow, = by
+        //   file name, = so their order is at least stable.
+        //
+        // The imported chapters cannot be placed in creation order,
+        // = because nothing records it: = the import writes the file
+        // and touches no index. = Sorting by file name is the honest
+        // answer, = and it is stable.
+        return resolved.sorted { lhs, rhs in
+            let lhsFile = lhs.fileURL.lastPathComponent
+            let rhsFile = rhs.fileURL.lastPathComponent
+            let lhsIndex = indexOrder[lhsFile]
+            let rhsIndex = indexOrder[rhsFile]
+            switch (lhsIndex, rhsIndex) {
+            case let (left?, right?):
+                return left < right
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                return lhsFile < rhsFile
+            }
+        }
     }
 
     // MARK: - Identity
