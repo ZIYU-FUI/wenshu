@@ -7822,6 +7822,23 @@
         }
       }
     },
+    "settings.archive.filteredEmpty": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No record matches the filter."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有符合筛选条件的记录。"
+          }
+        }
+      }
+    },
     "inspector.format.group.character": {
       "extractionState": "manual",
       "localizations": {
@@ -7975,19 +7992,92 @@
         }
       }
     },
-    "settings.archive.filteredEmpty": {
+    "library.search.fulltext.title": {
+      "comment": "The library's full-text search results (the search field's hits across the library's documents)",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No record matches the filter."
+            "value": "Documents found in the library"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "没有符合筛选条件的记录。"
+            "value": "在资料库正文里找到的文档"
+          }
+        }
+      }
+    },
+    "library.search.fulltext.count": {
+      "comment": "The library's full-text search results (the search field's hits across the library's documents)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d found"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d 篇"
+          }
+        }
+      }
+    },
+    "library.search.fulltext.empty": {
+      "comment": "The library's full-text search results (the search field's hits across the library's documents)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing in the bodies matched"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正文里没有找到"
+          }
+        }
+      }
+    },
+    "library.search.fulltext.layer_visible": {
+      "comment": "The library's full-text search results (the search field's hits across the library's documents)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entity layer"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实体层"
+          }
+        }
+      }
+    },
+    "library.search.fulltext.layer_raw": {
+      "comment": "The library's full-text search results (the search field's hits across the library's documents)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raw layer"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原始层"
           }
         }
       }

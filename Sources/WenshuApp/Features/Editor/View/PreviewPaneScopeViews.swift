@@ -50,6 +50,18 @@ extension PreviewPane {
             }
         }()
         VStack(spacing: 0) {
+            // The library's own full-text hits (= the search field's
+            // text, but against the DOCUMENTS: their layer and their
+            // body, = the two things the grid's card filter cannot
+            // reach). The grid below keeps filtering the cards as it
+            // did; this adds what the search found in the library's
+            // documents.
+            LibraryFullTextSearchView(
+                query: resolvedSearchQuery,
+                onOpen: { reference in
+                    onDoubleClick(.reference(reference))
+                }
+            )
             Group {
                 if let cat = category {
                     categoryGrid(category: cat, allEntities: allEntities)
