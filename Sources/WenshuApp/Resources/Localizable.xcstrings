@@ -1,6 +1,142 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "inspector.page.format": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Format"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "格式"
+          }
+        }
+      }
+    },
+    "inspector.format.group.character": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Character"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "字符"
+          }
+        }
+      }
+    },
+    "inspector.format.group.block": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paragraph"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "段落"
+          }
+        }
+      }
+    },
+    "inspector.format.group.insert": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insert"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "插入"
+          }
+        }
+      }
+    },
+    "inspector.format.heading.level": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heading %d"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标题 %d"
+          }
+        }
+      }
+    },
+    "inspector.format.link.placeholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link address"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "链接地址"
+          }
+        }
+      }
+    },
+    "inspector.format.link.apply": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insert link"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "插入链接"
+          }
+        }
+      }
+    },
+    "editor.tab.close.tooltip": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭"
+          }
+        }
+      }
+    },
     "View": {
       "extractionState": "manual",
       "localizations": {
@@ -4927,7 +5063,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "bold"
+            "value": "加粗"
           }
         }
       }
@@ -4944,7 +5080,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "italic"
+            "value": "斜体"
           }
         }
       }
@@ -4978,7 +5114,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "strikethrough"
+            "value": "删除线"
           }
         }
       }
@@ -5131,7 +5267,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "bold"
+            "value": "加粗"
           }
         }
       }
@@ -5148,7 +5284,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "italic"
+            "value": "斜体"
           }
         }
       }
@@ -5182,7 +5318,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "strikethrough"
+            "value": "删除线"
           }
         }
       }

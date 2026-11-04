@@ -939,14 +939,14 @@ struct WenshuMarkdownEditorAdapterTests {
     /// fails (= the toolbar silently loses a button).
     @Test("EditorFormatAction covers the engine's 12-button format surface (= T-02)")
     func formatActionCoverage() throws {
-        let toolbarPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorFormatToolbar.swift")
-        let toolbar = try String(contentsOfFile: toolbarPath, encoding: .utf8)
+        let actionPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorFormatAction.swift")
+        let action = try String(contentsOfFile: actionPath, encoding: .utf8)
         #expect(
-            toolbar.contains("enum EditorFormatAction"),
-            "EditorFormatAction enum must live in EditorFormatToolbar.swift"
+            action.contains("enum EditorFormatAction"),
+            "EditorFormatAction enum must live in EditorFormatAction.swift"
         )
         #expect(
-            toolbar.contains("var iconName: String"),
+            action.contains("var iconName: String"),
             "EditorFormatAction.iconName must be defined (= SF Symbol mapping per case)"
         )
         #expect(
@@ -962,7 +962,28 @@ struct WenshuMarkdownEditorAdapterTests {
         let actualCases = Set(EditorFormatAction.allCases.map(\.rawValue))
         #expect(
             actualCases == expectedCases,
-            "EditorFormatAction cases must match the engine's 12-button contract (= names below must match the bus public surface)"
+            "EditorFormatAction cases must match the engine's 12-command contract (= names below must match the bus public surface)"
+        )
+    }
+
+    /// The two commands the engine reads a VALUE out of must carry it.
+    ///
+    /// The engine DROPS a heading request with no level
+    /// (`userInfo["level"] as? Int`) and writes `[text]()` for a link
+    /// request with no URL (`userInfo["url"]`), so a dispatch that
+    /// posts either command without its value is a command that
+    /// silently does the wrong thing.
+    @Test("The heading and link commands carry the value the engine reads (= the 12-command contract's two value-bearing cases)")
+    func valueBearingCommandsCarryTheirValue() throws {
+        let actionPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorFormatAction.swift")
+        let action = try String(contentsOfFile: actionPath, encoding: .utf8)
+        #expect(
+            action.contains("userInfo: [\"level\": headingLevel]"),
+            "The heading command must post the level the engine reads (= userInfo[\"level\"])"
+        )
+        #expect(
+            action.contains("userInfo: [\"url\": linkURL]"),
+            "The link command must post the target the engine reads (= userInfo[\"url\"])"
         )
     }
 
@@ -970,17 +991,17 @@ struct WenshuMarkdownEditorAdapterTests {
     /// in EditorActions.swift) and the raw `bus.apply…Request`
     /// notification names. Source-content test gates both the helper
     /// use (= bold) AND the bus-name dispatch (= the other 11).
-    @Test("EditorFormatToolbar dispatches via FormatDispatcher + bus names (= T-02)")
-    func formatToolbarDispatchContract() throws {
-        let toolbarPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorFormatToolbar.swift")
-        let toolbar = try String(contentsOfFile: toolbarPath, encoding: .utf8)
+    @Test("EditorFormatAction dispatches via FormatDispatcher + bus names (= T-02)")
+    func formatActionDispatchContract() throws {
+        let actionPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorFormatAction.swift")
+        let action = try String(contentsOfFile: actionPath, encoding: .utf8)
         #expect(
-            toolbar.contains("FormatDispatcher(bus: bus)"),
-            "EditorFormatToolbar must construct FormatDispatcher (= canonical bus-dispatch helper)"
+            action.contains("FormatDispatcher(bus: bus)"),
+            "EditorFormatAction must construct FormatDispatcher (= canonical bus-dispatch helper)"
         )
         #expect(
-            toolbar.contains("post(bus.applyBoldRequest)")
-                || toolbar.contains("dispatcher.applyBold()"),
+            action.contains("post(bus.applyBoldRequest)")
+                || action.contains("dispatcher.applyBold()"),
             "Bold dispatch must be wired (= the engine's contract for format-surface parity)"
         )
         // The toolbar must reach into every bus name at least once
@@ -996,8 +1017,8 @@ struct WenshuMarkdownEditorAdapterTests {
         ]
         for name in busNames {
             #expect(
-                toolbar.contains("bus.\(name)"),
-                "EditorFormatToolbar must reference `bus.\(name)` (= dropped case in the 12-button contract)"
+                action.contains("bus.\(name)"),
+                "EditorFormatAction must reference `bus.\(name)` (= dropped case in the 12-command contract)"
             )
         }
     }

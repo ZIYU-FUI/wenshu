@@ -110,34 +110,59 @@ struct ChromeTopBarMaterialTests {
         )
     }
 
-    /// The default band keeps the chrome material (= the editor format
-    /// toolbar's band, and every future call site that does not opt out).
-    @Test("The shared default band still paints the chrome material")
+    /// The default band paints NO material (= the band belongs to its
+    /// column's body).
+    ///
+    /// The default used to be the material (= the editor's format-toolbar
+    /// band was the one production band that wanted the window-chrome
+    /// tint, = and that band is gone with the format commands' move to
+    /// the inspector column's format page). Every band the app draws
+    /// today belongs to its column, so the default says so.
+    @Test("The shared default band paints no material of its own")
     @MainActor
-    func theDefaultBandKeepsTheMaterial() throws {
+    func theDefaultBandPaintsNoMaterial() {
         let material = hostShare(of: ChromeTopBar { bandContent() })
         #expect(
-            material < 0.6,
+            material > 0.9,
             """
-            The shared default band painted \(Int(material * 100))% of the host \
-            background: the default no longer carries the chrome material, so the \
-            editor format toolbar's band would lose its surface too.
+            The shared default band painted only \(Int(material * 100))% of the host \
+            background: the default still carries a surface of its own, so a column's \
+            band reads as a bar floating above the column.
             """
         )
     }
 
-    /// The two column bands are the transparent ones, and the editor
-    /// format toolbar's band is not.
-    @Test("The two column bands ask for no material, the editor toolbar does not")
-    func theColumnBandsAskForNoMaterial() throws {
+    /// A band that asks for the window-chrome material still gets it.
+    @Test("A band that asks for the chrome material paints it")
+    @MainActor
+    func aBandThatAsksForTheMaterialGetsIt() {
+        let material = hostShare(of: ChromeTopBar(usesMaterial: true) { bandContent() })
+        #expect(
+            material < 0.6,
+            """
+            A band built with `usesMaterial: true` painted \(Int(material * 100))% of \
+            the host background: the window-chrome material is no longer painted, so a \
+            window-chrome band cannot carry the surface.
+            """
+        )
+    }
+
+    /// Every column band asks for no material.
+    ///
+    /// The three bands the app draws (= the sidebar's switcher band, =
+    /// the assets column's search band, = the inspector column's page
+    /// band) all belong to their column's body, so all three ask for
+    /// no material.
+    @Test("Every column band asks for no material")
+    func everyColumnBandAsksForNoMaterial() throws {
         let sidebar = try SourceLocator.read(
             "Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift"
         )
         let assets = try SourceLocator.read(
             "Sources/WenshuApp/Features/Editor/View/AssetsPane.swift"
         )
-        let editor = try SourceLocator.read(
-            "Sources/WenshuApp/Features/Editor/View/EditorFormatToolbar.swift"
+        let inspector = try SourceLocator.read(
+            "Sources/WenshuApp/Features/Editor/View/InspectorView.swift"
         )
 
         #expect(
@@ -149,8 +174,8 @@ struct ChromeTopBarMaterialTests {
             "The assets column's search band must ask for no material (= it belongs to the column)"
         )
         #expect(
-            !editor.contains("usesMaterial:"),
-            "The editor format toolbar's band must keep the shared material default (= it is window chrome, not a column row)"
+            inspector.contains("usesMaterial: false"),
+            "The inspector column's page band must ask for no material (= it belongs to the column)"
         )
     }
 }

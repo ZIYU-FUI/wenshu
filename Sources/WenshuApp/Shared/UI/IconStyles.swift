@@ -344,7 +344,7 @@ struct SFIcon: View {
     /// = "link" is a single thin line; = each glyph needs its own point size to
     /// optical-match the other 11 buttons). The factory's `style.pointSize` is
     /// the canonical Apple HIG default (= 14 PT for `.inlineSmall`); = the
-    /// override lets the `EditorFormatToolbar` pass the per-icon measured value
+    /// override lets a caller pass the per-icon measured value
     /// (= 12 / 14 / 16 / 18 PT) without losing the SFIcon rendering pipeline (=
     /// `.symbolRenderingMode` + `.foregroundStyle`). nil = use
     /// `style.pointSize`. The override is set on the `Image` (= applied AFTER

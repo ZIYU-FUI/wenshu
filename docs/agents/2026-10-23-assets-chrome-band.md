@@ -94,7 +94,9 @@ Measured per column on a 2x capture of the running app, before and after:
 
 One file changed in each card:
 `Sources/WenshuApp/Features/Editor/View/AssetsPane.swift`.
-`ChromeTopBar.swift`, `EditorFormatToolbar.swift`, `EditorHeaderView.swift`,
+`ChromeTopBar.swift`, `EditorFormatToolbar.swift` (= deleted 2026-11-04,
+= the format commands moved to the inspector column's format page; = the
+editor column's top chrome is the tab strip row), `EditorHeaderView.swift`,
 `PreviewPane.swift` and `SectionHeader.swift` are untouched.
 
 ## 5. The measurement, and the two ways it lied

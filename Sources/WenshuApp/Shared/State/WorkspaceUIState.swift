@@ -93,7 +93,7 @@ final class WorkspaceUIState {
     var chatVisible: Bool = true
 
     /// The active page of the trailing inspector column (= one of the
-    /// three pages the column's segmented control switches between).
+    /// four pages the column's segmented control switches between).
     /// The column's toolbar toggle writes here, so the selection
     /// survives the column being hidden and shown.
     ///
@@ -332,12 +332,18 @@ enum InspectorPage: Hashable, CaseIterable {
     case status
     /// The task board (= the board of long-running work).
     case task
+    /// The format inspector (= the document's format commands, grouped
+    /// the way Pages groups them). The case is the page's own: the
+    /// commands it carries used to live in the editor zone's icon row,
+    /// and the row is gone.
+    case format
 
     var localizedTitle: String {
         switch self {
         case .todo: return String(localized: "inspector.page.todo")
         case .status: return String(localized: "inspector.page.status")
         case .task: return String(localized: "inspector.page.task")
+        case .format: return String(localized: "inspector.page.format")
         }
     }
 
@@ -346,6 +352,7 @@ enum InspectorPage: Hashable, CaseIterable {
         case .todo: return "checklist"
         case .status: return "waveform.path.ecg"
         case .task: return "square.grid.2x2"
+        case .format: return "textformat.size"
         }
     }
 }

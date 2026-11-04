@@ -7,13 +7,13 @@
 //
 //  Layout (= the Apple HIG three-column pattern):
 //  - the column's chrome band carries the segmented control that
-//    picks the column's page (= Todos, Sub-Agents, Tasks),
+//    picks the column's page (= Todos, Sub-Agents, Tasks, Format),
 //  - the column body carries the selected page's content,
 //  - the column's visibility toggle sits in the window toolbar
 //    (= ToolbarItemGroup placement .principal).
 //
-//  The column has three pages (= the todos, the sub-agent tasks and
-//  the task board). The page enum stays (= the seam a future page
+//  The column has four pages (= the todos, the sub-agent tasks, the
+//  task board and the format inspector). The page enum stays (= the seam a future page
 //  tool plugs into) and each page renders its own content from its
 //  own file, so a page can be filled in without the column knowing
 //  anything about its contents.
@@ -101,6 +101,10 @@ struct InspectorView: View {
             case .task:
                 // The task page owns the board of long-running work.
                 InspectorTaskPageView(workspaceUI: workspaceUI, appState: appState)
+            case .format:
+                // The format page owns the document's format commands
+                // (= they used to live in the editor zone's icon row).
+                InspectorFormatPageView()
             }
         }
         .toolbar {

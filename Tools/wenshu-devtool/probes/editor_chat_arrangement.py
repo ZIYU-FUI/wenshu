@@ -7,12 +7,22 @@ WHAT IT MEASURES
   running app's ACCESSIBILITY TREE:
     * the chat's COMPOSER   (the AXTextField whose placeholder is the
       app's "input a message" string),
-    * the editor's TOOLBAR  (the AXButton labelled "bold"),
-    * the editor's BODY     (the AXTextArea = the editor's text view).
+    * the editor's BODY     (the AXTextArea = the editor's text view),
+      which is the editor column's leading edge.
   From those it names the arrangement (= the chat's composer is LEFT of
-  the editor's toolbar = side by side; = the editor's body is ABOVE the
+  the editor's body = side by side; = the editor's body is ABOVE the
   chat's composer = stacked) and says whether the arrangement on screen
   is the one the layout mode asked for.
+
+  WHY THE LANDMARK IS THE EDITOR'S BODY AND NOT A BUTTON
+  2026-11-04: the probe used to find the editor's TOOLBAR by the
+  AXButton labelled "bold". The format commands moved to the inspector
+  column's format page, so that button now lives in a DIFFERENT column
+  (= the inspector, = the column on the far side of the editor), and a
+  landmark that moved columns would have kept answering with a number
+  while measuring the wrong column. The editor's body is the editor
+  column's own leading edge, and it is where the arrangement question
+  is actually asked.
 
 HOW IT MEASURES
   Through the AX API (ctypes; = no PyObjC on this machine). The tree is
@@ -59,10 +69,11 @@ import subprocess
 import sys
 
 # --- the app's own strings, so the composer is found by what it says -----
-# The zh-Hans and the en strings of the chat's composer placeholder, and
-# the editor's "bold" button label (the same string in both languages).
+# The zh-Hans and the en strings of the chat's composer placeholder.
+#
+# There is NO button label here any more: the editor's landmark is its
+# body (the AXTextArea), not a button (= see the header).
 COMPOSER_LABELS = ("\u8f93\u5165\u6d88\u606f...", "Input a message...")
-BOLD_LABELS = ("bold",)
 LAYOUT_MODE_KEY = "wenshu.editor.layoutMode"
 
 # --- the production fragments this probe reproduces ----------------------
@@ -78,9 +89,9 @@ FRAGMENTS = (
     ("Shared/State/WorkspaceUIState.swift",
      "case sideBySide"),
     ("Features/Editor/View/EditorChatNSController.swift",
-     "static let sideBySideMinimumWidth: CGFloat = 1000"),
+     "static let sideBySideMinimumWidth: CGFloat = editorPaneMinimumWidth * 2"),
     ("Features/Editor/View/EditorChatNSController.swift",
-     "static let stackedMaximumWidth: CGFloat = 920"),
+     "static let editorChromeMinimumWidth: CGFloat = 116"),
     ("Features/Editor/View/EditorChatNSController.swift",
      'static let autosaveName = "wenshu.editor.split.autosave"'),
     ("Features/Editor/View/EditorChatNSController.swift",
@@ -296,7 +307,7 @@ def find_window(ax, pid):
 
 
 def collect(ax, window):
-    composer = toolbar = body = None
+    composer = body = None
     for element, role in walk(ax, window):
         if not role:
             continue
@@ -304,13 +315,9 @@ def collect(ax, window):
             text, source = label_of(ax, element)
             if text in COMPOSER_LABELS:
                 composer = (element, text, source)
-        if toolbar is None and role == "AXButton":
-            text, source = label_of(ax, element)
-            if text in BOLD_LABELS:
-                toolbar = (element, text, source)
         if body is None and role == "AXTextArea":
             body = (element, "AXTextArea", "AXRole")
-    return composer, toolbar, body
+    return composer, body
 
 
 def main():
@@ -360,31 +367,24 @@ def main():
         return 2
     print("window_id: %s" % (window_id if window_id is not None else "(unknown)"))
 
-    composer, toolbar, body = collect(ax, window)
+    composer, body = collect(ax, window)
     if composer is None:
         print("composer: NOT FOUND (= the chat's composer is not in the tree)")
         print("NO NUMBER REPORTED")
         return 2
-    if toolbar is None:
-        print("editor_toolbar: NOT FOUND (= the editor's toolbar is not in the tree)")
+    if body is None:
+        print("editor_body: NOT FOUND (= the editor's body is not in the tree)")
         print("NO NUMBER REPORTED")
         return 2
 
     composer_point = ax.point(composer[0]) or (0, 0)
-    toolbar_point = ax.point(toolbar[0]) or (0, 0)
+    body_point = ax.point(body[0]) or (0, 0)
     print("composer_x: %.0f" % composer_point[0])
     print("composer_y: %.0f" % composer_point[1])
-    print("editor_toolbar_x: %.0f" % toolbar_point[0])
-    print("editor_toolbar_y: %.0f" % toolbar_point[1])
-    if body is not None:
-        body_point = ax.point(body[0]) or (0, 0)
-        print("editor_body_x: %.0f" % body_point[0])
-        print("editor_body_y: %.0f" % body_point[1])
-    else:
-        body_point = None
-        print("editor_body: NOT FOUND")
+    print("editor_body_x: %.0f" % body_point[0])
+    print("editor_body_y: %.0f" % body_point[1])
 
-    if composer_point[0] < toolbar_point[0]:
+    if composer_point[0] < body_point[0]:
         arrangement = "sideBySide"
     elif body_point is not None and body_point[1] < composer_point[1]:
         arrangement = "stacked"

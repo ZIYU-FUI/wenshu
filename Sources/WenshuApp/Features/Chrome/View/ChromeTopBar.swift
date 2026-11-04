@@ -1,5 +1,6 @@
-// Sources/WenshuApp/UI/Chrome/ChromeTopBar.swift The format toolbar
-// (`EditorFormatToolbar`) and future top accessory rows use this shared `ChromeTopBar`
+// Sources/WenshuApp/UI/Chrome/ChromeTopBar.swift The column-top chrome
+// rows (the sidebar's switcher band, = the assets column's search band,
+// = the inspector column's page band) use this shared `ChromeTopBar`
 // chrome surface (= the wenshu 1:1 Apple HIG top-of-column chrome recipe; = mirror
 // image of `ChromeBottomFooter`). Single source of truth for the top-chrome shape; =
 // no visual drift between the two call sites; = Apple-default 1:1. Difference from
@@ -13,8 +14,7 @@ import SwiftUI
 
 /// Canonical Apple HIG top-of-column chrome surface
 /// (= the top row of `Mail` / `Notes` / `Finder` /
-/// `System Settings` sidebar rows + the `EditorFormatToolbar`
-/// format toolbar in the editor zone). Use this for ANY
+/// `System Settings` sidebar rows). Use this for ANY
 /// column-top chrome row (= toolbar, search bar, status
 /// header above the NSTextView) so all column tops in wenshu
 /// have the same surface recipe: `VStack(spacing: 0) { content;
@@ -52,18 +52,24 @@ struct ChromeTopBar<Content: View>: View {
     let horizontalPadding: CGFloat
     /// Whether the band paints the shared chrome material.
     ///
-    /// The shared default is TRUE (= the band carries the window-chrome
-    /// tint, = a row that belongs to the window rather than to the
-    /// column's body). A band that belongs to the column's body passes
-    /// FALSE: the column's own background then shows through, so the row
-    /// reads as part of the column instead of a separate bar floating
-    /// above it.
+    /// The shared default is FALSE (= the band belongs to its column's
+    /// body: the column's own background shows through, so the row reads
+    /// as part of the column instead of a separate bar floating above
+    /// it). A band that belongs to the WINDOW asks for TRUE: the
+    /// window-chrome tint then paints it.
+    ///
+    /// Why the default moved (2026-11-04): the editor's format-toolbar
+    /// band was the one production band that asked for the material, and
+    /// that band is gone (= the format commands moved to the inspector
+    /// column's format page). Every band the app draws today belongs to
+    /// its column, so the default now says so, and a future window-chrome
+    /// band asks for the material by name.
     let usesMaterial: Bool
 
     init(
         help: LocalizedStringKey? = nil,
         horizontalPadding: CGFloat = DesignTokens.spacingStandard,
-        usesMaterial: Bool = true,
+        usesMaterial: Bool = false,
         @ViewBuilder content: () -> Content
     ) {
         self.help = help

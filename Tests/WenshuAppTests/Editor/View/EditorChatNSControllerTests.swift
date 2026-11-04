@@ -150,10 +150,9 @@ struct EditorChatNSControllerTests {
         //
         // 595 PT = the editor's own comfortable prose measure (the
         // paper-canvas notes: 595-680 PT). It is ABOVE the editor's
-        // chrome width (448 PT = the format toolbar's 12 buttons of
-        // 28 PT, the trailing close button, the chunk separators, the
-        // spacing and ChromeTopBar's padding), so a pane the rule
-        // accepts always holds its chrome.
+        // chrome width (116 PT = the tab strip row's floor + its
+        // trailing close control), so a pane the rule accepts always
+        // holds its chrome.
         //
         // 280 PT = the chat's floor, measured 2026-10-26 from a
         // running capture (the chat column was 282 PT and read well).
@@ -278,13 +277,12 @@ struct EditorChatNSControllerTests {
         // carries the arrangement and each pane is as wide as the
         // whole split. So the chrome test is the width itself.
         //
-        // The editor's chrome is 448 PT (the format toolbar's 12
-        // buttons of 28 PT, the trailing close button, the two
-        // chunk separators, the intra-/inter-chunk spacing and
-        // ChromeTopBar's horizontal padding) and the chat's is
-        // 254 PT (the composer's 5 buttons of 36 PT, 5 gaps of
-        // 10 PT and the 12 PT horizontal padding).
-        #expect(EditorChatNSController.editorChromeMinimumWidth == 448)
+        // The editor's chrome is 116 PT (the tab strip row's own
+        // floor of 88 PT for a segment that still shows a document
+        // name + the trailing close control's 28 PT hot area) and the
+        // chat's is 254 PT (the composer's 5 buttons of 36 PT, 5
+        // gaps of 10 PT and the 12 PT horizontal padding).
+        #expect(EditorChatNSController.editorChromeMinimumWidth == 116)
         #expect(EditorChatNSController.chatChromeMinimumWidth == 254)
 
         // The screenshot's own width (= 742 PT) and the detail
@@ -292,9 +290,9 @@ struct EditorChatNSControllerTests {
         // both panes' chrome when stacked.
         #expect(EditorChatNSController.holdsStackedChrome(width: 742))
         #expect(EditorChatNSController.holdsStackedChrome(width: 1012))
-        // Below the editor's chrome width, stacked cannot host the
-        // chrome either.
-        #expect(!EditorChatNSController.holdsStackedChrome(width: 447))
+        // Below the chat's chrome width, stacked cannot host the
+        // chrome either (= the chat's floor binds first, = the
+        // editor's own floor is the lower of the two).
         #expect(!EditorChatNSController.holdsStackedChrome(width: 253))
 
         // The bug this pins: the stacked case used to feed a HEIGHT

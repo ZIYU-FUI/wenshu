@@ -104,11 +104,9 @@ final class EditorChatNSController: NSSplitViewController {
     ///
     /// The number is the editor's own comfortable prose measure
     /// (= 595-680 PT; = the paper-canvas notes). It is above the
-    /// editor's chrome width (= 448 PT: the format toolbar's 12
-    /// buttons of 28 PT, the trailing close button, the two chunk
-    /// separators, the intra-chunk and inter-chunk spacing and the
-    /// ChromeTopBar's horizontal padding), so the chrome always
-    /// fits inside a pane the rule accepts.
+    /// editor's chrome width (= 116 PT: the tab strip row's own floor
+    /// + its trailing close control), so the chrome always fits
+    /// inside a pane the rule accepts.
     ///
     /// Why the prose measure and not the chrome width: the
     /// 2026-10-26 capture handed the editor 460 PT, which is more
@@ -132,20 +130,31 @@ final class EditorChatNSController: NSSplitViewController {
     static let chatPaneMinimumWidth: CGFloat = 280
 
     /// The narrowest the EDITOR pane's own chrome can be: the tab
-    /// strip + the format toolbar.
+    /// strip row (= the tab strip + the row's trailing close control).
     ///
-    /// 448 PT = the format toolbar's 12 buttons of 28 PT, the
-    /// trailing close button, the two chunk separators, the
-    /// intra-chunk and inter-chunk spacing and ChromeTopBar's
-    /// horizontal padding.
+    /// 116 PT = the tab strip's own narrowest segment that still shows a
+    /// document name (88 PT = `EditorTabStrip.minimumSegmentWidth`, =
+    /// the strip's measured floor) + the trailing close control's hot
+    /// area (28 PT = `DesignTokens.paneTabHotArea`).
+    ///
+    /// Why the number CHANGED (2026-11-04): this number used to be
+    /// 448 PT, which was the format toolbar's own width (= 12 buttons of
+    /// 28 PT, the trailing close button, the two chunk separators, the
+    /// intra-/inter-chunk spacing and ChromeTopBar's horizontal
+    /// padding). The format toolbar is GONE (= the format commands moved
+    /// to the inspector column's format page), so the editor column's
+    /// chrome is the tab strip row alone, and the width that row needs
+    /// is the strip's own floor plus the close control. A number that
+    /// still described a band the column no longer draws would be a
+    /// fiction the rule tests against.
     ///
     /// Why a SECOND number beside the pane floors: the floors above
     /// are what a pane must hold when the two panes SHARE the width
     /// (= the editor's prose measure). The chrome width is what a
-    /// pane must hold when it has the width to ITSELF (= the
-    /// stacked arrangement), where the document's measure is the
-    /// canvas's business and the pane only has to carry its chrome.
-    static let editorChromeMinimumWidth: CGFloat = 448
+    /// pane must hold when it has the width to ITSELF (= the stacked
+    /// arrangement), where the document's measure is the canvas's
+    /// business and the pane only has to carry its chrome.
+    static let editorChromeMinimumWidth: CGFloat = 116
 
     /// The narrowest the CHAT pane's own chrome can be: the icon
     /// row + the composer.

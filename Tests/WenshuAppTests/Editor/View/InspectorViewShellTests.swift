@@ -58,27 +58,27 @@ struct InspectorViewShellTests {
         }
     }
 
-    @Test("the column has three pages")
-    func theColumnHasThreePages() {
-        #expect(InspectorPage.allCases.count == 3,
-                "the column keeps three pages (= Todos, Sub-Agents, Tasks)")
-        #expect(InspectorPage.allCases == [.todo, .status, .task],
-                "the page order is the segment order: todo, sub-agent, task")
+    @Test("the column has four pages")
+    func theColumnHasFourPages() {
+        #expect(InspectorPage.allCases.count == 4,
+                "the column keeps four pages (= Todos, Sub-Agents, Tasks, Format)")
+        #expect(InspectorPage.allCases == [.todo, .status, .task, .format],
+                "the page order is the segment order: todo, sub-agent, task, format")
     }
 
-    @Test("the segments read todos, sub-agents and tasks, in that order")
+    @Test("the segments read todos, sub-agents, tasks and format, in that order")
     func theSegmentsReadInOrder() throws {
         let pairs = try pageTitleKeys()
-        #expect(pairs.map(\.caseName) == ["todo", "status", "task"],
-                "the segment order is todo, sub-agent, task")
-        #expect(pairs.map(\.key) == ["inspector.page.todo", "inspector.page.status", "inspector.page.task"],
+        #expect(pairs.map(\.caseName) == ["todo", "status", "task", "format"],
+                "the segment order is todo, sub-agent, task, format")
+        #expect(pairs.map(\.key) == ["inspector.page.todo", "inspector.page.status", "inspector.page.task", "inspector.page.format"],
                 "each page reads its own catalog key")
         // The Chinese labels are written as escapes, because a test
         // file carries no literal CJK (= rule 1.1).
         let catalog = StringCatalogReader.strings(language: "zh-Hans")
         let labels = pairs.compactMap { catalog[$0.key] }
-        #expect(labels == ["\u{5F85}\u{529E}", "\u{5B50}\u{4EE3}\u{7406}", "\u{4EFB}\u{52A1}"],
-                "the three segments read the todos, the sub-agents and the tasks")
+        #expect(labels == ["\u{5F85}\u{529E}", "\u{5B50}\u{4EE3}\u{7406}", "\u{4EFB}\u{52A1}", "\u{683C}\u{5F0F}"],
+                "the four segments read the todos, the sub-agents, the tasks and the format")
     }
 
     @Test("the fiction page is gone")

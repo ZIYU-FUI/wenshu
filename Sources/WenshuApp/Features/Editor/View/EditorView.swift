@@ -73,37 +73,43 @@ struct EditorView: View {
         )
     }
 
-    // MARK: - SMC format toolbar (= T-02) The 12-button document toolbar (=
-    // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-    // exactly this reason: the toolbar must NEVER scroll away).
-    private var editorFormatToolbar: EditorFormatToolbar {
-        EditorFormatToolbar(
-            bus: MarkdownEditorBus.buildWenshu(),
-            // 2026-10-14: the previous `onSave` callback (= the
-            // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-            // and Cmd+S still need it).
-            onClose: {
-                // per-tab close X uses). The active-tab id is a non-optional
-                // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-                // of the id).
-                guard !appState.openTabs.isEmpty else { return }
-                appState.closeTab(id: appState.activeTabId, bookStore: bookStore)
-            }
-        )
-    }
-
-    // / Chrome band: 1 PT hairline divider (= the .separatorColor rectangle) +
-    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-    // / the user's "工具栏上边距再-2" directive).
-    private var formatToolbarSection: some View {
-        Group { Rectangle()
-            .fill(Color(nsColor: .separatorColor))
-            .frame(height: 1)
-            .padding(.top, DesignTokens.spacingTight)
-        editorFormatToolbar
-            .padding(.top, 0)
+    /// The tab strip row's trailing close control (= the row's
+    /// trailing slot).
+    ///
+    /// It closes the ACTIVE document, which is what the control did
+    /// when it sat in the format toolbar's trailing slot. It is ONE
+    /// button beside the strip (= the tab bar's trailing slot is the
+    /// Apple HIG slot for action buttons), never a button per tab (= the
+    /// per-tab shape is a known macOS 27 crash shape, = and the narrow
+    /// window crash triage owns that rule).
+    private var editorTabCloseButton: some View {
+        PaneTrailingIconButton(
+            icon: "xmark.circle",
+            tooltip: String(localized: "editor.tab.close.tooltip")
+        ) {
+            // The active-tab id is a non-optional id of a tab that is
+            // open (= the guard below proves there IS one).
+            guard !appState.openTabs.isEmpty else { return }
+            appState.closeTab(id: appState.activeTabId, bookStore: bookStore)
         }
     }
+
+    // MARK: - The tab strip row
+
+    // The editor zone's FIRST row: the document tab strip + the trailing
+    // close control.
+    //
+    // The close control used to sit in the trailing slot of the format
+    // toolbar, the row under this one. That row is gone (= the format
+    // commands moved to the inspector column's format page), and the
+    // trailing slot of a TAB BAR is the Apple HIG slot for action
+    // buttons (= separate from the selection tabs), so the control moves
+    // here rather than dying with the row.
+    //
+    // It is ONE button beside the strip, not a button per tab (= the
+    // per-tab shape is the known macOS 27 crash shape; = the narrow
+    // window crash triage owns that rule), and the strip itself keeps
+    // its own close path (= a double click on a segment).
 
     // / On editor zone mount: upgrade any preview-mode tabs to edit mode, seed
     // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
@@ -150,41 +156,42 @@ struct EditorView: View {
             // Tab strip = Safari-style multi-tab bar (Apple HIG tabbed-document
             // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
             // empty- state hint at full size below).
-            EditorTabStrip(
-                tabs: appState.openTabs,
-                selectedTabId: appState.activeTabId,
-                onSelect: { newId in
-                    appState.activeTabId = newId
-                },
-                onClose: { closedId in
-                    appState.closeTab(id: closedId, bookStore: bookStore)
-                },
-            )
-            // dirty-discard confirm dialog. Shown when user tries to close with
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-            // property; = wrap in Binding(get:set:) for .alert's isPresented:.
-            .alert(String(localized: "workspace.editor.dirty_discard_alert_title"), isPresented: Binding(
-                get: { self.showDirtyDiscardConfirm },
-                set: { self.showDirtyDiscardConfirm = $0 }
-            )) {
-                Button(String(localized: "workspace.editor.dirty_discard_button"), role: .destructive) {
-                    // tab close button: discard = close the tab (= auto-save
-                    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-                    // dirty-flush (since draft will be reset below).
-                    if let tab = activeTab {
-                        // Reset draft so closeTab's 'draft != originalBody'
-                        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-                        // them).
-                        tab.draft = tab.originalBody
-                        appState.closeTab(id: tab.id, bookStore: bookStore)
+            HStack(spacing: 0) {
+                EditorTabStrip(
+                    tabs: appState.openTabs,
+                    selectedTabId: appState.activeTabId,
+                    onSelect: { newId in
+                        appState.activeTabId = newId
+                    },
+                    onClose: { closedId in
+                        appState.closeTab(id: closedId, bookStore: bookStore)
                     }
+                )
+                // dirty-discard confirm dialog. Shown when user tries to close with
+                // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
+                // property; = wrap in Binding(get:set:) for .alert's isPresented:.
+                .alert(String(localized: "workspace.editor.dirty_discard_alert_title"), isPresented: Binding(
+                    get: { self.showDirtyDiscardConfirm },
+                    set: { self.showDirtyDiscardConfirm = $0 }
+                )) {
+                    Button(String(localized: "workspace.editor.dirty_discard_button"), role: .destructive) {
+                        // tab close button: discard = close the tab (= auto-save
+                        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
+                        // dirty-flush (since draft will be reset below).
+                        if let tab = activeTab {
+                            // Reset draft so closeTab's 'draft != originalBody'
+                            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
+                            // them).
+                            tab.draft = tab.originalBody
+                            appState.closeTab(id: tab.id, bookStore: bookStore)
+                        }
+                    }
+                    Button(String(localized: "button.continue_edit"), role: .cancel) {}
+                } message: {
+                    Text(String(localized: "workspace.editor.discard_changes_confirm"))
                 }
-                Button(String(localized: "button.continue_edit"), role: .cancel) { }
-            } message: {
-                Text(String(localized: "workspace.editor.discard_changes_confirm"))
+                editorTabCloseButton
             }
-
-            formatToolbarSection
 
             // Body: placeholder content. swaps this for swift-markdown rendered
             // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)

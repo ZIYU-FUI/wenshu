@@ -163,7 +163,7 @@ candidate by hand with `grep`.
 | `ChatTextPartView.isOutgoing` | `Features/Chat/View/ChatTextPartView.swift:36` | 0 | the value reaches the leaf and is dropped |
 | `AssetsPane.appState` | `Features/Editor/View/AssetsPane.swift:15` | 0 | the view already has `@Bindable envAppState`; the call site passes the SAME object twice (`Shared/UI/LibraryRootView.swift:132-134`) |
 | `EditorEditContent.onSave` | `Features/Editor/View/EditorEditContent.swift:42` | 0 | the comment claims it surfaces dirty status, but nothing calls it; the editor's real save path is the auto-save `onDirtyChange` |
-| `EditorFormatToolbar.onClose` | `Features/Editor/View/EditorFormatToolbar.swift:164` | 1 | **live** — read at `:257` inside an extension. Not a violation. |
+| `EditorFormatToolbar.onClose` | `Features/Editor/View/EditorFormatToolbar.swift:164` | 1 | **gone** — the format toolbar was deleted 2026-11-04 (= the format commands moved to the inspector column's format page, = `EditorFormatAction.swift` + `InspectorFormatPageView.swift`), so this reader no longer exists. |
 | `NewBookSheet.targetShelfName` | `Features/Library/View/SidebarSheets.swift:270` | 0 | |
 | `RenameItemSheet.kind` | `Features/Library/View/SidebarSheets.swift:431` | 0 | |
 | `KanbanWindow.library` | `Features/Kanban/View/KanbanWindow.swift:54` | 0 | the view needs the library PATH, and reads it from the `wenshu.libraryPath` UserDefaults key via `resolveLibraryPath()`; the handle itself is unused |

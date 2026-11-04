@@ -77,15 +77,15 @@ struct InspectorColumnSwitcherRenderTests {
         )
     }
 
-    @Test("the switcher carries three segments in the page order")
+    @Test("the switcher carries four segments in the page order")
     @MainActor
-    func theSwitcherCarriesThreeSegments() {
+    func theSwitcherCarriesFourSegments() {
         let state = WorkspaceUIState()
         guard let control = renderedControl(selection: pageBinding(state)) else {
             Issue.record("the rendered column carries no NSSegmentedControl")
             return
         }
-        #expect(control.segmentCount == 3,
+        #expect(control.segmentCount == 4,
                 "the column's switcher carries one segment per page")
         // The labels are the page titles, in the case order.
         let labels = (0..<control.segmentCount).map { control.label(forSegment: $0) }
