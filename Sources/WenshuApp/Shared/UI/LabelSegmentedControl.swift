@@ -130,6 +130,16 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// segments carry SYMBOLS, where the symbol carries the state.
     var role: NSSegmentedControl.Role = .valueSelection
 
+    /// The drawn bezel's style.
+    ///
+    /// Apple's own header (= `NSSegmentedControl.StyleAutomatic`) says: = "the
+    /// appearance is chosen depending on the type of window and THE
+    /// CONTROL'S POSITION INSIDE IT". = So a control that sits in a
+    /// window TOOLBAR asks for `.automatic` (= the system draws the
+    /// toolbar's own segmented shape), = and a control that sits in a
+    /// column body asks for `.roundRect` (= the body's tab pill).
+    var segmentStyle: NSSegmentedControl.Style = .roundRect
+
     /// Per-segment display strings (= the `String` shown in
     /// `setLabel(_:forSegment:)`; = default uses
     /// `String(describing: labels[index])`; = callers can
@@ -185,6 +195,18 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// control's height, so a caller cannot shrink the drawn pill by
     /// constraining the SwiftUI frame alone.
     let controlSize: NSControl.ControlSize
+    /// Whether the SELECTED segment's glyph is drawn in the accent
+    /// colour (= the macOS TOOLBAR capsule's shape).
+    ///
+    /// The capsule's SELECTION PLATE is not switchable: = macOS 27's
+    /// `NSSegmentedCell` publishes no `selectedSegmentHighlight`, = so
+    /// the plate the control draws is the system's own.
+    ///
+    /// Measured 2026-11-04 on Pages: the window titlebar's six-segment
+    /// capsule draws its selected segment's glyph in the accent colour
+    /// and paints NO plate behind it, = and its segments are separated
+    /// by NOTHING (= one continuous capsule, = not one plate per
+    /// segment). = A body tab strip wants the opposite (= a plate
     /// Double-click callback (= the user double-clicks a
     /// segment; = the callback receives the
     /// zero-indexed segment position; = the
@@ -218,6 +240,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         onDoubleClickSegment: ((Int) -> Void)? = nil,
         fixedSegmentWidth: CGFloat = 0,
         role: NSSegmentedControl.Role = .valueSelection,
+        segmentStyle: NSSegmentedControl.Style = .roundRect,
         controlSize: NSControl.ControlSize = .large
     ) {
         self.selection = selection
@@ -229,6 +252,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         self.onDoubleClickSegment = onDoubleClickSegment
         self.fixedSegmentWidth = fixedSegmentWidth
         self.role = role
+        self.segmentStyle = segmentStyle
         self.controlSize = controlSize
     }
 
@@ -289,6 +313,10 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         if control.segmentCount != labels.count {
             control.segmentCount = labels.count
         }
+        // The selected index is needed BEFORE the icons are drawn: = a
+        // toolbar capsule's selected glyph is the accent one.
+        let selectedIndex = Self.selectedSegmentIndex(for: selection.wrappedValue, in: labels)
+
         for (index, label) in labels.enumerated() {
             // Use the per-page tab's display string (= the per-tab String
             // label; = matches the existing SwiftUI Picker(.segmented)
@@ -298,16 +326,14 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             if let iconProvider = icon,
                let image = iconProvider(label)
             {
-                control.setImage(
-                    image.withSymbolConfiguration(
-                        NSImage.SymbolConfiguration(
-                            pointSize: iconStyle.pointSize,
-                            weight: symbolWeight,
-                            scale: .medium
-                        )
-                    ),
-                    forSegment: index
-                )
+                let symbol = image.withSymbolConfiguration(
+                    NSImage.SymbolConfiguration(
+                        pointSize: iconStyle.pointSize,
+                        weight: symbolWeight,
+                        scale: .medium
+                    )
+                ) ?? image
+                control.setImage(symbol, forSegment: index)
             }
             // Also set tooltip (= the canonical Apple HIG
             // inspector tab tooltip; = appears on hover).
@@ -324,7 +350,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // = any future macOS < 27 target falls back to the legacy
         // rounded style).
         //
-        // Note: `NSSegmentStyle` has NO `.glass` member (= the
+        // Note: `NSSegmentedControl.Style` has NO `.glass` member (= the
         // common confusion source: `NSBezelStyle.glass` IS a
         // macOS 26+ API, but it lives on `NSButton` / NSButtonCell,
         // not on NSSegmentedControl). For NSSegmentedControl on
@@ -333,7 +359,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // capsule = what Apple Pages / Numbers inspector tab
         // strips actually render with).
         if #available(macOS 27.0, *) {
-            control.segmentStyle = .roundRect
+            control.segmentStyle = segmentStyle
             // macOS 27 role API. The role decides how the SELECTED
             // segment is drawn, and the two roles are not
             // interchangeable for a text-labelled strip:
@@ -357,7 +383,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             // Defensive fallback (= NSSegmentedControl.role
             // is macOS 27 only; = older OS gets the legacy
             // automatic role = the macOS 10.5 visual).
-            control.segmentStyle = .rounded
+            control.segmentStyle = segmentStyle == .automatic ? .rounded : segmentStyle
         }
 
         // Tracking = select one at a time (= the tab strip
@@ -436,7 +462,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // the control (= measured 2026-10-27). An out-of-range index
         // THROWS (`NSRangeException`), so the index must always be one
         // the control has (= the guarantee is load-bearing).
-        let selectedIndex = Self.selectedSegmentIndex(for: selection.wrappedValue, in: labels)
         if control.selectedSegment != selectedIndex {
             control.selectedSegment = selectedIndex
         }
@@ -529,8 +554,9 @@ extension LabelSegmentedControl {
         symbolNames: @escaping (Selection) -> String,
         tooltips: [String],
         iconStyle: IconStyle = .paneTab,
-        controlSize: NSControl.ControlSize = .small,
-        fixedSegmentWidth: CGFloat = 0
+        fixedSegmentWidth: CGFloat = 0,
+        segmentStyle: NSSegmentedControl.Style = .automatic,
+        controlSize: NSControl.ControlSize = .small
     ) -> LabelSegmentedControl<Selection> {
         LabelSegmentedControl(
             selection: selection,
@@ -540,6 +566,7 @@ extension LabelSegmentedControl {
             icon: { NSImage(systemSymbolName: symbolNames($0), accessibilityDescription: nil) },
             tooltips: tooltips,
             fixedSegmentWidth: fixedSegmentWidth,
+            segmentStyle: segmentStyle,
             controlSize: controlSize
         )
     }

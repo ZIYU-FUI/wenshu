@@ -6,9 +6,10 @@
 //  detail split; = the Apple HIG `.inspector` surface).
 //
 //  Layout (= the Apple HIG three-column pattern):
-//  - the column's TITLE ROW carries the button group that picks the
-//    column's MAJOR SECTION (= the dynamic series, = or the format
-//    inspector), = as the macOS window titlebar's right-hand capsule,
+//  - the WINDOW TOOLBAR's rightmost slot carries the button group that
+//    picks the column's MAJOR SECTION (= the dynamic series, = or the
+//    format inspector), = as the macOS window titlebar's right-hand
+//    capsule (= the place Pages, = Numbers and = Keynote put it),
 //  - the dynamic section carries its own chrome band with the three
 //    tabs it has always carried (= Todos, Sub-Agents, Tasks),
 //  - the column body carries the selected section's content,
@@ -54,32 +55,7 @@ struct InspectorView: View {
             SectionHeader(
                 title: String(localized: "inspector.column.title"),
                 trailingInset: false
-            ) {
-                // The column's own button group (= the macOS window
-                // titlebar's right-hand capsule: = two ICON segments, =
-                // no text, = the names on hover). = It picks the
-                // column's major section, = and it rides the title row
-                // because that row IS the column's titlebar.
-                LabelSegmentedControl.iconCapsule(
-                    selection: $workspaceUI.inspectorSection,
-                    labels: InspectorSection.allCases,
-                    symbolNames: { $0.icon },
-                    tooltips: InspectorSection.allCases.map(\.localizedTitle),
-                    // Each segment is ONE icon wide (= the toolbar
-                    // button group's shape), = and the fixed width is
-                    // what makes the control FIT its content: = the
-                    // control's own distribution is `.fillEqually` when
-                    // nothing is fixed, = so without this the capsule
-                    // would stretch across the column.
-                    controlSize: .small,
-                    fixedSegmentWidth: DesignTokens.paneTabHotArea
-                )
-                // The capsule is its own width (= a toolbar's button
-                // group is NOT stretched across the window), = so it
-                // does not take `.frame(maxWidth: .infinity)`.
-                .frame(width: DesignTokens.paneTabHotArea * CGFloat(InspectorSection.allCases.count))
-                .padding(.trailing, DesignTokens.spacingStandard)
-            }
+            )
             switch workspaceUI.inspectorSection {
             case .dynamic:
                 // The dynamic section keeps the three tabs it has always
@@ -130,6 +106,50 @@ struct InspectorView: View {
             // One source of truth: the toggle button and any future
             // menu command all write the same `isPresented` binding,
             // so any of them can bring the column back.
+            // The section switch rides the WINDOW TOOLBAR's rightmost
+            // slot (= the Apple answer: = Pages, = Numbers and = Keynote
+            // all put their right-column switch in the window titlebar's
+            // right-hand button group, = and NOT inside the column
+            // itself; = measured on Pages 2026-11-04: = a six-segment
+            // capsule whose selected glyph is the accent one).
+            ToolbarItem(placement: .primaryAction) {
+                LabelSegmentedControl.iconCapsule(
+                    // The capsule's selection is the column's VISIBILITY
+                    // plus its section: = a hidden column has NO
+                    // selected segment (= the Apple shape: = the
+                    // titlebar's switch shows nothing chosen until
+                    // the column is showing), = and a visible column
+                    // shows the section it is carrying.
+                    //
+                    // The binding is therefore an OPTIONAL section: = nil
+                    // = "nothing is selected" (= no segment is drawn as
+                    // chosen), = and the control maps nil to AppKit's own
+                    // "no segment is selected" (-1).
+                    selection: Binding<InspectorSection?>(
+                        get: { self.inspectorVisibleBinding ? self.workspaceUI.inspectorSection : nil },
+                        set: { picked in
+                            guard let picked else { return }
+                            // The Apple toggle: = the segment that is
+                            // ALREADY showing turns the column off, = and
+                            // any other segment turns it on (= and on
+                            // that section).
+                            if self.inspectorVisibleBinding, self.workspaceUI.inspectorSection == picked {
+                                self.inspectorVisibleBinding = false
+                            } else {
+                                self.workspaceUI.inspectorSection = picked
+                                self.inspectorVisibleBinding = true
+                            }
+                        }
+                    ),
+                    labels: InspectorSection.allCases.map { Optional($0) },
+                    symbolNames: { $0?.icon ?? "" },
+                    tooltips: InspectorSection.allCases.map(\.localizedTitle),
+                    fixedSegmentWidth: DesignTokens.paneTabHotArea,
+                    controlSize: .small
+                )
+                .frame(width: DesignTokens.paneTabHotArea * CGFloat(InspectorSection.allCases.count))
+            }
+
             ToolbarItemGroup(placement: .principal) {
                 Button {
                     inspectorVisibleBinding.toggle()
