@@ -26,6 +26,13 @@ struct ArchiveRunRow: Identifiable, Sendable, Equatable {
     let id: String
     /// Which agent did the work.
     let agentName: String
+    /// What kind of work this row records (= Hermes' own `source`
+    /// tag: = `subagent`, = `local`, = `kanban`, = ...).
+    ///
+    /// It is shown as the tag it is, = and not translated: = it is the
+    /// vocabulary the rows are filed under, = and a translated name
+    /// would hide which value the row actually carries.
+    let source: String
     /// What it was asked.
     let task: String
     /// How it ended (= the app's own vocabulary).
@@ -36,11 +43,64 @@ struct ArchiveRunRow: Identifiable, Sendable, Equatable {
     let output: String?
 }
 
+/// Which agent the archive is showing.
+///
+/// The filter is on the STORED name, = not on the name the row
+/// displays. = A row whose agent is not named (= an ordinary task
+/// with no agent behind it) = has no name to filter by, = so it
+/// appears under "all" and not under any one agent. = That is the
+/// data layer's shape, = and the filter says it rather than
+/// pretending otherwise.
+enum ArchiveAgentFilter: Hashable, Sendable {
+    /// Every agent.
+    case all
+    /// One named agent (= the name the row stores).
+    case agent(String)
+
+    /// The value the data layer takes, = and nil for "every agent".
+    var agentName: String? {
+        switch self {
+        case .all: return nil
+        case let .agent(name): return name
+        }
+    }
+}
+
+/// What kind of work the archive is showing.
+///
+/// The same shape as the agent filter: = the tag the row stores.
+enum ArchiveSourceFilter: Hashable, Sendable {
+    /// Every kind.
+    case all
+    /// One kind (= the tag the row stores).
+    case source(String)
+
+    /// The value the data layer takes, = and nil for "every kind".
+    var sourceValue: String? {
+        switch self {
+        case .all: return nil
+        case let .source(value): return value
+        }
+    }
+}
+
 @MainActor
 struct ArchiveSettingsPane: View {
 
     /// The runs the archive holds.
     @State private var runs: [ArchiveRunRow] = []
+    /// Which agent the archive is showing.
+    @State private var agentFilter: ArchiveAgentFilter = .all
+    /// What kind of work the archive is showing.
+    @State private var sourceFilter: ArchiveSourceFilter = .all
+    /// The agents the archive holds (= the filter's options).
+    ///
+    /// Derived from the rows, = and not from a fixed list: = the
+    /// roles change, = and a menu that names a role that does not
+    /// exist is a menu that lies.
+    @State private var availableAgents: [String] = []
+    /// The kinds of work the archive holds (= the filter's options).
+    @State private var availableSources: [String] = []
     /// The run whose detail is open.
     @State private var expandedRunID: String?
     /// How many rows the last purge took.
@@ -58,6 +118,7 @@ struct ArchiveSettingsPane: View {
 
     var body: some View {
         Form {
+            filterSection
             historySection
             retentionSection
         }
@@ -66,6 +127,49 @@ struct ArchiveSettingsPane: View {
         .task { await load() }
         .onChange(of: retentionDays) { _, newValue in
             Task { await purge(newValue) }
+        }
+        .onChange(of: agentFilter) { _, _ in
+            Task { await loadRows() }
+        }
+        .onChange(of: sourceFilter) { _, _ in
+            Task { await loadRows() }
+        }
+    }
+
+    // MARK: - The filters
+
+    /// Narrow the archive by agent and by kind.
+    ///
+    /// The archive is the agent's work, = and it is filed under two
+    /// things: = which agent did it, = and what kind of work it was.
+    /// The 2026-11-01 handoff settled both = (= "one session type,
+    /// tagged and filtered"), = and the data layer has taken the
+    /// filters since. = The pane did not use them, = so the archive
+    /// was a list and not a way to look through the work.
+    ///
+    /// The options come from the rows themselves. = The roles and the
+    /// tags change, = and a menu that offers a role that does not
+    /// exist is worse than no menu.
+    private var filterSection: some View {
+        Section {
+            Picker(String(localized: "settings.archive.filter.agent"), selection: $agentFilter) {
+                Text(String(localized: "settings.archive.filter.all"))
+                    .tag(ArchiveAgentFilter.all)
+                ForEach(availableAgents, id: \.self) { agent in
+                    Text(agent).tag(ArchiveAgentFilter.agent(agent))
+                }
+            }
+            Picker(String(localized: "settings.archive.filter.kind"), selection: $sourceFilter) {
+                Text(String(localized: "settings.archive.filter.all"))
+                    .tag(ArchiveSourceFilter.all)
+                ForEach(availableSources, id: \.self) { source in
+                    Text(source).tag(ArchiveSourceFilter.source(source))
+                }
+            }
+        } header: {
+            Text(String(localized: "settings.archive.filter"))
+        } footer: {
+            Text(String(localized: "settings.archive.filter.footer"))
         }
     }
 
@@ -104,6 +208,14 @@ struct ArchiveSettingsPane: View {
             Text(run.task)
                 .font(.subheadline)
                 .lineLimit(expandedRunID == run.id ? nil : 2)
+            if !run.source.isEmpty {
+                // The tag the row is filed under, = shown as the tag
+                // it is.
+                Text(run.source)
+                    .font(.caption2)
+                    .monospaced()
+                    .foregroundStyle(.tertiary)
+            }
             HStack {
                 Text(run.updatedAt, style: .date)
                     .font(.caption)
@@ -158,14 +270,41 @@ struct ArchiveSettingsPane: View {
     // MARK: - The work
 
     /// Read the archive.
+    ///
+    /// Two reads, = and both are needed. = The first is the whole
+    /// archive, = and it says which agents and which kinds the
+    /// archive holds = (= the filter's options). = The second is the
+    /// rows the filters ask for, = and the data layer does the
+    /// narrowing.
     private func load() async {
+        await loadOptions()
+        await loadRows()
+    }
+
+    /// Read the agents and the kinds the archive holds.
+    private func loadOptions() async {
         do {
             let sessions = try WSChatRepository.shared.listRuns()
+            availableAgents = Array(Set(sessions.compactMap(\.agentName))).sorted()
+            availableSources = Array(Set(sessions.compactMap(\.source))).sorted()
+        } catch {
+            loadError = String(localized: "settings.archive.loadFailed")
+        }
+    }
+
+    /// Read the rows the filters ask for.
+    private func loadRows() async {
+        do {
+            let sessions = try WSChatRepository.shared.listRuns(
+                source: sourceFilter.sourceValue,
+                agentName: agentFilter.agentName
+            )
             runs = sessions.map { session in
                 let run = session.subAgentRuns.first
                 return ArchiveRunRow(
                     id: session.sessionID,
                     agentName: session.agentName ?? String(localized: "settings.archive.unknownAgent"),
+                    source: session.source ?? "",
                     task: run?.taskDescription ?? session.title ?? "",
                     status: run?.status ?? SubAgentRunStatus.running.rawValue,
                     updatedAt: session.updatedAt,

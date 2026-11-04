@@ -142,4 +142,66 @@ struct ArchiveSettingsPaneTests {
         #expect(value.contains("conversations are never touched"),
                 "the pane's footer must say that the user's own conversations are not the archive's to delete")
     }
+
+    // MARK: - The filters
+
+    @Test("The agent filter says what the data layer takes")
+    func theAgentFilterSaysWhatTheDataLayerTakes() {
+        // "Every agent" is nil, = because nil is what the data
+        // layer reads as "no filter". = A filter that passed a
+        // sentinel string instead would ask the data layer for a
+        // row nobody has.
+        #expect(ArchiveAgentFilter.all.agentName == nil,
+                "the all case must ask for every agent")
+        #expect(ArchiveAgentFilter.agent("researcher").agentName == "researcher",
+                "a named agent must ask for that agent")
+    }
+
+    @Test("The kind filter says what the data layer takes")
+    func theKindFilterSaysWhatTheDataLayerTakes() {
+        #expect(ArchiveSourceFilter.all.sourceValue == nil,
+                "the all case must ask for every kind")
+        #expect(ArchiveSourceFilter.source("subagent").sourceValue == "subagent",
+                "a named kind must ask for that kind")
+    }
+
+    @Test("The pane narrows the archive and the data layer does the narrowing")
+    func thePaneNarrowsTheArchive() throws {
+        let pane = try Self.paneSource
+
+        // The filters reach the data layer, = and they reach it as
+        // the filters' values. = A pane that reads every row and
+        // filters it in the view would show the same rows, = but the
+        // archive grows without bound, = and the data layer already
+        // has the predicate.
+        #expect(pane.contains("source: sourceFilter.sourceValue"),
+                "the pane must ask the data layer for the kind it shows")
+        #expect(pane.contains("agentName: agentFilter.agentName"),
+                "the pane must ask the data layer for the agent it shows")
+
+        // And the two menus exist, = or the filters have nowhere to
+        // be set.
+        #expect(pane.contains("settings.archive.filter.agent"),
+                "the pane must offer a filter by agent")
+        #expect(pane.contains("settings.archive.filter.kind"),
+                "the pane must offer a filter by kind")
+    }
+
+    @Test("The filter's options come from the rows, and not from a list written by hand")
+    func theFilterOptionsComeFromTheRows() throws {
+        let pane = try Self.paneSource
+
+        #expect(pane.contains("compactMap(\\.agentName)"),
+                "the agent options must come from the rows the archive holds")
+        #expect(pane.contains("compactMap(\\.source)"),
+                "the kind options must come from the rows the archive holds")
+
+        // A menu that names a role the app does not have is a menu
+        // that lies. = The roles are named in the role table, = and
+        // the archive's roles are whatever actually ran.
+        for role in ["researcher", "writer", "analyst", "librarian", "archivist", "auditor"] {
+            #expect(!pane.contains("\"\(role)\""),
+                    "the pane must not hardcode the role \(role) in its filter options")
+        }
+    }
 }
