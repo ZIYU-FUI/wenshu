@@ -117,9 +117,15 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
             // Compose the research task = the noun plus any
             // user-provided context (= the researcher sub-agent
             // reads this as its user-facing prompt).
+            //
+            // The prompt names the keys the create action actually
+            // reads: = `title`, `body`, `tags`, `layer`, `category`.
+            // It used to name `section_title` as well, = a key only
+            // the `extend` branch reads, = so the create discarded it
+            // without a word.
             let taskPrompt: String = context.isEmpty
-                ? "调研「\(noun)」的 grounded 资料：核心定义、关键事实、关联上下文，输出一段中文摘要（3-5 句话），并把搜索到的可信信息写入 reference_library 的 entities 层（layer=entities, title=\"\(noun)\"，section_title=\"概要\"）。"
-                : "调研「\(noun)」的 grounded 资料。用户上下文：\(context)。要求：1）web_search 搜索 \(noun)；2）输出一段中文摘要（3-5 句话）；3）将摘要写入 reference_library（layer=entities, title=\"\(noun)\"，section_title=\"概要\"）；4）如有具体可查的子话题（朝代、时代、地域等），分别建独立 entity。"
+                ? "调研「\(noun)」的 grounded 资料：核心定义、关键事实、关联上下文，输出一段中文摘要（3-5 句话），并把搜索到的可信信息写入 reference_library 的 entities 层（layer=entities, title=\"\(noun)\"，category=该摘要所属的资料库分类）。"
+                : "调研「\(noun)」的 grounded 资料。用户上下文：\(context)。要求：1）web_search 搜索 \(noun)；2）输出一段中文摘要（3-5 句话）；3）将摘要写入 reference_library（layer=entities, title=\"\(noun)\"，category=该摘要所属的资料库分类）；4）如有具体可查的子话题（朝代、时代、地域等），分别建独立 entity。"
 
             // Register the delegation handle (= source-of-truth
             // record; = when the runner lands it will pick up

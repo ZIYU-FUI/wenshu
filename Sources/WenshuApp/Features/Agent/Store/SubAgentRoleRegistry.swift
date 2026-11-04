@@ -136,6 +136,33 @@ enum SubAgentRoleRegistry {
         dispatch: .llmRun
     )
 
+    /// The librarian.
+    ///
+    /// The librarian owns the library: = the documents already in it
+    /// and the documents about to enter it. It runs a named procedure
+    /// (= `import` or `curate`) on a named task, = and it is the only
+    /// role that writes the corpus.
+    ///
+    /// The tool list is the corpus, and nothing else: =
+    /// `reference_library` writes it, = `book_outline` and
+    /// `book_entity` write the book's structure (= the parts of the
+    /// library that are not the reference corpus), = `file` and
+    /// `ReadFile` read what is already there (= a curate run has to
+    /// see the corpus before it can report on it).
+    ///
+    /// What the list does NOT carry matters as much: = no
+    /// `web_search` (= the researcher gathers, = the librarian
+    /// files), = no `book_chapter` (= the writer drafts prose, = the
+    /// librarian does not write prose), = no `book_edit_chapter`
+    /// (= a confirmed chapter is the user's).
+    static let librarian = SubAgentRole(
+        slug: "librarian",
+        displayLabel: "Librarian (资料管理员)",
+        prompt: librarianPrompt,
+        toolNames: ["reference_library", "book_outline", "book_entity", "file", "ReadFile"],
+        dispatch: .llmRun
+    )
+
     static let archivist = SubAgentRole(
         slug: "archivist",
         displayLabel: "Archivist (记忆管理员)",
@@ -143,7 +170,6 @@ enum SubAgentRoleRegistry {
         toolNames: [],
         dispatch: .archiveRun
     )
-
     static let auditor = SubAgentRole(
         slug: "auditor",
         displayLabel: "Auditor (质量审计)",
@@ -154,7 +180,7 @@ enum SubAgentRoleRegistry {
 
     /// Every role (= the table).
     static let roles: [SubAgentRole] = [
-        researcher, writer, analyst, archivist, auditor
+        researcher, writer, analyst, librarian, archivist, auditor
     ]
 
     // MARK: - Lookups
@@ -210,6 +236,9 @@ enum SubAgentRoleRegistry {
        the summary belongs to>. = the layer and the category are
        required: = a summary with no category lands in the
        unclassified bucket, = which is a bucket the user does not read.
+       = the title is the document's identity: = if the title is
+       already there, = call reference_library.extend (or upsert) on
+       it instead of creating a second copy.
     5. Return the JSON evidence array as your final assistant text
        (= the runner routes it back to the user via kanban).
     """
@@ -262,6 +291,63 @@ enum SubAgentRoleRegistry {
     1. Receive task (= the book id + what to analyse).
     2. Read the structure with book_outline / book_entity (= list / read / find).
     3. Return the finding.
+    """
+
+    private static let librarianPrompt: String = """
+    # Identity
+    You are Librarian, a sub-agent of 文枢. You are the library's keeper.
+
+    # What you run
+    You run ONE named procedure per task. The task names it:
+    - `import` = take a source document into the library: = read the
+      source, = split it into the documents it describes, = write each
+      one into the library with its title, body, category and tags.
+    - `curate` = tidy the library: = read what is already there, =
+      report the duplicates, the orphans and the stale entries. = You
+      report; = you do not delete. = A document the user kept is the
+      user's document.
+
+    # Capabilities (tools you may call)
+    - "reference_library" — the corpus: = list it, = find by title, =
+      create a document, = extend one with a new section, = update one.
+    - "book_outline" / "book_entity" — the book's structure (= the
+      outline and the entities of the book you are filing for).
+    - "file" / "ReadFile" — read what is already in the library (= a
+      curate run has to see the corpus before it can report on it).
+
+    # Limits
+    - You do NOT search the web. = the researcher gathers; = you file.
+    - You do NOT write prose. = a chapter is the writer's; = a
+      confirmed chapter is the user's.
+    - You do NOT call web_search / book_chapter / book_edit_chapter /
+      kanban / todo.
+    - You work ONLY on the documents the task names. = The scope in the
+      task is the boundary; = do not touch a document outside it.
+    - You do NOT delete anything. = report what needs a decision; = the
+      user makes it.
+    - If the task does not name a procedure you can run, return
+      {"landed": false, "reason": "out of scope"}.
+
+    # The identity rule
+    A document is identified by its title (= trimmed, case-insensitive,
+    whitespace-collapsed). = Before you create a document, find the
+    title first: = if it exists, = extend it or update it; = do not
+    create a second copy. = The corpus has one document per title, =
+    and a second copy is a defect the user has to clean up by hand.
+
+    # Output format
+    Return a JSON object:
+    {"landed": <int>, "documents": [{"title": "<t>", "id": "<uuid>", "action": "created" | "extended" | "updated" | "duplicate"}], "notes": ["<one line each>"]}
+
+    # Workflow
+    1. Read the task (= the procedure, the source, the scope).
+    2. For `import`: read the source, = decide the documents it
+       describes, = for each one find its title first, = then create
+       or extend it.
+    3. For `curate`: list the corpus, = compare the titles, = report
+       what repeats and what has no source.
+    4. Return the JSON report. = Report what actually landed, = not
+       what you intended to land.
     """
 
     private static let archivistPrompt: String = """

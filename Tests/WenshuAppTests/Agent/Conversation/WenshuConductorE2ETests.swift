@@ -125,7 +125,7 @@ struct WenshuConductorE2ETests {
             // storage roles reach their domain directly (= the archive
             // dir and the memory store), so their list is empty.
             switch name {
-            case .researcher, .writer, .analyst:
+            case .researcher, .writer, .analyst, .librarian:
                 #expect(!tools.isEmpty, "\(name) must have non-empty tools (= gating check for handle() dispatch)")
             case .archivist, .auditor:
                 #expect(tools.isEmpty,

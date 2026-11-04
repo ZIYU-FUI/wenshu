@@ -73,7 +73,7 @@ struct SubAgentIdentityTests {
             #expect(tools.count >= 0, "tools(name:) must return a list for \(name)")
             // Also verify the dict explicitly carries the v2.5+ non-researcher empty contract.
             switch name {
-            case .researcher, .writer, .analyst:
+            case .researcher, .writer, .analyst, .librarian:
                 #expect(!tools.isEmpty, "\(name) must have non-empty tools")
             case .archivist, .auditor:
                 #expect(tools.isEmpty, "\(name) must keep its tools list empty (= its domain reaches storage directly)")

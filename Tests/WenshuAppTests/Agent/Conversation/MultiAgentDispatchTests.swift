@@ -11,15 +11,16 @@ import Testing
 @Suite("Multi-agent dispatch (5 sub-agents + auditor)")
 struct MultiAgentDispatchTests {
 
-    // MARK: - 5 sub-agent identity coverage (covered in SubAgentIdentityTests)
+    // MARK: - Sub-agent identity coverage (covered in SubAgentIdentityTests)
 
-    @Test("5 sub-agent names are all valid SubAgentIdentity.Name cases")
+    @Test("the sub-agent names are all valid SubAgentIdentity.Name cases")
     func allSubAgentNamesValid() {
-        #expect(SubAgentIdentity.Name.allCases.count == 5)
+        #expect(SubAgentIdentity.Name.allCases.count == 6)
         let names = SubAgentIdentity.Name.allCases.map(\.rawValue)
         #expect(names.contains("researcher"))
         #expect(names.contains("writer"))
         #expect(names.contains("analyst"))
+        #expect(names.contains("librarian"))
         #expect(names.contains("archivist"))
         #expect(names.contains("auditor"))
     }

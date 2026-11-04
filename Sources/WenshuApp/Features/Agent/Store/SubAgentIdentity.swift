@@ -20,6 +20,7 @@ public enum SubAgentIdentity {
         case researcher
         case writer
         case analyst
+        case librarian
         case archivist
         case auditor
     }

@@ -63,14 +63,14 @@ struct SubAgentRoleRegistryTests {
 
     // MARK: - The slugs (= the vocabulary the app speaks)
 
-    @Test("the table's slugs are exactly the five the app knows")
-    func theFiveSlugs() {
+    @Test("the table's slugs are exactly the ones the app knows")
+    func theKnownSlugs() {
         let expected: Set<String> = [
-            "researcher", "writer", "analyst", "archivist", "auditor"
+            "researcher", "writer", "analyst", "librarian", "archivist", "auditor"
         ]
         #expect(
             Set(SubAgentRoleRegistry.roles.map(\.slug)) == expected,
-            "the table's slugs must be exactly the five known slugs"
+            "the table's slugs must be exactly the known slugs"
         )
     }
 
@@ -282,7 +282,7 @@ struct SubAgentRoleRegistryTests {
         // A plain read (= no actor, no shared singleton, no
         // bootstrapping): the table hands out its facts on its own.
         let rows = SubAgentRoleRegistry.roles
-        #expect(rows.count == 5)
+        #expect(rows.count == 6)
         #expect(rows.allSatisfy { !$0.slug.isEmpty })
     }
 }
