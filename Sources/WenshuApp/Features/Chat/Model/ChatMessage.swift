@@ -109,11 +109,24 @@ enum ChatRole: String, Equatable, Sendable {
     case user
     case agent
     case system
+    /// Another agent's finished work (= a sub-agent's result that came
+    /// back to the conversation). = distinct from `agent`, = which is
+    /// the MAIN agent's reply.
+    case agentResult
 }
 
-/// Message source ground truth (user = sent by the user / wenshu = Wenshu's reply / system = system error). Wenshu's internal multi-agent dispatch results do not show as ChatMessage; they go through the WSKanbanRepository board.
+/// Message source ground truth (user = sent by the user / wenshu =
+/// Wenshu's reply / system = system error / agentResult = a sub-agent's
+/// finished work, delivered back into the conversation that asked for
+/// it).
+///
+/// The sub-agent's result used to have no place here: = the comment
+/// said it "goes through the WSKanbanRepository board", = and the
+/// board's card never changed state, = so the result reached nobody.
+/// The vocabulary needed a home for it, = and this is it.
 enum ChatSource: String, Equatable, Sendable, Codable {
     case user
     case wenshu
     case system
+    case agentResult
 }

@@ -86,7 +86,14 @@ extension WenshuAppDelegate {
             // never exist, = and the archive pane has nothing to
             // show. The repository is the shared singleton (= the
             // same one the chat writes through).
-            ledger: SubAgentLedger(repository: WSChatRepository.shared)
+            ledger: SubAgentLedger(repository: WSChatRepository.shared),
+            // Where a finished run's result goes. = Without it the
+            // user sees a dispatch receipt and then silence.
+            resultDelivery: SubAgentResultDelivery(repository: LiveChatRepository.shared),
+            // The card that shows a research delegation's progress.
+            // = Without it the card stays in "running" forever, = and
+            // the board lists intentions instead of outcomes.
+            kanbanBridge: SubAgentKanbanBridge(repository: WSKanbanRepository.shared)
         )
         sharedSubAgentRunner = runner
 

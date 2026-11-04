@@ -159,6 +159,12 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
             )
             if let kanbanTaskID {
                 kanbanTaskIDs.append(kanbanTaskID)
+                // Point the delegation at its card. = The runner reads
+                // this when the run ends, = and moves the card to where
+                // the run got to. = Without this the card sat in
+                // "running" forever, = and the board could not tell a
+                // finished research from one still in flight.
+                await registry.attachKanbanTaskID(handleID: handleID, kanbanTaskID: kanbanTaskID)
             }
 
             delegations.append([
@@ -219,6 +225,10 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
             do {
                 let id = try await WSKanbanRepository.shared.add(
                     title: title,
+                    // The delegation is already running when the card is
+                    // made, = so "new" would be a lie: = the board said
+                    // the work had not begun, = while it was in flight.
+                    status: "running",
                     priority: priority
                 )
                 return id

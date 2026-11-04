@@ -536,6 +536,11 @@ final class ChatViewModel {
                     if mention.subagentSlug == "librarian" {
                         switch LibrarianActivation.parse(mention.task) {
                         case .task(let librarianTask):
+                            // `curate` is deterministic, = so it runs
+                            // here and does NOT go to a model. = The
+                            // analyser is pure data analysis, = and a
+                            // model asked to do it would have had no
+                            // tool for it, = so it would have guessed.
                             taskText = LibrarianActivation.encodedTask(for: librarianTask)
                         case .notALibrarianTask, .unknownProcedure:
                             taskText = mention.task
@@ -547,7 +552,15 @@ final class ChatViewModel {
                         subagentProfile: mention.subagentSlug,
                         task: taskText,
                         context: [:],
-                        registry: AsyncDelegationRegistry.shared
+                        registry: AsyncDelegationRegistry.shared,
+                        // The scope says where the result goes. = Without
+                        // it the handle carries no destination, = and a
+                        // finished run has nowhere to deliver what it
+                        // produced.
+                        scope: AgentScope(
+                            sessionID: sessionId,
+                            bookID: currentBookID
+                        )
                     )
                     let shortId = String(result.handle.id.prefix(8))
                     messages.append(ChatMessage(

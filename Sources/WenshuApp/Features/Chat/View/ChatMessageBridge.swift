@@ -37,6 +37,13 @@ extension ChatRole {
         case .user: return .user
         case .agent: return .assistant
         case .system: return .user
+        // A sub-agent's result reaches the LLM as an assistant turn.
+        // The role vocabulary has no fourth kind, = and the result IS
+        // something an agent said, = so `assistant` is the honest
+        // mapping. = The distinction that matters on screen (= this
+        // came from a sub-agent, = not from the main agent) = lives
+        // in the source, = which the UI reads.
+        case .agentResult: return .assistant
         }
     }
 }

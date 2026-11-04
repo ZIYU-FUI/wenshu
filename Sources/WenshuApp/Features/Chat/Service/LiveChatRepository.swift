@@ -176,6 +176,7 @@ init(container: ModelContainer) {
         case .user: sourceString = "user"
         case .wenshu: sourceString = "wenshu"
         case .system: sourceString = "system"
+        case .agentResult: sourceString = "agent_result"
         }
         return StoredChatMessage(
             id: message.id.uuidString,
@@ -213,6 +214,12 @@ init(container: ModelContainer) {
         case "system":
             resolvedRole = .system
             resolvedSource = .system
+        case "agent_result":
+            // A sub-agent's finished work, delivered back into the
+            // conversation that asked for it. = distinct from `wenshu`,
+            // = which is the MAIN agent's reply.
+            resolvedRole = .agentResult
+            resolvedSource = .agentResult
         default:
             return nil
         }

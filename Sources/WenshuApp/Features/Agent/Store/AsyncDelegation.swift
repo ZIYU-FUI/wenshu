@@ -45,6 +45,17 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
     /// never be recovered later.
     var scope: AgentScope?
 
+    /// The kanban card that shows this delegation's progress.
+    ///
+    /// Nil = no card was made for this delegation (= most delegations
+    /// are not research nouns, = and a card for each of them would be
+    /// noise). The card used to be created and then never touched
+    /// again, = so it sat in "pending" forever while the research it
+    /// named finished or failed. = The runner reads this id when the
+    /// run ends, = and moves the card to where the run actually got
+    /// to.
+    var kanbanTaskID: String?
+
     /// The text the sub-agent has produced so far.
     ///
     /// Empty until the runner streams its first `.text` block. Only the
@@ -78,6 +89,7 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
         result: String? = nil,
         trackerSpawnID: UUID? = nil,
         scope: AgentScope? = nil,
+        kanbanTaskID: String? = nil,
         outputTail: String = "",
         currentTool: String? = nil
     ) {
@@ -90,6 +102,7 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
         self.result = result
         self.trackerSpawnID = trackerSpawnID
         self.scope = scope
+        self.kanbanTaskID = kanbanTaskID
         self.outputTail = outputTail
         self.currentTool = currentTool
     }
@@ -190,6 +203,17 @@ actor AsyncDelegationRegistry {
     func attachTrackerSpawnID(handleID: String, spawnID: UUID) {
         guard var handle = records[handleID] else { return }
         handle.trackerSpawnID = spawnID
+        records[handleID] = handle
+    }
+
+    /// Point a delegation at the kanban card that shows its progress.
+    ///
+    /// Called after the card is made, = because the card's id only
+    /// exists once the card does. The runner reads it when the run ends
+    /// and moves the card to where the run got to.
+    func attachKanbanTaskID(handleID: String, kanbanTaskID: String) {
+        guard var handle = records[handleID] else { return }
+        handle.kanbanTaskID = kanbanTaskID
         records[handleID] = handle
     }
 

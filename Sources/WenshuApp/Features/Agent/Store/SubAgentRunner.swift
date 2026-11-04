@@ -81,6 +81,18 @@ final class SubAgentRunner {
     // / archive pane reads; = without it the rows never exist).
     let ledger: SubAgentLedger?
 
+    // / Where a finished run's result goes.
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / conversation that asked for it, = as a message with its own
+    // / source; = without it the result reaches nobody).
+    let resultDelivery: SubAgentResultDelivery?
+
+    // / The card that shows a research delegation's progress.
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / in "new" forever, = so the board listed intentions instead of
+    // / outcomes).
+    let kanbanBridge: SubAgentKanbanBridge?
+
     // / The registry this runner drains handles from. Always
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / init.
@@ -102,7 +114,9 @@ final class SubAgentRunner {
         maxSubAgentTurns: Int = 5,
         archivistStorage: ArchivistStorage? = nil,
         auditorStorage: AuditorStorage? = nil,
-        ledger: SubAgentLedger? = nil
+        ledger: SubAgentLedger? = nil,
+        resultDelivery: SubAgentResultDelivery? = nil,
+        kanbanBridge: SubAgentKanbanBridge? = nil
     ) {
         self.connector = connector
         self.toolRegistry = toolRegistry
@@ -111,6 +125,8 @@ final class SubAgentRunner {
         self.archivistStorage = archivistStorage
         self.auditorStorage = auditorStorage
         self.ledger = ledger
+        self.resultDelivery = resultDelivery
+        self.kanbanBridge = kanbanBridge
         self._isolatedRegistry = nil
         self._isolatedToolRegistry = nil
     }
@@ -134,6 +150,8 @@ final class SubAgentRunner {
         self.archivistStorage = archivistStorage
         self.auditorStorage = auditorStorage
         self.ledger = nil
+        self.resultDelivery = nil
+        self.kanbanBridge = nil
         self._isolatedRegistry = isolatedRegistry
         self._isolatedToolRegistry = nil
     }
@@ -157,6 +175,8 @@ final class SubAgentRunner {
         self.archivistStorage = archivistStorage
         self.auditorStorage = auditorStorage
         self.ledger = nil
+        self.resultDelivery = nil
+        self.kanbanBridge = nil
         self._isolatedRegistry = isolatedRegistry
         self._isolatedToolRegistry = isolatedToolRegistry
     }
@@ -289,6 +309,15 @@ final class SubAgentRunner {
                 error: String(describing: error),
                 bookID: liveHandle.scope?.bookID?.rawValue
             )
+            // The failure reaches the conversation too. = A run that
+            // fails silently leaves the user waiting for an answer
+            // that is never coming, = and a failure IS an answer: = it
+            // says the work did not happen.
+            await deliverResult(
+                handle: liveHandle,
+                result: "The run failed: \(UserFacingError.from(error).errorDescription ?? String(describing: error))"
+            )
+            moveKanbanCard(handle: liveHandle, to: .failed)
             throw error
         } catch {
             // System-fault: the underlying LLMConnector or
@@ -301,6 +330,11 @@ final class SubAgentRunner {
                 error: String(describing: error),
                 bookID: liveHandle.scope?.bookID?.rawValue
             )
+            await deliverResult(
+                handle: liveHandle,
+                result: "The run failed: \(UserFacingError.from(error).errorDescription ?? String(describing: error))"
+            )
+            moveKanbanCard(handle: liveHandle, to: .failed)
             throw SubAgentRunnerError.subAgentLLMFailed(
                 handleID: liveHandle.id,
                 agentName: liveHandle.agentName,
@@ -319,6 +353,37 @@ final class SubAgentRunner {
             error: nil,
             bookID: liveHandle.scope?.bookID?.rawValue
         )
+        // 6. Deliver the result to the conversation that asked for it.
+        //
+        // The conversation asked an agent a question, = and the answer
+        // has to arrive there. = Without this the user sees a dispatch
+        // receipt and then silence, = which is what the run's result
+        // used to do.
+        await deliverResult(handle: liveHandle, result: summary)
+        // 7. Move the card. The research finished, = so the card says
+        // so. = A card that stayed in "new" made the board a list of
+        // intentions instead of a list of outcomes.
+        moveKanbanCard(handle: liveHandle, to: .done)
+    }
+
+    /// Move the card that shows a delegation's progress.
+    ///
+    /// A delegation with no card (= most of them) = has nothing to
+    /// move, = and that is the normal case, = not a failure.
+    private func moveKanbanCard(handle: BackgroundDelegationHandle, to state: SubAgentKanbanBridge.CardState) {
+        guard let kanbanBridge else { return }
+        kanbanBridge.move(cardID: handle.kanbanTaskID, to: state)
+    }
+
+    /// Deliver a finished run's result to the conversation that asked
+    /// for it.
+    ///
+    /// A delivery failure is swallowed: = the run finished, = its
+    //  outcome is in the ledger, = and a conversation that could not
+    //  be written to must not turn that into a failed run.
+    private func deliverResult(handle: BackgroundDelegationHandle, result: String) async {
+        guard let resultDelivery else { return }
+        _ = await resultDelivery.deliver(handle: handle, result: result)
     }
 
     /// Close the run's ledger row, if the runner has a ledger.

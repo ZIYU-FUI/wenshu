@@ -453,6 +453,7 @@ struct ChatView: View {
                     case .user: prefix = "你"
                     case .wenshu: prefix = "文枢"
                     case .system: prefix = "系统"
+                    case .agentResult: prefix = "子代理"
                     }
                     return "[\(prefix)]: \(msg.content)"
                 }.joined(separator: "\n\n")
@@ -784,6 +785,7 @@ struct ChatView: View {
                     case .user: prefix = "你"
                     case .wenshu: prefix = "文枢"
                     case .system: prefix = "系统"
+                    case .agentResult: prefix = "子代理"
                     }
                     return "[\(prefix)]: \(msg.content)"
                 }.joined(separator: "\n\n")
