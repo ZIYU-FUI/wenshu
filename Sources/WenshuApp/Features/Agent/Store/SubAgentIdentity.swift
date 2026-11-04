@@ -2,12 +2,11 @@
 //
 // 5 sub-agents under `WenshuConductor`:
 //   - Researcher: `web_search` + `reference_library`.
-//   - Writer: `paragraph_ai`.
-//   - Analyst: (= no wenshu tool counterpart yet; = tool list
-//     empty).
+//   - Writer: `book_chapter`.
+//   - Analyst: `book_outline` + `book_entity`.
 //   - Archivist: (= storage via the per-book archive dir + filesystem
 //     directly; = tool list empty).
-// - Auditor: (read memory via WSMemoryProvider directly; = tool list empty)
+//   - Auditor: (read memory via WSMemoryProvider directly; = tool list empty)
 //
 // The vocabulary (= the slug every call site passes around) lives here;
 // the FACTS of a role (= label, prompt, tool list, dispatch) live in

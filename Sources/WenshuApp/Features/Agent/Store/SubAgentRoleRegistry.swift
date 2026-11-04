@@ -83,12 +83,13 @@ enum SubAgentRoleRegistry {
     //     `linkgraph` was read-only; = wenshu's reference_library is
     //     read+write per v2.6 facet model).
     //   - writer: `composer` + `template` + `wordcount` collapse into
-    //     the single `paragraph_ai` tool (= the LLM-backed paragraph
-    //     composer is the only writing tool in wenshu today).
-    //   - analyst: `outline` + `bases` + `graph` have no wenshu tool
-    //     counterpart; = per §11 baseline "no placeholder/stub text",
-    //     the tool list is empty. Follow-up ticket lands the
-    //     outline / graph tools and re-enables them.
+    //     the single `book_chapter` tool (= per-book chapter CRUD; =
+    //     the chapter actor decides the tier, = a create writes a
+    //     draft and the user promotes it by hand).
+    //   - analyst: `outline` + `bases` + `graph` map onto the two
+    //     per-book structure tools that exist (= `book_outline` +
+    //     `book_entity`); = the structure-analysis surface is
+    //     reachable, so the role is no longer an empty envelope.
     //   - archivist: `backup` has no wenshu tool counterpart; =
     //     archivist's writes go to the per-book archive dir on the
     //     filesystem directly (= bypassing the LLM-facing
@@ -123,7 +124,7 @@ enum SubAgentRoleRegistry {
         slug: "writer",
         displayLabel: "Writer (写作专家)",
         prompt: writerPrompt,
-        toolNames: ["paragraph_ai"],
+        toolNames: ["book_chapter"],
         dispatch: .llmRun
     )
 
@@ -131,7 +132,7 @@ enum SubAgentRoleRegistry {
         slug: "analyst",
         displayLabel: "Analyst (结构分析师)",
         prompt: analystPrompt,
-        toolNames: [],
+        toolNames: ["book_outline", "book_entity"],
         dispatch: .llmRun
     )
 
@@ -184,7 +185,7 @@ enum SubAgentRoleRegistry {
 
     # Limits
     - You do NOT write prose. You do NOT analyze structure. You do NOT modify shared memory.
-    - You do NOT call paragraph_ai / outline / graph / bookmark / backup.
+    - You do NOT call book_chapter / book_outline / book_entity.
     - If the user task is not a search/research task, return {"found": false, "reason": "out of scope"}.
 
     # Output format
@@ -215,21 +216,24 @@ enum SubAgentRoleRegistry {
     You are Writer, a sub-agent of 文枢. You are the writing specialist.
 
     # Capabilities (tools you may call)
-    - "paragraph_ai" — LLM-backed paragraph composer (= the only writing tool in wenshu today)
+    - "book_chapter" — per-book chapter CRUD (= create / read / update /
+      delete / list / find). A create writes a DRAFT; = the user promotes
+      a draft to the confirmed chapters by hand. Never write the confirmed
+      body yourself.
 
     # Limits
     - You do NOT search. You do NOT analyze structure. You do NOT modify memory.
-    - You do NOT call web_search / reference_library / outline / graph / bookmark / backup.
+    - You do NOT call web_search / reference_library / book_outline / book_entity.
     - If the user task is not a writing task, return {"wrote": false, "reason": "out of scope"}.
 
     # Output format
     Return a JSON object:
-    {"content": "<drafted text>", "wordCount": <int>, "style": "<wuxia|romance|...>", "templateUsed": null}
+    {"chapterId": "<uuid>", "title": "<the chapter title>", "wordCount": <int>, "written": true}
 
     # Workflow
-    1. Receive task (= chapter outline + writing prompt + style hint).
-    2. Optionally call paragraph_ai to compose the draft.
-    3. Return the content.
+    1. Receive task (= chapter title + the writing prompt + a style hint).
+    2. Write the draft with book_chapter create (= the tool decides the tier).
+    3. Return the chapter id and the word count.
     """
 
     private static let analystPrompt: String = """
@@ -237,21 +241,24 @@ enum SubAgentRoleRegistry {
     You are Analyst, a sub-agent of 文枢. You are the structure-analysis specialist.
 
     # Capabilities (tools you may call)
-    - None (= per §11 baseline "no placeholder/stub text"; = outline / bases / graph tools do not exist yet)
+    - "book_outline" — per-book outline CRUD (= create / read / update /
+      delete / list / find).
+    - "book_entity" — per-book entity CRUD (= the kind field selects one of
+      5: person / location / object / ability / event).
 
     # Limits
     - You do NOT write prose. You do NOT search the web. You do NOT modify memory.
-    - You do NOT call web_search / paragraph_ai / reference_library / bookmark / backup.
-    - If no structure-analysis data is provided, return {"analyzed": false, "reason": "no outline/graph tools available yet"}.
+    - You do NOT call web_search / reference_library / book_chapter / book_edit_chapter.
+    - If the user task is not a structure-analysis task, return {"analyzed": false, "reason": "out of scope"}.
 
     # Output format
     Return a JSON object:
     {"type": "outline" | "graph" | "table", "data": <structure-specific JSON>}
 
     # Workflow
-    1. Receive task.
-    2. If you have no tools (= current state), return the out-of-scope envelope.
-    3. (Future ticket lands outline / graph tools; = the workflow expands.)
+    1. Receive task (= the book id + what to analyse).
+    2. Read the structure with book_outline / book_entity (= list / read / find).
+    3. Return the finding.
     """
 
     private static let archivistPrompt: String = """
@@ -265,7 +272,7 @@ enum SubAgentRoleRegistry {
 
     # Limits
     - You do NOT write prose. You do NOT analyze structure. You do NOT search the web.
-    - You do NOT call web_search / paragraph_ai / reference_library / outline / graph.
+    - You do NOT call web_search / reference_library / book_chapter / book_outline / book_entity.
     - If no storage task is requested, return {"archived": false, "reason": "no storage task"}.
 
     # Output format

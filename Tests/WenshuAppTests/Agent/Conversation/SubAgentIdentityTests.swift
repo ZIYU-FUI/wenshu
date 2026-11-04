@@ -59,13 +59,12 @@ struct SubAgentIdentityTests {
         // The contract is "every Name case resolves to a known list",
         // NOT "every list is non-empty".
         //
-        // Per-sub-agent empty-list rationale (= §11 baseline no-placeholder
-        // + v2.4 + v2.5):
+        // Per-sub-agent empty-list rationale:
         //   researcher  ->  ["web_search", "reference_library"]         (non-empty)
-        //   writer      ->  ["paragraph_ai"]                            (non-empty)
-        //   analyst     ->  []                                            (no LLM tools yet)
-        //   archivist   ->  []                                            (storage adapters only)
-        //   auditor     ->  []                                            (memory now off the LLM tool surface)
+        //   writer      ->  ["book_chapter"]                           (non-empty)
+        //   analyst     ->  ["book_outline", "book_entity"]            (non-empty)
+        //   archivist   ->  []                                         (storage adapters only)
+        //   auditor     ->  []                                         (memory now off the LLM tool surface)
         for name in SubAgentIdentity.Name.allCases {
             let tools = SubAgentIdentity.tools(name: name)
             // Type-check + surface area assertion: the call must succeed
@@ -74,10 +73,10 @@ struct SubAgentIdentityTests {
             #expect(tools.count >= 0, "tools(name:) must return a list for \(name)")
             // Also verify the dict explicitly carries the v2.5+ non-researcher empty contract.
             switch name {
-            case .researcher, .writer:
+            case .researcher, .writer, .analyst:
                 #expect(!tools.isEmpty, "\(name) must have non-empty tools")
-            case .analyst, .archivist, .auditor:
-                #expect(tools.isEmpty, "\(name) must keep its tools list empty post-v2.5 (= §11 no-placeholder)")
+            case .archivist, .auditor:
+                #expect(tools.isEmpty, "\(name) must keep its tools list empty (= its domain reaches storage directly)")
             }
         }
     }
@@ -104,21 +103,18 @@ struct SubAgentIdentityTests {
         #expect(!tools.contains("linkgraph"), "linkgraph is not a wenshu LLM tool (= no equivalent yet)")
     }
 
-    @Test("Writer tools = paragraph_ai only (the single wenshu-side writing tool)")
+    @Test("Writer tools = book_chapter (the per-book chapter tool)")
     func writerTools() {
         let tools = SubAgentIdentity.tools(name: .writer)
-        #expect(tools == ["paragraph_ai"],
-               "writer must expose ONLY paragraph_ai (= v2.5 collapse; no composer / template / wordcount stubs)")
+        #expect(tools == ["book_chapter"],
+               "writer must expose ONLY book_chapter (= the chapter actor decides the tier; = a create writes a draft)")
     }
 
-    @Test("Analyst tools = [] (no LLM tools yet; outline / bases / graph not registered)")
+    @Test("Analyst tools = book_outline + book_entity (the per-book structure tools)")
     func analystTools() {
         let tools = SubAgentIdentity.tools(name: .analyst)
-        // Per AGENTS.md §11 baseline "no placeholder/stub text": analyst
-        // exposes no LLM tool until a real outline / bases / graph surface
-        // lands in ToolRegistry. The empty list is intentional, not a gap.
-        #expect(tools.isEmpty,
-               "analyst must NOT have placeholder LLM tools (= §11 baseline; outline / graph future ticket)")
+        #expect(tools == ["book_outline", "book_entity"],
+               "analyst must expose the two structure tools (= the analysis surface is reachable)")
     }
 
     @Test("Archivist tools = [] (bookmark / backup relocated to WSBookmarkRepository.shared + filesystem direct path)")

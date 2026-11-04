@@ -13,10 +13,11 @@
 //
 //  Test scope:
 //    1. researcher's tools include "web_search" and "reference_library"
-//    2. writer's tools include "paragraph_ai"
-//    3. analyst / archivist / auditor have empty tool lists
-//       (= per §11 baseline "no placeholder/stub text")
-//    4. Every non-empty tool name resolves to a registered
+//    2. writer's tools include "book_chapter"
+//    3. analyst's tools include "book_outline" and "book_entity"
+//    4. archivist / auditor have empty tool lists
+//       (= their domains reach storage directly)
+//    5. Every non-empty tool name resolves to a registered
 //       ToolRegistry handler (= the runner's getHandler call
 //       must succeed; = the LLM tool dispatch path must work)
 //
@@ -40,18 +41,20 @@ struct SubAgentIdentityToolsTests {
                 "researcher must have reference_library (writes grounded summaries per v2.6 facet model)")
     }
 
-    @Test("writer tool list includes paragraph_ai")
+    @Test("writer tool list includes book_chapter")
     func writerTools() {
         let tools = SubAgentIdentity.tools(name: .writer)
-        #expect(tools.contains("paragraph_ai"),
-                "writer must have paragraph_ai (the only writing tool in wenshu today)")
+        #expect(tools.contains("book_chapter"),
+                "writer must have book_chapter (= the per-book chapter tool; = a create writes a draft)")
     }
 
-    @Test("analyst tool list is empty (= no outline/bases/graph tools exist)")
+    @Test("analyst tool list reaches the per-book structure tools")
     func analystTools() {
         let tools = SubAgentIdentity.tools(name: .analyst)
-        #expect(tools.isEmpty,
-                "analyst must have empty tool list per §11 baseline 'no placeholder/stub text'; got \(tools)")
+        #expect(tools.contains("book_outline"),
+                "analyst must have book_outline (= the per-book outline surface)")
+        #expect(tools.contains("book_entity"),
+                "analyst must have book_entity (= the per-book entity surface)")
     }
 
     @Test("archivist tool list is empty (= bookmark/backup tools do not exist)")
@@ -70,29 +73,25 @@ struct SubAgentIdentityToolsTests {
 
     // MARK: - ToolRegistry resolution check (= the runner's runtime contract)
 
-    /// Verifies that every non-empty tool list resolves to a registered
-    /// ToolRegistry handler (= the runner's `getHandler(name:)` call
-    /// must succeed for every name). Uses an isolated ToolRegistry
-    /// (= fresh instance per test) seeded with the names that are
-    /// expected to be registered in production.
+    /// Every tool a role names must resolve to a registered handler.
+    ///
+    /// The registry this reads is seeded from the PRODUCTION catalogue,
+    /// not from a list the test writes itself. A self-seeded stub makes
+    /// the test agree with whatever the test believes: the row that
+    /// named a tool deleted from production stayed green here for
+    /// months, because the stub list carried the dead name.
     @Test("every non-empty tool name resolves to a registered handler")
-    func everyToolResolvesToAHandler() async throws {
-        // Build an isolated registry seeded with the names we expect
-        // (= the ones SubAgentIdentity.tools returns for researcher
-        // and writer). Touching `ToolRegistry.shared` would couple
-        // the test to the production bootstrap order (= flaky).
+    func everyNonEmptyToolListResolves() async {
+        // An isolated registry seeded from the production catalogue
+        // (= the same set the app's own bootstrap registers).
         let registry = ToolRegistry()
-        for name in [
-            "web_search",       // WebSearchTool
-            "reference_library", // ReferenceLibraryTool (Core/Agent/Librarian/)
-            "paragraph_ai",     // ParagraphAITool
-        ] {
+        for name in ToolCatalogue.names {
             await registry.registerTool(
                 name: name,
                 toolset: "agent",
                 schema: ToolRegistrySchema(
                     name: name,
-                    description: "test stub for \(name)"
+                    description: "catalogue-backed stub for \(name)"
                 ),
                 handler: PassThroughToolStub(),
                 description: "test",
@@ -100,29 +99,14 @@ struct SubAgentIdentityToolsTests {
             )
         }
 
-        // Researcher: every tool name must resolve.
-        for name in SubAgentIdentity.tools(name: .researcher) {
-            let handler = await registry.getHandler(name: name)
-            #expect(handler != nil,
-                    "researcher tool '\(name)' must resolve to a registered ToolRegistry handler; got nil")
-        }
-
-        // Writer: every tool name must resolve.
-        for name in SubAgentIdentity.tools(name: .writer) {
-            let handler = await registry.getHandler(name: name)
-            #expect(handler != nil,
-                    "writer tool '\(name)' must resolve to a registered ToolRegistry handler; got nil")
-        }
-
-        // Analyst / archivist / auditor: empty tool lists need no
-        // resolution (= the runner's `if let registry` branch in
-        // runRealSubAgent skips the schema lookup when the list
-        // is empty).
-        for agent in [SubAgentIdentity.Name.analyst,
-                      .archivist,
-                      .auditor] {
-            #expect(SubAgentIdentity.tools(name: agent).isEmpty,
-                    "\(agent.rawValue) tool list must be empty (= no LLM tool dispatch)")
+        // Every role that names a tool must have every named tool
+        // resolve (= the runner's `getHandler(name:)` call must succeed).
+        for name in SubAgentIdentity.Name.allCases {
+            for tool in SubAgentIdentity.tools(name: name) {
+                let handler = await registry.getHandler(name: tool)
+                #expect(handler != nil,
+                        "\(name.rawValue) tool '\(tool)' must resolve to a registered ToolRegistry handler; got nil")
+            }
         }
     }
 }

@@ -118,6 +118,11 @@ struct ToolCatalogueTests {
         let mutations = Set(ToolCatalogue.all.filter(\.mutates).map(\.name))
         #expect(mutations.contains("book_edit_chapter"))
         #expect(!mutations.contains("web_search"), "searching does not change the library")
-        #expect(!mutations.contains("reference_library"))
+        // The reference library IS the corpus writer (= create / update /
+        // delete / upsert / extend), so it must be flagged. The flag is
+        // what puts the tool in the safety ledger's mutating set, and
+        // that set is what caps repeated identical writes.
+        #expect(mutations.contains("reference_library"),
+                "the corpus writer must be flagged as mutating")
     }
 }

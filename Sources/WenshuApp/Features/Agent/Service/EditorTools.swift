@@ -41,8 +41,9 @@
 //
 //  Concurrency: actor (= Swift 6 strict concurrency). Reads
 //  serialize cleanly across the SpecializedTools pane + the chat
-//  loop (= the LLM may call `paragraph_ai` while the editor
-//  surface pre-renders tool descriptions).
+//  loop (= the LLM may reach the editor's paragraph rewrite
+//  pipeline while the editor surface pre-renders tool
+//  descriptions).
 //
 //  Stateless design rationale (= same as the rest of the
 //  specialized tools family): the actor holds no state; each call

@@ -54,7 +54,14 @@ public enum ToolCatalogue {
         CataloguedTool(name: "book_outline", category: .navigation, mutates: true),
         CataloguedTool(name: "book_entity", category: .navigation, mutates: true),
         CataloguedTool(name: "book_edit_chapter", category: .navigation, mutates: true),
-        CataloguedTool(name: "reference_library", category: .navigation, mutates: false),
+        // The reference library is the corpus writer (= create / update /
+        // delete / upsert / extend all change it), so it is flagged as
+        // mutating. The flag is not cosmetic: `AgentSettingsStore` derives
+        // the mutating set from this catalogue, and that set is what
+        // `ToolSafetyPolicy` caps (= the "max identical mutating calls per
+        // turn" rule). A mutating tool filed as non-mutating is a tool
+        // the safety ledger never counts.
+        CataloguedTool(name: "reference_library", category: .navigation, mutates: true),
 
         // Writing aids.
         CataloguedTool(name: "todo", category: .writing, mutates: true),

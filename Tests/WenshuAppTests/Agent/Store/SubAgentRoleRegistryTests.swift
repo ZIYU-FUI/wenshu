@@ -112,10 +112,14 @@ struct SubAgentRoleRegistryTests {
 
     @Test("the tool lists are the ones the app sent before the move")
     func toolListsAreUnchanged() throws {
+        // The three rows whose tool list CHANGED are pinned by
+        // `toolListsNameRealTools` below (= the invariant), not here: the
+        // writer's paragraph tool was deleted from production and the
+        // analyst's structure tools arrived, so pinning the old values
+        // would pin a broken state. The two rows that did not change
+        // are still pinned here.
         let expected: [String: [String]] = [
             "researcher": ["web_search", "reference_library"],
-            "writer": ["paragraph_ai"],
-            "analyst": [],
             "archivist": [],
             "auditor": []
         ]
@@ -129,6 +133,77 @@ struct SubAgentRoleRegistryTests {
                 SubAgentIdentity.tools(name: name) == tools,
                 "\(slug)'s tool list must still read the same"
             )
+        }
+    }
+
+    /// Every tool a role names must be a tool the PRODUCTION registry
+    /// carries.
+    ///
+    /// A role naming a tool that exists only in a test fixture runs with
+    /// a smaller effective tool set than its prompt advertises: the
+    /// runner's schema lookup returns nothing for it, so the model is
+    /// never told about the tool and the role silently does nothing.
+    /// The row that named the deleted paragraph tool stayed green for
+    /// months because the check lived in a file that seeded its own stub.
+    @Test("every tool a role names is a tool the production registry carries")
+    func toolListsNameRealTools() {
+        let production = Set(ToolCatalogue.names)
+        for row in SubAgentRoleRegistry.roles {
+            for tool in row.toolNames {
+                #expect(
+                    production.contains(tool),
+                    "\(row.slug) names '\(tool)', which the production registry does not carry"
+                )
+            }
+        }
+    }
+
+    /// The role that writes prose writes a DRAFT, and the role that
+    /// analyses structure can reach the structure.
+    ///
+    /// These are the two rows the tool-list correction restored, so the
+    /// correction is pinned by what it enables rather than by the names
+    /// alone.
+    @Test("the writer reaches a chapter and the analyst reaches the structure")
+    func theCorrectedRowsReachTheirTools() throws {
+        let writer = try #require(SubAgentRoleRegistry.role(forSlug: "writer"))
+        #expect(
+            writer.toolNames.contains("book_chapter"),
+            "the writer must reach the chapter tool (= the tier it writes is the tool's decision)"
+        )
+        let analyst = try #require(SubAgentRoleRegistry.role(forSlug: "analyst"))
+        #expect(
+            analyst.toolNames.contains("book_outline"),
+            "the analyst must reach the outline tool"
+        )
+        #expect(
+            analyst.toolNames.contains("book_entity"),
+            "the analyst must reach the entity tool"
+        )
+    }
+
+    /// A role's prompt must not advertise a tool its row does not grant.
+    ///
+    /// A prompt that promises a tool the model cannot call teaches the
+    /// model to report work it never did, and the report is what the
+    /// user reads.
+    @Test("a role's prompt names no tool outside its own grant")
+    func promptsNameNoUngrantedTools() {
+        // The tool names the product knows by, so a prompt's mention of
+        // one is a promise about the surface.
+        let known = Set(ToolCatalogue.names)
+        // The role prompts also name tools that are NOT product tools
+        // (= the hermes port slugs the prompts use to name a shape, and
+        // the shared restriction section's own list). Those are not
+        // promises to the model, so only a KNOWN tool name counts.
+        for row in SubAgentRoleRegistry.roles {
+            let granted = Set(row.toolNames)
+            for tool in known where row.prompt.contains("\"\(tool)\"") {
+                #expect(
+                    granted.contains(tool),
+                    "\(row.slug)'s prompt advertises '\(tool)', which its row does not grant"
+                )
+            }
         }
     }
 

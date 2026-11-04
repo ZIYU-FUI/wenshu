@@ -120,12 +120,16 @@ struct WenshuConductorE2ETests {
             //     storage-adapter-path)
             // The gating check is "the identity resolves to a known
             // (possibly empty) tool list", NOT "every list is non-empty".
+            //
+            // The three LLM-tool roles carry a tool list; the two
+            // storage roles reach their domain directly (= the archive
+            // dir and the memory store), so their list is empty.
             switch name {
-            case .researcher, .writer:
+            case .researcher, .writer, .analyst:
                 #expect(!tools.isEmpty, "\(name) must have non-empty tools (= gating check for handle() dispatch)")
-            case .analyst, .archivist, .auditor:
+            case .archivist, .auditor:
                 #expect(tools.isEmpty,
-                       "\(name) must keep its tools list empty post-v2.5 (= §11 no-placeholder baseline; = the empty contract IS the readiness signal)")
+                       "\(name) must keep its tools list empty (= its domain reaches storage directly)")
             }
             #expect(!displayName.isEmpty, "missing display name for \(name)")
         }

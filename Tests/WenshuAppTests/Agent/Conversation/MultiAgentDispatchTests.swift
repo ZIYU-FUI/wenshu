@@ -93,12 +93,12 @@ struct MultiAgentDispatchTests {
         #expect(prompt.contains("fix_suggestion"))
     }
 
-    @Test("Writer output format includes content + wordCount + style")
+    @Test("Writer output format includes chapterId + title + wordCount")
     func writerOutputFormat() {
         let prompt = SubAgentIdentity.systemPrompt(name: .writer)
-        #expect(prompt.contains("content"))
+        #expect(prompt.contains("chapterId"))
+        #expect(prompt.contains("title"))
         #expect(prompt.contains("wordCount"))
-        #expect(prompt.contains("style"))
     }
 
     @Test("Archivist output format includes stored + recalled + action")
