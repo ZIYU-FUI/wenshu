@@ -72,7 +72,21 @@ struct SubAgentResultAdoptionTests {
     @Test("a result that lands in the open session shows up in it")
     func aResultInTheOpenSessionShowsUp() async throws {
         let repository = AdoptionChatRepository()
-        let vm = ChatViewModel(repository: repository, providersConfigured: { true })
+        // Each test gets its own book, = and so its own session id.
+        //
+        // The notification bus is global, = so a test that posts a
+        // notification reaches EVERY open conversation. = Two tests
+        // with the same session id (= the default one, = for a
+        // conversation with no book) = would adopt each other's
+        // messages, = and the suite would fail only when the tests
+        // run concurrently. = A distinct book per test makes each
+        // conversation's id distinct, = and the session check does
+        // what it is there to do.
+        let vm = ChatViewModel(
+            repository: repository,
+            bookID: BookID(rawValue: "book-\(UUID().uuidString)"),
+            providersConfigured: { true }
+        )
         await vm.loadHistory()
 
         let messageID = UUID()
@@ -103,7 +117,21 @@ struct SubAgentResultAdoptionTests {
     @Test("a result for another session does not show up here")
     func aResultForAnotherSessionIsIgnored() async throws {
         let repository = AdoptionChatRepository()
-        let vm = ChatViewModel(repository: repository, providersConfigured: { true })
+        // Each test gets its own book, = and so its own session id.
+        //
+        // The notification bus is global, = so a test that posts a
+        // notification reaches EVERY open conversation. = Two tests
+        // with the same session id (= the default one, = for a
+        // conversation with no book) = would adopt each other's
+        // messages, = and the suite would fail only when the tests
+        // run concurrently. = A distinct book per test makes each
+        // conversation's id distinct, = and the session check does
+        // what it is there to do.
+        let vm = ChatViewModel(
+            repository: repository,
+            bookID: BookID(rawValue: "book-\(UUID().uuidString)"),
+            providersConfigured: { true }
+        )
         await vm.loadHistory()
 
         let messageID = UUID()
@@ -132,7 +160,21 @@ struct SubAgentResultAdoptionTests {
     @Test("the same result twice does not show up twice")
     func theSameResultTwiceShowsOnce() async throws {
         let repository = AdoptionChatRepository()
-        let vm = ChatViewModel(repository: repository, providersConfigured: { true })
+        // Each test gets its own book, = and so its own session id.
+        //
+        // The notification bus is global, = so a test that posts a
+        // notification reaches EVERY open conversation. = Two tests
+        // with the same session id (= the default one, = for a
+        // conversation with no book) = would adopt each other's
+        // messages, = and the suite would fail only when the tests
+        // run concurrently. = A distinct book per test makes each
+        // conversation's id distinct, = and the session check does
+        // what it is there to do.
+        let vm = ChatViewModel(
+            repository: repository,
+            bookID: BookID(rawValue: "book-\(UUID().uuidString)"),
+            providersConfigured: { true }
+        )
         await vm.loadHistory()
 
         let messageID = UUID()
@@ -163,7 +205,21 @@ struct SubAgentResultAdoptionTests {
     @Test("a result that is already shown is not shown again")
     func aResultAlreadyShownIsNotShownAgain() async throws {
         let repository = AdoptionChatRepository()
-        let vm = ChatViewModel(repository: repository, providersConfigured: { true })
+        // Each test gets its own book, = and so its own session id.
+        //
+        // The notification bus is global, = so a test that posts a
+        // notification reaches EVERY open conversation. = Two tests
+        // with the same session id (= the default one, = for a
+        // conversation with no book) = would adopt each other's
+        // messages, = and the suite would fail only when the tests
+        // run concurrently. = A distinct book per test makes each
+        // conversation's id distinct, = and the session check does
+        // what it is there to do.
+        let vm = ChatViewModel(
+            repository: repository,
+            bookID: BookID(rawValue: "book-\(UUID().uuidString)"),
+            providersConfigured: { true }
+        )
         await vm.loadHistory()
 
         let messageID = UUID()
