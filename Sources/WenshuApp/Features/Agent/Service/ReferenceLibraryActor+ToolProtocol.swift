@@ -47,7 +47,13 @@ extension ReferenceLibraryActor {
             switch action {
             case .create:
                 let title = envelope["title"] as? String ?? ""
-                let layer = envelope["layer"] as? String ?? "raw"
+                // The default layer is the USER-FACING one. `raw` is the
+                // internal ingestion layer: nothing in production reads
+                // it, and every UI surface filters on `entities`, so a
+                // write that lands there is a document the user never
+                // sees. The layer stays in the envelope, so a caller
+                // that really wants the raw layer can still ask.
+                let layer = envelope["layer"] as? String ?? "entities"
                 let category = envelope["category"] as? String
                 // Tags is an optional [String] in the envelope. Accept
                 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
@@ -122,7 +128,9 @@ extension ReferenceLibraryActor {
 
             case .upsert:
                 let title = envelope["title"] as? String ?? ""
-                let layer = envelope["layer"] as? String ?? "raw"
+                // The default layer is the USER-FACING one (= the same
+                // default `create` carries; = see the note there).
+                let layer = envelope["layer"] as? String ?? "entities"
                 let category = envelope["category"] as? String
                 let tagsArray = envelope["tags"] as? [String] ?? []
                 let tags = Set(tagsArray)

@@ -161,12 +161,12 @@ extension ReferenceLibraryTool {
                         ),
                         "layer": ToolRegistrySchemaProperty(
                             type: "string",
-                            description: "Reference layer ('raw' or 'entities'). Defaults to 'raw'.",
+                            description: "Reference layer ('entities' or 'raw'). Defaults to 'entities' (= the user-facing layer; = 'raw' is the internal ingestion layer, = the user does not browse it).",
                             enumValues: ["raw", "entities"]
                         ),
                         "category": ToolRegistrySchemaProperty(
                             type: "string",
-                            description: "Entity category (for layer=entities)."
+                            description: "Entity category (= required for layer=entities; = a document with no category lands in the unclassified bucket)."
                         ),
                         "entity_type": ToolRegistrySchemaProperty(
                             type: "string",

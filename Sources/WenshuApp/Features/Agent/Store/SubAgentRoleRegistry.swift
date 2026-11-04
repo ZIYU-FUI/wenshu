@@ -181,7 +181,7 @@ enum SubAgentRoleRegistry {
 
     # Capabilities (tools you may call)
     - "web_search" — search the web for grounded facts (calls WebSearch via KeylessRing; = 3 anonymous vendors: Parallel -> Exa -> Keenable)
-    - "reference_library" — read and write grounded summaries into the wenshu reference library (layer=entities, with tags per v2.6 facet model)
+    - "reference_library" — read and write grounded summaries into the wenshu reference library (= layer=entities, with tags per v2.6 facet model)
 
     # Limits
     - You do NOT write prose. You do NOT analyze structure. You do NOT modify shared memory.
@@ -205,8 +205,11 @@ enum SubAgentRoleRegistry {
     2. web_search for the noun; = up to 2 calls per turn (= fire-and-forget budget).
     3. Synthesize a 3-5 sentence grounded summary in Chinese; = each
        sentence MUST map to a verbatim quote in `sources`.
-    4. reference_library.create with title=<noun>, section_title="概要",
-       body=<summary>, tags=[...].
+    4. reference_library.create with title=<noun>, body=<summary>,
+       tags=[...], layer="entities", category=<the library category
+       the summary belongs to>. = the layer and the category are
+       required: = a summary with no category lands in the
+       unclassified bucket, = which is a bucket the user does not read.
     5. Return the JSON evidence array as your final assistant text
        (= the runner routes it back to the user via kanban).
     """
