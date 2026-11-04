@@ -117,8 +117,14 @@ actor BookExportEngine {
         let chaptersDir = bookDir.appendingPathComponent("chapters", isDirectory: true)
         let indexURL = bookDir.appendingPathComponent("chapters.json")
 
-        let chapters = try FileSystemChapterStore.loadChaptersFromFileSystem(
-            bookDirectory: bookDir,
+        // The folder on disk is the truth; the index enriches it.
+        //
+        // The index alone was the whole list, and the index holds at
+        // best a partial view: = an imported chapter has no row, = a
+        // promoted draft keeps its row in `drafts.json`. So the export
+        // dropped every chapter the user could see in the card grid.
+        let chapters = ChapterResolver.resolveChapters(
+            bookId: id,
             chaptersDirectory: chaptersDir,
             indexURL: indexURL
         )
@@ -132,20 +138,17 @@ actor BookExportEngine {
             return try await writeEPUB(
                 bookID: id,
                 chapters: chapters,
-                chaptersDir: chaptersDir,
                 destination: destinationURL
             )
         case .pdf:
             return writePDF(
                 chapters: chapters,
-                chaptersDir: chaptersDir,
                 destination: destinationURL
             )
         case .combinedMd:
             return try writeCombinedMarkdown(
                 bookID: id,
                 chapters: chapters,
-                chaptersDir: chaptersDir,
                 destination: destinationURL
             )
         }
@@ -158,8 +161,7 @@ actor BookExportEngine {
     /// OEBPS/content.opf + OEBPS/toc.ncx + OEBPS/chapter-<n>.xhtml.
     private func writeEPUB(
         bookID: UUID,
-        chapters: [Document],
-        chaptersDir: URL,
+        chapters: [ResolvedChapter],
         destination: URL
     ) async throws -> URL {
         let fm = FileManager.default
@@ -201,10 +203,7 @@ actor BookExportEngine {
         var navItems: [String] = []
 
         for (index, chapter) in chapters.enumerated() {
-            let body = FileSystemChapterStore.loadChapterBodyFromFileSystem(
-                id: chapter.id,
-                chaptersDirectory: chaptersDir
-            ) ?? ""
+            let body = chapter.body
 
             let fileName = "chapter-\(index + 1).xhtml"
             let chapterURL = oebps.appendingPathComponent(fileName)
@@ -299,17 +298,13 @@ actor BookExportEngine {
     /// an `NSImage` (= Apple HIG canonical pattern for rasterizing
     /// attributed text into a PDF page).
     private func writePDF(
-        chapters: [Document],
-        chaptersDir: URL,
+        chapters: [ResolvedChapter],
         destination: URL
     ) -> URL {
         let pdfDoc = PDFDocument()
 
         for (index, chapter) in chapters.enumerated() {
-            let body = FileSystemChapterStore.loadChapterBodyFromFileSystem(
-                id: chapter.id,
-                chaptersDirectory: chaptersDir
-            ) ?? ""
+            let body = chapter.body
 
             // Render the chapter text into an NSImage (= US Letter
             // @ 72 DPI; = 612 × 792 = the PDF page unit).
@@ -348,8 +343,7 @@ actor BookExportEngine {
     /// picker).
     private func writeCombinedMarkdown(
         bookID: UUID,
-        chapters: [Document],
-        chaptersDir: URL,
+        chapters: [ResolvedChapter],
         destination: URL
     ) throws -> URL {
         let fm = FileManager.default
@@ -359,10 +353,7 @@ actor BookExportEngine {
         )
 
         for chapter in chapters {
-            let body = FileSystemChapterStore.loadChapterBodyFromFileSystem(
-                id: chapter.id,
-                chaptersDirectory: chaptersDir
-            ) ?? ""
+            let body = chapter.body
             let safeTitle = chapter.title
                 .replacingOccurrences(of: "/", with: "-")
                 .replacingOccurrences(of: ":", with: "-")

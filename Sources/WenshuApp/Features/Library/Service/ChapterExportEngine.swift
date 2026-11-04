@@ -18,6 +18,10 @@ enum ChapterExportError: LocalizedError, Sendable, Equatable {
     case chapterNotFound(UUID)
     case destinationReadOnly(URL)
     case ioFailure(URL, String)
+    /// The chapter carries no identifier to report (= the export was
+    /// asked for a file rather than for an id, = and that file could
+    /// not be read).
+    case noChapterIdentifier
 
     var errorDescription: String? {
         switch self {
@@ -29,6 +33,8 @@ enum ChapterExportError: LocalizedError, Sendable, Equatable {
             return String(localized: "export.error.destination_readonly") + " (\(url.path))"
         case .ioFailure(let url, let msg):
             return "I/O failure at \(url.path): \(msg)"
+        case .noChapterIdentifier:
+            return "Chapter not found."
         }
     }
 }
@@ -39,6 +45,12 @@ actor ChapterExportEngine {
     /// are preserved verbatim (= what the user sees in the editor
     /// = what the user gets in the export). The YAML frontmatter is
     /// built from `ChapterFrontmatter.serialize` (= existing helper).
+    ///
+    /// The chapter is located by its ID, which finds the `<uuid>.md`
+    /// file the actor writes. = the ID entry point for a chapter the
+    /// actor created; = the file-based entry point below is the one
+    /// the export sheet uses, = because a chapter can also arrive
+    /// from the import under a name that is not an id.
     func exportChapter(
         id chapterID: UUID,
         to destinationURL: URL
@@ -67,6 +79,31 @@ actor ChapterExportEngine {
             throw ChapterExportError.chapterNotFound(chapterID)
         }
 
+        try write(body: body, to: destinationURL)
+        return destinationURL
+    }
+
+    /// Export a single chapter from the file that holds it.
+    ///
+    /// The ID-based entry point finds `<uuid>.md`, = the name the
+    /// actor writes. An imported chapter is named after its title, so
+    /// the ID path found nothing for it and the chapter could not be
+    /// exported at all. The file is the truth (= the same truth the
+    /// book export reads), so the chapter is exported from the file
+    /// the resolver handed over.
+    func exportChapter(
+        fileURL: URL,
+        to destinationURL: URL
+    ) async throws -> URL {
+        guard let body = try? String(contentsOf: fileURL, encoding: .utf8) else {
+            throw ChapterExportError.noChapterIdentifier
+        }
+        try write(body: body, to: destinationURL)
+        return destinationURL
+    }
+
+    /// Write the chapter body to the destination, verbatim.
+    private func write(body: String, to destinationURL: URL) throws {
         // Compose the chapter's exported Markdown = the body
         // verbatim. The body's existing frontmatter block (= the
         // YAML header the editor wrote into the chapter's .md) is
@@ -77,8 +114,6 @@ actor ChapterExportEngine {
             to: destinationURL,
             options: .atomic
         )
-
-        return destinationURL
     }
 
     /// Walk every shelf + book to find the chapters directory

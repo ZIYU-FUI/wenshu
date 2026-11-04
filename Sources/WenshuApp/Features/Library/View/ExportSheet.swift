@@ -69,10 +69,9 @@ struct ExportSheet: View {
     /// changes; = lazy-loaded from FileSystemChapterStore).
     @State private var selectedChapterID: UUID?
 
-    /// Loaded chapters for the selected book (= `liveChapters(of:)`
-    /// walks `bookStore.books` for the book, then calls
-    /// `FileSystemChapterStore.loadChaptersFromFileSystem`).
-    @State private var chapters: [Document] = []
+    /// Loaded chapters for the selected book (= resolved from the
+    /// book's `chapters/` folder by `ChapterResolver`).
+    @State private var chapters: [ResolvedChapter] = []
 
     /// Flipped when the user clicks 导出; = triggers the
     /// `.fileExporter` modifier for the selected kind.
@@ -159,6 +158,7 @@ struct ExportSheet: View {
         .modifier(ChapterFileExporter(
             chapterEngine: chapterEngine,
             selectedChapterID: selectedChapterID,
+            chapters: chapters,
             lastChapterURLString: $lastChapterURLString,
             isExporting: $isExporting,
             onComplete: { _ in
@@ -215,14 +215,15 @@ struct ExportSheet: View {
                 selectedChapterID = nil
                 return
             }
-            // Load chapters from the book's filesystem JSON index
-            // (= the nonisolated static helper on FileSystemChapterStore).
+            // Load chapters from the book's filesystem folder
+            // (= the same reader the export engine uses; = the
+            // folder on disk is the truth and the index enriches it).
             let bookDir = bookURL(for: book)
-            chapters = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
-                bookDirectory: bookDir,
+            chapters = ChapterResolver.resolveChapters(
+                bookId: bookID,
                 chaptersDirectory: bookDir.appendingPathComponent("chapters", isDirectory: true),
                 indexURL: bookDir.appendingPathComponent("chapters.json")
-            )) ?? []
+            )
             selectedChapterID = nil
         }
     }
@@ -244,11 +245,11 @@ struct ExportSheet: View {
                 return
             }
             let bookDir = bookURL(for: book)
-            chapters = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
-                bookDirectory: bookDir,
+            chapters = ChapterResolver.resolveChapters(
+                bookId: bookID,
                 chaptersDirectory: bookDir.appendingPathComponent("chapters", isDirectory: true),
                 indexURL: bookDir.appendingPathComponent("chapters.json")
-            )) ?? []
+            )
             selectedChapterID = nil
         }
         Picker(String(localized: "export.chapter.picker"), selection: $selectedChapterID) {
@@ -436,6 +437,10 @@ private struct BookFileExporter: ViewModifier {
 private struct ChapterFileExporter: ViewModifier {
     let chapterEngine: ChapterExportEngine
     let selectedChapterID: UUID?
+    /// The resolved chapters (= so the exporter can find the FILE that
+    /// holds the selected chapter; = an imported chapter is named
+    /// after its title, = not `<uuid>.md`).
+    let chapters: [ResolvedChapter]
     @Binding var lastChapterURLString: String
     @Binding var isExporting: Bool
     let onComplete: (URL) -> Void
@@ -465,8 +470,14 @@ private struct ChapterFileExporter: ViewModifier {
         lastChapterURLString = url.path
 
         guard let chapterID = self.selectedChapterID else { return }
+        // The chapter is exported from the FILE that holds it (= the
+        // resolver's answer), = not from an id lookup. An imported
+        // chapter is named after its title, = the `<uuid>.md` lookup
+        // found nothing for it, = and the chapter could not be
+        // exported at all.
+        guard let chapter = self.chapters.first(where: { $0.id == chapterID }) else { return }
         Task {
-            _ = try? await chapterEngine.exportChapter(id: chapterID, to: url)
+            _ = try? await chapterEngine.exportChapter(fileURL: chapter.fileURL, to: url)
         }
         onComplete(url)
     }
