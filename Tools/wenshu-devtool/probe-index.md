@@ -69,11 +69,22 @@ column's full 28 PT band, so its band geometry is the one the numbers
 describe. The band itself lived in `ChromeTopBar.swift` and
 `EditorFormatToolbar.swift` at that commit; the toolbar file is GONE now
 (= the format commands moved into the trailing inspector column, = and
-the icon strip's mount went with them), so these numbers describe
-`ab0de05659` and that tree only. `AssetsPane.swift` HAS changed since (=
-three commits: = the cards, = the cover, = the column's bottom bar), = but
-none of them touches the band or the search row, = so the band's geometry
-is the one the numbers describe.
+the icon strip's mount went with them).
+
+`AssetsPane.swift` HAS changed since, = in FOUR commits (= the column's
+bottom bar, = the cover, = the library's tags, = and `8f45e5dbba` = the
+column-top band painting no surface of its own). The fourth one DID
+touch the band this probe measures: = it changed what the band PAINTS
+(= the shared `ChromeTopBar` takes `usesMaterial: false` there now, = so
+the band shows the column's own background through it), = and its own
+message says the band's shape, its content row height, its horizontal
+inset and its Divider are unchanged. So of the probe's four numbers, the
+two GEOMETRY ones (= the content band's centre, = the bottom hairline's
+row) still describe the later tree, = while the two SURFACE ones (= the
+band surface's top and bottom, = read from the band's own surface
+luminance) describe `ab0de05659` ONLY, = because after `8f45e5dbba` the
+assets band's own surface is not there to measure. The recorded NUMBERS
+are untouched by this note.
 
 ```
 probe: column_chrome_band

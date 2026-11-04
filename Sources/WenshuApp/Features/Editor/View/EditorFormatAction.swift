@@ -30,7 +30,6 @@
 
 import Foundation
 import MarkdownEngine
-import SwiftUI
 
 /// One format command the engine's markdown surface can apply.
 ///
@@ -77,13 +76,20 @@ enum EditorFormatAction: String, CaseIterable, Identifiable {
         }
     }
 
-    /// The command's name, as the reader sees it.
+    /// The command's name.
     ///
     /// The lookup is a RUNTIME key rather than `String(localized:)`: that
     /// form takes a compile-time literal, so a spliced key resolves to
     /// itself and the name reads "editor.format.bold.tooltip" instead of
     /// the translated name. Every one of the twelve keys exists in the
     /// catalog; the lookup form is what reaches them.
+    ///
+    /// The name is what the reader MEETS as the command's tooltip and as
+    /// its VoiceOver name, = and as the words in the two places the page
+    /// names a command in words (= the heading command's menu, = the link
+    /// row's label). = The ten icon commands draw no words at all: = their
+    /// slot IS the glyph, = and the name is spoken and hovered, = not read
+    /// off the page.
     var localizedLabel: String {
         NSLocalizedString(
             "editor.format.\(rawValue).tooltip",
@@ -114,16 +120,6 @@ enum EditorFormatAction: String, CaseIterable, Identifiable {
             "editor.format.\(rawValue).a11y",
             comment: "VoiceOver label for the \(rawValue) format command"
         )
-    }
-
-    /// The command's name, as the page draws it (= the words alone; =
-    /// the glyph rides the card's marker column).
-    ///
-    /// The name is the catalog's OWN value for the command (= the
-    /// tooltip key), so the page's visible name and the command's
-    /// VoiceOver name are one string, not two that can drift.
-    func label(style: Font) -> Text {
-        Text(verbatim: localizedLabel).font(style)
     }
 
     /// Post this command's request on the bus.
