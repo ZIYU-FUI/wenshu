@@ -126,16 +126,46 @@ struct SubAgentResultAdoptionTests {
         return vm.messages.filter { $0.id == messageID }.count
     }
 
-    /// Post the notification the delivery posts.
-    private static func post(sessionID: String, messageID: UUID) {
-        NotificationCenter.default.post(
-            name: delivered,
-            object: nil,
-            userInfo: [
-                "sessionID": sessionID,
-                "messageID": messageID.uuidString
-            ]
+    /// Post the notification the delivery posts, = from off the main
+    /// actor.
+    ///
+    /// The production path is the delivery, = and the delivery is
+    /// main-actor isolated, = so the notification is posted from the
+    /// main actor. = Posting it here from a detached task keeps the
+    /// test's own post off the actor, = so the test measures the
+    /// adopter and not the thread the post came from.
+    private static func postOffActor(sessionID: String, messageID: UUID) async {
+        await Task.detached {
+            NotificationCenter.default.post(
+                name: delivered,
+                object: nil,
+                userInfo: [
+                    "sessionID": sessionID,
+                    "messageID": messageID.uuidString
+                ]
+            )
+        }.value
+    }
+
+    /// Deliver a result through the production delivery, = and return
+    /// the message id it wrote.
+    @MainActor
+    private static func deliver(
+        _ repository: AdoptionChatRepository,
+        runID: String,
+        sessionID: SessionID,
+        bookID: BookID?,
+        result: String
+    ) async -> UUID {
+        let delivery = SubAgentResultDelivery(repository: repository)
+        let handle = BackgroundDelegationHandle(
+            id: runID,
+            agentName: "researcher",
+            userMessage: "find something",
+            scope: AgentScope(sessionID: sessionID, bookID: bookID)
         )
+        _ = await delivery.deliver(handle: handle, result: result)
+        return SubAgentResultDelivery.messageID(for: runID)
     }
 
     // MARK: - The tests
@@ -151,20 +181,26 @@ struct SubAgentResultAdoptionTests {
         )
         await vm.loadHistory()
 
-        let messageID = UUID()
-        try await repository.append(
-            ChatMessage(id: messageID, role: .agentResult, source: .agentResult, content: "the answer"),
-            sessionId: vm.testSessionId,
-            bookID: vm.currentBookID
+        // The production path: = the delivery writes the result into
+        // the asking conversation and says so.
+        let messageID = await Self.deliver(
+            repository,
+            runID: "run-arrival",
+            sessionID: vm.testSessionId,
+            bookID: vm.currentBookID,
+            result: "the answer"
         )
-
-        Self.post(sessionID: vm.testSessionId.rawValue, messageID: messageID)
 
         _ = await Self.waitForSettledCount(vm, of: messageID)
 
         #expect(vm.messages.contains { $0.id == messageID },
                 "the result must reach the conversation that asked for it")
-        #expect(vm.messages.first { $0.id == messageID }?.content == "the answer")
+        // The body is the agent's label and then the result, = so the
+        // user can see who answered.
+        let content = vm.messages.first { $0.id == messageID }?.content ?? ""
+        #expect(content.contains("the answer"), "the result must be in the body")
+        #expect(content.hasPrefix(SubAgentRoleRegistry.role(forSlug: "researcher")?.displayLabel ?? ""),
+                "and the body must say which agent answered")
     }
 
     @MainActor
@@ -179,25 +215,24 @@ struct SubAgentResultAdoptionTests {
         await vm.loadHistory()
 
         // The result that belongs to somebody else.
-        let otherID = UUID()
-        try await repository.append(
-            ChatMessage(id: otherID, role: .agentResult, source: .agentResult, content: "another answer"),
-            sessionId: SessionID(rawValue: "some-other-session"),
-            bookID: vm.currentBookID
+        let otherID = await Self.deliver(
+            repository,
+            runID: "run-other",
+            sessionID: SessionID(rawValue: "some-other-session"),
+            bookID: vm.currentBookID,
+            result: "another answer"
         )
 
         // The sentinel: = a result for THIS conversation. = When it
         // arrives, = the bus is live and the delivery works, = so the
         // absence of the other one is a fact.
-        let sentinelID = UUID()
-        try await repository.append(
-            ChatMessage(id: sentinelID, role: .agentResult, source: .agentResult, content: "this answer"),
-            sessionId: vm.testSessionId,
-            bookID: vm.currentBookID
+        let sentinelID = await Self.deliver(
+            repository,
+            runID: "run-sentinel",
+            sessionID: vm.testSessionId,
+            bookID: vm.currentBookID,
+            result: "this answer"
         )
-
-        Self.post(sessionID: "some-other-session", messageID: otherID)
-        Self.post(sessionID: vm.testSessionId.rawValue, messageID: sentinelID)
 
         let sentinelCount = await Self.waitForSettledCount(vm, of: sentinelID)
 
@@ -218,15 +253,18 @@ struct SubAgentResultAdoptionTests {
         )
         await vm.loadHistory()
 
-        let messageID = UUID()
-        try await repository.append(
-            ChatMessage(id: messageID, role: .agentResult, source: .agentResult, content: "the answer"),
-            sessionId: vm.testSessionId,
-            bookID: vm.currentBookID
+        let messageID = await Self.deliver(
+            repository,
+            runID: "run-twice",
+            sessionID: vm.testSessionId,
+            bookID: vm.currentBookID,
+            result: "the answer"
         )
 
-        Self.post(sessionID: vm.testSessionId.rawValue, messageID: messageID)
-        Self.post(sessionID: vm.testSessionId.rawValue, messageID: messageID)
+        // The same notification, = a second time. = Two deliveries for
+        // one result arrive together, = both see that the message is
+        // not here yet, = and both would append it.
+        await Self.postOffActor(sessionID: vm.testSessionId.rawValue, messageID: messageID)
 
         let count = await Self.waitForSettledCount(vm, of: messageID)
 
@@ -244,23 +282,21 @@ struct SubAgentResultAdoptionTests {
         )
         await vm.loadHistory()
 
-        let messageID = UUID()
-        let message = ChatMessage(
-            id: messageID,
-            role: .agentResult,
-            source: .agentResult,
-            content: "the answer"
-        )
-        // The conversation already shows it: = a reload ran between
-        // the write and the notification.
-        vm.messages.append(message)
-        try await repository.append(
-            message,
-            sessionId: vm.testSessionId,
-            bookID: vm.currentBookID
+        let messageID = await Self.deliver(
+            repository,
+            runID: "run-already",
+            sessionID: vm.testSessionId,
+            bookID: vm.currentBookID,
+            result: "the answer"
         )
 
-        Self.post(sessionID: vm.testSessionId.rawValue, messageID: messageID)
+        // The conversation already shows it: = a reload ran between
+        // the write and the notification.
+        if let stored = repository.appended.first(where: { $0.id == messageID }) {
+            vm.messages.append(stored)
+        }
+
+        await Self.postOffActor(sessionID: vm.testSessionId.rawValue, messageID: messageID)
 
         let count = await Self.waitForSettledCount(vm, of: messageID)
 

@@ -439,11 +439,23 @@ final class ChatViewModel {
         NotificationCenter.default.addObserver(
             forName: Notification.Name(AppStateEvents.subAgentResultDelivered.rawValue),
             object: nil,
-            queue: .main
+            queue: nil
         ) { [weak self] notification in
             // The values are taken out of the notification here, =
             // because the notification itself is not Sendable and = a
             // main-actor call cannot take one across the boundary.
+            //
+            // The queue is nil and not .main, = so the closure runs on
+            // the thread that posted. = The delivery is main-actor
+            // isolated, = so the posting thread is the main actor, =
+            // and a `queue: .main` delivery would then wait for the
+            // main RUN LOOP to turn before the hop below even
+            // started. = A run loop that is busy (= a test suite
+            // running many conversations, = or an app under load) =
+            // turns late, = and the result sat in the repository
+            // while the conversation that asked for it showed
+            // nothing. = The hop below is the isolation guarantee, =
+            // and it is the same pattern the observer above uses.
             let sessionID = notification.userInfo?["sessionID"] as? String
             let messageID = notification.userInfo?["messageID"] as? String
             Task { @MainActor [weak self] in
