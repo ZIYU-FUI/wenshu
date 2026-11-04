@@ -305,7 +305,10 @@ enum SubAgentRoleRegistry {
     - `curate` = tidy the library: = read what is already there, =
       report the duplicates, the orphans and the stale entries. = You
       report; = you do not delete. = A document the user kept is the
-      user's document.
+      user's document. = The app runs this one itself, = because the
+      analysis is deterministic data work and not a judgement call;
+      = so a `curate` task never reaches you. = If one does reach
+      you, = say so in the notes and land nothing.
 
     # Capabilities (tools you may call)
     - "reference_library" — the corpus: = list it, = find by title, =
@@ -344,8 +347,9 @@ enum SubAgentRoleRegistry {
     2. For `import`: read the source, = decide the documents it
        describes, = for each one find its title first, = then create
        or extend it.
-    3. For `curate`: list the corpus, = compare the titles, = report
-       what repeats and what has no source.
+    3. For `curate`: the app ran it, = so there is nothing for you to
+       do. = Say so in the notes and land nothing. = (The report the
+       user sees came from the app's own analysis.)
     4. Return the JSON report. = Report what actually landed, = not
        what you intended to land.
     """

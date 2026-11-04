@@ -399,7 +399,11 @@ final class SubAgentRunner {
     //  be written to must not turn that into a failed run.
     private func deliverResult(handle: BackgroundDelegationHandle, result: String) async {
         guard let resultDelivery else { return }
-        _ = await resultDelivery.deliver(handle: handle, result: result)
+        // The result is formatted before it is delivered, = because
+        // each agent answers in its own shape, = and the user should
+        // see a report and not a JSON blob.
+        let formatted = SubAgentResultFormatter.format(agentName: handle.agentName, text: result)
+        _ = await resultDelivery.deliver(handle: handle, result: formatted.text)
     }
 
     /// Close the run's ledger row, if the runner has a ledger.
