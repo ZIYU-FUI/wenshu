@@ -364,6 +364,16 @@ struct SubAgentResultAdoptionTests {
                 "and what it does about the notification must be the adoption")
         #expect(block.contains("\"sessionID\"") && block.contains("\"messageID\""),
                 "and it must read the two ids the delivery names")
+        // It must FORWARD the ids it read. = A call that passes
+        // something else ( = nil, = or a constant) = still contains
+        // the call, = so the assertion above would pass, = and the
+        // result would never land. = This is the mutation that showed
+        // it: = the call was there, = the ids were nil, = and the
+        // suite was green.
+        #expect(block.contains("sessionID: sessionID"),
+                "and it must forward the session id it read")
+        #expect(block.contains("messageID: messageID"),
+                "and it must forward the message id it read")
     }
 
     /// The view model's source, = found beside the test.
