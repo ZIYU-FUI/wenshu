@@ -18,7 +18,7 @@ card's commit does not touch the app source.
 | --- | --- | --- | --- |
 | `chat_bubble_metrics.swift` | The user's own chat bubble (the outgoing message surface in the chat column), painted width and corner radius read from rendered pixels at a stated host width. | `painted_width_pt`, `painted_height_pt`, `corner_radius_pt`, `shape_rule_radius_pt`, `subject_ink_width_pt`, `host_width_pt`, `calibration_radius_pt`, `calibration_measured_pt` | `3ee82bf48b18` |
 | `column_chrome_band.py` | The column-top chrome band of two neighbouring columns of the running app (= the materials column's search band and the editor column's format-toolbar band), read from a 2x capture: the content ink band, the MATERIAL surface the band paints, and the closing hairline. RETIRED AS A BAND-PAIRING MEASUREMENT (2026-11-04: the editor column's format-toolbar band is gone with the format commands' move to the inspector column's format page, = so the pair this probe measured no longer exists, = and a probe that measured one column's band against a band the tree no longer draws would report a number for a subject that is not there). | `content_centre_delta_pt`, `band_surface_top_delta_pt`, `band_surface_bottom_delta_pt`, plus each column's content centre and band surface top/bottom | `ab0de05659` |
-| `editor_chat_arrangement.py` | The editor and chat zone's arrangement (= which pane is where), read from the running app's accessibility tree as native coordinates: the chat's composer and the editor's body (= the editor column's leading edge). It names the arrangement from those coordinates and checks the production fragments it reproduces before it reports a number. | `composer_x`, `composer_y`, `editor_body_x`, `editor_body_y`, `arrangement`, plus `requested_mode` and `agreement` | `560c70ae51` |
+| `editor_chat_arrangement.py` | The editor and chat zone's arrangement (= which pane is where), read from the running app's accessibility tree as native coordinates: the chat's composer and the editor's body (= the editor column's leading edge). It names the arrangement from those coordinates and checks the production fragments it reproduces before it reports a number. | `composer_x`, `composer_y`, `editor_body_x`, `editor_body_y`, `arrangement`, plus `requested_mode` and `agreement` | `fdc4b6760a36` |
 | `toolbar_preference_change.py` | The main window's toolbar after the app's preferences changed: the app's own Settings scene is driven through the accessibility tree, its group rows are switched N times (= N app-preference changes), and the process is watched for the abort AppKit raises when a window asks for more "Update Constraints in Window" passes than it has views. | `switches_landed`, `survived`, `pane_after`, `unresolvable_symbol_faults`, `max_update_constraints_count`, `layout_loop_warnings`, `new_crash_reports`, `other_crash_reports`, plus `bundle`, `bundle_id`, `executable`, `pid`, `instance_owned` and `source_commit` | `37e941c604` |
 | `toolbar_preference_change.swift` | RETIRED AS A GUI DRIVER (2026-10-29: the AX press takes the operator's mouse and foreground; the GUI drive goes through the CUA tool). The accessibility driver the toolbar probe runs: it opens the app's own Settings scene, selects its group rows through the accessibility tree, and verifies every switch against the persisted group key, so a driver that silently did nothing cannot report a pass. It drives the PID it is given and never re-derives one from a path, because every build of the app ships the same bundle id and a path does not name an instance. It checks that the running instance claims the bundle id it was given, because the preferences it reads live in the domain of that id. | `group_rows`, `strategy`, `switches_landed`, plus the group and pane of each round | `37e941c604` |
 
@@ -101,35 +101,39 @@ Two things in that run are worth reading together:
 
 ### `editor_chat_arrangement.py`
 
-Taken against commit `560c70ae51`, on the running app's own
-accessibility tree (= no screenshot; = the tree's coordinates are the
-measurement).
+Taken against commit `fdc4b6760a36` (= the commit that moved the
+format commands to the inspector column's format page), on the running
+app's own accessibility tree (= no screenshot; = the tree's coordinates
+are the measurement).
 
 ```
 probe: editor_chat_arrangement
-source_commit: 560c70ae51
+source_commit: fdc4b6760a36
 source_fragments: 8/8 match
-pid: 69568
+pid: 31320
 bundle_id: com.wenshu.app
-requested_mode: automatic
-composer_x: 856
+requested_mode: sideBySide
+composer_x: 620
 composer_y: 930
-editor_toolbar_x: 714
-editor_toolbar_y: -30
-editor_body_x: 706
-editor_body_y: -2
-arrangement: stacked
-agreement: the automatic mode follows the width (= no fixed arrangement)
+editor_body_x: 804
+editor_body_y: 112
+arrangement: sideBySide
+agreement: yes (asked sideBySide, on screen sideBySide)
 GATE: PASSED
 ```
 
-The landmark changed with this card's tree (= 2026-11-04): the probe used to
-find the editor's TOOLBAR by the AXButton labelled "bold", and the format
-commands moved to the inspector column's format page, so that button now
-belongs to a DIFFERENT column. The probe now reads the editor's BODY
-(= the AXTextArea), which is the editor column's own leading edge, and
-the arrangement question is asked of that.
+The landmark changed with this card's tree (= 2026-11-04): the probe used
+to find the editor's TOOLBAR by the AXButton labelled "bold", and the
+format commands moved to the inspector column's format page, so that
+button now belongs to a DIFFERENT column. The probe now reads the
+editor's BODY (= the AXTextArea), which is the editor column's own
+leading edge, and the arrangement question is asked of that.
 
+The run before this one (= against `560c70ae51`) read the toolbar's
+button and printed `editor_toolbar_x` / `editor_toolbar_y`; those two
+numbers are GONE (= the probe does not print them any more, = and the
+button they named now sits in the inspector column, = so a number read
+from it would have described the wrong column).
 
 Two things in that run are worth reading together:
 
@@ -138,11 +142,12 @@ Two things in that run are worth reading together:
   = the three modes, = the width rule's thresholds, = the autosave
   names), = and it prints no number when one of them disagrees with the
   live source. = The numbers below describe the tree the probe read.
-- `arrangement: stacked` with `requested_mode: automatic` and
-  `agreement: the automatic mode follows the width` is not a
-  contradiction: = in the automatic mode the arrangement follows the
-  window's width, = so a narrow window stacks the panes and a wide one
-  puts them side by side, = and the probe reports which one it found.
+- `arrangement: sideBySide` with `requested_mode: sideBySide` and
+  `agreement: yes` is the other half of the same rule: = in the
+  automatic mode the arrangement follows the window's width, = and this
+  window is wide enough for the panes to sit side by side, = so the
+  probe reports the arrangement it found and whether it is the one that
+  was asked for.
 
 ### `toolbar_preference_change.py`
 
