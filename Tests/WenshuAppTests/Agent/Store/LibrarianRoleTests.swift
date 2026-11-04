@@ -53,8 +53,35 @@ struct LibrarianRoleTests {
     func theLibrarianReads() throws {
         let role = try #require(SubAgentRoleRegistry.role(forSlug: "librarian"))
         #expect(
-            role.toolNames.contains("file") || role.toolNames.contains("ReadFile"),
+            role.toolNames.contains("ReadFile"),
             "a curate run has to see the corpus before it can report on it"
+        )
+    }
+
+    /// The librarian is the corpus's writer, = and that has to be true
+    /// of the TOOLS and not only of the prompt.
+    ///
+    /// The `file` tool is the general one: = it reads, = it writes, =
+    /// it patches, = and it lists. = Its read path has no sandbox
+    /// guard at all, = and its write path writes anywhere the process
+    /// can reach. = A role that holds it can put its hands on the
+    /// user's disk, = which is not what "the librarian files
+    /// documents" means, = and a prompt asking the model not to is a
+    /// weaker guarantee than a tool that cannot do it.
+    ///
+    /// `ReadFile` is the read-only half, = with the sandbox
+    /// deny-list, = and it reads what the import task names. = So the
+    /// librarian reads through it and writes through the corpus.
+    @Test("the librarian holds no general file-writing tool")
+    func theLibrarianHoldsNoGeneralFileTool() throws {
+        let role = try #require(SubAgentRoleRegistry.role(forSlug: "librarian"))
+        #expect(
+            !role.toolNames.contains("file"),
+            "the corpus must be the only thing the librarian can write to"
+        )
+        #expect(
+            !role.toolNames.contains("WriteFile"),
+            "the corpus must be the only thing the librarian can write to"
         )
     }
 

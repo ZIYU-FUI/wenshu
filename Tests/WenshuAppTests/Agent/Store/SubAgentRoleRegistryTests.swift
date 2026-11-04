@@ -207,6 +207,36 @@ struct SubAgentRoleRegistryTests {
         }
     }
 
+    /// No role holds the general file tool.
+    ///
+    /// The `file` tool reads, writes, patches and lists, = and its
+    /// read path has no sandbox guard while its write path reaches
+    /// anywhere the process can. = Every role's job is narrower than
+    /// that: = the researcher gathers, = the writer drafts, = the
+    /// analyst reads structure, = the librarian files, = and the
+    /// archivist and the auditor read only.
+    ///
+    /// So no role holds it. = A role that needs to read a file holds
+    /// `ReadFile`, = which is the read-only half with the sandbox
+    /// deny-list. = The write authority is a role's own tool: = the
+    /// corpus for the librarian, = the chapter for the writer.
+    ///
+    /// This is a table-wide invariant, = not a librarian fact, = so it
+    /// is pinned once for every row.
+    @Test("no role holds the general file tool")
+    func noRoleHoldsTheGeneralFileTool() {
+        for row in SubAgentRoleRegistry.roles {
+            #expect(
+                !row.toolNames.contains("file"),
+                "\(row.slug) holds the general file tool (= it can write anywhere)"
+            )
+            #expect(
+                !row.toolNames.contains("WriteFile"),
+                "\(row.slug) holds a general file-writing tool (= it can write anywhere)"
+            )
+        }
+    }
+
     @Test("the prompts are the ones the app sent before the move")
     func promptsAreUnchanged() {
         // The role sentence each prompt opens with (= the identity
