@@ -94,11 +94,21 @@ enum EditorFormatAction: String, CaseIterable, Identifiable {
     /// The command's VoiceOver name.
     ///
     /// This is the string the accessibility tree publishes for the
-    /// command, so it is what the layout probe reads when it looks for a
-    /// format command in the tree. That is why it is the SAME string in
-    /// every locale for the three commands whose glyph is a Latin word
-    /// (= the glyph the name speaks for), and why it differs from the
-    /// visible name for those three.
+    /// command, so it is what VoiceOver reads for a command whose glyph
+    /// speaks no word (= the glyph is the icon, = and the icon's name is
+    /// not a sentence).
+    ///
+    /// The key is SEPARATE from the visible name's key (= the tooltip's
+    /// key), so a future punctuation tweak (= a name that must read
+    /// differently when spoken than when shown) = can differ from the
+    /// visible name without touching what the page shows. The two values
+    /// are CURRENTLY identical for every command (= the page's visible
+    /// name and the command's VoiceOver name are one string, = so the
+    /// two cannot drift apart by accident).
+    ///
+    /// No probe reads this string: = the layout probe used to look for a
+    /// command by its AXButton label, = and the format commands' move out
+    /// of the editor zone took that lookup with it.
     var localizedAccessibilityLabel: String {
         NSLocalizedString(
             "editor.format.\(rawValue).a11y",

@@ -154,14 +154,14 @@ enum WenshuEditorServicesFactory {
         // = visually wrong on a wenshu editor column). Set 10 PT horizontal so
         // the rendered text has a narrow but visible left/right breathing
         // space (= matches the canonical wenshu editor chrome rhythm = sidebar
-        // buttons / format toolbar / tab strip all use 8-12 PT insets per
+        // buttons / tab strip all use 8-12 PT insets per
         // `DesignTokens.spacingStandard / spacingModerate`; = 10 PT is the
         // round-number middle of that range; = the text body is visibly inside
         // the editor column without an A4-paper margin). Set 0 PT vertical so
-        // the document body flows continuously from the format toolbar (= the
-        // toolbar is the top margin; = the status bar is the bottom margin; =
+        // the document body flows continuously from the tab strip row (= the
+        // tab strip is the top margin; = the status bar is the bottom margin; =
         // no internal vertical text inset would add a redundant line of
-        // padding between the toolbar and the first line of text). 2026-10-14
+        // padding between the chrome and the first line of text). 2026-10-14
         // v4: with `readingWidth = nil` (= the v4 design restored in this
         // file), the engine's `NSTextContainer` follows the parent
         // NSScrollView viewport (= `widthTracksTextView = true`; = the

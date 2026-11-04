@@ -66,12 +66,14 @@ Taken against commit `ab0de05659`, on a 2x capture of the running app with
 the window maximized. That commit is the one that put the materials
 column's search row on the shared `ChromeTopBar` and gave it the editor
 column's full 28 PT band, so its band geometry is the one the numbers
-describe. The band itself lives in `ChromeTopBar.swift` and
-`EditorFormatToolbar.swift`, and both are byte-identical from that commit
-to `main` today, so the numbers still describe a later tree.
-`AssetsPane.swift` HAS changed since (= three commits: = the cards, = the
-cover, = the column's bottom bar), = but none of them touches the band or
-the search row, = so the band's geometry is the one the numbers describe.
+describe. The band itself lived in `ChromeTopBar.swift` and
+`EditorFormatToolbar.swift` at that commit; the toolbar file is GONE now
+(= the format commands moved into the trailing inspector column, = and
+the icon strip's mount went with them), so these numbers describe
+`ab0de05659` and that tree only. `AssetsPane.swift` HAS changed since (=
+three commits: = the cards, = the cover, = the column's bottom bar), = but
+none of them touches the band or the search row, = so the band's geometry
+is the one the numbers describe.
 
 ```
 probe: column_chrome_band

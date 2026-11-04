@@ -13,7 +13,7 @@
 //
 // The bar is 24 PT (= 4 PT less than the 28 PT chrome band of T-01;
 // = Pages / Numbers status bar height). The bar lives in the
-// EditorView's zone outer VStack (= below the format toolbar and
+// EditorView's zone outer VStack (= below the tab strip row and
 // the NSTextView; = pinned, = does NOT scroll with the text).
 //
 // We don't wire the data sources here (= the View is a dumb

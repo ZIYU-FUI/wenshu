@@ -338,18 +338,16 @@ struct SFIcon: View {
     let color: Color
     let rendering: IconRendering?
     /// Optional per-call point-size override (= the wenshu 1:1 per-icon
-    /// optical-size strategy from `wenshu-apple-api-first`). RATIONALE
-    /// 2026-10-13: the format toolbar needs different visual sizes per SF
-    /// Symbol (= "bold" / "italic" are wide glyphs; = "`</>`" is a thin glyph;
-    /// = "link" is a single thin line; = each glyph needs its own point size to
-    /// optical-match the other 11 buttons). The factory's `style.pointSize` is
-    /// the canonical Apple HIG default (= 14 PT for `.inlineSmall`); = the
-    /// override lets a caller pass the per-icon measured value
-    /// (= 12 / 14 / 16 / 18 PT) without losing the SFIcon rendering pipeline (=
-    /// `.symbolRenderingMode` + `.foregroundStyle`). nil = use
-    /// `style.pointSize`. The override is set on the `Image` (= applied AFTER
-    /// the factory's `.font(.system(size:))` = SwiftUI modifier order = the
-    /// override wins).
+    /// optical-size strategy from `wenshu-apple-api-first`). A CALLER
+    /// passes the point size its own glyph needs (= one icon that must
+    /// optical-match the icons around it, = measured for that case).
+    /// The factory's `style.pointSize` is the canonical Apple HIG default
+    /// (= 14 PT for `.inlineSmall`); = the override lets that one caller
+    /// pass its measured value without losing the SFIcon rendering
+    /// pipeline (= `.symbolRenderingMode` + `.foregroundStyle`). nil =
+    /// use `style.pointSize`. The override is set on the `Image` (= applied
+    /// AFTER the factory's `.font(.system(size:))` = SwiftUI modifier
+    /// order = the override wins).
     let pointSizeOverride: CGFloat?
 
     /// Optional per-call weight override (= the same 1:1 per-icon optical
