@@ -459,7 +459,7 @@ final class ChatViewModel {
             let sessionID = notification.userInfo?["sessionID"] as? String
             let messageID = notification.userInfo?["messageID"] as? String
             Task { @MainActor [weak self] in
-                self?.adoptDeliveredSubAgentResult(sessionID: sessionID, messageID: messageID)
+                await self?.adoptDeliveredSubAgentResult(sessionID: sessionID, messageID: messageID)
             }
         }
 
@@ -1061,8 +1061,18 @@ extension ChatViewModel {
     /// A notification for another session is ignored: = a reply
     /// belongs to the conversation that asked for it, = and not to
     /// whatever conversation happens to be open.
-    private func adoptDeliveredSubAgentResult(sessionID: String?, messageID: String?) {
-        resultAdopter.adopt(
+    /// Take in a result that landed in this conversation.
+    ///
+    /// Internal and not private, = because the adoption's contract is
+    /// worth testing without the notification bus in the way. = The
+    /// bus is global, = and a whole-suite run has dozens of open
+    /// conversations on it, = so a test that goes through the bus
+    /// measures the suite's contention and not the adoption. = The
+    /// wiring between the bus and this method is pinned by
+    /// `SubAgentResultAdoptionTests`, = and the delivery's own test
+    /// pins that the delivery writes the row and names it.
+    func adoptDeliveredSubAgentResult(sessionID: String?, messageID: String?) async {
+        await resultAdopter.adopt(
             sessionID: sessionID,
             messageID: messageID,
             currentSessionID: self.sessionId.rawValue,

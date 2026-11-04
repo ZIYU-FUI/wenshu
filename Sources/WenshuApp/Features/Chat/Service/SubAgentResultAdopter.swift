@@ -72,7 +72,7 @@ final class SubAgentResultAdopter {
         currentBookID: BookID?,
         alreadyPresent: (UUID) -> Bool,
         append: @escaping @MainActor (ChatMessage) -> Void
-    ) {
+    ) async {
         guard let deliveredSession = sessionID,
               deliveredSession == currentSessionID,
               let messageIDString = messageID,
@@ -90,19 +90,27 @@ final class SubAgentResultAdopter {
         adopting.insert(messageUUID)
 
         let repository = repository
-        Task { [weak self] in
-            let stored = (try? await repository.loadMessages(
-                sessionId: SessionID(rawValue: currentSessionID),
-                bookID: currentBookID
-            )) ?? []
-            let message = stored.first { $0.id == messageUUID }
-            await MainActor.run {
-                guard let self else { return }
-                self.adopting.remove(messageUUID)
-                if let message {
-                    append(message)
-                }
-            }
+        // The read and the append happen IN PLACE, = and not in a
+        // task.
+        //
+        // A task put the adoption behind everything the main actor
+        // had already queued, = and a busy main actor (= a test
+        // suite running many conversations, = or an app under load)
+        // delays it by seconds. = The result was on disk and nowhere
+        // else for exactly that long, = and the conversation that
+        // asked for it showed nothing.
+        //
+        // The caller awaits this, = so the conversation shows the
+        // result by the time the call returns, = and a caller that
+        // does not await it still gets the same work.
+        let stored = (try? await repository.loadMessages(
+            sessionId: SessionID(rawValue: currentSessionID),
+            bookID: currentBookID
+        )) ?? []
+        let message = stored.first { $0.id == messageUUID }
+        adopting.remove(messageUUID)
+        if let message {
+            append(message)
         }
     }
 }

@@ -22,32 +22,34 @@
 //  5. The delivery says what it wrote: = the session id and the
 //     message id, = so the receiver can find the one message it
 //     needs.
+//  6. The conversation is WIRED to the delivery's notification: = it
+//     observes the delivery's name, = and what it does about that
+//     notification is the adoption.
 //
-//  Two things had to be true for this suite to mean anything.
+//  WHY THE ADOPTION IS CALLED DIRECTLY AND NOT THROUGH THE BUS:
 //
-//  First: the notification bus is global. = A test that posts a
-//  notification reaches EVERY open conversation, = so two
-//  conversations with the same session id (= the default one, = for
-//  a conversation with no book) = would adopt each other's
-//  messages. = Each test here takes its own book, = and so its own
-//  session id.
+//  The notification bus is global. = A whole-suite run has dozens of
+//  open conversations on it, = every notification a test posts
+//  reaches every one of them, = and every one of them queues a
+//  main-actor task. = So a test that goes through the bus measures
+//  the suite's contention and not the adoption: = it passed alone
+//  and failed in the whole suite, = and the diagnostic showed the
+//  message found and appended = in a conversation that was not the
+//  one under test.
 //
-//  Second: the wait is for a CONDITION and not for a duration. = The
-//  delivery hops to the main actor, = so a fixed sleep is a
-//  load-sensitive assertion: = under load the main actor's queue
-//  does not get to the notification before the sleep ends, = and the
-//  suite fails for a reason that has nothing to do with the code.
-//  = It failed that way, = and it was read as a defect in the
-//  adoption. = The waits below poll until the conversation's count
-//  of a message has settled, = and the duration is only the ceiling.
+//  So the adoption's CONTRACT is tested by calling it, = and the
+//  WIRING is pinned by reading the source. = Between them, = the
+//  delivery's own test (= it writes the row and names it), = the
+//  adoption's contract (= what a conversation does with that name),
+//  and the wiring (= the conversation observes that name and calls
+//  the adoption), = every link in the chain is held by a test that
+//  can fail.
 //
-//  And the negative case (= a result for another session does not
-//  show up here) = cannot wait for something that must never happen.
-//  = So it posts a sentinel as well: = a result for THIS session,
-//  = which the conversation takes in. = When the sentinel has
-//  arrived, = the bus is live and the delivery works, = and the
-//  absence of the other session's result is then a fact and not a
-//  guess.
+//  The fake does not hide the answer either: = it returns EVERY
+//  session's messages, = so removing the session check lets the
+//  adopter find a message that belongs to another conversation, =
+//  and the test that says "a reply belongs to the conversation that
+//  asked for it" has to be able to fail.
 //
 
 import Foundation
@@ -96,56 +98,7 @@ struct SubAgentResultAdoptionTests {
     /// The notification the delivery posts.
     private static let delivered = Notification.Name(AppStateEvents.subAgentResultDelivered.rawValue)
 
-    // MARK: - The waits
-
-    /// Wait until the conversation's count of a message has settled.
-    ///
-    /// - Returns: the count when it settled (= the ceiling's count
-    ///   if it never settled).
-    @MainActor
-    private static func waitForSettledCount(
-        _ vm: ChatViewModel,
-        of messageID: UUID,
-        timeout: Duration = .seconds(10)
-    ) async -> Int {
-        let deadline = ContinuousClock.now + timeout
-        var last = -1
-        var stable = 0
-        while ContinuousClock.now < deadline {
-            let count = vm.messages.filter { $0.id == messageID }.count
-            if count == last {
-                stable += 1
-                // Three quiet polls, = and the message has arrived.
-                if count >= 1, stable >= 3 { return count }
-            } else {
-                stable = 0
-                last = count
-            }
-            try? await Task.sleep(nanoseconds: 30_000_000)
-        }
-        return vm.messages.filter { $0.id == messageID }.count
-    }
-
-    /// Post the notification the delivery posts, = from off the main
-    /// actor.
-    ///
-    /// The production path is the delivery, = and the delivery is
-    /// main-actor isolated, = so the notification is posted from the
-    /// main actor. = Posting it here from a detached task keeps the
-    /// test's own post off the actor, = so the test measures the
-    /// adopter and not the thread the post came from.
-    private static func postOffActor(sessionID: String, messageID: UUID) async {
-        await Task.detached {
-            NotificationCenter.default.post(
-                name: delivered,
-                object: nil,
-                userInfo: [
-                    "sessionID": sessionID,
-                    "messageID": messageID.uuidString
-                ]
-            )
-        }.value
-    }
+    // MARK: - The helpers
 
     /// Deliver a result through the production delivery, = and return
     /// the message id it wrote.
@@ -168,7 +121,25 @@ struct SubAgentResultAdoptionTests {
         return SubAgentResultDelivery.messageID(for: runID)
     }
 
-    // MARK: - The tests
+    /// Tell the conversation that a result landed, = the way the
+    /// notification does.
+    ///
+    /// The bus is not used, = because the bus is global and a
+    /// whole-suite run has dozens of conversations on it. = What the
+    /// bus does is call this, = and the wiring test below pins that.
+    @MainActor
+    private static func tell(
+        _ vm: ChatViewModel,
+        sessionID: String,
+        messageID: UUID
+    ) async {
+        await vm.adoptDeliveredSubAgentResult(
+            sessionID: sessionID,
+            messageID: messageID.uuidString
+        )
+    }
+
+    // MARK: - The contract
 
     @MainActor
     @Test("a result that lands in the open session shows up in it")
@@ -191,7 +162,7 @@ struct SubAgentResultAdoptionTests {
             result: "the answer"
         )
 
-        _ = await Self.waitForSettledCount(vm, of: messageID)
+        await Self.tell(vm, sessionID: vm.testSessionId.rawValue, messageID: messageID)
 
         #expect(vm.messages.contains { $0.id == messageID },
                 "the result must reach the conversation that asked for it")
@@ -224,8 +195,8 @@ struct SubAgentResultAdoptionTests {
         )
 
         // The sentinel: = a result for THIS conversation. = When it
-        // arrives, = the bus is live and the delivery works, = so the
-        // absence of the other one is a fact.
+        // arrives, = the adoption works, = so the absence of the other
+        // one is a fact and not a guess.
         let sentinelID = await Self.deliver(
             repository,
             runID: "run-sentinel",
@@ -234,10 +205,11 @@ struct SubAgentResultAdoptionTests {
             result: "this answer"
         )
 
-        let sentinelCount = await Self.waitForSettledCount(vm, of: sentinelID)
+        await Self.tell(vm, sessionID: "some-other-session", messageID: otherID)
+        await Self.tell(vm, sessionID: vm.testSessionId.rawValue, messageID: sentinelID)
 
-        #expect(sentinelCount == 1,
-                "the sentinel must arrive, = or the bus was not live and the rest proves nothing")
+        #expect(vm.messages.contains { $0.id == sentinelID },
+                "the sentinel must arrive, = or the rest proves nothing")
         #expect(!vm.messages.contains { $0.id == otherID },
                 "a reply belongs to the conversation that asked for it")
     }
@@ -264,10 +236,10 @@ struct SubAgentResultAdoptionTests {
         // The same notification, = a second time. = Two deliveries for
         // one result arrive together, = both see that the message is
         // not here yet, = and both would append it.
-        await Self.postOffActor(sessionID: vm.testSessionId.rawValue, messageID: messageID)
+        await Self.tell(vm, sessionID: vm.testSessionId.rawValue, messageID: messageID)
+        await Self.tell(vm, sessionID: vm.testSessionId.rawValue, messageID: messageID)
 
-        let count = await Self.waitForSettledCount(vm, of: messageID)
-
+        let count = vm.messages.filter { $0.id == messageID }.count
         #expect(count == 1, "the result must show up exactly once")
     }
 
@@ -296,10 +268,9 @@ struct SubAgentResultAdoptionTests {
             vm.messages.append(stored)
         }
 
-        await Self.postOffActor(sessionID: vm.testSessionId.rawValue, messageID: messageID)
+        await Self.tell(vm, sessionID: vm.testSessionId.rawValue, messageID: messageID)
 
-        let count = await Self.waitForSettledCount(vm, of: messageID)
-
+        let count = vm.messages.filter { $0.id == messageID }.count
         #expect(count == 1, "the result must show up exactly once")
     }
 
@@ -337,6 +308,79 @@ struct SubAgentResultAdoptionTests {
         #expect(box.sessionID == "session-asking")
         #expect(box.messageID != nil)
         #expect(repository.appended.count == 1)
+    }
+
+    // MARK: - The wiring
+
+    /// The conversation observes the delivery's notification, = and what
+    /// it does about that notification is the adoption.
+    ///
+    /// This is read from the source and not from the bus, = because
+    /// the bus is global and a whole-suite run has dozens of
+    /// conversations on it. = The assertion is scoped to the observer
+    /// block, = because the same call appears elsewhere in the file
+    /// and an unscoped assertion would be satisfied by the wrong
+    /// occurrence.
+    @Test("the conversation observes the delivery's notification and adopts what it names")
+    func theConversationIsWiredToTheDelivery() throws {
+        let source = try String(contentsOf: Self.viewModelURL(), encoding: .utf8)
+
+        let observerStart = try #require(
+            source.range(of: "forName: Notification.Name(AppStateEvents.subAgentResultDelivered.rawValue)"),
+            "the conversation must observe the delivery's notification"
+        )
+        // The observation itself: = an observer for that name.
+        let callStart = source.index(observerStart.lowerBound, offsetBy: -200, limitedBy: source.startIndex)
+            ?? source.startIndex
+        let call = source[callStart..<observerStart.upperBound]
+        #expect(call.contains("addObserver("),
+                "the observation must be an observer")
+        // The block is the observer's CLOSURE, = found by matching
+        // braces from the closure's opening brace.
+        //
+        // A fixed window would be brittle: = the closure carries a
+        // long comment, = so a window sized for the code misses the
+        // code, = and a window sized for the comment reaches into
+        // the next observer. = The braces say where it ends.
+        let open = try #require(
+            source.range(of: "{", range: observerStart.lowerBound..<source.endIndex),
+            "the observer's closure must open"
+        )
+        var depth = 0
+        var close: String.Index?
+        var index = open.lowerBound
+        while index < source.endIndex {
+            if source[index] == "{" { depth += 1 }
+            if source[index] == "}" {
+                depth -= 1
+                if depth == 0 { close = index; break }
+            }
+            index = source.index(after: index)
+        }
+        let end = try #require(close, "the observer's closure must close")
+        let block = source[open.lowerBound...end]
+
+        #expect(block.contains("adoptDeliveredSubAgentResult("),
+                "and what it does about the notification must be the adoption")
+        #expect(block.contains("\"sessionID\"") && block.contains("\"messageID\""),
+                "and it must read the two ids the delivery names")
+    }
+
+    /// The view model's source, = found beside the test.
+    ///
+    /// The path is built from the test's own path, = so a checkout
+    /// that is moved still finds it. = A hardcoded absolute path
+    /// would not.
+    private static func viewModelURL() -> URL {
+        // .../Tests/WenshuAppTests/Chat/<this file>
+        // .../Sources/WenshuApp/Features/Chat/Store/ChatSessionViewModel.swift
+        var url = URL(fileURLWithPath: #filePath)
+        url.deleteLastPathComponent()   // Chat
+        url.deleteLastPathComponent()   // WenshuAppTests
+        url.deleteLastPathComponent()   // Tests
+        url.deleteLastPathComponent()   // the repository root
+        url.appendPathComponent("Sources/WenshuApp/Features/Chat/Store/ChatSessionViewModel.swift")
+        return url
     }
 }
 
