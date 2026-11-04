@@ -84,13 +84,14 @@ init(container: ModelContainer) {
 
     func append(_ message: ChatMessage, sessionId: SessionID, bookID: BookID?) async throws {
         try await Self.runOnMainActor {
+            let stored = Self.makeStored(from: message)
             try self.repository(bookID: bookID).append(
-                id: message.id.uuidString,
-                source: message.source.rawValue,
-                content: message.content,
-                tokens: message.tokens,
-                thinking: message.thinking,
-                timestamp: message.timestamp,
+                id: stored.id,
+                source: stored.source,
+                content: stored.content,
+                tokens: stored.tokens,
+                thinking: stored.thinking,
+                timestamp: stored.timestamp,
                 sessionId: sessionId.rawValue,
                 bookID: bookID?.rawValue
             )
@@ -171,16 +172,14 @@ init(container: ModelContainer) {
     /// Mirrors the per-call conversion that previously lived inline at
     /// the ChatSessionViewModel call sites (= 3 places).
     static func makeStored(from message: ChatMessage) -> StoredChatMessage {
-        let sourceString: String
-        switch message.source {
-        case .user: sourceString = "user"
-        case .wenshu: sourceString = "wenshu"
-        case .system: sourceString = "system"
-        case .agentResult: sourceString = "agent_result"
-        }
+        // The source string is the enum's own raw value. = A second
+        // copy of the mapping here is how the write and the read came
+        // to disagree, = and a row written with one spelling and read
+        // with another is a row that silently disappears. = One place
+        // decides the string: = the enum.
         return StoredChatMessage(
             id: message.id.uuidString,
-            source: sourceString,
+            source: message.source.rawValue,
             content: message.content,
             timestamp: message.timestamp,
             tokens: message.tokens,
@@ -202,26 +201,22 @@ init(container: ModelContainer) {
     /// fallback).
     static func makeDomain(from stored: WSChatMessage) -> ChatMessage? {
         guard let uuid = UUID(uuidString: stored.id) else { return nil }
+        // The row's string is parsed back into the enum, = and the
+        // enum is the only place the string is decided. = A row whose
+        // string the enum does not know is dropped, = which is the
+        // right answer for a row from a future version, = and the
+        // wrong answer for one of ours, = so the write path and this
+        // read path both go through the enum and cannot disagree.
+        guard let resolvedSource = ChatSource(rawValue: stored.role) else { return nil }
         let resolvedRole: ChatRole
-        let resolvedSource: ChatSource
-        switch stored.role {
-        case "user":
-            resolvedRole = .user
-            resolvedSource = .user
-        case "wenshu":
-            resolvedRole = .agent
-            resolvedSource = .wenshu
-        case "system":
-            resolvedRole = .system
-            resolvedSource = .system
-        case "agent_result":
-            // A sub-agent's finished work, delivered back into the
-            // conversation that asked for it. = distinct from `wenshu`,
-            // = which is the MAIN agent's reply.
-            resolvedRole = .agentResult
-            resolvedSource = .agentResult
-        default:
-            return nil
+        switch resolvedSource {
+        case .user: resolvedRole = .user
+        case .wenshu: resolvedRole = .agent
+        case .system: resolvedRole = .system
+        // A sub-agent's finished work, = delivered back into the
+        // conversation that asked for it. = distinct from `wenshu`,
+        // = which is the MAIN agent's reply.
+        case .agentResult: resolvedRole = .agentResult
         }
         return ChatMessage(
             id: uuid,

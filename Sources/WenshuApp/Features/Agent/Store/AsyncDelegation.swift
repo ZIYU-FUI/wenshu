@@ -236,9 +236,44 @@ actor AsyncDelegationRegistry {
         records[handleID] = handle
     }
 
-    /// Update an existing handle (e.g. state transition).
-    func update(_ handle: BackgroundDelegationHandle) {
+    /// Replace a record wholesale.
+    ///
+    /// = This used to be the production way to move a handle to
+    /// "running", = and it was how the kanban card's id was lost: = a
+    /// caller took a snapshot when the run started, = and wrote that
+    /// snapshot back, = and the write erased every field the record
+    /// had gained in the meantime (= the card id, = which is attached
+    /// after the delegation returns).
+    ///
+    /// = It is gone, = because the runner now asks for the state
+    /// change it wants (= `markRunning`) = and the registry does it on
+    /// the record it holds now. = Removing the wholesale write is what
+    /// makes the loss impossible, = rather than merely tested-for.
+    ///
+    /// The test-only twin below exists so the old shape can be shown
+    /// in a test, = so nobody reinvents it.
+    #if DEBUG
+    func writeBackForTest(_ handle: BackgroundDelegationHandle) {
         records[handle.id] = handle
+    }
+    #endif
+
+    /// Mark a delegation as running.
+    ///
+    /// The state change happens on the record that is stored NOW, = not
+    /// on a snapshot the caller took earlier. = The two differ
+    /// because the record gains fields while the run is in flight
+    /// (= the kanban card's id is attached after the delegation
+    /// returns, = and the drain loop can pick the handle up in
+    /// between). = A caller that wrote back its own snapshot would
+    /// erase those fields, = and the card would never be moved.
+    ///
+    /// So the registry does the transition, = on the live record, =
+    /// and only the state is touched.
+    func markRunning(id: String) {
+        guard var handle = records[id] else { return }
+        handle.state = .running
+        records[id] = handle
     }
 
     /// Record the tool the sub-agent is calling right now.

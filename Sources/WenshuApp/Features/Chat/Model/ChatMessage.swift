@@ -128,5 +128,18 @@ enum ChatSource: String, Equatable, Sendable, Codable {
     case user
     case wenshu
     case system
-    case agentResult
+    /// A sub-agent's finished work, = delivered back into the
+    /// conversation that asked for it.
+    ///
+    /// The raw value is the string the row carries, = and it is
+    /// spelled here (= and only here) because the write path and the
+    /// read path have to agree on it: = the write puts the raw value
+    /// in the row, = and the read parses the row back into this enum.
+    /// = The two used to spell it differently (= `agentResult` here
+    /// = and `agent_result` in the reader), = so every delivered
+    /// result was written to disk and then dropped on the way back.
+    ///
+    /// = An explicit raw value, = rather than the default one, = is
+    /// what makes the enum the single place the string is decided.
+    case agentResult = "agent_result"
 }

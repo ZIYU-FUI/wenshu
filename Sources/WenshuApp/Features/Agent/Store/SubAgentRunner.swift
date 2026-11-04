@@ -250,9 +250,14 @@ final class SubAgentRunner {
 
         // 3. Transition pending → running (= the user sees the
         //    kanban task move from "queued" to "in progress").
-        var running = liveHandle
-        running.state = .running
-        await registry.update(running)
+        //
+        // The registry does the transition on the record it holds
+        // now, = and not on this snapshot. = The card's id is
+        // attached after the delegation returns, = and the drain loop
+        // can pick the handle up in between, = so writing this
+        // snapshot back would erase the card id and the card would
+        // never be moved.
+        await registry.markRunning(id: liveHandle.id)
 
         // 3b. Open the run's ledger row.
         //
@@ -317,7 +322,7 @@ final class SubAgentRunner {
                 handle: liveHandle,
                 result: "The run failed: \(UserFacingError.from(error).errorDescription ?? String(describing: error))"
             )
-            moveKanbanCard(handle: liveHandle, to: .failed)
+            await moveKanbanCard(handle: liveHandle, to: .failed)
             throw error
         } catch {
             // System-fault: the underlying LLMConnector or
@@ -334,7 +339,7 @@ final class SubAgentRunner {
                 handle: liveHandle,
                 result: "The run failed: \(UserFacingError.from(error).errorDescription ?? String(describing: error))"
             )
-            moveKanbanCard(handle: liveHandle, to: .failed)
+            await moveKanbanCard(handle: liveHandle, to: .failed)
             throw SubAgentRunnerError.subAgentLLMFailed(
                 handleID: liveHandle.id,
                 agentName: liveHandle.agentName,
@@ -363,16 +368,27 @@ final class SubAgentRunner {
         // 7. Move the card. The research finished, = so the card says
         // so. = A card that stayed in "new" made the board a list of
         // intentions instead of a list of outcomes.
-        moveKanbanCard(handle: liveHandle, to: .done)
+        await moveKanbanCard(handle: liveHandle, to: .done)
     }
 
     /// Move the card that shows a delegation's progress.
     ///
     /// A delegation with no card (= most of them) = has nothing to
     /// move, = and that is the normal case, = not a failure.
-    private func moveKanbanCard(handle: BackgroundDelegationHandle, to state: SubAgentKanbanBridge.CardState) {
+    ///
+    /// The card's id is read from the registry NOW, = and not from the
+    /// snapshot the run started with. = The id is attached after the
+    /// delegation returns, = so a run that started before the attach
+    /// finished would move nothing = and the card would sit in
+    /// "running" for ever, = which is a card that says the work is
+    /// still going when it is not.
+    private func moveKanbanCard(
+        handle: BackgroundDelegationHandle,
+        to state: SubAgentKanbanBridge.CardState
+    ) async {
         guard let kanbanBridge else { return }
-        kanbanBridge.move(cardID: handle.kanbanTaskID, to: state)
+        let current = await registry.get(id: handle.id) ?? handle
+        kanbanBridge.move(cardID: current.kanbanTaskID, to: state)
     }
 
     /// Deliver a finished run's result to the conversation that asked

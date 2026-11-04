@@ -142,10 +142,10 @@ struct AsyncDelegationTests {
         )
         #expect(spawned.handle.state == .pending)
 
-        // 2. Move to running.
-        var running = spawned.handle
-        running.state = .running
-        await registry.update(running)
+        // 2. Move to running. = The registry does the transition on
+        // the record it holds now, = so a field attached while the
+        // run is in flight is not erased.
+        await registry.markRunning(id: spawned.handle.id)
         let stored1 = await registry.get(id: spawned.handle.id)
         #expect(stored1?.state == .running)
         let active = await registry.runningDelegations()
