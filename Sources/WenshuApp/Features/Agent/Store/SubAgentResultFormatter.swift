@@ -45,24 +45,56 @@ struct SubAgentResultFormatter: Sendable {
     /// - Parameters:
     ///   - agentName: which agent produced it.
     ///   - text: what the run produced.
-    static func format(agentName: String, text: String) -> SubAgentResultFormatter {
-        guard agentName == SubAgentRoleRegistry.librarian.slug else {
+    ///   - readingLibrary: how the library is read, = when the
+    ///     librarian's report can be checked against it. = Without it
+    ///     the report is the model's own words and nothing more.
+    static func format(
+        handle: BackgroundDelegationHandle,
+        text: String,
+        readingLibrary: (@Sendable () async -> [Reference])? = nil
+    ) async -> SubAgentResultFormatter {
+        guard handle.agentName == SubAgentRoleRegistry.librarian.slug else {
             // Every other agent answers in prose, = and prose is what
-            // the user should see.
+            // the user should see. = The formatter does not add the
+            // agent's name to it: = saying who answered is the
+            // delivery's job, = because the delivery is what puts the
+            // answer in the conversation.
             return SubAgentResultFormatter(text: text)
         }
 
         switch LibrarianReport.parse(text) {
-        case .report(let result):
+        case let .report(result, documents):
+            // The report is checked against the library when the
+            // library can be read. = The check is what turns "the
+            // model said two documents landed" into "the library
+            // holds one of them, = and the other one is not there".
+            var verifications: [LibrarianReport.Verification]?
+            if let readingLibrary {
+                let references = await readingLibrary()
+                verifications = LibrarianReport.verify(documents, against: references)
+            }
             return SubAgentResultFormatter(
                 result: result,
-                text: LibrarianReport.text(for: result)
+                text: LibrarianReport.text(for: result, verifications: verifications)
             )
-        case .unreadable(let raw):
+        case .unreadable:
             // The run said something this app cannot read. = The user
             // sees what it said, = because a raw answer is better
             // than a silent empty one.
-            return SubAgentResultFormatter(text: raw)
+            return SubAgentResultFormatter(text: text)
         }
+    }
+
+    /// The text the conversation shows: = the agent's label, = and
+    /// then what it said.
+    ///
+    /// It moved here from the delivery, = because the two answer the
+    /// same question (= what does the user see when a run finishes?)
+    /// = and the delivery now asks this formatter for the shape and
+    /// then adds the label itself.
+    static func body(for handle: BackgroundDelegationHandle, result: String) -> String {
+        let label = SubAgentRoleRegistry.role(forSlug: handle.agentName)?.displayLabel
+            ?? handle.agentName
+        return "\(label)\n\n\(result)"
     }
 }

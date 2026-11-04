@@ -101,6 +101,12 @@ struct ArchiveSettingsPane: View {
     @State private var availableAgents: [String] = []
     /// The kinds of work the archive holds (= the filter's options).
     @State private var availableSources: [String] = []
+    /// How many rows the archive holds before any filter.
+    ///
+    /// It is what tells "the archive is empty" apart from "the
+    /// filter hid everything". = The two are different facts, = and
+    /// the empty message said the first when the second was true.
+    @State private var totalCount: Int = 0
     /// The run whose detail is open.
     @State private var expandedRunID: String?
     /// How many rows the last purge took.
@@ -181,7 +187,7 @@ struct ArchiveSettingsPane: View {
                 Text(loadError)
                     .foregroundStyle(.secondary)
             } else if runs.isEmpty {
-                Text(String(localized: "settings.archive.empty"))
+                Text(String(localized: emptyMessage))
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(runs) { run in
@@ -193,6 +199,16 @@ struct ArchiveSettingsPane: View {
         } footer: {
             Text(String(localized: "settings.archive.history.footer"))
         }
+    }
+
+    /// The message the empty list shows.
+    ///
+    /// Two empties, = and they are different facts. = An archive with
+    /// nothing in it is empty; = an archive whose rows the filter hid
+    /// is not, = and the message that says "nothing has run" then is
+    /// a message that lies about the work the agents did.
+    private var emptyMessage: String.LocalizationValue {
+        totalCount == 0 ? "settings.archive.empty" : "settings.archive.filteredEmpty"
     }
 
     private func runRow(_ run: ArchiveRunRow) -> some View {
@@ -285,6 +301,7 @@ struct ArchiveSettingsPane: View {
     private func loadOptions() async {
         do {
             let sessions = try WSChatRepository.shared.listRuns()
+            totalCount = sessions.count
             availableAgents = Array(Set(sessions.compactMap(\.agentName))).sorted()
             availableSources = Array(Set(sessions.compactMap(\.source))).sorted()
         } catch {

@@ -26,6 +26,21 @@ import WenshuData
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuappdelegate")
 
 extension WenshuAppDelegate {
+    /// Read the corpus, = for checking a finished report against it.
+    ///
+    /// The store is main-actor isolated, = so the read happens
+    /// there. = A read that failed is an empty corpus, = and the
+    /// report then says nothing was found = rather than pretending
+    /// the corpus was checked.
+    @MainActor
+    private static func readLibrary() -> [Reference] {
+        guard let path = ActiveLibrary.path else { return [] }
+        let store = FileSystemReferenceStore(
+            referenceLibraryRoot: URL(fileURLWithPath: path)
+        )
+        return (try? store.loadAllReferences()) ?? []
+    }
+
     /// Sub-agent runner (= the engine that drains pending
     /// `BackgroundDelegationHandle` records and runs each sub-agent in its own
     /// `ConversationLoop`). One per app (= process-lifetime). Created lazily on
@@ -89,7 +104,14 @@ extension WenshuAppDelegate {
             ledger: SubAgentLedger(repository: WSChatRepository.shared),
             // Where a finished run's result goes. = Without it the
             // user sees a dispatch receipt and then silence.
-            resultDelivery: SubAgentResultDelivery(repository: LiveChatRepository.shared),
+            resultDelivery: SubAgentResultDelivery(
+                repository: LiveChatRepository.shared,
+                // How the librarian's report is checked against the
+                // corpus. = Without it the report is the model's own
+                // words, = and a document the model says it landed
+                // but never wrote is a document the user believes in.
+                libraryReading: { await Self.readLibrary() }
+            ),
             // The card that shows a research delegation's progress.
             // = Without it the card stays in "running" forever, = and
             // the board lists intentions instead of outcomes.

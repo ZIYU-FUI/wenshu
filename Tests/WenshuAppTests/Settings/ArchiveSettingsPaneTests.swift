@@ -204,4 +204,27 @@ struct ArchiveSettingsPaneTests {
                     "the pane must not hardcode the role \(role) in its filter options")
         }
     }
+
+    @Test("an archive the filter emptied does not say the archive is empty")
+    func aFilteredEmptyArchiveIsNotAnEmptyArchive() throws {
+        let pane = try Self.paneSource
+
+        // Two empties, = and they are different facts. = An archive
+        // with nothing in it is empty; = an archive whose rows the
+        // filter hid is not, = and saying "nothing has run" then is
+        // a message that lies about the work the agents did.
+        #expect(pane.contains("settings.archive.filteredEmpty"),
+                "the pane must have a message for an archive the filter emptied")
+        #expect(pane.contains("totalCount"),
+                "and it must know how many rows the archive holds before any filter")
+        #expect(pane.contains("totalCount == 0"),
+                "and the two empties must be told apart by that count")
+
+        // The catalog must carry the new message in both languages.
+        let catalog = try Self.catalog
+        let entry = try #require(catalog["settings.archive.filteredEmpty"] as? [String: Any])
+        let localizations = try #require(entry["localizations"] as? [String: Any])
+        #expect(localizations["en"] != nil, "the key must have an English value")
+        #expect(localizations["zh-Hans"] != nil, "the key must have a Chinese value")
+    }
 }

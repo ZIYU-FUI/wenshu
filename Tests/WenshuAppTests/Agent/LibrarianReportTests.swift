@@ -44,7 +44,7 @@ struct LibrarianReportTests {
         ], "notes": []}
         """
 
-        guard case .report(let result) = LibrarianReport.parse(text) else {
+        guard case let .report(result, _) = LibrarianReport.parse(text) else {
             Issue.record("expected a report")
             return
         }
@@ -61,7 +61,7 @@ struct LibrarianReportTests {
         ]}
         """
 
-        guard case .report(let result) = LibrarianReport.parse(text) else {
+        guard case let .report(result, _) = LibrarianReport.parse(text) else {
             Issue.record("expected a report")
             return
         }
@@ -78,7 +78,7 @@ struct LibrarianReportTests {
         That is all.
         """
 
-        guard case .report(let result) = LibrarianReport.parse(text) else {
+        guard case let .report(result, _) = LibrarianReport.parse(text) else {
             Issue.record("expected a report")
             return
         }
@@ -91,7 +91,7 @@ struct LibrarianReportTests {
         I filed one document. {"landed": 1, "documents": [{"title": "Red Cliff", "id": "11111111-1111-1111-1111-111111111111", "action": "created"}]} Let me know.
         """
 
-        guard case .report(let result) = LibrarianReport.parse(text) else {
+        guard case let .report(result, _) = LibrarianReport.parse(text) else {
             Issue.record("expected a report")
             return
         }
@@ -113,7 +113,7 @@ struct LibrarianReportTests {
         {"landed": 2, "documents": [{"title": "Red Cliff", "id": "11111111-1111-1111-1111-111111111111", "action": "created"}]}
         """
 
-        guard case .report(let result) = LibrarianReport.parse(text) else {
+        guard case let .report(result, _) = LibrarianReport.parse(text) else {
             Issue.record("expected a report")
             return
         }
@@ -125,7 +125,7 @@ struct LibrarianReportTests {
     func readsADeclinedRun() throws {
         let text = #"{"landed": false, "reason": "out of scope"}"#
 
-        guard case .report(let result) = LibrarianReport.parse(text) else {
+        guard case let .report(result, _) = LibrarianReport.parse(text) else {
             Issue.record("expected a report")
             return
         }
@@ -139,7 +139,7 @@ struct LibrarianReportTests {
         {"landed": 1, "documents": [{"title": "Red Cliff", "id": "11111111-1111-1111-1111-111111111111", "action": "created"}], "notes": ["the body was empty"]}
         """
 
-        guard case .report(let result) = LibrarianReport.parse(text) else {
+        guard case let .report(result, _) = LibrarianReport.parse(text) else {
             Issue.record("expected a report")
             return
         }
@@ -149,12 +149,15 @@ struct LibrarianReportTests {
     // MARK: - The formatter
 
     @Test("the librarian's result reads as a report, not as a JSON blob")
-    func theLibrarianResultReadsAsAReport() {
+    func theLibrarianResultReadsAsAReport() async {
         let text = """
         {"landed": 1, "documents": [{"title": "Red Cliff", "id": "11111111-1111-1111-1111-111111111111", "action": "created"}]}
         """
 
-        let formatted = SubAgentResultFormatter.format(agentName: "librarian", text: text)
+        let formatted = await SubAgentResultFormatter.format(
+            handle: Self.formatterHandle(agentName: "librarian"),
+            text: text
+        )
 
         #expect(formatted.text.contains("1 document"))
         #expect(formatted.text.contains("Red Cliff") == false, "the report names the count, not the JSON")
@@ -162,21 +165,37 @@ struct LibrarianReportTests {
     }
 
     @Test("every other agent's prose is left alone")
-    func otherAgentsProseIsLeftAlone() {
+    func otherAgentsProseIsLeftAlone() async {
         let prose = "The sources say the battle was in 208."
 
-        let formatted = SubAgentResultFormatter.format(agentName: "researcher", text: prose)
+        let formatted = await SubAgentResultFormatter.format(
+            handle: Self.formatterHandle(agentName: "researcher"),
+            text: prose
+        )
 
         #expect(formatted.text == prose)
         #expect(formatted.result == nil)
     }
 
     @Test("a librarian run whose text cannot be read shows what it said")
-    func anUnreadableLibrarianTextShowsWhatItSaid() {
+    func anUnreadableLibrarianTextShowsWhatItSaid() async {
         let raw = "The library is not reachable."
 
-        let formatted = SubAgentResultFormatter.format(agentName: "librarian", text: raw)
+        let formatted = await SubAgentResultFormatter.format(
+            handle: Self.formatterHandle(agentName: "librarian"),
+            text: raw
+        )
 
         #expect(formatted.text == raw)
+    }
+
+    /// A handle, = for the formatter.
+    private static func formatterHandle(agentName: String) -> BackgroundDelegationHandle {
+        BackgroundDelegationHandle(
+            id: "run-format",
+            agentName: agentName,
+            userMessage: "do something",
+            scope: AgentScope(sessionID: SessionID(rawValue: "session-a"), bookID: nil)
+        )
     }
 }

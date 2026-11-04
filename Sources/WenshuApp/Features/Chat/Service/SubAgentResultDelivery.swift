@@ -42,8 +42,21 @@ struct SubAgentResultDelivery {
     /// The repository the delivery writes through.
     let repository: any ChatRepositoryProtocol
 
-    init(repository: any ChatRepositoryProtocol) {
+    /// How the corpus is read, = when a librarian's report is checked
+    /// against it.
+    ///
+    /// The delivery is where a run's result is turned into what the
+    /// user reads, = so it is where the check belongs: = the report is
+    /// checked on the way to the conversation, = and a report the
+    /// corpus does not support never reaches the user as a fact.
+    let libraryReading: (@Sendable () async -> [Reference])?
+
+    init(
+        repository: any ChatRepositoryProtocol,
+        libraryReading: (@Sendable () async -> [Reference])? = nil
+    ) {
         self.repository = repository
+        self.libraryReading = libraryReading
     }
 
     /// The outcome of one delivery.
@@ -71,6 +84,17 @@ struct SubAgentResultDelivery {
     func deliver(handle: BackgroundDelegationHandle, result: String) async -> Outcome {
         guard let scope = handle.scope else { return .noDestination }
 
+        // The result is turned into what the user reads BEFORE it is
+        // written. = Each agent answers in its own shape, = and the
+        // librarian's answer is checked against the corpus on the way
+        // here, = so what lands in the conversation is the checked
+        // report and not the model's own words.
+        let formatted = await SubAgentResultFormatter.format(
+            handle: handle,
+            text: result,
+            readingLibrary: libraryReading
+        )
+
         let messageID = Self.messageID(for: handle.id)
         let sessionID = SessionID(rawValue: scope.sessionID.rawValue)
         let bookID = scope.bookID
@@ -91,7 +115,7 @@ struct SubAgentResultDelivery {
             id: messageID,
             role: .agentResult,
             source: .agentResult,
-            content: Self.body(for: handle, result: result),
+            content: SubAgentResultFormatter.body(for: handle, result: formatted.text),
             timestamp: Date()
         )
         do {
@@ -151,16 +175,6 @@ struct SubAgentResultDelivery {
         ))
     }
 
-    /// The text the conversation shows.
-    ///
-    /// The result is shown as it came, = under a heading that says
-    /// which agent produced it, = because the user asked an agent and
-    /// the answer should say who answered.
-    static func body(for handle: BackgroundDelegationHandle, result: String) -> String {
-        let label = SubAgentRoleRegistry.role(forSlug: handle.agentName)?.displayLabel
-            ?? handle.agentName
-        return "\(label)\n\n\(result)"
-    }
 
     // MARK: - The once check
 

@@ -1,0 +1,155 @@
+# What the multi-agent work still owes the user
+
+**Written 2026-11-04, after the librarian and the archive landed.**
+The question this answers: = the audit said several things were
+"registered, or in a registry, or in a design document", = and the
+question is which of them are now real.
+
+**⇒ The short answer: = five are still open, = and two of them are
+open because the first one to close them was never closed.** = This
+file says what is open, = what the evidence is, = and what closing
+each one looks like. = It is a record of a decision, = not a plan to
+be admired.
+
+## The six roles are real
+
+`SubAgentRoleRegistry` holds `researcher`, `librarian`, `writer`,
+`analyst`, `archivist`, `auditor`, = and each row names tools that
+exist in `ToolRegistry`. = That was false in the first audit (= the
+writer named `paragraph_ai`, = which no production code has, = and
+the analyst named two tools it did not have), = and it is now true,
+= with a test that says so.
+
+The librarian is activated **only** by an explicit input: =
+`@librarian import|curate <arguments>`. = There is no timer, = no
+background sweep, = and no self-starting path. = That is deliberate:
+the user's words were "a role that works to a SOP, = activated by an
+explicit input", = and a role that starts itself is a different
+thing.
+
+## The librarian's two procedures are not the same kind of thing
+
+`curate` is **code**: = `Curator.curate` over the corpus, = no model
+call, = and it reports rather than deletes. = The app runs it.
+
+`import` is **the model with a tool**: = the librarian reads the
+source, = decides what documents it describes, = and writes each one
+through `reference_library`. = The model does the splitting, = because
+splitting a source into documents is a judgement, = and the code
+cannot make it.
+
+**⇒ And the difference had consequences.** = The curator used to be
+a prompt that promised the model something the code could not
+deliver, = and that was fixed. = The import had the same shape and
+was not fixed: = the report was the model's own word for what landed,
+= and a model can say it landed a document it never wrote, = or write
+one into the raw layer (= which the user cannot see) = and say it
+landed it. = **⇒ The import's report is now checked against the
+corpus** (= the branch `feature/library-and-archive-surfaces`), = and
+the check is printed apart from the model's words. = The architecture
+was not rewritten: = what changed is that the report is no longer a
+promise.
+
+## What is still open
+
+### 1. The corpus cannot be searched
+
+**Evidence.** = `CSSearchableIndexSearch.search(query:limit:)` exists
+and has no caller. = The corpus is indexed on every write (= create,
+update, upsert and delete all call `scheduleSearchIndex`), = so the
+index is current and nothing reads it.
+
+**⇒ What closing it looks like.** = A caller and a surface. = The
+data is already there: = `search` returns `CSSearchResult`, = and
+`referenceDocId(for:)` maps a library id into the index's namespace.
+
+**⇒ The trap.** = `Tests/WenshuAppTests/Library/Search/CSSearchableIndexSearchTests.swift`
+is skipped in the whole-suite runs, = and the skip exists because
+that suite can hang in Core Spotlight. = The skip does **not** cover
+the suite that actually indexes, = so a whole-suite run can still
+hang. = **⇒ Whoever builds the search surface must decide how the
+read path avoids Spotlight**, = and the fallback path in the same
+actor (`queryFallback`) is the shape that does.
+
+### 2. The raw layer has no maintenance surface
+
+**Evidence.** = `Reference.isUserVisible` is false for `.layerRaw`,
+= so a raw document is written and never shown. = The default write
+layer is now `entities` (= the layer the card grid shows), = so new
+writes land where the user can see them, = and the tool refuses a
+duplicate title. = But the raw documents that were written before
+that fix are still there, = still invisible, = and still nobody's
+to delete.
+
+**⇒ What closing it looks like.** = Either a surface that lists the
+raw layer (= what it is, = and a way to retire it), = or a decision
+that the raw layer is a staging area the app owns and the user
+never sees, = in which case the layer should say so where the layer
+is described.
+
+### 3. The roles have no configuration surface
+
+**Evidence.** = `AgentSettingsPane` is the **tool** permission pane
+(= which tools the agent may use, = as presets), = and it is not a
+role configuration pane. = There is nowhere in the app where the six
+roles are listed, = with their tools, = or where a user can see what
+the librarian is and what it is allowed to do.
+
+**⇒ What closing it looks like.** = A read-only surface first: = which
+roles exist, = what each one may call, = and how to activate it. = A
+*configurable* role table is a bigger thing (= the registry is the
+table, = and it is compiled in), = and nothing in the user's request
+asks for it.
+
+### 4. The archive narrows, = but the corpus does not
+
+**Evidence.** = `WSChatRepository.listRuns(source:agentName:includeArchived:)`
+has taken filters since the archive's data layer landed, = and the
+pane now uses both (= the branch `feature/library-and-archive-surfaces`).
+= The options come from the rows, = because a menu that names a role
+the app does not have is worse than no menu.
+
+**⇒ What is still missing** is the same gap as #1, = on the other
+side: = the corpus is indexed and never read, = and the archive is
+filtered and the corpus is not.
+
+### 5. Nothing has landed on main
+
+**Evidence.** = The work is on local branches: =
+`feature/librarian-corpus-p0` (8 commits), =
+`feature/subagent-return-path` (22 commits), =
+`feature/library-and-archive-surfaces` (= the two commits this
+branch adds). = The machine has no SSH key for `old-origin`, = so
+`git push` fails and the branches are local only.
+
+**⇒ What closing it looks like.** = A push, = and then the merge
+flow the repo already has: = `merge-preflight.sh` must say CLEAN, =
+the card's own worktree rebases onto main, = the card's own gates are
+re-run on the rebased tree, = and only then a fast-forward.
+
+## What is not open, = and why
+
+**⇒ A cron inside the app.** = The app does not schedule agents. =
+Hermes's cron serves the development and runtime side, = and a cron
+inside the app would make it a background manager of the user's
+documents, = which is not what the user asked for.
+
+**⇒ A generic chat surface for the librarian.** = The librarian's
+job is the document chain inside `.ws`: = what is already filed and
+what is about to be filed. = It is activated by a named procedure, =
+and it is not a chat personality.
+
+**⇒ The librarian writing prose.** = A chapter is the writer's, = and
+a confirmed chapter is the user's. = The librarian files and reports.
+
+## The durable facts this file rests on
+
+| Fact | Where it is held |
+| --- | --- |
+| the six roles and their tools | `SubAgentRoleRegistry` (= the table), = and a test that every named tool resolves |
+| the librarian's activation | `LibrarianActivation` (= the parser), = and the prompt that says the procedures |
+| the corpus's one-document rule | `Reference.titlesMatch` (= trimmed, = case-insensitive, = whitespace-collapsed) |
+| the import's report and its check | `LibrarianReport` (= the parser, = the verifier, = and the wording) |
+| the curate procedure | `LibrarianCurator` + `Curator` (= deterministic, = no model call) |
+| the archive's columns and its filters | `WSSession.source` / `.parentSessionID` / `.agentName`, = and `WSChatRepository.listRuns` |
+| the retention window | `WSChatRepository+Archive` (= the purge), = and `ArchiveSettingsPane` (= the pane) |

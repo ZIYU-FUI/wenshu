@@ -56,7 +56,7 @@ enum LibrarianReport {
     /// The outcome of reading a report.
     enum Parsed: Sendable, Equatable {
         /// The report was read.
-        case report(LibrarianResult)
+        case report(LibrarianResult, documents: [DocumentAction])
 
         /// The text was not a report this app can read.
         ///
@@ -77,7 +77,7 @@ enum LibrarianReport {
         // The out-of-scope shape: = the run declined, = and says why.
         if let landed = payload["landed"] as? Bool, landed == false {
             let reason = payload["reason"] as? String ?? "out of scope"
-            return .report(LibrarianResult(skipped: reason))
+            return .report(LibrarianResult(skipped: reason), documents: [])
         }
 
         guard let landed = (payload["landed"] as? Int) ?? (payload["landed"] as? NSNumber)?.intValue else {
@@ -147,11 +147,79 @@ enum LibrarianReport {
                 )
             }
         }
-        return .report(result)
+        return .report(result, documents: documents)
+    }
+
+    // MARK: - The verification
+
+    /// What the library actually holds for a document the report
+    /// named.
+    ///
+    /// The report is what the MODEL said. = This is what the library
+    /// holds. = The two are not the same thing, = and the difference
+    /// is the whole point: = a model can say it landed a document it
+    /// never wrote, = and it can write a document into the raw layer
+    /// (= which the user cannot see) = and say it landed it.
+    enum Actual: Sendable, Equatable {
+        /// The document is there, = in a layer the user can see.
+        case presentInVisibleLayer
+        /// The document is there, = in the raw layer: = the user
+        /// cannot see it, = so a report that says "landed" is a
+        /// report the user cannot act on.
+        case presentInRawLayer
+        /// The library does not hold it.
+        case absent
+    }
+
+    /// One document's verification.
+    struct Verification: Sendable, Equatable {
+        /// The title the report named.
+        let title: String
+        /// What the library holds for it.
+        let actual: Actual
+    }
+
+    /// Check what the report claims against what the library holds.
+    ///
+    /// The titles are matched by the corpus's own rule (= trimmed, =
+    /// case-insensitive, = whitespace-collapsed), = so a document the
+    /// model wrote under a slightly different spelling is found and
+    /// not reported missing.
+    ///
+    /// - Parameters:
+    ///   - actions: what the report said about each document.
+    ///   - references: what the library holds.
+    /// - Returns: one verification per document the report named.
+    static func verify(
+        _ actions: [DocumentAction],
+        against references: [Reference]
+    ) -> [Verification] {
+        actions.map { action in
+            let actual: Actual
+            if let match = references.first(where: {
+                Reference.titlesMatch($0.title, action.title)
+            }) {
+                actual = match.layer == .layerRaw ? .presentInRawLayer : .presentInVisibleLayer
+            } else {
+                actual = .absent
+            }
+            return Verification(title: action.title, actual: actual)
+        }
     }
 
     /// The text the conversation shows for a parsed report.
-    static func text(for result: LibrarianResult) -> String {
+    ///
+    /// The verifications are what the library holds, = and they are
+    /// printed apart from the model's own words. = A report that
+    /// says "landed two documents" and then says that the library
+    /// holds none of them is a report the user can act on; = a report
+    /// that only says "landed two documents" is a promise.
+    ///
+    /// - Parameters:
+    ///   - result: what the run reported.
+    ///   - verifications: what the library holds, = when it could be
+    ///     read.
+    static func text(for result: LibrarianResult, verifications: [Verification]? = nil) -> String {
         if let skipped = result.skipped, result.documentIDs.isEmpty {
             return "The librarian did not land anything: \(skipped)"
         }
@@ -164,7 +232,32 @@ enum LibrarianReport {
         if let error = result.errorMessage {
             lines.append("Note: \(error)")
         }
+        lines.append(contentsOf: verificationLines(verifications))
         return lines.joined(separator: "\n")
+    }
+
+    /// The lines that say what the library holds.
+    ///
+    /// The text is the user's, = and it reads as a sentence. = The
+    /// house's "= " marker is for the source, = and a line the user
+    /// reads in a conversation with a dash in it reads as a machine
+    /// printing its own notes.
+    private static func verificationLines(_ verifications: [Verification]?) -> [String] {
+        guard let verifications, !verifications.isEmpty else { return [] }
+        var lines: [String] = []
+        let present = verifications.filter { $0.actual != .absent }.count
+        lines.append("Checked against the library: \(present) of \(verifications.count) document(s) are there.")
+        for verification in verifications {
+            switch verification.actual {
+            case .presentInVisibleLayer:
+                lines.append("  \(verification.title): in the library.")
+            case .presentInRawLayer:
+                lines.append("  \(verification.title): in the library, in the raw layer, where the user cannot see it.")
+            case .absent:
+                lines.append("  \(verification.title): NOT in the library, so it did not land.")
+            }
+        }
+        return lines
     }
 
     // MARK: - The JSON
