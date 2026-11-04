@@ -341,6 +341,14 @@ final class ChatViewModel {
     // Chat persistence lives in `WSChatRepository.shared` (= a
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // Mutable so the archive flow can replace the session id.
+    // The adopter that takes in a sub-agent's results.
+    //
+    // It is a stored property, = not a local, = because it holds the
+    // ids being taken in right now, = and a local would be a fresh
+    // copy every time (= so two notifications for the same result
+    // would both take it in).
+    private var resultAdopter: SubAgentResultAdopter
+
     @MainActor private var sessionId: SessionID
 
     // Current scope bookID for all persistence calls.
@@ -406,6 +414,7 @@ final class ChatViewModel {
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // ChatMessage only).
         self.repository = repository
+        self.resultAdopter = SubAgentResultAdopter(repository: repository)
         // Boss 2026-10-19 mac-mini reproducer (= chat
         // hang "AI 思考中 20s"): SwiftUI evaluates the
         // chat zone body BEFORE
@@ -419,6 +428,29 @@ final class ChatViewModel {
         // "self.x used before initialized" warnings)
         // so the conductor is patched in the moment the
         // AppDelegate publishes it.
+        // A sub-agent's result landed in a conversation.
+        //
+        // The messages this model holds are a snapshot, and the
+        // snapshot does not contain a result that landed after it was
+        // taken. = The result is on disk, = and the user is looking
+        // at a conversation that does not show it. = This observer
+        // closes that: = the session that asked for the work gets
+        // the answer appended, = and no other session does.
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name(AppStateEvents.subAgentResultDelivered.rawValue),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            // The values are taken out of the notification here, =
+            // because the notification itself is not Sendable and = a
+            // main-actor call cannot take one across the boundary.
+            let sessionID = notification.userInfo?["sessionID"] as? String
+            let messageID = notification.userInfo?["messageID"] as? String
+            Task { @MainActor [weak self] in
+                self?.adoptDeliveredSubAgentResult(sessionID: sessionID, messageID: messageID)
+            }
+        }
+
         NotificationCenter.default.addObserver(
             forName: .wenshuConductorInstalled,
             object: nil,
@@ -1007,4 +1039,27 @@ extension ChatViewModel {
         let errorString = String(describing: error)
         persistLogger.error("[wenshu.chat.persist] operation=\(operation, privacy: .public) dropped-error=\(errorString, privacy: .public)")
     }
+    /// Take in a sub-agent's result that landed in this session.
+    ///
+    /// Only ONE message is taken, = not the whole history. = Reloading
+    /// the history would throw away what the user is typing, = and
+    /// where they had scrolled to, = and the result is one message
+    /// at the end.
+    ///
+    /// A notification for another session is ignored: = a reply
+    /// belongs to the conversation that asked for it, = and not to
+    /// whatever conversation happens to be open.
+    private func adoptDeliveredSubAgentResult(sessionID: String?, messageID: String?) {
+        resultAdopter.adopt(
+            sessionID: sessionID,
+            messageID: messageID,
+            currentSessionID: self.sessionId.rawValue,
+            currentBookID: currentBookID,
+            alreadyPresent: { id in self.messages.contains { $0.id == id } },
+            append: { message in self.messages.append(message) }
+        )
+    }
+
+
+
 }

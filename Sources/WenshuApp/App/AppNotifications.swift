@@ -78,6 +78,25 @@ enum AppStateEvents: String, CaseIterable {
     /// (= the reload is cheap = FileManager walk over the
     /// active library root).
     case libraryDidChange = "com.wenshu.library.didChange"
+
+    /// A sub-agent's result landed in a conversation.
+    ///
+    /// Posted by the delivery (= after the result is written to the
+    /// session). = The result reaches the session on disk, = and the
+    /// chat that is showing that session has to be told, = because
+    /// the messages it holds are a snapshot, = and a snapshot taken
+    /// before the result landed does not contain it.
+    ///
+    /// The user asked an agent a question and went on with something
+    /// else, = and the answer arrives minutes later. = Without this
+    /// the answer is in the session and nowhere else: = the user
+    /// reopens the conversation and finds it, = but a conversation
+    /// that is already open shows nothing.
+    ///
+    /// The notification carries the session id (= in `userInfo`), =
+    /// because a reply belongs to the conversation that asked for it
+    /// and not to whatever session happens to be open.
+    case subAgentResultDelivered = "com.wenshu.subagent.resultDelivered"
 }
 
 // MARK: - LayoutEvents

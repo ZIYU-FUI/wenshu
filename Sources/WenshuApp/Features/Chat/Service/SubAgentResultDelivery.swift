@@ -96,6 +96,19 @@ struct SubAgentResultDelivery {
         )
         do {
             try await repository.append(message, sessionId: sessionID, bookID: bookID)
+            // The conversation that is showing this session holds a
+            // snapshot of its messages, = and the snapshot was taken
+            // before this result landed. = Without the notification
+            // the result is on disk and nowhere else: = the user
+            // finds it by reopening the conversation, = and not before.
+            NotificationCenter.default.post(
+                name: Notification.Name(AppStateEvents.subAgentResultDelivered.rawValue),
+                object: nil,
+                userInfo: [
+                    "sessionID": sessionID.rawValue,
+                    "messageID": messageID.uuidString
+                ]
+            )
             return .delivered
         } catch {
             return .failed(String(describing: error))
