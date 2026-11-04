@@ -392,4 +392,13 @@ enum InspectorSection: Hashable, CaseIterable {
         case .format: return String(localized: "inspector.section.format")
         }
     }
+
+    /// The section's glyph (= the capsule's segment carries an ICON,
+    /// = the way a macOS toolbar's button group does).
+    var icon: String {
+        switch self {
+        case .dynamic: return "waveform.path.ecg"
+        case .format: return "paintbrush"
+        }
+    }
 }

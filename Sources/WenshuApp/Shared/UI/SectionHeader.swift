@@ -27,7 +27,7 @@ import SwiftUI
 /// Column-top section header: 10 PT inset, centered secondary title text,
 /// 4 PT gap, hairline divider, 10 PT inset below. The canonical column-top
 /// chrome in macOS Mail / Notes / Finder section-header idiom.
-struct SectionHeader: View {
+struct SectionHeader<Trailing: View>: View {
     let title: String
     let showsDivider: Bool
     /// Whether to render the 10 PT bottom Color.clear inset below the
@@ -40,14 +40,24 @@ struct SectionHeader: View {
     /// 间距"). Those callers pass `trailingInset: false`.
     let trailingInset: Bool
 
+    /// The trailing tool group (= the column title's right-hand side).
+    ///
+    /// This is the window-titlebar idiom: = the title stays CENTRED,
+    /// = and the tools sit at the RIGHT (= macOS Mail, = Notes, =
+    /// Finder all put their controls there). = Empty by default, = so
+    /// a column that has no tools pays nothing for the slot.
+    @ViewBuilder let trailing: () -> Trailing
+
     init(
         title: String,
         showsDivider: Bool = true,
-        trailingInset: Bool = true
+        trailingInset: Bool = true,
+        @ViewBuilder trailing: @escaping () -> Trailing = { EmptyView() }
     ) {
         self.title = title
         self.showsDivider = showsDivider
         self.trailingInset = trailingInset
+        self.trailing = trailing
     }
 
     var body: some View {
@@ -71,6 +81,12 @@ struct SectionHeader: View {
                     // the row the search band keys off) stays put.
                     .offset(y: DesignTokens.sectionTitleBaselineOffset)
                 Spacer()
+                // The trailing tool group (= the title's right-hand
+                // side, = the window-titlebar idiom). = It rides the
+                // SAME baseline offset as the title, = so the group
+                // and the title read as one row.
+                trailing()
+                    .offset(y: DesignTokens.sectionTitleBaselineOffset)
             }
 
             if showsDivider {

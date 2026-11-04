@@ -48,11 +48,38 @@ struct InspectorColumnSwitcherRenderTests {
     private func renderedControl(
         selection: Binding<InspectorSection>
     ) -> NSSegmentedControl? {
-        renderedControl(
-            selection: selection,
-            labels: InspectorSection.allCases,
-            displayStrings: InspectorSection.allCases.map(\.localizedTitle)
+        // The column renders the section capsule the way a macOS window
+        // titlebar's button group renders: = ICON segments, = no text,
+        // = the names on hover.
+        let host = NSHostingView(rootView: AnyView(
+            LabelSegmentedControl(
+                selection: selection,
+                labels: InspectorSection.allCases,
+                displayStrings: InspectorSection.allCases.map { _ in "" },
+                iconStyle: .paneTab,
+                icon: { section in
+                    NSImage(
+                        systemSymbolName: section.icon,
+                        accessibilityDescription: section.localizedTitle
+                    )
+                },
+                tooltips: InspectorSection.allCases.map(\.localizedTitle),
+                controlSize: .small
+            )
+            .fixedSize(horizontal: true, vertical: true)
+        ))
+        host.frame = NSRect(x: 0, y: 0, width: 320, height: 40)
+        let window = NSWindow(
+            contentRect: host.frame,
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
         )
+        window.contentView = host
+        host.layoutSubtreeIfNeeded()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        host.layoutSubtreeIfNeeded()
+        return findSegmentedControl(in: host)
     }
 
     @MainActor
@@ -142,9 +169,17 @@ struct InspectorColumnSwitcherRenderTests {
         }
         #expect(control.segmentCount == 2,
                 "the column's own switcher carries one segment per major section")
+        // The segments are ICONS (= a window titlebar's button group),
+        // = so the segments carry no text, = and the names live in the
+        // tooltips.
         let labels = (0 ..< control.segmentCount).map { control.label(forSegment: $0) }
-        #expect(labels == InspectorSection.allCases.map(\.localizedTitle),
-                "the segments read the dynamic series and the format inspector")
+        #expect(labels.allSatisfy { ($0 ?? "").isEmpty },
+                "the capsule's segments show icons, = not words")
+        let tooltips = (0 ..< control.segmentCount).map { control.toolTip(forSegment: $0) }
+        #expect(tooltips.compactMap { $0 } == InspectorSection.allCases.map(\.localizedTitle),
+                "the capsule's segments carry their names on hover")
+        #expect(control.image(forSegment: 0) != nil && control.image(forSegment: 1) != nil,
+                "each segment carries an icon")
     }
 
     @Test("choosing a major section writes it to the shared state")

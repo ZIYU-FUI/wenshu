@@ -6,11 +6,11 @@
 //  detail split; = the Apple HIG `.inspector` surface).
 //
 //  Layout (= the Apple HIG three-column pattern):
-//  - the column's chrome band carries the segmented control that picks
-//    the column's MAJOR SECTION (= the dynamic series, = or the format
-//    inspector),
-//  - the dynamic section carries its own band with the three tabs it
-//    has always carried (= Todos, Sub-Agents, Tasks),
+//  - the column's TITLE ROW carries the button group that picks the
+//    column's MAJOR SECTION (= the dynamic series, = or the format
+//    inspector), = as the macOS window titlebar's right-hand capsule,
+//  - the dynamic section carries its own chrome band with the three
+//    tabs it has always carried (= Todos, Sub-Agents, Tasks),
 //  - the column body carries the selected section's content,
 //  - the column's visibility toggle sits in the window toolbar
 //    (= ToolbarItemGroup placement .principal).
@@ -28,6 +28,7 @@
 //
 //
 
+import AppKit
 import SwiftUI
 
 /// The trailing inspector column of the detail split.
@@ -53,48 +54,32 @@ struct InspectorView: View {
             SectionHeader(
                 title: String(localized: "inspector.column.title"),
                 trailingInset: false
-            )
-            // The column's own band picks the MAJOR SECTION. It is a
-            // wider control than the section's own tab strip (= it
-            // stretches to the column's width, = so the two read as one
-            // big switch and one narrow strip), = and it is the same
-            // control the section's tab strip uses, = so the column
-            // keeps one switcher shape.
-            ChromeTopBar(
-                horizontalPadding: DesignTokens.spacingRelaxed,
-                // The band belongs to the column's body (= it sits inside
-                // the column's VStack under the column's own header and
-                // holds the column's own section switcher, = not the window
-                // toolbar), so the column's background shows through it
-                // (= the same opt-out the left column's band and the
-                // assets column's band make, = the two columns' bands
-                // read as one pair).
-                usesMaterial: false
             ) {
-                LabelSegmentedControl(
+                // The column's own button group (= the macOS window
+                // titlebar's right-hand capsule: = two ICON segments, =
+                // no text, = the names on hover). = It picks the
+                // column's major section, = and it rides the title row
+                // because that row IS the column's titlebar.
+                LabelSegmentedControl.iconCapsule(
                     selection: $workspaceUI.inspectorSection,
                     labels: InspectorSection.allCases,
-                    displayStrings: InspectorSection.allCases.map(\.localizedTitle),
-                    iconStyle: .paneTab,
-                    controlSize: .small
+                    symbolNames: { $0.icon },
+                    tooltips: InspectorSection.allCases.map(\.localizedTitle),
+                    // Each segment is ONE icon wide (= the toolbar
+                    // button group's shape), = and the fixed width is
+                    // what makes the control FIT its content: = the
+                    // control's own distribution is `.fillEqually` when
+                    // nothing is fixed, = so without this the capsule
+                    // would stretch across the column.
+                    controlSize: .small,
+                    fixedSegmentWidth: DesignTokens.paneTabHotArea
                 )
-                // `fixedSize` keeps the control at its own height
-                // (= 20 PT) instead of letting the band row's height
-                // stretch it (= AppKit draws the capsule to fill the
-                // control's height; = a stretched control = a
-                // full-height bar with no air). The row below centers
-                // it, so the band keeps its 28 PT height with air
-                // above and below the capsule.
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity)
-                .frame(height: DesignTokens.paneTabHotArea)
+                // The capsule is its own width (= a toolbar's button
+                // group is NOT stretched across the window), = so it
+                // does not take `.frame(maxWidth: .infinity)`.
+                .frame(width: DesignTokens.paneTabHotArea * CGFloat(InspectorSection.allCases.count))
+                .padding(.trailing, DesignTokens.spacingStandard)
             }
-            // The band's total height (= the content row + its
-            // hairline) is clamped to the same 28 PT the left
-            // column's band is, so the two columns' chrome bands
-            // measure the same.
-            .frame(height: DesignTokens.paneTabHotArea)
-
             switch workspaceUI.inspectorSection {
             case .dynamic:
                 // The dynamic section keeps the three tabs it has always

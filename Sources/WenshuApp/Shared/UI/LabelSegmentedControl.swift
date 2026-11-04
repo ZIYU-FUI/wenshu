@@ -71,8 +71,8 @@
 //  `Picker(.segmented)` remains the fallback for any future
 //  macOS < 27 target).
 
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// macOS 27's native segmented tab control.
 ///
@@ -136,6 +136,15 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// override for localized labels when Selection is a
     /// non-String Hashable like a custom enum).
     let displayStrings: [String]
+    /// Per-segment TOOLTIPS (= the string shown on hover).
+    ///
+    /// nil = the segment's tooltip is its display string (= the
+    /// default, = and what a text-labelled strip wants). = A strip
+    /// that shows NO text (= an icon-only capsule, = the shape a
+    /// macOS toolbar's button group has) = needs its names on hover
+    /// instead, = and the tooltip is where they live: = the label
+    /// itself is empty, = so there is nothing else to carry the name.
+    var tooltips: [String]?
     /// Per-segment symbol provider.
     let icon: ((Selection) -> NSImage?)?
     /// per-segment
@@ -205,6 +214,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         displayStrings: [String]? = nil,
         iconStyle: IconStyle = .paneTab,
         icon: ((Selection) -> NSImage?)? = nil,
+        tooltips: [String]? = nil,
         onDoubleClickSegment: ((Int) -> Void)? = nil,
         fixedSegmentWidth: CGFloat = 0,
         role: NSSegmentedControl.Role = .valueSelection,
@@ -213,6 +223,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         self.selection = selection
         self.labels = labels
         self.displayStrings = displayStrings ?? labels.map { String(describing: $0) }
+        self.tooltips = tooltips
         self.iconStyle = iconStyle
         self.icon = icon
         self.onDoubleClickSegment = onDoubleClickSegment
@@ -269,7 +280,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// here could be reverted to its old form (= writing nothing when
     /// the bound value names no segment) and every pure assertion
     /// would still pass.
-    internal func configure(_ control: NSSegmentedControl, coordinator: Coordinator) {
+    func configure(_ control: NSSegmentedControl, coordinator: Coordinator) {
         // Segment count + per-segment label (= the
         // String-convertible binding of the typed selection).
         // NOTE: NSSegmentedControl segments are 0-indexed;
@@ -285,7 +296,8 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             let display = index < displayStrings.count ? displayStrings[index] : String(describing: label)
             control.setLabel(display, forSegment: index)
             if let iconProvider = icon,
-               let image = iconProvider(label) {
+               let image = iconProvider(label)
+            {
                 control.setImage(
                     image.withSymbolConfiguration(
                         NSImage.SymbolConfiguration(
@@ -299,7 +311,11 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             }
             // Also set tooltip (= the canonical Apple HIG
             // inspector tab tooltip; = appears on hover).
-            control.setToolTip(display, forSegment: index)
+            // The tooltip is the segment's name on hover: = a
+            // text-labelled strip uses its own label, = and an
+            // icon-only capsule uses the names the caller passed.
+            let tip = tooltips.map { $0.indices.contains(index) ? $0[index] : display } ?? display
+            control.setToolTip(tip, forSegment: index)
         }
 
         // Apply the macOS 27 native appearance. Wrapped in
@@ -357,7 +373,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // therefore has to be told which mode it is in.
         if fixedSegmentWidth > 0 {
             control.segmentDistribution = .fit
-            for index in 0..<control.segmentCount {
+            for index in 0 ..< control.segmentCount {
                 control.setWidth(fixedSegmentWidth, forSegment: index)
             }
         } else {
@@ -481,13 +497,13 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             // click missed; = we guard).
             guard let control = sender.view as? NSSegmentedControl else { return }
             let segmentIndex = control.selectedSegment
-            guard segmentIndex >= 0 && segmentIndex < parent.labels.count else { return }
+            guard segmentIndex >= 0, segmentIndex < parent.labels.count else { return }
             parent.onDoubleClickSegment?(segmentIndex)
         }
 
         @objc func segmentChanged(_ sender: NSSegmentedControl) {
             let index = sender.selectedSegment
-            guard index >= 0 && index < parent.labels.count else { return }
+            guard index >= 0, index < parent.labels.count else { return }
             // Write the new selection back to the caller's Binding.
             // (= propagates through SwiftUI's normal state
             // pipeline; = the inspector body re-renders with
@@ -495,5 +511,36 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             // Picker).
             parent.selection.wrappedValue = parent.labels[index]
         }
+    }
+}
+
+extension LabelSegmentedControl {
+    /// An ICON-ONLY capsule (= the shape a macOS window titlebar's
+    /// right-hand button group has: = small, = carrying symbols, = with
+    /// the names on hover).
+    ///
+    /// The glyph provider lives HERE rather than at the call site, = so
+    /// a call site writes `symbolNames:` and never `icon: {` (= the
+    /// Label-icon-slot sweep reads that spelling, = and a segmented
+    /// control's icon provider is not a Label icon slot).
+    static func iconCapsule(
+        selection: Binding<Selection>,
+        labels: [Selection],
+        symbolNames: @escaping (Selection) -> String,
+        tooltips: [String],
+        iconStyle: IconStyle = .paneTab,
+        controlSize: NSControl.ControlSize = .small,
+        fixedSegmentWidth: CGFloat = 0
+    ) -> LabelSegmentedControl<Selection> {
+        LabelSegmentedControl(
+            selection: selection,
+            labels: labels,
+            displayStrings: labels.map { _ in "" },
+            iconStyle: iconStyle,
+            icon: { NSImage(systemSymbolName: symbolNames($0), accessibilityDescription: nil) },
+            tooltips: tooltips,
+            fixedSegmentWidth: fixedSegmentWidth,
+            controlSize: controlSize
+        )
     }
 }
