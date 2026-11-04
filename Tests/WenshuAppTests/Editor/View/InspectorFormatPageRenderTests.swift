@@ -188,12 +188,70 @@ struct InspectorFormatPageRenderTests {
             encoding: .utf8
         )
         let missing = EditorFormatAction.allCases
-            .filter { !source.contains("action: .\($0.rawValue)") }
+            .filter { !source.contains(".\($0.rawValue)") }
             .map(\.rawValue)
         #expect(
             missing.isEmpty,
             "these format commands have no row on the page (= the move from the editor zone's icon row lost them): \(missing)"
         )
+    }
+
+    @Test("the page draws its related commands on one row (= Pages' shape)")
+    func thePageDrawsRelatedCommandsOnOneRow() throws {
+        let source = try String(
+            contentsOf: Self.pageSourceURL(),
+            encoding: .utf8
+        )
+        // Pages puts the related controls of one kind on ONE row, in one
+        // block (= its bold / italic / underline). So the character
+        // commands are one row, not five rows of one command each.
+        #expect(
+            source.contains("InspectorFormatCommandStrip(actions: [.bold, .italic, .strikethrough, .highlight, .inlineCode])"),
+            "the character commands must share one row (= Pages draws its related controls side by side)"
+        )
+        #expect(
+            source.contains("InspectorFormatCommandStrip(actions: [.blockquote, .unorderedList, .orderedList])"),
+            "the block commands must share one row (= Pages draws its related controls side by side)"
+        )
+    }
+
+    @Test("the page draws no card behind its rows (= Pages' column has none)")
+    func thePageDrawsNoCardBehindItsRows() throws {
+        let source = try String(
+            contentsOf: Self.pageSourceURL(),
+            encoding: .utf8
+        )
+        // Measured on the running Pages app: its inspector's controls sit
+        // directly on the column's background, in rounded blocks. A card
+        // behind a row would be a plate Pages does not draw.
+        //
+        // The check reads the CODE (= the comments stripped), because a
+        // comment that NAMES a type is not a use of it (= this page's own
+        // header explains the choice and names the card the other pages
+        // use).
+        #expect(
+            !Self.code(of: source).contains("InspectorCard"),
+            "the format page must not draw a card behind its rows (= Pages' inspector column has no card)"
+        )
+    }
+
+    /// The source's code (= its comments stripped, = so a comment that
+    /// names a type is not read as a use of it).
+    private static func code(of source: String) -> String {
+        source
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { line -> String in
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.hasPrefix("//") {
+                    return ""
+                }
+                return String(line.replacingOccurrences(
+                    of: #"(?<!:)//.*$"#,
+                    with: "",
+                    options: .regularExpression
+                ))
+            }
+            .joined(separator: "\n")
     }
 
     /// The page's own source file (= where its rows are written).
