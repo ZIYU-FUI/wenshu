@@ -526,9 +526,26 @@ final class ChatViewModel {
         if !mentions.isEmpty {
             for mention in mentions {
                 do {
+                    // The librarian is activated by an explicit
+                    // procedure: = `@librarian import <source>` or
+                    // `@librarian curate`. = A mention that names no
+                    // procedure is not a librarian task, = and it
+                    // falls through to the ordinary path rather than
+                    // running a procedure nobody named.
+                    let taskText: String
+                    if mention.subagentSlug == "librarian" {
+                        switch LibrarianActivation.parse(mention.task) {
+                        case .task(let librarianTask):
+                            taskText = LibrarianActivation.encodedTask(for: librarianTask)
+                        case .notALibrarianTask, .unknownProcedure:
+                            taskText = mention.task
+                        }
+                    } else {
+                        taskText = mention.task
+                    }
                     let result = try await delegate(
                         subagentProfile: mention.subagentSlug,
-                        task: mention.task,
+                        task: taskText,
                         context: [:],
                         registry: AsyncDelegationRegistry.shared
                     )
