@@ -39,15 +39,26 @@ public final class WSSubAgentRun {
         self.outputTokens = 0
     }
 
+    /// The vocabulary of this column.
+    ///
+    /// One column, one vocabulary. The model's own `complete` and
+    /// `fail` used to write "ok" and "errored", while the ledger that
+    /// writes the same column wrote "done" and "failed", and a
+    /// reader (= the archive pane) had to know both. The app's own
+    /// `SubAgentRunStatus` says "done" and "failed", so these are
+    /// the words, and the same words the ledger writes.
+    public static let statusDone = "done"
+    public static let statusFailed = "failed"
+
     public func complete(output: String, outputTokens: Int) {
-        self.status = "ok"
+        self.status = Self.statusDone
         self.outputText = output
         self.outputTokens = outputTokens
         self.completedAt = Date()
     }
 
     public func fail(error: String) {
-        self.status = "errored"
+        self.status = Self.statusFailed
         self.errorMessage = error
         self.completedAt = Date()
     }

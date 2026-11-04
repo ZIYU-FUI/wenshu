@@ -46,6 +46,11 @@ struct SettingView: View {
         case memory
         case agent
         case covers
+        // The archive (= what the agents did, = and for how long it
+        // is kept). = It is a ninth pane, = and the pane count is
+        // asserted by a tripwire (= IconStylesTests), = so the two
+        // must move together.
+        case archive
         var id: String { rawValue }
 
         // / SF Symbols 7 identifier per Apple HIG sidebar row leading icon.
@@ -61,6 +66,7 @@ struct SettingView: View {
             case .memory:      return "bonjour"
             case .agent:       return "wand.and.stars"
             case .covers:      return "photo.on.rectangle.angled"
+            case .archive:     return "archivebox"
             }
         }
     }
@@ -228,6 +234,7 @@ struct SettingView: View {
         case .memory:      MemorySettingsView()
         case .agent:       AgentSettingsPane()
         case .covers:      CoverSettingsView()
+        case .archive:     ArchiveSettingsPane()
         }
     }
 
@@ -243,6 +250,7 @@ struct SettingView: View {
         case .memory:      return String(localized: "settings.pane.memory")
         case .agent:       return String(localized: "settings.pane.agent")
         case .covers:      return String(localized: "settings.pane.covers")
+        case .archive:     return String(localized: "settings.pane.archive")
         }
     }
 

@@ -49,7 +49,7 @@ struct WSSubAgentRunTests {
         try context.save()
         run.complete(output: "done", outputTokens: 100)
         try context.save()
-        #expect(run.status == "ok")
+        #expect(run.status == "done", "one column, one vocabulary: = the ledger writes the same words")
         #expect(run.outputText == "done")
         #expect(run.outputTokens == 100)
         #expect(run.completedAt != nil)
@@ -65,7 +65,7 @@ struct WSSubAgentRunTests {
         try context.save()
         run.fail(error: "network timeout")
         try context.save()
-        #expect(run.status == "errored")
+        #expect(run.status == "failed", "one column, one vocabulary: = the ledger writes the same words")
         #expect(run.errorMessage == "network timeout")
         #expect(run.completedAt != nil)
     }

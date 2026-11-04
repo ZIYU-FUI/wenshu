@@ -162,7 +162,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// .regular; the `sidebarWidth` + `sidebarInset` properties on this case
     /// hold the optical slot so callers do not have to know the difference
     /// between the symbol's intrinsic width and the row slot.
-    /// Used by: the Settings scene's 8-pane sidebar (= its pane list calls
+    /// Used by: the Settings scene's 9-pane sidebar (= its pane list calls
     /// `SFIcon(pane.icon, style: .sidebar, color: IconColor.secondary)`).
     /// `SFLabelRow` is the reference implementation the design-system suites
     /// read (= the factory's own exemplar, not a production caller).
@@ -175,7 +175,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// chrome sidebar of the main window, not the System Settings
     /// surface).
     /// Distinct from `.sidebar` (= which is reserved for the Settings scene's
-    /// 8-pane sidebar): the main-window library tree's outline icon is
+    /// 9-pane sidebar): the main-window library tree's outline icon is
     /// monochrome (= only the Settings scene uses multicolor). this tier
     /// renders the SF Symbol in `.monochrome` with the system-primary color (=
     /// no multicolor, no squircle tile, = the Apple HIG canonical "chrome"
