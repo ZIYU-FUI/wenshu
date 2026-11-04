@@ -54,22 +54,36 @@ promise.
 
 ### 1. The corpus cannot be searched
 
-**Evidence.** = `CSSearchableIndexSearch.search(query:limit:)` exists
-and has no caller. = The corpus is indexed on every write (= create,
-update, upsert and delete all call `scheduleSearchIndex`), = so the
-index is current and nothing reads it.
+**⇒ CLOSED on `feature/library-and-archive-surfaces` (= the branch
+under review), = by `feat(library): the library can be searched by a
+word in a document's body`.** = The search is
+`ReferenceLibrarySearch` (= the library's own documents, = every
+layer, = the body of each one), = and the surface is
+`LibraryFullTextSearchView` (= a results strip above the assets
+column's grid).
 
-**⇒ What closing it looks like.** = A caller and a surface. = The
-data is already there: = `search` returns `CSSearchResult`, = and
-`referenceDocId(for:)` maps a library id into the index's namespace.
+**⇒ What it did NOT use, = and why.** = Not
+`CSSearchableIndexSearch.search(query:limit:)`. = Two reasons, = both
+measured: = the index is a mirror of the SESSION (= empty after a
+relaunch until the documents are written again), = and its answer
+depends on a synchronous wait on Spotlight (= `group.wait()`), = so a
+slow Spotlight freezes the app. = The library's documents are on
+disk, = so the library can answer without asking.
 
-**⇒ The trap.** = `Tests/WenshuAppTests/Library/Search/CSSearchableIndexSearchTests.swift`
+**⇒ The trap it walked around, = and the one it did not.**
+`Tests/WenshuAppTests/Library/Search/CSSearchableIndexSearchTests.swift`
 is skipped in the whole-suite runs, = and the skip exists because
-that suite can hang in Core Spotlight. = The skip does **not** cover
-the suite that actually indexes, = so a whole-suite run can still
-hang. = **⇒ Whoever builds the search surface must decide how the
-read path avoids Spotlight**, = and the fallback path in the same
-actor (`queryFallback`) is the shape that does.
+that suite can hang in Core Spotlight. = The new read path never
+touches Spotlight, = so it cannot hang there. = **⇒ The Spotlight
+wait is still in `querySpotlight`, = and it is still a defect for
+the path that DOES use the system index** (= the system-wide search,
+= = `⌘Space`). = Closing that is a separate piece of work, = and it
+is not closed.
+
+**⇒ What is left of the original ask.** = The library's own search
+finds a document by a word in its title or its body. = It does not
+search the CHAPTERS (= the book's own documents), = and it does not
+feed the system index.
 
 ### 2. The raw layer has no maintenance surface
 
