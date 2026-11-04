@@ -29,7 +29,15 @@ public final class WSSubAgentRun {
     /// Inverse relationship target (= declared on WSSession)
     public var session: WSSession?
 
-    public init(id: String, sessionID: String, taskDescription: String, status: String = "queued") {
+    /// The status is required, = and not defaulted.
+    ///
+    /// = The default used to be "queued", = which is not one of the
+    /// column's words (= the app's `SubAgentRunStatus` says running /
+    /// done / failed), = so a caller that forgot the argument wrote a
+    /// fourth word into a column that has three. = Making it required
+    /// means every caller names a status, = and names it from the
+    /// vocabulary.
+    public init(id: String, sessionID: String, taskDescription: String, status: String) {
         self.id = id
         self.sessionID = sessionID
         self.taskDescription = taskDescription

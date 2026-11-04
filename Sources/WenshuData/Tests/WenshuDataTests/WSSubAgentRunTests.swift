@@ -44,7 +44,7 @@ struct WSSubAgentRunTests {
     func complete() throws {
         let container = try makeContainer()
         let context = ModelContext(container)
-        let run = WSSubAgentRun(id: "r1", sessionID: "s", taskDescription: "x")
+        let run = WSSubAgentRun(id: "r1", sessionID: "s", taskDescription: "x", status: "running")
         context.insert(run)
         try context.save()
         run.complete(output: "done", outputTokens: 100)
@@ -60,7 +60,7 @@ struct WSSubAgentRunTests {
     func fail() throws {
         let container = try makeContainer()
         let context = ModelContext(container)
-        let run = WSSubAgentRun(id: "r2", sessionID: "s", taskDescription: "x")
+        let run = WSSubAgentRun(id: "r2", sessionID: "s", taskDescription: "x", status: "running")
         context.insert(run)
         try context.save()
         run.fail(error: "network timeout")
@@ -77,8 +77,8 @@ struct WSSubAgentRunTests {
         let context = ModelContext(container)
         let session = WSSession(sessionID: "sess-sub", title: "with sub-runs")
         context.insert(session)
-        let r1 = WSSubAgentRun(id: "r1", sessionID: session.sessionID, taskDescription: "a")
-        let r2 = WSSubAgentRun(id: "r2", sessionID: session.sessionID, taskDescription: "b")
+        let r1 = WSSubAgentRun(id: "r1", sessionID: session.sessionID, taskDescription: "a", status: "running")
+        let r2 = WSSubAgentRun(id: "r2", sessionID: session.sessionID, taskDescription: "b", status: "running")
         context.insert(r1)
         context.insert(r2)
         r1.session = session
