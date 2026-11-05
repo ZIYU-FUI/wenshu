@@ -112,9 +112,9 @@ enum BookFolderCatalog {
             "体系或规则",
             "历史脉络",
             "与其他元素的关系",
-            "关键场景种子"
+            "关键场景种子",
         ],
-        isUserFacing: true,
+        isUserFacing: true
     )
 
     /// Named characters
@@ -125,7 +125,7 @@ enum BookFolderCatalog {
         cardDisplayName: "角色",
         icon: "person.crop.circle",
         requiredTitles: [],
-        isUserFacing: true,
+        isUserFacing: true
     )
 
     /// Pre-write outline (= beat sheets). The outline body is a
@@ -140,7 +140,7 @@ enum BookFolderCatalog {
         cardDisplayName: "章节大纲",
         icon: "bookmark.circle",
         requiredTitles: [],
-        isUserFacing: false,
+        isUserFacing: false
     )
 
     /// The published body (= chapter .md files
@@ -152,7 +152,7 @@ enum BookFolderCatalog {
         cardDisplayName: "章节",
         icon: "book.closed.circle",
         requiredTitles: [],
-        isUserFacing: true,
+        isUserFacing: true
     )
 
     /// In-progress drafts
@@ -163,7 +163,7 @@ enum BookFolderCatalog {
         cardDisplayName: "草稿",
         icon: "book.circle",
         requiredTitles: [],
-        isUserFacing: true,
+        isUserFacing: true
     )
 
     /// (= boss
@@ -246,7 +246,7 @@ enum BookFolderCatalog {
         cardDisplayName: "构思",
         icon: "timelapse",
         requiredTitles: [],
-        isUserFacing: true,
+        isUserFacing: true
     )
 
     /// LLM chat transcripts (= internal folder; = NOT
@@ -258,7 +258,7 @@ enum BookFolderCatalog {
         cardDisplayName: "会话",
         icon: nil,
         requiredTitles: [],
-        isUserFacing: false,
+        isUserFacing: false
     )
 
     /// All standard folders, in sidebar display order (=
@@ -271,12 +271,26 @@ enum BookFolderCatalog {
     static let allBookFolders: [BookFolderSpec] = [
         world, characters, outlines, chapters, drafts,
         ideas,
-        sessions
+        sessions,
     ]
 
     /// The user-facing folders (= sidebar-visible). Used by
     /// SidebarService.folderCatalog as the canonical row list.
     static let userFacing: [BookFolderSpec] = allBookFolders.filter(\.isUserFacing)
+
+    /// The directory name behind a sidebar label (= the inverse of the
+    /// label, = so a folder row can be turned back into the directory it
+    /// stands for). = The catalog owns this map, = because a hard-coded
+    /// copy of it is a SECOND list to forget: = the copy this replaces
+    /// had four of the catalog's five user-facing folders (= the ideas
+    /// folder was missing, = so a selection of it carried its display
+    /// name instead of its directory name).
+    ///
+    /// Returns nil when no folder carries that label (= the caller
+    /// decides what an unknown label means).
+    static func directoryName(forSidebarDisplayName name: String) -> String? {
+        allBookFolders.first(where: { $0.sidebarDisplayName == name })?.directoryName
+    }
 
     /// Lookup by id (= the same identifier used by
     /// PreviewPane.BookFolder.rawValue and

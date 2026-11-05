@@ -31,19 +31,20 @@
 import Foundation
 
 // MARK: - v1.69y (see OOB.md #2026-09-23) OOB ', '
-// Create + delete + rename business layer for the sidebar. Restored from the deleted
-// NewLibraryOutlineView.swift (2366 LOC) after `git rm`'d it without re-wiring (= per
-// (see OOB.md #2026-09-23) OOB '，'). What lives here: - persistence surface (=
-// FileManager + JSONEncoder/Decoder for shelvesRoot/, books/<bookId>/book.json,
-// shelf.json). - reserved-name guard (= rejects "" / "Reference Library" legacy
-// system-shelf names; = (see OOB.md #2026-09-20) OOB). - default-shelf-delete guard (=
-// shelf 00000000-... cannot be deleted; = Reference Library is immutable). -
-// duplicate-name validation for create + rename. What does NOT live here: - UI (=
-// sheets in SidebarSheets.swift + context menu in SidebarContextMenu.swift + alert +
-// sheet wiring in AppleSidebarView.swift). Error type = one enum with LocalizedError
-// (= the m1 legacy ShelfError / ShelfDeleteError pair merged into one with all cases;
-// = same set of reserved + duplicate + cannot-delete-default guards preserved
-// verbatim).
+
+/// Create + delete + rename business layer for the sidebar. Restored from the deleted
+/// NewLibraryOutlineView.swift (2366 LOC) after `git rm`'d it without re-wiring (= per
+/// (see OOB.md #2026-09-23) OOB '，'). What lives here: - persistence surface (=
+/// FileManager + JSONEncoder/Decoder for shelvesRoot/, books/<bookId>/book.json,
+/// shelf.json). - reserved-name guard (= rejects "" / "Reference Library" legacy
+/// system-shelf names; = (see OOB.md #2026-09-20) OOB). - default-shelf-delete guard (=
+/// shelf 00000000-... cannot be deleted; = Reference Library is immutable). -
+/// duplicate-name validation for create + rename. What does NOT live here: - UI (=
+/// sheets in SidebarSheets.swift + context menu in SidebarContextMenu.swift + alert +
+/// sheet wiring in AppleSidebarView.swift). Error type = one enum with LocalizedError
+/// (= the m1 legacy ShelfError / ShelfDeleteError pair merged into one with all cases;
+/// = same set of reserved + duplicate + cannot-delete-default guards preserved
+/// verbatim).
 extension SidebarService {
     /// domain error for the create / delete / rename operations (=
     /// LocalizedError so the caller can present the message in a SwiftUI
@@ -59,10 +60,10 @@ extension SidebarService {
             switch self {
             case .cannotDeleteDefault:
                 return String(localized: "sidebar_service_error_cannot_delete_default")
-            case .duplicateName(let name):
+            case let .duplicateName(name):
                 return String(localized: "new_shelf_sheet_duplicate_error")
                     .replacingOccurrences(of: "%@", with: name)
-            case .reservedName(let name):
+            case let .reservedName(name):
                 return String(localized: "new_shelf_sheet_reserved_error")
                     .replacingOccurrences(of: "%@", with: name)
             case .bookNotFound:
@@ -79,7 +80,7 @@ extension SidebarService {
     /// enforced).
     static let reservedNames: Set<String> = [
         String(localized: "library.sidebar.reference_root"),
-        "资料库", "参考库", "reference library"
+        "资料库", "参考库", "reference library",
     ]
 
     /// list all shelf display names (= for duplicate-name validation in
@@ -131,7 +132,7 @@ extension SidebarService {
     func createBook(input: NewBookSheet.NewBookInput) throws -> UUID {
         let trimmedTitle = input.title.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedTitle.isEmpty {
-            throw MutationError.bookNotFound  // signal empty title (= use this case)
+            throw MutationError.bookNotFound // signal empty title (= use this case)
         }
         if existingBookTitles().contains(where: { $0.caseInsensitiveCompare(trimmedTitle) == .orderedSame }) {
             throw MutationError.duplicateName(trimmedTitle)
@@ -146,10 +147,11 @@ extension SidebarService {
             .appendingPathComponent(bookId.uuidString, isDirectory: true)
         let fm = FileManager.default
         try fm.createDirectory(at: bookDir, withIntermediateDirectories: true)
-        let standardFolders = [
-            "world", "characters", "outlines", "chapters",
-            "drafts", "sessions"
-        ]
+        // = READ from the catalog (= the SSOT for the standard folders),
+        // = not written out here: = this list was hard-coded and had
+        // = missed the catalog's `ideas` folder, = so a seeded book had
+        // = no ideas directory at all.
+        let standardFolders = BookFolderCatalog.allBookFolders.map(\.directoryName)
         for folder in standardFolders {
             try fm.createDirectory(
                 at: bookDir.appendingPathComponent(folder, isDirectory: true),
@@ -226,7 +228,7 @@ extension SidebarService {
         }
         let others = existingShelfNames().filter { name in
             guard let shelf = self.shelves.first(where: { $0.name == name }) else {
-                return true  // skip self if name lookup fails
+                return true // skip self if name lookup fails
             }
             return shelf.id != id
         }
@@ -283,7 +285,8 @@ extension SidebarService {
                 .appendingPathComponent("book.json")
             if fm.fileExists(atPath: bookJSONURL.path),
                let data = try? Data(contentsOf: bookJSONURL),
-               var existing = try? JSONDecoder().decode(Book.self, from: data) {
+               var existing = try? JSONDecoder().decode(Book.self, from: data)
+            {
                 existing.title = trimmed
                 existing.updatedAt = Date()
                 let updated = try JSONEncoder().encode(existing)
@@ -360,6 +363,7 @@ extension SidebarService {
     }
 
     // MARK: v2.7: bookDoc (= one .md file in a
+
     // book folder) rename / delete / duplicate-name helpers. The right-click context menu
     // on the workspace card grid now also fires for `.bookDoc` cards (= the boss
     // 2026-10-10 "你把书的加上就行了" directive). The methods mirror the reference shape (=
@@ -436,7 +440,7 @@ extension SidebarService {
         }
         let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw MutationError.duplicateName("") }
-        guard !trimmed.contains("/") && !trimmed.contains(":") else {
+        guard !trimmed.contains("/"), !trimmed.contains(":") else {
             throw MutationError.duplicateName(trimmed)
         }
         let newURL = url.deletingLastPathComponent()
@@ -509,6 +513,7 @@ extension SidebarService {
     }
 
     // MARK: v1.69y: picker / state query helpers (= consumed by
+
     // AppleSidebarView when presenting NewBookSheet / RenameItemSheet; = pure reads of
     // the current SidebarService state).
 
@@ -522,13 +527,15 @@ extension SidebarService {
     /// if it's a shelf, else fallback to the default shelf). Mirrors the
     /// v1.0.0-m1 legacy NewLibraryOutlineView.resolveNewBookTargetShelf.
     func targetShelfForNewBook(currentSelection: SidebarItem?) -> (id: UUID, name: String)? {
-        if case .shelf(let id) = currentSelection,
-           let shelf = shelves.first(where: { $0.id == id }) {
+        if case let .shelf(id) = currentSelection,
+           let shelf = shelves.first(where: { $0.id == id })
+        {
             return (shelf.id, shelf.name)
         }
-        if case .book(let id) = currentSelection,
+        if case let .book(id) = currentSelection,
            let book = books.first(where: { $0.id == id }),
-           let shelf = shelves.first(where: { $0.id == book.shelfId }) {
+           let shelf = shelves.first(where: { $0.id == book.shelfId })
+        {
             return (shelf.id, shelf.name)
         }
         return defaultShelfTarget()

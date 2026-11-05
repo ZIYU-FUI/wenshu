@@ -26,10 +26,11 @@ extension LibraryMigrator {
         // Per-book standard folders + 2 JSON data files (= inline;
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // one book).
-        let standardFolders = [
-            "world", "characters", "outlines", "chapters",
-            "drafts", "sessions",
-        ]
+        // = READ from the catalog (= the SSOT for the standard folders),
+        // = not written out here: = this list was hard-coded and had
+        // = missed the catalog's `ideas` folder, = so a seeded book had
+        // = no ideas directory at all.
+        let standardFolders = BookFolderCatalog.allBookFolders.map(\.directoryName)
         for folder in standardFolders {
             let dir = bookDir.appendingPathComponent(folder, isDirectory: true)
             if !fm.fileExists(atPath: dir.path) {

@@ -18,11 +18,14 @@ import Testing
 @Suite("Per-book folder layout (= what a book directory carries)")
 @MainActor
 struct LibraryBookFolderLayoutTests {
-
     /// The folders every book directory carries.
-    private static let standardFolders = [
-        "world", "characters", "outlines", "chapters", "drafts", "sessions",
-    ]
+    /// = READ from the catalog (= the SSOT), = not written out here: =
+    /// this list WAS a copy of the implementation's list, = and the two
+    /// copies missed the same folder (= the ideas folder), = so the suite
+    /// was green while a seeded book had no ideas directory.
+    private static var standardFolders: [String] {
+        BookFolderCatalog.allBookFolders.map(\.directoryName)
+    }
 
     /// A temporary library root, removed when the test ends.
     private func makeLibraryRoot() throws -> URL {

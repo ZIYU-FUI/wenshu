@@ -73,10 +73,11 @@ struct LibraryBootstrapper: Sendable {
             includingPropertiesForKeys: [.isDirectoryKey],
             options: [.skipsHiddenFiles]
         ) else { return }
-        let standardFolders = [
-            "world", "characters", "outlines", "chapters",
-            "drafts", "sessions"
-        ]
+        // = READ from the catalog (= the SSOT for the standard folders),
+        // = not written out here: = this list was hard-coded and had
+        // = missed the catalog's `ideas` folder, = so a seeded book had
+        // = no ideas directory at all.
+        let standardFolders = BookFolderCatalog.allBookFolders.map(\.directoryName)
         let dataFiles = ["kanban.json", "todo.json"]
         for case let bookDir as URL in shelfEnumerator {
             // Only process the deepest books/<book-uuid>/ directories.
@@ -111,7 +112,7 @@ struct LibraryBootstrapper: Sendable {
             "CFBundleName": "wenshu",
             "CFBundleIdentifier": "com.wenshu.library",
             "WSSchemaVersion": CURRENT_SCHEMA_VERSION,
-            "WSPCreatedAt": Date().formatted(.iso8601)
+            "WSPCreatedAt": Date().formatted(.iso8601),
         ]
         let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
         try data.write(to: url)

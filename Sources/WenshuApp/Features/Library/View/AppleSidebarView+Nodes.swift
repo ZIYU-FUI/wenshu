@@ -100,12 +100,13 @@ extension AppleSidebarView {
     /// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
     /// / either side changes).
     private static func reverseFolderName(title: String) -> String {
-        switch title {
-        case "世界观": return "world"
-        case "角色": return "characters"
-        case "小说正文": return "chapters"
-        case "小说草稿": return "drafts"
-        default: return title
-        }
+        // = The catalog is the SSOT for the folders' labels AND their
+        // directory names, = so this map is DERIVED from it: = a folder
+        // the catalog declares is reversible by construction, = and the
+        // next folder cannot be forgotten here. = The hard-coded switch
+        // this replaced had four of the catalog's five user-facing
+        // folders (= the ideas folder was missing, = so a selection of it
+        // carried its display name instead of its directory name).
+        BookFolderCatalog.directoryName(forSidebarDisplayName: title) ?? title
     }
 }
