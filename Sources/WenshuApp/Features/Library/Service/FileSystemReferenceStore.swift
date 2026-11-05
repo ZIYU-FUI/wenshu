@@ -161,7 +161,8 @@ struct FileSystemReferenceStore: ReferenceStoring {
         try? Self.writeReferenceFileToFileSystem(
             id: id,
             bodyMarkdown: bodyMarkdown,
-            referenceLibraryRoot: referenceLibraryRoot
+            referenceLibraryRoot: referenceLibraryRoot,
+            layer: reference.layer
         )
         scheduleSearchIndex(reference: reference, bodyMarkdown: bodyMarkdown)
     }
@@ -207,7 +208,8 @@ struct FileSystemReferenceStore: ReferenceStoring {
         try? Self.writeReferenceFileToFileSystem(
             id: id,
             bodyMarkdown: bodyMarkdown,
-            referenceLibraryRoot: referenceLibraryRoot
+            referenceLibraryRoot: referenceLibraryRoot,
+            layer: reference.layer
         )
         scheduleSearchIndex(reference: reference, bodyMarkdown: bodyMarkdown)
     }
@@ -371,14 +373,18 @@ struct FileSystemReferenceStore: ReferenceStoring {
                fileBody?.count ?? -1)
         if let fileBody { return fileBody }
         guard let context = modelContext else {
-            // FileSystem path: search all layer directories for the .md file. Without
-            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-            // fallback helpers.
+            // FileSystem path: = the truth location first (= already
+            // read above), = and the layer mirror as the fallback. = A
+            // library that predates the truth location still has the
+            // mirror, = and a reader that ignored it would say the
+            // document has no body at all.
             for layer in ReferenceLayer.allCases {
-                let layerDir = layerDirectory(layer)
-                let mdURL = layerDir.appendingPathComponent("\(id.uuidString).md")
-                if FileManager.default.fileExists(atPath: mdURL.path) {
-                    return try? String(contentsOf: mdURL, encoding: .utf8)
+                if let body = ReferenceBodyStore.read(
+                    id: id,
+                    layer: layer,
+                    referenceLibraryRoot: referenceLibraryRoot
+                ) {
+                    return body
                 }
             }
             return nil

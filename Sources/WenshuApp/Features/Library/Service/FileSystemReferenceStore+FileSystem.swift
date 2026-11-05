@@ -83,15 +83,22 @@ extension FileSystemReferenceStore {
         }
     }
 
+    /// Read a body's text.
+    ///
+    /// **⇒ The TRUTH first** (= `<ws>/references/<uuid>.md`), = and the
+    /// layer copy only when the truth is absent. = The corpus had two
+    /// copies of every body, = and a reader that picked one at random
+    /// read a document the agent had just written as the older text.
     nonisolated static func loadReferenceBodyFromFileSystem(
         id: UUID,
         layer: ReferenceLayer,
         referenceLibraryRoot: URL
     ) -> String? {
-        let mdURL = referenceLibraryRoot
-            .appendingPathComponent(layer.directoryName)
-            .appendingPathComponent("\(id.uuidString).md")
-        return try? String(contentsOf: mdURL, encoding: .utf8)
+        ReferenceBodyStore.read(
+            id: id,
+            layer: layer,
+            referenceLibraryRoot: referenceLibraryRoot
+        )
     }
 
     nonisolated static func saveReferenceToFileSystem(
@@ -114,7 +121,18 @@ extension FileSystemReferenceStore {
             // content-diff check (= the user's "完全一至" rule). If the existing .md is byte-
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // without crashing).
-            let existingBody = (try? String(contentsOf: mdURL, encoding: .utf8)) ?? ""
+            //
+            // **⇒ The comparison reads the TRUTH**, = not the mirror.
+            // = The user edits the document in the editor, = which
+            // writes the truth location, = and the mirror is stale.
+            // = A comparison against the stale mirror said "the
+            // content is unchanged" = and the write was SKIPPED, = so
+            // the agent's new body never reached the truth either.
+            let existingBody = ReferenceBodyStore.read(
+                id: reference.id,
+                layer: reference.layer,
+                referenceLibraryRoot: referenceLibraryRoot
+            ) ?? ""
             if existingBody == bodyMarkdown {
                 // Content unchanged; = this is a re-import of the same source body; = the
                 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
@@ -124,9 +142,11 @@ extension FileSystemReferenceStore {
             // Content differs; = the user explicitly authorized "edit" in the [archived-round]
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // `replaceReferenceToFileSystem` path).
-            try AtomicFileWrite.write(
-                bodyMarkdown.data(using: .utf8) ?? Data(),
-                to: mdURL
+            try ReferenceBodyStore.write(
+                id: reference.id,
+                layer: reference.layer,
+                bodyMarkdown: bodyMarkdown,
+                referenceLibraryRoot: referenceLibraryRoot
             )
             var current = (try? loadReferencesFromFileSystem(
                 referenceLibraryRoot: referenceLibraryRoot,
@@ -142,7 +162,16 @@ extension FileSystemReferenceStore {
         }
         // original write path (no .md exists at the destination = first time this
         // reference is imported).
-        try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: mdURL)
+        //
+        // **⇒ Both locations.** = The agent's write has to land where
+        // the READ path looks first (= the truth), = or a document the
+        // agent just wrote reads back as the older text.
+        try ReferenceBodyStore.write(
+            id: reference.id,
+            layer: reference.layer,
+            bodyMarkdown: bodyMarkdown,
+            referenceLibraryRoot: referenceLibraryRoot
+        )
 
         var current = (try? loadReferencesFromFileSystem(
             referenceLibraryRoot: referenceLibraryRoot,
@@ -164,7 +193,12 @@ extension FileSystemReferenceStore {
         guard FileManager.default.fileExists(atPath: mdURL.path) else {
             throw ReferenceStoreError.referenceNotFound(id: reference.id)
         }
-        try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: mdURL)
+        try ReferenceBodyStore.write(
+            id: reference.id,
+            layer: reference.layer,
+            bodyMarkdown: bodyMarkdown,
+            referenceLibraryRoot: referenceLibraryRoot
+        )
 
         var current = (try? loadReferencesFromFileSystem(
             referenceLibraryRoot: referenceLibraryRoot,
@@ -195,16 +229,19 @@ extension FileSystemReferenceStore {
     nonisolated static func writeReferenceFileToFileSystem(
         id: UUID,
         bodyMarkdown: String,
-        referenceLibraryRoot: URL
+        referenceLibraryRoot: URL,
+        layer: ReferenceLayer = .layerEntities
     ) throws {
-        let url = referenceFileURL(id: id, referenceLibraryRoot: referenceLibraryRoot)
-        let parent = url.deletingLastPathComponent()
-        try FileManager.default.createDirectory(
-            at: parent, withIntermediateDirectories: true
-        )
-        try AtomicFileWrite.write(
-            bodyMarkdown.data(using: .utf8) ?? Data(),
-            to: url
+        // **⇒ One write, = two locations.** = The truth
+        // (`<ws>/references/<uuid>.md`) = and the layer mirror beside
+        // it. = They are read by different readers, = so a write that
+        // touched one of them left the other stale. = Measured on the
+        // real library: = six documents, = six divergent pairs.
+        try ReferenceBodyStore.write(
+            id: id,
+            layer: layer,
+            bodyMarkdown: bodyMarkdown,
+            referenceLibraryRoot: referenceLibraryRoot
         )
     }
 
@@ -258,10 +295,17 @@ extension FileSystemReferenceStore {
             try ensureReferenceLayerDirectoryExists(
                 at: referenceLibraryRoot.appendingPathComponent(layer.directoryName, isDirectory: true)
             )
-            let mdURL = referenceLibraryRoot
-                .appendingPathComponent(layer.directoryName)
-                .appendingPathComponent("\(updated.id.uuidString).md")
-            try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: mdURL)
+            // **⇒ Both locations.** = The truth (= where the read
+            // path looks first) = and the layer mirror. = Writing only
+            // the mirror left the truth holding the PREVIOUS body, =
+            // and the reader (= truth first) read the old text: = the
+            // update was invisible.
+            try ReferenceBodyStore.write(
+                id: updated.id,
+                layer: layer,
+                bodyMarkdown: bodyMarkdown,
+                referenceLibraryRoot: referenceLibraryRoot
+            )
             try writeIndexToFileSystem(existing, at: referenceLibraryRoot, layer: layer)
             return updated
         } else {
@@ -291,13 +335,17 @@ extension FileSystemReferenceStore {
         id: UUID,
         referenceLibraryRoot: URL
     ) throws {
+        // **⇒ The truth location too.** = A delete that removed only
+        // the layer copy left the body on disk at
+        // `<ws>/references/<uuid>.md`, = and the read path prefers
+        // that one. = **⇒ A delete that leaves the body on disk is
+        // not a delete.**
         for layer in ReferenceLayer.allCases {
-            let mdURL = referenceLibraryRoot
-                .appendingPathComponent(layer.directoryName)
-                .appendingPathComponent("\(id.uuidString).md")
-            if FileManager.default.fileExists(atPath: mdURL.path) {
-                try FileManager.default.removeItem(at: mdURL)
-            }
+            ReferenceBodyStore.remove(
+                id: id,
+                layer: layer,
+                referenceLibraryRoot: referenceLibraryRoot
+            )
             var current = (try? loadReferencesFromFileSystem(
                 referenceLibraryRoot: referenceLibraryRoot,
                 layer: layer
