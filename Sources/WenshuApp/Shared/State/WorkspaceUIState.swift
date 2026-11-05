@@ -371,14 +371,40 @@ enum InspectorPage: Hashable, CaseIterable {
 
 /// The trailing inspector column's MAJOR SECTIONS.
 ///
-/// The column's own chrome band carries a segmented control that picks
-/// the section; = the section then carries its own content (= and, for
-/// the dynamic section, = its own tab strip).
+/// The section switch rides the WINDOW TOOLBAR's right-hand button
+/// group (= the macOS titlebar idiom, = where Pages, = Numbers and =
+/// Keynote put it); = the section then carries its own content (= and,
+/// for the dynamic section, = the three tabs in the column's own chrome
+/// band).
 ///
 /// The two sections are the column's two kinds of subject: = the DYNAMIC
 /// one is what the runtime produces (= the todos, = the sub-agent
 /// tasks, = the task board), = and the FORMAT one is the document's own
 /// (= the format commands, = grouped the way Pages groups them).
+enum InspectorSection: Hashable, CaseIterable {
+    /// The dynamic series (= the todos, = the sub-agent tasks, = the task
+    /// board).
+    case dynamic
+    /// The format inspector (= the document's format commands).
+    case format
+
+    var localizedTitle: String {
+        switch self {
+        case .dynamic: return String(localized: "inspector.section.dynamic")
+        case .format: return String(localized: "inspector.section.format")
+        }
+    }
+
+    /// The section's glyph (= the capsule's segment carries an ICON,
+    /// = the way a macOS toolbar's button group does).
+    var icon: String {
+        switch self {
+        case .dynamic: return "waveform.path.ecg"
+        case .format: return "paintbrush"
+        }
+    }
+}
+
 extension InspectorSection {
     /// Whether the column is SHOWING this section right now.
     ///
@@ -408,29 +434,5 @@ extension InspectorSection {
             return (current, false)
         }
         return (pressed, true)
-    }
-}
-
-enum InspectorSection: Hashable, CaseIterable {
-    /// The dynamic series (= the todos, = the sub-agent tasks, = the task
-    /// board).
-    case dynamic
-    /// The format inspector (= the document's format commands).
-    case format
-
-    var localizedTitle: String {
-        switch self {
-        case .dynamic: return String(localized: "inspector.section.dynamic")
-        case .format: return String(localized: "inspector.section.format")
-        }
-    }
-
-    /// The section's glyph (= the capsule's segment carries an ICON,
-    /// = the way a macOS toolbar's button group does).
-    var icon: String {
-        switch self {
-        case .dynamic: return "waveform.path.ecg"
-        case .format: return "paintbrush"
-        }
     }
 }

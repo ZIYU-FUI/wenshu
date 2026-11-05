@@ -195,18 +195,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// control's height, so a caller cannot shrink the drawn pill by
     /// constraining the SwiftUI frame alone.
     let controlSize: NSControl.ControlSize
-    /// Whether the SELECTED segment's glyph is drawn in the accent
-    /// colour (= the macOS TOOLBAR capsule's shape).
-    ///
-    /// The capsule's SELECTION PLATE is not switchable: = macOS 27's
-    /// `NSSegmentedCell` publishes no `selectedSegmentHighlight`, = so
-    /// the plate the control draws is the system's own.
-    ///
-    /// Measured 2026-11-04 on Pages: the window titlebar's six-segment
-    /// capsule draws its selected segment's glyph in the accent colour
-    /// and paints NO plate behind it, = and its segments are separated
-    /// by NOTHING (= one continuous capsule, = not one plate per
-    /// segment). = A body tab strip wants the opposite (= a plate
     /// Double-click callback (= the user double-clicks a
     /// segment; = the callback receives the
     /// zero-indexed segment position; = the
