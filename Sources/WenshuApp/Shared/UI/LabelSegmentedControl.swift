@@ -325,9 +325,18 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             if let iconProvider = icon,
                let image = iconProvider(label)
             {
+                // The symbol's size follows the CONTROL's height when
+                // the segments are circles: = a symbol drawn at a fixed
+                // point size can be TALLER than the circle it sits in
+                // (= it then spills out of its own segment), = and
+                // Apple's own group keeps the glyph at about half the
+                // segment's height.
+                let pointSize = squareSegments
+                    ? Self.drawnHeight(for: controlSize) * Self.symbolShareOfItsSegment
+                    : iconStyle.pointSize
                 let symbol = image.withSymbolConfiguration(
                     NSImage.SymbolConfiguration(
-                        pointSize: iconStyle.pointSize,
+                        pointSize: pointSize,
                         weight: symbolWeight,
                         scale: .medium
                     )
@@ -482,6 +491,17 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         coordinator.parent = self
         control.target = coordinator
         control.action = #selector(Coordinator.segmentChanged(_:))
+    }
+
+    /// The share of its segment's height a symbol takes.
+    ///
+    /// Measured on Pages (2026-11-05): = the window titlebar's group
+    /// draws a segment's circle 28 PT across and its glyph 15 PT, = so
+    /// the glyph is about half the circle. = A glyph drawn at the pane
+    /// tab's own 18 PT would be TALLER than a 20 PT circle, = and it
+    /// would spill out of its own segment.
+    static var symbolShareOfItsSegment: CGFloat {
+        0.54
     }
 
     /// The height AppKit draws a segmented control to, = per control

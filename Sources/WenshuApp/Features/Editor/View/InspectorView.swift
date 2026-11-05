@@ -144,7 +144,9 @@ struct InspectorView: View {
                     labels: InspectorSection.allCases.map { Optional($0) },
                     symbolNames: { $0?.icon ?? "" },
                     tooltips: InspectorSection.allCases.map(\.localizedTitle),
-                    controlSize: .small
+                    // The circle is 28 PT across: = that is the height
+                    // Pages' own titlebar group draws its segments at.
+                    controlSize: .large
                 )
             }
 
