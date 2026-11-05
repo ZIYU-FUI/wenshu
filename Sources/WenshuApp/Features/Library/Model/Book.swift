@@ -43,9 +43,9 @@ enum BookLength: String, CaseIterable, Codable, Sendable {
     /// design vocabulary).
     var displayName: String {
         switch self {
-        case .short:  return "短篇"
+        case .short: return "短篇"
         case .medium: return "中篇"
-        case .long:   return "长篇"
+        case .long: return "长篇"
         }
     }
 }
@@ -72,6 +72,12 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     /// v52: the user's one-line story idea. Optional (= the wizard
     /// presents it as ' / optional). nil = not provided.
     var idea: String?
+    /// The book's style sheet: = ONE style set runs through the whole
+    /// book, = and every adjustment acts on the whole book. Optional
+    /// (= nil = the book reads `BookStyleSheet.default`, = the measured
+    /// print baseline), = and that is what keeps a book.json written
+    /// before the sheet existed decodable.
+    var styleSheet: BookStyleSheet?
     let createdAt: Date
     var updatedAt: Date
 
@@ -83,6 +89,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         shelfId: UUID,
         length: BookLength = .medium,
         idea: String? = nil,
+        styleSheet: BookStyleSheet? = nil,
         createdAt: Date = .now,
         updatedAt: Date = .now
     ) {
@@ -93,6 +100,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         self.shelfId = shelfId
         self.length = length
         self.idea = idea
+        self.styleSheet = styleSheet
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -104,6 +112,14 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         id.uuidString
     }
 
+    /// The style sheet this book READS: = its own sheet when it has one,
+    /// = and the measured print baseline when it does not. = Every reader
+    /// asks this, = so a book without a stored sheet and a book with one
+    /// cannot disagree about what the book looks like.
+    var effectiveStyleSheet: BookStyleSheet {
+        styleSheet ?? .default
+    }
+
     /// Book icon for sidebar display. Returns `icon` if set,
     /// otherwise the default "book" icon (outline-only).
     var displayIcon: String {
@@ -111,11 +127,11 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         return icon
     }
 
-    // id-based identity (= Apple HIG document-based convention).
-    // Renaming changes `title` but NOT `id`, so `book == book` still
-    // holds across renames (critical for SwiftUI List diffing,
-    // @Observable change detection, and selection identity in
-    // WenshuLibrary).
+    /// id-based identity (= Apple HIG document-based convention).
+    /// Renaming changes `title` but NOT `id`, so `book == book` still
+    /// holds across renames (critical for SwiftUI List diffing,
+    /// @Observable change detection, and selection identity in
+    /// WenshuLibrary).
     static func == (lhs: Book, rhs: Book) -> Bool {
         lhs.id == rhs.id
     }
@@ -125,6 +141,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     }
 
     // MARK: - Codable back-compat (v52)
+
     //
     // x book.json files don't have 'length' or 'idea' (= fields
     // added in v52). Synthesized Codable would fail to decode them
@@ -133,7 +150,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     // list, etc.) should follow the same pattern.
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, author, icon, shelfId, length, idea, createdAt, updatedAt
+        case id, title, author, icon, shelfId, length, idea, styleSheet, createdAt, updatedAt
     }
 
     init(from decoder: Decoder) throws {
@@ -145,6 +162,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         let length = try c.decodeIfPresent(BookLength.self, forKey: .length) ?? .medium
         let idea = try c.decodeIfPresent(String.self, forKey: .idea)
         let icon = try c.decodeIfPresent(String.self, forKey: .icon)
+        let styleSheet = try c.decodeIfPresent(BookStyleSheet.self, forKey: .styleSheet)
         let createdAt = try c.decode(Date.self, forKey: .createdAt)
         let updatedAt = try c.decode(Date.self, forKey: .updatedAt)
         self.init(
@@ -155,6 +173,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
             shelfId: shelfId,
             length: length,
             idea: idea,
+            styleSheet: styleSheet,
             createdAt: createdAt,
             updatedAt: updatedAt
         )
