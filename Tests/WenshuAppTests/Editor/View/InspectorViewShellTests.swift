@@ -179,7 +179,7 @@ struct InspectorViewShellTests {
         // The major-section switcher reads the SECTION enum; = the
         // dynamic section's switcher reads the PAGE enum; = and the
         // format section carries the format page.
-        #expect(source.contains("ForEach(InspectorSection.allCases"),
+        #expect(source.contains("labels: InspectorSection.allCases.map"),
                 "the window toolbar's button group offers the major sections")
         #expect(source.contains("labels: InspectorPage.allCases"),
                 "the dynamic section's band switches its three pages")

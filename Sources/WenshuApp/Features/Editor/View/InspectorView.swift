@@ -112,45 +112,40 @@ struct InspectorView: View {
             // itself; = measured on Pages 2026-11-04: = a six-segment
             // capsule whose selected glyph is the accent one).
             ToolbarItem(placement: .primaryAction) {
-                // The Apple's OWN toolbar button group: = a
-                // `ControlGroup` in a toolbar item IS the macOS shape
-                // (= ONE capsule holding several round buttons), = which
-                // is what Pages, = Numbers and = Keynote show at the
-                // titlebar's right end. = It is NOT a segmented
-                // control: = a segmented control draws one continuous
-                // track with a plate behind the chosen segment, = and
-                // Apple's own right-column switch is a group of round
-                // buttons whose CHOSEN ONE is the accent-coloured
+                // The Apple's OWN control: = a macOS window titlebar's
+                // right-hand button group is an `NSSegmentedControl`
+                // whose segments carry SYMBOLS, = and Pages, = Numbers
+                // and = Keynote all build it that way (= measured on
+                // Pages' own binary: = the framework carries NO segmented
+                // control of its own, = and the six segments read back as
+                // `AXRadioButton`, = which is what a segmented control's
+                // segments ARE).
+                //
+                // The segment's selected glyph is drawn in the accent
+                // colour BY THE CONTROL, = so nothing here paints a
                 // glyph.
-                ControlGroup {
-                    ForEach(InspectorSection.allCases, id: \.self) { section in
-                        Button {
-                            // The Apple toggle: = the section that is
-                            // ALREADY showing turns the column off, = and
-                            // any other section turns it on (= and on
-                            // that section).
+                //
+                // The selection is an OPTIONAL section: = nil = the
+                // column is hidden = nothing is selected.
+                LabelSegmentedControl.iconCapsule(
+                    selection: Binding<InspectorSection?>(
+                        get: { self.inspectorVisibleBinding ? self.workspaceUI.inspectorSection : nil },
+                        set: { picked in
+                            guard let picked else { return }
                             let outcome = InspectorSection.pressOutcome(
-                                section,
+                                picked,
                                 current: self.workspaceUI.inspectorSection,
                                 visible: self.inspectorVisibleBinding
                             )
                             self.workspaceUI.inspectorSection = outcome.section
                             self.inspectorVisibleBinding = outcome.visible
-                        } label: {
-                            Image(systemName: section.icon)
-                                .foregroundStyle(
-                                    InspectorSection.isShowing(
-                                        section,
-                                        current: self.workspaceUI.inspectorSection,
-                                        visible: self.inspectorVisibleBinding
-                                    )
-                                        ? Color.accentColor
-                                        : Color.secondary
-                                )
                         }
-                        .help(section.localizedTitle)
-                    }
-                }
+                    ),
+                    labels: InspectorSection.allCases.map { Optional($0) },
+                    symbolNames: { $0?.icon ?? "" },
+                    tooltips: InspectorSection.allCases.map(\.localizedTitle),
+                    controlSize: .small
+                )
             }
 
             ToolbarItemGroup(placement: .principal) {
