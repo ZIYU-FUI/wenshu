@@ -148,12 +148,12 @@ struct InspectorColumnSwitcherRenderTests {
     @MainActor
     func theSectionSwitchIsAToolbarButtonGroup() throws {
         let source = try String(contentsOfFile: inspectorPath, encoding: .utf8)
-        #expect(source.contains("ControlGroup {"),
-                "the section switch is a ControlGroup: = the macOS shape is ONE capsule holding several ROUND buttons, = and Apple's own titlebar switch measures 38 PT across, = which a segmented control cannot draw (= its largest control size is 28 PT)")
+        #expect(source.contains("Picker("),
+                "the section switch is a SwiftUI Picker(.segmented): = THAT is the form SwiftUI registers as a REAL toolbar item, = and a real toolbar item is what makes AppKit draw the toolbar's segmented shape")
+        #expect(source.contains(".pickerStyle(.segmented)"),
+                "the switch is segmented, = and its segments are the section choices")
         #expect(source.contains("ToolbarItem(placement: .primaryAction)"),
                 "the group rides the window toolbar's RIGHTMOST slot")
-        #expect(source.contains(".toggleStyle(.button)"),
-                "the group's buttons are TOGGLES: = Apple's own switch carries a CHOICE, = and the system's own mark is what says which one")
         #expect(source.contains("InspectorSection.pressOutcome("),
                 "the section's press goes through the ONE pure function that decides what it does")
     }

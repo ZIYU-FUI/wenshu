@@ -43,18 +43,6 @@ struct InspectorView: View {
     /// toolbar toggle writes back through this binding).
     @Binding var inspectorVisibleBinding: Bool
 
-    /// Whether the column is showing this section right now.
-    ///
-    /// A HIDDEN column shows NO section, = so no button in the group
-    /// wears the accent (= Apple's shape).
-    func isShowing(_ section: InspectorSection) -> Bool {
-        InspectorSection.isShowing(
-            section,
-            current: workspaceUI.inspectorSection,
-            visible: inspectorVisibleBinding
-        )
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             // The column's header names the COLUMN (= the way the
@@ -124,42 +112,41 @@ struct InspectorView: View {
             // itself; = measured on Pages 2026-11-04: = a six-segment
             // capsule whose selected glyph is the accent one).
             ToolbarItem(placement: .primaryAction) {
-                // The Apple's OWN button group: = a `ControlGroup` in a
-                // toolbar item is the macOS shape (= ONE capsule
-                // holding several ROUND buttons), = which is what Pages,
-                // = Numbers and = Keynote show at the titlebar's right
-                // end.
-                //
-                // The group's buttons are TOGGLES, = because Apple's own
-                // switch carries a CHOICE: = Pages' six titlebar
-                // buttons read back as `AXRadioButton`, = so they are
-                // radio semantics, = and their chosen one's mark is the
-                // system's own (= a segmented control cannot draw that
-                // circle: = its largest control size is 28 PT, = and
-                // Apple's own button is 38 PT across).
-                ControlGroup {
+                // The Apple's OWN segmented control, = and it must be a
+                // `Picker(.segmented)` in a toolbar item: = SwiftUI
+                // registers THAT as a real toolbar item, = and a real
+                // toolbar item is what makes AppKit draw the toolbar's
+                // segmented shape (= the chosen segment's plate covers
+                // the WHOLE segment). = The same control outside a
+                // toolbar draws a small indicator instead, = and
+                // Apple's own switch (= measured on Pages: = a segment
+                // 38 PT across whose chosen plate covers all 37 PT of
+                // its height) = shows the whole-segment plate.
+                Picker(
+                    "",
+                    selection: Binding<InspectorSection?>(
+                        get: { self.inspectorVisibleBinding ? self.workspaceUI.inspectorSection : nil },
+                        set: { picked in
+                            guard let picked else { return }
+                            let outcome = InspectorSection.pressOutcome(
+                                picked,
+                                current: self.workspaceUI.inspectorSection,
+                                visible: self.inspectorVisibleBinding
+                            )
+                            self.workspaceUI.inspectorSection = outcome.section
+                            self.inspectorVisibleBinding = outcome.visible
+                        }
+                    )
+                ) {
                     ForEach(InspectorSection.allCases, id: \.self) { section in
-                        Toggle(
-                            isOn: Binding(
-                                get: { self.isShowing(section) },
-                                set: { _ in
-                                    let outcome = InspectorSection.pressOutcome(
-                                        section,
-                                        current: self.workspaceUI.inspectorSection,
-                                        visible: self.inspectorVisibleBinding
-                                    )
-                                    self.workspaceUI.inspectorSection = outcome.section
-                                    self.inspectorVisibleBinding = outcome.visible
-                                }
-                            ),
-                            label: {
-                                Image(systemName: section.icon)
-                            }
-                        )
-                        .toggleStyle(.button)
-                        .help(section.localizedTitle)
+                        Label(section.localizedTitle, systemImage: section.icon)
+                            .labelStyle(.iconOnly)
+                            .tag(Optional(section))
                     }
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .help(String(localized: "inspector.section.help"))
             }
 
             ToolbarItemGroup(placement: .principal) {

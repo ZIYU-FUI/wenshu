@@ -71,8 +71,8 @@
 //  `Picker(.segmented)` remains the fallback for any future
 //  macOS < 27 target).
 
-import AppKit
 import SwiftUI
+import AppKit
 
 /// macOS 27's native segmented tab control.
 ///
@@ -130,31 +130,12 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// segments carry SYMBOLS, where the symbol carries the state.
     var role: NSSegmentedControl.Role = .valueSelection
 
-    /// The drawn bezel's style.
-    ///
-    /// Apple's own header (= `NSSegmentedControl.StyleAutomatic`) says: = "the
-    /// appearance is chosen depending on the type of window and THE
-    /// CONTROL'S POSITION INSIDE IT". = So a control that sits in a
-    /// window TOOLBAR asks for `.automatic` (= the system draws the
-    /// toolbar's own segmented shape), = and a control that sits in a
-    /// column body asks for `.roundRect` (= the body's tab pill).
-    var segmentStyle: NSSegmentedControl.Style = .roundRect
-
     /// Per-segment display strings (= the `String` shown in
     /// `setLabel(_:forSegment:)`; = default uses
     /// `String(describing: labels[index])`; = callers can
     /// override for localized labels when Selection is a
     /// non-String Hashable like a custom enum).
     let displayStrings: [String]
-    /// Per-segment TOOLTIPS (= the string shown on hover).
-    ///
-    /// nil = the segment's tooltip is its display string (= the
-    /// default, = and what a text-labelled strip wants). = A strip
-    /// that shows NO text (= an icon-only capsule, = the shape a
-    /// macOS toolbar's button group has) = needs its names on hover
-    /// instead, = and the tooltip is where they live: = the label
-    /// itself is empty, = so there is nothing else to carry the name.
-    var tooltips: [String]?
     /// Per-segment symbol provider.
     let icon: ((Selection) -> NSImage?)?
     /// per-segment
@@ -182,15 +163,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// given
     /// value).
     var fixedSegmentWidth: CGFloat = 0
-    /// Whether every segment is a CIRCLE (= its width is the control's
-    /// own drawn height).
-    ///
-    /// A segmented control's segments share the control's width: = with
-    /// the default distribution each segment is WIDER than the control
-    /// is tall, = and AppKit then draws the segment's own shape as an
-    /// ELLIPSE. = Apple's window-titlebar button group draws circles, =
-    /// so a group of symbols asks for this.
-    var squareSegments: Bool = false
     /// The AppKit control size (= the segment's own height and hit
     /// area; = `NSControl.ControlSize`).
     ///
@@ -233,25 +205,19 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         displayStrings: [String]? = nil,
         iconStyle: IconStyle = .paneTab,
         icon: ((Selection) -> NSImage?)? = nil,
-        tooltips: [String]? = nil,
         onDoubleClickSegment: ((Int) -> Void)? = nil,
         fixedSegmentWidth: CGFloat = 0,
-        squareSegments: Bool = false,
         role: NSSegmentedControl.Role = .valueSelection,
-        segmentStyle: NSSegmentedControl.Style = .roundRect,
         controlSize: NSControl.ControlSize = .large
     ) {
         self.selection = selection
         self.labels = labels
         self.displayStrings = displayStrings ?? labels.map { String(describing: $0) }
-        self.tooltips = tooltips
         self.iconStyle = iconStyle
         self.icon = icon
         self.onDoubleClickSegment = onDoubleClickSegment
         self.fixedSegmentWidth = fixedSegmentWidth
-        self.squareSegments = squareSegments
         self.role = role
-        self.segmentStyle = segmentStyle
         self.controlSize = controlSize
     }
 
@@ -303,7 +269,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// here could be reverted to its old form (= writing nothing when
     /// the bound value names no segment) and every pure assertion
     /// would still pass.
-    func configure(_ control: NSSegmentedControl, coordinator: Coordinator) {
+    internal func configure(_ control: NSSegmentedControl, coordinator: Coordinator) {
         // Segment count + per-segment label (= the
         // String-convertible binding of the typed selection).
         // NOTE: NSSegmentedControl segments are 0-indexed;
@@ -312,10 +278,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         if control.segmentCount != labels.count {
             control.segmentCount = labels.count
         }
-        // The selected index is needed BEFORE the icons are drawn: = a
-        // toolbar capsule's selected glyph is the accent one.
-        let selectedIndex = Self.selectedSegmentIndex(for: selection.wrappedValue, in: labels)
-
         for (index, label) in labels.enumerated() {
             // Use the per-page tab's display string (= the per-tab String
             // label; = matches the existing SwiftUI Picker(.segmented)
@@ -323,30 +285,21 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             let display = index < displayStrings.count ? displayStrings[index] : String(describing: label)
             control.setLabel(display, forSegment: index)
             if let iconProvider = icon,
-               let image = iconProvider(label)
-            {
-                // The symbol's size comes from the CENTRAL TOKEN (= the
-                // style the call site names), = so the glyph and the
-                // circle it sits in are sized by ONE decision: = a
-                // circle is 28 PT across (= the `.large` control), = and
-                // the pane tab's own 18 PT glyph fits inside it, = where
-                // it did not fit the 20 PT circle.
-                let symbol = image.withSymbolConfiguration(
-                    NSImage.SymbolConfiguration(
-                        pointSize: iconStyle.pointSize,
-                        weight: symbolWeight,
-                        scale: .medium
-                    )
-                ) ?? image
-                control.setImage(symbol, forSegment: index)
+               let image = iconProvider(label) {
+                control.setImage(
+                    image.withSymbolConfiguration(
+                        NSImage.SymbolConfiguration(
+                            pointSize: iconStyle.pointSize,
+                            weight: symbolWeight,
+                            scale: .medium
+                        )
+                    ),
+                    forSegment: index
+                )
             }
             // Also set tooltip (= the canonical Apple HIG
             // inspector tab tooltip; = appears on hover).
-            // The tooltip is the segment's name on hover: = a
-            // text-labelled strip uses its own label, = and an
-            // icon-only capsule uses the names the caller passed.
-            let tip = tooltips.map { $0.indices.contains(index) ? $0[index] : display } ?? display
-            control.setToolTip(tip, forSegment: index)
+            control.setToolTip(display, forSegment: index)
         }
 
         // Apply the macOS 27 native appearance. Wrapped in
@@ -355,7 +308,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // = any future macOS < 27 target falls back to the legacy
         // rounded style).
         //
-        // Note: `NSSegmentedControl.Style` has NO `.glass` member (= the
+        // Note: `NSSegmentStyle` has NO `.glass` member (= the
         // common confusion source: `NSBezelStyle.glass` IS a
         // macOS 26+ API, but it lives on `NSButton` / NSButtonCell,
         // not on NSSegmentedControl). For NSSegmentedControl on
@@ -364,7 +317,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // capsule = what Apple Pages / Numbers inspector tab
         // strips actually render with).
         if #available(macOS 27.0, *) {
-            control.segmentStyle = segmentStyle
+            control.segmentStyle = .roundRect
             // macOS 27 role API. The role decides how the SELECTED
             // segment is drawn, and the two roles are not
             // interchangeable for a text-labelled strip:
@@ -388,7 +341,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             // Defensive fallback (= NSSegmentedControl.role
             // is macOS 27 only; = older OS gets the legacy
             // automatic role = the macOS 10.5 visual).
-            control.segmentStyle = segmentStyle == .automatic ? .rounded : segmentStyle
+            control.segmentStyle = .rounded
         }
 
         // Tracking = select one at a time (= the tab strip
@@ -404,18 +357,8 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // therefore has to be told which mode it is in.
         if fixedSegmentWidth > 0 {
             control.segmentDistribution = .fit
-            for index in 0 ..< control.segmentCount {
+            for index in 0..<control.segmentCount {
                 control.setWidth(fixedSegmentWidth, forSegment: index)
-            }
-        } else if squareSegments {
-            // A CIRCLE, = not an ellipse: = the segment's width is the
-            // height AppKit draws the control to. = The heights are
-            // measured, = not guessed: = a `.small` segmented control
-            // is 20 PT tall, = `.regular` 24, = `.large` 28.
-            control.segmentDistribution = .fit
-            let side = Self.drawnHeight(for: controlSize)
-            for index in 0 ..< control.segmentCount {
-                control.setWidth(side, forSegment: index)
             }
         } else {
             control.segmentDistribution = .fillEqually
@@ -477,6 +420,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // the control (= measured 2026-10-27). An out-of-range index
         // THROWS (`NSRangeException`), so the index must always be one
         // the control has (= the guarantee is load-bearing).
+        let selectedIndex = Self.selectedSegmentIndex(for: selection.wrappedValue, in: labels)
         if control.selectedSegment != selectedIndex {
             control.selectedSegment = selectedIndex
         }
@@ -488,22 +432,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         coordinator.parent = self
         control.target = coordinator
         control.action = #selector(Coordinator.segmentChanged(_:))
-    }
-
-    /// The height AppKit draws a segmented control to, = per control
-    /// size.
-    ///
-    /// Measured on AppKit (= the control's own `fittingSize`): = a
-    /// `.small` segmented control is 20 PT tall, = `.regular` 24, =
-    /// `.large` 28. = AppKit draws the capsule to FILL the control's
-    /// height, = so this is also the height of the capsule's own shape.
-    static func drawnHeight(for size: NSControl.ControlSize) -> CGFloat {
-        switch size {
-        case .small: return 20
-        case .regular: return 24
-        case .large: return 28
-        default: return 24
-        }
     }
 
     /// The segment index the control must show as selected for a bound
@@ -553,13 +481,13 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             // click missed; = we guard).
             guard let control = sender.view as? NSSegmentedControl else { return }
             let segmentIndex = control.selectedSegment
-            guard segmentIndex >= 0, segmentIndex < parent.labels.count else { return }
+            guard segmentIndex >= 0 && segmentIndex < parent.labels.count else { return }
             parent.onDoubleClickSegment?(segmentIndex)
         }
 
         @objc func segmentChanged(_ sender: NSSegmentedControl) {
             let index = sender.selectedSegment
-            guard index >= 0, index < parent.labels.count else { return }
+            guard index >= 0 && index < parent.labels.count else { return }
             // Write the new selection back to the caller's Binding.
             // (= propagates through SwiftUI's normal state
             // pipeline; = the inspector body re-renders with
@@ -567,40 +495,5 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             // Picker).
             parent.selection.wrappedValue = parent.labels[index]
         }
-    }
-}
-
-extension LabelSegmentedControl {
-    /// An ICON-ONLY capsule (= the shape a macOS window titlebar's
-    /// right-hand button group has: = small, = carrying symbols, = with
-    /// the names on hover).
-    ///
-    /// The glyph provider lives HERE rather than at the call site, = so
-    /// a call site writes `symbolNames:` and never `icon: {` (= the
-    /// Label-icon-slot sweep reads that spelling, = and a segmented
-    /// control's icon provider is not a Label icon slot).
-    static func iconCapsule(
-        selection: Binding<Selection>,
-        labels: [Selection],
-        symbolNames: @escaping (Selection) -> String,
-        tooltips: [String],
-        iconStyle: IconStyle = .paneTab,
-        fixedSegmentWidth: CGFloat = 0,
-        squareSegments: Bool = true,
-        segmentStyle: NSSegmentedControl.Style = .automatic,
-        controlSize: NSControl.ControlSize = .small
-    ) -> LabelSegmentedControl<Selection> {
-        LabelSegmentedControl(
-            selection: selection,
-            labels: labels,
-            displayStrings: labels.map { _ in "" },
-            iconStyle: iconStyle,
-            icon: { NSImage(systemSymbolName: symbolNames($0), accessibilityDescription: nil) },
-            tooltips: tooltips,
-            fixedSegmentWidth: fixedSegmentWidth,
-            squareSegments: squareSegments,
-            segmentStyle: segmentStyle,
-            controlSize: controlSize
-        )
     }
 }

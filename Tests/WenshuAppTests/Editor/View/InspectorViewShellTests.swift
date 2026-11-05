@@ -199,8 +199,16 @@ struct InspectorViewShellTests {
         // The page switcher is the native segmented control: a SwiftUI
         // `Picker(.segmented)` does not expose the macOS 27 role, so a
         // text-labelled strip cannot paint its selected label through it.
-        #expect(!source.contains("Picker("),
-                "the page switcher must be the native segmented control")
+        // The SECTION switch is the other way round: = its segments
+        // carry SYMBOLS and no text, = so there is no label to paint, =
+        // and a SwiftUI `Picker(.segmented)` in a toolbar item is the
+        // form SwiftUI registers as a REAL toolbar item (= the only way
+        // to get the toolbar's OWN segmented shape, = which is what
+        // Apple's own right-column switch is).
+        #expect(source.contains("LabelSegmentedControl("),
+                "the dynamic section's page switcher must be the native segmented control")
+        #expect(source.contains(".pickerStyle(.segmented)"),
+                "the section switch is a segmented picker in a toolbar item")
     }
 
     @Test("the column references none of the removed tools")
