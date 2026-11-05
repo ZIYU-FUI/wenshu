@@ -51,7 +51,7 @@ struct SubAgentResultFormatter: Sendable {
     static func format(
         handle: BackgroundDelegationHandle,
         text: String,
-        readingLibrary: (@Sendable () async -> [Reference])? = nil
+        readingLibrary: (@Sendable () async -> LibraryCorpusRead)? = nil
     ) async -> SubAgentResultFormatter {
         guard handle.agentName == SubAgentRoleRegistry.librarian.slug else {
             // Every other agent answers in prose, = and prose is what
@@ -69,13 +69,28 @@ struct SubAgentResultFormatter: Sendable {
             // model said two documents landed" into "the library
             // holds one of them, = and the other one is not there".
             var verifications: [LibrarianReport.Verification]?
+            var unreadableNotice = ""
             if let readingLibrary {
-                let references = await readingLibrary()
-                verifications = LibrarianReport.verify(documents, against: references)
+                switch await readingLibrary() {
+                case let .documents(references):
+                    verifications = LibrarianReport.verify(documents, against: references)
+                case let .unreadable(reason):
+                    // The corpus could not be read. = The check did
+                    // not run, = so the report must say that and NOT
+                    // say the documents are missing. = A check that
+                    // could not run and reports "not there" is the
+                    // same lie as a check that points at the wrong
+                    // directory.
+                    unreadableNotice = LibraryCorpusRead.unreadable(reason).unreadableNotice
+                }
             }
             return SubAgentResultFormatter(
                 result: result,
-                text: LibrarianReport.text(for: result, verifications: verifications)
+                text: LibrarianReport.text(
+                    for: result,
+                    verifications: verifications,
+                    unreadableNotice: unreadableNotice
+                )
             )
         case .unreadable:
             // The run said something this app cannot read. = The user

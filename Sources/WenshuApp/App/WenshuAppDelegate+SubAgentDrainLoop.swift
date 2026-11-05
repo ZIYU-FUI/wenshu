@@ -28,17 +28,23 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuappd
 extension WenshuAppDelegate {
     /// Read the corpus, = for checking a finished report against it.
     ///
-    /// The store is main-actor isolated, = so the read happens
-    /// there. = A read that failed is an empty corpus, = and the
-    /// report then says nothing was found = rather than pretending
-    /// the corpus was checked.
+    /// **⇒ The store is the PRODUCTION one**
+    /// (`ReferenceLibraryLocator.shared.referenceStore`), = and not a
+    /// store built from a path. = The first version built one from
+    /// `ActiveLibrary.path`, = which is the `.ws` ROOT, = while the
+    /// corpus lives at `<ws>/reference-library/`. = Measured against a
+    /// real library: = six documents at the right root, = zero at the
+    /// root that reader used. = **⇒ Every librarian run said "NOT in
+    /// the library, so it did not land" about a document that had
+    /// landed.** = The reader now asks the one place that knows where
+    /// the corpus is, = so it cannot point somewhere else.
+    ///
+    /// A read that could not happen is reported as such. = An empty
+    /// corpus and a corpus that could not be read are different facts,
+    /// and the check has to be able to tell them apart.
     @MainActor
-    private static func readLibrary() -> [Reference] {
-        guard let path = ActiveLibrary.path else { return [] }
-        let store = FileSystemReferenceStore(
-            referenceLibraryRoot: URL(fileURLWithPath: path)
-        )
-        return (try? store.loadAllReferences()) ?? []
+    private static func readLibrary() -> LibraryCorpusRead {
+        LibraryCorpusReader().read()
     }
 
     /// Sub-agent runner (= the engine that drains pending

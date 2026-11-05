@@ -38,6 +38,16 @@ final class SidebarGroupedTagRowsTests: XCTestCase {
     }
 
     /// A reference with a category and a tag set.
+    ///
+    /// **⇒ The layer is stated, = not left to the default.** = The
+    /// default is `.layerRaw` (= the layer the user cannot browse),
+    /// and the tree counts only the documents the grid can show. = A
+    /// fixture that leaned on the default was testing the tree with
+    /// documents the grid never shows, = and the tag it carried never
+    /// reached a row. = This suite is about WHERE A TAG LANDS (= the
+    /// category most of its references give), = and that has nothing
+    /// to do with the layer, = so the layer is named: = the visible
+    /// one, = because that is what the tree is built from.
     private func reference(
         category: EntityCategory?,
         tags: Set<String>,
@@ -45,6 +55,7 @@ final class SidebarGroupedTagRowsTests: XCTestCase {
     ) -> Reference {
         Reference(
             title: title,
+            layer: .layerEntities,
             category: category,
             tags: tags
         )

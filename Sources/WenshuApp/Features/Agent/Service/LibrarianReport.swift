@@ -219,7 +219,11 @@ enum LibrarianReport {
     ///   - result: what the run reported.
     ///   - verifications: what the library holds, = when it could be
     ///     read.
-    static func text(for result: LibrarianResult, verifications: [Verification]? = nil) -> String {
+    static func text(
+        for result: LibrarianResult,
+        verifications: [Verification]? = nil,
+        unreadableNotice: String = ""
+    ) -> String {
         if let skipped = result.skipped, result.documentIDs.isEmpty {
             return "The librarian did not land anything: \(skipped)"
         }
@@ -231,6 +235,13 @@ enum LibrarianReport {
         }
         if let error = result.errorMessage {
             lines.append("Note: \(error)")
+        }
+        // The corpus could not be read. = The check did not run, = so
+        // the report says that, = and it says NOTHING about the
+        // documents being there or not. = A line that named the
+        // documents as missing would be a fact the check never got.
+        if !unreadableNotice.isEmpty {
+            lines.append(unreadableNotice)
         }
         lines.append(contentsOf: verificationLines(verifications))
         return lines.joined(separator: "\n")

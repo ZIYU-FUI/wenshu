@@ -49,11 +49,11 @@ struct SubAgentResultDelivery {
     /// user reads, = so it is where the check belongs: = the report is
     /// checked on the way to the conversation, = and a report the
     /// corpus does not support never reaches the user as a fact.
-    let libraryReading: (@Sendable () async -> [Reference])?
+    let libraryReading: (@Sendable () async -> LibraryCorpusRead)?
 
     init(
         repository: any ChatRepositoryProtocol,
-        libraryReading: (@Sendable () async -> [Reference])? = nil
+        libraryReading: (@Sendable () async -> LibraryCorpusRead)? = nil
     ) {
         self.repository = repository
         self.libraryReading = libraryReading

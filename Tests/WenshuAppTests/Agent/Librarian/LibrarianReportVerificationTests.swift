@@ -162,7 +162,7 @@ struct LibrarianReportVerificationTests {
         let formatted = await SubAgentResultFormatter.format(
             handle: Self.handle(agentName: SubAgentRoleRegistry.librarian.slug),
             text: Self.reportJSON,
-            readingLibrary: { [] }
+            readingLibrary: { .documents([]) }
         )
 
         #expect(formatted.text.contains("NOT in the library"),
@@ -177,7 +177,7 @@ struct LibrarianReportVerificationTests {
             handle: Self.handle(agentName: SubAgentRoleRegistry.librarian.slug),
             text: Self.reportJSON,
             readingLibrary: {
-                [Self.reference(title: "Ming tax system", layer: .layerRaw)]
+                .documents([Self.reference(title: "Ming tax system", layer: .layerRaw)])
             }
         )
 
@@ -215,7 +215,7 @@ struct LibrarianReportVerificationTests {
         let repository = RecordingChatRepository()
         let delivery = SubAgentResultDelivery(
             repository: repository,
-            libraryReading: { [Self.reference(title: "Ming tax system")] }
+            libraryReading: { .documents([Self.reference(title: "Ming tax system")]) }
         )
 
         let handle = BackgroundDelegationHandle(
