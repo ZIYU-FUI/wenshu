@@ -182,6 +182,15 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// given
     /// value).
     var fixedSegmentWidth: CGFloat = 0
+    /// Whether every segment is a CIRCLE (= its width is the control's
+    /// own drawn height).
+    ///
+    /// A segmented control's segments share the control's width: = with
+    /// the default distribution each segment is WIDER than the control
+    /// is tall, = and AppKit then draws the segment's own shape as an
+    /// ELLIPSE. = Apple's window-titlebar button group draws circles, =
+    /// so a group of symbols asks for this.
+    var squareSegments: Bool = false
     /// The AppKit control size (= the segment's own height and hit
     /// area; = `NSControl.ControlSize`).
     ///
@@ -227,6 +236,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         tooltips: [String]? = nil,
         onDoubleClickSegment: ((Int) -> Void)? = nil,
         fixedSegmentWidth: CGFloat = 0,
+        squareSegments: Bool = false,
         role: NSSegmentedControl.Role = .valueSelection,
         segmentStyle: NSSegmentedControl.Style = .roundRect,
         controlSize: NSControl.ControlSize = .large
@@ -239,6 +249,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         self.icon = icon
         self.onDoubleClickSegment = onDoubleClickSegment
         self.fixedSegmentWidth = fixedSegmentWidth
+        self.squareSegments = squareSegments
         self.role = role
         self.segmentStyle = segmentStyle
         self.controlSize = controlSize
@@ -390,6 +401,16 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             for index in 0 ..< control.segmentCount {
                 control.setWidth(fixedSegmentWidth, forSegment: index)
             }
+        } else if squareSegments {
+            // A CIRCLE, = not an ellipse: = the segment's width is the
+            // height AppKit draws the control to. = The heights are
+            // measured, = not guessed: = a `.small` segmented control
+            // is 20 PT tall, = `.regular` 24, = `.large` 28.
+            control.segmentDistribution = .fit
+            let side = Self.drawnHeight(for: controlSize)
+            for index in 0 ..< control.segmentCount {
+                control.setWidth(side, forSegment: index)
+            }
         } else {
             control.segmentDistribution = .fillEqually
         }
@@ -461,6 +482,22 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         coordinator.parent = self
         control.target = coordinator
         control.action = #selector(Coordinator.segmentChanged(_:))
+    }
+
+    /// The height AppKit draws a segmented control to, = per control
+    /// size.
+    ///
+    /// Measured on AppKit (= the control's own `fittingSize`): = a
+    /// `.small` segmented control is 20 PT tall, = `.regular` 24, =
+    /// `.large` 28. = AppKit draws the capsule to FILL the control's
+    /// height, = so this is also the height of the capsule's own shape.
+    static func drawnHeight(for size: NSControl.ControlSize) -> CGFloat {
+        switch size {
+        case .small: return 20
+        case .regular: return 24
+        case .large: return 28
+        default: return 24
+        }
     }
 
     /// The segment index the control must show as selected for a bound
@@ -543,6 +580,7 @@ extension LabelSegmentedControl {
         tooltips: [String],
         iconStyle: IconStyle = .paneTab,
         fixedSegmentWidth: CGFloat = 0,
+        squareSegments: Bool = true,
         segmentStyle: NSSegmentedControl.Style = .automatic,
         controlSize: NSControl.ControlSize = .small
     ) -> LabelSegmentedControl<Selection> {
@@ -554,6 +592,7 @@ extension LabelSegmentedControl {
             icon: { NSImage(systemSymbolName: symbolNames($0), accessibilityDescription: nil) },
             tooltips: tooltips,
             fixedSegmentWidth: fixedSegmentWidth,
+            squareSegments: squareSegments,
             segmentStyle: segmentStyle,
             controlSize: controlSize
         )
