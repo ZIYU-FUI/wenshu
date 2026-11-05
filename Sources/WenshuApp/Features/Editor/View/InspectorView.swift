@@ -43,6 +43,18 @@ struct InspectorView: View {
     /// toolbar toggle writes back through this binding).
     @Binding var inspectorVisibleBinding: Bool
 
+    /// Whether the column is showing this section right now.
+    ///
+    /// A HIDDEN column shows NO section, = so no button in the group
+    /// wears the accent (= Apple's shape).
+    func isShowing(_ section: InspectorSection) -> Bool {
+        InspectorSection.isShowing(
+            section,
+            current: workspaceUI.inspectorSection,
+            visible: inspectorVisibleBinding
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // The column's header names the COLUMN (= the way the
@@ -112,42 +124,42 @@ struct InspectorView: View {
             // itself; = measured on Pages 2026-11-04: = a six-segment
             // capsule whose selected glyph is the accent one).
             ToolbarItem(placement: .primaryAction) {
-                // The Apple's OWN control: = a macOS window titlebar's
-                // right-hand button group is an `NSSegmentedControl`
-                // whose segments carry SYMBOLS, = and Pages, = Numbers
-                // and = Keynote all build it that way (= measured on
-                // Pages' own binary: = the framework carries NO segmented
-                // control of its own, = and the six segments read back as
-                // `AXRadioButton`, = which is what a segmented control's
-                // segments ARE).
+                // The Apple's OWN button group: = a `ControlGroup` in a
+                // toolbar item is the macOS shape (= ONE capsule
+                // holding several ROUND buttons), = which is what Pages,
+                // = Numbers and = Keynote show at the titlebar's right
+                // end.
                 //
-                // The segment's selected glyph is drawn in the accent
-                // colour BY THE CONTROL, = so nothing here paints a
-                // glyph.
-                //
-                // The selection is an OPTIONAL section: = nil = the
-                // column is hidden = nothing is selected.
-                LabelSegmentedControl.iconCapsule(
-                    selection: Binding<InspectorSection?>(
-                        get: { self.inspectorVisibleBinding ? self.workspaceUI.inspectorSection : nil },
-                        set: { picked in
-                            guard let picked else { return }
-                            let outcome = InspectorSection.pressOutcome(
-                                picked,
-                                current: self.workspaceUI.inspectorSection,
-                                visible: self.inspectorVisibleBinding
-                            )
-                            self.workspaceUI.inspectorSection = outcome.section
-                            self.inspectorVisibleBinding = outcome.visible
-                        }
-                    ),
-                    labels: InspectorSection.allCases.map { Optional($0) },
-                    symbolNames: { $0?.icon ?? "" },
-                    tooltips: InspectorSection.allCases.map(\.localizedTitle),
-                    // The circle is 28 PT across: = that is the height
-                    // Pages' own titlebar group draws its segments at.
-                    controlSize: .large
-                )
+                // The group's buttons are TOGGLES, = because Apple's own
+                // switch carries a CHOICE: = Pages' six titlebar
+                // buttons read back as `AXRadioButton`, = so they are
+                // radio semantics, = and their chosen one's mark is the
+                // system's own (= a segmented control cannot draw that
+                // circle: = its largest control size is 28 PT, = and
+                // Apple's own button is 38 PT across).
+                ControlGroup {
+                    ForEach(InspectorSection.allCases, id: \.self) { section in
+                        Toggle(
+                            isOn: Binding(
+                                get: { self.isShowing(section) },
+                                set: { _ in
+                                    let outcome = InspectorSection.pressOutcome(
+                                        section,
+                                        current: self.workspaceUI.inspectorSection,
+                                        visible: self.inspectorVisibleBinding
+                                    )
+                                    self.workspaceUI.inspectorSection = outcome.section
+                                    self.inspectorVisibleBinding = outcome.visible
+                                }
+                            ),
+                            label: {
+                                Image(systemName: section.icon)
+                            }
+                        )
+                        .toggleStyle(.button)
+                        .help(section.localizedTitle)
+                    }
+                }
             }
 
             ToolbarItemGroup(placement: .principal) {

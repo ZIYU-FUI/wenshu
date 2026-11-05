@@ -148,12 +148,12 @@ struct InspectorColumnSwitcherRenderTests {
     @MainActor
     func theSectionSwitchIsAToolbarButtonGroup() throws {
         let source = try String(contentsOfFile: inspectorPath, encoding: .utf8)
-        #expect(source.contains("LabelSegmentedControl.iconCapsule("),
-                "the section switch is Apple's segmented control: = Pages' own binary carries NO segmented control of its own, = and its six segments read back as AXRadioButton, = which is what a segmented control's segments ARE")
+        #expect(source.contains("ControlGroup {"),
+                "the section switch is a ControlGroup: = the macOS shape is ONE capsule holding several ROUND buttons, = and Apple's own titlebar switch measures 38 PT across, = which a segmented control cannot draw (= its largest control size is 28 PT)")
         #expect(source.contains("ToolbarItem(placement: .primaryAction)"),
                 "the group rides the window toolbar's RIGHTMOST slot")
-        #expect(!source.contains("ControlGroup {"),
-                "a plain button group is NOT Apple's right-column switch: = its buttons are not radio buttons, = so the accent selection would have to be painted by hand")
+        #expect(source.contains(".toggleStyle(.button)"),
+                "the group's buttons are TOGGLES: = Apple's own switch carries a CHOICE, = and the system's own mark is what says which one")
         #expect(source.contains("InspectorSection.pressOutcome("),
                 "the section's press goes through the ONE pure function that decides what it does")
     }
