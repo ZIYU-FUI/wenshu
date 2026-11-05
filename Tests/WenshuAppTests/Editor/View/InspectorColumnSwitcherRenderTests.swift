@@ -202,4 +202,51 @@ struct InspectorColumnSwitcherRenderTests {
         #expect(outcome.section == .format,
                 "and it switches to the pressed section")
     }
+
+    /// The PRODUCTION switch, = rendered: = and the real control behind it
+    /// read back.
+    ///
+    /// This measures the thing the column actually shows: = the segments
+    /// the control carries, = what each segment shows (= a symbol and no
+    /// word), = and whether choosing one writes the choice back.
+    @Test("the rendered switch carries one symbol segment per section, = and choosing one writes it back")
+    @MainActor
+    func theRenderedSwitchCarriesASegmentPerSection() {
+        let state = WorkspaceUIState()
+        let host = NSHostingView(rootView: AnyView(
+            InspectorSectionSwitch(
+                selection: Binding(
+                    get: { state.inspectorSection },
+                    set: { newValue in state.inspectorSection = newValue ?? .dynamic }
+                )
+            )
+        ))
+        host.frame = NSRect(x: 0, y: 0, width: 320, height: 40)
+        let window = NSWindow(
+            contentRect: host.frame,
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = host
+        host.layoutSubtreeIfNeeded()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        host.layoutSubtreeIfNeeded()
+        guard let control = findSegmentedControl(in: host) else {
+            Issue.record("the rendered switch carries no NSSegmentedControl")
+            return
+        }
+        #expect(control.segmentCount == InspectorSection.allCases.count,
+                "the switch carries one segment per major section")
+        // Each segment carries a SYMBOL: = an image, = and no word.
+        for index in 0 ..< control.segmentCount {
+            #expect(control.image(forSegment: index) != nil,
+                    "each segment carries an icon")
+        }
+        // Choosing a segment writes the choice back to the shared state.
+        control.selectedSegment = 1
+        control.sendAction(control.action, to: control.target)
+        #expect(state.inspectorSection == .format,
+                "choosing a segment must write the section back to the shared state")
+    }
 }

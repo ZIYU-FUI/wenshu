@@ -211,6 +211,20 @@ struct InspectorViewShellTests {
                 "the section switch is a segmented picker in a toolbar item")
     }
 
+    @Test("the chat's focus write brings the dynamic section up as well")
+    func theChatsFocusWriteBringsTheDynamicSectionUp() throws {
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let source = try String(contentsOfFile: url.path, encoding: .utf8)
+        // The page switch lives INSIDE the dynamic section, = so writing
+        // the page alone is inert while another section is showing: = the
+        // focus has to bring the dynamic section up as well.
+        #expect(source.contains("workspaceUI.inspectorSection = .dynamic"),
+                "the chat's focus write must bring the dynamic section up")
+        #expect(source.contains("workspaceUI.inspectorPage = .status"),
+                "and it must write the status page")
+    }
+
     @Test("the column references none of the removed tools")
     func theColumnReferencesNoRemovedTool() throws {
         let source = try String(contentsOfFile: inspectorPath, encoding: .utf8)

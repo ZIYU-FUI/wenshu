@@ -112,18 +112,7 @@ struct InspectorView: View {
             // itself; = measured on Pages 2026-11-04: = a six-segment
             // capsule whose selected glyph is the accent one).
             ToolbarItem(placement: .primaryAction) {
-                // The Apple's OWN segmented control, = and it must be a
-                // `Picker(.segmented)` in a toolbar item: = SwiftUI
-                // registers THAT as a real toolbar item, = and a real
-                // toolbar item is what makes AppKit draw the toolbar's
-                // segmented shape (= the chosen segment's plate covers
-                // the WHOLE segment). = The same control outside a
-                // toolbar draws a small indicator instead, = and
-                // Apple's own switch (= measured on Pages: = a segment
-                // 38 PT across whose chosen plate covers all 37 PT of
-                // its height) = shows the whole-segment plate.
-                Picker(
-                    "",
+                InspectorSectionSwitch(
                     selection: Binding<InspectorSection?>(
                         get: { self.inspectorVisibleBinding ? self.workspaceUI.inspectorSection : nil },
                         set: { picked in
@@ -137,16 +126,7 @@ struct InspectorView: View {
                             self.inspectorVisibleBinding = outcome.visible
                         }
                     )
-                ) {
-                    ForEach(InspectorSection.allCases, id: \.self) { section in
-                        Label(section.localizedTitle, systemImage: section.icon)
-                            .labelStyle(.iconOnly)
-                            .tag(Optional(section))
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .help(String(localized: "inspector.section.help"))
+                )
             }
 
             ToolbarItemGroup(placement: .principal) {
@@ -163,5 +143,35 @@ struct InspectorView: View {
             }
         }
         .environment(appState)
+    }
+}
+
+/// The inspector column's section switch (= the window toolbar's group).
+///
+/// It is a SwiftUI `Picker(.segmented)` in a toolbar item: = SwiftUI
+/// registers THAT as a real toolbar item, = and a real toolbar item is
+/// what makes AppKit draw the toolbar's own segmented shape (= the
+/// chosen segment's plate covers the whole segment). = A hand-wrapped
+/// `NSSegmentedControl` never receives that context, = and AppKit then
+/// draws its ordinary appearance, = whose indicator is a small strip.
+///
+/// The selection is an OPTIONAL section: = nil = the column is hidden =
+/// nothing is chosen.
+struct InspectorSectionSwitch: View {
+    let selection: Binding<InspectorSection?>
+
+    var body: some View {
+        Picker(
+            "",
+            selection: selection
+        ) {
+            ForEach(InspectorSection.allCases, id: \.self) { section in
+                Label(section.localizedTitle, systemImage: section.icon)
+                    .labelStyle(.iconOnly)
+                    .tag(Optional(section))
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
     }
 }
