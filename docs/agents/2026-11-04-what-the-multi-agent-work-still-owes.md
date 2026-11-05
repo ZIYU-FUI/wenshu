@@ -54,13 +54,9 @@ promise.
 
 ### 1. The corpus cannot be searched
 
-**⇒ CLOSED on `feature/library-and-archive-surfaces` (= the branch
-under review), = by `feat(library): the library can be searched by a
-word in a document's body`.** = The search is
-`ReferenceLibrarySearch` (= the library's own documents, = every
-layer, = the body of each one), = and the surface is
-`LibraryFullTextSearchView` (= a results strip above the assets
-column's grid).
+**⇒ CLOSED** on `feature/library-and-archive-surfaces`
+(= `feat(library): the library can be searched by a word in a
+document's body`).
 
 **⇒ What it did NOT use, = and why.** = Not
 `CSSearchableIndexSearch.search(query:limit:)`. = Two reasons, = both
@@ -82,24 +78,48 @@ is not closed.
 
 **⇒ What is left of the original ask.** = The library's own search
 finds a document by a word in its title or its body. = It does not
-search the CHAPTERS (= the book's own documents), = and it does not
-feed the system index.
+search the CHAPTERS (= the book's own documents).
 
 ### 2. The raw layer has no maintenance surface
 
-**Evidence.** = `Reference.isUserVisible` is false for `.layerRaw`,
-= so a raw document is written and never shown. = The default write
-layer is now `entities` (= the layer the card grid shows), = so new
-writes land where the user can see them, = and the tool refuses a
-duplicate title. = But the raw documents that were written before
-that fix are still there, = still invisible, = and still nobody's
-to delete.
+**⇒ CLOSED** on `feature/library-and-archive-surfaces`
+(= `feat(library): the raw layer is governed, = not hidden`).
 
-**⇒ What closing it looks like.** = Either a surface that lists the
-raw layer (= what it is, = and a way to retire it), = or a decision
-that the raw layer is a staging area the app owns and the user
-never sees, = in which case the layer should say so where the layer
-is described.
+**⇒ What closed it** (= three things, = and each one is a way the
+app used to hide the raw layer):
+
+1. **The librarian's curate report NAMES the raw-layer documents.**
+   = A count tells the user that something is there; = the names
+   tell him WHICH. = The agent could write to the raw layer and
+   nothing in the app listed it, = so a report that said "landed"
+   about a document the user cannot open was a report the user
+   could not act on.
+2. **The report says what the raw layer IS FOR** (= the originals,
+   = kept for ingestion). = The layer was described in exactly one
+   place, = and that place said only what the layer is CALLED; = so
+   a user who found a document he could not browse had no way to
+   tell whether it was lost (= a bug) = or kept on purpose (= the
+   design).
+3. **The sidebar's count is of what the user can SEE.** = The count
+   was of every reference with a tag, = across BOTH layers, = while
+   the grid shows the entities layer only = = so a tag row could say
+   "3 items" and open to two documents.
+
+**⇒ What was NOT done.** = **No new UI surface for the raw layer.**
+= That would mean a new `PreviewScope` case, = and `PreviewPane.swift`
+is **1174 LOC** (= 1.96x the 600-LOC cap) = and a change must not grow
+an over-cap file. = The raw layer is the librarian's territory (= the
+role owns the `.ws` document chain), = so the report is where the
+user learns about it.
+
+**⇒ And the root of "the user cannot see these documents" is still
+there.** = `Reference.init`'s default layer is `.layerRaw` (= the
+layer the user cannot browse), = so every construction that does not
+name a layer lands there. = The writer's default was fixed (= the
+tool writes `entities`), = and the test fixture was corrected (= it
+now names the layer it means), = but the MODEL's default is still
+raw. = Changing a model default is not a side effect of a count
+fix, = and it is a separate piece of work.
 
 ### 3. The roles have no configuration surface
 
