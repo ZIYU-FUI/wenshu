@@ -107,12 +107,50 @@ struct BookFolderCatalogSeedingTests {
         }
     }
 
-    @Test("all three seeding places read the list FROM THE CATALOG")
-    func allThreeSeedingPlacesReadTheListFromTheCatalog() throws {
-        // = The house pattern for a page's coverage, = the adapter test
-        // reads the command's source the same way: = the three places
-        // that WRITE the folders are read, = because a hard-coded list
-        // in any one of them is a second list to forget.
+    @Test("the sidebar's created book carries every catalog folder")
+    func theSidebarsCreatedBookCarriesEveryCatalogFolder() throws {
+        // = The third seeding place, = measured by what it produced on
+        // disk, = not by what its source mentions: = a source-text
+        // assertion is satisfied by a COMMENT, = and this card's first
+        // version of that check proved it (= restoring the hard-coded
+        // list while the literal survived in a comment left the suite
+        // fully green).
+        let root = try makeLibraryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelvesRoot = root.appendingPathComponent("shelves", isDirectory: true)
+        let referenceLibraryRoot = root.appendingPathComponent("reference-library", isDirectory: true)
+        let stores = LibraryStores(
+            shelvesRoot: shelvesRoot,
+            referenceLibraryRoot: referenceLibraryRoot,
+            referenceStore: FileSystemReferenceStore(referenceLibraryRoot: referenceLibraryRoot)
+        )
+        let bookStore = BookStore(stores: stores)
+        let book = Book(
+            id: UUID(),
+            title: "A new book",
+            author: "wenshu",
+            shelfId: UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
+        )
+        try bookStore.sidebarSaveBook(book)
+        let created = shelvesRoot
+            .appendingPathComponent(book.shelfId.uuidString, isDirectory: true)
+            .appendingPathComponent("books", isDirectory: true)
+            .appendingPathComponent(book.id.uuidString, isDirectory: true)
+        for folder in BookFolderCatalog.allBookFolders {
+            #expect(hasFolder(created, folder.directoryName),
+                    "the created book carries the \(folder.directoryName) folder")
+        }
+    }
+
+    @Test("the three seeding places declare the list FROM THE CATALOG")
+    func theThreeSeedingPlacesDeclareTheListFromTheCatalog() throws {
+        // = Scoped to the DECLARATION, = and paired with the ABSENCE of
+        // the hard-coded literal. = A whole-file `contains` check is
+        // satisfied by a COMMENT: = the reviewer measured that, = by
+        // restoring the hard-coded list while the literal survived in a
+        // comment, = and the suite stayed fully green. = So the check
+        // reads the line that DECLARES the list, = and it also requires
+        // that the old literal is nowhere in the file.
         let sources = [
             "Sources/WenshuApp/Features/Library/Service/LibraryBootstrapper.swift",
             "Sources/WenshuApp/Features/Library/Service/LibraryMigrator+HelpDoc.swift",
@@ -121,9 +159,105 @@ struct BookFolderCatalogSeedingTests {
         for path in sources {
             let url = SourceLocator.repoRoot.appendingPathComponent(path)
             let source = try String(contentsOf: url, encoding: .utf8)
-            #expect(source.contains("BookFolderCatalog.allBookFolders"),
-                    "\(path) reads its folder list from the catalog")
+            let declaration = source
+                .split(separator: "\n", omittingEmptySubsequences: false)
+                .first { $0.contains("let standardFolders =") }
+            #expect(declaration != nil, "\(path) declares the folder list")
+            #expect(declaration?.contains("BookFolderCatalog.allBookFolders") == true,
+                    "\(path) declares the list FROM the catalog")
+            #expect(!source.contains("\"world\", \"characters\""),
+                    "\(path) carries no hard-coded folder list")
         }
+    }
+
+    // MARK: - The tree names the directory (= through the production seam)
+
+    @Test("a folder row resolves to its directory AND to its book's id")
+    func aFolderRowResolvesToItsDirectoryAndToItsBooksId() {
+        // = This is the seam the sidebar click actually runs: =
+        // `parentBookInfo` walks the tree, = finds the book, = and maps
+        // the folder row's TITLE back to its directory name. = The first
+        // version of this card left that half UNTESTED: = a mutation
+        // that reverted only the reverse map left every suite green, =
+        // because the suite asserted the catalog's own map and never
+        // called the code the tree runs.
+        let bookId = UUID()
+        for folder in BookFolderCatalog.userFacing {
+            let rowId = UUID()
+            let tree: [SidebarNode] = [
+                SidebarNode(
+                    id: UUID(),
+                    kind: .shelf,
+                    title: "Shelf",
+                    subtitle: nil,
+                    systemImage: "books.vertical",
+                    children: [
+                        SidebarNode(
+                            id: bookId,
+                            kind: .book,
+                            title: "A Book",
+                            subtitle: nil,
+                            systemImage: "book",
+                            children: [
+                                SidebarNode(
+                                    id: rowId,
+                                    kind: .book,
+                                    title: folder.sidebarDisplayName,
+                                    subtitle: nil,
+                                    systemImage: folder.icon ?? "folder",
+                                    children: nil
+                                ),
+                            ]
+                        ),
+                    ]
+                ),
+            ]
+            let info = AppleSidebarView.parentBookInfo(for: rowId, in: tree)
+            #expect(info != nil,
+                    "the \(folder.sidebarDisplayName) row resolves to a book")
+            #expect(info?.folderName == folder.directoryName,
+                    "the \(folder.sidebarDisplayName) row resolves to the \(folder.directoryName) directory")
+            #expect(info?.bookId == bookId,
+                    "the \(folder.sidebarDisplayName) row carries its book's id")
+        }
+    }
+
+    @Test("the ideas row resolves to the ideas directory (= the defect that hid)")
+    func theIdeasRowResolvesToTheIdeasDirectory() {
+        let bookId = UUID()
+        let rowId = UUID()
+        let ideas = BookFolderCatalog.ideas
+        let tree: [SidebarNode] = [
+            SidebarNode(
+                id: UUID(),
+                kind: .shelf,
+                title: "Shelf",
+                subtitle: nil,
+                systemImage: "books.vertical",
+                children: [
+                    SidebarNode(
+                        id: bookId,
+                        kind: .book,
+                        title: "A Book",
+                        subtitle: nil,
+                        systemImage: "book",
+                        children: [
+                            SidebarNode(
+                                id: rowId,
+                                kind: .book,
+                                title: ideas.sidebarDisplayName,
+                                subtitle: nil,
+                                systemImage: ideas.icon ?? "folder",
+                                children: nil
+                            ),
+                        ]
+                    ),
+                ]
+            ),
+        ]
+        let info = AppleSidebarView.parentBookInfo(for: rowId, in: tree)
+        #expect(info?.folderName == "ideas")
+        #expect(info?.bookId == bookId)
     }
 
     // MARK: - The label maps back to the directory
