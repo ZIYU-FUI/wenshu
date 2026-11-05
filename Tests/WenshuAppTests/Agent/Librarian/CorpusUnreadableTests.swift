@@ -125,6 +125,39 @@ struct CorpusUnreadableTests {
         #expect(reason.contains("entities"), "the reason must name the layer that failed, got: \(reason)")
     }
 
+    @Test("The reason the user reads is the error's own message")
+    @MainActor
+    func theReasonTheUserReadsIsTheErrorsOwnMessage() throws {
+        let root = try Self.makeLibrary()
+        try Self.corrupt(root)
+
+        let reading = Self.read(at: root)
+
+        guard case let .unreadable(reason) = reading else {
+            Issue.record("expected the corpus to be unreadable, got \(reading)")
+            return
+        }
+        // **⇒ The sentence a human can act on.** = The error type
+        // writes it (= "The <layer> index at <path> could not be read:
+        // …"), = and `String(describing:)` would NOT have reached it
+        // (= a `LocalizedError` is not `CustomStringConvertible`, = so
+        // `String(describing:)` on it is a reflection dump).
+        #expect(
+            reason.contains("could not be read"),
+            "the reason must be the error's own message, got: \(reason)"
+        )
+        // **⇒ And NOT the dump.** = The module-qualified enum case name
+        // and the raw path are what a user cannot act on.
+        #expect(
+            !reason.contains("referenceIndexUnreadable("),
+            "the reason must not be a reflection dump, got: \(reason)"
+        )
+        #expect(
+            !reason.contains("WenshuApp.ReferenceLayer"),
+            "the reason must not name a Swift type, got: \(reason)"
+        )
+    }
+
     @Test("A sound corpus is read as documents")
     @MainActor
     func aSoundCorpusIsReadAsDocuments() throws {

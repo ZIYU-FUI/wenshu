@@ -158,6 +158,40 @@ the app does not have is worse than no menu.
 side: = the corpus is indexed and never read, = and the archive is
 filtered and the corpus is not.
 
+### 4b. A layer's MEMBERSHIP is its index, = and the body and the index are two writes
+
+**⇒ The review of the corpus-unreadable fix found this, = and left it
+for the next card** (= "Not this card's defect to fix; = flagged so
+the next one inherits it knowingly").
+
+**⇒ A layer's membership is defined by its INDEX.** = The `.md` bodies
+are written by `ReferenceBodyStore.write`, = and the index by
+`writeIndexToFileSystem` = = **two separate writes.** =
+`AtomicFileWrite.write` makes each one atomic, = **⇒ but the PAIR is
+not.**
+
+**⇒ ⇒⇒ A crash between them leaves a body on disk that the index does
+not list.** = And the report then says **"NOT in the library, so it did
+not land"** about a document that IS there = = **the same shape of lie
+the corpus-unreadable fix just closed, = one step further out.**
+
+**⇒ ⇒⇒ The difference matters**: = the unreadable case is about a
+corpus the reader could not open at all, = and this one is about a
+corpus the reader opened successfully = = so **the strict read does
+not help here**; = the corpus is READABLE and the answer is still
+wrong.
+
+**⇒ ⇒⇒ What closing it looks like**: = either the body and the index
+are written as ONE unit, = or the layer's membership is read from what
+is ON DISK (= the `.md` files) = and not from the index alone.
+
+**⇒ Measured against the user's real library** (= the review measured
+it, = and the strict path agrees with it): = `abstracts/` and
+`indexes/` have no index AND no `.md` files (= genuinely empty), =
+`raw/raw.json` decodes to `[]` (= 0 rows, = 0 files), = and
+`entities/entities.json` decodes to **6 rows** against **6** `.md`
+files. = **⇒ The reader reads the real library correctly today.**
+
 ### 5. Nothing has landed on main
 
 **Evidence.** = The work is on local branches: =

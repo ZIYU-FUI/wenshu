@@ -66,7 +66,19 @@ struct LibraryCorpusReader {
             // a corpus it never managed to read.
             return try .documents(store.loadAllReferencesReportingFailure())
         } catch {
-            return .unreadable(String(describing: error))
+            // **⇒ The reason the user reads is the ERROR'S OWN
+            // MESSAGE.** = `String(describing:)` does NOT consult a
+            // `LocalizedError`'s `errorDescription` (= it is not
+            // `CustomStringConvertible`), = so the user would read a
+            // module-qualified enum case name and a raw path:
+            // `referenceIndexUnreadable(layer: WenshuApp.ReferenceLayer
+            // .layerEntities, path: "/Users/…/entities.json", …)`.
+            // = The error type writes the sentence a human can act on
+            // (= "The 实体 index at … could not be read: …"), = and this
+            // line is the one place that reaches it.
+            return .unreadable(
+                (error as? LocalizedError)?.errorDescription ?? String(describing: error)
+            )
         }
     }
 }
