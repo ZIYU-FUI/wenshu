@@ -465,6 +465,20 @@ struct FileSystemReferenceStore: ReferenceStoring {
             // on): the title comes from the index file, so the
             // document can still be re-published with its new body.
             if let reference = (try? loadAllReferences())?.first(where: { $0.id == id }) {
+                // **⇒ The MIRROR is written here.** = The editor
+                // wrote the TRUTH location (= `tab.documentPath`), = and
+                // it does not know the document's layer, = so it cannot
+                // write the mirror. = The store knows the layer. = **⇒ A
+                // mirror left stale is a file the user can open in the
+                // Finder and find the OLD text in** (= measured on the
+                // real library: = six documents, = six divergent
+                // pairs, = one of them differing in content).
+                try? ReferenceBodyStore.writeMirror(
+                    id: id,
+                    layer: reference.layer,
+                    bodyMarkdown: bodyMarkdown,
+                    referenceLibraryRoot: referenceLibraryRoot
+                )
                 scheduleSearchIndex(reference: reference, bodyMarkdown: bodyMarkdown)
             }
             return

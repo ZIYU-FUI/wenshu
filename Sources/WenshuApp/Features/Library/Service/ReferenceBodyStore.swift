@@ -123,6 +123,32 @@ enum ReferenceBodyStore {
         )
     }
 
+    /// Write ONLY the mirror.
+    ///
+    /// **⇒ This is the editor's path.** = The editor writes the truth
+    /// location itself (= `tab.documentPath`), = and it does not know
+    /// the document's layer, = so it cannot write the mirror. = The
+    /// store knows the layer, = so the store writes it. = **⇒ The
+    /// truth file is NOT rewritten here**: = the editor may have a
+    /// watcher on it, = and rewriting a file the editor just wrote
+    /// can trigger a reload it does not need.
+    nonisolated static func writeMirror(
+        id: UUID,
+        layer: ReferenceLayer,
+        bodyMarkdown: String,
+        referenceLibraryRoot: URL
+    ) throws {
+        let mirror = mirrorURL(id: id, layer: layer, referenceLibraryRoot: referenceLibraryRoot)
+        try FileManager.default.createDirectory(
+            at: mirror.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try AtomicFileWrite.write(
+            bodyMarkdown.data(using: .utf8) ?? Data(),
+            to: mirror
+        )
+    }
+
     /// Remove a body, = from both locations.
     ///
     /// **⇒ A delete that leaves the body on disk is not a delete.**

@@ -213,6 +213,61 @@ struct ReferenceBodyStoreTests {
                 .mirrorURL(id: Self.id, layer: .layerEntities, referenceLibraryRoot: root).path))
     }
 
+    // MARK: - The editor's save
+
+    @Test("The editor's save writes the truth, = and the store writes the mirror")
+    @MainActor
+    func editorSaveLeavesBothCurrent() throws {
+        let root = try Self.makeLibrary()
+        let store = FileSystemReferenceStore(referenceLibraryRoot: root)
+        let reference = Reference(title: "Ming tax system", layer: .layerEntities)
+        try store.saveReference(reference, bodyMarkdown: "the body the agent wrote")
+
+        // **⇒ What the EDITOR does**: = it writes the truth location
+        // (= `tab.documentPath`), = and it does not know the layer, =
+        // so it cannot write the mirror.
+        let truth = ReferenceBodyStore.truthURL(id: reference.id, referenceLibraryRoot: root)
+        try "the body the USER typed".write(to: truth, atomically: true, encoding: .utf8)
+
+        // **⇒ And what the store does**: = the editor's save calls
+        // `replaceReferenceByID`, = and that is where the mirror is
+        // written (= the store knows the layer).
+        try store.replaceReferenceByID(id: reference.id, bodyMarkdown: "the body the USER typed")
+
+        let mirror = try String(
+            contentsOf: ReferenceBodyStore.mirrorURL(
+                id: reference.id, layer: .layerEntities, referenceLibraryRoot: root
+            ),
+            encoding: .utf8
+        )
+        // **⇒ The mirror carries the user's text.** = Before this, = a
+        // mirror left stale was a file the user could open in the
+        // Finder and find the OLD text in (= measured on the real
+        // library: = six documents, = six divergent pairs).
+        #expect(mirror == "the body the USER typed")
+    }
+
+    @Test("The editor's save leaves the truth file alone (= the editor wrote it)")
+    @MainActor
+    func editorSaveDoesNotRewriteTheTruth() throws {
+        let root = try Self.makeLibrary()
+        let store = FileSystemReferenceStore(referenceLibraryRoot: root)
+        let reference = Reference(title: "Ming tax system", layer: .layerEntities)
+        try store.saveReference(reference, bodyMarkdown: "the body the agent wrote")
+
+        let truth = ReferenceBodyStore.truthURL(id: reference.id, referenceLibraryRoot: root)
+        try "the body the USER typed".write(to: truth, atomically: true, encoding: .utf8)
+        let before = try FileManager.default.attributesOfItem(atPath: truth.path)[.modificationDate] as? Date
+
+        try store.replaceReferenceByID(id: reference.id, bodyMarkdown: "the body the USER typed")
+
+        let after = try FileManager.default.attributesOfItem(atPath: truth.path)[.modificationDate] as? Date
+        // **⇒ The truth file's MODIFICATION DATE does not move.**
+        // = The editor may have a watcher on it, = and rewriting a file
+        // the editor just wrote can trigger a reload it does not need.
+        #expect(before == after)
+    }
+
     // MARK: - The store uses the rule
 
     @Test("The store reads the truth, = so the agent's write reads back")
