@@ -29,7 +29,6 @@
 //
 //
 
-import AppKit
 import SwiftUI
 
 /// The trailing inspector column of the detail split.
@@ -113,41 +112,45 @@ struct InspectorView: View {
             // itself; = measured on Pages 2026-11-04: = a six-segment
             // capsule whose selected glyph is the accent one).
             ToolbarItem(placement: .primaryAction) {
-                LabelSegmentedControl.iconCapsule(
-                    // The capsule's selection is the column's VISIBILITY
-                    // plus its section: = a hidden column has NO
-                    // selected segment (= the Apple shape: = the
-                    // titlebar's switch shows nothing chosen until
-                    // the column is showing), = and a visible column
-                    // shows the section it is carrying.
-                    //
-                    // The binding is therefore an OPTIONAL section: = nil
-                    // = "nothing is selected" (= no segment is drawn as
-                    // chosen), = and the control maps nil to AppKit's own
-                    // "no segment is selected" (-1).
-                    selection: Binding<InspectorSection?>(
-                        get: { self.inspectorVisibleBinding ? self.workspaceUI.inspectorSection : nil },
-                        set: { picked in
-                            guard let picked else { return }
-                            // The Apple toggle: = the segment that is
+                // The Apple's OWN toolbar button group: = a
+                // `ControlGroup` in a toolbar item IS the macOS shape
+                // (= ONE capsule holding several round buttons), = which
+                // is what Pages, = Numbers and = Keynote show at the
+                // titlebar's right end. = It is NOT a segmented
+                // control: = a segmented control draws one continuous
+                // track with a plate behind the chosen segment, = and
+                // Apple's own right-column switch is a group of round
+                // buttons whose CHOSEN ONE is the accent-coloured
+                // glyph.
+                ControlGroup {
+                    ForEach(InspectorSection.allCases, id: \.self) { section in
+                        Button {
+                            // The Apple toggle: = the section that is
                             // ALREADY showing turns the column off, = and
-                            // any other segment turns it on (= and on
+                            // any other section turns it on (= and on
                             // that section).
-                            if self.inspectorVisibleBinding, self.workspaceUI.inspectorSection == picked {
-                                self.inspectorVisibleBinding = false
-                            } else {
-                                self.workspaceUI.inspectorSection = picked
-                                self.inspectorVisibleBinding = true
-                            }
+                            let outcome = InspectorSection.pressOutcome(
+                                section,
+                                current: self.workspaceUI.inspectorSection,
+                                visible: self.inspectorVisibleBinding
+                            )
+                            self.workspaceUI.inspectorSection = outcome.section
+                            self.inspectorVisibleBinding = outcome.visible
+                        } label: {
+                            Image(systemName: section.icon)
+                                .foregroundStyle(
+                                    InspectorSection.isShowing(
+                                        section,
+                                        current: self.workspaceUI.inspectorSection,
+                                        visible: self.inspectorVisibleBinding
+                                    )
+                                        ? Color.accentColor
+                                        : Color.secondary
+                                )
                         }
-                    ),
-                    labels: InspectorSection.allCases.map { Optional($0) },
-                    symbolNames: { $0?.icon ?? "" },
-                    tooltips: InspectorSection.allCases.map(\.localizedTitle),
-                    fixedSegmentWidth: DesignTokens.paneTabHotArea,
-                    controlSize: .small
-                )
-                .frame(width: DesignTokens.paneTabHotArea * CGFloat(InspectorSection.allCases.count))
+                        .help(section.localizedTitle)
+                    }
+                }
             }
 
             ToolbarItemGroup(placement: .principal) {

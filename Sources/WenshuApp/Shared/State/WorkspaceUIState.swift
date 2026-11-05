@@ -46,7 +46,7 @@ import Foundation
 ///
 /// chatVisible + inspectorPage were previously on `ShellState`
 /// (= a separate 4-property @Observable class). Apple HIG
-/// treats all 5 fields here as the same shape (= view-local UI
+/// treats every field here as the same shape (= view-local UI
 /// state shared across column descendants; = the Pages /
 /// Numbers / Keynote pattern is to keep them in one
 /// environment-injected class, not split across multiple
@@ -363,7 +363,7 @@ enum InspectorPage: Hashable, CaseIterable {
     var icon: String {
         switch self {
         case .todo: return "checklist"
-        case .status: return "waveform.path.ecg"
+        case .status: return "person.2"
         case .task: return "square.grid.2x2"
         }
     }
@@ -379,6 +379,38 @@ enum InspectorPage: Hashable, CaseIterable {
 /// one is what the runtime produces (= the todos, = the sub-agent
 /// tasks, = the task board), = and the FORMAT one is the document's own
 /// (= the format commands, = grouped the way Pages groups them).
+extension InspectorSection {
+    /// Whether the column is SHOWING this section right now.
+    ///
+    /// A hidden column shows NO section, = so no button in the window
+    /// toolbar's group wears the accent (= Apple's shape: = the group
+    /// shows nothing chosen until the column is showing).
+    static func isShowing(
+        _ section: InspectorSection,
+        current: InspectorSection,
+        visible: Bool
+    ) -> Bool {
+        visible && current == section
+    }
+
+    /// What a press on this section's button does.
+    ///
+    /// The Apple toggle: = the section that is ALREADY showing turns
+    /// the column off, = and any other section turns it on (= and on
+    /// that section). = So a hidden column opens on whichever button
+    /// the user pressed.
+    static func pressOutcome(
+        _ pressed: InspectorSection,
+        current: InspectorSection,
+        visible: Bool
+    ) -> (section: InspectorSection, visible: Bool) {
+        if visible, current == pressed {
+            return (current, false)
+        }
+        return (pressed, true)
+    }
+}
+
 enum InspectorSection: Hashable, CaseIterable {
     /// The dynamic series (= the todos, = the sub-agent tasks, = the task
     /// board).

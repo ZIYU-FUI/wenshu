@@ -29,6 +29,12 @@ import Testing
 
 @Suite("Inspector column switcher, rendered")
 struct InspectorColumnSwitcherRenderTests {
+    private var inspectorPath: String {
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/Features/Editor/View/InspectorView.swift")
+        return url.path
+    }
+
     /// The control the column's band hosts, found by walking the
     /// rendered view hierarchy for the NSSegmentedControl.
     @MainActor
@@ -40,46 +46,6 @@ struct InspectorColumnSwitcherRenderTests {
             labels: InspectorPage.allCases,
             displayStrings: InspectorPage.allCases.map(\.localizedTitle)
         )
-    }
-
-    /// The column's OWN control (= the major sections), rendered the
-    /// way the column configures it.
-    @MainActor
-    private func renderedControl(
-        selection: Binding<InspectorSection>
-    ) -> NSSegmentedControl? {
-        // The column renders the section capsule the way a macOS window
-        // titlebar's button group renders: = ICON segments, = no text,
-        // = the names on hover.
-        let host = NSHostingView(rootView: AnyView(
-            LabelSegmentedControl(
-                selection: selection,
-                labels: InspectorSection.allCases,
-                displayStrings: InspectorSection.allCases.map { _ in "" },
-                iconStyle: .paneTab,
-                icon: { section in
-                    NSImage(
-                        systemSymbolName: section.icon,
-                        accessibilityDescription: section.localizedTitle
-                    )
-                },
-                tooltips: InspectorSection.allCases.map(\.localizedTitle),
-                controlSize: .small
-            )
-            .fixedSize(horizontal: true, vertical: true)
-        ))
-        host.frame = NSRect(x: 0, y: 0, width: 320, height: 40)
-        let window = NSWindow(
-            contentRect: host.frame,
-            styleMask: [.titled],
-            backing: .buffered,
-            defer: false
-        )
-        window.contentView = host
-        host.layoutSubtreeIfNeeded()
-        RunLoop.current.run(until: Date().addingTimeInterval(0.1))
-        host.layoutSubtreeIfNeeded()
-        return findSegmentedControl(in: host)
     }
 
     @MainActor
@@ -134,15 +100,6 @@ struct InspectorColumnSwitcherRenderTests {
         )
     }
 
-    /// The binding the column's OWN switcher writes (= the shared
-    /// state's major-section selection).
-    private func sectionBinding(_ state: WorkspaceUIState) -> Binding<InspectorSection> {
-        Binding(
-            get: { state.inspectorSection },
-            set: { newValue in state.inspectorSection = newValue }
-        )
-    }
-
     @Test("the dynamic section's switcher carries three segments in the page order")
     @MainActor
     func theSwitcherCarriesThreeSegments() {
@@ -157,43 +114,6 @@ struct InspectorColumnSwitcherRenderTests {
         let labels = (0 ..< control.segmentCount).map { control.label(forSegment: $0) }
         #expect(labels == InspectorPage.allCases.map(\.localizedTitle),
                 "the segments read the three page titles in the page order")
-    }
-
-    @Test("the column's own switcher carries the two major sections")
-    @MainActor
-    func theColumnCarriesTwoSectionSegments() {
-        let state = WorkspaceUIState()
-        guard let control = renderedControl(selection: sectionBinding(state)) else {
-            Issue.record("the rendered column carries no NSSegmentedControl")
-            return
-        }
-        #expect(control.segmentCount == 2,
-                "the column's own switcher carries one segment per major section")
-        // The segments are ICONS (= a window titlebar's button group),
-        // = so the segments carry no text, = and the names live in the
-        // tooltips.
-        let labels = (0 ..< control.segmentCount).map { control.label(forSegment: $0) }
-        #expect(labels.allSatisfy { ($0 ?? "").isEmpty },
-                "the capsule's segments show icons, = not words")
-        let tooltips = (0 ..< control.segmentCount).map { control.toolTip(forSegment: $0) }
-        #expect(tooltips.compactMap { $0 } == InspectorSection.allCases.map(\.localizedTitle),
-                "the capsule's segments carry their names on hover")
-        #expect(control.image(forSegment: 0) != nil && control.image(forSegment: 1) != nil,
-                "each segment carries an icon")
-    }
-
-    @Test("choosing a major section writes it to the shared state")
-    @MainActor
-    func choosingASectionWritesTheSection() {
-        let state = WorkspaceUIState()
-        guard let control = renderedControl(selection: sectionBinding(state)) else {
-            Issue.record("the rendered column carries no NSSegmentedControl")
-            return
-        }
-        control.selectedSegment = 1
-        control.sendAction(control.action, to: control.target)
-        #expect(state.inspectorSection == .format,
-                "choosing a section must write the section back to the shared state")
     }
 
     @Test("the switcher draws at the column-top chrome size")
@@ -222,5 +142,64 @@ struct InspectorColumnSwitcherRenderTests {
         control.sendAction(control.action, to: control.target)
         #expect(state.inspectorPage == .task,
                 "choosing a segment must write the page back to the shared state")
+    }
+
+    @Test("the section switch is the window toolbar's button group (= a ControlGroup, = not a segmented control)")
+    @MainActor
+    func theSectionSwitchIsAToolbarButtonGroup() throws {
+        let source = try String(contentsOfFile: inspectorPath, encoding: .utf8)
+        #expect(source.contains("ControlGroup {"),
+                "the section switch is a ControlGroup: = the macOS shape is ONE capsule holding several round buttons")
+        #expect(source.contains("ToolbarItem(placement: .primaryAction)"),
+                "the group rides the window toolbar's RIGHTMOST slot")
+        #expect(!source.contains("LabelSegmentedControl.iconCapsule"),
+                "a segmented control is NOT Apple's right-column switch: = it draws one continuous track with a plate behind the chosen segment")
+        #expect(source.contains("Color.accentColor"),
+                "the chosen section is the ACCENT-coloured glyph (= Apple's own selection mark)")
+    }
+
+    @Test("a hidden column shows no section at all (= nothing wears the accent)")
+    func aHiddenColumnShowsNoSection() {
+        for section in InspectorSection.allCases {
+            #expect(!InspectorSection.isShowing(section, current: .dynamic, visible: false),
+                    "a hidden column shows no section, = so no button wears the accent")
+        }
+    }
+
+    @Test("a visible column shows exactly the section it carries")
+    func aVisibleColumnShowsItsSection() {
+        #expect(InspectorSection.isShowing(.dynamic, current: .dynamic, visible: true),
+                "the carried section is the shown one")
+        #expect(!InspectorSection.isShowing(.format, current: .dynamic, visible: true),
+                "the other section is not shown")
+    }
+
+    @Test("pressing the section that is showing turns the column off")
+    func pressingTheShownSectionTurnsTheColumnOff() {
+        let outcome = InspectorSection.pressOutcome(.dynamic, current: .dynamic, visible: true)
+        #expect(outcome.visible == false,
+                "the section that is ALREADY showing turns the column off (= Apple's toggle)")
+        #expect(outcome.section == .dynamic,
+                "the column's section is remembered, = so reopening shows it again")
+    }
+
+    @Test("pressing any section of a hidden column opens the column on that section")
+    func pressingAnySectionOfAHiddenColumnOpensIt() {
+        for section in InspectorSection.allCases {
+            let outcome = InspectorSection.pressOutcome(section, current: .dynamic, visible: false)
+            #expect(outcome.visible == true,
+                    "a hidden column opens on whichever button the user pressed")
+            #expect(outcome.section == section,
+                    "and it opens ON that section")
+        }
+    }
+
+    @Test("pressing the other section of a visible column switches to it")
+    func pressingTheOtherSectionSwitches() {
+        let outcome = InspectorSection.pressOutcome(.format, current: .dynamic, visible: true)
+        #expect(outcome.visible == true,
+                "the column stays open when another section is pressed")
+        #expect(outcome.section == .format,
+                "and it switches to the pressed section")
     }
 }

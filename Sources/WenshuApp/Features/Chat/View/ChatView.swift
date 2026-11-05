@@ -808,6 +808,11 @@ struct ChatView: View {
         // choice stands until the chat takes focus again.
         .onChange(of: inputFocused) { _, isFocused in
             guard isFocused else { return }
+            // The page switch lives INSIDE the dynamic section, = so
+            // writing the page alone is INERT while another section is
+            // showing: = the focus has to bring the dynamic section up
+            // as well, = or the sub-agent work never comes on screen.
+            workspaceUI.inspectorSection = .dynamic
             workspaceUI.inspectorPage = .status
         }
         // Apple HIG canonical file-export / file-import for the
