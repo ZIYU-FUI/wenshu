@@ -4,23 +4,32 @@
 //
 // A book's style is BOOK-level: = one style set runs through the whole
 // book, = and every adjustment acts on the whole book. = The values here
-// are the ones a printed book uses, = measured from CY/T 120-2015
-// (学术出版规范 图书版式), = and folded to the screen:
+// are the ones a printed book uses, = measured from CY/T 120-2015 (the
+// academic publishing standard for book typesetting), = and folded to the
+// screen:
 //
-//   body         Songti 13pt (= the print minimum is 五号 / 10.5pt, = and
+//   body         Songti 13pt (= the print minimum is size 5 (10.5pt), = and
 //                13pt is the HIG body size)
 //   line spacing 1.55 (= print 1.50-1.60)
-//   indent       two characters (= print 首行缩进 2 字)
-//   spacing      none (= print 段间距 0)
-//   headings     16 / 14 / 12pt in Heiti (= print 三号 / 四号 / 小四)
-//   quote        Kai 12.5pt (= print 引文 = a different face + size)
-//   note         11pt (= print 小五 9pt, = always smaller than the body)
-//   captions     11pt (= print 图题 / 表题, = always smaller than the body)
+//   indent       two characters (= the print first-line indent of two
+//                characters)
+//   spacing      none (= the print segment spacing of zero)
+//   headings     a LADDER of positions (= the print baseline is
+//                16 / 14 / 12pt in Heiti, = and every position descends)
+//   quote        Kai 12.5pt (= a print quote is a different face + size)
+//   note         11pt (= the print small size 5 (9pt), = always smaller
+//                than the body)
+//   captions     11pt each (= a figure caption sits BELOW its figure, = and
+//                a table caption ABOVE its table, = and both are always
+//                smaller than the body)
 //
-// EVERY knob holds a FIXED POSITION, = never a free number: = the boss's
-// rule is that a writer chooses a style, = not that a writer sets a size.
-// So the type is a set of enums, = and a number can only be reached
-// through one of them.
+// EVERY knob holds a FIXED POSITION, = never a free number: = a writer
+// chooses a style, = not that a writer sets a size. = So the type is a
+// set of enums, = and a number can only be reached through one of them.
+//
+// The heading ladder is one of those enums: = the sheet holds the
+// POSITION, = and the sizes come from it, = so a book.json carries a
+// ladder's NAME and never a list of numbers.
 //
 // The engine package (= nodes-app/swift-markdown-engine) = does not yet
 // carry a document-level font family, = an absolute size per level, = a
@@ -39,7 +48,7 @@ enum BookBodySize: String, CaseIterable, Codable, Sendable {
     case medium
     case large
 
-    /// Points on screen. = The print minimum for a novel's body is 五号
+    /// Points on screen. = The print minimum for a novel's body is size 5
     /// (10.5pt), = and 13pt is the HIG body size, = so the middle position
     /// is the print baseline and the smallest one is a shade under it.
     var points: Double {
@@ -49,10 +58,20 @@ enum BookBodySize: String, CaseIterable, Codable, Sendable {
         case .large: return 14
         }
     }
+
+    /// Chinese display name (= the label a picker draws for this
+    /// position).
+    var displayName: String {
+        switch self {
+        case .small: return "小号"
+        case .medium: return "中号"
+        case .large: return "大号"
+        }
+    }
 }
 
 /// The line spacing a book can be set to. = Print books run 1.50-1.60
-/// (= 五号 with 5.25-6.25pt of leading), = and the middle position is the
+/// (= size 5 with 5.25-6.25pt of leading), = and the middle position is the
 /// measured baseline.
 enum BookLineSpacing: String, CaseIterable, Codable, Sendable {
     case tight
@@ -67,10 +86,21 @@ enum BookLineSpacing: String, CaseIterable, Codable, Sendable {
         case .loose: return 1.70
         }
     }
+
+    /// Chinese display name (= the label a picker draws for this
+    /// position).
+    var displayName: String {
+        switch self {
+        case .tight: return "紧凑"
+        case .standard: return "标准"
+        case .loose: return "宽松"
+        }
+    }
 }
 
 /// The first-line indent a book can be set to. = A printed Chinese novel
-/// indents two characters (= 首行缩进 2 字), = and that is the baseline.
+/// indents two characters (= the print first-line indent of two
+/// characters), = and that is the baseline.
 enum BookFirstLineIndent: String, CaseIterable, Codable, Sendable {
     case none
     case twoCharacters
@@ -82,11 +112,20 @@ enum BookFirstLineIndent: String, CaseIterable, Codable, Sendable {
         case .twoCharacters: return 2
         }
     }
+
+    /// Chinese display name (= the label a picker draws for this
+    /// position).
+    var displayName: String {
+        switch self {
+        case .none: return "不缩进"
+        case .twoCharacters: return "缩进两字"
+        }
+    }
 }
 
 /// The space between segments a book can be set to. = A printed Chinese
-/// book uses NO space between segments (= 段间距 0; = a blank line means
-/// a section ended), = and that is the baseline.
+/// book uses NO space between segments (= the print segment spacing of
+/// zero; = a blank line means a section ended), = and that is the baseline.
 enum BookSegmentSpacing: String, CaseIterable, Codable, Sendable {
     case none
     case halfCharacter
@@ -98,11 +137,20 @@ enum BookSegmentSpacing: String, CaseIterable, Codable, Sendable {
         case .halfCharacter: return 0.5
         }
     }
+
+    /// Chinese display name (= the label a picker draws for this
+    /// position).
+    var displayName: String {
+        switch self {
+        case .none: return "无间距"
+        case .halfCharacter: return "半字段距"
+        }
+    }
 }
 
 /// The face a book's body is set in. = The four faces a Chinese novel
-/// actually uses: = the body face (= 宋体), = the heading face (= 黑体),
-/// the literary face (= 楷体), = and the screen face (= 苹方).
+/// actually uses: = the body face (= Songti), = the heading face (= Heiti),
+/// the literary face (= Kaiti), = and the screen face (= PingFang).
 ///
 /// The names are the PostScript names macOS ships them under, = so a
 /// renderer can ask for them without a lookup table.
@@ -123,7 +171,7 @@ enum BookBodyFamily: String, CaseIterable, Codable, Sendable {
     }
 
     /// The face a HEADING is set in. = A printed book's headings are a
-    /// different face from its body (= 黑体), = and they follow the body
+    /// different face from its body (= Heiti), = and they follow the body
     /// except when the body itself is already the heading face.
     var headingPostScriptName: String {
         switch self {
@@ -131,6 +179,48 @@ enum BookBodyFamily: String, CaseIterable, Codable, Sendable {
         case .heiti: return "Heiti SC"
         case .kai: return "Kaiti SC"
         case .pingFang: return "PingFang SC"
+        }
+    }
+
+    /// Chinese display name (= the label a picker draws for this face).
+    var displayName: String {
+        switch self {
+        case .songti: return "宋体"
+        case .heiti: return "黑体"
+        case .kai: return "楷体"
+        case .pingFang: return "苹方"
+        }
+    }
+}
+
+/// The heading ladder a book can be set to. = Three positions, = and every
+/// one of them DESCENDS: = the print baseline in the middle.
+///
+/// A ladder is a POSITION, = not a list of numbers: = so a book can hold
+/// only the ladders a printed book uses, = and the sizes are read from the
+/// position (see `sizes`) = rather than written by a caller.
+enum BookHeadingLadder: String, CaseIterable, Codable, Sendable {
+    case printStandard
+    case compact
+    case generous
+
+    /// The three levels' sizes, = in points. = The print ladder is size 3 /
+    /// size 4 / small size 4 = (16 / 14 / 12pt), = and every position
+    /// descends for every level.
+    var sizes: [Double] {
+        switch self {
+        case .printStandard: return [16, 14, 12]
+        case .compact: return [15, 13, 11]
+        case .generous: return [18, 16, 14]
+        }
+    }
+
+    /// Chinese display name (= the label a picker draws for this ladder).
+    var displayName: String {
+        switch self {
+        case .printStandard: return "标准"
+        case .compact: return "紧凑"
+        case .generous: return "宽松"
         }
     }
 }
@@ -153,10 +243,12 @@ struct BookStyleSheet: Codable, Hashable, Sendable {
     var segmentSpacing: BookSegmentSpacing
     /// The body's face (= and, by default, the headings' face).
     var bodyFamily: BookBodyFamily
-    /// The three heading levels' sizes, = in points. = The print ladder
-    /// is 三号 / 四号 / 小四 = (16 / 14 / 12pt), = and it descends for
-    /// every level.
-    var headingSizes: [Double]
+    /// The quote's face. = A print quote is a different face from the
+    /// body (= the literary face), = and this is that face.
+    var quoteFamily: BookBodyFamily
+    /// The heading ladder. = A POSITION, = and the sizes it holds come
+    /// from it: = the sheet never stores a free number.
+    var headingLadder: BookHeadingLadder
 
     /// The measured print baseline: = a printed Chinese novel, = folded
     /// to the screen.
@@ -166,7 +258,8 @@ struct BookStyleSheet: Codable, Hashable, Sendable {
         firstLineIndent: .twoCharacters,
         segmentSpacing: .none,
         bodyFamily: .songti,
-        headingSizes: [16, 14, 12]
+        quoteFamily: .kai,
+        headingLadder: .printStandard
     )
 
     init(
@@ -175,22 +268,32 @@ struct BookStyleSheet: Codable, Hashable, Sendable {
         firstLineIndent: BookFirstLineIndent = .twoCharacters,
         segmentSpacing: BookSegmentSpacing = .none,
         bodyFamily: BookBodyFamily = .songti,
-        headingSizes: [Double] = [16, 14, 12]
+        quoteFamily: BookBodyFamily = .kai,
+        headingLadder: BookHeadingLadder = .printStandard
     ) {
         self.bodySize = bodySize
         self.lineSpacing = lineSpacing
         self.firstLineIndent = firstLineIndent
         self.segmentSpacing = segmentSpacing
         self.bodyFamily = bodyFamily
-        self.headingSizes = headingSizes
+        self.quoteFamily = quoteFamily
+        self.headingLadder = headingLadder
+    }
+
+    /// The three heading levels' sizes, = in points. = DERIVED from the
+    /// ladder, = never stored: = the sheet holds a POSITION, = and the
+    /// positions are the printed ones.
+    var headingSizes: [Double] {
+        headingLadder.sizes
     }
 
     /// The size of a heading level. = Level one is the biggest; = a level
     /// past the ladder falls back to the body size, = so a document with
     /// more levels than the ladder still has a defined size.
     func headingSize(forLevel level: Int) -> Double {
-        guard level >= 1, level <= headingSizes.count else { return bodySize.points }
-        return headingSizes[level - 1]
+        let sizes = headingSizes
+        guard level >= 1, level <= sizes.count else { return bodySize.points }
+        return sizes[level - 1]
     }
 
     /// The quote's size. = A print quote is a different face AND a
@@ -204,9 +307,15 @@ struct BookStyleSheet: Codable, Hashable, Sendable {
         11
     }
 
-    /// The caption's size, = for both figures and tables. = Always smaller
-    /// than the body.
-    var captionSize: Double {
+    /// The figure caption's size. = A print figure caption is always
+    /// SMALLER than the body, = and it sits BELOW its figure.
+    var figureCaptionSize: Double {
+        11
+    }
+
+    /// The table caption's size. = A print table caption is always
+    /// SMALLER than the body, = and it sits ABOVE its table.
+    var tableCaptionSize: Double {
         11
     }
 }
@@ -222,19 +331,30 @@ struct BookStyleSheet: Codable, Hashable, Sendable {
 
 extension BookStyleSheet {
     private enum CodingKeys: String, CodingKey {
-        case bodySize, lineSpacing, firstLineIndent, segmentSpacing, bodyFamily, headingSizes
+        case bodySize, lineSpacing, firstLineIndent, segmentSpacing
+        case bodyFamily, quoteFamily, headingLadder
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let fallback = BookStyleSheet.default
+        // The ladder decodes LENIENTLY (= the repo's own convention for
+        // a persisted position, = the same shape `Reference.layer`
+        // uses): = the persisted field carries the ladder's NAME, = so a
+        // name this build does not know (= one a later build writes, = or
+        // a hostile one) must not fail the whole book.json. = It reads as
+        // the print baseline, = and so does a value that is not a name
+        // at all. = So a book.json can never carry a size into the sheet.
+        let rawLadder = try? c.decode(String.self, forKey: .headingLadder)
+        let ladder = rawLadder.flatMap(BookHeadingLadder.init(rawValue:)) ?? fallback.headingLadder
         try self.init(
             bodySize: c.decodeIfPresent(BookBodySize.self, forKey: .bodySize) ?? fallback.bodySize,
             lineSpacing: c.decodeIfPresent(BookLineSpacing.self, forKey: .lineSpacing) ?? fallback.lineSpacing,
             firstLineIndent: c.decodeIfPresent(BookFirstLineIndent.self, forKey: .firstLineIndent) ?? fallback.firstLineIndent,
             segmentSpacing: c.decodeIfPresent(BookSegmentSpacing.self, forKey: .segmentSpacing) ?? fallback.segmentSpacing,
             bodyFamily: c.decodeIfPresent(BookBodyFamily.self, forKey: .bodyFamily) ?? fallback.bodyFamily,
-            headingSizes: c.decodeIfPresent([Double].self, forKey: .headingSizes) ?? fallback.headingSizes
+            quoteFamily: c.decodeIfPresent(BookBodyFamily.self, forKey: .quoteFamily) ?? fallback.quoteFamily,
+            headingLadder: ladder
         )
     }
 }
