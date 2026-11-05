@@ -52,6 +52,72 @@ extension FileSystemReferenceStore {
         return all
     }
 
+    /// Read every layer's index, = and SAY when one cannot be read.
+    ///
+    /// **⇒ This is the strict counterpart of
+    /// `loadAllReferencesFromFileSystem`.** = The forgiving one turns
+    /// every failure into an empty layer, = and a caller that asks
+    /// "does the library hold this document" then hears "no" for a
+    /// document it never looked for. = **⇒ Here a layer whose index
+    /// file EXISTS and cannot be decoded throws**, = and a layer whose
+    /// index file is MISSING is empty (= the library has not been
+    /// bootstrapped there, = which is a fact about the corpus).
+    ///
+    /// **⇒ The two date strategies are both tried** (= the index has
+    /// been written by two encoders over the app's life), = and only
+    /// when BOTH fail is the layer unreadable.
+    nonisolated static func loadAllReferencesReportingFailureFromFileSystem(
+        referenceLibraryRoot: URL
+    ) throws -> [Reference] {
+        var all: [Reference] = []
+        for layer in ReferenceLayer.allCases {
+            try all.append(contentsOf: loadReferencesReportingFailureFromFileSystem(
+                referenceLibraryRoot: referenceLibraryRoot,
+                layer: layer
+            ))
+        }
+        return all
+    }
+
+    /// One layer's index, = or an error when the file is there and
+    /// unreadable.
+    nonisolated static func loadReferencesReportingFailureFromFileSystem(
+        referenceLibraryRoot: URL,
+        layer: ReferenceLayer
+    ) throws -> [Reference] {
+        let indexURL = referenceLibraryRoot
+            .appendingPathComponent(layer.directoryName)
+            .appendingPathComponent("\(layer.directoryName).json")
+        guard FileManager.default.fileExists(atPath: indexURL.path) else {
+            return []
+        }
+        let data: Data
+        do {
+            data = try Data(contentsOf: indexURL)
+        } catch {
+            throw ReferenceStoreError.referenceIndexUnreadable(
+                layer: layer,
+                path: indexURL.path,
+                reason: String(describing: error)
+            )
+        }
+        let iso = JSONDecoder()
+        iso.dateDecodingStrategy = .iso8601
+        if let references = try? iso.decode([Reference].self, from: data) {
+            return references
+        }
+        let legacy = JSONDecoder()
+        do {
+            return try legacy.decode([Reference].self, from: data)
+        } catch {
+            throw ReferenceStoreError.referenceIndexUnreadable(
+                layer: layer,
+                path: indexURL.path,
+                reason: String(describing: error)
+            )
+        }
+    }
+
     nonisolated static func loadReferencesFromFileSystem(
         referenceLibraryRoot: URL,
         layer: ReferenceLayer

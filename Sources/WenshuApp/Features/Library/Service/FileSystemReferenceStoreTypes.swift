@@ -31,7 +31,29 @@ protocol ReferenceStoring: Sendable {
 
     /// Returns the parsed index of all references, across all 4 LLM
     /// Wiki layers.
+    ///
+    /// **⇒ This one is FORGIVING**: = a layer whose index file cannot
+    /// be read is reported as an empty layer. = **⇒ Do not use it to
+    /// decide whether the library HOLDS a document** = = it cannot
+    /// tell "the library does not hold it" from "the library could
+    /// not be read", = and the librarian's report is exactly that
+    /// question.
     func loadAllReferences() throws -> [Reference]
+
+    /// Returns the parsed index of all references, = and says so when
+    /// the corpus cannot be read.
+    ///
+    /// **⇒ The difference from `loadAllReferences()` is the whole
+    /// point.** = A layer whose index file is MISSING is empty (= the
+    /// library has not been bootstrapped there, = which is a fact
+    /// about the corpus). = A layer whose index file EXISTS and
+    /// cannot be decoded is UNREADABLE (= which is a fact about the
+    /// READER, = and a report that says "the library does not hold
+    /// this document" would be a fact the reader never got).
+    ///
+    /// **⇒ So this throws**, = and the caller can say "the library
+    /// could not be read" instead of "the document is not there".
+    func loadAllReferencesReportingFailure() throws -> [Reference]
 
     /// Returns the references in a single layer.
     func loadReferences(layer: ReferenceLayer) throws -> [Reference]
@@ -96,6 +118,33 @@ protocol ReferenceStoring: Sendable {
     func replaceReferenceByID(id: UUID, bodyMarkdown: String) throws
 }
 
+// MARK: - The strict read's default
+
+extension ReferenceStoring {
+    /// **⇒ The default answer is "I cannot say".**
+    ///
+    /// **⇒ NOT the forgiving read.** = A store that delegates to
+    /// `loadAllReferences()` here inherits that method's habit of
+    /// turning a read failure into an empty layer, = and a caller
+    /// asking "does the library hold this document" then hears "no"
+    /// for a document it never looked for. = **⇒ So the default
+    /// THROWS**, = and a store has to say which it is:
+    ///
+    /// - a store that CAN tell (= the filesystem one) = overrides this
+    ///   and reports a real read failure;
+    /// - a store that CANNOT tell (= one holding its documents in
+    ///   memory) = overrides this and returns its documents, = because
+    ///   for it "the corpus is empty" and "the corpus is unreadable"
+    ///   are the same true statement.
+    ///
+    /// **⇒ The default is the one that cannot lie**, = and it is the
+    /// default on purpose: = a store added later must decide, = rather
+    /// than inherit a behaviour nobody chose.
+    func loadAllReferencesReportingFailure() throws -> [Reference] {
+        throw ReferenceStoreError.storeCannotReportReadFailure
+    }
+}
+
 // MARK: - Errors
 
 enum ReferenceStoreError: Error, LocalizedError {
@@ -103,14 +152,31 @@ enum ReferenceStoreError: Error, LocalizedError {
     case referenceNotFound(id: UUID)
     case referenceLibraryRootMissing(path: String)
 
+    /// A layer's index file is there, = and it cannot be read.
+    ///
+    /// **⇒ This is a different fact from "the layer is empty".** = An
+    /// empty layer is a fact about the corpus; = this is a fact about
+    /// the reader. = A report that cannot tell them apart says "the
+    /// library does not hold this document" about a document it never
+    /// managed to look for.
+    case referenceIndexUnreadable(layer: ReferenceLayer, path: String, reason: String)
+
+    /// This store cannot tell "the corpus is empty" from "the corpus
+    /// could not be read".
+    case storeCannotReportReadFailure
+
     var errorDescription: String? {
         switch self {
-        case .referenceAlreadyExists(let id):
+        case let .referenceAlreadyExists(id):
             return "Reference \(id.uuidString) already exists on disk."
-        case .referenceNotFound(let id):
+        case let .referenceNotFound(id):
             return "Reference \(id.uuidString) not found on disk."
-        case .referenceLibraryRootMissing(let path):
+        case let .referenceLibraryRootMissing(path):
             return "ReferenceLibrary root does not exist: \(path). Cannot save references."
+        case let .referenceIndexUnreadable(layer, path, reason):
+            return "The \(layer.displayName) index at \(path) could not be read: \(reason)"
+        case .storeCannotReportReadFailure:
+            return "This library store cannot report whether the corpus could be read."
         }
     }
 }
@@ -141,4 +207,3 @@ struct ReferenceLibraryMetadata: Identifiable, Codable, Hashable, Sendable {
         createdAt: .distantPast
     )
 }
-

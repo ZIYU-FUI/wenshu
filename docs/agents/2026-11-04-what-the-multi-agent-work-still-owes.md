@@ -106,11 +106,22 @@ app used to hide the raw layer):
    "3 items" and open to two documents.
 
 **⇒ What was NOT done.** = **No new UI surface for the raw layer.**
-= That would mean a new `PreviewScope` case, = and `PreviewPane.swift`
-is **1174 LOC** (= 1.96x the 600-LOC cap) = and a change must not grow
-an over-cap file. = The raw layer is the librarian's territory (= the
-role owns the `.ws` document chain), = so the report is where the
-user learns about it.
+= The raw layer is the librarian's territory (= the role owns the
+`.ws` document chain), = so the report is where the user learns about
+it.
+
+**⇒ And the reason this entry gave for NOT doing it was false.**
+= It said a new `PreviewScope` case would grow `PreviewPane.swift`,
+= because that file "is 1174 LOC = 1.96x the 600-LOC cap". = **⇒
+`PreviewPane.swift` is 302 LOC** (= 1174 was its count before the
+§6.6 split, = and the figure was copied from a source comment that
+had itself gone stale). = **⇒ So the file was never near the cap,
+and the door was open the whole time.** = The raw layer's UI surface
+is therefore NOT blocked by the size of a file: = it is a piece of
+work that has not been done, = which is a different thing. = **⇒ A
+number quoted as a reason has to be measured against the tree it
+claims to describe** = and this one was quoted for weeks after it
+stopped being true.
 
 **⇒ And the root of "the user cannot see these documents" is still
 there.** = `Reference.init`'s default layer is `.layerRaw` (= the

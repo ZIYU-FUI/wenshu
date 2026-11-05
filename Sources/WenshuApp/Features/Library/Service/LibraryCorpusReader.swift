@@ -57,7 +57,14 @@ struct LibraryCorpusReader {
             return .unreadable("no library is open")
         }
         do {
-            return try .documents(store.loadAllReferences())
+            // **⇒ The STRICT read.** = `loadAllReferences()` is
+            // forgiving: = a layer whose index cannot be read becomes
+            // an empty layer, = and a corrupt index then yields an
+            // EMPTY corpus. = **⇒ So the `.unreadable` branch here
+            // could never fire**, = and the report said "NOT in the
+            // library, so it did not land" about a document sitting in
+            // a corpus it never managed to read.
+            return try .documents(store.loadAllReferencesReportingFailure())
         } catch {
             return .unreadable(String(describing: error))
         }

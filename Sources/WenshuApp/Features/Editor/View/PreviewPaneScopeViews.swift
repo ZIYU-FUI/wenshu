@@ -7,8 +7,16 @@
 //  this dedicated cross-file `extension PreviewPane` module).
 //
 //  Why extracted (= §6.6 god-class split + discoverability): the main
-//  `struct PreviewPane: View` is 1174 LOC = 1.96x the 600-LOC cap. The
-//  3 scope views are a single concern (= "render the 3 main scope
+//  `struct PreviewPane: View` was 1174 LOC = 1.96x the 600-LOC cap
+//  when this split was made. = **⇒ It is 302 LOC today** (= the
+//  §6.6 split moved the rest out), = so the number above is the
+//  split's REASON and not the file's size. = **⇒ A figure quoted in a
+//  comment has to say which tree it was measured on**: = 1174 was
+//  copied forward for weeks after it stopped being true, = and a
+//  later reader used it to decide that a new `PreviewScope` case
+//  could not be added (= the file was nowhere near the cap).
+//
+//  The 3 scope views are a single concern (= "render the 3 main scope
 //  cases in the body's switch" — the 4th emptyScopeView was already
 //  moved to PreviewPaneGrids.swift in A81). Putting them in a
 //  dedicated file named after the concern
@@ -72,7 +80,6 @@ extension PreviewPane {
         }
     }
 
-
     /// Book scope: scan filesystem for .md files in the book folders.
     /// folderName nil = union of all standard folders; non-nil = just that
     /// folder.
@@ -106,7 +113,6 @@ extension PreviewPane {
             }
         }
     }
-
 
     /// Shelf scope: union of every book's docs under the shelf. The shelf row
     /// is a scope (= shows every .md card from every book under that shelf; =
@@ -156,6 +162,4 @@ extension PreviewPane {
             bookDocsGrid(docs: filteredDocs)
         }
     }
-
-
 }

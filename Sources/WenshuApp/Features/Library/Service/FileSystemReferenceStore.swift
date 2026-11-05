@@ -2,20 +2,20 @@
 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // <.ws>/reference-library/<layer>/<layer>.json
 import Foundation
+import os
 import SwiftData
 import WenshuData
-import os
 
-// (protocol extracted to FileSystemReferenceStoreTypes.swift in A28; = see that file)
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// canonical implementation.
+/// (protocol extracted to FileSystemReferenceStoreTypes.swift in A28; = see that file)
+/// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+/// canonical implementation.
 @MainActor
 struct FileSystemReferenceStore: ReferenceStoring {
     let referenceLibraryRoot: URL
 
-    // / SwiftData ModelContainer (= Sendable; = passed to the store
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / FileSystem fallback helpers directly.
+    /// / SwiftData ModelContainer (= Sendable; = passed to the store
+    /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    /// / FileSystem fallback helpers directly.
     let modelContainer: ModelContainer?
 
     /// The search index the library publishes its documents to (= the
@@ -46,8 +46,8 @@ struct FileSystemReferenceStore: ReferenceStoring {
         self.pendingSearchIndexWrites = pendingSearchIndexWrites
     }
 
-    // / Resolve the ModelContext (= SwiftData's @MainActor contract).
-    // / Returns nil when the store has no ModelContainer wired.
+    /// / Resolve the ModelContext (= SwiftData's @MainActor contract).
+    /// / Returns nil when the store has no ModelContainer wired.
     private var modelContext: ModelContext? {
         modelContainer?.mainContext
     }
@@ -112,6 +112,34 @@ struct FileSystemReferenceStore: ReferenceStoring {
             predicate: #Predicate { $0.layer != "__metadata__" }
         )
         let rows = (try? context.fetch(descriptor)) ?? []
+        return rows.map(Self.toReference)
+    }
+
+    /// Read every layer's index, = and say when one cannot be read.
+    ///
+    /// **⇒ The strict counterpart of `loadAllReferences()`.** = The
+    /// forgiving one turns a read failure into an empty layer, = so a
+    /// caller asking "does the library hold this document" hears "no"
+    /// for a document it never looked for. = **⇒ Here it throws.**
+    func loadAllReferencesReportingFailure() throws -> [Reference] {
+        guard modelContainer != nil else {
+            return try Self.loadAllReferencesReportingFailureFromFileSystem(
+                referenceLibraryRoot: referenceLibraryRoot
+            )
+        }
+        guard let context = modelContext else {
+            throw ReferenceStoreError.referenceLibraryRootMissing(
+                path: referenceLibraryRoot.path
+            )
+        }
+        let descriptor = FetchDescriptor<WSReference>(
+            predicate: #Predicate { $0.layer != "__metadata__" }
+        )
+        // **⇒ A fetch that fails THROWS.** = The forgiving path
+        // turns it into an empty corpus, = and an empty corpus says
+        // "the library holds nothing" = which is a fact the fetch
+        // never produced.
+        let rows = try context.fetch(descriptor)
         return rows.map(Self.toReference)
     }
 
@@ -371,7 +399,9 @@ struct FileSystemReferenceStore: ReferenceStoring {
         )
         os_log("[wenshu.reference] loadReferenceBody fileBody=%{public}d chars",
                fileBody?.count ?? -1)
-        if let fileBody { return fileBody }
+        if let fileBody {
+            return fileBody
+        }
         guard let context = modelContext else {
             // FileSystem path: = the truth location first (= already
             // read above), = and the layer mirror as the fallback. = A
@@ -409,13 +439,13 @@ struct FileSystemReferenceStore: ReferenceStoring {
         let descriptor = FetchDescriptor<WSReference>(
             predicate: #Predicate { $0.id == id }
         )
-        return ((try? context.fetch(descriptor).first) != nil)
+        return (try? context.fetch(descriptor).first) != nil
     }
 
     // MARK: - SwiftData bridging helpers
 
     private static func makeRow(reference: Reference, bodyMarkdown: String) -> WSReference {
-        let row = WSReference(
+        return WSReference(
             id: reference.id,
             title: reference.title,
             displayTitle: reference.displayTitle,
@@ -434,7 +464,6 @@ struct FileSystemReferenceStore: ReferenceStoring {
             createdAt: reference.createdAt,
             updatedAt: reference.updatedAt
         )
-        return row
     }
 
     private static func toReference(_ row: WSReference) -> Reference {
@@ -456,9 +485,10 @@ struct FileSystemReferenceStore: ReferenceStoring {
             updatedAt: row.updatedAt
         )
     }
-    // / 2026-10-14: write-through helper used by the
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / updated body.
+
+    /// / 2026-10-14: write-through helper used by the
+    /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    /// / updated body.
     func replaceReferenceByID(id: UUID, bodyMarkdown: String) throws {
         guard let context = modelContext else {
             // No SwiftData row (= the file-only library the app runs
@@ -499,5 +529,4 @@ struct FileSystemReferenceStore: ReferenceStoring {
         // new body is what gets published.
         scheduleSearchIndex(reference: Self.toReference(existing), bodyMarkdown: bodyMarkdown)
     }
-
 }

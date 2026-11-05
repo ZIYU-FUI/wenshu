@@ -27,9 +27,16 @@
 //  2. **A deleted document's body stays on disk.** = The delete path
 //     removes the layer copy, = and the single-file copy survives.
 //  3. **The search index is stale.** = The index is scheduled from
-//     the write path, = and the editor's auto-save does not schedule
-//     one. = So a document the user edited is searchable by its old
-//     words.
+//     the write path. = **⇒ The editor's auto-save DOES schedule
+//     one** (= `FileSystemReferenceStore.replaceReferenceByID`'s
+//     file-only branch calls `scheduleSearchIndex`, = and that call
+//     predates this file) = **⇒ so this was never one of the three
+//     ways.** = An earlier version of this comment said the editor's
+//     save did not schedule an index, = and that was false: = it was
+//     written before the code was read. = **⇒ The remaining problem
+//     the editor's save had was the MIRROR, = not the index** (= the
+//     editor knows where the truth is and not which layer the
+//     document belongs to, = so it could not write the mirror).
 //
 //  **⇒ The rule.** = `references/<uuid>.md` is the TRUTH. = The layer
 //  copy is a MIRROR: = written whenever the truth is written, = so

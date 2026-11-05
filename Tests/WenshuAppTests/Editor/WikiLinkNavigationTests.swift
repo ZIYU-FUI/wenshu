@@ -4,7 +4,7 @@
 //  Behavior tests for `WikiLinkNavigation.handle(displayName:referenceStore:bookStore:)`
 //  (= the SMC ticket 003 wiki-link resolver helper that was extracted
 //  out of EditorView at v0.34 but never received test coverage).
-// 
+//
 //  wikilink path "done" (= the helper is the entry point both
 //  `handlePreviewWikiLink(displayName:)` + `handleEditorWikiLink(linkId:)`
 //  in the view route through).
@@ -37,10 +37,10 @@
 
 import Foundation
 import Testing
-
 @testable import WenshuApp
 
 // MARK: - Mock ReferenceStoring (= in-file fixture for the protocol)
+
 //
 // `ReferenceStoring` requires `loadAllReferences() throws -> [Reference]`
 // + `loadReferenceBody(id: UUID) -> String?`. The minimal mock below
@@ -53,6 +53,7 @@ private struct MockReferenceStore: ReferenceStoring, @unchecked Sendable {
         let title: String
         let summary: String
     }
+
     let entities: [EntitySummary]
     let bodies: [UUID: String]
     /// The `referenceLibraryRoot` URL the protocol requires. Tests don't
@@ -60,42 +61,67 @@ private struct MockReferenceStore: ReferenceStoring, @unchecked Sendable {
     /// be a valid `URL` (= any non-nil URL passes the conformance check).
     let referenceLibraryRoot: URL
 
-    // Required by `ReferenceStoring` (= the helper only calls
-    // `loadAllReferences` + `loadReferenceBody`; = the rest are stubbed
-    // with fatalError or empty returns because no test exercises them
-    // and the helper itself never invokes them).
+    /// Required by `ReferenceStoring` (= the helper only calls
+    /// `loadAllReferences` + `loadReferenceBody`; = the rest are stubbed
+    /// with fatalError or empty returns because no test exercises them
+    /// and the helper itself never invokes them).
     func loadMetadata() throws -> ReferenceLibraryMetadata {
-        ReferenceLibraryMetadata()  // default empty metadata
+        ReferenceLibraryMetadata() // default empty metadata
     }
-    func saveMetadata(_ metadata: ReferenceLibraryMetadata) throws { /* unused */ }
+
+    func saveMetadata(_: ReferenceLibraryMetadata) throws { /* unused */ }
     func loadReferences(layer: ReferenceLayer) throws -> [Reference] {
         try loadAllReferences().filter { $0.layer == layer }
     }
-    func saveReference(_ reference: Reference, bodyMarkdown: String) throws { fatalError("unused") }
-    func replaceReference(_ reference: Reference, bodyMarkdown: String) throws { fatalError("unused") }
-    func replaceReferenceByID(id: UUID, bodyMarkdown: String) throws { /* unused */ }
+
+    /// This mock holds its documents in memory, = so "the corpus is
+    /// empty" and "the corpus could not be read" are the same true
+    /// statement for it. = The strict read therefore just returns
+    /// what the mock holds. = **⇒ The FORGIVING behaviour (= a read
+    /// failure becoming an empty layer) is exercised by the
+    /// filesystem store, = and that is where the strict read
+    /// matters.**
+    func loadAllReferencesReportingFailure() throws -> [Reference] {
+        try loadAllReferences()
+    }
+
+    func saveReference(_: Reference, bodyMarkdown _: String) throws {
+        fatalError("unused")
+    }
+
+    func replaceReference(_: Reference, bodyMarkdown _: String) throws {
+        fatalError("unused")
+    }
+
+    func replaceReferenceByID(id _: UUID, bodyMarkdown _: String) throws { /* unused */ }
     func upsertReference(
-        title: String,
-        bodyMarkdown: String,
-        layer: ReferenceLayer,
-        category: EntityCategory?,
-        source: String?,
-        url: String?,
-        entityType: EntityType,
-        summary: String
-    ) throws -> Reference { fatalError("unused") }
+        title _: String,
+        bodyMarkdown _: String,
+        layer _: ReferenceLayer,
+        category _: EntityCategory?,
+        source _: String?,
+        url _: String?,
+        entityType _: EntityType,
+        summary _: String
+    ) throws -> Reference {
+        fatalError("unused")
+    }
+
     func upsertReference(
-        title: String,
-        bodyMarkdown: String,
-        layer: ReferenceLayer,
-        category: EntityCategory?,
-        tags: Set<String>?,
-        source: String?,
-        url: String?,
-        entityType: EntityType,
-        summary: String
-    ) throws -> Reference { fatalError("unused") }
-    func deleteReference(id: UUID) throws { /* unused */ }
+        title _: String,
+        bodyMarkdown _: String,
+        layer _: ReferenceLayer,
+        category _: EntityCategory?,
+        tags _: Set<String>?,
+        source _: String?,
+        url _: String?,
+        entityType _: EntityType,
+        summary _: String
+    ) throws -> Reference {
+        fatalError("unused")
+    }
+
+    func deleteReference(id _: UUID) throws { /* unused */ }
     func referenceExists(id: UUID) -> Bool {
         entities.contains(where: { $0.id == id })
     }
@@ -112,6 +138,7 @@ private struct MockReferenceStore: ReferenceStoring, @unchecked Sendable {
 }
 
 // MARK: - Mock store factory
+
 //
 // Tests construct a `MockReferenceStore` via this factory so the
 // default `referenceLibraryRoot` URL (= the protocol's only stored
@@ -141,7 +168,6 @@ private extension MockReferenceStore {
 @Suite("v1.70 editor-mvvm T3 — WikiLinkNavigation (SMC ticket 003 helper)")
 @MainActor
 struct WikiLinkNavigationTests {
-
     // MARK: - Guard clause
 
     @Test("handle returns nil for empty display name (= guard clause)")
