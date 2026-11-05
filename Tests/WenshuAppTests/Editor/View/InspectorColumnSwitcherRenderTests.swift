@@ -100,6 +100,49 @@ struct InspectorColumnSwitcherRenderTests {
         )
     }
 
+    /// The PRODUCTION switch, = rendered: = and the real control behind it
+    /// read back.
+    ///
+    /// The selection is OPTIONAL: = nil = the column is hidden = nothing
+    /// is chosen.
+    @MainActor
+    private func renderSegmentedControl(selection: InspectorSection?) -> NSSegmentedControl {
+        let host = NSHostingView(rootView: AnyView(
+            InspectorSectionSwitch(
+                selection: Binding(
+                    get: { selection },
+                    set: { _ in }
+                )
+            )
+        ))
+        host.frame = NSRect(x: 0, y: 0, width: 320, height: 40)
+        let window = NSWindow(
+            contentRect: host.frame,
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = host
+        host.layoutSubtreeIfNeeded()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        host.layoutSubtreeIfNeeded()
+        guard let control = findSegmentedControl(in: host) else {
+            Issue.record("the rendered switch carries no NSSegmentedControl")
+            return NSSegmentedControl()
+        }
+        return control
+    }
+
+    @Test("each segment names itself on hover")
+    @MainActor
+    func eachSegmentNamesItselfOnHover() {
+        let control = renderSegmentedControl(selection: .dynamic)
+        for index in 0 ..< control.segmentCount {
+            #expect(control.toolTip(forSegment: index) != nil,
+                    "each segment carries a name of its own")
+        }
+    }
+
     @Test("the dynamic section's switcher carries three segments in the page order")
     @MainActor
     func theSwitcherCarriesThreeSegments() {
@@ -144,9 +187,9 @@ struct InspectorColumnSwitcherRenderTests {
                 "choosing a segment must write the page back to the shared state")
     }
 
-    @Test("the section switch is the window toolbar's button group (= a ControlGroup, = not a segmented control)")
+    @Test("the section switch is the window toolbar's segmented picker")
     @MainActor
-    func theSectionSwitchIsAToolbarButtonGroup() throws {
+    func theSectionSwitchIsTheWindowToolbarsSegmentedPicker() throws {
         let source = try String(contentsOfFile: inspectorPath, encoding: .utf8)
         #expect(source.contains("Picker("),
                 "the section switch is a SwiftUI Picker(.segmented): = THAT is the form SwiftUI registers as a REAL toolbar item, = and a real toolbar item is what makes AppKit draw the toolbar's segmented shape")
@@ -159,19 +202,25 @@ struct InspectorColumnSwitcherRenderTests {
     }
 
     @Test("a hidden column shows no section at all (= nothing wears the accent)")
+    @MainActor
     func aHiddenColumnShowsNoSection() {
-        for section in InspectorSection.allCases {
-            #expect(!InspectorSection.isShowing(section, current: .dynamic, visible: false),
-                    "a hidden column shows no section, = so no button wears the accent")
-        }
+        // A HIDDEN column carries NO selection, = and the rendered control
+        // must show that: = with no selection chosen, = no segment wears
+        // the accent.
+        let control = renderSegmentedControl(selection: nil)
+        #expect(control.selectedSegment == -1,
+                "a hidden column shows no section, = so no segment wears the accent")
     }
 
     @Test("a visible column shows exactly the section it carries")
+    @MainActor
     func aVisibleColumnShowsItsSection() {
-        #expect(InspectorSection.isShowing(.dynamic, current: .dynamic, visible: true),
-                "the carried section is the shown one")
-        #expect(!InspectorSection.isShowing(.format, current: .dynamic, visible: true),
-                "the other section is not shown")
+        let control = renderSegmentedControl(selection: .dynamic)
+        #expect(control.selectedSegment == 0,
+                "the carried section is the chosen one")
+        let other = renderSegmentedControl(selection: .format)
+        #expect(other.selectedSegment == 1,
+                "the other section is the chosen one when it is the carried one")
     }
 
     @Test("pressing the section that is showing turns the column off")

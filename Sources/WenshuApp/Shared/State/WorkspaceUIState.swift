@@ -406,18 +406,11 @@ enum InspectorSection: Hashable, CaseIterable {
 }
 
 extension InspectorSection {
-    /// Whether the column is SHOWING this section right now.
-    ///
-    /// A hidden column shows NO section, = so no button in the window
-    /// toolbar's group wears the accent (= Apple's shape: = the group
-    /// shows nothing chosen until the column is showing).
-    static func isShowing(
-        _ section: InspectorSection,
-        current: InspectorSection,
-        visible: Bool
-    ) -> Bool {
-        visible && current == section
-    }
+    // Whether the column is SHOWING this section right now.
+    //
+    // A hidden column shows NO section, = so no button in the window
+    // toolbar's group wears the accent (= Apple's shape: = the group
+    // shows nothing chosen until the column is showing).
 
     /// What a press on this section's button does.
     ///

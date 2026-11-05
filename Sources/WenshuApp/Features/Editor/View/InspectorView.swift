@@ -168,6 +168,8 @@ struct InspectorSectionSwitch: View {
             ForEach(InspectorSection.allCases, id: \.self) { section in
                 Label(section.localizedTitle, systemImage: section.icon)
                     .labelStyle(.iconOnly)
+                    .help(section.localizedTitle)
+                    .accessibilityLabel(section.localizedTitle)
                     .tag(Optional(section))
             }
         }
