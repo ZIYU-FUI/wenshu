@@ -43,8 +43,8 @@
 //
 //  A segment is one paragraph of the source (= one blank-line-
 //  separated block), = because that is what a platform's segment
-//  IS: = 番茄's official rule is "使用换行键进行分段" (= a segment is
-//  a line), = and 起点 / 晋江 count and render per paragraph. = A
+//  IS: = Tomato's official rule is "a segment is one line, entered with the return key" (= a segment is
+//  a line), = and Qidian / Jinjiang count and render per paragraph. = A
 //  block-level construct that is not prose (= a heading, a list, a
 //  quote, a code block, a rule) = contributes its TEXT to the
 //  manuscript, = because a submission carries the words and not the
@@ -159,7 +159,7 @@ enum ManuscriptShaper {
     ///
     /// A metadata line is a blank one, = an indented continuation (= the
     /// tail of a multi-line value), = or a `key: value` pair whose key
-    /// is ASCII (= `title: 第一章`, = `date: 2026-11-06`). = A prose
+    /// is ASCII (= `title: chapter one`, = `date: 2026-11-06`). = A prose
     /// line is anything else (= and a full-width colon is not a YAML
     /// colon, = so Chinese prose with a colon in it is prose).
     private static func isFrontmatterLine(_ line: String) -> Bool {

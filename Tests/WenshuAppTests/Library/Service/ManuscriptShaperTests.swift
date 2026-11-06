@@ -6,11 +6,11 @@
 //  The rules under test are the measured per-platform facts (= the
 //  spec §6 table and the platform study):
 //
-//  - 晋江's segment indent lives IN THE CONTENT (= two full-width
+//  - Jinjiang's segment indent lives IN THE CONTENT (= two full-width
 //    spaces U+3000 U+3000 at the start of every segment) and its
 //    spacing is a BLANK LINE between segments.
-//  - 起点 / 番茄's platform renders the indent (= CSS text-indent
-//    2em) and the spacing (= CSS margin), = and 番茄 deletes the
+//  - Qidian / Tomato's platform renders the indent (= CSS text-indent
+//    2em) and the spacing (= CSS margin), = and Tomato deletes the
 //    extra spaces and blank lines on publish, = so the manuscript
 //    carries NEITHER.
 //  - The chapter title is the platform's own separate field, = so
@@ -26,7 +26,7 @@ import XCTest
 final class ManuscriptShaperTests: XCTestCase {
     // MARK: - The targets' own rules
 
-    /// 晋江's indent is IN THE CONTENT: = two full-width spaces at
+    /// Jinjiang's indent is IN THE CONTENT: = two full-width spaces at
     /// the start of EVERY segment. = This is the rule a mutation
     /// would break (= one space, = a tab, = an ASCII space).
     func testJinjiangIndentIsTwoFullWidthSpacesOnEverySegment() {
@@ -44,7 +44,7 @@ final class ManuscriptShaperTests: XCTestCase {
         XCTAssertFalse(manuscript.contains("  "), "the indent must not be ASCII spaces")
     }
 
-    /// 晋江's spacing is a BLANK LINE between segments (= its
+    /// Jinjiang's spacing is a BLANK LINE between segments (= its
     /// reading end has margin 0 on every paragraph).
     func testJinjiangSeparatesSegmentsWithABlankLine() {
         let body = "第一段。\n\n第二段。\n\n第三段。"
@@ -58,7 +58,7 @@ final class ManuscriptShaperTests: XCTestCase {
         XCTAssertTrue(manuscript.contains("\n\n"))
     }
 
-    /// 起点 / 番茄 carry NEITHER the indent NOR the blank line: = the
+    /// Qidian / Tomato carry NEITHER the indent NOR the blank line: = the
     /// platform renders both itself.
     func testQidianAndFanqieCarryNeitherIndentNorBlankLine() {
         let body = "第一段。\n\n第二段。"
@@ -393,7 +393,7 @@ final class ManuscriptShaperTests: XCTestCase {
     // MARK: - The segments themselves
 
     /// The segments are the source's paragraphs (= what a platform's
-    /// segment IS: = 番茄's official rule is "使用换行键进行分段").
+    /// segment IS: = Tomato's official rule is "a segment is one line, entered with the return key").
     func testTheSegmentsAreTheSourceParagraphs() {
         let body = "第一段。\n\n第二段。\n\n第三段。"
         let segments = ManuscriptShaper.segments(of: body)

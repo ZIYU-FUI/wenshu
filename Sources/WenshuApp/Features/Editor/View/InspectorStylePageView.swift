@@ -464,7 +464,7 @@ struct InspectorStyleKnob: Identifiable, Equatable, Sendable {
 ///
 /// The sheet reads a POSITION by its raw value (= `BookBodySize
 /// (rawValue:)`), = so the action must carry the raw value. = A
-/// display name cannot be read back (= "大号" is not a position), =
+/// display name cannot be read back (= "Large" is not a position), =
 /// so a knob that carried only the display name could never move the
 /// sheet. = So the position carries BOTH: = the raw value goes to the
 /// sheet, = and the label is what the reader sees.

@@ -10,17 +10,17 @@
 //  It is measured per platform, and the measurements differ in
 //  DIRECTION, not in degree:
 //
-//    - 晋江 carries its segment indent IN THE CONTENT (= the first
+//    - Jinjiang carries its segment indent IN THE CONTENT (= the first
 //      characters of a segment are two full-width spaces U+3000
 //      U+3000, = its reading end has text-indent: 0), = and its
 //      paragraph spacing is carried by a BLANK LINE between
 //      segments (= its reading end has margin 0 on every
 //      paragraph).
-//    - 起点 gives the indent with CSS (= text-indent 2em) and the
+//    - Qidian gives the indent with CSS (= text-indent 2em) and the
 //      spacing with CSS (= p { margin-top: .8em }), = so the
 //      manuscript must carry NEITHER: no leading spaces, no blank
 //      lines between segments.
-//    - 番茄 gives the indent with CSS (= text-indent 2em), = and
+//    - Tomato gives the indent with CSS (= text-indent 2em), = and
 //      its official rule says the platform DELETES extra spaces
 //      inside a segment and extra blank lines between segments on
 //      publish, = so the manuscript carries neither either.
@@ -39,17 +39,17 @@
 //
 //  | target | chapter title | segment indent | blank line between segments |
 //  |---|---|---|---|
-//  | 起点 / 番茄 | a chapter-title field | none (= the platform indents) | none |
-//  | 晋江 | a chapter-title field | two full-width spaces U+3000 U+3000 | yes |
+//  | Qidian / Tomato | a chapter-title field | none (= the platform indents) | none |
+//  | Jinjiang | a chapter-title field | two full-width spaces U+3000 U+3000 | yes |
 //
 //  The title is a SEPARATE FIELD for every web-novel target (= the
 //  platforms' own chapter-title input), = and it does NOT go into
 //  the body. = The manuscript's own word count is measured on the
-//  BODY (= 番茄's official rule: "章节正文字数（不含标题）").
+//  BODY (= Tomato's official rule: "the body word count, excluding the title").
 //
-//  真实出版 (= the print target) is NOT here: its shape needs a
-//  volume / part / section hierarchy (= spec §6's row = "卷 / 章 /
-//  节 headings"), = and the book model carries no volume. = The
+//  the real publication (= the print target) is NOT here: its shape needs a
+//  volume / part / section hierarchy (= spec §6's row = "volume /
+//  chapter / section headings"), = and the book model carries no volume. = The
 //  boss's open item (§7) also leaves the print / general split
 //  undecided. = So this type holds the targets whose shape the
 //  current data model can honestly produce.
@@ -60,18 +60,18 @@ import Foundation
 /// Where a manuscript is being submitted (= the target whose
 /// measured shape the export applies).
 enum ManuscriptTarget: String, CaseIterable, Identifiable, Sendable {
-    /// 起点 / 阅文. The platform renders the indent (= text-indent
+    /// Qidian / Yuewen. The platform renders the indent (= text-indent
     /// 2em) and the spacing (= p { margin-top: .8em }), = so the
     /// manuscript carries neither.
     case qidian
 
-    /// 番茄. The platform renders the indent (= text-indent 2em)
+    /// Tomato. The platform renders the indent (= text-indent 2em)
     /// and deletes the extra spaces inside a segment and the extra
     /// blank lines between segments on publish (= its official
     /// rule), = so the manuscript carries neither.
     case fanqie
 
-    /// 晋江. The indent lives IN THE CONTENT (= two full-width
+    /// Jinjiang. The indent lives IN THE CONTENT (= two full-width
     /// spaces U+3000 U+3000 at the start of every segment) and the
     /// spacing lives in a BLANK LINE between segments (= its
     /// reading end has text-indent: 0 and margin 0).
@@ -93,7 +93,7 @@ enum ManuscriptTarget: String, CaseIterable, Identifiable, Sendable {
 
     /// The prefix every segment carries (= the platform's indent).
     ///
-    /// 晋江's indent is IN THE CONTENT (= two full-width spaces
+    /// Jinjiang's indent is IN THE CONTENT (= two full-width spaces
     /// U+3000 U+3000). = The other two platforms render the indent
     /// themselves, = so the manuscript carries nothing.
     var segmentIndent: String {
@@ -105,9 +105,9 @@ enum ManuscriptTarget: String, CaseIterable, Identifiable, Sendable {
 
     /// Whether a blank line separates two segments.
     ///
-    /// 晋江's reading end has margin 0 on every paragraph (= its
-    /// spacing IS the blank line in the manuscript). = 起点 gives
-    /// the spacing with CSS (= no blank line), = and 番茄 deletes
+    /// Jinjiang's reading end has margin 0 on every paragraph (= its
+    /// spacing IS the blank line in the manuscript). = Qidian gives
+    /// the spacing with CSS (= no blank line), = and Tomato deletes
     /// the extra blank lines on publish (= no blank line).
     var separatesSegmentsWithBlankLine: Bool {
         switch self {

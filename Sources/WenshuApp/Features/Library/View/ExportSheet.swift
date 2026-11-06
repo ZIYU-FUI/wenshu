@@ -43,7 +43,7 @@ enum ExportKind: String, CaseIterable, Identifiable, Sendable {
 }
 
 /// `ExportSheet` body. Hosts the three sections + the unified
-/// `导出` / `取消` button row.
+/// `Export` / `` button row.
 struct ExportSheet: View {
     /// Bumps when `exportSheetRequest` increments (= from the
     /// File → Export… menu). The parent flips this to dismiss.
@@ -87,7 +87,7 @@ struct ExportSheet: View {
     /// `.fileExporter` modifier for the selected kind.
     @State private var isExporting: Bool = false
 
-    /// Flipped when the user clicks 导出 on a MANUSCRIPT; = triggers
+    /// Flipped when the user clicks Export on a MANUSCRIPT; = triggers
     /// the manuscript `.fileExporter` modifier.
     ///
     /// It is SEPARATE from `isExporting` (= the other kinds'

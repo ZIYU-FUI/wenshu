@@ -23,9 +23,9 @@
 //
 //  WHAT IS ASSERTED
 //
-//  - 晋江's exported FILE carries two full-width spaces on every
+//  - Jinjiang's exported FILE carries two full-width spaces on every
 //    segment and a blank line between them.
-//  - 起点 / 番茄's exported FILE carries neither.
+//  - Qidian / Tomato's exported FILE carries neither.
 //  - The file is PLAIN TEXT: = the app's own markers are gone.
 //  - The chapter title is NOT in the file (= it is the platform's
 //    own separate title field).

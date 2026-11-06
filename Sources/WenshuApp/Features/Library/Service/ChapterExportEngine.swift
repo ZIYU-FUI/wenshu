@@ -120,9 +120,9 @@ actor ChapterExportEngine {
 
     /// Export a single chapter as a SUBMISSION MANUSCRIPT for
     /// `target`: plain text, segmented, and shaped by the target's
-    /// measured rules (= 晋江's two full-width spaces U+3000 U+3000
+    /// measured rules (= Jinjiang's two full-width spaces U+3000 U+3000
     /// at the start of every segment and its blank line between
-    /// segments, = 起点 / 番茄's none of either).
+    /// segments, = Qidian / Tomato's none of either).
     ///
     /// WHY THIS IS A SEPARATE METHOD AND NOT A MODE OF
     /// `exportChapter`
@@ -134,7 +134,7 @@ actor ChapterExportEngine {
     /// = so it is a different method over the same body.
     ///
     /// The chapter title is NOT written into the file (= it is the
-    /// platform's own separate title field, = and 番茄 counts the
+    /// platform's own separate title field, = and Tomato counts the
     /// body without it), = so the caller writes the title and the
     /// body where the platform wants them.
     func exportManuscript(
