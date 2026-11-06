@@ -115,22 +115,4 @@ enum ManuscriptTarget: String, CaseIterable, Identifiable, Sendable {
         case .jinjiang: return true
         }
     }
-
-    /// Whether the chapter title belongs in the manuscript's body.
-    ///
-    /// False for every web-novel target (= the title is the
-    /// platform's own separate title field). = 真实出版 would carry
-    /// it as headings, = but that target is not in this type.
-    var carriesChapterTitleInBody: Bool {
-        false
-    }
-
-    /// Whether the word count is measured on the body alone (= the
-    /// title excluded).
-    ///
-    /// True for every target here (= 番茄's official rule: "章节
-    /// 正文字数（不含标题）").
-    var countsBodyWithoutTitle: Bool {
-        true
-    }
 }

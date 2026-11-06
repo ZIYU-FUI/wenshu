@@ -179,13 +179,38 @@ enum ManuscriptShaper {
     // MARK: - Blocks and lines
 
     /// The source's blocks (= blank-line separated).
+    ///
+    /// A BLANK LINE INSIDE A FENCE DOES NOT END THE BLOCK: = the
+    /// engine's fence spans blank lines (= a code block with a blank
+    /// line in it is one code block), = and a block that ended at the
+    /// blank line would take the rest of the code out of its fence
+    /// (= and its content would be read as prose).
     private static func blocks(of body: String) -> [String] {
-        body
+        var blocks: [String] = []
+        var current: [String] = []
+        var insideFence = false
+        for line in body
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
-            .components(separatedBy: "\n\n")
-            .map { $0.trimmingCharacters(in: .newlines) }
-            .filter { !$0.isEmpty }
+            .components(separatedBy: "\n")
+        {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("```") || trimmed.hasPrefix("~~~") {
+                insideFence.toggle()
+            }
+            if !insideFence, line.isEmpty {
+                if !current.isEmpty {
+                    blocks.append(current.joined(separator: "\n"))
+                    current = []
+                }
+                continue
+            }
+            current.append(line)
+        }
+        if !current.isEmpty {
+            blocks.append(current.joined(separator: "\n"))
+        }
+        return blocks
     }
 
     /// A block's lines (= the segments inside it).

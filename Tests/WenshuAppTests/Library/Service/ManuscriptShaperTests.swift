@@ -74,17 +74,21 @@ final class ManuscriptShaperTests: XCTestCase {
         }
     }
 
-    /// The chapter title is the platform's own field, = so the
-    /// manuscript's body never carries it.
+    /// THE CHAPTER TITLE IS THE PLATFORM'S OWN FIELD, = so the
+    /// manuscript's body never carries it. = The policy is not a
+    /// constant on the target (= a constant nothing reads is a
+    /// declaration, = not a behaviour): = it is the SHAPER that drops
+    /// the body's own title line (= the app's own `extractTitle` rule
+    /// = the body's first `# ` line), = and this case holds that.
     func testTheChapterTitleIsNotInTheBody() {
         for target in ManuscriptTarget.allCases {
-            XCTAssertFalse(
-                target.carriesChapterTitleInBody,
-                "\(target.displayName) carries the title in its own field"
+            let manuscript = ManuscriptShaper.manuscript(
+                body: "# 第一章 夜袭\n\n正文第一段。",
+                target: target
             )
-            XCTAssertTrue(
-                target.countsBodyWithoutTitle,
-                "\(target.displayName) counts the body without the title"
+            XCTAssertFalse(
+                manuscript.contains("夜袭"),
+                "\(target.displayName) must not carry the chapter title in its body"
             )
         }
     }
@@ -208,6 +212,24 @@ final class ManuscriptShaperTests: XCTestCase {
             manuscript.contains("---"),
             "a rule inside a fence is code (= the engine parses nothing inside a fence)"
         )
+    }
+
+    /// A FENCE SPANS BLANK LINES: = the engine's code block with a
+    /// blank line in it is ONE code block, = and the content after the
+    /// blank line is still code (= and still keeps its own marks).
+    ///
+    /// MUTATION: = splitting the body at every blank line (= even
+    /// inside a fence) = would take the rest of the code out of its
+    /// fence and read it as prose.
+    func testAFenceSpanningABlankLineKeepsItsContentAsCode() {
+        let body = "正文。\n\n```swift\nlet a = 1\n\nlet b = **bold**\n```"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertTrue(
+            manuscript.contains("let b = **bold**"),
+            "the content after a blank line inside a fence is still code"
+        )
+        XCTAssertFalse(manuscript.contains("```"), "the fence's markers are markup")
     }
 
     /// A fenced line keeps its own indentation (= the code's shape is

@@ -168,6 +168,27 @@ struct ChapterExportEngineManuscriptTests {
         #expect(written == "他推开门。\n屋里没有人。")
     }
 
+    @Test("the exported FILE keeps a fenced code block's CONTENT verbatim")
+    func theExportedFileKeepsFencedCodeVerbatim() async throws {
+        // The marks inside a fence are the CODE's own (= `**bold**` is
+        // an operator, = not the app's highlight), = and the engine
+        // parses nothing inside a fence. = So the file must carry the
+        // code exactly as the author wrote it.
+        let (root, chapterID) = try Self.makeLibrary(
+            body: "正文。\n\n```python\ndef f(a, **kw):\n    return a == kw\n```"
+        )
+        let written = try await Self.export(
+            libraryRoot: root,
+            chapterID: chapterID,
+            target: .qidian
+        )
+
+        #expect(!written.contains("```"), "the fence's markers are markup")
+        #expect(written.contains("def f(a, **kw):"), "the code keeps its own marks")
+        #expect(written.contains("return a == kw"), "the code's own == survives")
+        #expect(written.contains("    return a == kw"), "the code keeps its own indentation")
+    }
+
     @Test("the exported FILE carries no title line (= the title is the platform's own field)")
     func theExportedFileCarriesNoTitleLine() async throws {
         // The body carries its own title as the app's convention has it
