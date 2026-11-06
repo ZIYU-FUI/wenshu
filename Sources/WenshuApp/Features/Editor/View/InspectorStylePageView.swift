@@ -32,14 +32,13 @@
 //  (= `ChatZoneView`: = an `onChange` -> the new book -> the book is
 //  read again), = so the page follows the selection.
 //
-//  THE KNOBS ARE READ-ONLY HERE
+//  THE KNOBS WRITE THE SHEET BACK
 //
-//  The five knobs SHOW the positions the book's sheet holds, and
-//  nothing on this page writes them back: = the engine's own
-//  configuration exposes relative multipliers only, = so the write-back
-//  and the injection into the engine are the engine card's work. = So
-//  each drop-down here offers the positions its knob can take and
-//  leaves the book's own position where it is.
+//  Each drop-down offers the positions its knob can take, = and
+//  choosing one writes that POSITION onto the book's own sheet (= the
+//  raw value, = which is the name the sheet reads back) = and saves the
+//  book (= `BookStyleSheetWriteBack`). = So the page is the book's own
+//  sheet, = editable in place.
 //
 //  THE ACCESSIBILITY FACTS THIS PAGE IS BUILT ON
 //

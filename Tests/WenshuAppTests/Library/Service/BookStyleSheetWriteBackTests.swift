@@ -148,6 +148,30 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
         XCTAssertEqual(inStore?.effectiveStyleSheet.lineSpacing, .tight)
     }
 
+    /// A BOOK THE STORE DOES NOT CARRY CHANGES NOTHING.
+    ///
+    /// Without the guard, `apply` on an unknown book id would write the
+    /// sheet onto `books[0]` = = the WRONG book. = So the case is
+    /// named, = and it is the card's own named scenario.
+    func testABookTheStoreDoesNotCarryChangesNothing() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let book = try makeBook(in: store)
+
+        let result = try BookStyleSheetWriteBack.apply(
+            knob: .bodySize,
+            position: BookBodySize.small.rawValue,
+            to: UUID(),
+            store: store
+        )
+
+        XCTAssertNil(result, "a book the store does not carry changes nothing")
+        // And the book that IS in the store is untouched.
+        let data = try readBookJSON(in: store, book)
+        let written = try JSONDecoder().decode(Book.self, from: data)
+        XCTAssertNil(written.styleSheet, "no other book is written to")
+    }
+
     /// THE PAGE'S OWN MODEL OUTPUT MUST MOVE THE SHEET.
     ///
     /// This is the seam the page and the write-back share: = the model

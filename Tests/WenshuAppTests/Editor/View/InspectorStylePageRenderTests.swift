@@ -18,7 +18,10 @@
 //  5. The commands a book sets once (= the strike, = the inline code,
 //     = the headings, = the lists, = the quote, = the code block, = the
 //     rule and = the link) = are gone from the page.
-//  6. Nothing on the page writes the sheet back.
+//  6. The page renders the style rows, = and they come from the
+//     model's own rows (= the rows are NOT in the accessibility tree,
+//     = so they are held by the page's own source, = with two anchors:
+//     = the call site and the binding).
 //
 //  The tree is read through the ACCESSIBILITY SYSTEM (= the route the
 //  layout probe reads a running app's tree through), because a SwiftUI
@@ -205,6 +208,45 @@ struct InspectorStylePageRenderTests {
     /// `.headingSize`, = because the command's own name ends there).
     private static func names(_ action: EditorFormatAction, in code: String) -> Bool {
         code.range(of: "\\.\(action.rawValue)\\b", options: .regularExpression) != nil
+    }
+
+    /// THE RENDERED STYLE ROWS ARE HELD.
+    ///
+    /// The twelve rows are the page's other half, = and they are NOT
+    /// in the accessibility tree (= a bare `Text` publishes nothing:
+    /// = the reviewer measured `Text`, = `.accessibilityElement(children:
+    /// .combine)` and = `.accessibilityElement(children: .ignore)` +
+    /// `.accessibilityLabel`, = and none of them publishes; = only a
+    /// `Menu` does, = which is why the knobs are observable and the
+    /// rows are not). = So the rows are held by the page's own source,
+    /// and the source is checked with TWO anchors:
+    ///
+    /// 1. = THE CALL SITE: = the page's body renders `stylesGroup`.
+    ///    (= without it the page renders NO style rows at all, = and
+    ///    the `ForEach` line is still in the file, = so the second
+    ///    anchor alone would not catch it.)
+    /// 2. = THE BINDING: = the rows come from `model.rows`.
+    ///    (= without it the rendered rows read a sheet of their own
+    ///    (= `.default`) = while the knobs read the selected book's, =
+    ///    and the call site is still in the file, = so the first anchor
+    ///    alone would not catch it.)
+    ///
+    /// One anchor is not enough: = both arms were measured, = and each
+    /// one left the suite GREEN with only one anchor in place.
+    @Test("the page renders the style rows, = and they come from the model's own rows")
+    func thePageRendersTheStyleRows() throws {
+        let code = try InspectorAXTree.code(of: String(
+            contentsOf: Self.stylePageSourceURL(),
+            encoding: .utf8
+        ))
+        #expect(
+            code.contains("ForEach(model.rows)"),
+            "the rendered rows must come from the model's own rows (= not a sheet of their own)"
+        )
+        #expect(
+            code.contains("\n            stylesGroup\n"),
+            "the page's body must render the style group (= not an empty view)"
+        )
     }
 
     /// Every role and knob name is in the catalog.
