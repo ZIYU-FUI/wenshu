@@ -122,7 +122,7 @@ final class ReferenceLibraryActor {
         do {
             try referenceStore.saveReference(reference, bodyMarkdown: bodyMarkdown)
         } catch {
-            throw ReferenceLibraryError.underlying(String(describing: error))
+            throw ReferenceLibraryError.from(error)
         }
         // The library changed, so the app says so: the sidebar reloads
         // the tree and the material zone re-reads the documents. A
@@ -143,7 +143,7 @@ final class ReferenceLibraryActor {
         } catch let err as ReferenceLibraryError {
             throw err
         } catch {
-            throw ReferenceLibraryError.underlying(String(describing: error))
+            throw ReferenceLibraryError.from(error)
         }
     }
 
@@ -186,7 +186,7 @@ final class ReferenceLibraryActor {
         do {
             try referenceStore.replaceReference(updated, bodyMarkdown: bodyMarkdown)
         } catch {
-            throw ReferenceLibraryError.underlying(String(describing: error))
+            throw ReferenceLibraryError.from(error)
         }
         LibraryChangeNotifier.notifyLibraryChanged(source: .agentReference)
         return ReferenceDescriptor(updated)
@@ -196,7 +196,7 @@ final class ReferenceLibraryActor {
         do {
             try referenceStore.deleteReference(id: id)
         } catch {
-            throw ReferenceLibraryError.underlying(String(describing: error))
+            throw ReferenceLibraryError.from(error)
         }
         LibraryChangeNotifier.notifyLibraryChanged(source: .agentReference)
     }
@@ -251,7 +251,7 @@ final class ReferenceLibraryActor {
             LibraryChangeNotifier.notifyLibraryChanged(source: .agentReference)
             return ReferenceDescriptor(updated)
         } catch {
-            throw ReferenceLibraryError.underlying(String(describing: error))
+            throw ReferenceLibraryError.from(error)
         }
     }
 
@@ -443,7 +443,7 @@ final class ReferenceLibraryActor {
             LibraryChangeNotifier.notifyLibraryChanged(source: .agentReference)
             return ReferenceDescriptor(result)
         } catch {
-            throw ReferenceLibraryError.underlying(String(describing: error))
+            throw ReferenceLibraryError.from(error)
         }
     }
 

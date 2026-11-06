@@ -165,6 +165,17 @@ enum ReferenceStoreError: Error, LocalizedError {
     /// could not be read".
     case storeCannotReportReadFailure
 
+    /// The truth holds text the user wrote, = and this write would
+    /// replace it.
+    ///
+    /// **⇒ The user's write wins.** = The agent's write is refused
+    /// (= the user's text is not lost), = and the refusal is REPORTED
+    /// (= the caller sees this error = and the user hears about it).
+    ///
+    /// = The rule and its witness live in `ReferenceWriteGuard`; = this
+    /// case is what that rule throws when it says no.
+    case userOwnsTheTruth(id: UUID)
+
     var errorDescription: String? {
         switch self {
         case let .referenceAlreadyExists(id):
@@ -177,6 +188,8 @@ enum ReferenceStoreError: Error, LocalizedError {
             return "The \(layer.displayName) index at \(path) could not be read: \(reason)"
         case .storeCannotReportReadFailure:
             return "This library store cannot report whether the corpus could be read."
+        case let .userOwnsTheTruth(id):
+            return "Reference \(id.uuidString) holds text the user wrote in the editor, so the agent's write was refused and the user's text was not overwritten. Use extend with a new section title to add to the document, or ask the user what to do with it."
         }
     }
 }

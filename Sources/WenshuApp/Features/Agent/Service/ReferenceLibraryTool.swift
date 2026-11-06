@@ -104,7 +104,31 @@ enum ReferenceLibraryError: Error, LocalizedError, Sendable, Equatable {
     /// adding a second copy of the same document.
     case duplicateTitle(title: String, existingID: UUID)
     case invalidInput(reason: String)
+    /// The truth holds text the user wrote in the editor, = and the
+    /// agent's write would have replaced it. = **⇒ The user's write
+    /// wins, = and the refusal is reported here** (= the LLM reads
+    /// this message, = and the user hears about it instead of losing
+    /// their text).
+    case userEditedReference(id: UUID)
     case underlying(String)
+
+    /// The store's failure, = in the tool's own words.
+    ///
+    /// **⇒ The second-writer rule reaches the LLM as a NAMED
+    /// error**, = not as a stringified enum case. = `String(describing:)`
+    /// of the store's error would say `userOwnsTheTruth(id: ...)`,
+    /// = which tells the caller nothing about what to do next.
+    static func from(_ error: Error) -> ReferenceLibraryError {
+        if let storeError = error as? ReferenceStoreError {
+            switch storeError {
+            case .userOwnsTheTruth(let id):
+                return .userEditedReference(id: id)
+            default:
+                break
+            }
+        }
+        return .underlying(String(describing: error))
+    }
 
     var errorDescription: String? {
         switch self {
@@ -116,6 +140,8 @@ enum ReferenceLibraryError: Error, LocalizedError, Sendable, Equatable {
             return "ReferenceLibraryTool: a reference titled '\(title)' already exists (id \(existingID.uuidString)). Use upsert to update it, or extend to add a section to it."
         case .invalidInput(let reason):
             return "ReferenceLibraryTool: invalid input — \(reason)."
+        case .userEditedReference(let id):
+            return "ReferenceLibraryTool: reference \(id.uuidString) holds text the user wrote in the editor, so the write was refused and the user's text was not overwritten. Use extend with a new section title to add to the document, or ask the user what to do with it."
         case .underlying(let msg):
             return "ReferenceLibraryTool: underlying error — \(msg)."
         }

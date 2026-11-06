@@ -180,6 +180,17 @@ struct FileSystemReferenceStore: ReferenceStoring {
         if let _ = try? context.fetch(descriptor).first {
             throw ReferenceStoreError.referenceAlreadyExists(id: reference.id)
         }
+        // **⇒ The gate is asked BEFORE the row is written.** = The
+        // file write-through below is best-effort, = so a refusal
+        // there would leave a row holding the agent's text and a
+        // truth holding the user's. = **⇒ The refusal has to arrive
+        // first, = or the row and the truth disagree.**
+        try ReferenceWriteGuard.assertWritable(
+            id: id,
+            layer: reference.layer,
+            bodyMarkdown: bodyMarkdown,
+            referenceLibraryRoot: referenceLibraryRoot
+        )
         let row = Self.makeRow(reference: reference, bodyMarkdown: bodyMarkdown)
         context.insert(row)
         try context.save()
@@ -216,6 +227,17 @@ struct FileSystemReferenceStore: ReferenceStoring {
         guard let existing = try? context.fetch(descriptor).first else {
             throw ReferenceStoreError.referenceNotFound(id: reference.id)
         }
+        // **⇒ The gate is asked BEFORE the row is written.** = The
+        // row holds the body here, = and a refusal that arrived after
+        // the row was written = = a row holding the agent's text and a
+        // truth holding the user's. = **⇒ The refusal has to arrive
+        // first, = or the row and the truth disagree.**
+        try ReferenceWriteGuard.assertWritable(
+            id: id,
+            layer: reference.layer,
+            bodyMarkdown: bodyMarkdown,
+            referenceLibraryRoot: referenceLibraryRoot
+        )
         existing.title = reference.title
         existing.displayTitle = reference.displayTitle
         existing.source = reference.source
@@ -301,6 +323,18 @@ struct FileSystemReferenceStore: ReferenceStoring {
             predicate: #Predicate { $0.layer == layerRaw && $0.title == normalizedTitle }
         )
         if let existing = try? context.fetch(descriptor).first {
+            // **⇒ The gate is asked BEFORE the row is written.** = The
+            // row holds the body here, = and a refusal that arrived
+            // after the row was written = = a row holding the agent's
+            // text and a truth holding the user's. = **⇒ The refusal
+            // has to arrive first, = or the row and the truth
+            // disagree.**
+            try ReferenceWriteGuard.assertWritable(
+                id: existing.id,
+                layer: layer,
+                bodyMarkdown: bodyMarkdown,
+                referenceLibraryRoot: referenceLibraryRoot
+            )
             existing.body = bodyMarkdown
             existing.category = category?.rawValue
             existing.source = source
@@ -342,6 +376,13 @@ struct FileSystemReferenceStore: ReferenceStoring {
                 id: id,
                 referenceLibraryRoot: referenceLibraryRoot
             )
+            // **⇒ The record goes with the document.** = It names
+            // who wrote the text of a document that no longer exists,
+            // = and a later document with the same id would read it.
+            ReferenceWriteGuard.removeRecord(
+                id: id,
+                referenceLibraryRoot: referenceLibraryRoot
+            )
             Self.removeCoverOfDeletedReference(id)
             scheduleSearchIndexRemoval(id: id)
             return
@@ -357,6 +398,10 @@ struct FileSystemReferenceStore: ReferenceStoring {
         }
         context.delete(existing)
         try context.save()
+        ReferenceWriteGuard.removeRecord(
+            id: id,
+            referenceLibraryRoot: referenceLibraryRoot
+        )
         Self.removeCoverOfDeletedReference(id)
         scheduleSearchIndexRemoval(id: id)
     }
@@ -490,6 +535,18 @@ struct FileSystemReferenceStore: ReferenceStoring {
     /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     /// / updated body.
     func replaceReferenceByID(id: UUID, bodyMarkdown: String) throws {
+        // **⇒ The user's write is RECORDED here.** = The editor writes
+        // the truth itself (= `tab.documentPath`), = and this is the
+        // store's write-through, = so this is the one place that knows
+        // the truth now holds the USER's text. = Without the record the
+        // next agent write could not tell the user's text from the
+        // agent's own (= the second-writer rule, = and the record it
+        // is asked at).
+        let recorded = ReferenceWriteGuard.recordUserWrite(
+            id: id,
+            bodyMarkdown: bodyMarkdown,
+            referenceLibraryRoot: referenceLibraryRoot
+        )
         guard let context = modelContext else {
             // No SwiftData row (= the file-only library the app runs
             // on): the title comes from the index file, so the
@@ -503,12 +560,22 @@ struct FileSystemReferenceStore: ReferenceStoring {
                 // Finder and find the OLD text in** (= measured on the
                 // real library: = six documents, = six divergent
                 // pairs, = one of them differing in content).
-                try? ReferenceBodyStore.writeMirror(
-                    id: id,
-                    layer: reference.layer,
-                    bodyMarkdown: bodyMarkdown,
-                    referenceLibraryRoot: referenceLibraryRoot
-                )
+                //
+                // **⇒ And only when the record was written.** = The
+                // mirror is the fallback witness for a document with no
+                // record, = so a mirror that AGREES with the truth
+                // while no record exists reads as "the agent wrote
+                // this" = = and the agent would overwrite the user's
+                // text. = A mirror left stale is the safe direction;
+                // a mirror that agrees is not.
+                if recorded {
+                    try? ReferenceBodyStore.writeMirror(
+                        id: id,
+                        layer: reference.layer,
+                        bodyMarkdown: bodyMarkdown,
+                        referenceLibraryRoot: referenceLibraryRoot
+                    )
+                }
                 scheduleSearchIndex(reference: reference, bodyMarkdown: bodyMarkdown)
             }
             return

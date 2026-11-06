@@ -103,12 +103,32 @@ enum ReferenceBodyStore {
     /// Both are written because the two are read by different readers,
     /// and a reader that finds one of them must find the current text.
     /// **⇒ The write is one operation, = so the two cannot drift.**
+    ///
+    /// **⇒ And the write is GATED.** = The truth has two writers (= the
+    /// editor's save, = which is the user, = and the agent, = which is
+    /// the librarian), = and the user's write wins. = So the write asks
+    /// `ReferenceWriteGuard` (= the second-writer rule, = and the
+    /// record of who wrote the truth) = before it lands, = and refuses
+    /// the write that would replace the user's text.
+    /// **⇒ The gate is HERE, = and not in one of the callers, = because
+    /// every agent write reaches this function** (= the store's save /
+    /// replace / upsert / import paths), = so the answer cannot be
+    /// right on one path and wrong on another.
+    /// **⇒ The editor does NOT come through here** (= it writes the
+    /// truth itself, = and the store writes only the mirror), = so the
+    /// editor is never blocked.
     nonisolated static func write(
         id: UUID,
         layer: ReferenceLayer,
         bodyMarkdown: String,
         referenceLibraryRoot: URL
     ) throws {
+        let ownership = try ReferenceWriteGuard.assertWritable(
+            id: id,
+            layer: layer,
+            bodyMarkdown: bodyMarkdown,
+            referenceLibraryRoot: referenceLibraryRoot
+        )
         let truth = truthURL(id: id, referenceLibraryRoot: referenceLibraryRoot)
         try FileManager.default.createDirectory(
             at: truth.deletingLastPathComponent(),
@@ -119,15 +139,43 @@ enum ReferenceBodyStore {
             to: truth
         )
 
+        // **⇒ The truth now holds the agent's text, = and the record
+        // says so.** = Without it the next agent write could not tell
+        // its own text from the user's.
+        //
+        // **⇒ And the record is written BEFORE the mirror.** = The
+        // record names the text the TRUTH holds, = so it is true the
+        // moment the truth is written. = A mirror write that failed
+        // after the truth landed = = a truth with no record = = the
+        // next agent write asking the corpus copy, = which is one step
+        // behind. = The record is the primary witness, = and the
+        // corpus copy is only the fallback for a document written
+        // before this rule.
+        //
+        // **⇒ And the mirror is written only when the record was.**
+        // = The same invariant the editor's save-through keeps: = a
+        // corpus copy that AGREES with the truth, = while no record
+        // names the owner, = reads as "the agent wrote this" = = and
+        // the agent would overwrite the user's text. = A stale corpus
+        // copy is the safe direction; = an agreeing one is not.
+        let recorded = ReferenceWriteGuard.recordAgentWrite(
+            id: id,
+            bodyMarkdown: bodyMarkdown,
+            ownership: ownership,
+            referenceLibraryRoot: referenceLibraryRoot
+        )
+
         let mirror = mirrorURL(id: id, layer: layer, referenceLibraryRoot: referenceLibraryRoot)
         try FileManager.default.createDirectory(
             at: mirror.deletingLastPathComponent(),
             withIntermediateDirectories: true
         )
-        try AtomicFileWrite.write(
-            bodyMarkdown.data(using: .utf8) ?? Data(),
-            to: mirror
-        )
+        if recorded {
+            try AtomicFileWrite.write(
+                bodyMarkdown.data(using: .utf8) ?? Data(),
+                to: mirror
+            )
+        }
     }
 
     /// Write ONLY the mirror.
