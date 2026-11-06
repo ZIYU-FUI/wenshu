@@ -137,6 +137,10 @@ enum ReferenceWriteGuard {
 
     /// Whether the agent may write `bodyMarkdown` over the truth.
     ///
+    /// **⇒ THE RULE (= the second-writer rule): = the user's write
+    /// wins.** = The agent may REPLACE the agent's own text, = may ADD to
+    /// the user's text, = and may never REPLACE any of the user's text.
+    ///
     /// **⇒ This is the one place that answers it.** = The chokepoint
     /// is `ReferenceBodyStore.write` (= every agent path reaches it),
     /// = so the answer cannot be right on one path and wrong on

@@ -61,11 +61,16 @@ Where the rule lives:
 
 | Piece | Where |
 | --- | --- |
-| The rule and the witness | `Sources/WenshuApp/Features/Library/Service/ReferenceWriteGuard.swift` |
+| The rule, stated in the code | `ReferenceWriteGuard.swift`'s FILE HEADER docblock (= the block that opens the file, = where the rule is written out in full) = and the `Ownership` enum's `.agent` / `.user` cases |
 | The gate (= the one chokepoint every agent path reaches) | `ReferenceBodyStore.write` |
 | The user's write recorded | `FileSystemReferenceStore.replaceReferenceByID` (= the editor's write-through) |
 | The record removed on a delete | `FileSystemReferenceStore.deleteReference` |
 | The refusal, as a named error | `ReferenceStoreError.userOwnsTheTruth` -> `ReferenceLibraryError.userEditedReference` |
+
+**⇒ AND THE RULE IS ALSO IN `assertWritable`'s OWN DOCBLOCK**, = so the function
+that answers "may the agent write?" = says what the answer MEANS: = its
+`- Throws:` line names `ReferenceStoreError.userOwnsTheTruth` = = "the truth
+holds the user's text, = and this write would replace it".
 
 **⇒ The write order is truth -> ownership record -> mirror.** = A mirror that
 AGREES with the truth while no record exists would read as "the agent wrote
@@ -115,12 +120,12 @@ on the WRITE side (= the read side was already pinned by
 | --- | --- |
 | `swift build --build-tests` | clean, = and 0 new warnings (= the base and the tip report the same warning set, = file for file) |
 | `swift test --filter "<the 9 reference suites>"` | 62 tests in 9 suites passed |
-| `swift test` (= the whole suite) | 5 failures at this tip, = 9 at the base `802f1b4703`. = The 3 that overlap reproduce IDENTICALLY when run alone at BOTH shas, = so they are pre-existing. = The base's extra 4 are `FileToolsTests`' `pathDenied` cases (= the base worktree sits under a path the file tools refuse) + 3 load-sensitive tests |
-| `ci_change_gate.py --check formatting` | exit 0 over the change's 4 commits. = Against the merge base the gate reports 267 findings, = and the PRE-FIX parent reports 271 against the same base, = so the change REMOVED 4 and added none (= the stack's own drift is not this change's) |
+| `swift test` (= the whole suite) | the FAILING SET, = not a count (= a count is not reproducible: = the same tip gave 4 issue sites in one run and 6 in another, = and the base gave 4 and 7). = **⇒ What IS reproducible:** = the 3 that overlap (`ChatViewHistoryShortcutTests`, = `EditorTabTitleTests`, = `AsyncDelegationRegistryTests`) fail IDENTICALLY when run ALONE at BOTH shas, = and every tip-only site also appears in a base run. = **⇒ So this change introduces ZERO new failures.** = The base's own extra sites are `FileToolsTests`' `pathDenied` cases (= the base worktree's path, = not a code failure) + the load-sensitive `EditorPersistenceTests` |
+| `ci_change_gate.py --check formatting` | exit 0 over the change's 6 commits. = Against the merge base the gate reports 267 findings, = and the PRE-FIX parent reports 271 against the same base, = so the change REMOVED 4 and added none (= the stack's own drift is not this change's) |
 | `ci_change_gate.py --check pollution` | exit 0, = and the change's diff carries 0 CJK lines |
 | `verify-dead.py` | DEAD stays 0 |
 | `nfi-split.py --check` | PASS |
-| `test_nfi_registry.sh` | 5 failures (= rows 1b, 1c, 4, 8, 8b) = = and the SAME script at the base sha fails the SAME 5 with the SAME names (= the `diff` of the two name lists is empty) = = pre-existing, = and the failures are the driver's own fixture rows, = not the repository's table |
+| `test_nfi_registry.sh` | **exit 0, = `nfi registry: all tests passed` (= 17 assertions), = at this tip, = at `f834261455`, = at `7fb0885196`, = and at the base `802f1b4703`.** = **⇒ AND IT FAILS WITH 5 (= rows 1b, 1c, 4, 8, 8b) at this branch's OWN `e11b554522`, `7463ed2b13`, and `dfaae87f37`.** = **⇒ The cause is the repository's own table, = not the driver's fixture rows:** = those three commits DROPPED the blank line the driver reads (= the file's tail became "the last row, = then the comment"), = and this branch's own `f834261455` restored it. = **⇒ MEASURE IT IN A THROWAWAY WORKTREE PER SHA, = AND RUN THAT SHA'S OWN COPY OF THE SCRIPT** (= the script derives its root from ITS OWN PATH, = so running the tip's copy against another sha measures the TIP's table) |
 | `merge-preflight.sh feature/editor-save-truth` | CLEAN |
 
 ## The registry's blank line (= a real lesson, and it cost a commit)
@@ -136,19 +141,17 @@ the last table row and the trailing comment.
 
 ## OPEN ITEMS (= left behind, and owned)
 
-1. **The 5 pre-existing `test_nfi_registry.sh` failures.** = The driver's own
-   fixture rows, = failing identically at the base sha. = NOT this change's, =
-   and it needs its own card.
-2. **The stack's 267 formatting findings against the merge base.** = The 37
-   commits below this one. = NOT this change's.
-3. **The stack's 5 load-sensitive test failures.** = Pre-existing, = and they
+1. **The stack's 267 formatting findings against the merge base.** = The 36
+   commits between the merge base (`a3b3c09a3`) and this branch's pre-fix parent
+   (`802f1b4703`). = NOT this change's.
+2. **The stack's load-sensitive test failures.** = Pre-existing, = and they
    move between runs (= the failing SET differs run to run), = so they are
    worth their own card rather than a per-card note.
-4. **The branch is 24 commits behind `main`.** = The landing is a rebase in
+3. **The branch is 24 commits behind `main`.** = The landing is a rebase in
    this worktree, = then the §7 gates re-run on the REBASED tree, = then a
    fast-forward. = **⇒ NOT DONE HERE**, = because the landing needs an
    approving verdict first.
-5. **The real library's 6 divergent pairs.** = The guard now refuses the
+4. **The real library's 6 divergent pairs.** = The guard now refuses the
    content-differing one, = but the 5 whitespace-only ones are still divergent
    on disk. = Reconciling them is the USER's call (= it rewrites their
    documents), = and this change deliberately wrote nothing there.
