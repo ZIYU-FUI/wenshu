@@ -105,7 +105,9 @@ on the WRITE side (= the read side was already pinned by
    path) = = the write is refused, = and the user's text is still in the truth.
 2. The refusal reaches the LLM as a NAMED error, = with a message that says
    what to do.
-3. The store's own error says the same thing.
+3. The store's own error says the same thing (= the assertion is written in the
+   hoisted form, = so it bites: = mutating the store's error message turns the
+   suite RED).
 4. Two agent writes in a row = = the second one lands.
 5. A write that ADDS to the user's text lands, = and the user's text stays.
 6. A document with no record = = the corpus copy is the witness.
@@ -118,14 +120,14 @@ on the WRITE side (= the read side was already pinned by
 
 | Gate | Result |
 | --- | --- |
-| `swift build --build-tests` | clean, = and 0 new warnings (= the base and the tip report the same warning set, = file for file) |
+| `swift build --build-tests` | clean, = and **0 new warnings**: = a FRESH build (= not an incremental one, = which hides them) in a throwaway worktree at each sha, = counting the distinct warning lines, = gives **74 at the base `802f1b4703`, = 74 at this tip, = and the two lists are IDENTICAL**. = **⇒ AND THE FIX THAT MADE IT TRUE:** = one of this change's own assertions was VACUOUS (= `#expect((caught?.errorDescription ?? "").contains("refused"))` = discards the `contains` result, = so it never failed) = and it was the only occurrence of that shape in the repo's `Tests/`. = Before the fix the tip carried **76** (= the base's 74 = plus 2 for that line). = The `??` is now HOISTED OUT of the macro's argument, = which makes the assertion bite (= a mutation of the store's error message turns the suite RED) = and clears the 2 warnings it caused |
 | `swift test --filter "<the 9 reference suites>"` | 62 tests in 9 suites passed |
 | `swift test` (= the whole suite) | the FAILING SET, = not a count (= a count is not reproducible: = the same tip gave 4 issue sites in one run and 6 in another, = and the base gave 4 and 7). = **⇒ What IS reproducible:** = the 3 that overlap (`ChatViewHistoryShortcutTests`, = `EditorTabTitleTests`, = `AsyncDelegationRegistryTests`) fail IDENTICALLY when run ALONE at BOTH shas, = and every tip-only site also appears in a base run. = **⇒ So this change introduces ZERO new failures.** = The base's own extra sites are `FileToolsTests`' `pathDenied` cases (= the base worktree's path, = not a code failure) + the load-sensitive `EditorPersistenceTests` |
-| `ci_change_gate.py --check formatting` | exit 0 over the change's 6 commits. = Against the merge base the gate reports 267 findings, = and the PRE-FIX parent reports 271 against the same base, = so the change REMOVED 4 and added none (= the stack's own drift is not this change's) |
+| `ci_change_gate.py --check formatting` | exit 0 over the change's 7 commits. = Against the merge base the gate reports 267 findings, = and the PRE-FIX parent reports 271 against the same base, = so the change REMOVED 4 and added none (= the stack's own drift is not this change's) |
 | `ci_change_gate.py --check pollution` | exit 0, = and the change's diff carries 0 CJK lines |
 | `verify-dead.py` | DEAD stays 0 |
 | `nfi-split.py --check` | PASS |
-| `test_nfi_registry.sh` | **exit 0, = `nfi registry: all tests passed` (= 17 assertions), = at this tip, = at `f834261455`, = at `7fb0885196`, = and at the base `802f1b4703`.** = **⇒ AND IT FAILS WITH 5 (= rows 1b, 1c, 4, 8, 8b) at this branch's OWN `e11b554522`, `7463ed2b13`, and `dfaae87f37`.** = **⇒ The cause is the repository's own table, = not the driver's fixture rows:** = those three commits DROPPED the blank line the driver reads (= the file's tail became "the last row, = then the comment"), = and this branch's own `f834261455` restored it. = **⇒ MEASURE IT IN A THROWAWAY WORKTREE PER SHA, = AND RUN THAT SHA'S OWN COPY OF THE SCRIPT** (= the script derives its root from ITS OWN PATH, = so running the tip's copy against another sha measures the TIP's table) |
+| `test_nfi_registry.sh` | **exit 0, = `nfi registry: all tests passed` (= 17 assertions), = at EVERY sha of this branch.** = **⇒ AND BEFORE THE LANDING REBASE IT FAILED WITH 5 (= rows 1b, 1c, 4, 8, 8b) at this branch's OWN `e11b554522`, `7463ed2b13`, and `dfaae87f37`.** = **⇒ The cause is the repository's own table, = not the driver's fixture rows:** = those three commits DROPPED the blank line the driver reads (= the file's tail became "the last row, = then the comment"), = and this branch's own `f834261455` restored it. = **⇒ AND THE LANDING REBASE FIXED IT FOR GOOD:** = the rebase's 12 registry conflicts were each resolved with the driver's own merge, = and every rebased commit now carries the blank line (= measured: = the script passes at all 8 of this branch's rebased shas). = **⇒ MEASURE IT IN A THROWAWAY WORKTREE PER SHA, = AND RUN THAT SHA'S OWN COPY OF THE SCRIPT** (= the script derives its root from ITS OWN PATH, = so running the tip's copy against another sha measures the TIP's table) |
 | `merge-preflight.sh feature/editor-save-truth` | CLEAN |
 
 ## The registry's blank line (= a real lesson, and it cost a commit)
@@ -142,15 +144,22 @@ the last table row and the trailing comment.
 ## OPEN ITEMS (= left behind, and owned)
 
 1. **The stack's 267 formatting findings against the merge base.** = The 36
-   commits between the merge base (`a3b3c09a3`) and this branch's pre-fix parent
-   (`802f1b4703`). = NOT this change's.
+   commits between `main` and this branch's pre-fix parent. = NOT this change's.
 2. **The stack's load-sensitive test failures.** = Pre-existing, = and they
    move between runs (= the failing SET differs run to run), = so they are
    worth their own card rather than a per-card note.
-3. **The branch is 24 commits behind `main`.** = The landing is a rebase in
-   this worktree, = then the §7 gates re-run on the REBASED tree, = then a
-   fast-forward. = **⇒ NOT DONE HERE**, = because the landing needs an
-   approving verdict first.
+3. **The landing.** = **⇒ DONE, = and it is what this branch's last commit
+   records:** = the rebase in this worktree (= 12 registry conflicts, = each
+   resolved with the driver's own merge and each checked for a lost row), = then
+   the §7 gates re-run on the REBASED tree, = then the fast-forward into
+   `main`. = **⇒ The rebase moved the merge-base, = and the gate's
+   `change_id` = the diff from where the branch left `main` = = moved with it,
+   = so the verdict that covers the tree that LANDS is re-issued against the
+   rebased tip.** = The gates on the rebased tree: = the 9 reference suites =
+   62 tests in 9 suites passed, = the formatting and pollution gates = exit 0
+   (= 0 findings) against the rebased pre-fix parent, = `verify-dead` = DEAD 0,
+   = `nfi-split` = PASS, = and the registry's own script = all tests passed at
+   every one of this branch's 8 rebased shas.
 4. **The real library's 6 divergent pairs.** = The guard now refuses the
    content-differing one, = but the 5 whitespace-only ones are still divergent
    on disk. = Reconciling them is the USER's call (= it rewrites their

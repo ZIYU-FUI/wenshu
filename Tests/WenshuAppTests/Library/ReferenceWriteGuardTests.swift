@@ -244,7 +244,14 @@ struct ReferenceWriteGuardTests {
             return
         }
         #expect(id == reference.id)
-        #expect((caught?.errorDescription ?? "").contains("refused"))
+        // **⇒ The `??` is HOISTED OUT of the macro's argument.** = Inside
+        // it the expression collapses to `String?`, = and the
+        // `contains` result is DISCARDED, = so the expectation never
+        // fails. = The compiler says so: = "result of call to
+        // 'contains' is unused". = **⇒ So the assertion is written in
+        // the shape that bites** (= the one test 2 above uses).
+        let storeMessage = caught?.errorDescription ?? ""
+        #expect(storeMessage.contains("refused"))
     }
 
     // MARK: - 2. The agent's own text
