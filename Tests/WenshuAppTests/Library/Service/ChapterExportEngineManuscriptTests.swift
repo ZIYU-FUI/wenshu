@@ -208,6 +208,43 @@ struct ChapterExportEngineManuscriptTests {
         #expect(written == "他推开门。\n屋里没有人。")
     }
 
+    @Test("a '# ' line inside a code fence is NOT the title (= the code survives)")
+    func aCommentInsideAFenceIsNotTheTitle() async throws {
+        // The fence's comment is the author's own code, = and the
+        // body's REAL title comes after the fence. = So the code
+        // survives and the title goes.
+        let (root, chapterID) = try Self.makeLibrary(
+            body: "```python\n# c\nprint(1)\n```\n\n# 真正的标题\n\n正文。"
+        )
+        let written = try await Self.export(
+            libraryRoot: root,
+            chapterID: chapterID,
+            target: .qidian
+        )
+
+        #expect(written.contains("# c"), "the code's own comment must survive")
+        #expect(written.contains("print(1)"), "the code must survive")
+        #expect(!written.contains("真正的标题"), "the body's own title must not")
+        #expect(written.contains("正文。"))
+    }
+
+    @Test("two rules with PROSE between them are two rules (= the prose survives)")
+    func twoRulesWithProseBetweenThemKeepTheProse() async throws {
+        // A body that opens with a rule and carries prose between two
+        // rules is NOT frontmatter, = and that prose is the author's.
+        let (root, chapterID) = try Self.makeLibrary(
+            body: "---\n\n段落一。\n\n---\n\n段落二。"
+        )
+        let written = try await Self.export(
+            libraryRoot: root,
+            chapterID: chapterID,
+            target: .qidian
+        )
+
+        #expect(written.contains("段落一。"), "the prose between two rules must survive")
+        #expect(written.contains("段落二。"))
+    }
+
     @Test("the MARKDOWN export is unchanged (= the body bytes are preserved verbatim)")
     func theMarkdownExportStillPreservesTheBodyBytes() async throws {
         let body = "第一段。\n\n==高亮==与**粗体**。"

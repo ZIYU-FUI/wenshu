@@ -123,25 +123,57 @@ enum ManuscriptShaper {
     /// Without this, the frontmatter's `title:` / `date:` lines would
     /// travel into the manuscript as the author's prose.
     ///
-    /// ONLY A LEADING BLOCK IS STRIPPED: = a `---` further down is a
-    /// horizontal rule (= and a rule carries no prose anyway). = A
-    /// body that OPENS with a rule and never closes one keeps its
-    /// prose, = because a rule with no closing fence is not frontmatter.
+    /// ONLY A REAL FRONTMATTER BLOCK IS STRIPPED. = A body that OPENS
+    /// with a rule and carries PROSE between two rules is NOT
+    /// frontmatter, = and that prose is the author's: = it survives.
+    /// So the block between the fences must be METADATA (= key: value
+    /// lines, = and the blank lines and the indented continuations
+    /// among them), = and a prose line between the rules means the
+    /// opening `---` was a rule after all.
+    ///
+    /// AND THE FENCE IS NOT FRONTMATTER: = a `---` inside a code fence
+    /// is a line of code, = so the closing fence is looked for OUTSIDE
+    /// the code.
     private static func strippingFrontmatter(_ body: String) -> String {
-        let normalized = body
-            .replacingOccurrences(of: "\r\n", with: "\n")
-            .replacingOccurrences(of: "\r", with: "\n")
-        let lines = normalized.components(separatedBy: "\n")
+        let lines = fencedLines(of: body)
         guard let first = lines.first,
-              first.trimmingCharacters(in: .whitespaces) == "---"
+              !first.isCode,
+              first.text.trimmingCharacters(in: .whitespaces) == "---"
         else { return body }
 
-        // The closing fence = the next line that is exactly "---".
-        guard let end = lines.indices.dropFirst().first(where: {
-            lines[$0].trimmingCharacters(in: .whitespaces) == "---"
+        // The closing fence = the next "---" that is NOT inside a fence.
+        guard let end = lines.indices.dropFirst().first(where: { index in
+            guard !lines[index].isCode else { return false }
+            return lines[index].text.trimmingCharacters(in: .whitespaces) == "---"
         }) else { return body }
 
-        return lines[(end + 1)...].joined(separator: "\n")
+        // The content between the fences must be metadata, = not prose.
+        let between = lines[1 ..< end]
+        guard between.allSatisfy({ isFrontmatterLine($0.text) }) else { return body }
+
+        return lines[(end + 1)...].map(\.text).joined(separator: "\n")
+    }
+
+    /// Whether a line inside a frontmatter block is METADATA (= and not
+    /// prose).
+    ///
+    /// A metadata line is a blank one, = an indented continuation (= the
+    /// tail of a multi-line value), = or a `key: value` pair whose key
+    /// is ASCII (= `title: 第一章`, = `date: 2026-11-06`). = A prose
+    /// line is anything else (= and a full-width colon is not a YAML
+    /// colon, = so Chinese prose with a colon in it is prose).
+    private static func isFrontmatterLine(_ line: String) -> Bool {
+        if line.trimmingCharacters(in: .whitespaces).isEmpty {
+            return true
+        }
+        if line.first == " " || line.first == "\t" {
+            return true
+        }
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard let colon = trimmed.firstIndex(of: ":") else { return false }
+        let key = trimmed[..<colon].trimmingCharacters(in: .whitespaces)
+        guard !key.isEmpty else { return false }
+        return key.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_" || $0 == "-") }
     }
 
     // MARK: - The title
@@ -163,17 +195,53 @@ enum ManuscriptShaper {
     /// `# ` line (= `extractTitle`), = so that line is the title and
     /// goes; = a later level-one heading is the author's own prose and
     /// stays.
+    ///
+    /// AND NOT A COMMENT IN THE CODE: = a `# ` line INSIDE a fence is
+    /// the author's own code (= a shell comment, = a Python comment),
+    /// = and taking it for the title DELETES a line of code. = So the
+    /// title is looked for OUTSIDE the code. = (= The app's own
+    /// `extractTitle` has this blind spot, = and the shaper is the
+    /// first consumer that DELETES content on it, = so the shaper
+    /// must not inherit it.)
     private static func droppingTheTitle(_ body: String) -> String {
-        let lines = body.components(separatedBy: "\n")
+        let lines = fencedLines(of: body)
         guard let index = lines.firstIndex(where: { line in
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !line.isCode else { return false }
+            let trimmed = line.text.trimmingCharacters(in: .whitespaces)
             guard trimmed.hasPrefix("# ") else { return false }
             return !trimmed.dropFirst(2).trimmingCharacters(in: .whitespaces).isEmpty
         }) else { return body }
 
-        var kept = lines
+        var kept = lines.map(\.text)
         kept.remove(at: index)
         return kept.joined(separator: "\n")
+    }
+
+    /// The body's lines, = and which of them are CODE (= inside a
+    /// fence).
+    ///
+    /// The engine parses nothing inside a fence, = so a line there is
+    /// the author's own code, = and the markup rules (= the title, =
+    /// the frontmatter, = the inline marks) must not touch it.
+    private static func fencedLines(
+        of body: String
+    ) -> [(text: String, isCode: Bool)] {
+        var result: [(text: String, isCode: Bool)] = []
+        var insideFence = false
+        for line in body
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .components(separatedBy: "\n")
+        {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("```") || trimmed.hasPrefix("~~~") {
+                insideFence.toggle()
+                result.append((line, true))
+                continue
+            }
+            result.append((line, insideFence))
+        }
+        return result
     }
 
     // MARK: - Blocks and lines

@@ -351,6 +351,45 @@ final class ManuscriptShaperTests: XCTestCase {
         XCTAssertEqual(segments, ["他推开门。"])
     }
 
+    /// A `# ` line inside a code fence is the author's own code, = and
+    /// the title is the body's first such line OUTSIDE the code.
+    ///
+    /// MUTATION: = taking any `# ` line (= the app's own `extractTitle`
+    /// rule) = deletes a line of code.
+    func testACommentInsideAFenceIsNotTheTitle() {
+        let body = "```python\n# c\nprint(1)\n```\n\n# 真正的标题\n\n正文。"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertTrue(manuscript.contains("# c"), "the code's own comment survives")
+        XCTAssertTrue(manuscript.contains("print(1)"))
+        XCTAssertFalse(manuscript.contains("真正的标题"), "the real title goes")
+        XCTAssertTrue(manuscript.contains("正文。"))
+    }
+
+    /// Two rules with PROSE between them are two rules, = not
+    /// frontmatter, = and the prose survives.
+    ///
+    /// MUTATION: = stripping any leading `---` block (= the app's own
+    /// `extractSummary` rule) = deletes the author's prose.
+    func testTwoRulesWithProseBetweenThemKeepTheProse() {
+        let body = "---\n\n段落一。\n\n---\n\n段落二。"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertTrue(manuscript.contains("段落一。"), "the prose between two rules survives")
+        XCTAssertTrue(manuscript.contains("段落二。"))
+    }
+
+    /// A frontmatter block that CONTAINS a blank line is still
+    /// frontmatter (= the reviewer's caveat: = the block is metadata,
+    /// = so it goes).
+    func testAFrontmatterBlockWithABlankLineIsStillFrontmatter() {
+        let body = "---\ntitle: 第一章\n\n---\n\n正文第一段。"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertFalse(manuscript.contains("title:"))
+        XCTAssertEqual(manuscript, "正文第一段。")
+    }
+
     // MARK: - The segments themselves
 
     /// The segments are the source's paragraphs (= what a platform's
