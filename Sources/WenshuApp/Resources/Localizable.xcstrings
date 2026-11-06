@@ -7737,159 +7737,6 @@
         }
       }
     },
-    "settings.pane.roles": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Roles"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "角色"
-          }
-        }
-      }
-    },
-    "settings.roles.section.roles": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The six sub-agent roles"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "六个子智能体角色"
-          }
-        }
-      }
-    },
-    "settings.roles.section.roles.footer": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Each role runs the model with its own prompt and a fixed set of tools. The table is read-only: it is the contract the app holds itself to."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "每个角色带着自己的提示词和固定的工具集合运行模型。这张表是只读的：它是应用对自己的承诺。"
-          }
-        }
-      }
-    },
-    "settings.roles.section.dispatch": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Where each role runs"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "每个角色的运行方式"
-          }
-        }
-      }
-    },
-    "settings.roles.section.dispatch.footer": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The archivist and the auditor do not call the model at all: they run as the archive run and the audit run."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "档案管理员与质量审计不调用模型：它们分别以归档运行和审计运行的方式执行。"
-          }
-        }
-      }
-    },
-    "settings.roles.noTools": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Calls no tool"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不调用任何工具"
-          }
-        }
-      }
-    },
-    "settings.roles.dispatch.llmRun": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Model run"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "模型运行"
-          }
-        }
-      }
-    },
-    "settings.roles.dispatch.archiveRun": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Archive run"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "归档运行"
-          }
-        }
-      }
-    },
-    "settings.roles.dispatch.auditRun": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Audit run"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "审计运行"
-          }
-        }
-      }
-    },
     "settings.archive.filter": {
       "extractionState": "manual",
       "localizations": {
@@ -8235,6 +8082,159 @@
         }
       }
     },
+    "settings.pane.roles": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Roles"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "角色"
+          }
+        }
+      }
+    },
+    "settings.roles.section.roles": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The six sub-agent roles"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "六个子智能体角色"
+          }
+        }
+      }
+    },
+    "settings.roles.section.roles.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each role runs the model with its own prompt and a fixed set of tools. The table is read-only: it is the contract the app holds itself to."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个角色带着自己的提示词和固定的工具集合运行模型。这张表是只读的：它是应用对自己的承诺。"
+          }
+        }
+      }
+    },
+    "settings.roles.section.dispatch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where each role runs"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个角色的运行方式"
+          }
+        }
+      }
+    },
+    "settings.roles.section.dispatch.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The archivist and the auditor do not call the model at all: they run as the archive run and the audit run."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "档案管理员与质量审计不调用模型：它们分别以归档运行和审计运行的方式执行。"
+          }
+        }
+      }
+    },
+    "settings.roles.noTools": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calls no tool"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不调用任何工具"
+          }
+        }
+      }
+    },
+    "settings.roles.dispatch.llmRun": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model run"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型运行"
+          }
+        }
+      }
+    },
+    "settings.roles.dispatch.archiveRun": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archive run"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "归档运行"
+          }
+        }
+      }
+    },
+    "settings.roles.dispatch.auditRun": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audit run"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "审计运行"
+          }
+        }
+      }
+    },
     "library.search.fulltext.filter.kind": {
       "comment": "The corpus narrowing's kind axis (the corpus's own closed set of entity types)",
       "extractionState": "manual",
@@ -8321,6 +8321,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "全部"
+          }
+        }
+      }
+    },
+    "export.chapter.format": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Format"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "格式"
+          }
+        }
+      }
+    },
+    "export.chapter.format.markdown": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markdown (= the editor's round trip)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markdown (= 编辑器往返)"
+          }
+        }
+      }
+    },
+    "export.chapter.format.manuscript": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Submission manuscript (= plain text for a platform)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "投稿稿 (= 平台用的纯文本)"
+          }
+        }
+      }
+    },
+    "export.chapter.target": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Platform"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "平台"
           }
         }
       }

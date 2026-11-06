@@ -27,9 +27,9 @@
 //  user-story list and acceptance criteria.
 //
 
+import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
-import AppKit
 
 /// The three export kinds the sheet can produce.
 enum ExportKind: String, CaseIterable, Identifiable, Sendable {
@@ -37,13 +37,14 @@ enum ExportKind: String, CaseIterable, Identifiable, Sendable {
     case book
     case chapter
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 }
 
 /// `ExportSheet` body. Hosts the three sections + the unified
 /// `导出` / `取消` button row.
 struct ExportSheet: View {
-
     /// Bumps when `exportSheetRequest` increments (= from the
     /// File → Export… menu). The parent flips this to dismiss.
     @Binding var isPresented: Bool
@@ -62,6 +63,15 @@ struct ExportSheet: View {
     /// Book export sub-option: EPUB / PDF / combined MD.
     @State private var bookFormat: BookExportFormat = .epub
 
+    /// Chapter export sub-option: the author's Markdown (= the
+    /// editor's round trip) or a SUBMISSION MANUSCRIPT (= plain
+    /// text for a platform's editor).
+    @State private var chapterFormat: ChapterExportFormat = .markdown
+
+    /// Which platform the submission manuscript is shaped for
+    /// (= only asked for when the format is a manuscript).
+    @State private var manuscriptTarget: ManuscriptTarget = .qidian
+
     /// Selected book id (= populated from `BookStore.books`).
     @State private var selectedBookID: UUID?
 
@@ -76,6 +86,14 @@ struct ExportSheet: View {
     /// Flipped when the user clicks 导出; = triggers the
     /// `.fileExporter` modifier for the selected kind.
     @State private var isExporting: Bool = false
+
+    /// Flipped when the user clicks 导出 on a MANUSCRIPT; = triggers
+    /// the manuscript `.fileExporter` modifier.
+    ///
+    /// It is SEPARATE from `isExporting` (= the other kinds'
+    /// modifiers watch that one) = so a manuscript export opens only
+    /// the manuscript's save panel.
+    @State private var isExportingManuscript: Bool = false
 
     /// Last-used destination URL per kind (Apple HIG canonical
     /// "remember the last folder" pattern, persisted via
@@ -126,7 +144,14 @@ struct ExportSheet: View {
                 }
                 .keyboardShortcut(.cancelAction)
                 Button(String(localized: "export.sheet.confirm")) {
-                    isExporting = true
+                    if kind == .chapter && chapterFormat == .manuscript {
+                        // A manuscript opens its OWN save panel
+                        // (= its document type is a plain text
+                        // manuscript, = not the chapter's Markdown).
+                        isExportingManuscript = true
+                    } else {
+                        isExporting = true
+                    }
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(!canConfirm)
@@ -166,6 +191,17 @@ struct ExportSheet: View {
                 isPresented = false
             }
         ))
+        .modifier(ManuscriptFileExporter(
+            chapterEngine: chapterEngine,
+            selectedChapterID: selectedChapterID,
+            target: manuscriptTarget,
+            lastChapterURLString: $lastChapterURLString,
+            isExporting: $isExportingManuscript,
+            onComplete: { _ in
+                isExportingManuscript = false
+                isPresented = false
+            }
+        ))
     }
 
     private var canConfirm: Bool {
@@ -179,12 +215,11 @@ struct ExportSheet: View {
     private func label(for kind: ExportKind) -> String {
         switch kind {
         case .library: return String(localized: "export.section.library")
-        case .book:    return String(localized: "export.section.book")
+        case .book: return String(localized: "export.section.book")
         case .chapter: return String(localized: "export.section.chapter")
         }
     }
 
-    @ViewBuilder
     private var librarySection: some View {
         Picker(String(localized: "export.section.library"), selection: $libraryFormat) {
             Text(String(localized: "export.library.format.copy")).tag(LibraryExportFormat.copy)
@@ -210,7 +245,8 @@ struct ExportSheet: View {
         .pickerStyle(.menu)
         .onChange(of: selectedBookID) { _, newValue in
             guard let bookID = newValue,
-                  let book = bookStore.books.first(where: { $0.id == bookID }) else {
+                  let book = bookStore.books.first(where: { $0.id == bookID })
+            else {
                 chapters = []
                 selectedChapterID = nil
                 return
@@ -230,6 +266,21 @@ struct ExportSheet: View {
 
     @ViewBuilder
     private var chapterSection: some View {
+        Picker(String(localized: "export.chapter.format"), selection: $chapterFormat) {
+            Text(String(localized: "export.chapter.format.markdown")).tag(ChapterExportFormat.markdown)
+            Text(String(localized: "export.chapter.format.manuscript")).tag(ChapterExportFormat.manuscript)
+        }
+        .pickerStyle(.radioGroup)
+        if chapterFormat == .manuscript {
+            // The target picker asks only when a manuscript is
+            // being written (= the Markdown export has no target).
+            Picker(String(localized: "export.chapter.target"), selection: $manuscriptTarget) {
+                ForEach(ManuscriptTarget.allCases) { target in
+                    Text(target.displayName).tag(target)
+                }
+            }
+            .pickerStyle(.radioGroup)
+        }
         Picker(String(localized: "export.book.picker"), selection: $selectedBookID) {
             Text(String(localized: "export.book.placeholder")).tag(UUID?.none)
             ForEach(bookStore.books) { book in
@@ -239,7 +290,8 @@ struct ExportSheet: View {
         .pickerStyle(.menu)
         .onChange(of: selectedBookID) { _, newValue in
             guard let bookID = newValue,
-                  let book = bookStore.books.first(where: { $0.id == bookID }) else {
+                  let book = bookStore.books.first(where: { $0.id == bookID })
+            else {
                 chapters = []
                 selectedChapterID = nil
                 return
@@ -291,7 +343,9 @@ struct ExportSheet: View {
 enum LibraryExportFormat: String, CaseIterable, Identifiable, Sendable {
     case copy
     case zip
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 }
 
 /// Book export sub-format.
@@ -299,7 +353,21 @@ enum BookExportFormat: String, CaseIterable, Identifiable, Sendable {
     case epub
     case pdf
     case combinedMd
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
+}
+
+/// Chapter export sub-format: the author's own Markdown (= the
+/// editor's round trip, = the body bytes preserved verbatim) or a
+/// SUBMISSION MANUSCRIPT (= plain text for a platform's editor, =
+/// shaped by the target's measured rules).
+enum ChapterExportFormat: String, CaseIterable, Identifiable, Sendable {
+    case markdown
+    case manuscript
+    var id: String {
+        rawValue
+    }
 }
 
 /// Build the default destination URL for the system save dialog.
@@ -357,14 +425,14 @@ private struct LibraryFileExporter: ViewModifier {
     /// engine. The picker tap is what flipped isExporting.
     private func handle(result: Result<URL, Error>) {
         defer { isExporting = false }
-        guard case .success(let url) = result else { return }
+        guard case let .success(url) = result else { return }
 
         // Persist the destination path (= next time the user opens
         // the sheet for this kind, the system save dialog starts
         // there).
         lastLibraryURLString = url.path
 
-        let format: LibraryExportFormat = (self.libraryFormat == .zip) ? .zip : .copy
+        let format: LibraryExportFormat = (libraryFormat == .zip) ? .zip : .copy
         Task {
             _ = try? await libraryEngine.exportLibrary(to: url, as: format)
         }
@@ -410,15 +478,15 @@ private struct BookFileExporter: ViewModifier {
     /// engine. The picker tap is what flipped isExporting.
     private func handle(result: Result<URL, Error>) {
         defer { isExporting = false }
-        guard case .success(let url) = result else { return }
+        guard case let .success(url) = result else { return }
 
         // Persist the destination path (= next time the user opens
         // the sheet for this kind, the system save dialog starts
         // there).
         lastBookURLString = url.path
 
-        guard let bookID = self.selectedBookID else { return }
-        let fmt: BookExportFormat = self.bookFormat
+        guard let bookID = selectedBookID else { return }
+        let fmt: BookExportFormat = bookFormat
         Task {
             _ = try? await bookEngine.exportBook(id: bookID, to: url, format: fmt)
         }
@@ -462,13 +530,14 @@ private struct ChapterFileExporter: ViewModifier {
     /// engine. The picker tap is what flipped isExporting.
     private func handle(result: Result<URL, Error>) {
         defer { isExporting = false }
-        guard case .success(let url) = result else { return }
+        guard case let .success(url) = result else { return }
 
         // Persist the destination path (= next time the user opens
         // the sheet for this kind, the system save dialog starts
         // there).
         lastChapterURLString = url.path
 
+<<<<<<< HEAD
         guard let chapterID = self.selectedChapterID else { return }
         // The chapter is exported from the FILE that holds it (= the
         // resolver's answer), = not from an id lookup. An imported
@@ -476,6 +545,9 @@ private struct ChapterFileExporter: ViewModifier {
         // found nothing for it, = and the chapter could not be
         // exported at all.
         guard let chapter = self.chapters.first(where: { $0.id == chapterID }) else { return }
+=======
+        guard let chapterID = selectedChapterID else { return }
+>>>>>>> 0a8d5fbd2 (feat(library): the chapter export writes a submission manuscript, = and the platform's shape is measured)
         Task {
             _ = try? await chapterEngine.exportChapter(fileURL: chapter.fileURL, to: url)
         }

@@ -27,11 +27,11 @@ enum ChapterExportError: LocalizedError, Sendable, Equatable {
         switch self {
         case .noActiveLibrary:
             return "No active library is open."
-        case .chapterNotFound(let id):
+        case let .chapterNotFound(id):
             return "Chapter \(id.uuidString) not found."
-        case .destinationReadOnly(let url):
+        case let .destinationReadOnly(url):
             return String(localized: "export.error.destination_readonly") + " (\(url.path))"
-        case .ioFailure(let url, let msg):
+        case let .ioFailure(url, msg):
             return "I/O failure at \(url.path): \(msg)"
         case .noChapterIdentifier:
             return "Chapter not found."
@@ -40,7 +40,6 @@ enum ChapterExportError: LocalizedError, Sendable, Equatable {
 }
 
 actor ChapterExportEngine {
-
     /// Export a single chapter as a Markdown file. The body bytes
     /// are preserved verbatim (= what the user sees in the editor
     /// = what the user gets in the export). The YAML frontmatter is
@@ -55,7 +54,6 @@ actor ChapterExportEngine {
         id chapterID: UUID,
         to destinationURL: URL
     ) async throws -> URL {
-
         guard let libPath = ActiveLibrary.path else {
             throw ChapterExportError.noActiveLibrary
         }
@@ -114,6 +112,58 @@ actor ChapterExportEngine {
             to: destinationURL,
             options: .atomic
         )
+    }
+
+    /// Export a single chapter as a SUBMISSION MANUSCRIPT for
+    /// `target`: plain text, segmented, and shaped by the target's
+    /// measured rules (= 晋江's two full-width spaces U+3000 U+3000
+    /// at the start of every segment and its blank line between
+    /// segments, = 起点 / 番茄's none of either).
+    ///
+    /// WHY THIS IS A SEPARATE METHOD AND NOT A MODE OF
+    /// `exportChapter`
+    ///
+    /// `exportChapter` preserves the body BYTES (= the editor's
+    /// round trip with the file), = and that contract is what a
+    /// `.md` export promises. = A submission manuscript is a
+    /// different product (= plain text for a platform's editor),
+    /// = so it is a different method over the same body.
+    ///
+    /// The chapter title is NOT written into the file (= it is the
+    /// platform's own separate title field, = and 番茄 counts the
+    /// body without it), = so the caller writes the title and the
+    /// body where the platform wants them.
+    func exportManuscript(
+        id chapterID: UUID,
+        to destinationURL: URL,
+        target: ManuscriptTarget
+    ) async throws -> URL {
+        guard let libPath = ActiveLibrary.path else {
+            throw ChapterExportError.noActiveLibrary
+        }
+        let libURL = URL(fileURLWithPath: libPath, isDirectory: true)
+
+        guard let chaptersDir = try locateChaptersDirectory(
+            libraryURL: libURL,
+            chapterID: chapterID
+        ) else {
+            throw ChapterExportError.chapterNotFound(chapterID)
+        }
+
+        guard let body = FileSystemChapterStore.loadChapterBodyFromFileSystem(
+            id: chapterID,
+            chaptersDirectory: chaptersDir
+        ) else {
+            throw ChapterExportError.chapterNotFound(chapterID)
+        }
+
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: target)
+        try Data(manuscript.utf8).write(
+            to: destinationURL,
+            options: .atomic
+        )
+
+        return destinationURL
     }
 
     /// Walk every shelf + book to find the chapters directory

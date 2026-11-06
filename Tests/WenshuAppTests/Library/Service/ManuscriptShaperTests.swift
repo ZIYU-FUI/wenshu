@@ -1,0 +1,211 @@
+//
+//  ManuscriptShaperTests.swift · Wenshu
+//
+//  The submission manuscript's shape, HELD.
+//
+//  The rules under test are the measured per-platform facts (= the
+//  spec §6 table and the platform study):
+//
+//  - 晋江's segment indent lives IN THE CONTENT (= two full-width
+//    spaces U+3000 U+3000 at the start of every segment) and its
+//    spacing is a BLANK LINE between segments.
+//  - 起点 / 番茄's platform renders the indent (= CSS text-indent
+//    2em) and the spacing (= CSS margin), = and 番茄 deletes the
+//    extra spaces and blank lines on publish, = so the manuscript
+//    carries NEITHER.
+//  - The chapter title is the platform's own separate field, = so
+//    it is not in the manuscript's body.
+//
+//  The tests drive the production seam (`ManuscriptShaper`), = and
+//  the mutations that would break the rules are named below.
+//
+
+@testable import WenshuApp
+import XCTest
+
+final class ManuscriptShaperTests: XCTestCase {
+    // MARK: - The targets' own rules
+
+    /// 晋江's indent is IN THE CONTENT: = two full-width spaces at
+    /// the start of EVERY segment. = This is the rule a mutation
+    /// would break (= one space, = a tab, = an ASCII space).
+    func testJinjiangIndentIsTwoFullWidthSpacesOnEverySegment() {
+        let body = "第一段。\n\n第二段。"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .jinjiang)
+
+        XCTAssertEqual(
+            manuscript,
+            "\u{3000}\u{3000}第一段。\n\n\u{3000}\u{3000}第二段。",
+            "晋江's indent must be two full-width spaces on every segment"
+        )
+        // The indent is U+3000 twice, = not an ASCII space and not
+        // one full-width space.
+        XCTAssertTrue(manuscript.hasPrefix("\u{3000}\u{3000}"))
+        XCTAssertFalse(manuscript.contains("  "), "the indent must not be ASCII spaces")
+    }
+
+    /// 晋江's spacing is a BLANK LINE between segments (= its
+    /// reading end has margin 0 on every paragraph).
+    func testJinjiangSeparatesSegmentsWithABlankLine() {
+        let body = "第一段。\n\n第二段。\n\n第三段。"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .jinjiang)
+
+        XCTAssertEqual(
+            manuscript,
+            "\u{3000}\u{3000}第一段。\n\n\u{3000}\u{3000}第二段。\n\n\u{3000}\u{3000}第三段。"
+        )
+        // Two newlines between segments, = not one.
+        XCTAssertTrue(manuscript.contains("\n\n"))
+    }
+
+    /// 起点 / 番茄 carry NEITHER the indent NOR the blank line: = the
+    /// platform renders both itself.
+    func testQidianAndFanqieCarryNeitherIndentNorBlankLine() {
+        let body = "第一段。\n\n第二段。"
+        for target in [ManuscriptTarget.qidian, .fanqie] {
+            let manuscript = ManuscriptShaper.manuscript(body: body, target: target)
+            XCTAssertEqual(
+                manuscript,
+                "第一段。\n第二段。",
+                "\(target.displayName) must carry neither the indent nor the blank line"
+            )
+            XCTAssertFalse(manuscript.contains("\u{3000}"), "\(target.displayName) must carry no full-width space")
+            XCTAssertFalse(manuscript.contains("\n\n"), "\(target.displayName) must carry no blank line")
+        }
+    }
+
+    /// The chapter title is the platform's own field, = so the
+    /// manuscript's body never carries it.
+    func testTheChapterTitleIsNotInTheBody() {
+        for target in ManuscriptTarget.allCases {
+            XCTAssertFalse(
+                target.carriesChapterTitleInBody,
+                "\(target.displayName) carries the title in its own field"
+            )
+            XCTAssertTrue(
+                target.countsBodyWithoutTitle,
+                "\(target.displayName) counts the body without the title"
+            )
+        }
+    }
+
+    // MARK: - The plain text
+
+    /// The manuscript is PLAIN TEXT: = the app's own editor writes
+    /// these markers (= the engine's context menu writes `==` and
+    /// `~~`, = the twelve format commands write the rest), = and a
+    /// submission carries the words, = not the markup.
+    ///
+    /// A mutation that keeps a marker would fail here.
+    func testTheManuscriptIsPlainText() {
+        let body = """
+        # 标题
+
+        这是**粗体**和*斜体*，还有`行内代码`和==高亮==和~~删除~~。
+
+        - 列表项
+        - 第二项
+
+        > 引用
+
+        [链接](https://example.com)
+
+        ![图注](/tmp/a.png)
+
+        [[人物|UUID-1]]
+
+        ---
+        """
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertFalse(manuscript.contains("**"))
+        XCTAssertFalse(manuscript.contains("*"))
+        XCTAssertFalse(manuscript.contains("`"))
+        XCTAssertFalse(manuscript.contains("=="))
+        XCTAssertFalse(manuscript.contains("~~"))
+        XCTAssertFalse(manuscript.contains("["))
+        XCTAssertFalse(manuscript.contains("]"))
+        XCTAssertFalse(manuscript.contains("#"))
+        XCTAssertFalse(manuscript.contains(">"))
+
+        // The words survive.
+        XCTAssertTrue(manuscript.contains("粗体"))
+        XCTAssertTrue(manuscript.contains("斜体"))
+        XCTAssertTrue(manuscript.contains("行内代码"))
+        XCTAssertTrue(manuscript.contains("高亮"))
+        XCTAssertTrue(manuscript.contains("删除"))
+        XCTAssertTrue(manuscript.contains("列表项"))
+        XCTAssertTrue(manuscript.contains("第二项"))
+        XCTAssertTrue(manuscript.contains("引用"))
+        XCTAssertTrue(manuscript.contains("链接"))
+        XCTAssertTrue(manuscript.contains("图注"))
+        // A wiki link carries its NAME (= the UUID is the link's
+        // target, = not a word of the manuscript).
+        XCTAssertTrue(manuscript.contains("人物"))
+        XCTAssertFalse(manuscript.contains("UUID"))
+    }
+
+    /// A horizontal rule carries no prose, = so it contributes
+    /// nothing to the manuscript (= its markup, = not the author's
+    /// words).
+    func testAHorizontalRuleContributesNothing() {
+        let body = "第一段。\n\n---\n\n第二段。"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertEqual(manuscript, "第一段。\n第二段。")
+    }
+
+    /// A heading's hashes are markup, = and its text is prose.
+    func testAHeadingContributesItsText() {
+        let body = "# 第一章\n\n正文。"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertEqual(manuscript, "第一章\n正文。")
+    }
+
+    /// A code block's fence lines are markup, = and its content is
+    /// the author's words.
+    func testACodeBlockKeepsItsContentAndDropsItsFence() {
+        let body = "正文。\n\n```swift\nlet x = 1\n```"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertFalse(manuscript.contains("```"))
+        XCTAssertTrue(manuscript.contains("let x = 1"))
+    }
+
+    /// An empty body produces an empty manuscript (= no segments, =
+    /// no stray separators).
+    func testAnEmptyBodyProducesAnEmptyManuscript() {
+        for target in ManuscriptTarget.allCases {
+            XCTAssertEqual(
+                ManuscriptShaper.manuscript(body: "", target: target),
+                ""
+            )
+        }
+    }
+
+    // MARK: - The segments themselves
+
+    /// The segments are the source's paragraphs (= what a platform's
+    /// segment IS: = 番茄's official rule is "使用换行键进行分段").
+    func testTheSegmentsAreTheSourceParagraphs() {
+        let body = "第一段。\n\n第二段。\n\n第三段。"
+        let segments = ManuscriptShaper.segments(of: body)
+
+        XCTAssertEqual(segments, ["第一段。", "第二段。", "第三段。"])
+    }
+
+    /// The count the platforms apply is the count of the BODY (= the
+    /// title excluded) = and it is measured on the segments.
+    func testTheSegmentsAreWhatTheWordCountIsMeasuredOn() {
+        let body = "第一段。\n\n第二段。"
+        let segments = ManuscriptShaper.segments(of: body)
+
+        XCTAssertEqual(segments.count, 2)
+        XCTAssertEqual(
+            segments.reduce(0) { $0 + $1.count },
+            "第一段。".count + "第二段。".count,
+            "the count is the body's own characters (= the title excluded)"
+        )
+    }
+}
