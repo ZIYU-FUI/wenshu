@@ -156,11 +156,16 @@ final class ManuscriptShaperTests: XCTestCase {
     }
 
     /// A heading's hashes are markup, = and its text is prose.
-    func testAHeadingContributesItsText() {
-        let body = "# 第一章\n\n正文。"
+    ///
+    /// ONLY A HEADING AFTER THE TITLE: = the body's FIRST level-one
+    /// heading is the title (= the app reads a document's title from
+    /// it, = and the platform has a title field of its own), = so that
+    /// line goes; = a heading after it is the author's own prose.
+    func testAHeadingAfterTheTitleContributesItsText() {
+        let body = "# 第一章\n\n正文。\n\n## 一节"
         let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
 
-        XCTAssertEqual(manuscript, "第一章\n正文。")
+        XCTAssertEqual(manuscript, "正文。\n一节")
     }
 
     /// A code block's fence lines are markup, = and its content is
@@ -171,6 +176,47 @@ final class ManuscriptShaperTests: XCTestCase {
 
         XCTAssertFalse(manuscript.contains("```"))
         XCTAssertTrue(manuscript.contains("let x = 1"))
+    }
+
+    /// THE CONTENT OF A FENCE IS LITERAL: = the engine parses nothing
+    /// inside a fence, = so the marks there are the CODE's own
+    /// characters, = not the app's dialect. = `**kwargs` in a Python
+    /// fence is a call, = not bold.
+    ///
+    /// MUTATION: = stripping the marks inside a fence (= the same
+    /// strip the prose gets) = would rewrite the author's code.
+    func testTheContentOfAFenceKeepsItsOwnMarks() {
+        let body = "正文。\n\n```python\nresult = fn(**kwargs)\n```"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertTrue(
+            manuscript.contains("fn(**kwargs)"),
+            "the code's own asterisks must survive (= the engine parses nothing inside a fence)"
+        )
+    }
+
+    /// A `---` inside a fence is a line of code, = not a rule (= and a
+    /// rule carries no prose).
+    ///
+    /// MUTATION: = treating a fenced `---` as a rule (= the same rule
+    /// check the prose gets) = would drop a line of code.
+    func testAFenceHoldingARuleKeepsItsLine() {
+        let body = "正文。\n\n```\n---\n```"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertTrue(
+            manuscript.contains("---"),
+            "a rule inside a fence is code (= the engine parses nothing inside a fence)"
+        )
+    }
+
+    /// A fenced line keeps its own indentation (= the code's shape is
+    /// the author's).
+    func testAFenceKeepsItsOwnIndentation() {
+        let body = "```\nif x:\n    return 1\n```"
+        let segments = ManuscriptShaper.segments(of: body)
+
+        XCTAssertTrue(segments.contains("    return 1"), "the code's indentation is the author's")
     }
 
     /// An empty body produces an empty manuscript (= no segments, =
@@ -243,6 +289,44 @@ final class ManuscriptShaperTests: XCTestCase {
         let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
 
         XCTAssertEqual(manuscript, "他推开门。\n屋里没有人。")
+    }
+
+    /// THE BODY'S OWN TITLE IS NOT IN THE MANUSCRIPT: = the title is
+    /// the platform's own separate field, = and the app reads a
+    /// document's title from the body's first `# ` line (= so a
+    /// chapter body carries its title there).
+    ///
+    /// MUTATION: = keeping the title line = would say the title twice
+    /// (= once in the platform's field, = once as the story's first
+    /// line of prose).
+    func testTheBodysOwnTitleIsNotInTheManuscript() {
+        let body = "# 第三章 风起\n\n他推开门。\n\n屋里没有人。"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertFalse(
+            manuscript.contains("第三章"),
+            "the body's own title line must not travel into the submission"
+        )
+        XCTAssertEqual(manuscript, "他推开门。\n屋里没有人。")
+    }
+
+    /// ONLY THE TITLE GOES: = a later level-one heading is the
+    /// author's own prose, = and it stays.
+    func testALaterLevelOneHeadingStays() {
+        let body = "# 第三章 风起\n\n他推开门。\n\n# 转折\n\n屋里没有人。"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertFalse(manuscript.contains("第三章"))
+        XCTAssertTrue(manuscript.contains("转折"), "a later heading is the author's prose")
+    }
+
+    /// The title is not prose, = and the platforms count the body
+    /// WITHOUT it (= so it is not a segment either).
+    func testTheTitleIsNotCountedAsASegment() {
+        let body = "# 第三章 风起\n\n他推开门。"
+        let segments = ManuscriptShaper.segments(of: body)
+
+        XCTAssertEqual(segments, ["他推开门。"])
     }
 
     // MARK: - The segments themselves

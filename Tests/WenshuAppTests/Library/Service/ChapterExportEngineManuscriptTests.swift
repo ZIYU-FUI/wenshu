@@ -168,6 +168,25 @@ struct ChapterExportEngineManuscriptTests {
         #expect(written == "他推开门。\n屋里没有人。")
     }
 
+    @Test("the exported FILE carries no title line (= the title is the platform's own field)")
+    func theExportedFileCarriesNoTitleLine() async throws {
+        // The body carries its own title as the app's convention has it
+        // (= the first "# " line, = which is where
+        // `FileSystemLibraryStore.extractTitle` reads a document's
+        // title from), = and the exported FILE must not repeat it.
+        let (root, chapterID) = try Self.makeLibrary(
+            body: "# 第三章 风起\n\n他推开门。\n\n屋里没有人。"
+        )
+        let written = try await Self.export(
+            libraryRoot: root,
+            chapterID: chapterID,
+            target: .qidian
+        )
+
+        #expect(!written.contains("第三章"))
+        #expect(written == "他推开门。\n屋里没有人。")
+    }
+
     @Test("the MARKDOWN export is unchanged (= the body bytes are preserved verbatim)")
     func theMarkdownExportStillPreservesTheBodyBytes() async throws {
         let body = "第一段。\n\n==高亮==与**粗体**。"

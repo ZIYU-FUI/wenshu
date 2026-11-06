@@ -95,9 +95,11 @@ enum ManuscriptShaper {
     /// segments themselves.
     static func segments(of body: String) -> [String] {
         var segments: [String] = []
-        for block in blocks(of: strippingFrontmatter(body)) {
+        for block in blocks(of: droppingTheTitle(strippingFrontmatter(body))) {
             for line in lines(of: block) {
-                let text = plainText(of: line)
+                // A code line keeps its own characters (= the marks in
+                // it are the code's, = not the app's dialect).
+                let text = line.isCode ? line.text : plainText(of: line.text)
                 if !text.isEmpty {
                     segments.append(text)
                 }
@@ -142,6 +144,38 @@ enum ManuscriptShaper {
         return lines[(end + 1)...].joined(separator: "\n")
     }
 
+    // MARK: - The title
+
+    /// Drops the body's own TITLE line.
+    ///
+    /// WHY: the title is the platform's own separate field, = and the
+    /// body's first level-one heading IS that title by the app's own
+    /// convention: = `FileSystemLibraryStore.extractTitle` reads a
+    /// document's title from the body's first `# ` line (= and a
+    /// chapter body is read the same way). = So a chapter body can
+    /// carry its title as its first line, = and a manuscript that kept
+    /// it would say the title twice (= once in the platform's field, =
+    /// once as the story's first line of prose). = And the platforms
+    /// count the body WITHOUT the title, = so the title is not prose
+    /// and is not counted.
+    ///
+    /// ONLY THE TITLE IS DROPPED: = the app's own rule takes the FIRST
+    /// `# ` line (= `extractTitle`), = so that line is the title and
+    /// goes; = a later level-one heading is the author's own prose and
+    /// stays.
+    private static func droppingTheTitle(_ body: String) -> String {
+        let lines = body.components(separatedBy: "\n")
+        guard let index = lines.firstIndex(where: { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.hasPrefix("# ") else { return false }
+            return !trimmed.dropFirst(2).trimmingCharacters(in: .whitespaces).isEmpty
+        }) else { return body }
+
+        var kept = lines
+        kept.remove(at: index)
+        return kept.joined(separator: "\n")
+    }
+
     // MARK: - Blocks and lines
 
     /// The source's blocks (= blank-line separated).
@@ -159,8 +193,21 @@ enum ManuscriptShaper {
     /// A fenced code block's fence lines are dropped (= they are the
     /// markup, = not the prose) = and its content lines are kept
     /// (= the words are the author's).
-    private static func lines(of block: String) -> [String] {
-        var lines: [String] = []
+    ///
+    /// THE CONTENT OF A FENCE IS LITERAL
+    ///
+    /// Inside a fence the engine parses NOTHING (= the fence's content
+    /// is code, = not prose), = so the marks there are the CODE's own
+    /// characters, = not the app's dialect: = `**kwargs` in a Python
+    /// fence is a call, = not bold, = and a `---` inside a fence is a
+    /// line of code, = not a rule. = So a fenced line is kept AS IT IS
+    /// (= the fence's own indentation too), = and the marks are never
+    /// taken out of it.
+    ///
+    /// Each line says whether it is code, = so the caller knows not to
+    /// strip the marks from it.
+    private static func lines(of block: String) -> [(text: String, isCode: Bool)] {
+        var lines: [(text: String, isCode: Bool)] = []
         var insideFence = false
         for raw in block.components(separatedBy: "\n") {
             let line = raw.trimmingCharacters(in: .whitespaces)
@@ -168,7 +215,12 @@ enum ManuscriptShaper {
                 insideFence.toggle()
                 continue
             }
-            lines.append(insideFence ? raw : line)
+            if insideFence {
+                // The code's own line, = untouched.
+                lines.append((raw, true))
+                continue
+            }
+            lines.append((line, false))
         }
         return lines
     }
