@@ -68,31 +68,71 @@ final class EngineStyleSheetBridgeTests: XCTestCase {
         XCTAssertEqual(EngineStyleSheetBridge.fontSize(for: sheet), 12)
     }
 
-    /// The line spacing becomes the engine's spacing FACTOR, = and the
-    /// segment spacing becomes the extra height between paragraphs.
+    /// THE THREE SPACING KNOBS LAND ON THE ENGINE'S OWN KNOBS.
     ///
-    /// MUTATION: = dropping the segment spacing (= leaving the
-    /// engine's own default) = would lose the sheet's half-character
-    /// gap.
+    /// - THE LINE SPACING = the engine's line height as a MULTIPLE OF
+    ///   THE BODY'S SIZE (= 行距 1.70 = = 1.70 x 13pt).
+    /// - THE SEGMENT SPACING = the engine's paragraph gap, = which is a
+    ///   FRACTION OF THAT LINE HEIGHT (= half a character over 1.70).
+    /// - THE EXTRA-POINTS KNOB = unused (= the multiple carries the line
+    ///   height, = and the points knob would add to the font's own
+    ///   leading on top of it).
+    ///
+    /// MUTATION: = putting the line spacing into the GAP (= the two were
+    /// swapped) = would render a 1.70x gap between paragraphs and the
+    /// font's natural leading between the lines.
     func testTheParagraphStyleCarriesTheSheetsOwnSpacing() {
         var sheet = BookStyleSheet.default
         sheet.lineSpacing = .loose
         sheet.segmentSpacing = .halfCharacter
         let style = EngineStyleSheetBridge.paragraphStyle(for: sheet)
 
-        XCTAssertEqual(style.spacingFactor, 1.70, accuracy: 0.0001)
-        // Half a character, = and a character is the body's size.
-        XCTAssertEqual(style.lineHeightExtraSpacing, 0.5 * 13, accuracy: 0.0001)
+        XCTAssertEqual(style.lineHeightMultipleOfFontSize ?? 0, 1.70, accuracy: 0.0001)
+        // Half a character, = over the line height.
+        XCTAssertEqual(style.spacingFactor, 0.5 / 1.70, accuracy: 0.0001)
+        XCTAssertEqual(style.lineHeightExtraSpacing, 0, accuracy: 0.0001)
     }
 
-    /// A sheet with no segment spacing adds NO height (= the engine's
-    /// own paragraph gap is the only gap).
+    /// A sheet with no segment spacing has NO gap (= the engine's own
+    /// paragraph gap is the only gap).
     func testNoSegmentSpacingAddsNoHeight() {
         var sheet = BookStyleSheet.default
         sheet.segmentSpacing = .none
         let style = EngineStyleSheetBridge.paragraphStyle(for: sheet)
 
-        XCTAssertEqual(style.lineHeightExtraSpacing, 0)
+        XCTAssertEqual(style.spacingFactor, 0, accuracy: 0.0001)
+    }
+
+    /// THE FIRST-LINE INDENT REACHES THE ENGINE.
+    ///
+    /// MUTATION: = leaving it out of the paragraph style (= the engine's
+    /// knob exists now) = would store the indent and never draw it.
+    func testTheFirstLineIndentReachesTheEngine() {
+        var sheet = BookStyleSheet.default
+        sheet.bodySize = .medium
+        let style = EngineStyleSheetBridge.paragraphStyle(for: sheet)
+
+        // Two characters, = and a character is the body's size.
+        XCTAssertEqual(style.firstLineHeadIndent, 2 * 13, accuracy: 0.0001)
+
+        var plain = sheet
+        plain.firstLineIndent = .none
+        XCTAssertEqual(EngineStyleSheetBridge.paragraphStyle(for: plain).firstLineHeadIndent, 0, accuracy: 0.0001)
+    }
+
+    /// THE HEADING FACE REACHES THE ENGINE, = and it is the face that
+    /// follows the body (= a printed book's headings wear their own).
+    ///
+    /// MUTATION: = handing the BODY's face to the headings (= the engine's
+    /// default) = would draw the headings in the body's face.
+    func testTheHeadingFaceReachesTheEngine() {
+        var sheet = BookStyleSheet.default
+        sheet.bodyFamily = .songti
+        XCTAssertEqual(EngineStyleSheetBridge.fontName(for: sheet), "Songti SC")
+        XCTAssertEqual(EngineStyleSheetBridge.headingFontName(for: sheet), "Heiti SC")
+
+        sheet.bodyFamily = .kai
+        XCTAssertEqual(EngineStyleSheetBridge.headingFontName(for: sheet), "Kaiti SC")
     }
 
     /// The sheet is the model's own truth, = and a knob moves it to a
@@ -142,9 +182,9 @@ final class EngineStyleSheetBridgeTests: XCTestCase {
     /// size, = say) = would leave the engine rendering the old size
     /// after the knob moved.
     ///
-    /// THE FIRST-LINE INDENT DOES NOT MOVE IT: = the engine has no
-    /// knob for it (= it is the one value waiting for the upstream
-    /// package), = and a remount for a value the engine cannot apply
+    /// EVERY KNOB MOVES IT: = the engine honors all five now (= the
+    /// first-line indent included, = because the engine's own knob for
+    /// it is ours), = and a remount for a value the engine cannot apply
     /// would throw away the caret for nothing.
     func testTheFingerprintFollowsTheSheetsValues() {
         var sheet = BookStyleSheet.default
@@ -153,8 +193,8 @@ final class EngineStyleSheetBridgeTests: XCTestCase {
         // A sheet that does not change has the same fingerprint.
         XCTAssertEqual(EngineStyleSheetBridge.fingerprint(for: sheet), base)
 
-        // Every knob THE ENGINE HONORS moves the fingerprint.
-        for knob in BookStyleKnob.allCases where knob != .firstLineIndent {
+        // Every knob moves the fingerprint.
+        for knob in BookStyleKnob.allCases {
             var moved = sheet
             switch knob {
             case .bodySize: moved.bodySize = .large
@@ -170,14 +210,13 @@ final class EngineStyleSheetBridgeTests: XCTestCase {
             )
         }
 
-        // The first-line indent is the upstream gap: = the engine has
-        // no knob for it, = so it must NOT remount the editor.
+        // The first-line indent DOES move it: = the engine applies it.
         var indented = sheet
         indented.firstLineIndent = .none
-        XCTAssertEqual(
+        XCTAssertNotEqual(
             EngineStyleSheetBridge.fingerprint(for: indented),
             base,
-            "the engine cannot apply the first-line indent, = so it must not remount for it"
+            "the engine applies the first-line indent, = so it must remount for it"
         )
     }
 }

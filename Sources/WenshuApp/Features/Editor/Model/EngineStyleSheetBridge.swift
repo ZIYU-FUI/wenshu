@@ -12,25 +12,28 @@
 //
 //  WHAT THE ENGINE TAKES
 //
-//  The engine's configuration carries the heading sizes as
-//  MULTIPLIERS of its base font (= `headings.fontMultipliers`), = its
-//  paragraph spacing as a factor (= `paragraph.spacingFactor`) and
-//  an extra height (= `paragraph.lineHeightExtraSpacing`), = and its
-//  base font as a NAME and a SIZE (= `NativeTextViewWrapper`'s
-//  `fontName:` and `fontSize:`). = So the sheet's own numbers are
-//  turned into those: = the ladder's absolute sizes become
-//  multipliers of the body's size, = and the sheet's line spacing
-//  becomes the factor.
+//  The engine's configuration carries the heading sizes as MULTIPLIERS
+//  of its base font (= `headings.fontMultipliers`), = the heading FACE
+//  beside it (= `headings.fontName`), = the line height as a multiple
+//  of the body's own size (= `paragraph.lineHeightMultipleOfFontSize`),
+//  = the paragraph gap as a fraction of that line height (=
+//  `paragraph.spacingFactor`), = and the first line's indent in points
+//  (= `paragraph.firstLineHeadIndent`). = So the sheet's own numbers are
+//  turned into those: = the ladder's absolute sizes become multipliers
+//  of the body's size, = the line spacing becomes the multiple, = the
+//  segment spacing becomes the fraction, = and the first-line indent
+//  becomes the points.
 //
-//  WHAT THE ENGINE CANNOT TAKE YET
+//  THE THREE KNOBS THE ENGINE COULD NOT TAKE (BEFORE THEY WERE OURS)
 //
-//  Two of the sheet's values have no engine knob: = a heading face
-//  DISTINCT from the body's (= the engine has one base font, = and a
-//  heading is the base font at a multiplier), = and a first-line
-//  indent (= the engine sets a first-line indent for code blocks,
-//  lists and quotes, = and not for a body paragraph). = Those two
-//  stay in the sheet (= the sheet is the book's own truth) = and
-//  wait for the upstream package to carry them.
+//  A heading face distinct from the body's, = a first-line indent on a
+//  body paragraph, = and a line spacing as a MULTIPLE (the engine's own
+//  line-height knob adds POINTS to the font's natural leading, = so it
+//  cannot say "1.55 times the body size"). = The engine is vendored in
+//  this repository now (= `Vendor/MarkdownEngine`), = so those three are
+//  the engine's own knobs (= `HeadingStyle.fontName`, =
+//  `ParagraphStyle.lineHeightMultipleOfFontSize` and =
+//  `ParagraphStyle.firstLineHeadIndent`).
 //
 
 import Foundation
@@ -60,6 +63,15 @@ enum EngineStyleSheetBridge {
         sheet.bodyFamily.postScriptName
     }
 
+    /// The engine's HEADING FACE for a sheet.
+    ///
+    /// A printed book's headings wear a different face from its body
+    /// (= Heiti over a Songti body), = and the engine takes that face
+    /// beside the body's own (= `headings.fontName`).
+    static func headingFontName(for sheet: BookStyleSheet) -> String {
+        sheet.bodyFamily.headingPostScriptName
+    }
+
     /// The engine's base font SIZE for a sheet (= the body's size).
     static func fontSize(for sheet: BookStyleSheet) -> CGFloat {
         CGFloat(sheet.bodySize.points)
@@ -67,17 +79,28 @@ enum EngineStyleSheetBridge {
 
     /// The engine's paragraph style for a sheet.
     ///
-    /// The line spacing becomes the spacing FACTOR (= the engine adds
-    /// it to its own line height), = and the segment spacing becomes
-    /// the extra height between paragraphs (= the engine's own
-    /// paragraph gap is a fraction of the line height, = so the
-    /// sheet's half-character segment spacing is added as points:
-    /// = half a CHARACTER, = and a character is the body's size).
+    /// THE LINE SPACING = the engine's line height as a MULTIPLE OF THE
+    /// BODY'S OWN SIZE (= 行距 1.55 = = 1.55 x 13pt). = The engine's other
+    /// line-height knob adds POINTS to the font's natural leading, = so it
+    /// cannot express a multiple, = and it stays unused here.
+    ///
+    /// THE SEGMENT SPACING = the engine's paragraph gap, = which is a
+    /// FRACTION OF THE LINE HEIGHT. = So the sheet's half-character gap
+    /// is half a character over the line height (= 0.5 / 1.55), = and
+    /// "none" is zero (= no gap at all).
+    ///
+    /// THE FIRST-LINE INDENT = the engine's first-line indent, = in
+    /// points (= the sheet's characters over the body's own size).
     static func paragraphStyle(for sheet: BookStyleSheet) -> ParagraphStyle {
         var style = ParagraphStyle()
-        style.spacingFactor = CGFloat(sheet.lineSpacing.multiple)
-        style.lineHeightExtraSpacing = CGFloat(
-            sheet.segmentSpacing.characters * sheet.bodySize.points
+        let multiple = CGFloat(sheet.lineSpacing.multiple)
+        style.lineHeightMultipleOfFontSize = multiple > 0 ? multiple : nil
+        style.lineHeightExtraSpacing = 0
+        style.spacingFactor = multiple > 0
+            ? CGFloat(sheet.segmentSpacing.characters) / multiple
+            : 0
+        style.firstLineHeadIndent = CGFloat(
+            sheet.firstLineIndent.characters * sheet.bodySize.points
         )
         return style
     }
@@ -90,9 +113,9 @@ enum EngineStyleSheetBridge {
     /// = so a new configuration does NOT reach a live editor. = So the
     /// engine view is keyed by the sheet's own values: = a sheet that
     /// changes REMOUNTS the engine (= a fresh base font, = fresh
-    /// heading multipliers, = fresh paragraph spacing), = and a sheet
-    /// that does not change leaves the editor alone (= no remount, = no
-    /// lost caret, = no lost scroll).
+    /// heading multipliers and face, = fresh paragraph spacing), = and a
+    /// sheet that does not change leaves the editor alone (= no remount,
+    /// = no lost caret, = no lost scroll).
     ///
     /// It is the sheet's VALUES (= not its identity), = so a book whose
     /// sheet is written back remounts the engine, = and a book whose
@@ -103,6 +126,7 @@ enum EngineStyleSheetBridge {
             sheet.bodySize.rawValue,
             sheet.lineSpacing.rawValue,
             sheet.segmentSpacing.rawValue,
+            sheet.firstLineIndent.rawValue,
             sheet.headingLadder.rawValue,
             sheet.quoteFamily.rawValue,
         ].joined(separator: "|")

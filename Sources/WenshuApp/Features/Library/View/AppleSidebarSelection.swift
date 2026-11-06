@@ -126,9 +126,9 @@ extension AppleSidebarView {
     /// IS THE ACTIVE ONE, = and the style sheet's page and the editor
     /// both read it (= the sheet is keyed by book id). = It had NO
     /// writer in production (= `BookStore.reload(bookId:)` has no
-    /// caller, = and the write that used to live here was deleted in
-    /// 0db3cd0fde), = so the field stayed nil and every reader fell
-    /// back to the print baseline. = So the selection writes it.
+    /// caller, = and the write that used to live here is gone), = so
+    /// the field stayed nil and every reader fell back to the print
+    /// baseline. = So the selection writes it.
     ///
     /// A FOLDER ROW writes the book that OWNS the folder (= the same
     /// book the `.folder` selection resolves to), = so the store and

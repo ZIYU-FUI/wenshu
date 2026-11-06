@@ -43,7 +43,7 @@ enum ExportKind: String, CaseIterable, Identifiable, Sendable {
 }
 
 /// `ExportSheet` body. Hosts the three sections + the unified
-/// `Export` / `` button row.
+/// `Export` / `Cancel` button row.
 struct ExportSheet: View {
     /// Bumps when `exportSheetRequest` increments (= from the
     /// File → Export… menu). The parent flips this to dismiss.

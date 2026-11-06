@@ -45,6 +45,8 @@ struct WenshuMarkdownEditor: View {
     /// `fontSize:`, = below).
     private var adjustedConfiguration: MarkdownEditorConfiguration {
         var config = surface.configuration
+        config.headings.fontName = EngineStyleSheetBridge
+            .headingFontName(for: styleSheet)
         config.headings.fontMultipliers = EngineStyleSheetBridge
             .headingMultipliers(for: styleSheet)
         config.paragraph = EngineStyleSheetBridge.paragraphStyle(for: styleSheet)

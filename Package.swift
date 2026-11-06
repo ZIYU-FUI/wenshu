@@ -46,7 +46,12 @@ let package = Package(
         // (.hierarchical).
 
         // RUNTIME — chapter editor (v0.39 ticket 001, boss 2026-09-04 OOB '尝试接入')
-        // Adopted per .scratch/2026-09-04-editor-migration/spec.md §2.1. nodes-app/swift-markdown-engine
+        // Adopted per .scratch/2026-09-04-editor-migration/spec.md §2.1. = the
+        // markdown engine is VENDORED (Vendor/MarkdownEngine) = at upstream
+        // 0.13.0 (d1421012), = because the book style sheet needs three knobs
+        // the upstream does not ship (= the heading face, = the first-line
+        // indent, = the line-spacing multiple), = and the upstream is read-only
+        // for us (= no push access, = no writable fork).
         // = 971★ / Apache-2.0 / 3 contributors / Munich+Zurich / 0.12.0 latest 2026-08-10
         // (= macOS 14+ only, TextKit 2, half-year 5 minor releases). Per AGENTS.md §11.1
         // 4-criteria gate (= 100★ + 12mo + Apache-2.0 + macOS-first) all met. SPM product
@@ -60,7 +65,7 @@ let package = Package(
         // the directive glyph + autocomplete surface (= a wider API delta; = planned
         // upgrade ticket once 0.14.1 lands). Range "0.13.0"..<"0.14.0" keeps the
         // pre-1.0 SemVer rule anchored at 0.13.0 (= SPM does NOT climb to 0.14.x).
-        .package(url: "https://github.com/nodes-app/swift-markdown-engine", "0.13.0"..<"0.14.0"),
+        .package(path: "Vendor/MarkdownEngine"),
 
         // RUNTIME — UI enhancement: code-fence syntax highlight. Highlighter itself
         // is reached through MarkdownEngineCodeBlocks.HighlighterSwiftBridge; the
@@ -103,11 +108,11 @@ let package = Package(
                 // RUNTIME — Apple SF Symbols 6 (= built into macOS 27; = zero SPM
                 // dependency; = see top-level note in the dependencies array).
                 // v0.39 ticket 001: chapter editor.
-                .product(name: "MarkdownEngineCodeBlocks", package: "swift-markdown-engine"),
+                .product(name: "MarkdownEngineCodeBlocks", package: "MarkdownEngine"),
                 // LaTeX rendering via SwiftMathBridge (= enable 2026-10-11 boss拍).
                 // Same Package, separate product. Hosts SwiftMath 1.7.3 transitively
                 // (= Package.resolved already pins it).
-                .product(name: "MarkdownEngineLatex", package: "swift-markdown-engine"),
+                .product(name: "MarkdownEngineLatex", package: "MarkdownEngine"),
                 .product(name: "EventSource", package: "EventSource"),
             ],
             path: "Sources/WenshuApp",
@@ -167,7 +172,7 @@ let package = Package(
                 .product(name: "WenshuData", package: "WenshuData"),
                 .product(name: "ViewInspector", package: "viewinspector"),
                 // 2026-10-11 LaTeX regression gate (= factory wires SwiftMathBridge).
-                .product(name: "MarkdownEngineLatex", package: "swift-markdown-engine"),
+                .product(name: "MarkdownEngineLatex", package: "MarkdownEngine"),
             ],
             path: "Tests/WenshuAppTests",
             // v0.46 fix: 'wenshu' found 13 unhandled files in
