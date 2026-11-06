@@ -573,8 +573,20 @@ public struct BlockquoteStyle: Sendable {
     /// Extra height (points) added to the default line height for blockquote lines.
     public var extraLineHeight: CGFloat
 
-    public init(extraLineHeight: CGFloat = 0) {
+    /// The face a quote wears (= nil = the body's own face).
+    public var fontName: String?
+
+    /// The size a quote is set at (= nil = the body's own size).
+    public var fontSize: CGFloat?
+
+    public init(
+        extraLineHeight: CGFloat = 0,
+        fontName: String? = nil,
+        fontSize: CGFloat? = nil
+    ) {
         self.extraLineHeight = extraLineHeight
+        self.fontName = fontName
+        self.fontSize = fontSize
     }
 
     public static let `default` = BlockquoteStyle()

@@ -50,6 +50,7 @@ struct WenshuMarkdownEditor: View {
         config.headings.fontMultipliers = EngineStyleSheetBridge
             .headingMultipliers(for: styleSheet)
         config.paragraph = EngineStyleSheetBridge.paragraphStyle(for: styleSheet)
+        config.blockquote = EngineStyleSheetBridge.blockquoteStyle(for: styleSheet)
         return config
     }
 

@@ -20,6 +20,19 @@ UPSTREAMS_JSON = REPO_ROOT / "upstreams.json"
 NOTICES_MD = REPO_ROOT / "THIRD_PARTY_NOTICES.md"
 
 
+# Vendored trees (= a dependency taken INTO the tree instead of
+# fetched) = the upstream each one carries, = the version that was
+# taken, = and the commit it was taken at.  A vendored tree is listed
+# exactly like a fetched one (= the license and the reason come from
+# the maps above), = because the code still carries that upstream's
+# licence and the notice is where the attribution lives.
+VENDORED = {
+    "Vendor/MarkdownEngine": {
+        "name": "nodes-app/swift-markdown-engine",
+        "version": "0.13.0 (vendored at d1421012)",
+    },
+}
+
 def parse_package_swift(text: str) -> list[dict]:
     """
     Parse the SPM dependencies block. Each upstream gets:
@@ -31,6 +44,9 @@ def parse_package_swift(text: str) -> list[dict]:
     - reason (= one-line description; = extracted from the comment
       block above the dependency, if present)
     """
+    # Block: .package(path: "Vendor/...") (= a vendored tree, = one
+    # of the VENDORED table's paths).
+    path_re = re.compile(r'\.package\(\s*path:\s*"([^"]+)"\s*\)', re.MULTILINE)
     # Block: .package(url: "...", exact: "X") or
     #        .package(url: "...", from: "X") or
     #        .package(url: "...", "X"..<"Y") (= SPM range syntax
@@ -77,6 +93,20 @@ def parse_package_swift(text: str) -> list[dict]:
         return url
 
     upstreams = []
+    # The vendored trees come first (= a path dependency, = so the tree
+    # is already in the repo before anything is fetched).
+    for m in path_re.finditer(text):
+        vendored = VENDORED.get(m.group(1))
+        if vendored is None:
+            continue
+        slug = vendored["name"]
+        upstreams.append({
+            "name": slug,
+            "url": f"https://github.com/{slug}",
+            "version": vendored["version"],
+            "license": LICENSE_MAP.get(slug, "Unknown"),
+            "reason": REASON_MAP.get(slug, "Wenshu SPM dependency."),
+        })
     # Use the matched comment-block pattern to associate a comment
     # with the .package line.
     for m in pkg_re.finditer(text):

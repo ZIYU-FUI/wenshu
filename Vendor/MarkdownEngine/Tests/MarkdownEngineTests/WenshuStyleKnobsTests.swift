@@ -115,4 +115,24 @@ struct WenshuStyleKnobsTests {
 
         #expect(style.headIndent == 26, "two characters at 13pt")
     }
+
+    @Test("a quote wears a face and a size of its own (= the print quote)")
+    func theQuoteWearsItsOwnFaceAndSize() {
+        var config = MarkdownEditorConfiguration.default
+        config.blockquote.fontName = "Kaiti SC"
+        config.blockquote.fontSize = 12.5
+
+        let styled = MarkdownASTStyler.styleAttributes(
+            text: "> 引文",
+            fontName: "Songti SC",
+            fontSize: 13,
+            configuration: config
+        )
+        let fonts = styled.compactMap { $0.1[.font] as? NSFont }
+
+        #expect(fonts.contains { $0.fontName.contains("Kaiti") },
+                "the quote must wear the quote's face")
+        #expect(fonts.contains { $0.pointSize == 12.5 },
+                "the quote must be set at the quote's size")
+    }
 }

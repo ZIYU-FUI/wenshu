@@ -105,6 +105,18 @@ enum EngineStyleSheetBridge {
         return style
     }
 
+    /// The engine's BLOCKQUOTE STYLE for a sheet.
+    ///
+    /// A print quote is a different face AND a different size from the
+    /// body (= the sheet's quote wears Kai at the quote's own size), =
+    /// and the engine takes that beside its base font.
+    static func blockquoteStyle(for sheet: BookStyleSheet) -> BlockquoteStyle {
+        var style = BlockquoteStyle()
+        style.fontName = sheet.quoteFamily.postScriptName
+        style.fontSize = CGFloat(sheet.quoteSize)
+        return style
+    }
+
     /// The sheet's FINGERPRINT: = what the editor's engine view is
     /// keyed by.
     ///

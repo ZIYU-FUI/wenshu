@@ -731,7 +731,19 @@ enum MarkdownASTStyler {
             let para = NSMutableParagraphStyle()
             para.firstLineHeadIndent = textIndent
             para.headIndent = textIndent
-            let lineHeight = ctx.baseLineHeight + ctx.config.blockquote.extraLineHeight
+            // A quote may wear a face and a size of its own (= a print
+            // quote is a different face AND a different size), = and the
+            // line height follows the size it is set at.
+            let quoteFont: NSFont? = {
+                guard let name = ctx.config.blockquote.fontName else { return nil }
+                let size = ctx.config.blockquote.fontSize ?? ctx.baseFont.pointSize
+                return NSFont(name: name, size: size)
+            }()
+            let quoteSizeRatio = quoteFont.map {
+                $0.pointSize / max(ctx.baseFont.pointSize, 1)
+            } ?? 1
+            let lineHeight = (ctx.baseLineHeight * quoteSizeRatio)
+                + ctx.config.blockquote.extraLineHeight
             para.minimumLineHeight = lineHeight
             para.maximumLineHeight = lineHeight
             // Inner quote lines stay tight (0); the LAST line gets the normal
@@ -740,7 +752,12 @@ enum MarkdownASTStyler {
             attrs.append((ctx.ns.paragraphRange(for: tokenRange), [.paragraphStyle: para]))
 
             if contentRange.length > 0 {
-                attrs.append((contentRange, [.foregroundColor: ctx.theme.mutedText]))
+                var contentAttributes: [NSAttributedString.Key: Any] =
+                    [.foregroundColor: ctx.theme.mutedText]
+                if let quoteFont {
+                    contentAttributes[.font] = quoteFont
+                }
+                attrs.append((contentRange, contentAttributes))
             }
             if ctx.isActive(tokenRange) {
                 attrs.append((markerRange, [.foregroundColor: ctx.theme.mutedText]))

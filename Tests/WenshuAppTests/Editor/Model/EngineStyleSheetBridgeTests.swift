@@ -219,4 +219,27 @@ final class EngineStyleSheetBridgeTests: XCTestCase {
             "the engine applies the first-line indent, = so it must remount for it"
         )
     }
+
+    /// The sheet's quote reaches the engine as its OWN face and size
+    /// (= a print quote is a different face AND a different size from
+    /// the body).
+    ///
+    /// MUTATION: = leaving the quote on the body's face (= the engine
+    /// then draws the quote in the body, = and the sheet's quote is a
+    /// lie).
+    func testTheQuoteReachesTheEngineWithItsOwnFaceAndSize() {
+        let sheet = BookStyleSheet()
+        let style = EngineStyleSheetBridge.blockquoteStyle(for: sheet)
+
+        XCTAssertEqual(
+            style.fontName,
+            "Kaiti SC",
+            "the quote must wear the sheet's quote face"
+        )
+        XCTAssertEqual(
+            style.fontSize,
+            12.5,
+            "the quote must be set at the sheet's quote size"
+        )
+    }
 }

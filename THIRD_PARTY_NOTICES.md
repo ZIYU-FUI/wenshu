@@ -10,7 +10,7 @@ Total upstreams: **4**.
 ## nodes-app/swift-markdown-engine
 
 - **URL**: https://github.com/nodes-app/swift-markdown-engine
-- **Version**: unknown
+- **Version**: 0.13.0 (vendored at d1421012)
 - **License**: Apache-2.0
 - **Reason**: Markdown 渲染引擎 + LaTeX (Apple AttributedString 替代品)
 
