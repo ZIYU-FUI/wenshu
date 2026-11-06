@@ -2,69 +2,53 @@
 //
 // wenshu-side wrapper for swift-markdown-engine. Forwards link-click
 // callbacks to the engine's NativeTextViewWrapper.
-import SwiftUI
 import AppKit
 import MarkdownEngine
+import SwiftUI
 
 struct WenshuMarkdownEditor: View {
     @Binding var text: String
     let surface: EditorSurface
-    /// The engine's NativeTextView has an internal `baseFont` field
-    // (= NSFont.systemFont(ofSize: NSFont.systemFontSize) by default,
-    // = Apple canonical system default font size).
-    // EditorPreviewContent (= preview mode) uses SwiftUI's Apple
-    // canonical type-scale fonts: .title / .title2 / .title3 / .body
-    // (= NSFont.systemFontSize scaled via Apple's standard type
-    // scale). To make the edit mode visually match the preview
-    // mode, derive the engine's heading multipliers from Apple
-    // canonical NSFont.pointSize for each SwiftUI text style
-    // (= no magic numbers; = compute multipliers from NSFont.
-    // preferredFont(forTextStyle:) which is Apple AppKit API).
-    //
-    // Why not just set NSTextView.font: the engine's renderer reads
-    // its private `baseFont` (= not NSTextView.font) for markdown
-    // layout (= NSTextView.font would only affect text outside the
-    // engine's layout pipeline).
-    private var adjustedConfiguration: MarkdownEditorConfiguration {
-        var config = surface.configuration
-        // Apple HIG 1:1 editor font scale (= the canonical
-        // macOS 27 typography table per
-        // developer.apple.com/design/human-interface-guidelines/
-        // typography). The engine's per-level heading
-        // multipliers scale from the engine's base font
-        // (= `NativeTextViewWrapper(fontSize:)` below = 13 PT
-        // for `body`). Per Apple's text-style table:
-        // - body     = 13 PT = canonical editor body
-        // - title2   = 17 PT = H1 (one full step above body)
-        // - title3   = 15 PT = H2 (half step above body)
-        // - H3-H6    = 13 PT = flat with body (Apple's HIG
-        //              standard markdown convention: only H1
-        //              and H2 stand out from the body; =
-        //              matches Pages / Numbers / Xcode source
-        //              editor).
-        //
-        // Convert each Apple canonical size to a multiplier
-        // of the body base font (= preserves the engine's
-        // per-level scale semantics, = Apple canonical size
-        // relationships).
-        let base = NSFont.preferredFont(forTextStyle: .body).pointSize
-        let h1 = NSFont.preferredFont(forTextStyle: .title2).pointSize
-        let h2 = NSFont.preferredFont(forTextStyle: .title3).pointSize
-        let m: (CGFloat) -> CGFloat = { base == 0 ? 1.0 : $0 / base }
-        config.headings.fontMultipliers = [
-            m(h1), m(h2), m(base), m(base), m(base), m(base),
-        ]
-        return config
+
+    /// The library's books (= the sheet the editor renders with).
+    @Environment(BookStore.self) private var bookStore
+
+    /// The sheet the editor renders with.
+    ///
+    /// The sheet is the BOOK's (= keyed by book id), = and the editor
+    /// renders the book the store is on (= `selectedBookId`, = the book
+    /// whose directory the engine's services are given). = A book with
+    /// no sheet reads the print baseline (= the model's own
+    /// `effectiveStyleSheet`), = so the editor never invents a sheet of
+    /// its own.
+    private var styleSheet: BookStyleSheet {
+        guard let bookID = bookStore.selectedBookId,
+              let book = bookStore.books.first(where: { $0.id == bookID })
+        else { return .default }
+        return book.effectiveStyleSheet
     }
 
-    /// Engine base font = `body` (= 13 PT on macOS 27 = the
-    /// Apple HIG canonical editor body size). Sourced from
-    /// `DesignTokens.bodyFontSize` (= single Apple HIG
-    /// reference for body-text point size; = the chat zone's
-    /// SwiftUI `.font(.body)` resolves to the same number, so
-    /// the two zones render body text at byte-identical metrics).
-    private var bodyBaseFontSize: CGFloat {
-        DesignTokens.bodyFontSize
+    /// The engine's configuration, with the SHEET's own values in it.
+    ///
+    /// The engine's per-level heading sizes are MULTIPLIERS of its base
+    /// font (= `headings.fontMultipliers`), = and the sheet's ladder
+    /// holds the printed ABSOLUTE sizes, = so each level is divided by
+    /// the body's size (= `EngineStyleSheetBridge`). = The paragraph
+    /// spacing is the sheet's own (= the line spacing as a factor, =
+    /// the segment spacing as an extra height).
+    ///
+    /// Why not just set NSTextView.font: the engine's renderer reads
+    /// its private `baseFont` (= not NSTextView.font) for markdown
+    /// layout (= NSTextView.font would only affect text outside the
+    /// engine's layout pipeline). = So the base font is set where the
+    /// engine takes it (= `NativeTextViewWrapper`'s `fontName:` and
+    /// `fontSize:`, = below).
+    private var adjustedConfiguration: MarkdownEditorConfiguration {
+        var config = surface.configuration
+        config.headings.fontMultipliers = EngineStyleSheetBridge
+            .headingMultipliers(for: styleSheet)
+        config.paragraph = EngineStyleSheetBridge.paragraphStyle(for: styleSheet)
+        return config
     }
 
     var body: some View {
@@ -115,14 +99,12 @@ struct WenshuMarkdownEditor: View {
         // `WenshuEditorServicesFactory` pins it), so `centerReadingColumn`
         // never runs (= the engine's own guard: `if configuration.readingWidth
         // != nil`), and the engine tracks the parent's width instead.
-        Group {
-            if surface.configuration.heightBehavior == .fitsContent {
-                ScrollView(.vertical) {
-                    engine
-                }
-            } else {
+        if surface.configuration.heightBehavior == .fitsContent {
+            ScrollView(.vertical) {
                 engine
             }
+        } else {
+            engine
         }
     }
 
@@ -143,8 +125,8 @@ struct WenshuMarkdownEditor: View {
             // multiplier H1 = 17/13 ≈ 1.308 gives H1 = 13 × 1.308
             // = 17 PT = matches Apple `.title2` = the canonical
             // H1 size.
-            fontName: "SF Pro",
-            fontSize: bodyBaseFontSize,
+            fontName: EngineStyleSheetBridge.fontName(for: styleSheet),
+            fontSize: EngineStyleSheetBridge.fontSize(for: styleSheet),
             documentId: surface.draftId,
             isEditable: surface.isEditable,
             onLinkClick: surface.onLinkClick,
@@ -170,5 +152,32 @@ struct WenshuMarkdownEditor: View {
                 EditorScrollMemory.restore(for: documentId)
             }
         )
+        .id(styleSheetFingerprint)
+    }
+
+    /// The sheet's own fingerprint (= what the engine view is keyed by).
+    ///
+    /// THE ENGINE DOES NOT TAKE A CONFIGURATION CHANGE
+    ///
+    /// The engine's `updateNSView` does NOT write back `headings`,
+    /// `paragraph` or `theme` (= `NativeTextViewWrapper.swift:397+`),
+    /// = so a new configuration does NOT reach a live editor. = So the
+    /// engine view is keyed by the sheet's own VALUES: = a sheet that
+    /// changes REMOUNTS the engine (= a fresh `NativeTextViewWrapper`
+    /// = a fresh base font, = fresh heading multipliers, = fresh
+    /// paragraph spacing), = and a sheet that does not change leaves
+    /// the editor alone (= no remount, = no lost caret, = no lost
+    /// scroll). = This is the same decision the book switch already
+    /// made (= the editor remounts when the book changes).
+    private var styleSheetFingerprint: String {
+        let sheet = styleSheet
+        return [
+            sheet.bodyFamily.rawValue,
+            sheet.bodySize.rawValue,
+            sheet.lineSpacing.rawValue,
+            sheet.segmentSpacing.rawValue,
+            sheet.headingLadder.rawValue,
+            sheet.quoteFamily.rawValue,
+        ].joined(separator: "|")
     }
 }

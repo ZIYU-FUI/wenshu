@@ -96,10 +96,33 @@ struct InspectorStylePageView: View {
         InspectorFormatGroup(title: String(localized: "inspector.style.group.tuning")) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                 ForEach(model.knobs) { knob in
-                    InspectorStyleKnobView(knob: knob)
+                    InspectorStyleKnobView(knob: knob) { position in
+                        moveKnob(knob.id, to: position)
+                    }
                 }
             }
         }
+    }
+
+    /// Move one knob of the book to a position, and persist the book.
+    ///
+    /// The write-back is the LIBRARY's own operation (= the page calls
+    /// the same one the tests measure), = so the knob moves on the
+    /// book's sheet (= `Book.styleSheet`), = and the book is saved
+    /// through the app's own save path for an existing book (= its
+    /// `book.json`). = So the editor renders the new sheet (= the
+    /// editor keys the engine by the sheet's values), = and the book
+    /// keeps it (= the sheet is the book's own truth).
+    private func moveKnob(_ knobID: String, to position: String) {
+        guard let knob = BookStyleKnob(rawValue: knobID),
+              let bookID = currentBookID
+        else { return }
+        BookStyleSheetWriteBack.apply(
+            knob: knob,
+            position: position,
+            to: bookID,
+            store: bookStore
+        )
     }
 
     /// What the page shows (= the selected book's own sheet).
@@ -446,6 +469,10 @@ struct InspectorStyleKnobView: View {
     /// The knob this row carries.
     let knob: InspectorStyleKnob
 
+    /// What happens when a position is chosen (= the page writes the
+    /// position back onto the book's sheet).
+    let onChoose: (String) -> Void
+
     var body: some View {
         HStack(spacing: DesignTokens.spacingTight) {
             Text(knob.name)
@@ -458,26 +485,22 @@ struct InspectorStyleKnobView: View {
 
     /// The knob's drop-down.
     ///
-    /// The menu carries the positions the knob can take, and they are
-    /// DISABLED: = this card writes nothing back (= the write-back and
-    /// the injection into the engine are the engine card's work), = so
-    /// the drop-down shows the scale and leaves the book's own position
-    /// where it is.
-    ///
-    /// The menu's label is the book's position, = so the accessibility
-    /// tree publishes that position (= a SwiftUI `Menu` publishes its
-    /// label, = and a `Text` publishes nothing).
+    /// The menu carries the positions the knob can take, = and choosing
+    /// one writes it back onto the book's sheet (= the page's own
+    /// action). = The position the book already sits at is the menu's
+    /// label, = so the accessibility tree publishes that position (= a
+    /// SwiftUI `Menu` publishes its label, = and a `Text` publishes
+    /// nothing).
     private var knobMenu: some View {
         ZStack(alignment: .leading) {
             knobBlock
             Menu {
                 ForEach(knob.positions, id: \.self) { position in
                     Button {
-                        notePosition(position)
+                        onChoose(position)
                     } label: {
                         Text(position)
                     }
-                    .disabled(true)
                 }
             } label: {
                 Text(knob.current).opacity(0)
@@ -486,15 +509,6 @@ struct InspectorStyleKnobView: View {
             .menuIndicator(.hidden)
             .frame(maxWidth: .infinity)
         }
-    }
-
-    /// Note the position a knob could take.
-    ///
-    /// Nothing is chosen: = the knobs are READ-ONLY on this card (= the
-    /// write-back and = the injection into the engine are the engine
-    /// card's work), = so the button is disabled and this never runs.
-    private func notePosition(_ position: String) {
-        _ = position
     }
 
     /// The drawn block the drop-down rides on (= Pages' drop-down: =

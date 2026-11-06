@@ -318,6 +318,50 @@ struct BookStyleSheet: Codable, Hashable, Sendable {
     var tableCaptionSize: Double {
         11
     }
+
+    /// The sheet with one knob moved to a position.
+    ///
+    /// A knob moves to a POSITION (= its enum's own name), = so a
+    /// position this build does not know leaves the sheet alone
+    /// (= the persisted field never carries a value the sheet cannot
+    /// read back). = This is the domain's own operation, = so the page
+    /// and the tests move a knob the same way.
+    func setting(_ knob: BookStyleKnob, to position: String) -> BookStyleSheet {
+        var sheet = self
+        switch knob {
+        case .bodySize:
+            guard let value = BookBodySize(rawValue: position) else { return self }
+            sheet.bodySize = value
+        case .lineSpacing:
+            guard let value = BookLineSpacing(rawValue: position) else { return self }
+            sheet.lineSpacing = value
+        case .firstLineIndent:
+            guard let value = BookFirstLineIndent(rawValue: position) else { return self }
+            sheet.firstLineIndent = value
+        case .segmentSpacing:
+            guard let value = BookSegmentSpacing(rawValue: position) else { return self }
+            sheet.segmentSpacing = value
+        case .bodyFamily:
+            guard let value = BookBodyFamily(rawValue: position) else { return self }
+            sheet.bodyFamily = value
+        }
+        return sheet
+    }
+}
+
+// MARK: - The knobs
+
+/// The five knobs a book's style sheet is fine-tuned with.
+///
+/// The knob's NAME is the persisted field's name (= the page's knob
+/// id), = so a knob id and the sheet's own property are the same
+/// string (= no second mapping to keep in step).
+enum BookStyleKnob: String, CaseIterable, Sendable {
+    case bodySize
+    case lineSpacing
+    case firstLineIndent
+    case segmentSpacing
+    case bodyFamily
 }
 
 // MARK: - Codable back-compat
