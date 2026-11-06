@@ -81,4 +81,30 @@ enum EngineStyleSheetBridge {
         )
         return style
     }
+
+    /// The sheet's FINGERPRINT: = what the editor's engine view is
+    /// keyed by.
+    ///
+    /// The engine's `updateNSView` does NOT write back `headings`,
+    /// `paragraph` or `theme` (= `NativeTextViewWrapper.swift:397+`),
+    /// = so a new configuration does NOT reach a live editor. = So the
+    /// engine view is keyed by the sheet's own values: = a sheet that
+    /// changes REMOUNTS the engine (= a fresh base font, = fresh
+    /// heading multipliers, = fresh paragraph spacing), = and a sheet
+    /// that does not change leaves the editor alone (= no remount, = no
+    /// lost caret, = no lost scroll).
+    ///
+    /// It is the sheet's VALUES (= not its identity), = so a book whose
+    /// sheet is written back remounts the engine, = and a book whose
+    /// sheet is unchanged does not.
+    static func fingerprint(for sheet: BookStyleSheet) -> String {
+        [
+            sheet.bodyFamily.rawValue,
+            sheet.bodySize.rawValue,
+            sheet.lineSpacing.rawValue,
+            sheet.segmentSpacing.rawValue,
+            sheet.headingLadder.rawValue,
+            sheet.quoteFamily.rawValue,
+        ].joined(separator: "|")
+    }
 }

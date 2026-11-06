@@ -131,4 +131,53 @@ final class EngineStyleSheetBridgeTests: XCTestCase {
             "bodySize", "lineSpacing", "firstLineIndent", "segmentSpacing", "bodyFamily",
         ])
     }
+
+    /// THE FINGERPRINT IS THE SHEET'S VALUES THE ENGINE HONORS: = a
+    /// sheet that changes them changes the fingerprint (= and so the
+    /// engine remounts), = and a sheet that does not change leaves it
+    /// alone (= and so the editor does not remount, = and keeps its
+    /// caret and its scroll).
+    ///
+    /// MUTATION: = a fingerprint that ignores a value (= the body
+    /// size, = say) = would leave the engine rendering the old size
+    /// after the knob moved.
+    ///
+    /// THE FIRST-LINE INDENT DOES NOT MOVE IT: = the engine has no
+    /// knob for it (= it is the one value waiting for the upstream
+    /// package), = and a remount for a value the engine cannot apply
+    /// would throw away the caret for nothing.
+    func testTheFingerprintFollowsTheSheetsValues() {
+        var sheet = BookStyleSheet.default
+        let base = EngineStyleSheetBridge.fingerprint(for: sheet)
+
+        // A sheet that does not change has the same fingerprint.
+        XCTAssertEqual(EngineStyleSheetBridge.fingerprint(for: sheet), base)
+
+        // Every knob THE ENGINE HONORS moves the fingerprint.
+        for knob in BookStyleKnob.allCases where knob != .firstLineIndent {
+            var moved = sheet
+            switch knob {
+            case .bodySize: moved.bodySize = .large
+            case .lineSpacing: moved.lineSpacing = .loose
+            case .firstLineIndent: moved.firstLineIndent = .none
+            case .segmentSpacing: moved.segmentSpacing = .halfCharacter
+            case .bodyFamily: moved.bodyFamily = .kai
+            }
+            XCTAssertNotEqual(
+                EngineStyleSheetBridge.fingerprint(for: moved),
+                base,
+                "the \(knob.rawValue) knob must move the fingerprint (= the engine remounts)"
+            )
+        }
+
+        // The first-line indent is the upstream gap: = the engine has
+        // no knob for it, = so it must NOT remount the editor.
+        var indented = sheet
+        indented.firstLineIndent = .none
+        XCTAssertEqual(
+            EngineStyleSheetBridge.fingerprint(for: indented),
+            base,
+            "the engine cannot apply the first-line indent, = so it must not remount for it"
+        )
+    }
 }

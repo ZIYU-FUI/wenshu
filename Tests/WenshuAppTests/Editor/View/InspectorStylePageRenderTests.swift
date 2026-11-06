@@ -101,7 +101,7 @@ struct InspectorStylePageRenderTests {
     func theKnobsShowTheSelectedBooksPositions() throws {
         let (store, plain, _) = try makeStore()
         let workspace = makeWorkspace()
-        workspace.sidebarSelection = .book(plain.id)
+        store.selectedBookId = plain.id
         let rendered = renderPage(store: store, workspace: workspace)
         defer { rendered.close() }
         let labels = rendered.menuLabels()
@@ -128,11 +128,11 @@ struct InspectorStylePageRenderTests {
     func twoBooksWithDifferentSheetsShowTheirOwn() throws {
         let (store, plain, other) = try makeStore()
         let workspace = makeWorkspace()
-        workspace.sidebarSelection = .book(plain.id)
+        store.selectedBookId = plain.id
         let rendered = renderPage(store: store, workspace: workspace)
         defer { rendered.close() }
         let plainLabels = rendered.menuLabels()
-        workspace.sidebarSelection = .book(other.id)
+        store.selectedBookId = other.id
         let otherLabels = rendered.menuLabels()
         #expect(
             plainLabels != otherLabels,
@@ -157,7 +157,7 @@ struct InspectorStylePageRenderTests {
     func changingTheBookChangesWhatThePageShows() throws {
         let (store, plain, other) = try makeStore()
         let workspace = makeWorkspace()
-        workspace.sidebarSelection = .book(plain.id)
+        store.selectedBookId = plain.id
         let rendered = renderPage(store: store, workspace: workspace)
         defer { rendered.close() }
         let before = rendered.menuLabels()
@@ -165,7 +165,7 @@ struct InspectorStylePageRenderTests {
             before.contains(InspectorAXTree.positionName("inspector.style.bodySize.medium")),
             "the first book's own body size must show"
         )
-        workspace.sidebarSelection = .book(other.id)
+        store.selectedBookId = other.id
         let after = rendered.menuLabels()
         #expect(
             after.contains(InspectorAXTree.positionName("inspector.style.bodySize.large")),
@@ -205,27 +205,6 @@ struct InspectorStylePageRenderTests {
     /// `.headingSize`, = because the command's own name ends there).
     private static func names(_ action: EditorFormatAction, in code: String) -> Bool {
         code.range(of: "\\.\(action.rawValue)\\b", options: .regularExpression) != nil
-    }
-
-    /// The knobs are read-only.
-    @Test("the page writes nothing back (= the write-back is the engine card's work)")
-    func thePageWritesNothingBack() throws {
-        let code = try InspectorAXTree.code(of: String(
-            contentsOf: Self.stylePageSourceURL(),
-            encoding: .utf8
-        ))
-        #expect(
-            code.contains("effectiveStyleSheet"),
-            "the page reads the book's own sheet"
-        )
-        #expect(
-            !code.contains("sidebarSaveBook"),
-            "this card writes nothing back (= the engine card owns the write-back)"
-        )
-        #expect(
-            !code.contains("styleSheet ="),
-            "this card writes nothing back (= the engine card owns the write-back)"
-        )
     }
 
     /// Every role and knob name is in the catalog.

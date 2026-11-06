@@ -152,32 +152,6 @@ struct WenshuMarkdownEditor: View {
                 EditorScrollMemory.restore(for: documentId)
             }
         )
-        .id(styleSheetFingerprint)
-    }
-
-    /// The sheet's own fingerprint (= what the engine view is keyed by).
-    ///
-    /// THE ENGINE DOES NOT TAKE A CONFIGURATION CHANGE
-    ///
-    /// The engine's `updateNSView` does NOT write back `headings`,
-    /// `paragraph` or `theme` (= `NativeTextViewWrapper.swift:397+`),
-    /// = so a new configuration does NOT reach a live editor. = So the
-    /// engine view is keyed by the sheet's own VALUES: = a sheet that
-    /// changes REMOUNTS the engine (= a fresh `NativeTextViewWrapper`
-    /// = a fresh base font, = fresh heading multipliers, = fresh
-    /// paragraph spacing), = and a sheet that does not change leaves
-    /// the editor alone (= no remount, = no lost caret, = no lost
-    /// scroll). = This is the same decision the book switch already
-    /// made (= the editor remounts when the book changes).
-    private var styleSheetFingerprint: String {
-        let sheet = styleSheet
-        return [
-            sheet.bodyFamily.rawValue,
-            sheet.bodySize.rawValue,
-            sheet.lineSpacing.rawValue,
-            sheet.segmentSpacing.rawValue,
-            sheet.headingLadder.rawValue,
-            sheet.quoteFamily.rawValue,
-        ].joined(separator: "|")
+        .id(EngineStyleSheetBridge.fingerprint(for: styleSheet))
     }
 }

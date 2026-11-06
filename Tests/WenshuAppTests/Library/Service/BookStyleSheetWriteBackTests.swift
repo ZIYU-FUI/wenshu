@@ -69,7 +69,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: root) }
         let book = try makeBook(in: store)
 
-        _ = BookStyleSheetWriteBack.apply(
+        _ = try BookStyleSheetWriteBack.apply(
             knob: .bodySize,
             position: BookBodySize.large.rawValue,
             to: book.id,
@@ -93,7 +93,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
         let book = try makeBook(in: store)
         XCTAssertNil(book.styleSheet, "the book starts with no sheet of its own")
 
-        _ = BookStyleSheetWriteBack.apply(
+        _ = try BookStyleSheetWriteBack.apply(
             knob: .bodyFamily,
             position: BookBodyFamily.kai.rawValue,
             to: book.id,
@@ -118,7 +118,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: root) }
         let book = try makeBook(in: store)
 
-        _ = BookStyleSheetWriteBack.apply(
+        _ = try BookStyleSheetWriteBack.apply(
             knob: .bodySize,
             position: "enormous",
             to: book.id,
@@ -137,7 +137,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: root) }
         let book = try makeBook(in: store)
 
-        _ = BookStyleSheetWriteBack.apply(
+        _ = try BookStyleSheetWriteBack.apply(
             knob: .lineSpacing,
             position: BookLineSpacing.tight.rawValue,
             to: book.id,
@@ -148,18 +148,104 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
         XCTAssertEqual(inStore?.effectiveStyleSheet.lineSpacing, .tight)
     }
 
-    /// A book the store does not carry changes nothing (= no crash, =
-    /// no file).
-    func testABookTheStoreDoesNotCarryChangesNothing() throws {
+    /// THE PAGE'S OWN MODEL OUTPUT MUST MOVE THE SHEET.
+    ///
+    /// This is the seam the page and the write-back share: = the model
+    /// the page renders (= `InspectorStylePageModel(sheet:)`) produces
+    /// the positions the menu shows, = and the menu hands the chosen
+    /// one to the write-back. = So the test drives THE PAGE'S OWN
+    /// MODEL into the write-back, = and reads the file back.
+    ///
+    /// WHY IT IS WRITTEN THIS WAY: = the write-back reads a position
+    /// by its RAW value (= the sheet's own enum's name), = and a model
+    /// that carried only the localized label could never move the
+    /// sheet (= every write was a no-op, = and the service's own tests
+    /// passed because they handed it raw values). = So the test hands
+    /// it exactly what the page hands it.
+    func testThePagesOwnModelOutputMovesTheSheet() throws {
         let (store, root) = try makeStore()
         defer { try? FileManager.default.removeItem(at: root) }
+        let book = try makeBook(in: store)
 
-        let result = BookStyleSheetWriteBack.apply(
+        // The page's own model (= the one the view renders).
+        let model = InspectorStylePageModel(sheet: book.effectiveStyleSheet)
+        let bodySize = try XCTUnwrap(
+            model.knobs.first { $0.id == BookStyleKnob.bodySize.rawValue }
+        )
+        // The position the menu would hand the write-back.
+        let large = try XCTUnwrap(
+            bodySize.positions.first { $0.rawValue == BookBodySize.large.rawValue }
+        )
+
+        try BookStyleSheetWriteBack.apply(
             knob: .bodySize,
-            position: BookBodySize.small.rawValue,
-            to: UUID(),
+            position: large.rawValue,
+            to: book.id,
             store: store
         )
-        XCTAssertNil(result)
+
+        let data = try readBookJSON(in: store, book)
+        let written = try JSONDecoder().decode(Book.self, from: data)
+        XCTAssertEqual(written.styleSheet?.bodySize, .large)
+    }
+
+    /// EVERY position the page's model offers must be one the sheet
+    /// can read back.
+    ///
+    /// MUTATION: = a model that localizes the position (= the display
+    /// name instead of the raw value) = would make every knob a no-op.
+    func testEveryPositionThePageOffersIsReadableByTheSheet() {
+        let model = InspectorStylePageModel(sheet: .default)
+        var unreadable: [String] = []
+        for knob in model.knobs {
+            for position in knob.positions {
+                let readable: Bool
+                switch BookStyleKnob(rawValue: knob.id) {
+                case .bodySize: readable = BookBodySize(rawValue: position.rawValue) != nil
+                case .lineSpacing: readable = BookLineSpacing(rawValue: position.rawValue) != nil
+                case .firstLineIndent: readable = BookFirstLineIndent(rawValue: position.rawValue) != nil
+                case .segmentSpacing: readable = BookSegmentSpacing(rawValue: position.rawValue) != nil
+                case .bodyFamily: readable = BookBodyFamily(rawValue: position.rawValue) != nil
+                case nil: readable = false
+                }
+                if !readable {
+                    unreadable.append("\(knob.id).\(position.rawValue)")
+                }
+            }
+        }
+        XCTAssertTrue(
+            unreadable.isEmpty,
+            "the sheet cannot read these positions: \(unreadable)"
+        )
+    }
+
+    /// THE SIDEBAR'S SELECTION WRITES THE STORE'S SELECTED BOOK.
+    ///
+    /// The sheet is keyed by book id, = and the store's selected book
+    /// is the app's one record of WHICH BOOK IS ACTIVE. = It had no
+    /// writer in production (= the field stayed nil, = and every
+    /// reader fell back to the print baseline), = so the sidebar's
+    /// selection writes it.
+    ///
+    /// This is the repo's own source-check idiom (= the same check the
+    /// reviewer made), = because the write lives in a SwiftUI view
+    /// whose environment cannot be driven from a test.
+    func testTheSidebarWritesTheStoresSelectedBook() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // Service
+            .deletingLastPathComponent() // Library
+            .deletingLastPathComponent() // WenshuAppTests
+            .deletingLastPathComponent() // Tests
+            .deletingLastPathComponent() // the worktree's root
+        let code = try String(
+            contentsOf: root.appendingPathComponent(
+                "Sources/WenshuApp/Features/Library/View/AppleSidebarSelection.swift"
+            ),
+            encoding: .utf8
+        )
+        XCTAssertTrue(
+            code.contains("bookStore.selectedBookId ="),
+            "nothing writes the store's selected book (= the sheet's book), = so every reader falls back to the print baseline"
+        )
     }
 }

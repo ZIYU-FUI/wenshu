@@ -32,8 +32,8 @@
 import SwiftUI
 
 extension AppleSidebarView {
-
     // MARK: Reference-row right-click helpers
+
     // (= the rename
     // sheet needs the
     // reference's
@@ -47,32 +47,32 @@ extension AppleSidebarView {
     /// `Kind` (= shelf / book / reference). The reference case uses
     /// `SidebarService. otherReferenceTitles` (= the v2.7 [archived-round] addition).
     func otherNamesForRename(target: SidebarRenamingTarget) -> [String] {
-    switch target.kind {
-    case .shelf:
-        return service?.otherShelfNames(excluding: target.itemId) ?? []
-    case .book:
-        return service?.otherBookTitles(excluding: target.itemId) ?? []
-    case .reference:
-        return service?.otherReferenceTitles(excluding: target.itemId) ?? []
-    case .bookDoc:
-        // the
-        // sidebar's
-        // own
-        // otherNames
-        // dispatch
-        // also
-        // gains a
-        // `.bookDoc`
-        // case
-        // (= same
-        // SidebarService
-        // method
-        // used by
-        // PreviewPane's
-        // rename
-        // sheet).
-        return service?.otherBookDocTitles(excluding: target.itemId) ?? []
-    }
+        switch target.kind {
+        case .shelf:
+            return service?.otherShelfNames(excluding: target.itemId) ?? []
+        case .book:
+            return service?.otherBookTitles(excluding: target.itemId) ?? []
+        case .reference:
+            return service?.otherReferenceTitles(excluding: target.itemId) ?? []
+        case .bookDoc:
+            // the
+            // sidebar's
+            // own
+            // otherNames
+            // dispatch
+            // also
+            // gains a
+            // `.bookDoc`
+            // case
+            // (= same
+            // SidebarService
+            // method
+            // used by
+            // PreviewPane's
+            // rename
+            // sheet).
+            return service?.otherBookDocTitles(excluding: target.itemId) ?? []
+        }
     }
 
     /// Resolve the current title of a reference by id (= the rename sheet's
@@ -83,10 +83,10 @@ extension AppleSidebarView {
     /// rename sheet opens with an empty name; = the user can still type a new
     /// one; = the save fails with `bookNotFound`).
     func referenceTitle(for id: UUID) -> String? {
-    guard let references = try? bookStore.loadAllReferences() else {
-        return nil
-    }
-    return references.first(where: { $0.id == id })?.title
+        guard let references = try? bookStore.loadAllReferences() else {
+            return nil
+        }
+        return references.first(where: { $0.id == id })?.title
     }
 
     /// ', ': context-menu builder (= extracted from the inline body of
@@ -119,133 +119,154 @@ extension AppleSidebarView {
     /// under each book are now visible in the sidebar; = the folder rows
     /// forward their selection to AppState.sidebarSelection AND open the folder
     /// in the editor's tab strip).
+    ///
+    /// THE STORE'S SELECTED BOOK IS WRITTEN HERE
+    ///
+    /// `BookStore.selectedBookId` is the app's one record of WHICH BOOK
+    /// IS THE ACTIVE ONE, = and the style sheet's page and the editor
+    /// both read it (= the sheet is keyed by book id). = It had NO
+    /// writer in production (= `BookStore.reload(bookId:)` has no
+    /// caller, = and the write that used to live here was deleted in
+    /// 0db3cd0fde), = so the field stayed nil and every reader fell
+    /// back to the print baseline. = So the selection writes it.
+    ///
+    /// A FOLDER ROW writes the book that OWNS the folder (= the same
+    /// book the `.folder` selection resolves to), = so the store and
+    /// the selection always name ONE book.
     func forwardSelection(_ node: SidebarNode?) {
-    // RATIONALE: the sidebar click
-    // is a scope filter only (= NOT
-    // a tab-opener; = the previous
-    // behavior fired
-    // `openFolderInEditor` /
-    // `openBookInEditor` on every
-    // click; = that mutates
-    // `appState.openTabs`; = the
-    // wenshu 1:1 macOS Finder
-    // canonical = "click to scope,
-    // double-click to open"). The
-    // sidebar selection is still
-    // recorded in
-    // `workspaceUI.sidebarSelection`
-    // (= the middle column re-scopes
-    // to show the cards inside the
-    // selected folder / book; = the
-    // user can see what's inside the
-    // folder without the editor
-    // automatically opening a tab).
-    guard let node else { return }
-    switch node.kind {
-    case .shelf:
-        workspaceUI.sidebarSelection = .shelf(node.id)
-    case .book:
-        // Determine if this is a real book (top-level row) or a
-        // folder row (child of a book). Folder rows have a
-        // parent in the sidebar tree (= the v1.68f folder
-        // children, = 5 standard folders per book); real books
-        // are children of a shelf. Walk the tree to disambiguate.
-        if let parent = Self.parentBookInfo(for: node.id, in: service?.nodes ?? []) {
-            // Folder row.
-            // RATIONALE 2026-10-13: the
-            // `openFolderInEditor(...)` call
-            // is removed (= the boss asked
-            // the sidebar click to NOT
-            // open a tab; = the sidebar
-            // click only records the
-            // selection in
-            // `workspaceUI.sidebarSelection`;
-            // = the middle column re-scopes
-            // to show the cards inside the
-            // folder; = the user can
-            // double-click a card to open
-            // a tab if they want to edit).
-            workspaceUI.sidebarSelection = .folder(bookId: parent.bookId, folderName: parent.folderName)
-        } else {
-            // Real book row. RATIONALE 2026-10-13:
-            // the `openBookInEditor(...)` call
-            // is removed (= same reason as
-            // the folder row above).
-            workspaceUI.sidebarSelection = .book(node.id)
+        // RATIONALE: the sidebar click
+        // is a scope filter only (= NOT
+        // a tab-opener; = the previous
+        // behavior fired
+        // `openFolderInEditor` /
+        // `openBookInEditor` on every
+        // click; = that mutates
+        // `appState.openTabs`; = the
+        // wenshu 1:1 macOS Finder
+        // canonical = "click to scope,
+        // double-click to open"). The
+        // sidebar selection is still
+        // recorded in
+        // `workspaceUI.sidebarSelection`
+        // (= the middle column re-scopes
+        // to show the cards inside the
+        // selected folder / book; = the
+        // user can see what's inside the
+        // folder without the editor
+        // automatically opening a tab).
+        guard let node else { return }
+        switch node.kind {
+        case .shelf:
+            workspaceUI.sidebarSelection = .shelf(node.id)
+        case .book:
+            // Determine if this is a real book (top-level row) or a
+            // folder row (child of a book). Folder rows have a
+            // parent in the sidebar tree (= the v1.68f folder
+            // children, = 5 standard folders per book); real books
+            // are children of a shelf. Walk the tree to disambiguate.
+            let parent = Self.parentBookInfo(for: node.id, in: service?.nodes ?? [])
+            if let parent {
+                // Folder row.
+                // RATIONALE 2026-10-13: the
+                // `openFolderInEditor(...)` call
+                // is removed (= the boss asked
+                // the sidebar click to NOT
+                // open a tab; = the sidebar
+                // click only records the
+                // selection in
+                // `workspaceUI.sidebarSelection`;
+                // = the middle column re-scopes
+                // to show the cards inside the
+                // folder; = the user can
+                // double-click a card to open
+                // a tab if they want to edit).
+                workspaceUI.sidebarSelection = .folder(bookId: parent.bookId, folderName: parent.folderName)
+            } else {
+                // Real book row. RATIONALE 2026-10-13:
+                // the `openBookInEditor(...)` call
+                // is removed (= same reason as
+                // the folder row above).
+                workspaceUI.sidebarSelection = .book(node.id)
+            }
+            // The store's selected book = the book the row names (= the
+            // book that OWNS the folder, = when the row is a folder row).
+            // = ONE write, = so the store and the selection always name
+            // ONE book, = and the sheet's page and the editor read the
+            // same one.
+            bookStore.selectedBookId = parent?.bookId ?? node.id
+        case .reference:
+            // reference-library leaf (= a single Reference
+            // document). node.title carries the reference's
+            // display title, not its category, so writing
+            // `.referenceCategory(node.title)` here is incorrect;
+            // the correct route is `.referenceCategory(<ref's
+            // category directoryName>)` — but the SidebarNode
+            // doesn't carry the Reference struct (= only id +
+            // title + subtitle), so we resolve the reference's
+            // category downstream by storing a structured
+            // selection. Without that plumbing (= v1.69 ticket
+            // scope = expand the CLC category tree only; =
+            // single-reference selection lands on a future
+            // ticket), the leaf row falls through to
+            // .referenceScope(nil) in the preview pane via
+            // ShellMiddleColumn's case-mismatch fallback (= =
+            // the user sees the full overview; = the leaf can
+            // be opened via the existing double-click pipeline
+            // on the middle-column card).
+            workspaceUI.sidebarSelection = .referenceCategory(node.title)
+        case .referenceCategory:
+            // :
+            // a category parent row (= one of the 22 CLC
+            // top-level categories under the Reference-Library
+            // root). Selecting it scopes the middle-column card
+            // grid to that category.
+            //
+            // p (see OOB.md #2026-09-22) OOB: read the routing key
+            // (= the EntityCategory.directoryName, stored in
+            // SidebarNode.routingKey during the v1.69j projection;
+            // = lowercase letter for the official 22 cases,
+            // "" for .z, "" for pre-v0.29 nil-category
+            // references). The routing key is what
+            // ShellMiddleColumn.previewScope's case-insensitive
+            // EntityCategory(rawValue:) lookup resolves back to
+            // a category — the user-visible title (= "") can't
+            // be used directly because no EntityCategory rawValue
+            // is "". Falling back to node.title (= the previous
+            // m behaviour) leaves the routing key in the
+            // user-visible slot (= the user's ',
+            // ' complaint).
+            // The catch-all row (= the references no category claims) has no
+            // category behind it, so it carries its own selection case instead
+            // of the category route.
+            if node.routingKey == SidebarService.unclassifiedRoutingKey {
+                workspaceUI.sidebarSelection = .referenceUnclassified
+                return
+            }
+            workspaceUI.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
+        case .tag:
+            // tag row (= SidebarNode.Kind.tag,
+            // populated by SidebarService from the union of
+            // Reference.tags across all references). Routing
+            // uses the node title (= the tag string) directly;
+            // AssetsPane.previewScope() maps .tag(let tagString)
+            // to .referenceScope(nil) AND sets
+            // workspaceUI.activeTag = tagString (= PreviewPane
+            // applies the tag filter on top of the reference
+            // scope). This case must be its own branch
+            // (= NOT a .referenceCategory fallback; = the
+            // previous code used .referenceCategory here and
+            // the tag filter was silently unreachable).
+            workspaceUI.sidebarSelection = .tag(node.title)
+        case .divider:
+            // bb (see OOB.md #2026-09-23) OOB '
+            // ': divider rows are non-interactive;
+            // = the user can never select a divider (= it's
+            // pure chrome between sections). Forwarding a
+            // sidebarSelection here would corrupt the
+            // .referenceCategory discriminator (= the divider
+            // sentinel has no EntityCategory mapping). Simply
+            // no-op so the previous selection stays put.
+            break
         }
-    case .reference:
-        // reference-library leaf (= a single Reference
-        // document). node.title carries the reference's
-        // display title, not its category, so writing
-        // `.referenceCategory(node.title)` here is incorrect;
-        // the correct route is `.referenceCategory(<ref's
-        // category directoryName>)` — but the SidebarNode
-        // doesn't carry the Reference struct (= only id +
-        // title + subtitle), so we resolve the reference's
-        // category downstream by storing a structured
-        // selection. Without that plumbing (= v1.69 ticket
-        // scope = expand the CLC category tree only; =
-        // single-reference selection lands on a future
-        // ticket), the leaf row falls through to
-        // .referenceScope(nil) in the preview pane via
-        // ShellMiddleColumn's case-mismatch fallback (= =
-        // the user sees the full overview; = the leaf can
-        // be opened via the existing double-click pipeline
-        // on the middle-column card).
-        workspaceUI.sidebarSelection = .referenceCategory(node.title)
-    case .referenceCategory:
-        // :
-        // a category parent row (= one of the 22 CLC
-        // top-level categories under the Reference-Library
-        // root). Selecting it scopes the middle-column card
-        // grid to that category.
-        //
-        // p (see OOB.md #2026-09-22) OOB: read the routing key
-        // (= the EntityCategory.directoryName, stored in
-        // SidebarNode.routingKey during the v1.69j projection;
-        // = lowercase letter for the official 22 cases,
-        // "" for .z, "" for pre-v0.29 nil-category
-        // references). The routing key is what
-        // ShellMiddleColumn.previewScope's case-insensitive
-        // EntityCategory(rawValue:) lookup resolves back to
-        // a category — the user-visible title (= "") can't
-        // be used directly because no EntityCategory rawValue
-        // is "". Falling back to node.title (= the previous
-        // m behaviour) leaves the routing key in the
-        // user-visible slot (= the user's ', 
-        // ' complaint).
-        // The catch-all row (= the references no category claims) has no
-        // category behind it, so it carries its own selection case instead
-        // of the category route.
-        if node.routingKey == SidebarService.unclassifiedRoutingKey {
-            workspaceUI.sidebarSelection = .referenceUnclassified
-            return
-        }
-        workspaceUI.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
-    case .tag:
-        // tag row (= SidebarNode.Kind.tag,
-        // populated by SidebarService from the union of
-        // Reference.tags across all references). Routing
-        // uses the node title (= the tag string) directly;
-        // AssetsPane.previewScope() maps .tag(let tagString)
-        // to .referenceScope(nil) AND sets
-        // workspaceUI.activeTag = tagString (= PreviewPane
-        // applies the tag filter on top of the reference
-        // scope). This case must be its own branch
-        // (= NOT a .referenceCategory fallback; = the
-        // previous code used .referenceCategory here and
-        // the tag filter was silently unreachable).
-        workspaceUI.sidebarSelection = .tag(node.title)
-    case .divider:
-        // bb (see OOB.md #2026-09-23) OOB '
-        // ': divider rows are non-interactive;
-        // = the user can never select a divider (= it's
-        // pure chrome between sections). Forwarding a
-        // sidebarSelection here would corrupt the
-        // .referenceCategory discriminator (= the divider
-        // sentinel has no EntityCategory mapping). Simply
-        // no-op so the previous selection stays put.
-        break
-    }
     }
 }

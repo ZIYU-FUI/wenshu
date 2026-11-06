@@ -31,13 +31,17 @@ enum BookStyleSheetWriteBack {
     ///
     /// Returns the saved book, = or nil when the store does not carry
     /// the book.
+    ///
+    /// IT THROWS WHEN THE SAVE FAILS: = a write that could not reach
+    /// the disk is not a write, = and a caller that cannot see the
+    /// failure would report success for a book that did not change.
     @discardableResult
     static func apply(
         knob: BookStyleKnob,
         position: String,
         to bookID: UUID,
         store: BookStore
-    ) -> Book? {
+    ) throws -> Book? {
         guard let index = store.books.firstIndex(where: { $0.id == bookID }) else {
             return nil
         }
@@ -47,7 +51,7 @@ enum BookStyleSheetWriteBack {
         // book is not rewritten for nothing.
         guard sheet != book.effectiveStyleSheet else { return book }
         book.styleSheet = sheet
-        try? store.sidebarSaveBook(book)
+        try store.sidebarSaveBook(book)
         return book
     }
 }

@@ -53,21 +53,29 @@
 //  from the page's own model instead.
 //
 
+import OSLog
 import SwiftUI
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "inspectorstylepage")
 
 // MARK: - The page
 
 /// The trailing inspector column's style page (= the book's own style
 /// sheet, = as two lists).
 struct InspectorStylePageView: View {
-    /// The workspace's UI state (= the sidebar's selection).
-    @Environment(WorkspaceUIState.self) private var workspaceUI
-
     /// The library's books (= the sheet the page reads).
     @Environment(BookStore.self) private var bookStore
 
-    /// The book the page shows (= the sidebar's selection, = followed
-    /// as it changes).
+    /// The book the page shows (= the store's selected book).
+    ///
+    /// The store's selected book is the app's one record of WHICH BOOK
+    /// IS THE ACTIVE ONE, = and it is written by the sidebar's
+    /// selection (= `AppleSidebarSelection.forwardSelection`). = The
+    /// EDITOR reads the same field (= `WenshuMarkdownEditor`), = so the
+    /// page and the editor always name ONE book, = and a knob moved on
+    /// the page is the sheet the editor renders.
+    ///
+    /// The book follows as it changes.
     @State private var currentBookID: UUID?
 
     var body: some View {
@@ -75,8 +83,8 @@ struct InspectorStylePageView: View {
             stylesGroup
             tuningGroup
         }
-        .onChange(of: workspaceUI.sidebarSelection, initial: true) { _, selection in
-            currentBookID = selection?.bookId
+        .onChange(of: bookStore.selectedBookId, initial: true) { _, bookID in
+            currentBookID = bookID
         }
     }
 
@@ -117,12 +125,19 @@ struct InspectorStylePageView: View {
         guard let knob = BookStyleKnob(rawValue: knobID),
               let bookID = currentBookID
         else { return }
-        BookStyleSheetWriteBack.apply(
-            knob: knob,
-            position: position,
-            to: bookID,
-            store: bookStore
-        )
+        // The write-back THROWS when the save fails (= a book that did
+        // not reach the disk did not change), = and the page has no
+        // error surface of its own, = so the failure is logged.
+        do {
+            try BookStyleSheetWriteBack.apply(
+                knob: knob,
+                position: position,
+                to: bookID,
+                store: bookStore
+            )
+        } catch {
+            wenshuLogger.error("[style-sheet] the knob write-back failed: \(error)")
+        }
     }
 
     /// What the page shows (= the selected book's own sheet).
@@ -296,6 +311,11 @@ struct InspectorStylePageModel: Equatable, Sendable {
     }
 
     /// One knob, with its positions named.
+    ///
+    /// Each position carries its RAW value (= the sheet's own enum's
+    /// name, = what the write-back reads) = and its label (= what the
+    /// reader sees). = The raw value is never localized, = because the
+    /// sheet reads a position by that name.
     private static func knob(
         id: String,
         nameKey: String,
@@ -303,22 +323,31 @@ struct InspectorStylePageModel: Equatable, Sendable {
         positions: [String],
         current: String
     ) -> InspectorStyleKnob {
-        InspectorStyleKnob(
+        let made = positions.map { rawValue in
+            InspectorStylePosition(
+                rawValue: rawValue,
+                label: NSLocalizedString(
+                    "\(positionKey).\(rawValue)",
+                    comment: "One position a fine-tuning knob of a book's style sheet can take"
+                )
+            )
+        }
+        let currentPosition = made.first { $0.rawValue == current }
+            ?? InspectorStylePosition(
+                rawValue: current,
+                label: NSLocalizedString(
+                    "\(positionKey).\(current)",
+                    comment: "The position a fine-tuning knob of a book's style sheet sits at"
+                )
+            )
+        return InspectorStyleKnob(
             id: id,
             name: NSLocalizedString(
                 nameKey,
                 comment: "The name of one fine-tuning knob of a book's style sheet"
             ),
-            positions: positions.map {
-                NSLocalizedString(
-                    "\(positionKey).\($0)",
-                    comment: "One position a fine-tuning knob of a book's style sheet can take"
-                )
-            },
-            current: NSLocalizedString(
-                "\(positionKey).\(current)",
-                comment: "The position a fine-tuning knob of a book's style sheet sits at"
-            )
+            positions: made,
+            current: currentPosition
         )
     }
 }
@@ -422,10 +451,34 @@ struct InspectorStyleKnob: Identifiable, Equatable, Sendable {
     let name: String
 
     /// The positions the knob can take (= in order).
-    let positions: [String]
+    let positions: [InspectorStylePosition]
 
     /// The position the book sits at.
-    let current: String
+    let current: InspectorStylePosition
+}
+
+/// One position of a knob: = its RAW value (= the sheet's own enum's
+/// name, = the thing the sheet can read back) = and its name in the
+/// reader's language.
+///
+/// WHY BOTH, AND WHY THE RAW VALUE IS THE ONE THE ACTION CARRIES
+///
+/// The sheet reads a POSITION by its raw value (= `BookBodySize
+/// (rawValue:)`), = so the action must carry the raw value. = A
+/// display name cannot be read back (= "大号" is not a position), =
+/// so a knob that carried only the display name could never move the
+/// sheet. = So the position carries BOTH: = the raw value goes to the
+/// sheet, = and the label is what the reader sees.
+struct InspectorStylePosition: Identifiable, Equatable, Sendable {
+    /// The position's raw value (= the sheet's own enum's name).
+    let rawValue: String
+
+    /// The position's name in the reader's language.
+    let label: String
+
+    var id: String {
+        rawValue
+    }
 }
 
 // MARK: - The names
@@ -458,81 +511,5 @@ struct InspectorStyleRowView: View {
                     .foregroundStyle(DesignTokens.textChrome)
             }
         }
-    }
-}
-
-// MARK: - The knob view
-
-/// One fine-tuning knob: = the knob's name at the left, = and the
-/// position the book sits at in a drop-down at the right.
-struct InspectorStyleKnobView: View {
-    /// The knob this row carries.
-    let knob: InspectorStyleKnob
-
-    /// What happens when a position is chosen (= the page writes the
-    /// position back onto the book's sheet).
-    let onChoose: (String) -> Void
-
-    var body: some View {
-        HStack(spacing: DesignTokens.spacingTight) {
-            Text(knob.name)
-                .font(.callout)
-                .foregroundStyle(DesignTokens.textBody)
-            Spacer(minLength: DesignTokens.spacingTight)
-            knobMenu
-        }
-    }
-
-    /// The knob's drop-down.
-    ///
-    /// The menu carries the positions the knob can take, = and choosing
-    /// one writes it back onto the book's sheet (= the page's own
-    /// action). = The position the book already sits at is the menu's
-    /// label, = so the accessibility tree publishes that position (= a
-    /// SwiftUI `Menu` publishes its label, = and a `Text` publishes
-    /// nothing).
-    private var knobMenu: some View {
-        ZStack(alignment: .leading) {
-            knobBlock
-            Menu {
-                ForEach(knob.positions, id: \.self) { position in
-                    Button {
-                        onChoose(position)
-                    } label: {
-                        Text(position)
-                    }
-                }
-            } label: {
-                Text(knob.current).opacity(0)
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .frame(maxWidth: .infinity)
-        }
-    }
-
-    /// The drawn block the drop-down rides on (= Pages' drop-down: =
-    /// the position at the left, = the indicator at the right).
-    ///
-    /// SwiftUI draws a macOS menu's own title in the CENTRE of its
-    /// button, = and Pages' block puts its title at the left, = so the
-    /// block is drawn here and the real menu rides on top of it as a
-    /// transparent button (= the menu itself, = its items, = and its
-    /// accessibility role all stay the system's).
-    private var knobBlock: some View {
-        HStack(spacing: DesignTokens.spacingTight) {
-            Text(knob.current)
-            Spacer(minLength: 0)
-            SFIcon(
-                "chevron.down",
-                style: .inlineSmall,
-                color: IconColor.secondary
-            )
-        }
-        .padding(.horizontal, DesignTokens.spacingStandard)
-        .frame(height: DesignTokens.controlHeightLarge)
-        .background(InspectorFormatBlock())
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
     }
 }
