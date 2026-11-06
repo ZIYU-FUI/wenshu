@@ -1,4 +1,4 @@
-// 
+//
 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 import Foundation
 import WenshuAgent
@@ -48,31 +48,31 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
     }
 
     init(_ reference: Reference) {
-        self.id = reference.id
-        self.title = reference.title
-        self.displayTitle = reference.displayTitle
+        id = reference.id
+        title = reference.title
+        displayTitle = reference.displayTitle
         // Map ReferenceLayer.wire_internal raw values (= "layerRaw" /
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // the domain enum predates the agent tool surface.
-        self.layer = Self.wireLayer(reference.layer)
-        self.category = reference.category?.rawValue
+        layer = Self.wireLayer(reference.layer)
+        category = reference.category?.rawValue
         // Tags are emitted sorted for stable on-the-wire output (= the
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // depend on sorted form).
-        self.tags = reference.tags.sorted()
-        self.entityType = reference.entityType.rawValue
-        self.summary = reference.summary
-        self.source = reference.source
-        self.url = reference.url
-        self.createdAt = reference.createdAt
-        self.updatedAt = reference.updatedAt
+        tags = reference.tags.sorted()
+        entityType = reference.entityType.rawValue
+        summary = reference.summary
+        source = reference.source
+        url = reference.url
+        createdAt = reference.createdAt
+        updatedAt = reference.updatedAt
     }
 
-    // / ReferenceLayer.wireRawValue: maps the internal layer enum to the
-    // / LLM-friendly wire string used in tool input / output.
+    /// / ReferenceLayer.wireRawValue: maps the internal layer enum to the
+    /// / LLM-friendly wire string used in tool input / output.
     static func wireLayer(_ layer: ReferenceLayer) -> String {
         switch layer {
-        case .layerRaw:      return "raw"
+        case .layerRaw: return "raw"
         case .layerEntities: return "entities"
         }
     }
@@ -88,9 +88,9 @@ enum ReferenceLibraryAction: String, Sendable, Codable, CaseIterable, Equatable 
     case list
     case find
     case upsert
-    // / Append a new section to an existing reference's body (= the
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / of creating duplicates).
+    /// / Append a new section to an existing reference's body (= the
+    /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    /// / of creating duplicates).
     case extend
 }
 
@@ -121,7 +121,7 @@ enum ReferenceLibraryError: Error, LocalizedError, Sendable, Equatable {
     static func from(_ error: Error) -> ReferenceLibraryError {
         if let storeError = error as? ReferenceStoreError {
             switch storeError {
-            case .userOwnsTheTruth(let id):
+            case let .userOwnsTheTruth(id):
                 return .userEditedReference(id: id)
             default:
                 break
@@ -134,15 +134,15 @@ enum ReferenceLibraryError: Error, LocalizedError, Sendable, Equatable {
         switch self {
         case .emptyTitle:
             return "ReferenceLibraryTool: reference title was empty or whitespace-only."
-        case .entryNotFound(let id):
+        case let .entryNotFound(id):
             return "ReferenceLibraryTool: reference \(id.uuidString) not found."
-        case .duplicateTitle(let title, let existingID):
+        case let .duplicateTitle(title, existingID):
             return "ReferenceLibraryTool: a reference titled '\(title)' already exists (id \(existingID.uuidString)). Use upsert to update it, or extend to add a section to it."
-        case .invalidInput(let reason):
+        case let .invalidInput(reason):
             return "ReferenceLibraryTool: invalid input — \(reason)."
-        case .userEditedReference(let id):
+        case let .userEditedReference(id):
             return "ReferenceLibraryTool: reference \(id.uuidString) holds text the user wrote in the editor, so the write was refused and the user's text was not overwritten. Use extend with a new section title to add to the document, or ask the user what to do with it."
-        case .underlying(let msg):
+        case let .underlying(msg):
             return "ReferenceLibraryTool: underlying error — \(msg)."
         }
     }
@@ -163,7 +163,9 @@ actor ReferenceLibraryTool: Tool {
     /// so the procedure goes through the tool's actor rather than
     /// building a second one. (= A second actor with its own store
     /// would analyse a different library than the one the user sees.)
-    var libraryActor: ReferenceLibraryActor { actor }
+    var libraryActor: ReferenceLibraryActor {
+        actor
+    }
 
     init(actor: ReferenceLibraryActor) {
         self.actor = actor
@@ -240,15 +242,15 @@ extension ReferenceLibraryTool {
                         "tags": ToolRegistrySchemaProperty(
                             type: "string",
                             description: "Tags to attach (string OR JSON array of strings). For create / upsert: replaces existing tags. For extend: unioned with existing tags (= never replaces).",
-                            enumValues: []  // open set; = LLM supplies
-                        )
+                            enumValues: [] // open set; = LLM supplies
+                        ),
                     ],
                     required: ["action"]
-            ),
-            handler: LazyTool { await ReferenceLibraryTool.shared },
-            description: "Library-public reference CRUD with dedup-by-title upsert.",
-            emoji: "📚"
-        )
+                ),
+                handler: LazyTool { await ReferenceLibraryTool.shared },
+                description: "Library-public reference CRUD with dedup-by-title upsert.",
+                emoji: "📚"
+            )
         }
     }()
 

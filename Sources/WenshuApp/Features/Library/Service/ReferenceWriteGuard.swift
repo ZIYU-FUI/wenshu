@@ -98,11 +98,6 @@ struct ReferenceWriteRecord: Codable, Equatable {
 
     let owner: Owner
     let hash: String
-
-    init(owner: Owner, hash: String) {
-        self.owner = owner
-        self.hash = hash
-    }
 }
 
 /// The second-writer rule, = and the gate that enforces it.
@@ -220,7 +215,7 @@ enum ReferenceWriteGuard {
         referenceLibraryRoot: URL
     ) -> Ownership {
         switch readRecord(id: id, referenceLibraryRoot: referenceLibraryRoot) {
-        case .some(let record):
+        case let .some(record):
             guard record.owner == .agent else { return .user }
             // The agent owns the text only while the truth still
             // holds what it wrote. (= an edit made outside the app

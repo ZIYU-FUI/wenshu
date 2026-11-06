@@ -44,7 +44,6 @@ import Testing
 @Suite("The corpus has one truth, and the user's write wins")
 @MainActor
 struct ReferenceWriteGuardTests {
-
     // MARK: - The harness
 
     /// A `.ws` root with a reference library under it.
@@ -141,7 +140,7 @@ struct ReferenceWriteGuardTests {
             layer: "entities"
         )
         #expect(Self.truthText(id: created.id, referenceLibraryRoot: root)
-                == "the body the AGENT wrote")
+            == "the body the AGENT wrote")
 
         // The user edits it in the editor (= the truth now holds the
         // user's text, = and the store records that it does).
@@ -168,7 +167,7 @@ struct ReferenceWriteGuardTests {
         // point: = the agent's write did not land, = and nothing the
         // user typed is gone.
         #expect(Self.truthText(id: created.id, referenceLibraryRoot: root)
-                == "the body the USER typed")
+            == "the body the USER typed")
     }
 
     @Test("The refusal reaches the LLM as a named error that says what to do")
@@ -201,7 +200,7 @@ struct ReferenceWriteGuardTests {
         }
         // **⇒ The error is NAMED** (= not `underlying("userOwnsTheTruth
         // (id: ...)")`, = which tells the LLM nothing).
-        guard case .userEditedReference(let id) = caught else {
+        guard case let .userEditedReference(id) = caught else {
             Issue.record("expected .userEditedReference, got \(String(describing: caught))")
             return
         }
@@ -240,7 +239,7 @@ struct ReferenceWriteGuardTests {
         } catch let error as ReferenceStoreError {
             caught = error
         }
-        guard case .userOwnsTheTruth(let id) = caught else {
+        guard case let .userOwnsTheTruth(id) = caught else {
             Issue.record("expected .userOwnsTheTruth, got \(String(describing: caught))")
             return
         }
@@ -403,7 +402,7 @@ struct ReferenceWriteGuardTests {
             summary: ""
         )
         #expect(Self.truthText(id: id, referenceLibraryRoot: root)
-                == "the body the AGENT wants to write")
+            == "the body the AGENT wants to write")
     }
 
     // MARK: - 4. The record's life

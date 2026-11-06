@@ -92,7 +92,8 @@ final class ReferenceLibraryActor {
         // means to refine an existing document uses `upsert` (or
         // `extend`), which is what the protocol asks for anyway.
         if let existing = try referenceStore.loadReferences(layer: parsedLayer)
-            .first(where: { Self.titlesMatch($0.title, trimmed) }) {
+            .first(where: { Self.titlesMatch($0.title, trimmed) })
+        {
             throw ReferenceLibraryError.duplicateTitle(
                 title: trimmed,
                 existingID: existing.id
