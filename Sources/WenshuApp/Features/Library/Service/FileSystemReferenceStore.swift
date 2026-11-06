@@ -180,16 +180,10 @@ struct FileSystemReferenceStore: ReferenceStoring {
         if let _ = try? context.fetch(descriptor).first {
             throw ReferenceStoreError.referenceAlreadyExists(id: reference.id)
         }
-        // **⇒ The gate is asked BEFORE the row is written.** = The
-        // file write-through below is best-effort, = so a refusal
-        // there would leave a row holding the agent's text and a
-        // truth holding the user's. = **⇒ The refusal has to arrive
-        // first, = or the row and the truth disagree.**
-        try ReferenceWriteGuard.assertWritable(
+        try assertTruthWritable(
             id: id,
             layer: reference.layer,
-            bodyMarkdown: bodyMarkdown,
-            referenceLibraryRoot: referenceLibraryRoot
+            bodyMarkdown: bodyMarkdown
         )
         let row = Self.makeRow(reference: reference, bodyMarkdown: bodyMarkdown)
         context.insert(row)
@@ -227,16 +221,10 @@ struct FileSystemReferenceStore: ReferenceStoring {
         guard let existing = try? context.fetch(descriptor).first else {
             throw ReferenceStoreError.referenceNotFound(id: reference.id)
         }
-        // **⇒ The gate is asked BEFORE the row is written.** = The
-        // row holds the body here, = and a refusal that arrived after
-        // the row was written = = a row holding the agent's text and a
-        // truth holding the user's. = **⇒ The refusal has to arrive
-        // first, = or the row and the truth disagree.**
-        try ReferenceWriteGuard.assertWritable(
+        try assertTruthWritable(
             id: id,
             layer: reference.layer,
-            bodyMarkdown: bodyMarkdown,
-            referenceLibraryRoot: referenceLibraryRoot
+            bodyMarkdown: bodyMarkdown
         )
         existing.title = reference.title
         existing.displayTitle = reference.displayTitle
@@ -323,17 +311,10 @@ struct FileSystemReferenceStore: ReferenceStoring {
             predicate: #Predicate { $0.layer == layerRaw && $0.title == normalizedTitle }
         )
         if let existing = try? context.fetch(descriptor).first {
-            // **⇒ The gate is asked BEFORE the row is written.** = The
-            // row holds the body here, = and a refusal that arrived
-            // after the row was written = = a row holding the agent's
-            // text and a truth holding the user's. = **⇒ The refusal
-            // has to arrive first, = or the row and the truth
-            // disagree.**
-            try ReferenceWriteGuard.assertWritable(
+            try assertTruthWritable(
                 id: existing.id,
                 layer: layer,
-                bodyMarkdown: bodyMarkdown,
-                referenceLibraryRoot: referenceLibraryRoot
+                bodyMarkdown: bodyMarkdown
             )
             existing.body = bodyMarkdown
             existing.category = category?.rawValue
@@ -488,6 +469,25 @@ struct FileSystemReferenceStore: ReferenceStoring {
     }
 
     // MARK: - SwiftData bridging helpers
+
+    /// **⇒ The gate is asked BEFORE the row is written.** = The row
+    /// holds the body here, = and the file write-through is
+    /// best-effort, = so a refusal that arrived after the row was
+    /// written = = a row holding the agent's text and a truth holding
+    /// the user's. = **⇒ The refusal has to arrive first, = or the row
+    /// and the truth disagree.**
+    private func assertTruthWritable(
+        id: UUID,
+        layer: ReferenceLayer,
+        bodyMarkdown: String
+    ) throws {
+        try ReferenceWriteGuard.assertWritable(
+            id: id,
+            layer: layer,
+            bodyMarkdown: bodyMarkdown,
+            referenceLibraryRoot: referenceLibraryRoot
+        )
+    }
 
     private static func makeRow(reference: Reference, bodyMarkdown: String) -> WSReference {
         return WSReference(

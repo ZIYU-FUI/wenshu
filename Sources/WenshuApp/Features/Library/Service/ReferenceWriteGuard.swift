@@ -152,6 +152,12 @@ enum ReferenceWriteGuard {
     ///   agent write is held to the same rule.
     /// - Throws: `ReferenceStoreError.userOwnsTheTruth` = the truth
     ///   holds the user's text, = and this write would replace it.
+    ///
+    /// **⇒ The answer is `@discardableResult`.** = The write path
+    /// needs it (= to keep the record's owner right), = and the store's
+    /// SwiftData path needs only the refusal (= so a row is not written
+    /// when the truth holds the user's text).
+    @discardableResult
     static func assertWritable(
         id: UUID,
         layer: ReferenceLayer,

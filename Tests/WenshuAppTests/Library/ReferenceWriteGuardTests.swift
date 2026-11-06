@@ -226,7 +226,7 @@ struct ReferenceWriteGuardTests {
 
         var caught: ReferenceStoreError?
         do {
-            try store.upsertReference(
+            _ = try store.upsertReference(
                 title: "Ming tax system",
                 bodyMarkdown: "the body the AGENT wants to write",
                 layer: .layerEntities,
@@ -391,7 +391,7 @@ struct ReferenceWriteGuardTests {
             referenceLibraryRoot: root
         )
 
-        try store.upsertReference(
+        _ = try store.upsertReference(
             title: "Ming tax system",
             bodyMarkdown: "the body the AGENT wants to write",
             layer: .layerEntities,
