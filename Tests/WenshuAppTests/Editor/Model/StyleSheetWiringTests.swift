@@ -131,4 +131,39 @@ final class StyleSheetWiringTests: XCTestCase {
             }
             .joined(separator: "\n")
     }
+
+    /// THE PAGE'S OWN CALL WRITES THE BOOK IT IS SHOWING.
+    ///
+    /// MUTATION: = the call removed (= the knob writes nothing at all),
+    /// = or `to: bookStore.books.first?.id ?? bookID` (= a knob moved on
+    /// one book writes ANOTHER book's sheet, = and the write-back's own
+    /// guard passes, = because that book IS in the store).
+    func testThePageWritesTheBookItIsShowing() throws {
+        let code = try Self.code(of: "Sources/WenshuApp/Features/Editor/View/InspectorStylePageView.swift")
+        XCTAssertTrue(
+            code.contains("try BookStyleSheetWriteBack.apply("),
+            "the page must write the sheet back (= the knobs are not read-only)"
+        )
+        XCTAssertTrue(
+            code.contains("to: bookID,"),
+            "the page must write the book it is showing (= the store's first book is not the page's book)"
+        )
+    }
+
+    /// THE WRITE-BACK REPORTS ITS FAILURE INSTEAD OF SWALLOWING IT.
+    ///
+    /// MUTATION: = `try store.sidebarSaveBook(book)` -> `try?` (= the
+    /// failure is swallowed, = so a book that did not reach the disk is
+    /// reported as written).
+    func testTheWriteBackReportsItsFailure() throws {
+        let code = try Self.code(of: "Sources/WenshuApp/Features/Library/Service/BookStyleSheetWriteBack.swift")
+        XCTAssertTrue(
+            code.contains("try store.sidebarSaveBook(book)"),
+            "the write-back must let the save's failure through (= a write that could not reach the disk is not a write)"
+        )
+        XCTAssertFalse(
+            code.contains("try? store.sidebarSaveBook(book)"),
+            "a swallowed failure reports success for a book that did not change"
+        )
+    }
 }
