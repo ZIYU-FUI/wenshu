@@ -393,7 +393,8 @@ final class ManuscriptShaperTests: XCTestCase {
     // MARK: - The segments themselves
 
     /// The segments are the source's paragraphs (= what a platform's
-    /// segment IS: = Tomato's official rule is "a segment is one line, entered with the return key").
+    /// segment IS: = Tomato's official rule is "a segment is one line,
+    /// entered with the return key").
     func testTheSegmentsAreTheSourceParagraphs() {
         let body = "第一段。\n\n第二段。\n\n第三段。"
         let segments = ManuscriptShaper.segments(of: body)
