@@ -127,17 +127,49 @@ on the WRITE side (= the read side was already pinned by
 | `ci_change_gate.py --check pollution` | exit 0, = and the change's diff carries **0 CJK lines**. = **⇒ AND ONE CJK HIT IN THE MERGED DIFF IS NOT MINE:** = the range the landing card's base named (`b93b0ae57c..b44cf64325`) = carries ONE CJK character, = in `LibraryCorpusReader.swift`'s comment = = and that commit (`cf574b0e07`) = is the REBASED FORM of the stack's own `802f1b4703` (= a sibling's commit, = and this branch's PRE-FIX PARENT), = so the CJK was already in the tree before this change existed. = Measured against `cf574b0e07`, = the CJK hits in the ADDED lines = **0** |
 | `verify-dead.py` | DEAD stays 0 |
 | `nfi-split.py --check` | PASS |
-| `test_nfi_registry.sh` | **exit 0, = `nfi registry: all tests passed` (= 17 assertions), = at EVERY sha of this branch.** = **⇒ AND BEFORE THE LANDING REBASE IT FAILED WITH 5 (= rows 1b, 1c, 4, 8, 8b) at this branch's OWN `e11b554522`, `7463ed2b13`, and `dfaae87f37`.** = **⇒ The cause is the repository's own table, = not the driver's fixture rows:** = those three commits DROPPED the blank line the driver reads (= the file's tail became "the last row, = then the comment"), = and this branch's own `f834261455` restored it. = **⇒ AND THIS CHANGE IS SIX COMMITS, = not seven.** = The landing card named
+| `test_nfi_registry.sh` | **exit 0, = `nfi registry: all tests passed` (= 17 assertions), = at EVERY sha of this branch.** = **⇒ AND BEFORE THE LANDING REBASE IT FAILED WITH 5 (= rows 1b, 1c, 4, 8, 8b) at this branch's OWN `e11b554522`, `7463ed2b13`, and `dfaae87f37`.** = **⇒ The cause is the repository's own table, = not the driver's fixture rows:** = those three commits DROPPED the blank line the driver reads (= the file's tail became "the last row, = then the comment"), = and this branch's own `f834261455` restored it. = **⇒ AND THE LANDING REBASE FIXED IT FOR GOOD:** = the rebase's 12 registry conflicts were each resolved with the driver's own merge, = and every rebased commit now carries the blank line (= measured: = the script passes at all 8 of this branch's rebased shas). = **⇒ MEASURE IT IN A THROWAWAY WORKTREE PER SHA, = AND RUN THAT SHA'S OWN COPY OF THE SCRIPT** (= the script derives its root from ITS OWN PATH, = so running the tip's copy against another sha measures the TIP's table) |
+| `merge-preflight.sh feature/editor-save-truth` | CLEAN |
+
+## The range this change is, = and what the rebase left alone
+
+**⇒ AND THIS CHANGE IS SIX COMMITS, = not seven.** = The landing card named
 `bb18d4be07..b44cf64325` (= seven), = but its BASE (`b93b0ae57c`) = the commit
 BEFORE the pre-fix parent = = so the range it named swept in one commit that is
 not this change's. = The six are `bb18d4be07`, `948ff2485f`, `401ae41305`,
-`68639e0bce`, `8aa643b519`, `b44cf64325`. = **⇒ The EDIT is unchanged by this
-correction:** = the pre-rebase diff (`802f1b4703..5fb9030a6e`) and the rebased
-diff (`cf574b0e07..b44cf64325`) = differ ONLY in this doc (= 31 lines, = all of
-them this doc's own text).
+`68639e0bce`, `8aa643b519`, `b44cf64325`.
 
-**⇒ AND THE LANDING REBASE FIXED IT FOR GOOD:** = the rebase's 12 registry conflicts were each resolved with the driver's own merge, = and every rebased commit now carries the blank line (= measured: = the script passes at all 8 of this branch's rebased shas). = **⇒ MEASURE IT IN A THROWAWAY WORKTREE PER SHA, = AND RUN THAT SHA'S OWN COPY OF THE SCRIPT** (= the script derives its root from ITS OWN PATH, = so running the tip's copy against another sha measures the TIP's table) |
-| `merge-preflight.sh feature/editor-save-truth` | CLEAN |
+**⇒ AND THE EDIT IS UNCHANGED BY THE REBASE.** = The pre-rebase diff
+(`802f1b4703..5fb9030a6e`) and the rebased diff (`cf574b0e07..b44cf64325`)
+differ in **21 changed content lines, = and every one of them is this doc's own
+text.**
+
+**⇒ AND THE METHOD THAT PRODUCES THE NUMBER, = so the next reader
+reproduces it:** = the two diffs' `+`/`-` lines (= = excluding the `---` /
+`+++` file headers and the `index` / `@@` lines), = compared with each other:
+
+```bash
+python3 - <<'PY'
+import subprocess, difflib
+def content(t):
+    return [l for l in t.splitlines()
+            if (l.startswith('+') or l.startswith('-'))
+            and not l.startswith('+++') and not l.startswith('---')]
+a = content(subprocess.run(['git', 'diff', '802f1b4703..5fb9030a6e'],
+                        capture_output=True, text=True).stdout)
+b = content(subprocess.run(['git', 'diff', 'cf574b0e07..b44cf64325'],
+                        capture_output=True, text=True).stdout)
+d = list(difflib.unified_diff(a, b, lineterm='', n=0))
+print(sum(1 for l in d
+          if (l.startswith('+') or l.startswith('-'))
+          and not l.startswith('+++') and not l.startswith('---')))
+PY
+```
+
+= **⇒ 21**, = and all 21 are in this doc. = **⇒ AND THE RAW DIFF-OF-DIFFS
+reads 47 lines, = and two of its hunks are `docs/agents/nfi.md`'s** (= its
+`index` line, = and the rows `main` added between the two bases, = which are
+CONTEXT for this change, = not its content). = So the change-content reading
+is the one that answers the question, = and the raw one is not.
 
 ## The registry's blank line (= a real lesson, and it cost a commit)
 
