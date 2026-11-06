@@ -6,10 +6,13 @@
 //
 //  WHAT THIS PAGE IS
 //
-//  The editor's format commands used to live in a row of icons under the
-//  document's tab strip. They now live here, in the column, as a
-//  Pages-style format inspector: grouped, with named fields, menus and
-//  drop-downs, instead of a strip of anonymous glyphs.
+//  The page used to be three groups of format commands (= the
+//  character group, = the block group, = and the insert group), = with
+//  a heading menu and a link field of their own. = It is now the
+//  BOOK's style sheet: = the three commands a novel uses inline (=
+//  bold, = italic, = and the highlight), = and then the style page,
+//  = which names the book's twelve styles and the five knobs it is
+//  fine-tuned with.
 //
 //  WHY THE RIGHT COLUMN AND NOT THE EDITOR
 //
@@ -52,22 +55,25 @@
 //       row wide. So a command here is an icon in a slot, and the
 //       slots of one group share a row.
 //    4. A CONTROL IS A ROUNDED BLOCK, AND A VALUE-BEARING CONTROL IS
-//       A FULL-WIDTH BLOCK. The heading command carries a level, so it
-//       is a full-width menu, exactly like Pages' font menu.
-//    5. A LABEL SITS AT THE LEFT OF ITS CONTROL. The link command
-//       carries a target, so it reads as a label, then the field,
-//       then the button that applies it.
+//       A FULL-WIDTH BLOCK. The knobs of the style page carry a
+//       position, so they are full-width drop-downs, exactly like
+//       Pages' font menu.
+//    5. A LABEL SITS AT THE LEFT OF ITS CONTROL. Each knob reads as a
+//       label, then the block that holds the position.
 //
 //  WHAT THE PAGE SHOWS, AND WHAT IT DELIBERATELY DOES NOT
 //
-//  Every control here is a COMMAND: pressing it asks the engine to
-//  apply a format to the document's selection. The page shows no
-//  current-value readout of any kind (no "the selection is bold"
-//  indicator), because the engine publishes no public current-value
-//  getters, and a value the app cannot read is a value the app must not
-//  invent. The OOB entry of 2026-10-18 removed the earlier
-//  selection-state readout for the same reason, and that ruling stands:
-//  this page carries commands, not readouts.
+//  The commands that are left are the ones a novel uses inline: =
+//  bold, = italic, = and the highlight. = The other nine are GONE from
+//  this page, = because a book sets them once (= in its style sheet,
+//  = which the style page shows) = instead of one click at a time.
+//
+//  The page shows no current-value readout of the document's
+//  selection (no "the selection is bold" indicator), because the
+//  engine publishes no public current-value getters, and a value the
+//  app cannot read is a value the app must not invent. = The values
+//  this page DOES show are the book's own (= the sheet the book
+//  carries), = and those the app reads.
 //
 //  That ruling also rules out Pages' segmented control here: a
 //  segmented control SHOWS WHICH SLOT IS SELECTED, so a row of
@@ -75,36 +81,14 @@
 //  The commands are therefore plain buttons in the slots, and they
 //  never look selected.
 //
-//  Font family, font size and the other Pages fields that display a
-//  CURRENT value are therefore absent. Adding them means extending the
-//  engine's public API first (= the engine is a remote SPM dependency,
-//  = so the change lands upstream), not faking the value on the app
-//  side.
-//
-//  THE TWO COMMANDS THAT CARRY A VALUE
-//
-//  Two of the twelve commands are not a single click:
-//
-//    - `.heading` carries a LEVEL. The engine drops a heading request
-//      that carries no level (`userInfo["level"] as? Int`), so the
-//      heading command asks for the level in its menu first.
-//    - `.link` carries a TARGET. The engine writes `[text]()` for a
-//      link request that carries no URL (`userInfo["url"]`), so the
-//      link command asks for the target in its field first.
-//
-//  Both ask in the page, in the field the value belongs to, and the
-//  command then carries the value to the engine.
-//
-//
 
 import MarkdownEngine
 import SwiftUI
 
 /// The trailing inspector column's format page.
 ///
-/// The Pages-style format inspector: the document's format commands,
-/// grouped the way Pages groups them, with the two commands that need a
-/// value asking for it in a field.
+/// The Pages-style format inspector: = the commands a novel uses
+/// inline, = and then the book's own style sheet.
 struct InspectorFormatPageView: View {
     /// The editor's bus (= the engine's request channel).
     ///
@@ -113,21 +97,11 @@ struct InspectorFormatPageView: View {
     /// the way it did from the icon row.
     let bus: MarkdownEditorBus = .buildWenshu()
 
-    /// The target the link command will apply (= the text field's own
-    /// text; = an empty target means the link command stays disabled).
-    @State private var linkTarget: String = ""
-
-    /// The heading levels the menu offers (= the engine's own scale; =
-    /// the engine's context menu builds its heading items from the same
-    /// 1...6 range).
-    static let headingLevels: [Int] = [1, 2, 3, 4, 5, 6]
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignTokens.spacingLoose) {
                 characterGroup
-                blockGroup
-                insertGroup
+                InspectorStylePageView()
             }
             .padding(.horizontal, DesignTokens.spacingLoose)
             .padding(.bottom, DesignTokens.spacingLoose)
@@ -136,149 +110,23 @@ struct InspectorFormatPageView: View {
 
     // MARK: - Character
 
-    /// The character group's commands (= bold, italic, strikethrough,
-    /// highlight, inline code).
+    /// The character group's commands (= bold, italic, highlight).
     ///
     /// These are the commands that change the SELECTED TEXT's
     /// characters, so they sit together the way Pages groups its
     /// character-style controls (= one row, one block, one slot each).
+    /// The commands a book sets once (= the strike, = the inline code,
+    /// = the headings, = the lists, = the quote, = the code block, = the
+    /// rule, = the image and = the link) = are the style sheet's rows
+    /// now, = and they live on the style page.
     private var characterGroup: some View {
         InspectorFormatGroup(
             title: String(localized: "inspector.format.group.character"),
             showsDivider: false
         ) {
-            InspectorFormatCommandStrip(actions: [.bold, .italic, .strikethrough, .highlight, .inlineCode]) { action in
+            InspectorFormatCommandStrip(actions: [.bold, .italic, .highlight]) { action in
                 apply(action)
             }
-        }
-    }
-
-    // MARK: - Block
-
-    /// The block group's commands (= heading, blockquote, bulleted list,
-    /// numbered list).
-    ///
-    /// These change the line the selection sits on, so they sit
-    /// together. The heading command is the one that carries a value,
-    /// so it gets the full-width menu (= the way Pages gives a
-    /// value-bearing control its own full-width block), and the other
-    /// three share the row under it.
-    private var blockGroup: some View {
-        InspectorFormatGroup(title: String(localized: "inspector.format.group.block")) {
-            headingMenu
-            InspectorFormatCommandStrip(actions: [.blockquote, .unorderedList, .orderedList]) { action in
-                apply(action)
-            }
-        }
-    }
-
-    // MARK: - Insert
-
-    /// The insert group's commands (= link, code block, horizontal rule).
-    ///
-    /// The link command is the one that carries a target, so its row
-    /// reads as a label, then the field that holds the target, then the
-    /// button that applies it (= the shape Pages gives a labelled
-    /// control). The other two share the row under it.
-    private var insertGroup: some View {
-        InspectorFormatGroup(title: String(localized: "inspector.format.group.insert")) {
-            linkRow
-            InspectorFormatCommandStrip(actions: [.codeBlock, .horizontalRule]) { action in
-                apply(action)
-            }
-        }
-    }
-
-    // MARK: - The two value-bearing commands
-
-    /// The heading command's menu (= the level is chosen here, = so the
-    /// request carries a level).
-    ///
-    /// The menu is a full-width block (= Pages' font menu is a
-    /// full-width block too, = and this one carries a value the way that
-    /// one does).
-    private var headingMenu: some View {
-        ZStack(alignment: .leading) {
-            headingMenuLabel
-            Menu {
-                ForEach(Self.headingLevels, id: \.self) { level in
-                    Button {
-                        apply(.heading, headingLevel: level)
-                    } label: {
-                        Text(headingLevelLabel(level))
-                    }
-                }
-            } label: {
-                Color.clear
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .frame(maxWidth: .infinity)
-            .accessibilityLabel(EditorFormatAction.heading.localizedAccessibilityLabel)
-        }
-    }
-
-    /// The heading menu's drawn block (= what Pages' full-width pop-up
-    /// block looks like: = the command's name at the LEFT, = the
-    /// drop-down's indicator at the RIGHT).
-    ///
-    /// SwiftUI draws a macOS menu's own title in the CENTRE of its
-    /// button (= an `NSPopUpButton` centres its title, = and SwiftUI
-    /// does not expose the alignment), = and Pages' pop-up block puts
-    /// its title at the left. So the block is drawn here and the real
-    /// menu rides on top of it as a transparent button (= the menu
-    /// itself, = its items, = its keyboard behaviour and = its
-    /// accessibility role all stay the system's).
-    private var headingMenuLabel: some View {
-        HStack(spacing: DesignTokens.spacingTight) {
-            Text(EditorFormatAction.heading.localizedLabel)
-            Spacer(minLength: 0)
-            SFIcon(
-                "chevron.down",
-                style: .inlineSmall,
-                color: IconColor.secondary
-            )
-        }
-        .padding(.horizontal, DesignTokens.spacingStandard)
-        .frame(height: DesignTokens.controlHeightLarge)
-        .background(InspectorFormatBlock())
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-
-    /// The link row (= the label, the field that holds the target, and
-    /// the button that applies it).
-    ///
-    /// The field is the link's TARGET (= where the link points), and the
-    /// button is the command (= apply the link to the selection using
-    /// that target). The command stays disabled while the field is
-    /// empty, because a link with no target is `[text]()`.
-    private var linkRow: some View {
-        HStack(spacing: DesignTokens.spacingTight) {
-            Text(EditorFormatAction.link.localizedLabel)
-                .font(.callout)
-                .foregroundStyle(DesignTokens.textBody)
-            TextField(
-                String(localized: "inspector.format.link.placeholder"),
-                text: $linkTarget
-            )
-            .textFieldStyle(.roundedBorder)
-            Button {
-                apply(.link, linkURL: linkTarget)
-            } label: {
-                SFIcon(
-                    "link.badge.plus",
-                    style: .inlineSmall,
-                    color: IconColor.primary
-                )
-                .frame(width: DesignTokens.controlHeightLarge)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .background(InspectorFormatBlock())
-            .disabled(linkTarget.isEmpty)
-            .help(String(localized: "inspector.format.link.apply"))
-            .accessibilityLabel(String(localized: "inspector.format.link.apply"))
         }
     }
 
@@ -286,38 +134,13 @@ struct InspectorFormatPageView: View {
 
     /// Post one format command.
     ///
-    /// The two commands that carry a value get it here (= the level the
-    /// menu names, = the target the field holds); the other ten need
-    /// nothing.
+    /// The commands that are left carry no value (= the engine takes
+    /// bold, = italic and = the highlight as they are), = so nothing
+    /// else rides along.
     ///
-    /// - Parameters:
-    ///   - action: the command to apply.
-    ///   - headingLevel: the level for `.heading` (= `nil` for every
-    ///     command but the heading).
-    ///   - linkURL: the link's target (= `nil` for every command but the
-    ///     link).
-    private func apply(
-        _ action: EditorFormatAction,
-        headingLevel: Int? = nil,
-        linkURL: String? = nil
-    ) {
-        action.dispatch(
-            bus: bus,
-            headingLevel: headingLevel,
-            linkURL: linkURL
-        )
-    }
-
-    /// The menu's label for one level (= "Heading 2" / the translated
-    /// equivalent).
-    private func headingLevelLabel(_ level: Int) -> String {
-        String.localizedStringWithFormat(
-            NSLocalizedString(
-                "inspector.format.heading.level",
-                comment: "The heading level a format command applies"
-            ),
-            level
-        )
+    /// - Parameter action: the command to apply.
+    private func apply(_ action: EditorFormatAction) {
+        action.dispatch(bus: bus)
     }
 }
 

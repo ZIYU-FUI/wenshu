@@ -143,6 +143,12 @@ struct InspectorView: View {
             }
         }
         .environment(appState)
+        // The workspace's UI state rides the same re-injection, = for
+        // the same reason: = the format page reads the sidebar's
+        // selection from it (= the book whose style sheet the page
+        // shows), = and SwiftUI 6 breaks the `@Environment` chain
+        // across the NavigationSplitView column boundary.
+        .environment(workspaceUI)
     }
 }
 

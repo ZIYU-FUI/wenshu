@@ -247,6 +247,7 @@ struct EditorView: View {
                                 ),
                                 surface: editorSurface
                             )
+                                    .id(editorIdentity)
                             LinkedDocumentBoardSection(
                                 documentBody: self.draft,
                                 onOpen: { document in
@@ -283,6 +284,7 @@ struct EditorView: View {
                             // BookStore yet on early zone activation).
                             surface: editableEditorSurface
                         )
+                                .id(editorIdentity)
                             }
                         }
                     }                }
@@ -402,6 +404,19 @@ struct EditorView: View {
             isEditable: false
         )
     }
+    /// The editor's identity (= the book it edits).
+    ///
+    /// The engine's `updateNSView` does NOT write back the
+    /// configuration's headings, = paragraph or theme (= the book's own
+    /// style sheet among them), = so the editor's engine view is
+    /// REMOUNTED when the book changes: = a new identity = a new engine
+    /// view = the engine reads its configuration again. = Switching books
+    /// already switches documents, = so the remount costs the reader
+    /// nothing they can see.
+    private var editorIdentity: String {
+        bookStore.currentBookDirectory?.path ?? "wenshu-editor-no-book"
+    }
+
     /// The editor surface for edit mode (= the same surface, editable,
     /// and reporting the caret rect).
     private var editableEditorSurface: EditorSurface {
