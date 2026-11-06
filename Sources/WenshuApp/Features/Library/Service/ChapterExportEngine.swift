@@ -2,12 +2,10 @@
 //  ChapterExportEngine.swift · Wenshu
 //
 //  Actor that performs the single-chapter export. Reads the chapter
-//  body + frontmatter via the nonisolated static helpers on
+//  body via the nonisolated static helpers on
 //  FileSystemChapterStore, then writes a single .md file at the
 //  destination URL. The body bytes are preserved verbatim (= no
-//  wenshu-side rewrites); the existing `ChapterFrontmatter.serialize`
-//  (= in `Domain/CrossRefInject_v2.swift:209`) produces the YAML
-//  frontmatter header.
+//  wenshu-side rewrites).
 //
 
 import Foundation
@@ -42,6 +40,7 @@ enum ChapterExportError: LocalizedError, Sendable, Equatable {
 actor ChapterExportEngine {
     /// Export a single chapter as a Markdown file. The body bytes
     /// are preserved verbatim (= what the user sees in the editor
+<<<<<<< HEAD
     /// = what the user gets in the export). The YAML frontmatter is
     /// built from `ChapterFrontmatter.serialize` (= existing helper).
     ///
@@ -50,6 +49,11 @@ actor ChapterExportEngine {
     /// actor created; = the file-based entry point below is the one
     /// the export sheet uses, = because a chapter can also arrive
     /// from the import under a name that is not an id.
+=======
+    /// = what the user gets in the export). = The body's own
+    /// frontmatter block (= a YAML header the body carries) travels
+    /// with it (= the editor's round trip).
+>>>>>>> 802141b7f (fix(library): the submission manuscript carries no frontmatter, = and the file's stale claim is gone)
     func exportChapter(
         id chapterID: UUID,
         to destinationURL: URL
@@ -200,12 +204,16 @@ actor ChapterExportEngine {
     }
 }
 
-// MARK: - Frontmatter helper
+// MARK: - Frontmatter
 
-// The existing project-wide `ChapterFrontmatter` type lives in
-// `Domain/CrossRefInject_v2.swift:183` (= same module as the rest
-// of the wenshu source tree; = no extra import needed). Today's
-// engine preserves the body verbatim (= the YAML header the editor
-// already wrote into the .md travels with the body); = re-
-// serializing frontmatter would be a future ticket (= requires a
-// MainActor hop to read the SwiftData @Model metadata).
+//
+// The `ChapterFrontmatter` type this file once named (= and the
+// `Domain/CrossRefInject_v2.swift` file it lived in) = is GONE from
+// the tree: = a commit deleted the production types only tests
+// reached. = So nothing in the app writes a YAML frontmatter header
+// into a chapter's body any more. = A body can still CARRY one
+// (= the import path takes "optional frontmatter + free markdown
+// body", = `ImportServiceTitleOnlyHelpers.swift:51`), = and the
+// Markdown export keeps it verbatim (= the editor's round trip). = The
+// MANUSCRIPT export strips it: = a submission carries the author's
+// words, = not the file's metadata (= `ManuscriptShaper`).

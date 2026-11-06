@@ -95,7 +95,7 @@ enum ManuscriptShaper {
     /// segments themselves.
     static func segments(of body: String) -> [String] {
         var segments: [String] = []
-        for block in blocks(of: body) {
+        for block in blocks(of: strippingFrontmatter(body)) {
             for line in lines(of: block) {
                 let text = plainText(of: line)
                 if !text.isEmpty {
@@ -104,6 +104,42 @@ enum ManuscriptShaper {
             }
         }
         return segments
+    }
+
+    // MARK: - The frontmatter
+
+    /// Strips a LEADING frontmatter block (= the YAML header between
+    /// the first `---` and the second `---`).
+    ///
+    /// WHY: the body a chapter holds can carry frontmatter, = and a
+    /// submission manuscript must not. = The app's own import path
+    /// documents the body as "optional frontmatter + free markdown
+    /// body" (= `ImportServiceTitleOnlyHelpers.swift:51`), = and the
+    /// app's own summary reader strips it for the same reason
+    /// (= `FileSystemLibraryStore.extractSummary`: = "strip
+    /// frontmatter ... Standard Jekyll / Hugo / Pandoc frontmatter").
+    /// Without this, the frontmatter's `title:` / `date:` lines would
+    /// travel into the manuscript as the author's prose.
+    ///
+    /// ONLY A LEADING BLOCK IS STRIPPED: = a `---` further down is a
+    /// horizontal rule (= and a rule carries no prose anyway). = A
+    /// body that OPENS with a rule and never closes one keeps its
+    /// prose, = because a rule with no closing fence is not frontmatter.
+    private static func strippingFrontmatter(_ body: String) -> String {
+        let normalized = body
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+        let lines = normalized.components(separatedBy: "\n")
+        guard let first = lines.first,
+              first.trimmingCharacters(in: .whitespaces) == "---"
+        else { return body }
+
+        // The closing fence = the next line that is exactly "---".
+        guard let end = lines.indices.dropFirst().first(where: {
+            lines[$0].trimmingCharacters(in: .whitespaces) == "---"
+        }) else { return body }
+
+        return lines[(end + 1)...].joined(separator: "\n")
     }
 
     // MARK: - Blocks and lines

@@ -147,6 +147,27 @@ struct ChapterExportEngineManuscriptTests {
         #expect(written == "正文。")
     }
 
+    @Test("the exported FILE carries no frontmatter (= the metadata is not the prose)")
+    func theExportedFileCarriesNoFrontmatter() async throws {
+        // The body carries a leading frontmatter block, = and the
+        // exported FILE must not carry it: = a submission manuscript
+        // that opens with "title: ..." is the author's prose polluted
+        // with the file's own metadata.
+        let (root, chapterID) = try Self.makeLibrary(
+            body: "---\ntitle: 第三章 风起\ndate: 2026-11-06\n---\n\n他推开门。\n\n屋里没有人。"
+        )
+        let written = try await Self.export(
+            libraryRoot: root,
+            chapterID: chapterID,
+            target: .qidian
+        )
+
+        #expect(!written.contains("title:"))
+        #expect(!written.contains("date:"))
+        #expect(!written.contains("---"))
+        #expect(written == "他推开门。\n屋里没有人。")
+    }
+
     @Test("the MARKDOWN export is unchanged (= the body bytes are preserved verbatim)")
     func theMarkdownExportStillPreservesTheBodyBytes() async throws {
         let body = "第一段。\n\n==高亮==与**粗体**。"

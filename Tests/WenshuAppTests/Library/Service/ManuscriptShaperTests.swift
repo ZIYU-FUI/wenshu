@@ -184,6 +184,67 @@ final class ManuscriptShaperTests: XCTestCase {
         }
     }
 
+    // MARK: - The frontmatter
+
+    /// A body's LEADING frontmatter is metadata, = not the author's
+    /// prose, = so it does not travel into the submission. = The app's
+    /// own import path documents the body as "optional frontmatter +
+    /// free markdown body" (= `ImportServiceTitleOnlyHelpers.swift:51`),
+    /// = so a chapter body CAN carry one.
+    func testTheLeadingFrontmatterIsNotInTheManuscript() {
+        let body = """
+        ---
+        title: 第三章 风起
+        date: 2026-11-06
+        ---
+
+        他推开门。
+
+        屋里没有人。
+        """
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertFalse(
+            manuscript.contains("title:"),
+            "the frontmatter's title must not travel into the submission"
+        )
+        XCTAssertFalse(
+            manuscript.contains("date:"),
+            "the frontmatter's date must not travel into the submission"
+        )
+        XCTAssertFalse(manuscript.contains("---"), "the fence is markup")
+        XCTAssertEqual(manuscript, "他推开门。\n屋里没有人。")
+    }
+
+    /// The frontmatter's lines are not SEGMENTS either: = the count the
+    /// platforms apply is the body's own characters, = and metadata is
+    /// not the author's words.
+    func testTheFrontmatterIsNotCountedAsASegment() {
+        let body = "---\ntitle: 第三章\n---\n\n他推开门。"
+        let segments = ManuscriptShaper.segments(of: body)
+
+        XCTAssertEqual(segments, ["他推开门。"])
+    }
+
+    /// A body that OPENS with a horizontal rule and never closes one
+    /// is NOT frontmatter (= a rule carries no prose anyway), = so its
+    /// prose survives.
+    func testALeadingRuleWithoutAClosingFenceKeepsItsProse() {
+        let body = "---\n\n他推开门。"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertEqual(manuscript, "他推开门。")
+    }
+
+    /// Only a LEADING block is frontmatter: = a `---` further down is
+    /// a horizontal rule, = and the prose before and after it stays.
+    func testARuleInsideTheBodyIsNotFrontmatter() {
+        let body = "他推开门。\n\n---\n\n屋里没有人。"
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+
+        XCTAssertEqual(manuscript, "他推开门。\n屋里没有人。")
+    }
+
     // MARK: - The segments themselves
 
     /// The segments are the source's paragraphs (= what a platform's
