@@ -17,8 +17,26 @@ import sys
 import tempfile
 
 CJK = re.compile(r"[\u4e00-\u9fff]")
+# The tree's ticket forms, = = and EVERY one of them:
+#
+# = = `T4-` / `P1-02` / `OOB-` = = the hyphenated family; = =
+# = = `A112` / `Q112` / `M1` = = = the bare-number family; = =
+# = = `T20c` / `T1a` / `H2s` = = = the LETTER-SUFFIXED family, = = which
+# = = the tree uses most often (22 occurrences in the production tree's
+# = = comment lines alone); = =
+# = = `round-19` = = the lowercase-prefixed family.
+#
+# = = The bare-number alternative cannot match the letter-suffixed
+# = = family, = = because `\d{1,4}\b` needs a word boundary right after
+# = = the digits, = = and the suffix letter continues the word. = = So the
+# = = letter-suffixed family needs its OWN alternative, = = and the
+# = = measured consequence of leaving it out was 22 invisible
+# = = occurrences.
 TICKET_ID = re.compile(
-    r"\b(?:T|P|A|B|C|Q|OOB|E|W|F|H|S|R)-\d+[A-Z0-9.-]*|\b[A-Z]{1,3}\d{1,4}\b"
+    r"\b(?:T|P|A|B|C|Q|OOB|E|W|F|H|S|R)-\d+[A-Z0-9.-]*"
+    r"|\b[A-Z]{1,3}\d{1,4}\b"
+    r"|\b[A-Z]{1,3}\d{1,4}[a-z]\b"
+    r"|\bround-\d+\b"
 )
 RECEIPT = re.compile(r"rationale lines collapsed")
 
@@ -194,8 +212,17 @@ def main():
                 distinct.add(m.group(0))
     print("5. ticket ids")
     print("   method: a form-complete ticket-id match in a production comment line:")
-    print("   `\\b(?:T|P|A|B|C|Q|OOB|E|W|F|H|S|R)-\\d+[A-Z0-9.-]*|\\b[A-Z]{1,3}\\d{1,4}\\b`")
-    print("   (= the tree's real forms: T4-, T8-, P1-02, A112, Q112, round-19, ...;")
+    print("   `\\b(?:T|P|A|B|C|Q|OOB|E|W|F|H|S|R)-\\d+[A-Z0-9.-]*`")
+    print("   `|\\b[A-Z]{1,3}\\d{1,4}\\b`")
+    print("   `|\\b[A-Z]{1,3}\\d{1,4}[a-z]\\b`")
+    print("   `|\\bround-\\d+\\b`")
+    print("   (= the tree's real forms, = = all four families:")
+    print("   the hyphenated one (= T4-, T8-, P1-02, OOB-);")
+    print("   the bare-number one (= A112, Q112, M1, T0);")
+    print("   the LETTER-SUFFIXED one (= T20c, T1a, H2s, = = which the")
+    print("   bare-number alternative cannot match, = = because the suffix")
+    print("   letter continues the word);")
+    print("   the lowercase-prefixed one (= round-19);")
     print("   the collapse receipts are skipped, because their own A112/A115")
     print("   labels are measure 2's business, not a ticket reference)")
     print(f"   {ids} occurrences, {len(distinct)} distinct")

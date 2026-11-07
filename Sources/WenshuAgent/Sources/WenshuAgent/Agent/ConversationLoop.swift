@@ -453,7 +453,6 @@ public actor ConversationLoop {
                     // The dead `[wenshu.agent] turn N/M` marker is gone (= no view
                     // consumes it). The loop counter is still kept internally (= it
                     // bounds the while condition); = only the user-visible
-                    // it bounds the while condition); = only the user-visible
                     // marker is dropped. "Executing tools".
                     await progressTracker.setStep(
                         id: progressEntry.id,

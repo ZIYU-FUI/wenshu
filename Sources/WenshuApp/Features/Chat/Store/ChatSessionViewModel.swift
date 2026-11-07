@@ -599,14 +599,14 @@ final class ChatViewModel {
         let input = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty else { return }
 
-        // T20c-PLAN-ROUTE: intercept `/plan <query>` BEFORE the slash-command
+        // The `/plan` command surface: intercept `/plan <query>` BEFORE the slash-command
         // path (= /plan is a hub command that needs engine dispatch + plan
         // rendering, = not a normal skill). Strategy: extract the query after
         // `/plan ` and call PlanModeEngine.run to get a numbered plan. The plan
         // is surfaced as a system ChatMessage (= the text content includes the
         // numbered steps; =). This is the lightweight route — keeps the engine
         // integration self-contained (= no ChatMessagePart type change required
-        // for T20c).
+        // for this surface).
         if let planQuery = stripPlanPrefix(input) {
             await runPlanMode(query: planQuery)
             return
@@ -721,7 +721,7 @@ final class ChatViewModel {
         // connector on WenshuConductor, so instantiate PlanModeEngine with
         // AnthropicConnector (= the conductor's default) + the current model id.
         // Future tickets may route through AppState.activeConnector; = out of
-        // scope for T20c.
+        // scope for this surface.
         let model = currentModel
         // The audit's package cleanup: resolve the active
         // connector through the public facade.
@@ -733,7 +733,7 @@ final class ChatViewModel {
             // via ChatPlanPartView) instead of a plain system text message. The
             // plan carries query + steps + connectorID + createdAt; =
             // ChatPlanPartView shows them as a numbered step list with an Approve
-            // button (T20b primitive; = Approve wiring is a).
+            // button (= the approve-button primitive; = Approve wiring is a).
             messages.append(ChatMessage(
                 role: .system,
                 source: .system,

@@ -457,6 +457,41 @@ python3 Tools/wenshu-devtool/mutation_check.py \
 Exit code: 0 = the suite bit, 1 = it did not (= the guard is empty), 2 = the
 suite was already red (= no verdict).
 
+## Inventory measure
+
+The tree's own comment census (= the malformed doc comments, = = the collapse
+receipts, = = the CJK in comments, = = the boss-directive references, = = the
+ticket ids, = = and the production tree's three size rows). = = Every row
+prints the method that produced it, = = so a number can be reproduced.
+
+```
+python3 Tools/wenshu-devtool/inventory-measure.py
+python3 Tools/wenshu-devtool/inventory-measure.py --base main
+python3 Tools/wenshu-devtool/inventory-measure.py --files <path> [<path> ...]
+```
+
+= = The ticket-id row (= = measure 5) = = reaches ALL FOUR of the tree's
+families: = = the hyphenated one (`T4-`, = = `P1-02`, = = `OOB-`), = = the
+bare-number one (`A112`, = = `Q112`, = = `M1`), = = the LETTER-SUFFIXED one
+(`T20c`, = = `T1a`, = = `H2s`), = = and the lowercase-prefixed one
+(`round-19`). = = The bare-number alternative alone cannot match the
+letter-suffixed family, = = because the suffix letter continues the word: = =
+measured over the production tree at the base, = = the old matcher saw **0**
+of the family's **22** occurrences, = = and the whole-file row it shipped
+read `base 71 -> tip 2` where a form-complete matcher reads `base 76 -> tip
+6`. = = So the matcher carries its own cases.
+
+```
+python3 Tools/wenshu-devtool/tests/test_inventory_measure.py
+```
+
+= = The suite names every form the tree really uses, = = every ordinary
+word a loose matcher would catch, = = the branch's added comment lines
+(= = which must carry no ticket id), = = and the rewritten block (= = which
+must carry its clause once). = = Each case can fail: = = narrowing the
+matcher turns the family's own cases red, = = and putting a ticket id back
+turns the added-lines case red.
+
 ## Card sha
 
 A separate tool, because it reads the GIT REPO and the card body. It
