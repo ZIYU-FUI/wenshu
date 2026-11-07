@@ -88,12 +88,6 @@ enum ManuscriptShaper {
             .joined(separator: separator)
     }
 
-    /// The manuscript's segments (= the source's prose lines, = with
-    /// the app's inline markers removed).
-    ///
-    /// Exposed for the count the platforms apply (= the body
-    /// without the title) and for the tests that measure the
-    /// segments themselves.
     /// The number of characters the target's own rule counts.
     ///
     /// = The count is the CONTENT's characters: = the segments as the
@@ -105,6 +99,12 @@ enum ManuscriptShaper {
         segments(of: body).reduce(0) { $0 + $1.count }
     }
 
+    /// The manuscript's segments (= the source's prose lines, = with
+    /// the app's inline markers removed).
+    ///
+    /// Exposed for the count the platforms apply (= the body
+    /// without the title) and for the tests that measure the
+    /// segments themselves.
     static func segments(of body: String) -> [String] {
         var segments: [String] = []
         for block in blocks(of: droppingTheTitle(strippingFrontmatter(body))) {

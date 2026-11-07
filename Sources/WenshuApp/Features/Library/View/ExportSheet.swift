@@ -217,14 +217,13 @@ struct ExportSheet: View {
     /// The warning the count earns, = when it falls outside the
     /// target's published range.
     ///
-    /// = A target that publishes no per-chapter word rule earns no
-    /// warning, = because the app has no number to check against.
+    /// = The DECISION is the model's (= `chapterWordCountWarning`), =
+    /// so a test can reach it; = this view only RENDERS what the model
+    /// decided. = A target that publishes no per-chapter word rule earns
+    /// no warning, = because the app has no number to check against.
     private var manuscriptWordCountWarning: String? {
-        guard let count = manuscriptWordCount,
-              let range = manuscriptTarget.chapterWordRange,
-              !range.contains(count)
-        else { return nil }
-        return "本章正文 \(count) 字，超出\(manuscriptTarget.displayName)的单章字数要求（\(range.lowerBound)–\(range.upperBound) 字）"
+        guard let count = manuscriptWordCount else { return nil }
+        return manuscriptTarget.chapterWordCountWarning(for: count)
     }
 
     /// What the count is measured against (= the chapter and the target

@@ -178,7 +178,7 @@ actor ChapterExportEngine {
     /// panel is the number the exported file carries.
     func manuscriptWordCount(
         id chapterID: UUID?,
-        target: ManuscriptTarget
+        target _: ManuscriptTarget
     ) async -> Int? {
         guard let chapterID else { return nil }
         guard let libPath = ActiveLibrary.path else { return nil }

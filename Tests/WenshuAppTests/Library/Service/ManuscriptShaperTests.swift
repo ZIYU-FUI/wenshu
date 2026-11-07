@@ -491,7 +491,35 @@ final class ManuscriptShaperTests: XCTestCase {
         XCTAssertNotNil(ManuscriptTarget.qidian.chapterWordRange)
         XCTAssertNil(ManuscriptTarget.fanqie.chapterWordRange)
         XCTAssertNil(ManuscriptTarget.jinjiang.chapterWordRange)
-        XCTAssertTrue(ManuscriptTarget.qidian.chapterWordRange?.contains(2_000) == true)
-        XCTAssertTrue(ManuscriptTarget.qidian.chapterWordRange?.contains(20_001) == false)
+        XCTAssertTrue(ManuscriptTarget.qidian.chapterWordRange?.contains(2000) == true)
+        XCTAssertTrue(ManuscriptTarget.qidian.chapterWordRange?.contains(20001) == false)
+    }
+
+    /// The cap's VALUE is the load-bearing fact (= the published rule is
+    /// "one chapter at most 20,000 characters"), = so the number is
+    /// pinned and not merely the range's SHAPE.
+    ///
+    /// = Without this, any cap in [2,000, 20,000] passes (= and the
+    /// panel then warns a writer about a rule the platform never
+    /// published).
+    func testThePublishedCapIsTheNumberThePlatformPublished() {
+        XCTAssertEqual(ManuscriptTarget.qidian.chapterWordRange?.lowerBound, 0)
+        XCTAssertEqual(ManuscriptTarget.qidian.chapterWordRange?.upperBound, 20000)
+    }
+
+    /// The warning fires for a count OUTSIDE the published range, = and
+    /// only for that (= the decision is the model's, = so a test can
+    /// reach it at all).
+    func testTheWarningFiresOnlyForACountOutsideThePublishedRange() {
+        XCTAssertNil(ManuscriptTarget.qidian.chapterWordCountWarning(for: 0))
+        XCTAssertNil(ManuscriptTarget.qidian.chapterWordCountWarning(for: 20000))
+        XCTAssertNotNil(ManuscriptTarget.qidian.chapterWordCountWarning(for: 20001))
+    }
+
+    /// A target that publishes no per-chapter rule earns NO warning, =
+    /// because the app has no number to check against.
+    func testATargetWithNoPublishedRuleEarnsNoWarning() {
+        XCTAssertNil(ManuscriptTarget.fanqie.chapterWordCountWarning(for: 20001))
+        XCTAssertNil(ManuscriptTarget.jinjiang.chapterWordCountWarning(for: 20001))
     }
 }

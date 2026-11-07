@@ -119,9 +119,6 @@ enum ManuscriptTarget: String, CaseIterable, Identifiable, Sendable {
         return "每段首行\(Self.countWord(spaces))个全角空格"
     }
 
-    /// The target's spacing between segments, in the reader's language.
-    ///
-    /// Derived from the measured rule, = for the same reason.
     /// What the platform COUNTS, = in the reader's words.
     ///
     /// = The rule is the app's own export's: = the chapter title is
@@ -150,11 +147,31 @@ enum ManuscriptTarget: String, CaseIterable, Identifiable, Sendable {
     /// publish no per-chapter word rule this build could verify.
     var chapterWordRange: ClosedRange<Int>? {
         switch self {
-        case .qidian: return 0...20_000
+        case .qidian: return 0 ... 20000
         case .fanqie, .jinjiang: return nil
         }
     }
 
+    /// The warning a chapter's count earns, = when it falls outside the
+    /// range this target publishes.
+    ///
+    /// = The DECISION lives on the model, = not in the panel's view, =
+    /// so a test can reach it (= a view's own `private var` cannot be
+    /// called from a test at all). = The panel renders what this
+    /// returns, = and `nil` means the panel says nothing (= the target
+    /// publishes no per-chapter rule, = so there is no rule to warn
+    /// about).
+    func chapterWordCountWarning(for count: Int) -> String? {
+        guard let range = chapterWordRange else { return nil }
+        guard !range.contains(count) else { return nil }
+        return "本章正文 \(count) 字，超出\(displayName)的单章字数要求（不超过 \(range.upperBound) 字）"
+    }
+
+    /// The target's spacing between segments, = as the writer reads it.
+    ///
+    /// Derived from the measured rule (= = whether a blank line
+    /// separates two segments), = so the panel's own prose follows the
+    /// rule instead of restating it.
     var spacingDescription: String {
         separatesSegmentsWithBlankLine ? "段间空一行" : "段间无空行"
     }

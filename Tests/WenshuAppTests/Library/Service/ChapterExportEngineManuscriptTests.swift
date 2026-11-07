@@ -260,4 +260,32 @@ struct ChapterExportEngineManuscriptTests {
 
         #expect(written == body, "the Markdown export must stay byte-for-byte the body")
     }
+
+    /// The number the PANEL shows is the number the exported FILE
+    /// carries.
+    ///
+    /// = The panel calls `ChapterExportEngine.manuscriptWordCount`, =
+    /// which is a DIFFERENT seam from the shaper's own `wordCount` =
+    /// so a defect in the engine's method = (= taking the SHAPED
+    /// text's length = = the indent and the blank lines the platform
+    /// adds) = is invisible to the shaper's suite. = This drives the
+    /// engine's own method against a real library root, = and holds it
+    /// to the CONTENT's characters.
+    @Test("the number the panel shows is the CONTENT's characters (= and not the shaped file's length)")
+    func thePanelCountIsTheContentCount() async throws {
+        // The Jinjiang target = the one whose shape adds the most (= two
+        // full-width spaces on every segment, = and a blank line
+        // between them), = so a count that took the shaped file's
+        // length would differ from the content's by a visible amount.
+        let body = "第一段。\n\n第二段。"
+        let (root, chapterID) = try Self.makeLibrary(body: body)
+        let engine = ChapterExportEngine()
+        let count = try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            await engine.manuscriptWordCount(id: chapterID, target: .jinjiang)
+        }
+
+        let content = body.replacingOccurrences(of: "\n\n", with: "").count
+        #expect(count == content, "the count must be the content's characters")
+        #expect(count != body.count, "the content's characters are not the body's characters")
+    }
 }
