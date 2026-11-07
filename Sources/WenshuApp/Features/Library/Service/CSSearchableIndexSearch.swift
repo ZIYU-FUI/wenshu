@@ -23,6 +23,12 @@
 //     a moment ago is in the mirror but not yet in the system index,
 //     and a document the app indexed in an earlier session is in the
 //     system index but not in the in-memory mirror.
+//
+// The wait: the system index answers on ITS OWN queue, = and the wait
+// for it is a SUSPENDED CONTINUATION with a deadline
+// (= `SpotlightQueryWait`), = not a `DispatchGroup.wait()` on this
+// actor's executor. = A slow Spotlight therefore costs the caller the
+// deadline, = and never the app.
 
 import Foundation
 import CoreSpotlight
@@ -79,6 +85,63 @@ struct SearchDocMirrorEntry: Equatable, Sendable {
     /// when the title is empty).
     var displayTitle: String {
         title.isEmpty ? docId : title
+    }
+}
+
+/// One system-index query, = and the hits it produced.
+///
+/// **⇒ The box is `@unchecked Sendable` because `CSSearchQuery` is an
+/// Objective-C class the checker cannot see through** (= it does not
+/// conform to `Sendable`), = and the query's own API crosses threads
+/// BY DESIGN: = `start()` is called on the caller's thread, = the
+/// handlers fire on Core Spotlight's own queue, = and `cancel()` is
+/// called from whichever thread gave up waiting (= that is what
+/// `cancel` is for). = **⇒ The lock is what makes the sharing real**:
+/// = the hits arrive on the index's queue, = and the caller reads them
+/// after the wait ends. = **⇒ The old code relied on `group.wait()`
+/// for that ordering, = and the wait is now a continuation (= which
+/// does not order the collector's writes by itself).**
+private final class SpotlightQuery: @unchecked Sendable {
+    /// The system index's query.
+    private let query: CSSearchQuery
+
+    /// The hits the query produced (= they arrive on the index's own
+    /// queue, = so they are read behind the lock).
+    private let lock = NSLock()
+    private var collected: [CSSearchableItem] = []
+
+    /// - Parameter queryString: The index query (= the same shape the
+    ///   old code used).
+    init(queryString: String) {
+        query = CSSearchQuery(queryString: queryString, queryContext: nil)
+    }
+
+    /// Ask the index, = and report the answer.
+    ///
+    /// - Parameter onAnswer: Called when the index answers (= `.answered`
+    ///   for hits, = `.failed` for an error).
+    func start(onAnswer: @escaping @Sendable (SpotlightQueryOutcome) -> Void) {
+        query.foundItemsHandler = { [self] items in
+            lock.withLock { collected.append(contentsOf: items) }
+        }
+        query.completionHandler = { [self] error in
+            onAnswer(error == nil ? .answered : .failed)
+        }
+        // Apple HIG (macOS 27): `CSSearchQuery.start()` returns Void (= error surfaces
+        // via completionHandler). If start is a no-op due to Spotlight unavailable,
+        // completionHandler fires immediately with an error.
+        query.start()
+    }
+
+    /// Stop the index (= it stops working on a question nobody waits
+    /// for).
+    func cancel() {
+        query.cancel()
+    }
+
+    /// The hits the index produced.
+    var hits: [CSSearchableItem] {
+        lock.withLock { collected }
     }
 }
 
@@ -188,9 +251,9 @@ actor CSSearchableIndexSearch {
     ///   - query: user query string (= Spotlight handles FTS5-style MATCH syntax).
     ///   - limit: max results (= default 20).
     /// - Returns: array of CSSearchResult sorted by descending rank.
-    func search(query: String, limit: Int = 20) throws -> [CSSearchResult] {
+    func search(query: String, limit: Int = 20) async throws -> [CSSearchResult] {
         let mirrorResults = try queryFallback(query: query, limit: limit)
-        let spotlightResults = try querySpotlight(query: query, limit: limit)
+        let spotlightResults = await querySpotlight(query: query, limit: limit)
 
         var seen = Set(mirrorResults.map(\.docId))
         var merged = mirrorResults
@@ -209,44 +272,39 @@ actor CSSearchableIndexSearch {
     }
 
     /// Query Apple Spotlight via CSSearchQuery.
+    ///
     /// Apple HIG (macOS 27): `CSSearchQuery.init(queryString:queryContext:)` +
     /// `start()` is Void (= error surfaces via completionHandler).
-    private func querySpotlight(query: String, limit: Int) throws -> [CSSearchResult] {
+    ///
+    /// **⇒ THE WAIT DOES NOT HOLD THE ACTOR.** = The old wait was a
+    /// `DispatchGroup.wait()` on this actor's own executor, = so a
+    /// slow Spotlight froze every other caller on the actor (= the
+    /// editor's title lookup, = an index write). = **⇒ The wait is
+    /// now a suspended continuation with a DEADLINE** (= see
+    /// `SpotlightQueryWait`): = the caller is suspended, = not blocked;
+    /// = the index answers on its own queue; = and an index that never
+    /// answers costs the caller the deadline, = not the app.
+    private func querySpotlight(query: String, limit: Int) async -> [CSSearchResult] {
         let queryString = "contentDescription == \"*\(query)*\"c OR title == \"*\(query)*\"c"
-        let cssQuery = CSSearchQuery(queryString: queryString, queryContext: nil)
+        let spotlight = SpotlightQuery(queryString: queryString)
 
-        var collected: [CSSearchableItem] = []
-        var queryError: Error?
-
-        let group = DispatchGroup()
-        group.enter()
-
-        cssQuery.foundItemsHandler = { items in
-            collected.append(contentsOf: items)
-        }
-        cssQuery.completionHandler = { error in
-            // Capture any error for caller-side reporting; = still complete the group.
-            queryError = error
-            group.leave()
+        let outcome = await SpotlightQueryWait.awaitOutcome { done in
+            spotlight.start(onAnswer: done)
+        } cancel: {
+            spotlight.cancel()
         }
 
-        // Apple HIG (macOS 27): `CSSearchQuery.start()` returns Void (= error surfaces
-        // via completionHandler). If start is a no-op due to Spotlight unavailable,
-        // completionHandler fires immediately with an error.
-        cssQuery.start()
-
-        // Wait for completion (synchronous actor await).
-        group.wait()
-
-        // If Spotlight errored (= user disabled indexer), return empty → fallback path.
-        if queryError != nil {
-            return []
-        }
+        // The index did not answer, = or answered with an error: = the
+        // mirror's answer stands alone. = **⇒ The mirror is the answer
+        // the app always has** (= it is the app's own live index), = so
+        // a system index that is slow or off costs LATENCY, = not the
+        // answer.
+        guard outcome == .answered else { return [] }
 
         // Only this app's own domain answers (= the system index holds
         // every application's documents, and a foreign one carries a
         // docId no caller of this app can resolve).
-        return collected
+        return spotlight.hits
             .filter { $0.domainIdentifier == CSSearchDomain.domainIdentifier }
             .prefix(limit)
             .enumerated()
