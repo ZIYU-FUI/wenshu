@@ -267,7 +267,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         displayTitle: String? = nil,
         source: String? = nil,
         url: String? = nil,
-        layer: ReferenceLayer = .layerRaw,
+        layer: ReferenceLayer = .layerEntities,
         category: EntityCategory? = nil,
         tags: Set<String> = [],
         entityType: EntityType = .other,
