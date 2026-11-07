@@ -24,6 +24,23 @@
 //  actor in a `.task(id:)` keyed on the query (= a keystroke starts
 //  a new search; = the old one's result is discarded).
 //
+//  **⇒ And the corpus narrows by KIND and by OWNER.** = The archive
+//  narrows (= by agent and by kind, = `ArchiveSettingsPane`), = and
+//  the corpus did not. = The two controls sit here because this is the
+//  corpus's own read surface (= the grid shows the entities layer
+//  only, = so a narrowing that cannot reach the raw layer would not
+//  narrow the corpus). = The kind is the corpus's own closed set
+//  (`EntityType`), = and the owner is "you vs. an agent" (= the only
+//  owner the second-writer rule's witness can prove, = measured
+//  2026-11-07: = no producer records WHICH agent).
+//
+//  **⇒ The owner's answer is READ, = never assumed.** = It comes from
+//  the write record (= the second-writer rule's own witness), = and
+//  it is read off the main actor with the bodies. = A document whose
+//  owner cannot be read is the user's (= the agent may never replace
+//  text it cannot prove it wrote), = so it is not lost from the
+//  user's bucket.
+//
 
 import SwiftUI
 
@@ -44,6 +61,17 @@ struct LibraryFullTextSearchView: View {
     /// "nothing found" without saying it before the search started).
     @State private var hasSearched = false
 
+    /// The kind the corpus is narrowed to (= nil = every kind).
+    @State private var kindFilter: EntityType?
+
+    /// The owner the corpus is narrowed to (= nil = both owners).
+    @State private var ownerFilter: ReferenceCorpusOwner?
+
+    /// The narrowing the two controls currently express.
+    private var narrowing: ReferenceCorpusNarrowing {
+        ReferenceCorpusNarrowing(kind: kindFilter, owner: ownerFilter)
+    }
+
     var body: some View {
         Group {
             let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -56,6 +84,9 @@ struct LibraryFullTextSearchView: View {
         .task(id: query) {
             await search()
         }
+        .task(id: narrowing) {
+            await search()
+        }
     }
 
     // MARK: - The results
@@ -63,6 +94,7 @@ struct LibraryFullTextSearchView: View {
     private func results() -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             header
+            narrowingControls
             if hits.isEmpty {
                 if hasSearched {
                     Text(String(localized: "library.search.fulltext.empty"))
@@ -95,6 +127,36 @@ struct LibraryFullTextSearchView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         }
+    }
+
+    /// The two narrowing controls (= the corpus's kind and owner).
+    ///
+    /// **⇒ The options come from the corpus, = and from the closed
+    /// sets the app can prove.** = The kind is the corpus's own
+    /// `EntityType` set (= 9 cases, = the vocabulary the corpus is
+    /// filed under). = The owner is the two the second-writer rule's
+    /// witness can prove (= "you" and "an agent"), = because no
+    /// producer records which agent wrote a document (= measured
+    /// 2026-11-07) = and a menu naming a role the app cannot prove is
+    /// worse than no menu.
+    private var narrowingControls: some View {
+        HStack(spacing: DesignTokens.spacingIconic) {
+            Picker(String(localized: "library.search.fulltext.filter.kind"), selection: $kindFilter) {
+                Text(String(localized: "library.search.fulltext.filter.all"))
+                    .tag(EntityType?.none)
+                ForEach(EntityType.allCases, id: \.self) { kind in
+                    Text(kind.displayName).tag(EntityType?.some(kind))
+                }
+            }
+            Picker(String(localized: "library.search.fulltext.filter.owner"), selection: $ownerFilter) {
+                Text(String(localized: "library.search.fulltext.filter.all"))
+                    .tag(ReferenceCorpusOwner?.none)
+                ForEach(ReferenceCorpusOwner.allCases, id: \.self) { owner in
+                    Text(owner.displayName).tag(ReferenceCorpusOwner?.some(owner))
+                }
+            }
+        }
+        .font(.caption)
     }
 
     /// One hit (= the document's title, the layer it is in, and the
@@ -153,8 +215,17 @@ struct LibraryFullTextSearchView: View {
             return
         }
         let root = envBookStore.stores.referenceLibraryRoot
+        let narrowing = narrowing
         let found = await Task.detached(priority: .userInitiated) { () -> [ReferenceLibrarySearch.Hit] in
-            ReferenceLibrarySearch.search(
+            // **⇒ The owner's answer is read HERE, = off the main
+            // actor, = and with the bodies.** = The witness is the
+            // second-writer rule's own (= the write record, = or the
+            // corpus copy when there is no record), = so the owner
+            // axis cannot be answered by the reference itself.
+            let owners = narrowing.owner == nil
+                ? [:]
+                : ReferenceCorpusOwnership.owners(for: references, referenceLibraryRoot: root)
+            return ReferenceLibrarySearch.search(
                 query: trimmed,
                 references: references,
                 bodyOf: { reference in
@@ -163,7 +234,9 @@ struct LibraryFullTextSearchView: View {
                         layer: reference.layer,
                         referenceLibraryRoot: root
                     )
-                }
+                },
+                narrowing: narrowing,
+                ownerOf: { reference in owners[reference.id] }
             )
         }.value
         // The query may have moved on while the search ran; a stale

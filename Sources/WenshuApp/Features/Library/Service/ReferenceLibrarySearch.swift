@@ -67,16 +67,30 @@ enum ReferenceLibrarySearch {
     ///   - bodyOf: The body of one document (= the caller reads the
     ///     `.md` file; = this type does no IO, = so it can be tested
     ///     without a disk).
+    ///   - narrowing: The axes the corpus narrows by (= the kind and
+    ///     the owner; = `.all` = no narrowing). = **⇒ The narrowing
+    ///     runs BEFORE the matching** (= a document the user excluded
+    ///     must not be read at all, = and must not be counted in what
+    ///     the search found).
+    ///   - ownerOf: Who wrote one document (= the second-writer rule's
+    ///     answer; = the owner axis is the only axis that is not a
+    ///     field on the reference, = so the caller supplies it).
     static func search(
         query: String,
         references: [Reference],
-        bodyOf: (Reference) -> String?
+        bodyOf: (Reference) -> String?,
+        narrowing: ReferenceCorpusNarrowing = .all,
+        ownerOf: (Reference) -> ReferenceCorpusOwner? = { _ in nil }
     ) -> [Hit] {
         let queryTokens = TokenOverlapRanking.tokenize(query)
         guard !queryTokens.isEmpty else { return [] }
 
         var hits: [Hit] = []
         for reference in references {
+            // **⇒ The narrowing asks ITSELF** (= one answer to "does
+            // this document survive", = and the search does not keep a
+            // second copy of the rule).
+            guard narrowing.admits(reference, ownerOf: ownerOf) else { continue }
             guard let hit = match(
                 reference: reference,
                 queryTokens: queryTokens,
