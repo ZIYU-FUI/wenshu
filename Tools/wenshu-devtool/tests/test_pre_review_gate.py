@@ -69,6 +69,71 @@ CARD_UNPARSED = """## GATES
 - swift test --filter BookStyleSheetTests
 """
 
+# A card whose WHY merely MENTIONS the phrase, = and whose GATES
+# section is clean. = The old reader lifted the prose mention as a
+# filter and ran it, = and named the prose line as unreadable, = so the
+# card failed for its own explanation.
+CARD_PROSE_ONLY = """## WHY
+
+= = `pre_review_gate.py` read only the EXIT CODE of each
+`swift test --filter`.
+
+## GATES
+
+- `swift build --build-tests`
+- `swift test --filter 'BookStyleSheetTests'`
+"""
+
+# A card that quotes a filter in its prose (= as the shape of a broken
+# card), = and names its real suite in GATES. = The old reader lifted
+# BOTH, = so it ran a suite the card never asked for.
+CARD_PROSE_QUOTES = """## WHY
+
+= = the broken card named `swift test --filter 'RenamedSuitesV2'`.
+
+## GATES
+
+- `swift test --filter 'BookStyleSheetTests'`
+"""
+
+# The same shape, = on a card with NO GATES heading (= so the reader
+# falls back to the whole body). = = This is the case that pins the
+# command-line check on its own: = the scope cannot help here, = so the
+# prose line must be recognised as prose (= = not as a command to run).
+CARD_NO_GATES = """## GOAL
+
+= = the broken card named the suite as `swift test --filter 'RenamedSuitesV2'`, = and the working one as `swift test --filter 'BookStyleSheetTests'`.
+
+## THE COMMANDS
+
+- `swift build --build-tests`
+- `swift test --filter 'BookStyleSheetTests'`
+"""
+
+# A CJK literal on a line that ALSO carries a trailing comment. = The
+# literal is not a comment, = so the audit must not report it.
+#
+# = The literal is a URL, = so it carries a `//` of its OWN, = and the
+# CJK sits AFTER that `//`. = That is what pins the blanking: = without
+# it, = the reader would take the URL's `//` as the comment's start, =
+# and the CJK would land inside the "comment part" (= and be reported).
+CJK_LITERAL_WITH_TRAILING_COMMENT = 'let u = "https://example.com/唐朝"  // the link'
+CJK_IN_TRAILING_COMMENT = 'let size = 11  // the body is 通用'
+CJK_IN_BLOCK_COMMENT = "/* the body is 通用 */"
+# A MULTILINE literal (= = three double quotes) = whose own text holds a
+# `//`. = The scanner that toggles on the quote one at a time leaves its
+# state wrong after the triple, = so the `//` inside the literal would be
+# read as a comment's start.
+#
+# = The literal SPANS the lines (= = that is what a multiline literal
+# is), = so the state must be carried across them: = the line that
+# OPENS it is followed by a line whose `//` is still inside the literal.
+# = The CJK sits AFTER that `//` (= = inside the URL), = so the case
+# tells the two behaviours apart: = with the state carried the line is
+# blanked (= no comment at all), = and without it the `//` starts a
+# "comment" that holds the CJK.
+CJK_IN_MULTILINE_LITERAL = 'let doc = """\n[链接](https://example.com/通用)\n"""  // the note'
+
 
 def main() -> int:
     print("test_pre_review_gate: the pre-review gate's own cases")
@@ -163,6 +228,67 @@ def main() -> int:
         "a CJK literal in a comment IS caught (= the CJK audit's whole job)",
         len(comments) == 1,
         f"comments={comments}",
+    )
+
+    # 12. a PROSE mention is not a gate line (= and is not named).
+    filters, unparsed = gate.filters_from_card(CARD_PROSE_ONLY)
+    case(
+        "a PROSE mention of the phrase is not a gate line (= and is not named)",
+        filters == ["BookStyleSheetTests"] and not unparsed,
+        f"filters={filters} unparsed={unparsed}",
+    )
+
+    # 13. a filter QUOTED in prose is not lifted (= the card never asked for it).
+    filters, unparsed = gate.filters_from_card(CARD_PROSE_QUOTES)
+    case(
+        "a filter QUOTED in prose is NOT lifted (= the card never asked for that suite)",
+        filters == ["BookStyleSheetTests"] and not unparsed,
+        f"filters={filters} unparsed={unparsed}",
+    )
+
+    # 13b. a prose mention on a card with NO GATES heading (= the scope
+    #      cannot help, = so the command-line check is what stops it).
+    filters, unparsed = gate.filters_from_card(CARD_NO_GATES)
+    case(
+        "a PROSE mention is not a gate line (= even with no GATES section)",
+        filters == ["BookStyleSheetTests"] and not unparsed,
+        f"filters={filters} unparsed={unparsed}",
+    )
+
+    # 14. a CJK literal on a line that carries a trailing comment (= the
+    #     literal is NOT reported: = the comment part is what is read).
+    audited = [line for line, part in gate.comment_parts([CJK_LITERAL_WITH_TRAILING_COMMENT]) if gate.CJK.search(part)]
+    case(
+        "a CJK literal beside a trailing comment is NOT reported (= the literals stay)",
+        audited == [],
+        f"audited={audited}",
+    )
+
+    # 15. a CJK in a TRAILING comment IS reported (= the other half).
+    audited = [line for line, part in gate.comment_parts([CJK_IN_TRAILING_COMMENT]) if gate.CJK.search(part)]
+    case(
+        "a CJK in a TRAILING comment IS reported (= the comment part is what is read)",
+        len(audited) == 1,
+        f"audited={audited}",
+    )
+
+    # 16. a CJK in a BLOCK comment IS reported (= the other half).
+    audited = [line for line, part in gate.comment_parts([CJK_IN_BLOCK_COMMENT]) if gate.CJK.search(part)]
+    case(
+        "a CJK in a BLOCK comment IS reported (= the comment part is what is read)",
+        len(audited) == 1,
+        f"audited={audited}",
+    )
+
+    # 17. a `//` inside a MULTILINE literal is NOT a comment (= the
+    #     triple quote must be matched as a unit).
+    audited = [
+        line for line, part in gate.comment_parts(CJK_IN_MULTILINE_LITERAL.split("\n")) if gate.CJK.search(part)
+    ]
+    case(
+        "a `//` inside a MULTILINE literal is NOT a comment (= the triple is matched as one)",
+        audited == [],
+        f"audited={audited}",
     )
 
     failed = PASSED.count(False)

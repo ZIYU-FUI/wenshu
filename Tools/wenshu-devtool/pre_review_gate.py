@@ -76,6 +76,7 @@ FILTER = re.compile(r"swift test --filter\s+(['\"])(.+?)\1")
 
 # The phrase that says the card names a filter at all.
 FILTER_PHRASE = "swift test --filter"
+CJK = re.compile(r"[一-鿿]")
 
 
 def sh(command, cwd=REPO, timeout=3600):
@@ -105,33 +106,110 @@ def measure_tests(output):
     return measured, NO_MATCH in output
 
 
+def gate_scope(text):
+    """The card's GATES section, = or the whole body when it has none.
+
+    = A card's GATES section is where its gate lines live, = so the
+    reader reads that section, = and NOT the prose around it: = a WHY
+    sentence that merely MENTIONS `swift test --filter` is a sentence
+    about the gate, = not a gate, = and reading it as one made the
+    reader report a card as broken for its own explanation.
+    """
+    match = re.search(r"^##\s+GATES\b", text, re.MULTILINE | re.IGNORECASE)
+    if not match:
+        return text
+    rest = text[match.end():]
+    following = re.search(r"^##\s+", rest, re.MULTILINE)
+    return rest[:following.start()] if following else rest
+
+
+def is_gate_line(line):
+    """Does the line READ as a command to run?
+
+    = The phrase alone does not make a line a gate: = a sentence that
+    mentions it (= "the reader read only the EXIT CODE of each
+    `swift test --filter`") = is prose. = A gate line is one whose
+    text starts with the command, = or carries it after a shell
+    connective (= `cd <wt> && swift test --filter ...`).
+    """
+    core = line.strip()
+    core = re.sub(r"^[-*+]\s+", "", core)
+    core = re.sub(r"^\d+\.\s+", "", core)
+    core = core.strip()
+    while core.startswith("`"):
+        core = core[1:].strip()
+    core = re.sub(r"^\$\s*", "", core)
+    index = core.find(FILTER_PHRASE)
+    if index == -1:
+        return False
+    before = core[:index].rstrip()
+    if before == "":
+        return True
+    return before.endswith(("&&", ";", "|", "||", "(", "{"))
+
+
 def filters_from_card(text):
-    """The card's own narrow suites, = read from its GATES section.
+    """The card's own narrow suites, = and the gate lines it cannot read.
 
     Returns (filters, unparsed_lines). = `unparsed_lines` names the
-    card's filter lines the reader could not parse, = because a card
+    card's GATE lines the reader could not parse, = because a card
     whose gate line cannot be read measures nothing, = and the reader
     must say so rather than measure a smaller set than the card asks
     for.
+
+    = Only the card's GATES section is read, = and only the lines in it
+    that read as commands (= a prose mention is not a gate), = so a
+    card is never failed for its own explanation, = and never measured
+    against a suite its prose quoted.
     """
-    filters = [match[1] for match in FILTER.findall(text)]
+    scope = gate_scope(text)
+    filters = []
     unparsed = []
-    for line in text.split("\n"):
-        if FILTER_PHRASE in line and not FILTER.search(line):
+    for line in scope.split("\n"):
+        if FILTER_PHRASE not in line:
+            continue
+        if not is_gate_line(line):
+            continue
+        found = FILTER.findall(line)
+        if found:
+            filters.extend(match[1] for match in found)
+        else:
             unparsed.append(line.strip())
     return filters, unparsed
 
 
-def blank_strings(line):
+def blank_strings(line, in_multiline=False):
     """The line with its string literals blanked, = so a `//` inside a
     string is not read as a comment. = A string that is never closed on
-    the line runs to the end of it, = which is how Swift reads it too."""
+    the line runs to the end of it, = which is how Swift reads it too.
+
+    = A MULTILINE literal (= three double quotes) = is blanked as one:
+    = the scanner toggles on the quote one at a time, = so the triple
+    leaves its state wrong (= and a `//` after it would be read as a
+    comment). = So the triple is matched as a unit.
+
+    = Returns (blanked, in_multiline): = the state says whether a
+    multiline literal is OPEN at the end of the line, = because such a
+    literal SPANS lines (= and the line after it is still inside the
+    literal, = so a `//` there is not a comment either).
+    """
     out = []
     in_string = False
     escaped = False
     index = 0
     while index < len(line):
         char = line[index]
+        if in_multiline:
+            if line.startswith('"""', index):
+                out.append(" ")
+                out.append(" ")
+                out.append(" ")
+                in_multiline = False
+                index += 3
+                continue
+            out.append(" ")
+            index += 1
+            continue
         if escaped:
             out.append(" ")
             escaped = False
@@ -142,6 +220,13 @@ def blank_strings(line):
             escaped = True
             index += 1
             continue
+        if line.startswith('"""', index):
+            out.append(" ")
+            out.append(" ")
+            out.append(" ")
+            in_multiline = True
+            index += 3
+            continue
         if char == '"':
             in_string = not in_string
             out.append(" ")
@@ -149,7 +234,68 @@ def blank_strings(line):
             continue
         out.append(" " if in_string else char)
         index += 1
-    return "".join(out)
+    return "".join(out), in_multiline
+
+
+def comment_parts(added_lines):
+    """The COMMENT part of every added line that carries one.
+
+    = The CJK audit greps the COMMENT PART, = not the whole raw line: =
+    a line whose CJK sits inside a string literal AND which carries a
+    trailing comment (= the repository's own idiom, = e.g. a model's
+    `displayName` with a note beside it) = would otherwise be reported
+    as CJK-in-a-comment, = and the literal does not stay.
+
+    = The string literals are blanked first, = so a `//` inside a
+    literal is not read as a comment's start, = and the comment's own
+    text is what comes back. = The multiline state is carried across the
+    lines, = because a multiline literal spans them.
+
+    Returns a list of (line, comment_part) pairs.
+    """
+    parts = []
+    in_block = False
+    in_multiline = False
+    for raw in added_lines:
+        scrubbed, in_multiline = blank_strings(raw, in_multiline)
+        is_comment = in_block
+        index = 0
+        while index < len(scrubbed):
+            if in_block:
+                end = scrubbed.find("*/", index)
+                if end == -1:
+                    is_comment = True
+                    index = len(scrubbed)
+                    break
+                in_block = False
+                index = end + 2
+                continue
+            block = scrubbed.find("/*", index)
+            line_marker = scrubbed.find("//", index)
+            if line_marker != -1 and (block == -1 or line_marker < block):
+                is_comment = True
+                index = len(scrubbed)
+                break
+            if block != -1:
+                in_block = True
+                is_comment = True
+                index = block + 2
+                continue
+            break
+        if in_block:
+            is_comment = True
+        if not is_comment:
+            continue
+        marker = scrubbed.find("//")
+        if marker != -1:
+            parts.append((raw, raw[marker:]))
+            continue
+        block = scrubbed.find("/*")
+        if block != -1:
+            parts.append((raw, raw[block:]))
+            continue
+        parts.append((raw, raw))
+    return parts
 
 
 def comment_lines(added_lines):
@@ -163,8 +309,9 @@ def comment_lines(added_lines):
     """
     comments = []
     in_block = False
+    in_multiline = False
     for raw in added_lines:
-        scrubbed = blank_strings(raw)
+        scrubbed, in_multiline = blank_strings(raw, in_multiline)
         is_comment = in_block
         index = 0
         while index < len(scrubbed):
@@ -199,8 +346,7 @@ def cjk_audit(base):
     """§7.5: zero new CJK in the COMMENTS this change adds."""
     diff = sh(f"git diff {base} HEAD -- '*.swift'")[1]
     added = [line[1:] for line in diff.split("\n") if line.startswith("+") and not line.startswith("+++")]
-    cjk = re.compile(r"[一-鿿]")
-    comments = [line for line in comment_lines(added) if cjk.search(line)]
+    comments = [line for line, part in comment_parts(added) if CJK.search(part)]
     if comments:
         return 1, "CJK comment lines added:\n" + "\n".join("  " + line[:110] for line in comments)
     return 0, f"no new CJK comment line ({len(added)} added line(s) scanned)"
