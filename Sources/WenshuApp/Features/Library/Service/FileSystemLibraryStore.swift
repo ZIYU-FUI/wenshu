@@ -521,7 +521,9 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     /// Returns nil for anything that doesn't look like a UUID-named
     /// .md (= catches Finder's .DS_Store, our own .md.tmp atomics,
     /// any hand-edited file, etc.).
-    static func documentIdFromFilename(_ name: String) -> UUID? {
+    /// `nonisolated` = it is a pure function of its argument, = and the
+    /// corpus's identity rule must be readable off the main actor too.
+    nonisolated static func documentIdFromFilename(_ name: String) -> UUID? {
         guard name.hasSuffix(".md") else { return nil }
         let stem = String(name.dropLast(3))
         return UUID(uuidString: stem)
@@ -539,7 +541,9 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     /// Apple HIG documents typically have an H1 (= the document title);
     /// if the user is still drafting, the filename is a reasonable
     /// stand-in.
-    static func extractTitle(from body: String, fallback: String) -> String {
+    /// `nonisolated` = it is a pure function of its argument, = and the
+    /// corpus's title rule must have ONE home every reader can reach.
+    nonisolated static func extractTitle(from body: String, fallback: String) -> String {
         for rawLine in body.split(separator: "\n", omittingEmptySubsequences: false) {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             if line.hasPrefix("# ") {

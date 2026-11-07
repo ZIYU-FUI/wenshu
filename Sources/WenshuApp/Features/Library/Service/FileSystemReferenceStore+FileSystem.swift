@@ -44,10 +44,22 @@ extension FileSystemReferenceStore {
     ) throws -> [Reference] {
         var all: [Reference] = []
         for layer in ReferenceLayer.allCases {
-            all.append(contentsOf: (try? loadReferencesFromFileSystem(
+            let rows = (try? loadReferencesFromFileSystem(
                 referenceLibraryRoot: referenceLibraryRoot,
                 layer: layer
-            )) ?? [])
+            )) ?? []
+            // **⇒ The MEMBERSHIP is what is on disk, = not the index
+            // alone.** = See the strict read above for why (= a body
+            // the index does not list is still a document in the
+            // layer). = **⇒ The UI reads the same answer the corpus
+            // check reads**, = because two reads of "what does the
+            // library hold" that can disagree are how a document ends
+            // up visible in one and missing from the other.
+            all.append(contentsOf: ReferenceLayerMembership.members(
+                indexRows: rows,
+                layer: layer,
+                referenceLibraryRoot: referenceLibraryRoot
+            ))
         }
         return all
     }
@@ -71,9 +83,22 @@ extension FileSystemReferenceStore {
     ) throws -> [Reference] {
         var all: [Reference] = []
         for layer in ReferenceLayer.allCases {
-            try all.append(contentsOf: loadReferencesReportingFailureFromFileSystem(
+            let rows = try loadReferencesReportingFailureFromFileSystem(
                 referenceLibraryRoot: referenceLibraryRoot,
                 layer: layer
+            )
+            // **⇒ The MEMBERSHIP is what is on disk, = not the index
+            // alone.** = A crash between the body write and the index
+            // write leaves a body the index does not list, = and a
+            // corpus that reads as "the library does not hold it"
+            // about a document that IS there is a lie. = **⇒ So the
+            // rows the index holds are joined with the bodies the
+            // layer holds** (= the metadata and the membership are two
+            // different questions).
+            all.append(contentsOf: ReferenceLayerMembership.members(
+                indexRows: rows,
+                layer: layer,
+                referenceLibraryRoot: referenceLibraryRoot
             ))
         }
         return all
