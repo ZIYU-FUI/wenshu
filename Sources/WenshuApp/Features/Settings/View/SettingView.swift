@@ -51,6 +51,11 @@ struct SettingView: View {
         // asserted by a tripwire (= IconStylesTests), = so the two
         // must move together.
         case archive
+        // The six sub-agent roles (= what each one is, = and what it
+        // may do). = It is a tenth pane, = and the pane count is
+        // asserted by a tripwire (= IconStylesTests), = so the two
+        // must move together.
+        case roles
         var id: String { rawValue }
 
         // / SF Symbols 7 identifier per Apple HIG sidebar row leading icon.
@@ -67,6 +72,7 @@ struct SettingView: View {
             case .agent:       return "wand.and.stars"
             case .covers:      return "photo.on.rectangle.angled"
             case .archive:     return "archivebox"
+            case .roles:       return "person.2.badge.gearshape"
             }
         }
     }
@@ -235,6 +241,7 @@ struct SettingView: View {
         case .agent:       AgentSettingsPane()
         case .covers:      CoverSettingsView()
         case .archive:     ArchiveSettingsPane()
+        case .roles:       RolesSettingsPane()
         }
     }
 
@@ -251,6 +258,7 @@ struct SettingView: View {
         case .agent:       return String(localized: "settings.pane.agent")
         case .covers:      return String(localized: "settings.pane.covers")
         case .archive:     return String(localized: "settings.pane.archive")
+        case .roles:       return String(localized: "settings.pane.roles")
         }
     }
 
