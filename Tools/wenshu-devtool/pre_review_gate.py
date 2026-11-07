@@ -17,19 +17,32 @@ So the rule this tool enforces is simple: = a branch goes back to
 review only when every gate has been MEASURED ON THE EXACT TREE THAT
 WILL BE REVIEWED, = and the tool says so in its output.
 
-THE THREE RULES IT ENFORCES
+THE FOUR RULES IT ENFORCES
 
 1. = THE TREE MUST BE COMMITTED. = A gate reads HEAD, = so a gate run
    against a dirty worktree measures the wrong tree, = and the amend
    that follows it moves HEAD again. = So the tool refuses a dirty
    tree BEFORE it measures anything.
+
 2. = THE BUILD MUST BUILD THE TESTS. = `swift build` does not build
    the test target, = so a green build says nothing about a broken
    test file. = `swift build --build-tests` is the check that covers
    it.
-3. = EVERY GATE THE CARD NAMES MUST RUN, = and every tree the change
-   touches must have its own suite. = The vendored engine has its own
-   suite, = and a change that touches the vendored tree runs it.
+
+3. = EVERY GATE THE CARD NAMES MUST RUN, = AND EVERY GATE IT RUNS
+   MUST HAVE MEASURED SOMETHING. = A `swift test --filter` that matches
+   no test case exits 0, = prints no summary, = and prints "No matching
+   test cases were run". = A tool that reads only the exit code calls
+   that a PASS, = so a card whose suite was renamed measures NOTHING and
+   still looks measured. = The repository's own CI already refuses that
+   reading (= .github/workflows/ci.yml: = a log with no "Test run with"
+   summary is a failure), = and this gate holds the same rule. = And a
+   card that names NO suite at all measures nothing either, = so an
+   empty filter list is a failure too.
+
+4. = EVERY TREE THE CHANGE TOUCHES MUST HAVE ITS OWN SUITE. = The
+   vendored engine has its own suite, = and a change that touches the
+   vendored tree runs it.
 
 USAGE
 
@@ -52,6 +65,18 @@ import sys
 REPO = os.getcwd()
 DEVTOOL = os.path.join(REPO, "Tools", "wenshu-devtool")
 
+# The marker swift test prints when the filter matched no test case.
+NO_MATCH = "No matching test cases were run"
+
+# A filter the card writes. = Both quote styles are accepted: = a card
+# written with double quotes names the same suite as one written with
+# single quotes, = and a reader that takes only one of them turns the
+# card's own gate into a filter that ran nothing.
+FILTER = re.compile(r"swift test --filter\s+(['\"])(.+?)\1")
+
+# The phrase that says the card names a filter at all.
+FILTER_PHRASE = "swift test --filter"
+
 
 def sh(command, cwd=REPO, timeout=3600):
     """Run a command, = and return (exit code, output)."""
@@ -62,24 +87,123 @@ def sh(command, cwd=REPO, timeout=3600):
     return done.returncode, (done.stdout + done.stderr)
 
 
+def measure_tests(output):
+    """What a test run actually measured, = read from its OWN summaries.
+
+    Swift Testing reports `Test run with N tests in M suites`; = the
+    XCTest bundles report `Executed N tests, with M failures`; = and a
+    filter that matched nothing reports NEITHER, = plus the no-match
+    warning.
+
+    Returns (tests_measured, matched_nothing). = `tests_measured` is the
+    LARGEST count either framework reported, = because the two frameworks
+    report different suites and adding them would count one test twice.
+    """
+    swift_testing = [int(n) for n in re.findall(r"Test run with (\d+) tests?", output)]
+    xctest = [int(n) for n in re.findall(r"Executed (\d+) tests?", output)]
+    measured = max(swift_testing + xctest) if (swift_testing or xctest) else 0
+    return measured, NO_MATCH in output
+
+
+def filters_from_card(text):
+    """The card's own narrow suites, = read from its GATES section.
+
+    Returns (filters, unparsed_lines). = `unparsed_lines` names the
+    card's filter lines the reader could not parse, = because a card
+    whose gate line cannot be read measures nothing, = and the reader
+    must say so rather than measure a smaller set than the card asks
+    for.
+    """
+    filters = [match[1] for match in FILTER.findall(text)]
+    unparsed = []
+    for line in text.split("\n"):
+        if FILTER_PHRASE in line and not FILTER.search(line):
+            unparsed.append(line.strip())
+    return filters, unparsed
+
+
+def blank_strings(line):
+    """The line with its string literals blanked, = so a `//` inside a
+    string is not read as a comment. = A string that is never closed on
+    the line runs to the end of it, = which is how Swift reads it too."""
+    out = []
+    in_string = False
+    escaped = False
+    index = 0
+    while index < len(line):
+        char = line[index]
+        if escaped:
+            out.append(" ")
+            escaped = False
+            index += 1
+            continue
+        if char == "\\" and in_string:
+            out.append(" ")
+            escaped = True
+            index += 1
+            continue
+        if char == '"':
+            in_string = not in_string
+            out.append(" ")
+            index += 1
+            continue
+        out.append(" " if in_string else char)
+        index += 1
+    return "".join(out)
+
+
+def comment_lines(added_lines):
+    """The added lines that are COMMENT lines, = and only those.
+
+    A comment line is one whose text is a comment: = a whole-line `//`,
+    = a trailing `//` after code (= the style the repository uses in 543
+    lines across 184 files), = or a line inside a `/* */` block. = A `//`
+    inside a string literal is NOT a comment, = so the scanner blanks the
+    string literals before it looks for the marker.
+    """
+    comments = []
+    in_block = False
+    for raw in added_lines:
+        scrubbed = blank_strings(raw)
+        is_comment = in_block
+        index = 0
+        while index < len(scrubbed):
+            if in_block:
+                end = scrubbed.find("*/", index)
+                if end == -1:
+                    is_comment = True
+                    index = len(scrubbed)
+                    break
+                in_block = False
+                index = end + 2
+                continue
+            block = scrubbed.find("/*", index)
+            line_marker = scrubbed.find("//", index)
+            if line_marker != -1 and (block == -1 or line_marker < block):
+                is_comment = True
+                break
+            if block != -1:
+                in_block = True
+                is_comment = True
+                index = block + 2
+                continue
+            break
+        if in_block:
+            is_comment = True
+        if is_comment:
+            comments.append(raw)
+    return comments
+
+
 def cjk_audit(base):
     """§7.5: zero new CJK in the COMMENTS this change adds."""
     diff = sh(f"git diff {base} HEAD -- '*.swift'")[1]
     added = [line[1:] for line in diff.split("\n") if line.startswith("+") and not line.startswith("+++")]
-    is_comment = lambda line: line.strip().startswith("//") or line.strip().startswith("*")
     cjk = re.compile(r"[一-鿿]")
-    comments = [line for line in added if is_comment(line) and cjk.search(line)]
+    comments = [line for line in comment_lines(added) if cjk.search(line)]
     if comments:
         return 1, "CJK comment lines added:\n" + "\n".join("  " + line[:110] for line in comments)
     return 0, f"no new CJK comment line ({len(added)} added line(s) scanned)"
-
-
-def card_gates(card_path):
-    """The card's own narrow suites, = read from its GATES section."""
-    if not card_path:
-        return []
-    text = open(card_path, encoding="utf-8").read()
-    return re.findall(r"swift test --filter '([^']+)'", text)
 
 
 def main():
@@ -109,16 +233,37 @@ def main():
     if code != 0:
         failures.append(("swift build --build-tests", out[-800:]))
 
-    # The card's own narrow suites, = and the ones named on the command line.
-    filters = list(dict.fromkeys(args.filter + card_gates(args.card)))
+    # RULE 3: the card's own narrow suites, = and the ones named on the
+    # command line. = A filter the card names but this reader cannot parse
+    # is named, = because the card asked for a gate that did not run.
+    card_filters = []
+    if args.card:
+        text = open(args.card, encoding="utf-8").read()
+        card_filters, unparsed = filters_from_card(text)
+        for line in unparsed:
+            failures.append((f"the card's unreadable filter line: {line}", ""))
+
+    filters = list(dict.fromkeys(args.filter + card_filters))
+    if not filters:
+        print("  no suite was named, = so no suite was measured:")
+        print("    the card's GATES must name the suite that owns each file it writes.")
+        failures.append(("no suite was measured", "the card names no `swift test --filter` line"))
+
     for name in filters:
         code, out = sh(f"swift test --filter '{name}'")
+        measured, matched_nothing = measure_tests(out)
         summary = [line for line in out.split("\n") if "Test run with" in line or "Executed" in line]
         print(f"  swift test --filter '{name}': exit {code} {summary[-1].strip() if summary else ''}")
         if code != 0:
             failures.append((f"swift test --filter '{name}'", out[-800:]))
+        elif matched_nothing:
+            print(f"    the filter matched no test case (= {NO_MATCH}), = so it measured NOTHING")
+            failures.append((f"swift test --filter '{name}'", "the filter matched no test case"))
+        elif measured == 0:
+            print("    the run reported no test, = so it measured NOTHING")
+            failures.append((f"swift test --filter '{name}'", "the run reported no test"))
 
-    # RULE 3: the vendored engine has its own suite, = and a change that
+    # RULE 4: the vendored engine has its own suite, = and a change that
     # touches the vendored tree runs it.
     vendored = sh("git diff --name-only %s HEAD -- 'Vendor/MarkdownEngine/*'" % args.base)[1].split()
     if vendored:
@@ -127,6 +272,9 @@ def main():
         print(f"  the vendored engine's own suite: exit {code} {summary[-1].strip() if summary else ''}")
         if code != 0:
             failures.append(("the vendored engine's suite", out[-800:]))
+        elif measure_tests(out)[0] == 0:
+            print("    the engine's suite reported no test, = so it measured NOTHING")
+            failures.append(("the vendored engine's suite", "the run reported no test"))
 
     # The house's own gates.
     for check in ("formatting", "pollution"):

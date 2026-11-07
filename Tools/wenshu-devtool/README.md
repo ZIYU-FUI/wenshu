@@ -235,6 +235,53 @@ not be read, 3 = a card owes a verdict it does not have. The merge gate
 (`Scripts/merge-preflight.sh`) runs the record check for the branch it is
 asked to bless and refuses the merge until the verdict is on the record.
 
+## Pre-review gate
+
+A separate tool, because it runs BEFORE a branch goes back to the review
+lane, and it reads the WORKING TREE rather than the board. It answers one
+question: **was every gate measured on the exact tree that will be
+reviewed?**
+
+Six review rounds on one branch found, in order: a tree that did not
+compile, a formatting gate that exited 1, a registry row carrying another
+file's count, a heading face that never reached the editor, an assertion
+written about a range the author had never looked at, and a card whose
+GATES did not run the engine's own suite. Every one of those was a claim
+made from reasoning and not from a measurement.
+
+```bash
+# the branch's own tree, against the base it will land on
+python3 Tools/wenshu-devtool/pre_review_gate.py --base main \
+    --card <the card body file> \
+    --filter '<the card's own suite>'
+```
+
+Four rules, each of which can fail:
+
+1. **the tree must be committed** (`swift build --build-tests` reads HEAD,
+   so a dirty worktree measures the wrong tree),
+2. **the build must build the tests** (`swift build` alone does not build
+   the test target),
+3. **every gate the card names must run, AND every gate it runs must have
+   measured something** — a `swift test --filter` that matches no test
+   case exits 0, prints no summary, and prints "No matching test cases
+   were run", so a reader that reads only the exit code calls a renamed
+   suite a PASS; and a card that names no suite at all measures nothing,
+4. **every tree the change touches must have its own suite** (the vendored
+   engine has its own, and a change that touches it runs it).
+
+Rule 3 is the one the repository's own CI already holds: a log with no
+`Test run with` summary is a failure (`.github/workflows/ci.yml`).
+
+Its test suite runs on fixture text:
+
+```bash
+python3 Tools/wenshu-devtool/tests/test_pre_review_gate.py
+```
+
+Exit code: 0 = every gate measured and green, 1 = a gate failed, or the
+tree is dirty, or a gate could not run.
+
 ## Review-lane cost meter
 
 A separate tool, because it reads the BOARD and the REVIEWER PROFILE rather
