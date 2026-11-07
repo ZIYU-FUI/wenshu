@@ -35,7 +35,7 @@ enum MarkdownASTStyler {
     ) -> [StyledRange] {
         let baseFont = NSFont(name: fontName, size: fontSize) ?? .systemFont(ofSize: fontSize)
         // The line height is either the font's own leading or the
-        // caller's multiple of the body's size (= 行距), = and the
+        // caller's multiple of the body's size, = and the
         // paragraph gap is measured against THAT line height (= so a
         // fraction of the line height means the same thing whatever
         // the line height is).

@@ -37,7 +37,7 @@ struct TextStylingService {
         let baseFont = NSFont(name: fontName, size: fontSize) ?? NSFont.systemFont(ofSize: fontSize)
         let defaultLineHeight = layoutBridgeDefaultLineHeight(for: baseFont, using: layoutBridge)
         // The line height is either the engine's natural leading or the
-        // caller's multiple of the body's own size (= 行距), = and the
+        // caller's multiple of the body's own size, = and the
         // paragraph gap is measured against THAT line height (= so a
         // fraction of the line height means the same thing whatever the
         // line height is).
@@ -49,7 +49,14 @@ struct TextStylingService {
         let baseParagraphSpacing = ceil(lineHeight * configuration.paragraph.spacingFactor)
         paragraph.paragraphSpacing = baseParagraphSpacing
         paragraph.paragraphSpacingBefore = 0
-        paragraph.headIndent = configuration.paragraph.firstLineHeadIndent
+        // The knob is the FIRST line's indent. = AppKit's
+        // two properties are not interchangeable: = `headIndent` moves
+        // the CONTINUATION lines (= a hanging indent, = the inverse of
+        // what the knob means), = and `firstLineHeadIndent` moves the
+        // first one. = So the knob goes here and `headIndent` stays at
+        // the margin.
+        paragraph.headIndent = 0
+        paragraph.firstLineHeadIndent = configuration.paragraph.firstLineHeadIndent
         paragraph.lineBreakMode = .byWordWrapping
         // 24 explicit tab stops at indentPerLevel intervals, then natural wrap.
         let perLevel = configuration.lists.indentPerLevel

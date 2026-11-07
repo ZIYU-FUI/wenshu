@@ -102,18 +102,73 @@ struct WenshuStyleKnobsTests {
         #expect(style.minimumLineHeight == ceil(leading) + config.paragraph.lineHeightExtraSpacing)
     }
 
-    @Test("the first-line indent reaches the body paragraph (= 首行缩进)")
+    @Test("the first-line indent reaches the body paragraph (= the FIRST line only)")
     func theFirstLineIndentReachesTheBodyParagraph() {
         var config = MarkdownEditorConfiguration.default
         config.paragraph.firstLineHeadIndent = 26
 
-        let (_, style) = TextStylingService.makeBaseFontAndStyle(
+        let (font, style) = TextStylingService.makeBaseFontAndStyle(
             fontName: "Songti SC",
             fontSize: 13,
             configuration: config
         )
 
-        #expect(style.headIndent == 26, "two characters at 13pt")
+        // The shape is measured, = not the property's name: = the two
+        // AppKit properties are not interchangeable (= `headIndent`
+        // moves the CONTINUATION lines, = `firstLineHeadIndent` moves
+        // the first one), = and a test that only reads the property
+        // would pass on the wrong one.
+        #expect(style.firstLineHeadIndent == 26, "two characters at 13pt")
+        #expect(style.headIndent == 0, "the wrapped lines stay at the margin")
+
+        let lines = renderedLineLeftEdges(
+            text: "一二三四五六七八九十一二三四五六七八九十",
+            font: font,
+            style: style,
+            width: 60
+        )
+        #expect(lines.count >= 2, "the text must wrap, = or there is no second line to measure")
+        #expect(lines.first == 26, "the FIRST line is indented by the knob")
+        #expect(lines.dropFirst().allSatisfy { $0 == 0 },
+                "the wrapped lines are NOT indented (= the knob is not a hanging indent)")
+    }
+
+    /// The left edge of every rendered line, = measured through a real
+    /// layout manager (= so the paragraph style's own effect is read
+    /// back, = not the property that was set).
+    private func renderedLineLeftEdges(
+        text: String,
+        font: NSFont,
+        style: NSParagraphStyle,
+        width: CGFloat
+    ) -> [CGFloat] {
+        let storage = NSTextStorage(string: text)
+        let layout = NSLayoutManager()
+        let container = NSTextContainer(size: CGSize(width: width, height: 1000))
+        // The container's own padding (5pt by default) sits BETWEEN the
+        // margin and the text, = so it would be measured as part of the
+        // indent. = It is zeroed here so the number read back is the
+        // paragraph's own.
+        container.lineFragmentPadding = 0
+        layout.addTextContainer(container)
+        storage.addLayoutManager(layout)
+
+        let range = NSRange(location: 0, length: (text as NSString).length)
+        storage.addAttribute(.font, value: font, range: range)
+        storage.addAttribute(.paragraphStyle, value: style, range: range)
+        layout.ensureLayout(for: container)
+
+        var edges: [CGFloat] = []
+        var glyphIndex = 0
+        let glyphCount = layout.numberOfGlyphs
+        while glyphIndex < glyphCount {
+            var effectiveRange = NSRange()
+            _ = layout.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: &effectiveRange)
+            let lineOrigin = layout.location(forGlyphAt: glyphIndex)
+            edges.append(lineOrigin.x)
+            glyphIndex = NSMaxRange(effectiveRange)
+        }
+        return edges
     }
 
     @Test("a quote wears a face and a size of its own (= the print quote)")

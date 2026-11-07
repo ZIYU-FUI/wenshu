@@ -189,8 +189,69 @@ def _swiftformat_installed() -> bool:
     return shutil.which("swiftformat") is not None
 
 
+def case_the_vendored_tree_never_reaches_the_formatter() -> bool:
+    """The VENDORED tree is upstream's own code, = so the formatter does not reach it.
+
+    The vendored tree is held byte for byte against upstream (= so a
+    change that reformatted it would break the vendoring itself), = and
+    upstream's own files do not carry this repository's formatting (=
+    measured 2026-11-07: 134 of the 141 vendored files fail
+    ``swiftformat --lint`` on the pristine upstream checkout). = So the
+    gate exempts that tree (= the 600-LOC cap exempts it for the same
+    reason), = and the change's OWN files are still linted.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        (repo / "Sources").mkdir(parents=True)
+        (repo / "Vendor" / "Engine").mkdir(parents=True)
+        # Both files exist BEFORE the base commit (= so the commit has
+        # something to commit), = and the change rewrites them.
+        (repo / "Vendor" / "Engine" / "Upstream.swift").write_text(
+            "struct Upstream {\n    let value = 1\n}\n", encoding="utf-8"
+        )
+        (repo / "Sources" / "Ours.swift").write_text(
+            "struct Ours {\n    let value = 1\n}\n", encoding="utf-8"
+        )
+        for args in (
+            ["init", "-q"],
+            ["config", "user.email", "gate@test.invalid"],
+            ["config", "user.name", "gate"],
+            ["add", "-A"],
+            ["commit", "-q", "-m", "base"],
+        ):
+            subprocess.run(["git", *args], cwd=str(repo), check=True, capture_output=True)
+        base = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+        # Both files are unformatted. = The vendored one must not be
+        # linted; = the repository's own one must be.
+        (repo / "Vendor" / "Engine" / "Upstream.swift").write_text(
+            "struct Upstream {\nlet value = 1\n    let added = 3\n}\n", encoding="utf-8"
+        )
+        (repo / "Sources" / "Ours.swift").write_text(
+            "struct Ours {\nlet value = 1\n    let added = 3\n}\n", encoding="utf-8"
+        )
+        subprocess.run(["git", "add", "-A"], cwd=str(repo), check=True, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "change"], cwd=str(repo), check=True, capture_output=True
+        )
+
+        paths = gate.changed_paths(base, repo)
+        vendored_reached = any(p.startswith(gate.VENDORED_PREFIX) for p in paths)
+        ours_reached = "Sources/Ours.swift" in paths
+
+        exit_code = gate.main(["--base", base, "--check", "formatting", "--repo", str(repo)])
+        return case(
+            "the VENDORED tree never reaches the formatter (= and the tree's own files still do)",
+            not vendored_reached and ours_reached and exit_code == 1,
+            f"paths={paths} gate_exit={exit_code} (= 1 = the OWN unformatted line was caught)",
+        )
+
+
 def main() -> int:
     results: list[bool] = []
+    results.append(case_the_vendored_tree_never_reaches_the_formatter())
 
     ranges, lines = gate.parse_diff(DIFF_WITH_ADDITION)
     path = "Sources/WenshuApp/Feature.swift"

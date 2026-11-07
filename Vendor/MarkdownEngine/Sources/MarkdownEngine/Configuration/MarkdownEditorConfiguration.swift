@@ -619,12 +619,12 @@ public struct ParagraphStyle: Sendable {
     /// Extra height (points) added to the default paragraph line height.
     public var lineHeightExtraSpacing: CGFloat
     /// The line height as a MULTIPLE OF THE BODY'S FONT SIZE (= the Chinese
-    /// typographic convention: = 行距 1.5 = = 1.5 x the body size). = `nil`
+    /// typographic convention: = 1.5 = = 1.5 x the body size). = `nil`
     /// keeps the engine's natural leading (= the behaviour before this field
     /// existed), = so a caller that does not ask for a multiple gets the
     /// leading the font itself asks for.
     public var lineHeightMultipleOfFontSize: CGFloat?
-    /// The first line's indent in points (= 首行缩进). = `0` = = none.
+    /// The first line's indent in points. = `0` = = none.
     public var firstLineHeadIndent: CGFloat
 
     public init(

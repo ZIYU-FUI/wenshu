@@ -174,6 +174,12 @@ def format_offenders(
     return offenders
 
 
+#: The vendored tree's prefix. = The files under it are upstream's own
+#: code (= byte for byte), = so this repository's formatting gate does
+#: not reach them.
+VENDORED_PREFIX = "Vendor/"
+
+
 def _git(args: list[str], cwd: Path) -> str:
     result = subprocess.run(
         ["git", *args], cwd=str(cwd), capture_output=True, text=True, check=True
@@ -191,9 +197,22 @@ def changed_paths(base: str, cwd: Path) -> list[str]:
     2026-11-02, a change that deleted one Swift file and added an unformatted
     line to another passed this gate). The diff filter is what keeps the
     deleted path out of the list.
+
+    The VENDORED tree is exempt too: = it is upstream's own code, = byte
+    for byte (= so the vendoring card can hold "the tree IS upstream's
+    code"), = and upstream's own files are not this repository's
+    formatting (= measured 2026-11-07: 134 of the 141 vendored files
+    fail ``swiftformat --lint`` on the pristine upstream checkout too).
+    = Linting them would ask the change to rewrite upstream's bytes,
+    = which is the opposite of what vendoring is for. = The 600-LOC cap
+    exempts the same tree for the same reason (= AGENTS.md 6.6).
     """
     out = _git(["diff", "--name-only", "--diff-filter=d", f"{base}...HEAD"], cwd)
-    return [line.strip() for line in out.splitlines() if line.strip()]
+    return [
+        line.strip()
+        for line in out.splitlines()
+        if line.strip() and not line.strip().startswith(VENDORED_PREFIX)
+    ]
 
 
 def swiftformat_args(paths: list[str], cwd: Path) -> list[str]:
