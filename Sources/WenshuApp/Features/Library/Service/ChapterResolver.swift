@@ -81,7 +81,6 @@ struct ResolvedChapter: Identifiable, Sendable {
 }
 
 enum ChapterResolver {
-
     /// Resolve every chapter in a book's `chapters/` folder.
     ///
     /// - Parameters:
@@ -202,7 +201,9 @@ enum ChapterResolver {
             let text = String(line).trimmingCharacters(in: .whitespaces)
             if text.hasPrefix("# ") {
                 let heading = String(text.dropFirst(2)).trimmingCharacters(in: .whitespaces)
-                if !heading.isEmpty { return heading }
+                if !heading.isEmpty {
+                    return heading
+                }
             }
         }
         return fallback

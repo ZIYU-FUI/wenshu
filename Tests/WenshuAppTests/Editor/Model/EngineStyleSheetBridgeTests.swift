@@ -310,6 +310,7 @@ final class EngineStyleSheetBridgeTests: XCTestCase {
             )
         }
     }
+
     /// The note's size reaches the engine's footnote knob.
     ///
     /// MUTATION: = the bridge's `footnoteStyle` returns the default

@@ -118,6 +118,28 @@ actor ChapterExportEngine {
         )
     }
 
+    /// Export a single chapter from the file that holds it.
+    ///
+    /// The ID-based entry point finds `<uuid>.md`, = the name the
+    /// actor writes. An imported chapter is named after its title, so
+    /// the ID path found nothing for it and the chapter could not be
+    /// exported at all. The file is the truth (= the same truth the
+    /// book export reads), so the chapter is exported from the file
+    /// the resolver handed over.
+    func exportChapter(
+        fileURL: URL,
+        to destinationURL: URL
+    ) async throws -> URL {
+        guard let body = try? String(contentsOf: fileURL, encoding: .utf8) else {
+            throw ChapterExportError.noChapterIdentifier
+        }
+        try Data(body.utf8).write(
+            to: destinationURL,
+            options: .atomic
+        )
+        return destinationURL
+    }
+
     /// Export a single chapter as a SUBMISSION MANUSCRIPT for
     /// `target`: plain text, segmented, and shaped by the target's
     /// measured rules (= Jinjiang's two full-width spaces U+3000 U+3000
@@ -138,27 +160,18 @@ actor ChapterExportEngine {
     /// body without it), = so the caller writes the title and the
     /// body where the platform wants them.
     func exportManuscript(
-        id chapterID: UUID,
+        fileURL: URL,
         to destinationURL: URL,
         target: ManuscriptTarget
     ) async throws -> URL {
-        guard let libPath = ActiveLibrary.path else {
-            throw ChapterExportError.noActiveLibrary
-        }
-        let libURL = URL(fileURLWithPath: libPath, isDirectory: true)
-
-        guard let chaptersDir = try locateChaptersDirectory(
-            libraryURL: libURL,
-            chapterID: chapterID
-        ) else {
-            throw ChapterExportError.chapterNotFound(chapterID)
-        }
-
-        guard let body = FileSystemChapterStore.loadChapterBodyFromFileSystem(
-            id: chapterID,
-            chaptersDirectory: chaptersDir
-        ) else {
-            throw ChapterExportError.chapterNotFound(chapterID)
+        // The chapter is the FILE the resolver handed over, = not an
+        // id lookup: = an imported chapter is named after its title, =
+        // so the `<uuid>.md` lookup found nothing for it. = The sibling
+        // Markdown export already reads the file (= `exportChapter
+        // (fileURL:)`), = and the two exports must agree about which
+        // chapter they are writing.
+        guard let body = try? String(contentsOf: fileURL, encoding: .utf8) else {
+            throw ChapterExportError.noChapterIdentifier
         }
 
         let manuscript = ManuscriptShaper.manuscript(body: body, target: target)
@@ -177,20 +190,11 @@ actor ChapterExportEngine {
     /// from the same resolver the export uses, = so the number on the
     /// panel is the number the exported file carries.
     func manuscriptWordCount(
-        id chapterID: UUID?,
+        fileURL: URL?,
         target _: ManuscriptTarget
     ) async -> Int? {
-        guard let chapterID else { return nil }
-        guard let libPath = ActiveLibrary.path else { return nil }
-        let libURL = URL(fileURLWithPath: libPath, isDirectory: true)
-        guard let chaptersDir = try? locateChaptersDirectory(
-            libraryURL: libURL,
-            chapterID: chapterID
-        ) else { return nil }
-        guard let body = FileSystemChapterStore.loadChapterBodyFromFileSystem(
-            id: chapterID,
-            chaptersDirectory: chaptersDir
-        ) else { return nil }
+        guard let fileURL else { return nil }
+        guard let body = try? String(contentsOf: fileURL, encoding: .utf8) else { return nil }
         return ManuscriptShaper.wordCount(of: body)
     }
 

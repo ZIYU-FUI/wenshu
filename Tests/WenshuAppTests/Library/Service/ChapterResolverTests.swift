@@ -12,13 +12,12 @@
 //  These tests pin the reader to the folder on disk.
 //
 
-import Testing
 import Foundation
+import Testing
 @testable import WenshuApp
 
 @Suite("ChapterResolver · the chapters a book exports")
 struct ChapterResolverTests {
-
     // MARK: - Helpers
 
     /// A book's `chapters/` folder under a temp root.
@@ -212,7 +211,7 @@ struct ChapterResolverTests {
     }
 
     @Test("a missing folder resolves to no chapters")
-    func missingFolderResolvesToNothing() throws {
+    func missingFolderResolvesToNothing() {
         let bookId = UUID()
         let root = URL(fileURLWithPath: "/tmp/wenshu-chapter-resolver-missing-\(UUID().uuidString)", isDirectory: true)
         let resolved = ChapterResolver.resolveChapters(
@@ -233,9 +232,9 @@ struct ChapterResolverTests {
         // their ids are chosen so that the UUID order is NOT the
         // creation order. = Otherwise this test would pass for the
         // wrong reason.
-        let first = UUID(uuidString: "FFFFFFFF-0000-0000-0000-000000000001")!
-        let second = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
-        let third = UUID(uuidString: "88888888-0000-0000-0000-000000000003")!
+        let first = try #require(UUID(uuidString: "FFFFFFFF-0000-0000-0000-000000000001"))
+        let second = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000002"))
+        let third = try #require(UUID(uuidString: "88888888-0000-0000-0000-000000000003"))
 
         for id in [first, second, third] {
             try Self.write("# Chapter \(id.uuidString)", to: chaptersDir.appendingPathComponent("\(id.uuidString).md"))
@@ -243,7 +242,7 @@ struct ChapterResolverTests {
         try Self.writeIndex([
             Document(id: first, bookId: bookId, category: .chapter, title: "First"),
             Document(id: second, bookId: bookId, category: .chapter, title: "Second"),
-            Document(id: third, bookId: bookId, category: .chapter, title: "Third")
+            Document(id: third, bookId: bookId, category: .chapter, title: "Third"),
         ], to: indexURL)
 
         let resolved = ChapterResolver.resolveChapters(
@@ -262,10 +261,10 @@ struct ChapterResolverTests {
     func importedChaptersFollowTheIndexedOnes() throws {
         let (bookId, chaptersDir, indexURL) = try Self.makeBook()
 
-        let indexed = UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!
+        let indexed = try #require(UUID(uuidString: "00000000-0000-0000-0000-00000000000A"))
         try Self.write("# Indexed", to: chaptersDir.appendingPathComponent("\(indexed.uuidString).md"))
         try Self.writeIndex([
-            Document(id: indexed, bookId: bookId, category: .chapter, title: "Indexed")
+            Document(id: indexed, bookId: bookId, category: .chapter, title: "Indexed"),
         ], to: indexURL)
 
         // Two imported chapters, = title-named, = no index row.

@@ -528,7 +528,7 @@ final class ManuscriptShaperTests: XCTestCase {
     ///
     /// = The rule that strips a Chinese key reads the key as the text
     /// before the FIRST ASCII colon. = A full-width colon (= U+FF1A) is
-    /// not a YAML colon, = so `标题：第一章` is a PROSE line, = and a
+    /// not a YAML colon, = so a title-and-colon line is a PROSE line, = and a
     /// block of prose between two rules is the author's own (= the
     /// rule that a body which opens with a rule and carries prose
     /// between two rules is not frontmatter).

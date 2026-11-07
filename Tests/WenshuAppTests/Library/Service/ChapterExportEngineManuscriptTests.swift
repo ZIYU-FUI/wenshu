@@ -9,7 +9,7 @@
 //
 //  `ManuscriptShaperTests` holds the shaping rules, = but it
 //  never proves that the exported FILE carries them. = The
-//  production path is `ChapterExportEngine.exportManuscript(id:to:target:)`,
+//  production path is `ChapterExportEngine.exportManuscript(fileURL:to:target:)`,
 //  = and it is what the sheet calls. = So these tests drive that
 //  method against a real library root (= the same
 //  `PathGuard.libraryRootOverride` seam the other library tests
@@ -47,7 +47,7 @@ struct ChapterExportEngineManuscriptTests {
     private static func makeLibrary(
         body: String,
         chapterID: UUID = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
-    ) throws -> (root: URL, chapterID: UUID) {
+    ) throws -> (root: URL, chapterID: UUID, chapterFile: URL) {
         let fm = FileManager.default
         let root = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("wenshu-manuscript-\(UUID().uuidString)")
@@ -58,16 +58,41 @@ struct ChapterExportEngineManuscriptTests {
             .appendingPathComponent("00000000-0000-0000-0000-000000000001", isDirectory: true)
             .appendingPathComponent("chapters", isDirectory: true)
         try fm.createDirectory(at: chapters, withIntermediateDirectories: true)
-        try Data(body.utf8).write(
-            to: chapters.appendingPathComponent("\(chapterID.uuidString).md")
-        )
-        return (root, chapterID)
+        let file = chapters.appendingPathComponent("\(chapterID.uuidString).md")
+        try Data(body.utf8).write(to: file)
+        return (root, chapterID, file)
+    }
+
+    /// A library whose chapter is an IMPORTED one (= = the file is
+    /// named after the chapter's title, = = not after an id, = = and
+    /// there is no index row at all).
+    ///
+    /// = = This is the shape the importer produces, = = and the shape
+    /// an id lookup cannot find: = = the resolver mints a DERIVED id
+    /// for the file, = = so `<id>.md` is not a file on disk.
+    private static func makeImportedLibrary(
+        body: String,
+        title: String = "我的第一章"
+    ) throws -> (root: URL, chaptersDir: URL, chapterFile: URL) {
+        let fm = FileManager.default
+        let root = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("wenshu-manuscript-imported-\(UUID().uuidString)")
+        let chapters = root
+            .appendingPathComponent("shelves", isDirectory: true)
+            .appendingPathComponent("00000000-0000-0000-0000-000000000000", isDirectory: true)
+            .appendingPathComponent("books", isDirectory: true)
+            .appendingPathComponent("00000000-0000-0000-0000-000000000001", isDirectory: true)
+            .appendingPathComponent("chapters", isDirectory: true)
+        try fm.createDirectory(at: chapters, withIntermediateDirectories: true)
+        let file = chapters.appendingPathComponent("\(title).md")
+        try Data(body.utf8).write(to: file)
+        return (root, chapters, file)
     }
 
     /// Export the chapter and read the written file's bytes back.
     private static func export(
         libraryRoot: URL,
-        chapterID: UUID,
+        chapterFile: URL,
         target: ManuscriptTarget
     ) async throws -> String {
         let destination = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -75,7 +100,7 @@ struct ChapterExportEngineManuscriptTests {
         try await PathGuard.$libraryRootOverride.withValue(libraryRoot.path) {
             let engine = ChapterExportEngine()
             _ = try await engine.exportManuscript(
-                id: chapterID,
+                fileURL: chapterFile,
                 to: destination,
                 target: target
             )
@@ -87,10 +112,10 @@ struct ChapterExportEngineManuscriptTests {
 
     @Test("晋江's exported FILE carries two full-width spaces on every segment")
     func theExportedFileCarriesJinjiangIndent() async throws {
-        let (root, chapterID) = try Self.makeLibrary(body: "第一段。\n\n第二段。")
+        let (root, chapterID, chapterFile) = try Self.makeLibrary(body: "第一段。\n\n第二段。")
         let written = try await Self.export(
             libraryRoot: root,
-            chapterID: chapterID,
+            chapterFile: chapterFile,
             target: .jinjiang
         )
 
@@ -100,11 +125,11 @@ struct ChapterExportEngineManuscriptTests {
 
     @Test("起点 and 番茄's exported FILE carry neither the indent nor the blank line")
     func theExportedFileCarriesNeitherForQidianAndFanqie() async throws {
-        let (root, chapterID) = try Self.makeLibrary(body: "第一段。\n\n第二段。")
+        let (root, chapterID, chapterFile) = try Self.makeLibrary(body: "第一段。\n\n第二段。")
         for target in [ManuscriptTarget.qidian, .fanqie] {
             let written = try await Self.export(
                 libraryRoot: root,
-                chapterID: chapterID,
+                chapterFile: chapterFile,
                 target: target
             )
             #expect(written == "第一段。\n第二段。")
@@ -115,12 +140,12 @@ struct ChapterExportEngineManuscriptTests {
 
     @Test("the exported FILE is plain text (= the app's own markers are gone)")
     func theExportedFileIsPlainText() async throws {
-        let (root, chapterID) = try Self.makeLibrary(
+        let (root, chapterID, chapterFile) = try Self.makeLibrary(
             body: "这是**粗体**和==高亮==和~~删除~~。\n\n- 列表项"
         )
         let written = try await Self.export(
             libraryRoot: root,
-            chapterID: chapterID,
+            chapterFile: chapterFile,
             target: .qidian
         )
 
@@ -137,10 +162,10 @@ struct ChapterExportEngineManuscriptTests {
     func theExportedFileCarriesNoTitle() async throws {
         // The body carries a heading, = and the export must not
         // invent a title of its own.
-        let (root, chapterID) = try Self.makeLibrary(body: "正文。")
+        let (root, chapterID, chapterFile) = try Self.makeLibrary(body: "正文。")
         let written = try await Self.export(
             libraryRoot: root,
-            chapterID: chapterID,
+            chapterFile: chapterFile,
             target: .qidian
         )
 
@@ -153,12 +178,12 @@ struct ChapterExportEngineManuscriptTests {
         // exported FILE must not carry it: = a submission manuscript
         // that opens with "title: ..." is the author's prose polluted
         // with the file's own metadata.
-        let (root, chapterID) = try Self.makeLibrary(
+        let (root, chapterID, chapterFile) = try Self.makeLibrary(
             body: "---\ntitle: 第三章 风起\ndate: 2026-11-06\n---\n\n他推开门。\n\n屋里没有人。"
         )
         let written = try await Self.export(
             libraryRoot: root,
-            chapterID: chapterID,
+            chapterFile: chapterFile,
             target: .qidian
         )
 
@@ -174,12 +199,12 @@ struct ChapterExportEngineManuscriptTests {
         // an operator, = not the app's highlight), = and the engine
         // parses nothing inside a fence. = So the file must carry the
         // code exactly as the author wrote it.
-        let (root, chapterID) = try Self.makeLibrary(
+        let (root, chapterID, chapterFile) = try Self.makeLibrary(
             body: "正文。\n\n```python\ndef f(a, **kw):\n    return a == kw\n```"
         )
         let written = try await Self.export(
             libraryRoot: root,
-            chapterID: chapterID,
+            chapterFile: chapterFile,
             target: .qidian
         )
 
@@ -195,12 +220,12 @@ struct ChapterExportEngineManuscriptTests {
         // (= the first "# " line, = which is where
         // `FileSystemLibraryStore.extractTitle` reads a document's
         // title from), = and the exported FILE must not repeat it.
-        let (root, chapterID) = try Self.makeLibrary(
+        let (root, chapterID, chapterFile) = try Self.makeLibrary(
             body: "# 第三章 风起\n\n他推开门。\n\n屋里没有人。"
         )
         let written = try await Self.export(
             libraryRoot: root,
-            chapterID: chapterID,
+            chapterFile: chapterFile,
             target: .qidian
         )
 
@@ -213,12 +238,12 @@ struct ChapterExportEngineManuscriptTests {
         // The fence's comment is the author's own code, = and the
         // body's REAL title comes after the fence. = So the code
         // survives and the title goes.
-        let (root, chapterID) = try Self.makeLibrary(
+        let (root, chapterID, chapterFile) = try Self.makeLibrary(
             body: "```python\n# c\nprint(1)\n```\n\n# 真正的标题\n\n正文。"
         )
         let written = try await Self.export(
             libraryRoot: root,
-            chapterID: chapterID,
+            chapterFile: chapterFile,
             target: .qidian
         )
 
@@ -232,12 +257,12 @@ struct ChapterExportEngineManuscriptTests {
     func twoRulesWithProseBetweenThemKeepTheProse() async throws {
         // A body that opens with a rule and carries prose between two
         // rules is NOT frontmatter, = and that prose is the author's.
-        let (root, chapterID) = try Self.makeLibrary(
+        let (root, chapterID, chapterFile) = try Self.makeLibrary(
             body: "---\n\n段落一。\n\n---\n\n段落二。"
         )
         let written = try await Self.export(
             libraryRoot: root,
-            chapterID: chapterID,
+            chapterFile: chapterFile,
             target: .qidian
         )
 
@@ -248,7 +273,7 @@ struct ChapterExportEngineManuscriptTests {
     @Test("the MARKDOWN export is unchanged (= the body bytes are preserved verbatim)")
     func theMarkdownExportStillPreservesTheBodyBytes() async throws {
         let body = "第一段。\n\n==高亮==与**粗体**。"
-        let (root, chapterID) = try Self.makeLibrary(body: body)
+        let (root, chapterID, chapterFile) = try Self.makeLibrary(body: body)
         let destination = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("wenshu-markdown-out-\(UUID().uuidString).md")
         try await PathGuard.$libraryRootOverride.withValue(root.path) {
@@ -278,14 +303,107 @@ struct ChapterExportEngineManuscriptTests {
         // between them), = so a count that took the shaped file's
         // length would differ from the content's by a visible amount.
         let body = "第一段。\n\n第二段。"
-        let (root, chapterID) = try Self.makeLibrary(body: body)
+        let (root, chapterID, chapterFile) = try Self.makeLibrary(body: body)
         let engine = ChapterExportEngine()
         let count = try await PathGuard.$libraryRootOverride.withValue(root.path) {
-            await engine.manuscriptWordCount(id: chapterID, target: .jinjiang)
+            await engine.manuscriptWordCount(fileURL: chapterFile, target: .jinjiang)
         }
 
         let content = body.replacingOccurrences(of: "\n\n", with: "").count
         #expect(count == content, "the count must be the content's characters")
         #expect(count != body.count, "the content's characters are not the body's characters")
+    }
+
+    // MARK: - The imported chapter
+
+    /// An IMPORTED chapter is exported, = = and the file it writes is
+    /// the chapter's own.
+    ///
+    /// = = The importer names a chapter's file after the TITLE, = = so
+    /// the id the resolver mints is not the file's name, = = and an id
+    /// lookup (= = `<id>.md`) = = finds nothing. = = The export takes
+    /// the FILE the resolver handed over, = = so the chapter is
+    /// exported.
+    ///
+    /// = = The chain this drives is the production one: = = the
+    /// resolver reads the folder, = = the sheet's selection picks the
+    /// chapter out of the resolved list, = = and the engine writes the
+    /// file that selection names.
+    ///
+    /// MUTATION: = the export locates the chapter by id again = = the
+    /// file is not found, = = nothing is written, = = and this case
+    /// fails.
+    @Test("an imported chapter is exported (= and the file is its own)")
+    func anImportedChapterIsExported() async throws {
+        let body = "第一段。\n\n第二段。"
+        let (root, chaptersDir, chapterFile) = try Self.makeImportedLibrary(body: body)
+
+        // The resolver's answer: = the chapters on disk, = with the
+        // file each one lives in.
+        let resolved = ChapterResolver.resolveChapters(
+            bookId: UUID(),
+            chaptersDirectory: chaptersDir,
+            indexURL: root.appendingPathComponent("chapters.json")
+        )
+        #expect(resolved.count == 1, "the imported chapter must be resolved")
+        #expect(
+            resolved[0].fileURL.lastPathComponent == "我的第一章.md",
+            "the resolved file is the imported one (= = named after the title)"
+        )
+
+        // The sheet's selection: = the file the resolver handed over.
+        let selected = ResolvedChapter.fileURL(for: resolved[0].id, in: resolved)
+        #expect(
+            selected?.standardizedFileURL == chapterFile.standardizedFileURL,
+            "the selection hands over the resolver's own file"
+        )
+
+        // The export: = = that file, = = written.
+        let destination = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("wenshu-manuscript-imported-out-\(UUID().uuidString).txt")
+        try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            let engine = ChapterExportEngine()
+            _ = try await engine.exportManuscript(
+                fileURL: selected ?? chapterFile,
+                to: destination,
+                target: .qidian
+            )
+        }
+
+        let written = try String(contentsOf: destination, encoding: .utf8)
+        try? FileManager.default.removeItem(at: destination)
+        #expect(
+            written.contains("第一段。"),
+            "the imported chapter's body must reach the exported file"
+        )
+    }
+
+    /// The panel's count reaches an imported chapter too.
+    ///
+    /// = = The count and the export read the same chapter, = = so a
+    /// count that found nothing while the export found everything would
+    /// be a panel that says nothing about a chapter it can export.
+    @Test("the panel's count reaches an imported chapter")
+    func thePanelCountReachesAnImportedChapter() async throws {
+        let body = "第一段。\n\n第二段。"
+        let (root, chaptersDir, chapterFile) = try Self.makeImportedLibrary(body: body)
+        let resolved = ChapterResolver.resolveChapters(
+            bookId: UUID(),
+            chaptersDirectory: chaptersDir,
+            indexURL: root.appendingPathComponent("chapters.json")
+        )
+        #expect(resolved.count == 1)
+        let selected = ResolvedChapter.fileURL(for: resolved[0].id, in: resolved)
+
+        let engine = ChapterExportEngine()
+        let count = try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            await engine.manuscriptWordCount(fileURL: selected, target: .qidian)
+        }
+
+        let content = body.replacingOccurrences(of: "\n\n", with: "").count
+        #expect(
+            count == content,
+            "the count must reach the imported chapter (= = the same chapter the export writes)"
+        )
     }
 }

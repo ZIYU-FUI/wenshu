@@ -32,7 +32,9 @@ import UniformTypeIdentifiers
 /// that path).
 struct ManuscriptFileExporter: ViewModifier {
     let chapterEngine: ChapterExportEngine
-    let selectedChapterID: UUID?
+    /// The FILE the resolver handed over (= = an imported chapter is
+    /// named after its title, = = so an id lookup found nothing for it).
+    let chapterFileURL: URL?
     let target: ManuscriptTarget
     @Binding var lastChapterURLString: String
     @Binding var isExporting: Bool
@@ -62,11 +64,11 @@ struct ManuscriptFileExporter: ViewModifier {
         // there).
         lastChapterURLString = url.path
 
-        guard let chapterID = selectedChapterID else { return }
+        guard let fileURL = chapterFileURL else { return }
         let manuscriptTarget = target
         Task {
             _ = try? await chapterEngine.exportManuscript(
-                id: chapterID,
+                fileURL: fileURL,
                 to: url,
                 target: manuscriptTarget
             )
