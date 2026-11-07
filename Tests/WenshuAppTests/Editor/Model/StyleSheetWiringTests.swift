@@ -6,11 +6,12 @@
 //
 //  WHY THESE ARE SOURCE CHECKS
 //
-//  Three of the sheet's joins live inside a SwiftUI view's own action
-//  or identity (= the knob's menu hands a value over, = the engine
-//  view is keyed by a fingerprint, = the sidebar's click names a
-//  book), = and none of them is reachable from a test's own call: = a
-//  test can read the MODEL's field, = but the JOIN is in the view.
+//  Five of the sheet's joins live inside a SwiftUI view's own action
+//  or identity (= the knob's menu hands a value over, = the page's own
+//  write-back, = the engine view is keyed by a fingerprint, = the
+//  sidebar's click names a book, = and the write-back's save), = and
+//  none of them is reachable from a test's own call: = a test can read
+//  the MODEL's field, = but the JOIN is in the view.
 //  So the join is checked where it is: = in the source that carries
 //  it, = anchored on the EXACT expression, = so the mutation that
 //  changes the expression turns this red.
@@ -148,6 +149,14 @@ final class StyleSheetWiringTests: XCTestCase {
             code.contains("to: bookID,"),
             "the page must write the book it is showing (= the store's first book is not the page's book)"
         )
+        // The call site spells the id, = but the BINDING decides which
+        // book that name carries: = a page that binds the store's first
+        // book writes ANOTHER book's sheet, = and the write-back's own
+        // guard passes it (= that book IS in the store).
+        XCTAssertTrue(
+            code.contains("let bookID = currentBookID"),
+            "the book the page writes must be the book it SHOWS (= the page follows the store's selected book)"
+        )
     }
 
     /// THE WRITE-BACK REPORTS ITS FAILURE INSTEAD OF SWALLOWING IT.
@@ -164,6 +173,13 @@ final class StyleSheetWiringTests: XCTestCase {
         XCTAssertFalse(
             code.contains("try? store.sidebarSaveBook(book)"),
             "a swallowed failure reports success for a book that did not change"
+        )
+        // `try` alone does not prove the failure ESCAPES: = a `catch`
+        // right below it swallows the failure just as well, = and the
+        // string above is still in the file.
+        XCTAssertFalse(
+            code.contains("catch"),
+            "the write-back must not catch the save's failure (= a failure caught here is a failure the caller never sees)"
         )
     }
 }
