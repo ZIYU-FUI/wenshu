@@ -25,7 +25,6 @@ import Testing
 
 @Suite("Reference corpus narrowing")
 struct ReferenceCorpusNarrowingTests {
-
     // MARK: - The kind axis
 
     @Test("a narrowing by kind admits only that kind")

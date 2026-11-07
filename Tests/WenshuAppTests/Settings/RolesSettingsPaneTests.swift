@@ -9,7 +9,7 @@
 //
 //  1. The pane exists, = and it is wired into the scene, = so the
 //     user can actually reach it.
-//  2. Every string the pane shows has a key in the catalog, = in
+//  2. Every string the pane ASKS FOR has a key in the catalog, = in
 //     both languages. = A missing key shows the key itself to the
 //     user, = which is worse than no pane.
 //  3. The rows come from the REGISTRY, = never from a copy written
@@ -28,7 +28,6 @@ import Testing
 
 @Suite("The roles settings pane")
 struct RolesSettingsPaneTests {
-
     /// The pane's source.
     private static var paneSource: String {
         get throws {
@@ -66,7 +65,7 @@ struct RolesSettingsPaneTests {
 
     // MARK: - The strings
 
-    @Test("Every string the pane shows has a key, in both languages")
+    @Test("Every string the pane ASKS FOR has a key, in both languages")
     func everyStringHasAKey() throws {
         let pane = try Self.paneSource
         let catalog = try Self.catalog
@@ -122,6 +121,24 @@ struct RolesSettingsPaneTests {
         #expect(slugs.contains("librarian"))
         #expect(slugs.contains("archivist"))
         #expect(slugs.contains("auditor"))
+    }
+
+    @Test("The pane shows the REGISTRY's label, = and holds no label of its own")
+    func thePaneShowsTheRegistrysOwnLabel() throws {
+        let pane = try Self.paneSource
+        // The role's display label is the REGISTRY's (= a hardcoded Chinese
+        // literal, = the house pattern for a model's display name, = and the
+        // same string the chat already shows via `SubAgentIdentity`). = **⇒
+        // The pane reads it, = and does not carry a copy of it** (= a second
+        // table of role names is a table that can drift).
+        #expect(pane.contains("role.displayLabel"),
+                "the pane must show the registry's own label")
+        // No role name is spelled out in the pane. = The registry owns the
+        // table, = so the pane may name NONE of them.
+        for role in SubAgentRoleRegistry.roles {
+            #expect(!pane.contains(role.displayLabel),
+                    "the pane must not carry a copy of the \(role.slug) label (= the registry owns it)")
+        }
     }
 
     @Test("Every role says what it may call and where it runs")

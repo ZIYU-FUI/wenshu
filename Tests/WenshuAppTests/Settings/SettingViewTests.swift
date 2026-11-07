@@ -224,7 +224,7 @@ struct SettingViewTests {
                 "body must reload models when landing on providers or models pane (= fetch on demand)")
     }
 
-    @Test("body uses NavigationSplitView with List(selection:) + 9 SettingsPane cases (= Apple HIG sidebar)")
+    @Test("body uses NavigationSplitView with List(selection:) + 10 SettingsPane cases (= Apple HIG sidebar)")
     func bodyUsesNavigationSplitViewList() throws {
         let source = try readSettingViewSource()
         let section = settingViewSection(source)
@@ -237,10 +237,10 @@ struct SettingViewTests {
                 "body must render left-column List of SettingsPane.allCases (= sidebar)")
         #expect(codeRegion.contains("navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)"),
                 "body must set sidebar column width 200..260 PT (= Apple HIG sidebar range)")
-        // 9 panes (= appearance / editor / network / providers / models /
-        // memory / agent / covers / archive).
+        // 10 panes (= appearance / editor / network / providers / models /
+        // memory / agent / covers / archive / roles).
         for pane in ["appearance", "editor", "network", "providers", "models",
-                     "memory", "agent", "covers", "archive"] {
+                     "memory", "agent", "covers", "archive", "roles"] {
             #expect(codeRegion.contains("case .\(pane)"),
                     "SettingsPane enum must declare the .\(pane) case")
         }

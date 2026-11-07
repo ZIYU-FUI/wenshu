@@ -106,7 +106,9 @@ struct ReferenceCorpusNarrowing: Sendable, Equatable {
     ) -> Bool {
         // **⇒ The kind axis is a FIELD on the reference** (= it costs
         // no witness read), = so it is answered FIRST.
-        if let kind, reference.entityType != kind { return false }
+        if let kind, reference.entityType != kind {
+            return false
+        }
         guard let owner else { return true }
         return (ownerOf(reference) ?? .user) == owner
     }

@@ -34,7 +34,6 @@ import Testing
 
 @Suite("A layer's membership is what is on disk")
 struct ReferenceLayerMembershipTests {
-
     // MARK: - The crash window
 
     @Test("a body the index does not list is still a member")

@@ -1,28 +1,30 @@
 // SettingView.swift · WenshuApp Settings scene (= Apple canonical macOS 14+ `Settings {
 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // (= no migration needed for user-state).
-import SwiftUI
 import AppKit
 import MarkdownEngine
+import SwiftUI
 import WenshuAgent
 
 struct SettingView: View {
     @Environment(AppState.self) private var appState
+
     // MARK: - Persistence bindings (unchanged keys; = no user-state migration)
 
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.provider") var providerSlug: String = Provider.minimaxCn.slug
     @AppStorage("wenshu.useKeychainForProviderKeys") var useKeychainForProviderKeys: Bool = true
-    // / Single-owner centralization: AppState.llmModel (= v1.72 T3b).
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / pattern as before.
+    /// / Single-owner centralization: AppState.llmModel (= v1.72 T3b).
+    /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    /// / pattern as before.
     var llmModelBinding: Binding<String> {
         Binding(
             get: { appState.llmModel },
             set: { appState.llmModel = $0 }
         )
     }
-    // @AppStorage("wenshu.llm.model") private var llmModel: String = ""
+
+    /// @AppStorage("wenshu.llm.model") private var llmModel: String = ""
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
     // P0-3 fix (= Spec audit): ConversationLoop L270 + L482 STILL read
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
@@ -46,33 +48,35 @@ struct SettingView: View {
         case memory
         case agent
         case covers
-        // The archive (= what the agents did, = and for how long it
-        // is kept). = It is a ninth pane, = and the pane count is
-        // asserted by a tripwire (= IconStylesTests), = so the two
-        // must move together.
+        /// The archive (= what the agents did, = and for how long it
+        /// is kept). = It is a ninth pane, = and the pane count is
+        /// asserted by a tripwire (= IconStylesTests), = so the two
+        /// must move together.
         case archive
         // The six sub-agent roles (= what each one is, = and what it
         // may do). = It is a tenth pane, = and the pane count is
         // asserted by a tripwire (= IconStylesTests), = so the two
         // must move together.
         case roles
-        var id: String { rawValue }
+        var id: String {
+            rawValue
+        }
 
-        // / SF Symbols 7 identifier per Apple HIG sidebar row leading icon.
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // / = every sidebar row icon occupies the identical optical width).
+        /// / SF Symbols 7 identifier per Apple HIG sidebar row leading icon.
+        /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+        /// / = every sidebar row icon occupies the identical optical width).
         var icon: String {
             switch self {
             case .appearance: return "paintpalette"
-            case .editor:      return "apple.writing.tools"
-            case .network:     return "wifi.router"
-            case .providers:   return "key.fill"
-            case .models:      return "sparkles"
-            case .memory:      return "bonjour"
-            case .agent:       return "wand.and.stars"
-            case .covers:      return "photo.on.rectangle.angled"
-            case .archive:     return "archivebox"
-            case .roles:       return "person.2.badge.gearshape"
+            case .editor: return "apple.writing.tools"
+            case .network: return "wifi.router"
+            case .providers: return "key.fill"
+            case .models: return "sparkles"
+            case .memory: return "bonjour"
+            case .agent: return "wand.and.stars"
+            case .covers: return "photo.on.rectangle.angled"
+            case .archive: return "archivebox"
+            case .roles: return "person.2.badge.gearshape"
             }
         }
     }
@@ -88,14 +92,15 @@ struct SettingView: View {
     /// The custom endpoint the user typed for the selected provider.
     /// Empty = the provider's own default applies.
     @State var customBaseURLDraft: String = ""
-    // / Global Settings search query (= lives in the sidebar-top TextField,
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / replaces the previous provider-only `.searchable(placement: .toolbar)`).
+    /// / Global Settings search query (= lives in the sidebar-top TextField,
+    /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    /// / replaces the previous provider-only `.searchable(placement: .toolbar)`).
     @State var globalSearchQuery: String = ""
 
     // MARK: - Editor pane 8 @AppStorage (= EditorPreferences 8 fields)
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / AppStorage (= the engine fills horizontally; = see `EditorPreferences`).
+
+    /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    /// / AppStorage (= the engine fills horizontally; = see `EditorPreferences`).
     @AppStorage("wenshu.editor.readingWidth")
     private var readingWidthDouble: Double = -1
     /// Height behavior (= serialized as "scrolls" / "fitsContent").
@@ -112,11 +117,12 @@ struct SettingView: View {
             set: { newValue in
                 switch newValue {
                 case .fitsContent: heightBehaviorRaw = "fitsContent"
-                case .scrolls:     heightBehaviorRaw = "scrolls"
+                case .scrolls: heightBehaviorRaw = "scrolls"
                 }
             }
         )
     }
+
     @AppStorage("wenshu.editor.rawSourceMode") private var rawSourceMode: Bool = false
     @AppStorage("wenshu.editor.continuousSpellChecking")
     private var continuousSpellChecking: Bool = true
@@ -127,19 +133,21 @@ struct SettingView: View {
     @AppStorage("wenshu.editor.autoClosePairsEnabled") private var autoClosePairsEnabled: Bool = true
 
     // MARK: - Apple system accent (= AppleAccentColor / AppleHighlightColor)
+
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / 8 named colors.
     @AppStorage("AppleAccentColor") private var appleAccentColor: Int = -2
     @AppStorage("AppleHighlightColor") private var appleHighlightColor: Int = -2
 
     // MARK: - App language (= macOS 27 per-app language override)
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / Numbers / Keynote all do the same).
+
+    /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    /// / Numbers / Keynote all do the same).
     @AppStorage("wenshu.appLanguage") private var appLanguage: String = "system"
 
-    // / True after the user picked a non-system language and we showed
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / user keep editing Settings without re-firing.
+    /// / True after the user picked a non-system language and we showed
+    /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    /// / user keep editing Settings without re-firing.
     @State private var showAppLanguageRestartAlert: Bool = false
 
     // MARK: - Computed
@@ -148,9 +156,9 @@ struct SettingView: View {
         Provider.by(slug: providerSlug) ?? .minimaxCn
     }
 
-    // / Sidebar pane rows filtered by the global search query (= empty
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / the substring match is forgiving on zh-Hans input.
+    /// / Sidebar pane rows filtered by the global search query (= empty
+    /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    /// / the substring match is forgiving on zh-Hans input.
     private var visiblePanes: [SettingsPane] {
         let query = globalSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return SettingsPane.allCases }
@@ -170,22 +178,24 @@ struct SettingView: View {
             List(visiblePanes, selection: Binding(
                 get: { selectedTab },
                 set: { newValue in
-                    if let newValue { selectedTab = newValue }
+                    if let newValue {
+                        selectedTab = newValue
+                    }
                 }
             )) { pane in
-                    Label {
-                        Text(localizedPaneTitle(pane))
-                    } icon: {
-                        SFIcon(pane.icon, style: .sidebar, color: IconColor.secondary)
-                    }
-                    .tag(pane)
+                Label {
+                    Text(localizedPaneTitle(pane))
+                } icon: {
+                    SFIcon(pane.icon, style: .sidebar, color: IconColor.secondary)
                 }
-                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
-                .listStyle(.sidebar)
-                // `toolbar(removing: .sidebarToggle)` strips the system-rendered
-                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                // `View/toolbar(removing:)`).
-                .toolbar(removing: .sidebarToggle)
+                .tag(pane)
+            }
+            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
+            .listStyle(.sidebar)
+            // `toolbar(removing: .sidebarToggle)` strips the system-rendered
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // `View/toolbar(removing:)`).
+            .toolbar(removing: .sidebarToggle)
             // `.searchable(text: ..., placement: .sidebar)` attaches the Apple canonical
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // for sidebar search).
@@ -213,17 +223,18 @@ struct SettingView: View {
     }
 
     // MARK: - Pane routing
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / `providers` pane via this mapping.
+
+    /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    /// / `providers` pane via this mapping.
     private func paneForRaw(_ raw: String) -> SettingsPane {
         switch raw {
-        case "general":       return .appearance
+        case "general": return .appearance
         case "agentBehavior": return .editor
-        case "network":       return .network
-        case "providerApi":   return .providers
-        case "model":         return .models
-        case "memory":        return .memory
-        case "agent":         return .agent
+        case "network": return .network
+        case "providerApi": return .providers
+        case "model": return .models
+        case "memory": return .memory
+        case "agent": return .agent
         default:
             return SettingsPane(rawValue: raw) ?? .appearance
         }
@@ -233,32 +244,32 @@ struct SettingView: View {
     private func paneBody(for pane: SettingsPane) -> some View {
         switch pane {
         case .appearance: appearancePane
-        case .editor:      editorPane
-        case .network:     NetworkDiagnosticsPane()
-        case .providers:   providersPane
-        case .models:      modelsPane
-        case .memory:      MemorySettingsView()
-        case .agent:       AgentSettingsPane()
-        case .covers:      CoverSettingsView()
-        case .archive:     ArchiveSettingsPane()
-        case .roles:       RolesSettingsPane()
+        case .editor: editorPane
+        case .network: NetworkDiagnosticsPane()
+        case .providers: providersPane
+        case .models: modelsPane
+        case .memory: MemorySettingsView()
+        case .agent: AgentSettingsPane()
+        case .covers: CoverSettingsView()
+        case .archive: ArchiveSettingsPane()
+        case .roles: RolesSettingsPane()
         }
     }
 
-    // / Localized pane title (= sidebar row label). Falls back to the
-    // / raw value if a key is missing (= never blank).
+    /// / Localized pane title (= sidebar row label). Falls back to the
+    /// / raw value if a key is missing (= never blank).
     private func localizedPaneTitle(_ pane: SettingsPane) -> String {
         switch pane {
         case .appearance: return String(localized: "settings.pane.appearance")
-        case .editor:      return String(localized: "settings.pane.editor")
-        case .network:     return String(localized: "settings.pane.network")
-        case .providers:   return String(localized: "settings.pane.providers")
-        case .models:      return String(localized: "settings.pane.models")
-        case .memory:      return String(localized: "settings.pane.memory")
-        case .agent:       return String(localized: "settings.pane.agent")
-        case .covers:      return String(localized: "settings.pane.covers")
-        case .archive:     return String(localized: "settings.pane.archive")
-        case .roles:       return String(localized: "settings.pane.roles")
+        case .editor: return String(localized: "settings.pane.editor")
+        case .network: return String(localized: "settings.pane.network")
+        case .providers: return String(localized: "settings.pane.providers")
+        case .models: return String(localized: "settings.pane.models")
+        case .memory: return String(localized: "settings.pane.memory")
+        case .agent: return String(localized: "settings.pane.agent")
+        case .covers: return String(localized: "settings.pane.covers")
+        case .archive: return String(localized: "settings.pane.archive")
+        case .roles: return String(localized: "settings.pane.roles")
         }
     }
 
@@ -300,8 +311,9 @@ struct SettingView: View {
                     .font(.caption)
             }
             .alert(String(localized: "settings.appearance.appLanguage.restartAlert_title"),
-                   isPresented: $showAppLanguageRestartAlert) {
-                Button(String(localized: "settings.appearance.appLanguage.restartAlert_confirm"), role: .cancel) { }
+                   isPresented: $showAppLanguageRestartAlert)
+            {
+                Button(String(localized: "settings.appearance.appLanguage.restartAlert_confirm"), role: .cancel) {}
             } message: {
                 Text(String(localized: "settings.appearance.appLanguage.restartAlert_message"))
             }
@@ -374,18 +386,18 @@ struct SettingView: View {
         .formStyle(.grouped)
     }
 
-    // / Push the new accent / highlight value to the live NSWindow
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / the UX is broken.
+    /// / Push the new accent / highlight value to the live NSWindow
+    /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    /// / the UX is broken.
     private func refreshAllWindows() {
         for window in NSApplication.shared.windows {
             window.invalidateRestorableState()
         }
     }
 
-    // / Persist the per-app language to macOS 27 \`AppleLanguages\`
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / Settings UI surfaces this with the alert above).
+    /// / Persist the per-app language to macOS 27 \`AppleLanguages\`
+    /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    /// / Settings UI surfaces this with the alert above).
     private func applyAppLanguage(_ lang: String) {
         guard let bundleID = Bundle.main.bundleIdentifier else { return }
         let defaults = UserDefaults(suiteName: bundleID) ?? .standard
@@ -412,8 +424,8 @@ struct SettingView: View {
                         switch bucket {
                         case "narrow": readingWidthDouble = 480
                         case "medium": readingWidthDouble = 720
-                        case "wide":   readingWidthDouble = 960
-                        default:       readingWidthDouble = -1
+                        case "wide": readingWidthDouble = 960
+                        default: readingWidthDouble = -1
                         }
                     }
                 )) {
@@ -452,15 +464,20 @@ struct SettingView: View {
         .formStyle(.grouped)
     }
 
-    // / Snap an arbitrary `readingWidth` CGFloat to the nearest of the
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / bucket instead of an empty selection.
+    /// / Snap an arbitrary `readingWidth` CGFloat to the nearest of the
+    /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    /// / bucket instead of an empty selection.
     private func readingWidthBucket() -> String {
         let w = readingWidthDouble
-        if w < 0 { return "none" }
-        if w < 600 { return "narrow" }
-        if w < 840 { return "medium" }
+        if w < 0 {
+            return "none"
+        }
+        if w < 600 {
+            return "narrow"
+        }
+        if w < 840 {
+            return "medium"
+        }
         return "wide"
     }
-
 }

@@ -34,7 +34,6 @@ import Testing
 
 @Suite("A reference lands where the user can see it")
 struct ReferenceDefaultLayerTests {
-
     // MARK: - The model's default
 
     @Test("the model's default layer is the layer the user can browse")
@@ -137,7 +136,7 @@ struct ReferenceDefaultLayerTests {
                 .map { $0.hasPrefix("//") ? "" : String($0) }
                 .joined(separator: "\n")
             var searchStart = code.startIndex
-            while let range = code.range(of: "Reference(", range: searchStart..<code.endIndex) {
+            while let range = code.range(of: "Reference(", range: searchStart ..< code.endIndex) {
                 searchStart = range.upperBound
                 let before = code[code.index(before: range.lowerBound)]
                 // `WSReference(` is a different type (= the row), = and
@@ -151,10 +150,14 @@ struct ReferenceDefaultLayerTests {
                 while index < code.endIndex {
                     let character = code[index]
                     block.append(character)
-                    if character == "(" { depth += 1 }
+                    if character == "(" {
+                        depth += 1
+                    }
                     if character == ")" {
                         depth -= 1
-                        if depth == 0 { break }
+                        if depth == 0 {
+                            break
+                        }
                     }
                     index = code.index(after: index)
                 }

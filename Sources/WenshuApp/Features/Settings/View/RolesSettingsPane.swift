@@ -38,7 +38,9 @@ import WenshuAgent
 
 struct RolesSettingsPane: View {
     /// The role table (= the registry's own rows; = not a copy).
-    private var roles: [SubAgentRole] { SubAgentRoleRegistry.roles }
+    private var roles: [SubAgentRole] {
+        SubAgentRoleRegistry.roles
+    }
 
     var body: some View {
         Form {

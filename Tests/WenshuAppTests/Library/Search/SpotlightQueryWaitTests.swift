@@ -30,7 +30,6 @@ import Testing
 
 @Suite("The system index is waited for, not blocked on")
 struct SpotlightQueryWaitTests {
-
     // MARK: - The index answers
 
     @Test("the wait ends when the index answers")

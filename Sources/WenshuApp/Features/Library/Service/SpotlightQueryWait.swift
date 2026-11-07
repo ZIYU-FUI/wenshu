@@ -51,7 +51,6 @@ enum SpotlightQueryOutcome: Sendable, Equatable {
 
 /// Waits for the system index without holding the thread that asked.
 enum SpotlightQueryWait {
-
     /// How long a system-index query may take before the app stops
     /// waiting for it.
     static let defaultTimeout: Duration = .seconds(2)

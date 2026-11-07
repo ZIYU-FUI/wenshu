@@ -175,6 +175,21 @@ twice traps).
   own documents). = That is the original ask's other half, = and it is
   still open.
 
+**⇒ AND THE CORPUS-SEARCH COMMIT'S OWN REVIEW IS A SEPARATE CARD.** =
+`feat(library): the library can be searched by a word in a document's body`
+= `c2859419d79aa314c04c21940b75000d722b8eaa` = is ALREADY in `main`
+(= `git merge-base --is-ancestor` = exit 0), = and it never got a verdict.
+= The card that was supposed to give it one (`t_f8077a93`) ran six times
+and failed six times, = every run reading a path that no longer existed;
+= its `reviewed_sha` and `review_outcome` are both `None`, = and it
+carries zero comments. = **⇒ A failed run is not a verdict, = and it
+cannot be migrated onto this sha** (= the sha changed; = the failed runs
+read paths that are not these). = So the verdict is card `t_9a836302`,
+against the sha above.
+
+**⇒ AND THIS CHANGE'S OWN VERDICT IS A SEPARATE CARD TOO.** = Card
+`t_89793467`, = against this branch's tip.
+
 ## The measurements
 
 **⇒ The baseline this change was measured against** (= `main` =
