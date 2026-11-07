@@ -285,4 +285,87 @@ struct ChapterResolverTests {
         #expect(resolved.map(\.title).dropFirst() == ["Imported A", "Imported B"])
     }
 
+<<<<<<< HEAD
+=======
+    // MARK: - The file the export writes
+
+    /// An imported chapter's file is ITS OWN file, = not `<id>.md`.
+    ///
+    /// = The import names a file after the chapter's title, = so the
+    /// id's file name does not exist. = This is the fact the export
+    /// depends on: = a reader that rebuilt the name from the id would
+    /// find nothing.
+    @Test("an imported chapter's file is its own file, not `<id>.md`")
+    func importedChapterFileIsItsOwnFile() throws {
+        let (bookId, chaptersDir, indexURL) = try Self.makeBook()
+        let chapterFile = chaptersDir.appendingPathComponent("赤壁之战.md")
+        try Self.write("# 赤壁之战\n\n建安十三年。", to: chapterFile)
+
+        let resolved = ChapterResolver.resolveChapters(
+            bookId: bookId,
+            chaptersDirectory: chaptersDir,
+            indexURL: indexURL
+        )
+
+        #expect(resolved.count == 1)
+        #expect(
+            resolved[0].fileURL.standardizedFileURL == chapterFile.standardizedFileURL,
+            "the resolved file must be the file on disk (= the import named it after the title)"
+        )
+        #expect(
+            resolved[0].fileURL.lastPathComponent != "\(resolved[0].id.uuidString).md",
+            "the resolved file must not be a name rebuilt from the id (= an imported chapter has none)"
+        )
+    }
+
+    /// The export sheet's selection hands over the resolver's FILE.
+    ///
+    /// = The selection is where the imported chapter's identity lives,
+    /// = and the rule is that the file comes from the resolver and = =
+    /// NOT from the id's file name. = So a sheet that rebuilt the name
+    /// would export nothing: = the file it named does not exist.
+    ///
+    /// MUTATION: = rebuild the name from the id
+    /// (= `chaptersDirectory.appendingPathComponent("\(id).md")`) = =
+    /// would hand over a file that does not exist, = and this test
+    /// goes red.
+    @Test("the sheet's selection hands over the resolver's own file")
+    func theSelectionHandsOverTheResolversFile() throws {
+        let (bookId, chaptersDir, indexURL) = try Self.makeBook()
+        let chapterFile = chaptersDir.appendingPathComponent("我的第一章.md")
+        try Self.write("# 我的第一章\n\n第一段。", to: chapterFile)
+
+        let resolved = ChapterResolver.resolveChapters(
+            bookId: bookId,
+            chaptersDirectory: chaptersDir,
+            indexURL: indexURL
+        )
+        #expect(resolved.count == 1)
+        let chapter = resolved[0]
+
+        let selected = ResolvedChapter.fileURL(for: chapter.id, in: resolved)
+
+        #expect(
+            selected?.standardizedFileURL == chapterFile.standardizedFileURL,
+            "the sheet must hand over the file the resolver gave (= the imported chapter's own file)"
+        )
+        #expect(
+            selected?.lastPathComponent == "我的第一章.md",
+            "the handed-over file must be the chapter's own, = and not a name rebuilt from the id"
+        )
+    }
+
+    /// With nothing selected, = the export has no file to write.
+    @Test("no selection = no file for the export")
+    func noSelectionMeansNoFile() {
+        let chapter = ResolvedChapter(
+            id: UUID(),
+            title: "某章",
+            fileURL: URL(fileURLWithPath: "/tmp/某章.md"),
+            body: "正文。"
+        )
+        #expect(ResolvedChapter.fileURL(for: nil, in: [chapter]) == nil)
+        #expect(ResolvedChapter.fileURL(for: UUID(), in: [chapter]) == nil)
+    }
+>>>>>>> 81fc8e01e (fix(library): the export writes the file the resolver gave, = and a full-width colon is not a YAML colon)
 }

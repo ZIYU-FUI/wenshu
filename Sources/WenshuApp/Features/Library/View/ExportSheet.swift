@@ -232,6 +232,13 @@ struct ExportSheet: View {
         "\(selectedChapterID?.uuidString ?? "-")-\(manuscriptTarget.rawValue)"
     }
 
+    /// The chapter the manuscript export writes: = the FILE the
+    /// resolver handed over, = because an imported chapter is named
+    /// after its title and = the id lookup found nothing for it.
+    private var selectedChapterFileURL: URL? {
+        ResolvedChapter.fileURL(for: selectedChapterID, in: chapters)
+    }
+
     private var canConfirm: Bool {
         switch kind {
         case .library: return true

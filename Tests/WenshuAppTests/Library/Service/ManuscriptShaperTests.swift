@@ -522,4 +522,38 @@ final class ManuscriptShaperTests: XCTestCase {
         XCTAssertNil(ManuscriptTarget.fanqie.chapterWordCountWarning(for: 20001))
         XCTAssertNil(ManuscriptTarget.jinjiang.chapterWordCountWarning(for: 20001))
     }
+
+    /// A frontmatter-shaped block with a FULL-WIDTH colon is NOT
+    /// frontmatter.
+    ///
+    /// = The rule that strips a Chinese key reads the key as the text
+    /// before the FIRST ASCII colon. = A full-width colon (= U+FF1A) is
+    /// not a YAML colon, = so `标题：第一章` is a PROSE line, = and a
+    /// block of prose between two rules is the author's own (= the
+    /// rule that a body which opens with a rule and carries prose
+    /// between two rules is not frontmatter).
+    ///
+    /// = So the block SURVIVES, = and the manuscript carries it.
+    ///
+    /// MUTATION: = accept a full-width colon as the key's separator
+    /// (= `firstIndex(of: ":") ?? firstIndex(of: "\u{FF1A}")`) = =
+    /// would strip the block, = and this test goes red.
+    func testAFullWidthColonBlockIsNotFrontmatter() {
+        let body = """
+        ---
+        标题：第一章
+        作者：文枢
+        ---
+
+        第一段。
+        """
+
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+        XCTAssertTrue(
+            manuscript.contains("标题：第一章"),
+            "a full-width colon is not a YAML colon, = so the block is the author's prose and it stays"
+        )
+        XCTAssertTrue(manuscript.contains("作者：文枢"))
+        XCTAssertTrue(manuscript.contains("第一段。"))
+    }
 }

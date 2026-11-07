@@ -192,6 +192,33 @@ Its test suite runs on fixture trees:
 python3 Tools/wenshu-devtool/tests/test_verify_dead.py
 ```
 
+## Registry LOC gate
+
+Another separate tool, because it reads the REGISTRY instead of the
+source tree. The registry's merge driver merges at the key level, and a
+key's whole row text is its value: so a same-key disagreement is a
+conflict only when BOTH sides changed the key. When one side alone
+carries a wrong LOC, the driver has nothing to compare it against and
+carries it through silently. Measured: pasting one file's count over
+another file's row leaves every other gate green.
+
+So this gate holds the rule the driver cannot. The registry's own
+header says the LOC column is the count AT THE MOMENT THE ROW WAS
+WRITTEN, so a row this change did not add is not this change's
+business (= 92 rows carry a stale count by design). This gate reads the
+rows this change ADDED, and each must carry that file's own `wc -l`.
+
+```bash
+# = = the rows this change added must carry their files' own counts = =
+python3 Tools/wenshu-devtool/nfi-loc-check.py --base <base-sha>
+```
+
+Its test suite runs on a fixture tree:
+
+```bash
+python3 Tools/wenshu-devtool/tests/test_nfi_loc_check.py
+```
+
 ## Independent-review gate
 
 Another separate tool, because it reads the BOARD instead of the source tree.

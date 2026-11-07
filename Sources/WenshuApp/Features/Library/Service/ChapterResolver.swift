@@ -54,6 +54,30 @@ struct ResolvedChapter: Identifiable, Sendable {
     let fileURL: URL
     /// The chapter's body text (= read from `fileURL`).
     let body: String
+<<<<<<< HEAD
+=======
+
+    /// The FILE the export writes for the selected chapter.
+    ///
+    /// WHY A STATIC FUNCTION AND NOT A PROPERTY: = the selection is
+    /// where the imported chapter's identity lives, = and the rule that
+    /// must be measured is that the file comes from the RESOLVER and =
+    /// = not from the id's file name. = A rule that lived in a private
+    /// view property could only be measured by driving the whole
+    /// export sheet, = so it lives here, = on the type that owns the
+    /// file, = and the sheet calls it.
+    ///
+    /// = The chapter is found BY ITS ID, = and the file is the one the
+    /// resolver handed over: = the id's file name is NOT rebuilt here,
+    /// = because for an imported chapter that name does not exist.
+    static func fileURL(
+        for chapterID: UUID?,
+        in chapters: [ResolvedChapter]
+    ) -> URL? {
+        guard let chapterID else { return nil }
+        return chapters.first(where: { $0.id == chapterID })?.fileURL
+    }
+>>>>>>> 81fc8e01e (fix(library): the export writes the file the resolver gave, = and a full-width colon is not a YAML colon)
 }
 
 enum ChapterResolver {
