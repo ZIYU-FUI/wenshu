@@ -144,6 +144,50 @@ struct WenshuContentRolesTests {
     /// MUTATION: = the engine's `footnoteVoiceIsOn` always returns true
     /// (= the note is given a size even with no knob) = → the note is
     /// painted at a size of its own instead of the body's.
+    /// A footnote MARKER may not span a newline, = and the prose a
+    /// spanning marker would swallow stays visible.
+    ///
+    /// = = The block parser asks "does this LINE open a definition",
+    /// = and the answer is one line's: = the `[^`, = the `]` and the
+    /// `:` must all sit on it. = = The AST asked the whole BLOCK, = = so
+    /// a paragraph whose `]` and `:` sat on a LATER line was read as a
+    /// definition, = = and the marker it returned ran from the `[` to
+    /// that later `]:` = = = so every character between them was inside
+    /// the marker. = = The marker is painted with the hidden-marker
+    /// font, = = so the prose between them DISAPPEARED.
+    ///
+    /// = The app is always voice-on (= the bridge sets the note's face
+    /// and size unconditionally), = = so this is the live editor path.
+    ///
+    /// MUTATION: = the AST detector accepts a marker that spans a
+    /// newline (= it looks for the `]` anywhere in the block) = → the
+    /// marker covers the prose, = = and the prose is painted with the
+    /// hidden-marker font (= not the body's) = = and this case fails.
+    @Test("a footnote marker may not span a newline, and the prose stays visible")
+    func aFootnoteMarkerMayNotSpanANewline() {
+        let config = configurationWithDistinctCaptionSizes()
+        // = The `[^` opens on the first line; = the `]:` that closes
+        // = the label sits on the second.
+        let text = "[^开头\n后面一行]: 结尾\n"
+
+        let proseFont = font(text, at: "后面一行", configuration: config)
+
+        // = The engine puts a font on the ROLES it gives a voice to
+        // = (= the note, = the captions), = and leaves ordinary prose
+        // = to the editor's own base font. = So the claim is not "the
+        // = prose carries a font", = but "the prose does not carry the
+        // = HIDDEN MARKER's font": = at the base the paragraph reads as
+        // = the body, = and it must read as the body here too.
+        #expect(
+            proseFont?.pointSize != 9,
+            "the prose must NOT be painted with the hidden marker's size (= the note's size)"
+        )
+        #expect(
+            proseFont == nil || proseFont?.pointSize == 13,
+            "the prose must read as the body (= = the body's own size, = = or no size of its own)"
+        )
+    }
+
     @Test("a footnote with no voice of its own reads as the body")
     func aFootnoteWithNoVoiceReadsAsTheBody() {
         var config = MarkdownEditorConfiguration.default

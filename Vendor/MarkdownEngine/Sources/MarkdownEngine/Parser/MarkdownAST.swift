@@ -216,6 +216,24 @@ enum DocumentAST {
         guard close > text.index(text.startIndex, offsetBy: 2) else { return nil }
         let afterClose = text.index(after: close)
         guard afterClose < text.endIndex, text[afterClose] == ":" else { return nil }
+        // The marker may not span a newline.
+        //
+        // = The block parser asks whether a LINE opens a definition,
+        // = and the answer is one line's: = the `[^`, = the `]` and
+        // = the `:` must all sit on it. = = This detector asked the
+        // = whole BLOCK, = = so a paragraph whose `]` and `:` sat on a
+        // = later line was read as a definition, = = and the marker
+        // = ran from the `[` to that later `]:` = = = so every
+        // = character between them sat inside the marker. = = The
+        // = marker is painted with the hidden-marker font, = = so the
+        // = prose between them disappeared.
+        //
+        // = = The two detectors must agree, = = and the parser's
+        // = one-line rule is the correct markdown semantics, = = so
+        // = the marker stops here.
+        guard !text[..<afterClose].contains("\n"), !text[..<afterClose].contains("\r") else {
+            return nil
+        }
         // The marker is the whole `[^label]:` prefix, = colon included: = it is
         // the syntax, = and the note's own text starts after it.
         let markerLength = text.distance(from: text.startIndex, to: text.index(after: afterClose))
