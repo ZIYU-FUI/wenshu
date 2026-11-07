@@ -137,6 +137,19 @@ enum ReferenceLibrarySearch {
         return Hit(reference: reference, snippet: snippet, score: score)
     }
 
+    /// The markup the index wraps a match in, = removed.
+    ///
+    /// **⇒ The snippet is TEXT, = and the user reads text.** = The
+    /// index's own highlight carries `<mark>` tags, = and the view paints
+    /// the snippet as a plain String (= the tags would be read as words).
+    /// = **⇒ They are stripped here, = once, = where the snippet is
+    /// made** (= so no consumer has to know the index's markup).
+    static func stripMarkup(_ text: String) -> String {
+        text.replacingOccurrences(of: "<mark>", with: "")
+            .replacingOccurrences(of: "</mark>", with: "")
+            .trimmingCharacters(in: .whitespaces)
+    }
+
     /// The line of the document that shows why it matched.
     private static func snippet(
         for reference: Reference,
@@ -151,7 +164,15 @@ enum ReferenceLibrarySearch {
                 contextChars: 60
             )
             if !highlighted.isEmpty {
-                return highlighted
+                // **⇒ The index's markup is the INDEX's, = not the user's.**
+                // `TokenOverlapRanking.highlight` returns `<mark>token</mark>`,
+                // = and the view renders the snippet with `Text(hit.snippet)`
+                // (= a String variable, = so SwiftUI takes it verbatim and
+                // paints the tag glyphs). = **⇒ So the tags are stripped
+                // here**, = at the one place the snippet is produced, = and
+                // the excerpt the user reads is the excerpt the document
+                // holds.
+                return Self.stripMarkup(highlighted)
             }
         }
         // No body, or the body did not hold the query: the title

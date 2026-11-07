@@ -239,8 +239,9 @@ struct SettingViewTests {
                 "body must set sidebar column width 200..260 PT (= Apple HIG sidebar range)")
         // 10 panes (= appearance / editor / network / providers / models /
         // memory / agent / covers / archive / roles).
-        for pane in ["appearance", "editor", "network", "providers", "models",
-                     "memory", "agent", "covers", "archive", "roles"] {
+        let panes = ["appearance", "editor", "network", "providers", "models",
+                     "memory", "agent", "covers", "archive", "roles"]
+        for pane in panes {
             #expect(codeRegion.contains("case .\(pane)"),
                     "SettingsPane enum must declare the .\(pane) case")
         }

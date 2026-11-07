@@ -54,18 +54,25 @@ struct LibraryFullTextSearchView: View {
 
     @Environment(BookStore.self) private var envBookStore
 
-    /// The hits (= empty until the search has run).
-    @State private var hits: [ReferenceLibrarySearch.Hit] = []
-
-    /// Whether the search has run at least once (= so the view can say
-    /// "nothing found" without saying it before the search started).
-    @State private var hasSearched = false
+    /// The search's results, = and the rule that says which may land.
+    @State private var searchState = LibrarySearchState()
 
     /// The kind the corpus is narrowed to (= nil = every kind).
     @State private var kindFilter: EntityType?
 
     /// The owner the corpus is narrowed to (= nil = both owners).
     @State private var ownerFilter: ReferenceCorpusOwner?
+
+    /// The hits the user currently sees (= the state's, = not a copy).
+    private var hits: [ReferenceLibrarySearch.Hit] {
+        searchState.hits
+    }
+
+    /// Whether the search has run at least once (= so the view can say
+    /// "nothing found" without saying it before the search started).
+    private var hasSearched: Bool {
+        searchState.hasSearched
+    }
 
     /// The narrowing the two controls currently express.
     private var narrowing: ReferenceCorpusNarrowing {
@@ -200,18 +207,19 @@ struct LibraryFullTextSearchView: View {
     private func search() async {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            hits = []
-            hasSearched = false
+            searchState.clear()
             return
         }
+        // This search's number. = The NEXT one, = so a search that
+        // started before this one is told from this one by its number.
+        let generation = searchState.begin()
         // The store is main-actor isolated (= its SwiftData contract
         // requires it), so the METADATA is read here (= cheap) and the
         // BODIES are read off the main actor through the store's
         // nonisolated file path (= reading N files on the main actor
         // while the user types is a frozen app).
         guard let references = try? envBookStore.loadAllReferences() else {
-            hits = []
-            hasSearched = true
+            searchState.land([], generation: generation)
             return
         }
         let root = envBookStore.stores.referenceLibraryRoot
@@ -240,9 +248,12 @@ struct LibraryFullTextSearchView: View {
             )
         }.value
         // The query may have moved on while the search ran; a stale
-        // result is worse than no result.
-        guard trimmed == query.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
-        hits = found
-        hasSearched = true
+        // result is worse than no result. = **⇒ And the test is the
+        // NUMBER, = not the query** (= comparing the query to itself is
+        // true by construction, = so it can never drop anything; = and a
+        // cancelled task still resumes, = so the older search still
+        // lands). = **⇒ The rule is `LibrarySearchState`'s**, = so the
+        // test measures the SAME rule the view runs.
+        searchState.land(found, generation: generation)
     }
 }
