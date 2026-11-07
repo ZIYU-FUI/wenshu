@@ -133,6 +133,43 @@ final class StyleSheetWiringTests: XCTestCase {
             .joined(separator: "\n")
     }
 
+    /// The body of ONE function, = scoped by brace balance.
+    ///
+    /// = A whole-file source-text assertion holds a PREFIX, = and a
+    /// prefix is satisfied by a DECOY anywhere in the file (= the same
+    /// hole, = one level up). = So an assertion about what a function
+    /// does is read from that function's OWN body, = and the body is
+    /// found by counting braces from the declaration.
+    private static func body(of code: String, of declaration: String) throws -> String {
+        let lines = code.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        guard let start = lines.firstIndex(where: { $0.contains(declaration) }) else {
+            throw NSError(
+                domain: "StyleSheetWiringTests",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "no declaration names \(declaration)"]
+            )
+        }
+        var depth = 0
+        var body: [String] = []
+        for index in start ..< lines.count {
+            let line = lines[index]
+            body.append(line)
+            for character in line {
+                if character == "{" {
+                    depth += 1
+                } else if character == "}" {
+                    depth -= 1
+                }
+            }
+            // = The declaration's own braces are balanced, = so the
+            // body ends at the line that closes them.
+            if index > start, depth <= 0 {
+                break
+            }
+        }
+        return body.joined(separator: "\n")
+    }
+
     /// THE PAGE'S OWN CALL WRITES THE BOOK IT IS SHOWING.
     ///
     /// MUTATION: = the call removed (= the knob writes nothing at all),
@@ -153,9 +190,33 @@ final class StyleSheetWiringTests: XCTestCase {
         // book that name carries: = a page that binds the store's first
         // book writes ANOTHER book's sheet, = and the write-back's own
         // guard passes it (= that book IS in the store).
+        // = The BINDING decides which book that name carries, = and a
+        // whole-file `contains` holds a PREFIX, = not the binding: =
+        // `let bookID = currentBookID ?? bookStore.books.first?.id`
+        // keeps the anchored prefix, = so the page would write the
+        // store's FIRST book while showing another (= and the
+        // write-back's own guard passes it, = because that book IS in
+        // the store).
+        //
+        // = So the assertion is scoped to `moveKnob`'s OWN body, = and
+        // it holds the WHOLE binding: = exactly ONE `let bookID =` in
+        // that body, = and it is exactly `currentBookID`. = A second,
+        // unrelated `let bookID = currentBookID` elsewhere in the file
+        // satisfies a whole-file `contains` (= the decoy), = so the
+        // count is part of the guard.
+        let moveKnob = try Self.body(of: code, of: "private func moveKnob(")
+        let bindings = moveKnob
+            .split(separator: "\n")
+            .filter { $0.contains("let bookID =") }
+        XCTAssertEqual(
+            bindings.count,
+            1,
+            "the page binds the book it shows EXACTLY ONCE (= a second binding is a decoy that satisfies a whole-file contains)"
+        )
         XCTAssertTrue(
-            code.contains("let bookID = currentBookID"),
-            "the book the page writes must be the book it SHOWS (= the page follows the store's selected book)"
+            bindings.first?.trimmingCharacters(in: .whitespaces)
+                == "let bookID = currentBookID",
+            "the book the page writes must be the book it SHOWS (= the binding must be exactly currentBookID, = with no fallback that names another book)"
         )
     }
 
