@@ -62,6 +62,31 @@ final class StyleSheetWiringTests: XCTestCase {
         )
     }
 
+    /// THE EDITOR HANDS THE SHEET'S TWO NEW VOICES OVER.
+    ///
+    /// = The roles exist in the engine (= `configuration.footnotes` and
+    /// `configuration.captions`), = and the sheet's sizes reach them
+    /// only if the editor WRITES them into the configuration it gives
+    /// the engine. = So the hand-over itself is a join, = and a join in
+    /// a view's own body is a source check (= the house's own idiom for
+    /// this seam, = = the engine keying above).
+    ///
+    /// MUTATION: = the editor's `adjustedConfiguration` leaves the two
+    /// knobs at the engine's default (= the sheet's sizes never reach
+    /// the screen) = = and the bridge's own mapping tests stay green
+    /// (= they measure the mapping, = not the hand-over).
+    func testTheEditorHandsTheContentRolesOver() throws {
+        let code = try Self.code(of: "Sources/WenshuApp/Features/Editor/Model/WenshuMarkdownEditor.swift")
+        XCTAssertTrue(
+            code.contains("config.footnotes = EngineStyleSheetBridge.footnoteStyle(for: styleSheet)"),
+            "the editor must hand the sheet's note voice to the engine (= a footnote that wears no voice of its own)"
+        )
+        XCTAssertTrue(
+            code.contains("config.captions = EngineStyleSheetBridge.captionStyle(for: styleSheet)"),
+            "the editor must hand the sheet's caption sizes to the engine (= a caption that wears no size of its own)"
+        )
+    }
+
     /// THE SIDEBAR'S CLICK NAMES THE OWNING BOOK.
     ///
     /// MUTATION: = `node.id` alone = names a folder row's own

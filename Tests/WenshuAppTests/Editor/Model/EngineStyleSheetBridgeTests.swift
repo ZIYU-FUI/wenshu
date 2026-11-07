@@ -310,4 +310,76 @@ final class EngineStyleSheetBridgeTests: XCTestCase {
             )
         }
     }
+    /// The note's size reaches the engine's footnote knob.
+    ///
+    /// MUTATION: = the bridge's `footnoteStyle` returns the default
+    /// (= the note's size is dropped) = gives the engine a note with no
+    /// size of its own.
+    func testTheNoteSizeReachesTheEngine() {
+        let sheet = BookStyleSheet.default
+        let style = EngineStyleSheetBridge.footnoteStyle(for: sheet)
+
+        XCTAssertEqual(style.fontSize, CGFloat(sheet.noteSize), "the note's size must be the sheet's own")
+        XCTAssertEqual(
+            style.fontName,
+            EngineStyleSheetBridge.fontName(for: sheet),
+            "a note wears the body's face (= the sheet has no note-face knob)"
+        )
+    }
+
+    /// The two caption sizes reach the engine's caption knob.
+    ///
+    /// MUTATION: = the bridge's `captionStyle` swaps the two sizes (=
+    /// the figure's size goes to the table) = gives the engine the
+    /// wrong size for each role.
+    func testTheCaptionSizesReachTheEngine() {
+        let sheet = BookStyleSheet.default
+        let style = EngineStyleSheetBridge.captionStyle(for: sheet)
+
+        XCTAssertEqual(style.figureFontSize, CGFloat(sheet.figureCaptionSize), "the figure caption's size must be the sheet's own")
+        XCTAssertEqual(style.tableFontSize, CGFloat(sheet.tableCaptionSize), "the table caption's size must be the sheet's own")
+    }
+
+    /// The three new knobs are part of the fingerprint (= the engine view
+    /// is keyed by them).
+    ///
+    /// = The engine's `updateNSView` writes back NONE of the style
+    /// knobs (= `headings`, = `paragraph`, = `blockquote` and = `theme`
+    /// are all absent from it), = so a sheet that changes must REMOUNT
+    /// the engine, = or the change never reaches the screen.
+    ///
+    /// MUTATION: = the fingerprint drops the three new knobs = leaves
+    /// the editor alone when the note's size changed.
+    func testTheFingerprintCarriesTheContentRolesSizes() {
+        let sheet = BookStyleSheet.default
+        // = The fingerprint is a `|`-joined list, = so the assertion is
+        // on the SEGMENTS (= not on a substring of the whole: = the
+        // sheet's own values already contain the digits "11", = so a
+        // whole-string `contains` would pass without the new knobs at
+        // all).
+        let segments = EngineStyleSheetBridge.fingerprint(for: sheet)
+            .split(separator: "|")
+            .map(String.init)
+
+        // = The sheet's THREE sizes are all 11 (= the print rule), = so
+        // "the segment 11 is present" cannot say WHICH of them carried
+        // it. = So the assertion is on the COUNT: = the three sizes add
+        // exactly three segments, = so dropping one leaves two, = and a
+        // fingerprint that carried only one of them (or none) is short.
+        XCTAssertEqual(
+            segments.filter { $0 == String(sheet.noteSize) }.count,
+            3,
+            "the fingerprint must carry all THREE of the sheet's sizes (= the engine writes none of the knobs back)"
+        )
+        XCTAssertEqual(
+            segments.filter { $0 == String(sheet.figureCaptionSize) }.count,
+            3,
+            "the figure caption's size must be in the fingerprint"
+        )
+        XCTAssertEqual(
+            segments.filter { $0 == String(sheet.tableCaptionSize) }.count,
+            3,
+            "the table caption's size must be in the fingerprint"
+        )
+    }
 }

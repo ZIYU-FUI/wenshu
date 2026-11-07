@@ -356,6 +356,15 @@ enum BlockParser {
                 blocks.append(Block(kind: .ext(entry.id), range: union(lines[i...end])))
                 i = end + 1
 
+            } else if isFootnoteDefinitionStart(line) {
+                // A footnote definition is its OWN block: the `[^label]:` line
+                // plus the indented lines that continue the note's text. The
+                // lines that follow it unindented belong to the NEXT block.
+                var end = i
+                while end + 1 < lines.count, isIndentedContinuation(lineText(end + 1)) { end += 1 }
+                blocks.append(Block(kind: .paragraph, range: union(lines[i...end])))
+                i = end + 1
+
             } else {
                 // Paragraph: merge consecutive plain (non-blank, non-special) lines.
                 var end = i
@@ -370,6 +379,8 @@ enum BlockParser {
                     if isTableRow(next), end + 2 < lines.count, isTableSeparator(lineText(end + 2)) { break }
                     if isBlockLatexOpen(next), blockLatexCloseIndex(from: end + 1) != nil { break }
                     if registry.blockEntry(opening: next) != nil { break }
+                    // A footnote definition opens its own block.
+                    if isFootnoteDefinitionStart(next) { break }
                     end += 1
                 }
                 blocks.append(Block(kind: .paragraph, range: union(lines[i...end])))
@@ -434,6 +445,22 @@ enum BlockParser {
         // A space/tab must follow the marker — a bare `-`/`*`/`1.` stays literal (pre-AST bullet behavior).
         guard let after = rest.first else { return false }
         return after == " " || after == "\t"
+    }
+
+    /// `[^label]:` at the very start of a line — a footnote definition.
+    private static func isFootnoteDefinitionStart(_ line: String) -> Bool {
+        guard line.hasPrefix("[^") else { return false }
+        guard let close = line.firstIndex(of: "]") else { return false }
+        // The label must carry something between the brackets.
+        guard close > line.index(line.startIndex, offsetBy: 2) else { return false }
+        let after = line.index(after: close)
+        return after < line.endIndex && line[after] == ":"
+    }
+
+    /// An indented line continues a footnote definition's own text.
+    private static func isIndentedContinuation(_ line: String) -> Bool {
+        guard let first = line.first else { return false }
+        return first == " " || first == "\t"
     }
 
     /// A GFM table row: `^[ \t]*\|.+\|[ \t]*$` — outer pipes, content between.

@@ -47,6 +47,13 @@ indirect enum BlockNode: Equatable {
     case thematicBreak(range: NSRange)
     case blank(range: NSRange)
     case ext(ExtensionBlockNode)
+    /// A footnote definition: a block that starts with `[^label]:`. `marker`
+    /// is the `[^label]:` prefix; `content` is the note's own text.
+    case footnoteDefinition(range: NSRange, marker: NSRange, content: NSRange, inlines: [InlineNode])
+    /// A caption: a paragraph that names the figure it follows or the table it
+    /// precedes. There is no caption marker in Markdown, = so the caption is
+    /// recognised by its ADJACENCY (= the block next to the image or table).
+    case caption(range: NSRange, kind: CaptionKind, inlines: [InlineNode])
 
     var range: NSRange {
         switch self {
@@ -54,10 +61,22 @@ indirect enum BlockNode: Equatable {
              .list(let r, _), .codeBlock(let r), .blockLatex(let r), .table(let r),
              .thematicBreak(let r), .blank(let r):
             return r
+        case .footnoteDefinition(let r, _, _, _), .caption(let r, _, _):
+            return r
         case .ext(let node):
             return node.range
         }
     }
+}
+
+/// Which figure or table a caption names.
+enum CaptionKind: Equatable {
+    /// The caption of the figure ABOVE it (= the figure's caption sits below
+    /// its figure).
+    case figure
+    /// The caption of the table BELOW it (= a table's caption sits above its
+    /// table).
+    case table
 }
 
 enum DocumentAST {
@@ -81,10 +100,11 @@ enum DocumentAST {
         // Blocks tile the document in order, so one sweep over sorted candidate
         // ranges replaces scanning every candidate per block (which went
         // quadratic in formula-rich documents with dozens of candidates).
-        let relevant: [(block: Block, scopes: [NSRange]?)]
+        let relevant: [(index: Int, block: Block, scopes: [NSRange]?)]
         if let normalizedScopes {
-            var out: [(Block, [NSRange]?)] = []
+            var out: [(Int, Block, [NSRange]?)] = []
             var ci = 0
+            var ci_blocks_index = 0
             for block in blocks {
                 while ci < normalizedScopes.count,
                       NSMaxRange(normalizedScopes[ci]) <= block.range.location {
@@ -99,21 +119,115 @@ enum DocumentAST {
                     si += 1
                 }
                 if !intersections.isEmpty {
-                    out.append((block, intersections))
+                    out.append((ci_blocks_index, block, intersections))
                 }
+                ci_blocks_index += 1
             }
             relevant = out
         } else {
-            relevant = blocks.map { ($0, nil) }
+            relevant = blocks.enumerated().map { ($0.offset, $0.element, nil) }
         }
         return relevant.map { candidate in
             node(
                 for: candidate.block,
+                neighbours: neighbours(of: candidate.index, in: blocks, ns: ns, registry: registry),
                 ns: ns,
                 scopedRanges: candidate.scopes,
                 registry: registry
             )
         }
+    }
+
+    /// The blocks that touch a block's content: = the one before it and the
+    /// one after it, = with the blank lines between them looked past (= a
+    /// blank line is spacing, = not content).
+    private struct Neighbours {
+        var before: Block?
+        var after: Block?
+    }
+
+    private static func neighbours(of index: Int, in blocks: [Block], ns: NSString, registry: ExtensionRegistry) -> Neighbours {
+        var before: Block?
+        var i = index - 1
+        while i >= 0 {
+            if blocks[i].kind != .blank { before = blocks[i]; break }
+            i -= 1
+        }
+        var after: Block?
+        var j = index + 1
+        while j < blocks.count {
+            if blocks[j].kind != .blank { after = blocks[j]; break }
+            j += 1
+        }
+        return Neighbours(before: before, after: after)
+    }
+
+    /// Whether the block is an image block: = the engine's own block-level
+    /// image, = a paragraph whose whole content is ONE image (= the picture
+    /// the image pass draws in its place).
+    private static func isImageBlock(_ block: Block, ns: NSString, registry: ExtensionRegistry) -> Bool {
+        guard block.kind == .paragraph else { return false }
+        // Only an image paragraph can be one: = the cheap test first, = so a
+        // prose paragraph costs a character and no parse.
+        var i = block.range.location
+        let end = NSMaxRange(block.range)
+        while i < end, ns.character(at: i) == 0x20 || ns.character(at: i) == 0x09 || ns.character(at: i) == 0x0A || ns.character(at: i) == 0x0D {
+            i += 1
+        }
+        guard i < end, ns.character(at: i) == 0x21 /* ! */ else { return false }
+        var images = 0
+        for node in InlineParser.parse(ns, range: block.range, registry: registry) {
+            switch node {
+            case .image, .imageEmbed:
+                images += 1
+            case .text(let range):
+                guard ns.substring(with: range).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+            default:
+                return false
+            }
+        }
+        return images == 1
+    }
+
+    /// The caption a paragraph block is, if it is one.
+    ///
+    /// A FIGURE caption is the paragraph right after an image block; = a TABLE
+    /// caption is the paragraph right before a table. Markdown carries no
+    /// caption marker, = so the adjacency IS the marker. The figure wins
+    /// when a paragraph is next to both (= the picture above it is the
+    /// closer claim).
+    private static func captionKind(for block: Block, neighbours: Neighbours, ns: NSString, registry: ExtensionRegistry) -> CaptionKind? {
+        if let before = neighbours.before, isImageBlock(before, ns: ns, registry: registry) {
+            return .figure
+        }
+        if let after = neighbours.after, after.kind == .table {
+            return .table
+        }
+        return nil
+    }
+
+    /// The footnote definition a paragraph block opens with: = the `[^label]:`
+    /// marker, = and the note's own text (= the rest of the line, = and the
+    /// indented lines that continue it).
+    private static func footnoteDefinition(in range: NSRange, ns: NSString) -> (marker: NSRange, content: NSRange)? {
+        let text = ns.substring(with: range)
+        guard text.hasPrefix("[^") else { return nil }
+        guard let close = text.firstIndex(of: "]") else { return nil }
+        guard close > text.index(text.startIndex, offsetBy: 2) else { return nil }
+        let afterClose = text.index(after: close)
+        guard afterClose < text.endIndex, text[afterClose] == ":" else { return nil }
+        // The marker is the whole `[^label]:` prefix, = colon included: = it is
+        // the syntax, = and the note's own text starts after it.
+        let markerLength = text.distance(from: text.startIndex, to: text.index(after: afterClose))
+        let marker = NSRange(location: range.location, length: markerLength)
+        var contentEnd = NSMaxRange(range)
+        while contentEnd > NSMaxRange(marker) {
+            let last = ns.character(at: contentEnd - 1)
+            guard last == 0x0A || last == 0x0D else { break }
+            contentEnd -= 1
+        }
+        let content = NSRange(location: NSMaxRange(marker), length: max(0, contentEnd - NSMaxRange(marker)))
+        return (marker, content)
     }
 
     /// Reject malformed UTF-16 ranges, then merge them once so every scoped
@@ -161,10 +275,25 @@ enum DocumentAST {
         return scopedRanges.contains { NSIntersectionRange($0, range).length > 0 }
     }
 
-    private static func node(for block: Block, ns: NSString, scopedRanges: [NSRange]?, registry: ExtensionRegistry) -> BlockNode {
+    private static func node(for block: Block, neighbours: Neighbours, ns: NSString, scopedRanges: [NSRange]?, registry: ExtensionRegistry) -> BlockNode {
         let scoped = inScope(block.range, scopedRanges)
         switch block.kind {
         case .paragraph:
+            if let definition = footnoteDefinition(in: block.range, ns: ns) {
+                return .footnoteDefinition(
+                    range: block.range,
+                    marker: definition.marker,
+                    content: definition.content,
+                    inlines: scoped ? InlineParser.parse(ns, range: definition.content, registry: registry) : []
+                )
+            }
+            if let captionKind = captionKind(for: block, neighbours: neighbours, ns: ns, registry: registry) {
+                return .caption(
+                    range: block.range,
+                    kind: captionKind,
+                    inlines: scoped ? InlineParser.parse(ns, range: block.range, registry: registry) : []
+                )
+            }
             return .paragraph(range: block.range, inlines: scoped ? InlineParser.parse(ns, range: block.range, registry: registry) : [])
         case .heading:
             return heading(block.range, ns, scoped: scoped, registry: registry)

@@ -48,6 +48,12 @@ enum InlineASTAdapter {
         case .imageEmbed(let range, let target, let markers):
             result.append(MarkdownToken(kind: .imageEmbed, range: range, contentRange: target, markerRanges: markers))
 
+        case .footnoteReference(let range, _, let markers):
+            // The footnote reference has no legacy token: = its styling is
+            // the AST styler's own (= a superscript marker), = and the flat
+            // token path must not paint the reference twice.
+            _ = (range, markers)
+
         case .ext(let node):
             result.append(MarkdownToken(kind: .extensionSpan(node.extensionID), range: node.range,
                                         contentRange: node.contentRange, markerRanges: node.markers))

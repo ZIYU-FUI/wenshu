@@ -69,6 +69,9 @@ indirect enum InlineNode: Equatable {
     case wikiLink(range: NSRange, name: NSRange, id: NSRange?, markers: [NSRange])
     /// `![[target]]`. `markers` is `[ "![[", "]]" ]`.
     case imageEmbed(range: NSRange, target: NSRange, markers: [NSRange])
+    /// `[^label]` — a footnote reference. `label` is the label's own range;
+    /// `markers` is `[ "[^", "]" ]`.
+    case footnoteReference(range: NSRange, label: NSRange, markers: [NSRange])
     /// `$math$` — opaque. `markers` is `[ "$", "$" ]`.
     case inlineLatex(range: NSRange, content: NSRange, markers: [NSRange])
     /// Backslash escape `\x`; `marker` is the `\`, `character` the now-literal punctuation.
@@ -103,6 +106,7 @@ enum InlineParser {
     private static let pipe: unichar = 0x7C
     private static let backslash: unichar = 0x5C
     private static let dollar: unichar = 0x24
+    private static let caret: unichar = 0x5E
 
     // MARK: - Entry point
 
@@ -155,6 +159,7 @@ enum InlineParser {
         case image(range: NSRange, alt: NSRange, url: NSRange, markers: [NSRange])
         case wikiLink(range: NSRange, name: NSRange, id: NSRange?, markers: [NSRange])
         case imageEmbed(range: NSRange, target: NSRange, markers: [NSRange])
+        case footnoteReference(range: NSRange, label: NSRange, markers: [NSRange])
         case inlineLatex(range: NSRange, content: NSRange, markers: [NSRange])
         case escape(range: NSRange, character: NSRange, marker: NSRange)
         case ext(id: String, range: NSRange, contentRange: NSRange, markers: [NSRange], parsesContent: Bool)
@@ -163,6 +168,7 @@ enum InlineParser {
             switch self {
             case .code(let r, _), .emphasis(_, let r, _, _), .link(let r, _, _, _),
                  .image(let r, _, _, _), .wikiLink(let r, _, _, _), .imageEmbed(let r, _, _),
+                 .footnoteReference(let r, _, _),
                  .inlineLatex(let r, _, _), .escape(let r, _, _),
                  .ext(_, let r, _, _, _):
                 return r
@@ -384,7 +390,12 @@ enum InlineParser {
         if c == bang, c1 == lbracket, c2 == lbracket { return matchImageEmbed(ns, len, start: i) }
         if c == lbracket, c1 == lbracket { return matchWikiLink(ns, len, start: i) }
         if c == bang, c1 == lbracket { return matchImage(ns, len, start: i) }
-        if c == lbracket { return matchLink(ns, len, start: i) }
+        if c == lbracket {
+            // A LINK wins over a footnote reference (= `[^a](url)` is a link, = as
+            // it was before the role existed), = so the reference is only the
+            // fallback: = the bracket syntax on its own.
+            return matchLink(ns, len, start: i) ?? matchFootnoteReference(ns, len, start: i)
+        }
         if c == dollar, c1 != dollar { return matchInlineLatex(ns, len, start: i) }
         return nil
     }
@@ -492,6 +503,26 @@ enum InlineParser {
                 NSRange(location: closeBracket + 1, length: 1),
                 NSRange(location: closeParen, length: 1),
             ]
+        )
+    }
+
+    /// `[^ label ]` — a footnote reference. The label must be non-empty and
+    /// must not carry a `]`; a newline ends the candidate.
+    private static func matchFootnoteReference(_ ns: NSString, _ len: Int, start i: Int) -> Span? {
+        guard i + 1 < len, ns.character(at: i + 1) == caret else { return nil }
+        let contentStart = i + 2
+        var k = contentStart
+        while k < len {
+            let ch = ns.character(at: k)
+            if ch == rbracket { break }
+            if ch == newline { return nil }
+            k += 1
+        }
+        guard k < len, ns.character(at: k) == rbracket, k > contentStart else { return nil }
+        return .footnoteReference(
+            range: NSRange(location: i, length: (k + 1) - i),
+            label: NSRange(location: contentStart, length: k - contentStart),
+            markers: [NSRange(location: i, length: 2), NSRange(location: k, length: 1)]
         )
     }
 
@@ -793,6 +824,8 @@ enum InlineParser {
                 result.append(.wikiLink(range: range, name: name, id: id, markers: markers))
             case .imageEmbed(let range, let target, let markers):
                 result.append(.imageEmbed(range: range, target: target, markers: markers))
+            case .footnoteReference(let range, let label, let markers):
+                result.append(.footnoteReference(range: range, label: label, markers: markers))
             case .inlineLatex(let range, let content, let markers):
                 result.append(.inlineLatex(range: range, content: content, markers: markers))
             case .escape(let range, let character, let marker):
@@ -841,6 +874,7 @@ enum InlineParser {
         case .image(let r, let a, let u, let m): return .image(range: s(r), alt: s(a), url: s(u), markers: m.map(s))
         case .wikiLink(let r, let n, let id, let m): return .wikiLink(range: s(r), name: s(n), id: id.map(s), markers: m.map(s))
         case .imageEmbed(let r, let t, let m): return .imageEmbed(range: s(r), target: s(t), markers: m.map(s))
+        case .footnoteReference(let r, let l, let m): return .footnoteReference(range: s(r), label: s(l), markers: m.map(s))
         case .inlineLatex(let r, let c, let m): return .inlineLatex(range: s(r), content: s(c), markers: m.map(s))
         case .escape(let r, let c, let m): return .escape(range: s(r), character: s(c), marker: s(m))
         case .ext(let n): return .ext(ExtensionInlineNode(

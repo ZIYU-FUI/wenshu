@@ -38,6 +38,8 @@ public struct MarkdownEditorConfiguration: Sendable {
     public var blockLatex: BlockLatexStyle
     public var inlineLatex: InlineLatexStyle
     public var blockquote: BlockquoteStyle
+    public var footnotes: FootnoteStyle
+    public var captions: CaptionStyle
     public var thematicBreak: ThematicBreakStyle
     public var link: LinkStyle
     public var paragraph: ParagraphStyle
@@ -109,6 +111,8 @@ public struct MarkdownEditorConfiguration: Sendable {
         blockLatex: BlockLatexStyle = .default,
         inlineLatex: InlineLatexStyle = .default,
         blockquote: BlockquoteStyle = .default,
+        footnotes: FootnoteStyle = .default,
+        captions: CaptionStyle = .default,
         thematicBreak: ThematicBreakStyle = .default,
         link: LinkStyle = .default,
         paragraph: ParagraphStyle = .default,
@@ -139,6 +143,8 @@ public struct MarkdownEditorConfiguration: Sendable {
         self.blockLatex = blockLatex
         self.inlineLatex = inlineLatex
         self.blockquote = blockquote
+        self.footnotes = footnotes
+        self.captions = captions
         self.thematicBreak = thematicBreak
         self.link = link
         self.paragraph = paragraph
@@ -590,6 +596,64 @@ public struct BlockquoteStyle: Sendable {
     }
 
     public static let `default` = BlockquoteStyle()
+}
+
+// MARK: - Footnotes
+
+/// The voice a footnote wears (= the note's own face and size).
+///
+/// A footnote has two parts: the REFERENCE (an inline `[^label]` in the
+/// prose, drawn as a superscript marker) and the DEFINITION (a block that
+/// starts with `[^label]:`, drawn as a NOTE = a paragraph set at the note's
+/// own size). Both take the face and the size from here, so a book that
+/// wants its notes in 11pt Kaiti sets it once.
+///
+/// `nil` on either knob means "the body's own", so the default
+/// configuration leaves every note exactly as the body renders it.
+public struct FootnoteStyle: Sendable {
+    /// The face a footnote wears (= nil = the body's own face).
+    public var fontName: String?
+
+    /// The size a footnote is set at (= nil = the body's own size).
+    public var fontSize: CGFloat?
+
+    public init(
+        fontName: String? = nil,
+        fontSize: CGFloat? = nil
+    ) {
+        self.fontName = fontName
+        self.fontSize = fontSize
+    }
+
+    public static let `default` = FootnoteStyle()
+}
+
+// MARK: - Captions
+
+/// The voice a caption wears (= the caption's own size).
+///
+/// A caption wears the body's FACE (= there is no face knob: = a caption
+/// belongs to the body it sits under) and its own SIZE, which is smaller
+/// than the body's (= the print rule: = a caption is set below the body).
+///
+/// A FIGURE caption sits under its figure; a TABLE caption sits above its
+/// table (= the print rule, = and the two are the easiest to get backwards).
+public struct CaptionStyle: Sendable {
+    /// The size a figure caption is set at (= nil = the body's own size).
+    public var figureFontSize: CGFloat?
+
+    /// The size a table caption is set at (= nil = the body's own size).
+    public var tableFontSize: CGFloat?
+
+    public init(
+        figureFontSize: CGFloat? = nil,
+        tableFontSize: CGFloat? = nil
+    ) {
+        self.figureFontSize = figureFontSize
+        self.tableFontSize = tableFontSize
+    }
+
+    public static let `default` = CaptionStyle()
 }
 
 // MARK: - Links

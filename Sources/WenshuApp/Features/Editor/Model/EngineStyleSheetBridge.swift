@@ -117,6 +117,36 @@ enum EngineStyleSheetBridge {
         return style
     }
 
+    /// The engine's FOOTNOTE STYLE for a sheet.
+    ///
+    /// = A footnote wears its OWN face and size (= the sheet's
+    /// `noteSize`), = and the engine takes both beside its base font
+    /// (= `configuration.footnotes`).
+    ///
+    /// = The FACE is the body's own (= there is no footnote-face knob
+    /// in the sheet, = and a note belongs to the body it sits under),
+    /// and the SIZE is the note's own.
+    static func footnoteStyle(for sheet: BookStyleSheet) -> FootnoteStyle {
+        var style = FootnoteStyle()
+        style.fontName = fontName(for: sheet)
+        style.fontSize = CGFloat(sheet.noteSize)
+        return style
+    }
+
+    /// The engine's CAPTION STYLE for a sheet.
+    ///
+    /// = A caption wears the body's FACE (= there is no face knob: = a
+    /// caption belongs to the body it sits under) = and its own SIZE,
+    /// which is smaller than the body's (= the print rule: = a figure
+    /// caption sits BELOW its figure, = a table caption ABOVE its
+    /// table). = The two sizes are the sheet's own knobs.
+    static func captionStyle(for sheet: BookStyleSheet) -> CaptionStyle {
+        var style = CaptionStyle()
+        style.figureFontSize = CGFloat(sheet.figureCaptionSize)
+        style.tableFontSize = CGFloat(sheet.tableCaptionSize)
+        return style
+    }
+
     /// The sheet's FINGERPRINT: = what the editor's engine view is
     /// keyed by.
     ///
@@ -142,6 +172,9 @@ enum EngineStyleSheetBridge {
             sheet.headingLadder.rawValue,
             sheet.quoteFamily.rawValue,
             sheet.headingFamily.rawValue,
+            String(sheet.noteSize),
+            String(sheet.figureCaptionSize),
+            String(sheet.tableCaptionSize),
         ].joined(separator: "|")
     }
 }

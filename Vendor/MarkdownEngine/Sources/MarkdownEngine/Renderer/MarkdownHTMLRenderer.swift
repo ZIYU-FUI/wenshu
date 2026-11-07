@@ -88,6 +88,15 @@ public enum MarkdownHTMLRenderer {
         case .paragraph(_, let inlines):
             return "<p>\(renderInlines(inlines, ns: ns, env: env))</p>"
 
+        case .caption(_, _, let inlines):
+            return "<p>\(renderInlines(inlines, ns: ns, env: env))</p>"
+
+        case .footnoteDefinition(_, let marker, _, let inlines):
+            // The definition reads as the paragraph it was: the marker, then
+            // the note's own text.
+            let label = escape(ns.substring(with: marker))
+            return "<p>\(label)\(renderInlines(inlines, ns: ns, env: env))</p>"
+
         case .blockquote(let range, _):
             return renderBlockquote(range: range, ns: ns, env: env)
 
@@ -286,6 +295,9 @@ public enum MarkdownHTMLRenderer {
                 ? escape(ns.substring(with: node.contentRange))
                 : renderInlines(node.children, ns: ns, env: env, linkable: linkable)
             return ext.html(childrenHTML: inner)
+
+        case .footnoteReference(let range, _, _):
+            return escape(ns.substring(with: range))
 
         case .inlineLatex(let range, _, _):
             return escape(ns.substring(with: range))

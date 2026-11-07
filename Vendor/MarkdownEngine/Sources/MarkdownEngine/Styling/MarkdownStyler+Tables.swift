@@ -499,7 +499,8 @@ extension MarkdownStyler {
             case .link(let range, _, _, _, _),
                  .image(let range, _, _, _),
                  .wikiLink(let range, _, _, _),
-                 .imageEmbed(let range, _, _):
+                 .imageEmbed(let range, _, _),
+                 .footnoteReference(let range, _, _):
                 appendPlain(range, font)
             }
         }

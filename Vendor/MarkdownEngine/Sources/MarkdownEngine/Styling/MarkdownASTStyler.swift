@@ -90,8 +90,13 @@ enum MarkdownASTStyler {
         let codeRanges = collectCodeRanges(in: blocks)
         let checkboxRanges = collectCheckboxRanges(in: blocks)
         let linkRanges = collectLinkRanges(in: blocks)
+        // A footnote reference is not an unfinished link: = once the note has
+        // a voice of its own, = it is a marker, = and the brackets pass must
+        // leave it alone.
+        let footnoteRanges = footnoteVoiceIsOn(ctx) ? collectFootnoteRanges(in: blocks) : []
         styleAutoLinks(ctx: ctx, codeRanges: codeRanges, linkRanges: linkRanges, into: &attrs)
-        styleIncompleteLinkBrackets(ctx: ctx, codeRanges: codeRanges, checkboxRanges: checkboxRanges, into: &attrs)
+        styleIncompleteLinkBrackets(ctx: ctx, codeRanges: codeRanges, checkboxRanges: checkboxRanges,
+                                    footnoteRanges: footnoteRanges, into: &attrs)
         return attrs
     }
 
@@ -113,7 +118,8 @@ enum MarkdownASTStyler {
         for block in blocks {
             switch block {
             case .codeBlock(let range): ranges.append(range)
-            case .paragraph(_, let inlines), .heading(_, _, _, let inlines), .blockquote(_, let inlines):
+            case .paragraph(_, let inlines), .heading(_, _, _, let inlines), .blockquote(_, let inlines),
+                 .caption(_, _, let inlines), .footnoteDefinition(_, _, _, let inlines):
                 walk(inlines)
             case .list(_, let items):
                 for item in items { walk(item.inlines) }
@@ -153,7 +159,44 @@ enum MarkdownASTStyler {
         }
         for block in blocks {
             switch block {
-            case .paragraph(_, let inlines), .heading(_, _, _, let inlines), .blockquote(_, let inlines):
+            case .paragraph(_, let inlines), .heading(_, _, _, let inlines), .blockquote(_, let inlines),
+                 .caption(_, _, let inlines), .footnoteDefinition(_, _, _, let inlines):
+                walk(inlines)
+            case .list(_, let items):
+                for item in items { walk(item.inlines) }
+            case .ext(let node):
+                walk(node.inlines)
+            default: break
+            }
+        }
+        return ranges
+    }
+
+    /// The footnote ranges: the `[^label]` references and the `[^label]:`
+    /// definitions, = so the incomplete-link pass leaves them alone.
+    private static func collectFootnoteRanges(in blocks: [BlockNode]) -> [NSRange] {
+        var ranges: [NSRange] = []
+        func walk(_ nodes: [InlineNode]) {
+            for node in nodes {
+                switch node {
+                case .footnoteReference(let range, _, _):
+                    ranges.append(range)
+                case .emphasis(_, _, _, let children),
+                     .link(_, _, _, _, let children):
+                    walk(children)
+                case .ext(let node):
+                    walk(node.children)
+                default: break
+                }
+            }
+        }
+        for block in blocks {
+            switch block {
+            case .paragraph(_, let inlines), .heading(_, _, _, let inlines), .blockquote(_, let inlines),
+                 .caption(_, _, let inlines):
+                walk(inlines)
+            case .footnoteDefinition(_, let marker, _, let inlines):
+                ranges.append(marker)
                 walk(inlines)
             case .list(_, let items):
                 for item in items { walk(item.inlines) }
@@ -361,7 +404,9 @@ enum MarkdownASTStyler {
                 }
             case .blank:
                 break                     // blank lines keep the count (spacing, not a reset)
-            case .paragraph(_, let inlines) where inlines.isEmpty:
+            case .paragraph(_, let inlines) where inlines.isEmpty,
+                 .caption(_, _, let inlines) where inlines.isEmpty,
+                 .footnoteDefinition(_, _, _, let inlines) where inlines.isEmpty:
                 break                     // an empty paragraph line is spacing too
             default:
                 counters = [:]            // real text/content ends the run
@@ -527,7 +572,7 @@ enum MarkdownASTStyler {
         }
     }
 
-    private static func styleIncompleteLinkBrackets(ctx: Ctx, codeRanges: [NSRange], checkboxRanges: [NSRange], into attrs: inout [StyledRange]) {
+    private static func styleIncompleteLinkBrackets(ctx: Ctx, codeRanges: [NSRange], checkboxRanges: [NSRange], footnoteRanges: [NSRange], into attrs: inout [StyledRange]) {
         // Every pattern starts with `\[`, so no `[` in the text ⇒ no match: skip
         // all 6 regex sweeps (the 78ms on hits=0 docs).
         guard ctx.ns.range(of: "[").location != NSNotFound else { return }
@@ -536,7 +581,8 @@ enum MarkdownASTStyler {
         for re in incompleteLinkPatterns {
             for scan in ctx.scanRanges {
               for m in re.matches(in: ctx.text, options: [], range: scan)
-                  where !isInCode(m.range, codeRanges) && !isInCode(m.range, checkboxRanges) {
+                  where !isInCode(m.range, codeRanges) && !isInCode(m.range, checkboxRanges)
+                      && !isInCode(m.range, footnoteRanges) {
                 // One range per RUN of same-colored characters, not per character: a
                 // single `[Design System]` used to emit 15 ranges, and the note in the
                 // bug report reached 25,504 from this pass alone — every one of them a
@@ -658,6 +704,13 @@ enum MarkdownASTStyler {
                 styleInlines(item.inlines, font: font, ctx: ctx, into: &attrs)
             }
 
+        case .footnoteDefinition(let range, let marker, let content, let inlines):
+            styleFootnoteDefinition(range: range, marker: marker, content: content,
+                                    inlines: inlines, font: font, ctx: ctx, into: &attrs)
+
+        case .caption(let range, let kind, let inlines):
+            styleCaption(range: range, kind: kind, inlines: inlines, font: font, ctx: ctx, into: &attrs)
+
         case .codeBlock(let range):
             styleCodeBlock(range: range, ctx: ctx, into: &attrs)
         case .thematicBreak(let range):
@@ -666,6 +719,112 @@ enum MarkdownASTStyler {
             styleExtensionBlock(node, font: font, ctx: ctx, into: &attrs)
         case .blockLatex, .table, .blank:
             break   // NSImage rendering ported next
+        }
+    }
+
+    // MARK: - Footnotes and captions
+
+    /// The face and size a footnote wears (= the note's own, = or the body's
+    /// when the note has none of its own). The traits of the font it
+    /// replaces are kept, = so a note inside bold prose stays bold.
+    private static func footnoteFont(_ font: NSFont, _ ctx: Ctx) -> NSFont {
+        let size = ctx.config.footnotes.fontSize ?? ctx.baseFont.pointSize
+        guard let name = ctx.config.footnotes.fontName else {
+            return NSFont(descriptor: font.fontDescriptor, size: size) ?? .systemFont(ofSize: size)
+        }
+        let face = NSFont(name: name, size: size) ?? .systemFont(ofSize: size)
+        let traits = font.fontDescriptor.symbolicTraits
+        guard !traits.isEmpty else { return face }
+        return NSFont(descriptor: face.fontDescriptor.withSymbolicTraits(traits), size: size) ?? face
+    }
+
+    /// The note's voice is on when the book gave the note a face or a size of
+    /// its own. With neither, = the note IS the body, = and the engine leaves
+    /// it exactly as the body renders it (= the default is upstream's own).
+    private static func footnoteVoiceIsOn(_ ctx: Ctx) -> Bool {
+        ctx.config.footnotes.fontName != nil || ctx.config.footnotes.fontSize != nil
+    }
+
+    /// The caption's own size, or nil when this caption has no voice of its
+    /// own (= it reads as the body reads it).
+    private static func captionSize(_ kind: CaptionKind, _ ctx: Ctx) -> CGFloat? {
+        switch kind {
+        case .figure: return ctx.config.captions.figureFontSize
+        case .table: return ctx.config.captions.tableFontSize
+        }
+    }
+
+    /// The paragraph style of a block that carries a size of its own (= a note
+    /// or a caption): = its line height follows that size, = and it carries no
+    /// first-line indent, = because it is not an ordinary body paragraph.
+    private static func ownSizeParagraphStyle(size: CGFloat, ctx: Ctx) -> NSParagraphStyle {
+        let lineHeight = ctx.baseLineHeight * (size / max(ctx.baseFont.pointSize, 1))
+        let para = NSMutableParagraphStyle()
+        para.minimumLineHeight = lineHeight
+        para.maximumLineHeight = lineHeight
+        para.paragraphSpacing = ctx.baseParagraphSpacing
+        para.paragraphSpacingBefore = 0
+        para.firstLineHeadIndent = 0
+        para.headIndent = 0
+        return para
+    }
+
+    /// A footnote DEFINITION: the note's own text, set at the note's own size
+    /// and face, = and the `[^label]:` prefix is syntax (= it collapses
+    /// unless the caret is inside the note).
+    private static func styleFootnoteDefinition(
+        range: NSRange, marker: NSRange, content: NSRange, inlines: [InlineNode],
+        font: NSFont, ctx: Ctx, into attrs: inout [StyledRange]
+    ) {
+        guard footnoteVoiceIsOn(ctx) else {
+            // No voice of its own: the note reads as the body reads it.
+            styleInlines(inlines, font: font, ctx: ctx, into: &attrs)
+            return
+        }
+        let noteFont = footnoteFont(font, ctx)
+        attrs.append((content, [.font: noteFont]))
+        attrs.append((ctx.ns.paragraphRange(for: range),
+                      [.paragraphStyle: ownSizeParagraphStyle(size: noteFont.pointSize, ctx: ctx)]))
+        if ctx.isActive(range) {
+            attrs.append((marker, [.foregroundColor: ctx.theme.mutedText]))
+        } else {
+            shrink([marker], ctx: ctx, into: &attrs)
+        }
+        styleInlines(inlines, font: noteFont, ctx: ctx, into: &attrs)
+    }
+
+    /// A CAPTION: the paragraph that names the figure above it or the table
+    /// below it, = set at the caption's own size. Without a size of its own
+    /// the caption reads as the body reads it.
+    private static func styleCaption(
+        range: NSRange, kind: CaptionKind, inlines: [InlineNode],
+        font: NSFont, ctx: Ctx, into attrs: inout [StyledRange]
+    ) {
+        guard let size = captionSize(kind, ctx) else {
+            styleInlines(inlines, font: font, ctx: ctx, into: &attrs)
+            return
+        }
+        // The caption wears the body's FACE (= there is no face knob: = a
+        // caption belongs to the body it sits under) and its own SIZE.
+        let captionFont = NSFont(name: ctx.fontName, size: size) ?? .systemFont(ofSize: size)
+        attrs.append((range, [.font: captionFont]))
+        attrs.append((ctx.ns.paragraphRange(for: range),
+                      [.paragraphStyle: ownSizeParagraphStyle(size: size, ctx: ctx)]))
+        styleInlines(inlines, font: captionFont, ctx: ctx, into: &attrs)
+    }
+
+    /// A footnote REFERENCE: the label itself, raised above the line as a
+    /// superscript marker, = and the `[^` and `]` around it are syntax (= they
+    /// collapse unless the caret is inside the reference).
+    private static func styleFootnoteReference(
+        range: NSRange, label: NSRange, markers: [NSRange],
+        font: NSFont, ctx: Ctx, into attrs: inout [StyledRange]
+    ) {
+        guard footnoteVoiceIsOn(ctx) else { return }
+        let markerFont = footnoteFont(font, ctx)
+        attrs.append((label, [.font: markerFont, .baselineOffset: markerFont.pointSize * 0.35]))
+        if ctx.isActive(range) {
+            for marker in markers { attrs.append((marker, [.foregroundColor: ctx.theme.mutedText])) }
         }
     }
 
@@ -886,6 +1045,10 @@ enum MarkdownASTStyler {
             case .wikiLink(let range, let name, _, let markers):
                 styleWikiLink(range: range, name: name, markers: markers, ctx: ctx, into: &attrs)
 
+            case .footnoteReference(let range, let label, let markers):
+                styleFootnoteReference(range: range, label: label, markers: markers,
+                                       font: font, ctx: ctx, into: &attrs)
+
             case .image, .imageEmbed, .inlineLatex, .escape:
                 break   // ported in later increments
             }
@@ -950,7 +1113,8 @@ enum MarkdownASTStyler {
             case .heading(_, let range, let markers, let inlines):
                 if !ctx.isActive(range) { shrink(markers, ctx: ctx, into: &attrs) }
                 shrinkInlineMarkers(inlines, ctx: ctx, into: &attrs)
-            case .paragraph(_, let inlines), .blockquote(_, let inlines):
+            case .paragraph(_, let inlines), .blockquote(_, let inlines),
+                 .caption(_, _, let inlines), .footnoteDefinition(_, _, _, let inlines):
                 shrinkInlineMarkers(inlines, ctx: ctx, into: &attrs)
             case .list(_, let items):
                 // Phase A: shrink only inline markers; the list marker is hidden by the bullet/task pass.
@@ -988,6 +1152,13 @@ enum MarkdownASTStyler {
                 shrinkInlineMarkers(children, ctx: ctx, forceReveal: active, into: &attrs)
             case .wikiLink(let range, _, _, let markers):
                 if !(forceReveal || ctx.isActive(range)) { shrink(markers, ctx: ctx, into: &attrs) }
+            case .footnoteReference(let range, _, let markers):
+                // Without a voice of its own the reference keeps the engine's
+                // own reading of it (= the unfinished-link brackets), = so its
+                // markers are left alone.
+                if footnoteVoiceIsOn(ctx), !(forceReveal || ctx.isActive(range)) {
+                    shrink(markers, ctx: ctx, into: &attrs)
+                }
             case .image(let range, _, _, let markers):
                 if !(forceReveal || ctx.isActive(range)) { shrink(markers, ctx: ctx, into: &attrs) }
             case .escape(let range, _, let marker):
