@@ -54,8 +54,6 @@ struct ResolvedChapter: Identifiable, Sendable {
     let fileURL: URL
     /// The chapter's body text (= read from `fileURL`).
     let body: String
-<<<<<<< HEAD
-=======
 
     /// The FILE the export writes for the selected chapter.
     ///
@@ -77,7 +75,6 @@ struct ResolvedChapter: Identifiable, Sendable {
         guard let chapterID else { return nil }
         return chapters.first(where: { $0.id == chapterID })?.fileURL
     }
->>>>>>> 81fc8e01e (fix(library): the export writes the file the resolver gave, = and a full-width colon is not a YAML colon)
 }
 
 enum ChapterResolver {

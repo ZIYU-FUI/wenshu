@@ -597,26 +597,13 @@ private struct ChapterFileExporter: ViewModifier {
         // there).
         lastChapterURLString = url.path
 
-<<<<<<< HEAD
-        guard let chapterID = self.selectedChapterID else { return }
-        // The chapter is exported from the FILE that holds it (= the
-        // resolver's answer), = not from an id lookup. An imported
-        // chapter is named after its title, = the `<uuid>.md` lookup
-        // found nothing for it, = and the chapter could not be
-        // exported at all.
-        guard let chapter = self.chapters.first(where: { $0.id == chapterID }) else { return }
-=======
         guard let chapterID = selectedChapterID else { return }
-<<<<<<< HEAD
->>>>>>> 0a8d5fbd2 (feat(library): the chapter export writes a submission manuscript, = and the platform's shape is measured)
-=======
         // The chapter is exported from the FILE that holds it (= the
         // resolver's answer), = not from an id lookup. An imported
         // chapter is named after its title, = the `<uuid>.md` lookup
         // found nothing for it, = and the chapter could not be
         // exported at all.
         guard let chapter = chapters.first(where: { $0.id == chapterID }) else { return }
->>>>>>> 09ff227b0 (fix(export): the manuscript export reads the file the resolver named)
         Task {
             _ = try? await chapterEngine.exportChapter(fileURL: chapter.fileURL, to: url)
         }

@@ -284,8 +284,6 @@ struct ChapterResolverTests {
         #expect(resolved.map(\.title).dropFirst() == ["Imported A", "Imported B"])
     }
 
-<<<<<<< HEAD
-=======
     // MARK: - The file the export writes
 
     /// An imported chapter's file is ITS OWN file, = not `<id>.md`.
@@ -366,5 +364,4 @@ struct ChapterResolverTests {
         #expect(ResolvedChapter.fileURL(for: nil, in: [chapter]) == nil)
         #expect(ResolvedChapter.fileURL(for: UUID(), in: [chapter]) == nil)
     }
->>>>>>> 81fc8e01e (fix(library): the export writes the file the resolver gave, = and a full-width colon is not a YAML colon)
 }

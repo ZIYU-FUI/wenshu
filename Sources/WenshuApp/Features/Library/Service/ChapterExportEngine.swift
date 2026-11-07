@@ -40,20 +40,9 @@ enum ChapterExportError: LocalizedError, Sendable, Equatable {
 actor ChapterExportEngine {
     /// Export a single chapter as a Markdown file. The body bytes
     /// are preserved verbatim (= what the user sees in the editor
-<<<<<<< HEAD
-    /// = what the user gets in the export). The YAML frontmatter is
-    /// built from `ChapterFrontmatter.serialize` (= existing helper).
-    ///
-    /// The chapter is located by its ID, which finds the `<uuid>.md`
-    /// file the actor writes. = the ID entry point for a chapter the
-    /// actor created; = the file-based entry point below is the one
-    /// the export sheet uses, = because a chapter can also arrive
-    /// from the import under a name that is not an id.
-=======
     /// = what the user gets in the export). = The body's own
     /// frontmatter block (= a YAML header the body carries) travels
     /// with it (= the editor's round trip).
->>>>>>> 802141b7f (fix(library): the submission manuscript carries no frontmatter, = and the file's stale claim is gone)
     func exportChapter(
         id chapterID: UUID,
         to destinationURL: URL
@@ -116,28 +105,6 @@ actor ChapterExportEngine {
             to: destinationURL,
             options: .atomic
         )
-    }
-
-    /// Export a single chapter from the file that holds it.
-    ///
-    /// The ID-based entry point finds `<uuid>.md`, = the name the
-    /// actor writes. An imported chapter is named after its title, so
-    /// the ID path found nothing for it and the chapter could not be
-    /// exported at all. The file is the truth (= the same truth the
-    /// book export reads), so the chapter is exported from the file
-    /// the resolver handed over.
-    func exportChapter(
-        fileURL: URL,
-        to destinationURL: URL
-    ) async throws -> URL {
-        guard let body = try? String(contentsOf: fileURL, encoding: .utf8) else {
-            throw ChapterExportError.noChapterIdentifier
-        }
-        try Data(body.utf8).write(
-            to: destinationURL,
-            options: .atomic
-        )
-        return destinationURL
     }
 
     /// Export a single chapter as a SUBMISSION MANUSCRIPT for

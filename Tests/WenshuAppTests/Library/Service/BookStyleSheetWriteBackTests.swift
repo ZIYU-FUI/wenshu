@@ -273,39 +273,16 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
         )
     }
 
-<<<<<<< HEAD
     /// A WHOLE SET is written down in one action, = and the file on
     /// disk carries it.
     ///
     /// MUTATION: = writing the set knob by knob (= and not the whole
     /// sheet) = would leave the book half written.
     func testTheGeneralSetLandsInTheBooksOwnFile() throws {
-=======
-    /// THE WRITE-BACK LETS THE SAVE'S FAILURE THROUGH.
-    ///
-    /// = The source-text guard (= "the file carries no `catch`") =
-    /// holds a SPELLING, = not the harm: = `_ = Result { try
-    /// store.sidebarSaveBook(book) }` carries no `catch` anywhere, =
-    /// still carries `try store.sidebarSaveBook(book)` verbatim, = and
-    /// still carries no `try?` = = so all three source assertions
-    /// hold, = while the failure IS swallowed (= `Result` swallows it,
-    /// = and `apply` returns the book as if it were written).
-    ///
-    /// = So this case holds the harm at the BEHAVIOUR level: = the save
-    /// is made to FAIL, = and the failure must ESCAPE `apply`. = A
-    /// book that did not reach the disk must not be reported as
-    /// written.
-    ///
-    /// MUTATION: = `_ = Result { try store.sidebarSaveBook(book) }` =
-    /// the failure is swallowed, = so `apply` returns the book (= and
-    /// this case fails).
-    func testTheWriteBackLetsTheSaveFailureThrough() throws {
->>>>>>> 3d36b7d73 (test(editor): the guards hold the HARM, = not a spelling of it)
         let (store, root) = try makeStore()
         defer { try? FileManager.default.removeItem(at: root) }
         let book = try makeBook(in: store)
 
-<<<<<<< HEAD
         // = the book has fine-tuned a knob, = so the set has to put it
         // back (= the set is a WHOLE sheet).
         _ = try BookStyleSheetWriteBack.apply(
@@ -330,7 +307,31 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
         XCTAssertEqual(written.effectiveStyleSheet.lineSpacing, .standard)
         XCTAssertEqual(written.effectiveStyleSheet.bodySize, .medium)
         XCTAssertEqual(written.effectiveStyleSheet.headingLadder, .printStandard)
-=======
+    }
+
+    /// THE WRITE-BACK LETS THE SAVE'S FAILURE THROUGH.
+    ///
+    /// = The source-text guard (= "the file carries no `catch`") =
+    /// holds a SPELLING, = not the harm: = `_ = Result { try
+    /// store.sidebarSaveBook(book) }` carries no `catch` anywhere, =
+    /// still carries `try store.sidebarSaveBook(book)` verbatim, = and
+    /// still carries no `try?` = = so all three source assertions
+    /// hold, = while the failure IS swallowed (= `Result` swallows it,
+    /// = and `apply` returns the book as if it were written).
+    ///
+    /// = So this case holds the harm at the BEHAVIOUR level: = the save
+    /// is made to FAIL, = and the failure must ESCAPE `apply`. = A
+    /// book that did not reach the disk must not be reported as
+    /// written.
+    ///
+    /// MUTATION: = `_ = Result { try store.sidebarSaveBook(book) }` =
+    /// the failure is swallowed, = so `apply` returns the book (= and
+    /// this case fails).
+    func testTheWriteBackLetsTheSaveFailureThrough() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let book = try makeBook(in: store)
+
         // = Make the save FAIL: = the book's own directory is replaced
         // by a FILE, = so the store's `createDirectory` cannot make
         // the directory it writes into, = and the save throws.
@@ -353,6 +354,5 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
             ),
             "the write-back must let the save's failure through (= a swallowed failure reports a book written that never reached the disk)"
         )
->>>>>>> 3d36b7d73 (test(editor): the guards hold the HARM, = not a spelling of it)
     }
 }
