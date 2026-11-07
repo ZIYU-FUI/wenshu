@@ -280,6 +280,17 @@ struct ExportSheet: View {
                 }
             }
             .pickerStyle(.radioGroup)
+            // What the target's shape IS, = in two lines: = the indent
+            // lives in the content or the platform renders it, = and
+            // the segments are separated by a blank line or not. = The
+            // writer is about to hand the platform's editor a file, =
+            // so the rules that shaped it are worth saying.
+            Text(manuscriptTarget.indentDescription)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(manuscriptTarget.spacingDescription)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         Picker(String(localized: "export.book.picker"), selection: $selectedBookID) {
             Text(String(localized: "export.book.placeholder")).tag(UUID?.none)

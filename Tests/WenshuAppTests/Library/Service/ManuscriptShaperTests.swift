@@ -415,4 +415,38 @@ final class ManuscriptShaperTests: XCTestCase {
             "the count is the body's own characters (= the title excluded)"
         )
     }
+
+    // MARK: - The panel's own words about the shape
+
+    /// The export panel SAYS what the target's shape is. = The text
+    /// is derived from the measured rules, = so this holds the reader
+    /// text to them: = a rule that changes brings the words with it.
+    func testThePanelsProseIsTheReaderTextTheRulesAskFor() {
+        XCTAssertEqual(ManuscriptTarget.qidian.indentDescription, "每段首行不缩进")
+        XCTAssertEqual(ManuscriptTarget.fanqie.indentDescription, "每段首行不缩进")
+        XCTAssertEqual(ManuscriptTarget.jinjiang.indentDescription, "每段首行两个全角空格")
+        XCTAssertEqual(ManuscriptTarget.qidian.spacingDescription, "段间无空行")
+        XCTAssertEqual(ManuscriptTarget.fanqie.spacingDescription, "段间无空行")
+        XCTAssertEqual(ManuscriptTarget.jinjiang.spacingDescription, "段间空一行")
+    }
+
+    /// The prose is DERIVED from the rule, = so it cannot state a shape
+    /// the export does not produce. = This holds that link: = the
+    /// indent's line names full-width spaces exactly when the shaper
+    /// writes them, = and the spacing's line follows the blank line.
+    func testThePanelsProseMovesWithTheMeasuredRule() {
+        for target in ManuscriptTarget.allCases {
+            let spaces = target.segmentIndent.filter { $0 == "\u{3000}" }.count
+            XCTAssertEqual(
+                target.indentDescription.contains("全角空格"),
+                spaces > 0,
+                "\(target.displayName)'s panel must name full-width spaces exactly when the shaper writes them"
+            )
+            XCTAssertEqual(
+                target.spacingDescription == "段间空一行",
+                target.separatesSegmentsWithBlankLine,
+                "\(target.displayName)'s panel must follow the measured blank-line rule"
+            )
+        }
+    }
 }

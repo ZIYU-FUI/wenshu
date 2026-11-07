@@ -103,6 +103,47 @@ enum ManuscriptTarget: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// The target's segment indent, in the reader's language.
+    ///
+    /// The indent is the one thing a reader cannot guess: = a
+    /// platform that renders it must be told so, = and a platform that
+    /// carries it in the content must be told THAT.
+    ///
+    /// The text is DERIVED from the measured rule (= the indent the
+    /// shaper writes), = not copied from it: = so a rule that changes
+    /// brings the panel's own words with it, = and the panel cannot
+    /// state a shape the export does not produce.
+    var indentDescription: String {
+        let spaces = segmentIndent.filter { $0 == "\u{3000}" }.count
+        guard spaces > 0 else { return "每段首行不缩进" }
+        return "每段首行\(Self.countWord(spaces))个全角空格"
+    }
+
+    /// The target's spacing between segments, in the reader's language.
+    ///
+    /// Derived from the measured rule, = for the same reason.
+    var spacingDescription: String {
+        separatesSegmentsWithBlankLine ? "段间空一行" : "段间无空行"
+    }
+
+    /// The Chinese word for a small count (= so a derived count reads
+    /// the way a reader writes it, = and not as a digit).
+    private static func countWord(_ count: Int) -> String {
+        switch count {
+        case 1: return "一"
+        case 2: return "两"
+        case 3: return "三"
+        case 4: return "四"
+        case 5: return "五"
+        case 6: return "六"
+        case 7: return "七"
+        case 8: return "八"
+        case 9: return "九"
+        case 10: return "十"
+        default: return String(count)
+        }
+    }
+
     /// Whether a blank line separates two segments.
     ///
     /// Jinjiang's reading end has margin 0 on every paragraph (= its
