@@ -177,17 +177,33 @@ struct WenshuStyleKnobsTests {
         config.blockquote.fontName = "Kaiti SC"
         config.blockquote.fontSize = 12.5
 
+        // = The quote carries an emphasised word, = because that is
+        // where the voice used to break: = the plain text wore the
+        // quote's face, = and the emphasised word reverted to the
+        // body's.
         let styled = MarkdownASTStyler.styleAttributes(
-            text: "> 引文",
+            text: "> 引文 **粗**",
             fontName: "Songti SC",
             fontSize: 13,
             configuration: config
         )
+        // = The engine hides a marker (= the `>` and the `**`) by
+        // drawing it in its own 0.1pt font, = so those ranges are the
+        // engine's marker ranges and NOT the quote's text. = The
+        // quote's own ranges are the ones a reader sees.
         let fonts = styled.compactMap { $0.1[.font] as? NSFont }
+            .filter { $0.pointSize > 1 }
 
-        #expect(fonts.contains { $0.fontName.contains("Kaiti") },
-                "the quote must wear the quote's face")
-        #expect(fonts.contains { $0.pointSize == 12.5 },
-                "the quote must be set at the quote's size")
+        #expect(fonts.count >= 2, "the quote's text carries at least the plain and the emphasised range")
+        // = EVERY one of the quote's ranges wears the quote's face AND
+        // its size, = the emphasised word included (= a quote whose
+        // paragraph is set in one face and whose emphasised word is set
+        // in another would be two voices in one paragraph).
+        for font in fonts {
+            #expect(font.fontName.contains("Kaiti"),
+                    "every range of a quote wears the quote's face: \(font.fontName)")
+            #expect(font.pointSize == 12.5,
+                    "every range of a quote wears the quote's size: \(font.pointSize)")
+        }
     }
 }

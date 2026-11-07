@@ -347,4 +347,89 @@ struct BookStyleSheetTests {
     /// The heading sizes a sheet can reach: = the print baseline and its
     /// two neighbours, = and nothing else.
     private static let printedHeadingSizes: Set<Double> = [11, 12, 13, 14, 15, 16, 18]
+
+    // MARK: - The two sets
+
+    @Test("the print baseline IS the sheet's default")
+    func thePrintBaselineIsTheDefault() {
+        #expect(BookStylePreset.printBaseline.sheet(bodyFamily: .songti) == BookStyleSheet.default)
+        #expect(BookStylePreset.matching(BookStyleSheet.default) == .printBaseline)
+        // = and the print baseline's headings wear Heiti, = which is the
+        // print convention's own voice for a heading.
+        #expect(BookStyleSheet.default.headingFamily == .heiti)
+    }
+
+    @Test("the general set is the print baseline with the headings in the body's own face")
+    func theGeneralSetWearsTheBodysFace() {
+        let general = BookStylePreset.general.sheet(bodyFamily: .songti)
+        #expect(general.headingFamily == .songti)
+        #expect(general.bodyFamily == .songti)
+        // = every other position is the print baseline's own: = the
+        // leading is 1.55, = and NOT a second position of its own.
+        #expect(general.lineSpacing == .standard)
+        #expect(general.lineSpacing.multiple == 1.55)
+        #expect(general.bodySize == .medium)
+        #expect(general.firstLineIndent == .twoCharacters)
+        #expect(general.segmentSpacing == .none)
+        #expect(general.quoteFamily == .kai)
+        #expect(general.headingLadder == .printStandard)
+        // = and it is not the print baseline, = because the headings differ.
+        #expect(general != BookStyleSheet.default)
+        #expect(BookStylePreset.matching(general) == .general)
+    }
+
+    @Test("the general set keeps the face the body is in")
+    func theGeneralSetKeepsTheBodysFace() {
+        let general = BookStylePreset.general.sheet(bodyFamily: .pingFang)
+        #expect(general.headingFamily == .pingFang)
+        #expect(general.bodyFamily == .pingFang)
+    }
+
+    @Test("a sheet the book has fine-tuned sits at neither set")
+    func aFineTunedSheetSitsAtNeitherSet() {
+        var sheet = BookStyleSheet.default
+        sheet.bodySize = .large
+        #expect(BookStylePreset.matching(sheet) == nil)
+    }
+
+    @Test("a book.json written before the heading had its own face decodes as the print baseline")
+    func anOldBookJSONDecodesAsThePrintBaseline() throws {
+        var object = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(BookStyleSheet.default)
+        ) as? [String: Any] ?? [:]
+        object.removeValue(forKey: "headingFamily")
+        let data = try JSONSerialization.data(withJSONObject: object)
+
+        let sheet = try JSONDecoder().decode(BookStyleSheet.self, from: data)
+        #expect(sheet.headingFamily == .heiti)
+        #expect(sheet == BookStyleSheet.default)
+    }
+
+    @Test("a book.json written before the heading had its own position keeps the headings it had")
+    func aLegacyBookJSONKeepsItsHeadings() throws {
+        var object = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(BookStyleSheet.default)
+        ) as? [String: Any] ?? [:]
+        object.removeValue(forKey: "headingFamily")
+        // = The body's face is Kaiti, = so the headings were Kaiti too
+        // (= the print convention's own rule), = and an upgrade must
+        // not re-voice them.
+        object["bodyFamily"] = BookBodyFamily.kai.rawValue
+        let data = try JSONSerialization.data(withJSONObject: object)
+
+        let sheet = try JSONDecoder().decode(BookStyleSheet.self, from: data)
+        #expect(sheet.bodyFamily == .kai)
+        #expect(sheet.headingFamily == .kai, "the headings keep the face the body decided")
+    }
+
+    @Test("the body's face decides the headings it never named")
+    func theBodysFaceDecidesTheHeadings() {
+        #expect(BookBodyFamily.songti.derivedHeadingFamily == .heiti)
+        #expect(BookBodyFamily.heiti.derivedHeadingFamily == .heiti)
+        #expect(BookBodyFamily.kai.derivedHeadingFamily == .kai)
+        #expect(BookBodyFamily.pingFang.derivedHeadingFamily == .pingFang)
+        // = and the print baseline's own headings are Heiti = = the
+        // Songti body's rule.
+        #expect(BookStyleSheet.default.headingFamily == BookBodyFamily.songti.derivedHeadingFamily)
+    }
 }

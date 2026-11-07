@@ -71,7 +71,7 @@ final class EngineStyleSheetBridgeTests: XCTestCase {
     /// THE THREE SPACING KNOBS LAND ON THE ENGINE'S OWN KNOBS.
     ///
     /// - THE LINE SPACING = the engine's line height as a MULTIPLE OF
-    ///   THE BODY'S SIZE (= 行距 1.70 = = 1.70 x 13pt).
+    ///   THE BODY'S SIZE (= the line spacing of 1.70 = = 1.70 x 13pt).
     /// - THE SEGMENT SPACING = the engine's paragraph gap, = which is a
     ///   FRACTION OF THAT LINE HEIGHT (= half a character over 1.70).
     /// - THE EXTRA-POINTS KNOB = unused (= the multiple carries the line
@@ -120,19 +120,27 @@ final class EngineStyleSheetBridgeTests: XCTestCase {
         XCTAssertEqual(EngineStyleSheetBridge.paragraphStyle(for: plain).firstLineHeadIndent, 0, accuracy: 0.0001)
     }
 
-    /// THE HEADING FACE REACHES THE ENGINE, = and it is the face that
-    /// follows the body (= a printed book's headings wear their own).
+    /// THE HEADING FACE REACHES THE ENGINE, = and it is the sheet's OWN
+    /// position (= the print baseline wears Heiti, = and the general set
+    /// wears the body's face).
     ///
     /// MUTATION: = handing the BODY's face to the headings (= the engine's
-    /// default) = would draw the headings in the body's face.
+    /// default) = would draw the print baseline's headings in the body's
+    /// face, = and = deriving the heading's face from the body (= the
+    /// print convention) = would take the general set's headings back
+    /// to Heiti.
     func testTheHeadingFaceReachesTheEngine() {
         var sheet = BookStyleSheet.default
         sheet.bodyFamily = .songti
         XCTAssertEqual(EngineStyleSheetBridge.fontName(for: sheet), "Songti SC")
         XCTAssertEqual(EngineStyleSheetBridge.headingFontName(for: sheet), "Heiti SC")
 
-        sheet.bodyFamily = .kai
+        sheet.headingFamily = .kai
         XCTAssertEqual(EngineStyleSheetBridge.headingFontName(for: sheet), "Kaiti SC")
+
+        // = the general set puts the headings in the body's own face.
+        let general = BookStylePreset.general.sheet(bodyFamily: .pingFang)
+        XCTAssertEqual(EngineStyleSheetBridge.headingFontName(for: general), "PingFang SC")
     }
 
     /// The sheet is the model's own truth, = and a knob moves it to a
@@ -241,5 +249,65 @@ final class EngineStyleSheetBridgeTests: XCTestCase {
             12.5,
             "the quote must be set at the sheet's quote size"
         )
+    }
+
+    /// The fingerprint must carry EVERY position the sheet stores,
+    /// = because the editor's engine view is keyed by it, = and a
+    /// value the fingerprint does not carry never reaches the editor.
+    ///
+    /// MUTATION: = drop the heading's face from the fingerprint = would
+    /// strand the general set's heading face in the sheet, = and the
+    /// editor would keep rendering the old one.
+    func testTheFingerprintCarriesEveryPositionOfTheSheet() {
+        let base = EngineStyleSheetBridge.fingerprint(for: BookStyleSheet.default)
+        let positions: [(String, (BookStyleSheet) -> BookStyleSheet)] = [
+            ("the body's size", { sheet in
+                var moved = sheet
+                moved.bodySize = .large
+                return moved
+            }),
+            ("the leading", { sheet in
+                var moved = sheet
+                moved.lineSpacing = .loose
+                return moved
+            }),
+            ("the first-line indent", { sheet in
+                var moved = sheet
+                moved.firstLineIndent = .none
+                return moved
+            }),
+            ("the segment spacing", { sheet in
+                var moved = sheet
+                moved.segmentSpacing = .halfCharacter
+                return moved
+            }),
+            ("the body's face", { sheet in
+                var moved = sheet
+                moved.bodyFamily = .kai
+                return moved
+            }),
+            ("the quote's face", { sheet in
+                var moved = sheet
+                moved.quoteFamily = .songti
+                return moved
+            }),
+            ("the heading ladder", { sheet in
+                var moved = sheet
+                moved.headingLadder = .generous
+                return moved
+            }),
+            ("the heading's face", { sheet in
+                var moved = sheet
+                moved.headingFamily = .kai
+                return moved
+            }),
+        ]
+        for (name, move) in positions {
+            XCTAssertNotEqual(
+                EngineStyleSheetBridge.fingerprint(for: move(BookStyleSheet.default)),
+                base,
+                "\(name) must move the fingerprint (= the editor remounts on it)"
+            )
+        }
     }
 }

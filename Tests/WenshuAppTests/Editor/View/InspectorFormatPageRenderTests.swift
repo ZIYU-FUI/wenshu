@@ -134,8 +134,8 @@ struct InspectorFormatPageRenderTests {
             "the page must offer no heading level (= a book sets its headings once, = in its style sheet)"
         )
         #expect(
-            menus.count == 5,
-            "the page's only menus are the five knobs (= a style is a row, = not a menu): \(menus.map(\.label))"
+            menus.count == 7,
+            "the page's only menus are the five knobs and the two sets (= a style is a row, = not a menu): \(menus.map(\.label))"
         )
     }
 

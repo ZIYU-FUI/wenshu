@@ -69,7 +69,7 @@ enum EngineStyleSheetBridge {
     /// (= Heiti over a Songti body), = and the engine takes that face
     /// beside the body's own (= `headings.fontName`).
     static func headingFontName(for sheet: BookStyleSheet) -> String {
-        sheet.bodyFamily.headingPostScriptName
+        sheet.headingFamily.postScriptName
     }
 
     /// The engine's base font SIZE for a sheet (= the body's size).
@@ -80,7 +80,7 @@ enum EngineStyleSheetBridge {
     /// The engine's paragraph style for a sheet.
     ///
     /// THE LINE SPACING = the engine's line height as a MULTIPLE OF THE
-    /// BODY'S OWN SIZE (= 行距 1.55 = = 1.55 x 13pt). = The engine's other
+    /// BODY'S OWN SIZE (= the line spacing of 1.55 = = 1.55 x 13pt). = The engine's other
     /// line-height knob adds POINTS to the font's natural leading, = so it
     /// cannot express a multiple, = and it stays unused here.
     ///
@@ -141,6 +141,7 @@ enum EngineStyleSheetBridge {
             sheet.firstLineIndent.rawValue,
             sheet.headingLadder.rawValue,
             sheet.quoteFamily.rawValue,
+            sheet.headingFamily.rawValue,
         ].joined(separator: "|")
     }
 }

@@ -272,4 +272,40 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
             "nothing writes the store's selected book (= the sheet's book), = so every reader falls back to the print baseline"
         )
     }
+
+    /// A WHOLE SET is written down in one action, = and the file on
+    /// disk carries it.
+    ///
+    /// MUTATION: = writing the set knob by knob (= and not the whole
+    /// sheet) = would leave the book half written.
+    func testTheGeneralSetLandsInTheBooksOwnFile() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let book = try makeBook(in: store)
+
+        // = the book has fine-tuned a knob, = so the set has to put it
+        // back (= the set is a WHOLE sheet).
+        _ = try BookStyleSheetWriteBack.apply(
+            knob: .bodySize,
+            position: BookBodySize.large.rawValue,
+            to: book.id,
+            store: store
+        )
+
+        _ = try BookStyleSheetWriteBack.apply(
+            preset: .general,
+            to: book.id,
+            store: store
+        )
+
+        let data = try readBookJSON(in: store, book)
+        let written = try JSONDecoder().decode(Book.self, from: data)
+        // = the headings wear the body's own face, = and the rest of the
+        // sheet is the print baseline's own positions, = including the
+        // knob the book had fine-tuned.
+        XCTAssertEqual(written.styleSheet?.headingFamily, .songti)
+        XCTAssertEqual(written.effectiveStyleSheet.lineSpacing, .standard)
+        XCTAssertEqual(written.effectiveStyleSheet.bodySize, .medium)
+        XCTAssertEqual(written.effectiveStyleSheet.headingLadder, .printStandard)
+    }
 }

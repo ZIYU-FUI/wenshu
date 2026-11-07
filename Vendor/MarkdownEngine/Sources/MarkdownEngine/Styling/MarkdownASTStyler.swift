@@ -646,7 +646,10 @@ enum MarkdownASTStyler {
 
         case .blockquote(let range, let inlines):
             styleBlockquote(range: range, ctx: ctx, into: &attrs)
-            styleInlines(inlines, font: font, ctx: ctx, into: &attrs)
+            // The quote's own face reaches its inline text, = so an
+            // emphasised word inside a quote keeps the quote's voice
+            // (= the same way the heading's face reaches its own).
+            styleInlines(inlines, font: quoteFont(ctx) ?? font, ctx: ctx, into: &attrs)
 
         case .list(_, let items):
             for item in items {
@@ -696,6 +699,19 @@ enum MarkdownASTStyler {
     }
 
     /// Per-line blockquote: indent, mute content, hide/show `>` markers, tag first char with bar level.
+    /// The quote's own face and size, = when the configuration gives
+    /// the quote one. = `nil` means the quote wears the body's own.
+    ///
+    /// = The quote's face is computed ONCE, = because the blockquote's
+    /// inline text and its paragraph style must agree: = a quote whose
+    /// paragraph is set in Kaiti at 12.5 and whose emphasised word is
+    /// set in the body's face would be two voices in one paragraph.
+    private static func quoteFont(_ ctx: Ctx) -> NSFont? {
+        guard let name = ctx.config.blockquote.fontName else { return nil }
+        let size = ctx.config.blockquote.fontSize ?? ctx.baseFont.pointSize
+        return NSFont(name: name, size: size)
+    }
+
     private static func styleBlockquote(range: NSRange, ctx: Ctx, into attrs: inout [StyledRange]) {
         let indentPerLevel = MarkdownTextLayoutFragment.blockquoteIndentPerLevel
         var lineStart = range.location
@@ -734,11 +750,7 @@ enum MarkdownASTStyler {
             // A quote may wear a face and a size of its own (= a print
             // quote is a different face AND a different size), = and the
             // line height follows the size it is set at.
-            let quoteFont: NSFont? = {
-                guard let name = ctx.config.blockquote.fontName else { return nil }
-                let size = ctx.config.blockquote.fontSize ?? ctx.baseFont.pointSize
-                return NSFont(name: name, size: size)
-            }()
+            let quoteFont = MarkdownASTStyler.quoteFont(ctx)
             let quoteSizeRatio = quoteFont.map {
                 $0.pointSize / max(ctx.baseFont.pointSize, 1)
             } ?? 1

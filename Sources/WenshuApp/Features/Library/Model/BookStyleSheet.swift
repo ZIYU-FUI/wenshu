@@ -170,16 +170,30 @@ enum BookBodyFamily: String, CaseIterable, Codable, Sendable {
         }
     }
 
+    /// The family a HEADING is set in when the body is set in this one.
+    ///
+    /// = A printed book's headings are a different face from its body
+    /// (= Heiti), = and they follow the body except when the body
+    /// itself is already the heading face.
+    ///
+    /// = This is the ONE rule for the heading's face, = so the sheet's
+    /// own default (= the print baseline's headings) and the reading of
+    /// a book.json written before the heading had its own position
+    /// cannot disagree.
+    var derivedHeadingFamily: BookBodyFamily {
+        switch self {
+        case .songti: return .heiti
+        case .heiti: return .heiti
+        case .kai: return .kai
+        case .pingFang: return .pingFang
+        }
+    }
+
     /// The face a HEADING is set in. = A printed book's headings are a
     /// different face from its body (= Heiti), = and they follow the body
     /// except when the body itself is already the heading face.
     var headingPostScriptName: String {
-        switch self {
-        case .songti: return "Heiti SC"
-        case .heiti: return "Heiti SC"
-        case .kai: return "Kaiti SC"
-        case .pingFang: return "PingFang SC"
-        }
+        derivedHeadingFamily.postScriptName
     }
 
     /// Chinese display name (= the label a picker draws for this face).
@@ -249,6 +263,12 @@ struct BookStyleSheet: Codable, Hashable, Sendable {
     /// The heading ladder. = A POSITION, = and the sizes it holds come
     /// from it: = the sheet never stores a free number.
     var headingLadder: BookHeadingLadder
+    /// The heading's own face.
+    ///
+    /// A PRINTED book's headings wear a different face from its body
+    /// (= Heiti), = and that face is its own position, = so the general
+    /// set can put the headings in the body's own face instead.
+    var headingFamily: BookBodyFamily
 
     /// The measured print baseline: = a printed Chinese novel, = folded
     /// to the screen.
@@ -259,7 +279,8 @@ struct BookStyleSheet: Codable, Hashable, Sendable {
         segmentSpacing: .none,
         bodyFamily: .songti,
         quoteFamily: .kai,
-        headingLadder: .printStandard
+        headingLadder: .printStandard,
+        headingFamily: .heiti
     )
 
     init(
@@ -269,7 +290,8 @@ struct BookStyleSheet: Codable, Hashable, Sendable {
         segmentSpacing: BookSegmentSpacing = .none,
         bodyFamily: BookBodyFamily = .songti,
         quoteFamily: BookBodyFamily = .kai,
-        headingLadder: BookHeadingLadder = .printStandard
+        headingLadder: BookHeadingLadder = .printStandard,
+        headingFamily: BookBodyFamily = .heiti
     ) {
         self.bodySize = bodySize
         self.lineSpacing = lineSpacing
@@ -278,6 +300,7 @@ struct BookStyleSheet: Codable, Hashable, Sendable {
         self.bodyFamily = bodyFamily
         self.quoteFamily = quoteFamily
         self.headingLadder = headingLadder
+        self.headingFamily = headingFamily
     }
 
     /// The three heading levels' sizes, = in points. = DERIVED from the
@@ -376,7 +399,7 @@ enum BookStyleKnob: String, CaseIterable, Sendable {
 extension BookStyleSheet {
     private enum CodingKeys: String, CodingKey {
         case bodySize, lineSpacing, firstLineIndent, segmentSpacing
-        case bodyFamily, quoteFamily, headingLadder
+        case bodyFamily, quoteFamily, headingLadder, headingFamily
     }
 
     init(from decoder: Decoder) throws {
@@ -391,14 +414,84 @@ extension BookStyleSheet {
         // at all. = So a book.json can never carry a size into the sheet.
         let rawLadder = try? c.decode(String.self, forKey: .headingLadder)
         let ladder = rawLadder.flatMap(BookHeadingLadder.init(rawValue:)) ?? fallback.headingLadder
+        // = A book.json written before the heading had its OWN
+        // position keeps the headings it had: = the body's face
+        // decides them (= the print convention's own rule), = so an
+        // upgrade never re-voices a book's headings.
+        let bodyFamily = try c.decodeIfPresent(BookBodyFamily.self, forKey: .bodyFamily) ?? fallback.bodyFamily
         try self.init(
             bodySize: c.decodeIfPresent(BookBodySize.self, forKey: .bodySize) ?? fallback.bodySize,
             lineSpacing: c.decodeIfPresent(BookLineSpacing.self, forKey: .lineSpacing) ?? fallback.lineSpacing,
             firstLineIndent: c.decodeIfPresent(BookFirstLineIndent.self, forKey: .firstLineIndent) ?? fallback.firstLineIndent,
             segmentSpacing: c.decodeIfPresent(BookSegmentSpacing.self, forKey: .segmentSpacing) ?? fallback.segmentSpacing,
-            bodyFamily: c.decodeIfPresent(BookBodyFamily.self, forKey: .bodyFamily) ?? fallback.bodyFamily,
+            bodyFamily: bodyFamily,
             quoteFamily: c.decodeIfPresent(BookBodyFamily.self, forKey: .quoteFamily) ?? fallback.quoteFamily,
-            headingLadder: ladder
+            headingLadder: ladder,
+            headingFamily: c.decodeIfPresent(BookBodyFamily.self, forKey: .headingFamily)
+                ?? bodyFamily.derivedHeadingFamily
         )
+    }
+}
+
+// MARK: - The two sets
+
+/// The two sets a book can be set to: = the print baseline, = and the
+/// general set.
+///
+/// A set is a NAMED SHEET, = and the page writes one down in one
+/// action, = so a book starts from the printed standard or from the
+/// screen's.
+///
+/// THE GENERAL SET IS THE PRINT BASELINE WITH ONE CHANGE: = its
+/// headings wear the body's own face, = because a screen reads a
+/// heading in the body's face as one piece of text, = while a printed
+/// page reads Heiti as another voice. = Its leading is the print
+/// baseline's own (= 1.55), = so the two sets differ in one thing
+/// only, = and a book that has fine-tuned a knob sits at neither.
+enum BookStylePreset: String, CaseIterable, Sendable {
+    case printBaseline
+    case general
+
+    /// Chinese display name (= the label a picker draws for this set).
+    var displayName: String {
+        switch self {
+        case .printBaseline: return "印刷基线"
+        case .general: return "通用"
+        }
+    }
+
+    /// The sheet this set sets, = for a body in the given face.
+    ///
+    /// The general set is set AROUND the body's own face: = the body
+    /// keeps it, = and the headings wear it too, = so a book whose body
+    /// is PingFang gets PingFang headings, = and its positions are the
+    /// print baseline's own (= the leading is 1.55).
+    ///
+    /// The print baseline is the PRINTED standard, = so it is the same
+    /// sheet whatever face the body was in.
+    func sheet(bodyFamily: BookBodyFamily) -> BookStyleSheet {
+        switch self {
+        case .printBaseline:
+            return BookStyleSheet.default
+        case .general:
+            var sheet = BookStyleSheet.default
+            sheet.bodyFamily = bodyFamily
+            sheet.headingFamily = bodyFamily
+            return sheet
+        }
+    }
+
+    /// The set the sheet is at, = when it is at one of the sets.
+    ///
+    /// A sheet the book has fine-tuned is at neither, = and the page
+    /// then draws no set as the chosen one.
+    static func matching(_ sheet: BookStyleSheet) -> BookStylePreset? {
+        if sheet == BookStyleSheet.default {
+            return .printBaseline
+        }
+        if sheet == BookStylePreset.general.sheet(bodyFamily: sheet.bodyFamily) {
+            return .general
+        }
+        return nil
     }
 }

@@ -75,7 +75,8 @@ struct InspectorStylePageRenderTests {
             segmentSpacing: .halfCharacter,
             bodyFamily: .kai,
             quoteFamily: .heiti,
-            headingLadder: .generous
+            headingLadder: .generous,
+            headingFamily: .kai
         )
         let model = InspectorStylePageModel(sheet: sheet)
         let body = model.rows.first { $0.role == .body }
@@ -109,8 +110,8 @@ struct InspectorStylePageRenderTests {
         defer { rendered.close() }
         let labels = rendered.menuLabels()
         #expect(
-            labels.count == 5,
-            "the page carries five knobs (= the five a book is set with): \(labels)"
+            labels.count == 7,
+            "the page carries the five knobs (= the five a book is set with) = and the two sets: \(labels)"
         )
         for key in [
             "inspector.style.bodySize.medium",
@@ -427,6 +428,35 @@ struct InspectorStylePageRenderTests {
             .deletingLastPathComponent() // the worktree's root
         return root
             .appendingPathComponent("Sources/WenshuApp/Resources/Localizable.xcstrings")
+    }
+
+    /// The page marks the set the book is at.
+    ///
+    /// = The mark is in the row's OWN label, = because a SwiftUI
+    /// `Menu` publishes its label to the accessibility tree (= and a
+    /// `Text` publishes nothing), = so the reader can see where the
+    /// book stands.
+    @Test("the page marks the set the book is at")
+    func thePageMarksTheSetTheBookIsAt() throws {
+        let (store, plain, _) = try makeStore()
+        let workspace = makeWorkspace()
+        // = A book AT THE GENERAL SET, = so the page must mark THAT
+        // set (= and not the print baseline).
+        store.books = [
+            Book(
+                title: "General",
+                shelfId: plain.shelfId,
+                styleSheet: BookStylePreset.general.sheet(bodyFamily: .songti)
+            ),
+        ]
+        store.selectedBookId = store.books.first?.id
+
+        let rendered = renderPage(store: store, workspace: workspace)
+        defer { rendered.close() }
+        let labels = rendered.menuLabels()
+
+        #expect(labels.contains("通用 ✓"), "the set the book is at is marked: \(labels)")
+        #expect(!labels.contains("印刷基线 ✓"), "the set the book is NOT at is not marked: \(labels)")
     }
 }
 

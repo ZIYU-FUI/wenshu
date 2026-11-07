@@ -79,11 +79,46 @@ struct InspectorStylePageView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingLoose) {
+            presetsGroup
             stylesGroup
             tuningGroup
         }
         .onChange(of: bookStore.selectedBookId, initial: true) { _, bookID in
             currentBookID = bookID
+        }
+    }
+
+    /// The two sets (= the print baseline and the general one).
+    ///
+    /// The set is a WHOLE SHEET, = so choosing one writes the whole
+    /// sheet down (= the same write-back the knobs use, = measured
+    /// through the same seam).
+    private var presetsGroup: some View {
+        InspectorFormatGroup(title: String(localized: "inspector.style.group.presets")) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                ForEach(model.presets, id: \.rawValue) { preset in
+                    InspectorStylePresetView(
+                        preset: preset,
+                        isCurrent: model.currentPreset == preset
+                    ) { chosen in
+                        applyPreset(chosen)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Write one of the two sets onto the book, = and persist it.
+    private func applyPreset(_ preset: BookStylePreset) {
+        guard let bookID = currentBookID else { return }
+        do {
+            try BookStyleSheetWriteBack.apply(
+                preset: preset,
+                to: bookID,
+                store: bookStore
+            )
+        } catch {
+            wenshuLogger.error("[style-sheet] the preset write-back failed: \(error)")
         }
     }
 
@@ -168,9 +203,17 @@ struct InspectorStylePageModel: Equatable, Sendable {
     /// The fine tuning's knobs.
     let knobs: [InspectorStyleKnob]
 
+    /// The two sets a book can be set to.
+    let presets: [BookStylePreset]
+
+    /// The set the book is at, = when it is at one of them.
+    let currentPreset: BookStylePreset?
+
     init(sheet: BookStyleSheet) {
         rows = InspectorStylePageModel.styleRows(for: sheet)
         knobs = InspectorStylePageModel.fineTuningKnobs(for: sheet)
+        presets = BookStylePreset.allCases
+        currentPreset = BookStylePreset.matching(sheet)
     }
 
     /// The twelve roles, as the sheet sets them.
@@ -264,7 +307,7 @@ struct InspectorStylePageModel: Equatable, Sendable {
     /// it (= the sheet's own heading face), = so the face is read back
     /// out of the sheet rather than guessed at.
     private static func headingFamily(of sheet: BookStyleSheet) -> BookBodyFamily {
-        BookBodyFamily.allCases.first { $0.postScriptName == sheet.bodyFamily.headingPostScriptName }
+        BookBodyFamily.allCases.first { $0 == sheet.headingFamily }
             ?? sheet.bodyFamily
     }
 

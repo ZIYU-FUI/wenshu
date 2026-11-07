@@ -27,6 +27,28 @@ import Foundation
 /// Writes a knob of a book's style sheet back onto the book.
 @MainActor
 enum BookStyleSheetWriteBack {
+    /// Write one of the two sets onto the book, = and save the book.
+    ///
+    /// A set is a WHOLE SHEET, = so this writes the whole sheet down
+    /// (= and not knob by knob, = which would leave the book half
+    /// written if one write failed).
+    @discardableResult
+    static func apply(
+        preset: BookStylePreset,
+        to bookID: UUID,
+        store: BookStore
+    ) throws -> Book? {
+        guard let index = store.books.firstIndex(where: { $0.id == bookID }) else {
+            return nil
+        }
+        var book = store.books[index]
+        let sheet = preset.sheet(bodyFamily: book.effectiveStyleSheet.bodyFamily)
+        guard sheet != book.effectiveStyleSheet else { return book }
+        book.styleSheet = sheet
+        try store.sidebarSaveBook(book)
+        return book
+    }
+
     /// Move one knob of the book to a position, and save the book.
     ///
     /// Returns the saved book, = or nil when the store does not carry
