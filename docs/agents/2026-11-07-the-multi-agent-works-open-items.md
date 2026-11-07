@@ -190,13 +190,32 @@ against the sha above.
 **⇒ AND THIS CHANGE'S OWN VERDICT IS A SEPARATE CARD TOO.** = Card
 `t_89793467`, = against this branch's tip.
 
+**⇒ AND THE CORPUS REVIEW FOUND THREE REAL DEFECTS, = AND THIS CHANGE
+FIXES THEM.** = The review of the corpus-search commit returned
+`changes_requested` with three blocking findings, = all of the same
+shape (= a source-text assertion standing in for a behaviour that did
+not exist): = the snippet rendered the index's raw `<mark>` markup to the
+user; = the stale-result guard compared the query with itself (= true by
+construction, = so it could never drop anything); = and the UI suite held
+no behaviour (= the search could return no hits at all and the suite
+stayed green). = **⇒ All three are fixed here**, = because this change
+owns both files they live in.
+
 ## The measurements
 
 **⇒ The baseline this change was measured against** (= `main` =
 `434de8692d4746003d38ab169c2a638d61774a11`, = in a DETACHED worktree, =
 with the full suite run to completion and NOT truncated):
-= **3483 tests / 542 suites**, = and the failing set is the union of two
-runs' = **6 flaky tests**, = every one of which also fails at the base.
+= **3483 tests / 542 suites**, = and the failing set is the union of
+**FIVE** runs' = **8 distinct flaky sites**, = every one of which also
+fails at the base.
+
+**⇒ AND THIS CHANGE'S OWN FAILING SET IS A SUBSET OF THAT.** = The tip
+(= 3534 tests / 547 suites) was run to completion twice; = its union is
+**7 distinct sites**, = and every one of the 7 is in the base's 8. = **⇒
+ZERO new failures.** = The set ROTATES between runs (= a flaky test's
+presence depends on what else ran), = so the verdict is the SET, = never
+a count.
 
 **⇒ And the real library was read, = never written.** = The user's
 `~/Documents/anbaiqiang.ws` holds 6 entities rows against 6 `.md` bodies,
