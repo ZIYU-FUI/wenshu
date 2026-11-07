@@ -122,6 +122,39 @@ enum ManuscriptTarget: String, CaseIterable, Identifiable, Sendable {
     /// The target's spacing between segments, in the reader's language.
     ///
     /// Derived from the measured rule, = for the same reason.
+    /// What the platform COUNTS, = in the reader's words.
+    ///
+    /// = The rule is the app's own export's: = the chapter title is
+    /// the platform's own field, = so it is never part of the body
+    /// the platform counts, = and the body is counted in its own
+    /// characters (= the punctuation included, = because no platform
+    /// publishes whether its counter drops it).
+    var wordCountRule: String {
+        switch self {
+        case .qidian, .jinjiang: return "按正文计，标题单独计"
+        case .fanqie: return "按正文计，不含标题"
+        }
+    }
+
+    /// The platform's published range for ONE chapter's word count, =
+    /// when the platform publishes one.
+    ///
+    /// = `nil` means the platform publishes no per-chapter word rule
+    /// this build could source, = so the app checks nothing against a
+    /// number it cannot point at, = and the panel then shows the count
+    /// alone.
+    ///
+    /// = The Qidian range is the public writers' help centre's own
+    /// rule (= one chapter at most 20,000 characters), = as a
+    /// third-party guide that cites it relays it. = The other two
+    /// publish no per-chapter word rule this build could verify.
+    var chapterWordRange: ClosedRange<Int>? {
+        switch self {
+        case .qidian: return 0...20_000
+        case .fanqie, .jinjiang: return nil
+        }
+    }
+
     var spacingDescription: String {
         separatesSegmentsWithBlankLine ? "段间空一行" : "段间无空行"
     }

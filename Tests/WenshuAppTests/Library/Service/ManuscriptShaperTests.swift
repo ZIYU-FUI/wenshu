@@ -449,4 +449,49 @@ final class ManuscriptShaperTests: XCTestCase {
             )
         }
     }
+
+    // MARK: - The count the target's rule measures
+
+    /// The count is the CONTENT's characters: = the segments as the
+    /// shaper reads them, = summed.
+    ///
+    /// MUTATION: = counting the SHAPED text (= with the indent and the
+    /// blank lines) = would report a number the platform does not
+    /// count, = and = counting the title with it = would count a field
+    /// the platform keeps for itself.
+    func testTheWordCountIsTheContentsOwnCharacters() {
+        let body = """
+        # 第一章
+
+        第一段。
+        第二段。
+        """
+
+        let count = ManuscriptShaper.wordCount(of: body)
+        // = the title is the platform's own field, = so it is not in the
+        // body the count measures.
+        XCTAssertEqual(count, "第一段。第二段。".count)
+        // = and the count is NOT the shaped text's length: = Jinjiang's
+        // indent and its blank line are the platform's own shape.
+        let jinjiang = ManuscriptShaper.manuscript(body: body, target: .jinjiang)
+        XCTAssertNotEqual(count, jinjiang.count)
+    }
+
+    /// Every target counts the body, = and the one whose rule this
+    /// build could source carries a range, = while the others carry none
+    /// (= the app checks nothing against a number it cannot point at).
+    func testTheTargetsCarryTheirWordCountRules() {
+        for target in ManuscriptTarget.allCases {
+            XCTAssertFalse(target.wordCountRule.isEmpty, "\(target.displayName) states what it counts")
+        }
+        XCTAssertEqual(ManuscriptTarget.fanqie.wordCountRule, "按正文计，不含标题")
+        XCTAssertEqual(ManuscriptTarget.qidian.wordCountRule, "按正文计，标题单独计")
+        XCTAssertEqual(ManuscriptTarget.jinjiang.wordCountRule, "按正文计，标题单独计")
+
+        XCTAssertNotNil(ManuscriptTarget.qidian.chapterWordRange)
+        XCTAssertNil(ManuscriptTarget.fanqie.chapterWordRange)
+        XCTAssertNil(ManuscriptTarget.jinjiang.chapterWordRange)
+        XCTAssertTrue(ManuscriptTarget.qidian.chapterWordRange?.contains(2_000) == true)
+        XCTAssertTrue(ManuscriptTarget.qidian.chapterWordRange?.contains(20_001) == false)
+    }
 }

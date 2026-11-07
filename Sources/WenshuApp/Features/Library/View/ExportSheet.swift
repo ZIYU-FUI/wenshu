@@ -72,6 +72,10 @@ struct ExportSheet: View {
     /// (= only asked for when the format is a manuscript).
     @State private var manuscriptTarget: ManuscriptTarget = .qidian
 
+    /// The selected chapter's word count (= the count the target's own
+    /// rule measures), = nil when it has not been measured yet.
+    @State private var manuscriptWordCount: Int?
+
     /// Selected book id (= populated from `BookStore.books`).
     @State private var selectedBookID: UUID?
 
@@ -202,6 +206,31 @@ struct ExportSheet: View {
                 isPresented = false
             }
         ))
+        .task(id: manuscriptCountKey) {
+            manuscriptWordCount = await chapterEngine.manuscriptWordCount(
+                id: selectedChapterID,
+                target: manuscriptTarget
+            )
+        }
+    }
+
+    /// The warning the count earns, = when it falls outside the
+    /// target's published range.
+    ///
+    /// = A target that publishes no per-chapter word rule earns no
+    /// warning, = because the app has no number to check against.
+    private var manuscriptWordCountWarning: String? {
+        guard let count = manuscriptWordCount,
+              let range = manuscriptTarget.chapterWordRange,
+              !range.contains(count)
+        else { return nil }
+        return "本章正文 \(count) 字，超出\(manuscriptTarget.displayName)的单章字数要求（\(range.lowerBound)–\(range.upperBound) 字）"
+    }
+
+    /// What the count is measured against (= the chapter and the target
+    /// together), = so a change to either re-measures it.
+    private var manuscriptCountKey: String {
+        "\(selectedChapterID?.uuidString ?? "-")-\(manuscriptTarget.rawValue)"
     }
 
     private var canConfirm: Bool {
@@ -291,6 +320,20 @@ struct ExportSheet: View {
             Text(manuscriptTarget.spacingDescription)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            // What the platform COUNTS, = and this chapter's count of
+            // it: = the writer is about to hand the platform's editor a
+            // file, = so the number the platform will count is worth
+            // saying before the file is written.
+            if let count = manuscriptWordCount {
+                Text("正文 \(count) 字（\(manuscriptTarget.wordCountRule)）")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if let warning = manuscriptWordCountWarning {
+                Text(warning)
+                    .font(.caption)
+                    .foregroundStyle(Color.orange)
+            }
         }
         Picker(String(localized: "export.book.picker"), selection: $selectedBookID) {
             Text(String(localized: "export.book.placeholder")).tag(UUID?.none)

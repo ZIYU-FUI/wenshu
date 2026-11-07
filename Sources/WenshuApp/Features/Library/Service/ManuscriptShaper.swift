@@ -94,6 +94,17 @@ enum ManuscriptShaper {
     /// Exposed for the count the platforms apply (= the body
     /// without the title) and for the tests that measure the
     /// segments themselves.
+    /// The number of characters the target's own rule counts.
+    ///
+    /// = The count is the CONTENT's characters: = the segments as the
+    /// shaper reads them, = summed, = and NOT the shape the platform's
+    /// own editor adds (= the indent and the blank lines are the
+    /// platform's, = not the writer's words). = The title is not in the
+    /// body at all (= the platform carries it as its own field).
+    static func wordCount(of body: String) -> Int {
+        segments(of: body).reduce(0) { $0 + $1.count }
+    }
+
     static func segments(of body: String) -> [String] {
         var segments: [String] = []
         for block in blocks(of: droppingTheTitle(strippingFrontmatter(body))) {

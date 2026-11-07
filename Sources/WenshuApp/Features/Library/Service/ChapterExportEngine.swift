@@ -170,6 +170,30 @@ actor ChapterExportEngine {
         return destinationURL
     }
 
+    /// The number of characters the target counts for one chapter.
+    ///
+    /// = `nil` when the chapter cannot be found, = so the panel can
+    /// say nothing rather than say a wrong number. = The count comes
+    /// from the same resolver the export uses, = so the number on the
+    /// panel is the number the exported file carries.
+    func manuscriptWordCount(
+        id chapterID: UUID?,
+        target: ManuscriptTarget
+    ) async -> Int? {
+        guard let chapterID else { return nil }
+        guard let libPath = ActiveLibrary.path else { return nil }
+        let libURL = URL(fileURLWithPath: libPath, isDirectory: true)
+        guard let chaptersDir = try? locateChaptersDirectory(
+            libraryURL: libURL,
+            chapterID: chapterID
+        ) else { return nil }
+        guard let body = FileSystemChapterStore.loadChapterBodyFromFileSystem(
+            id: chapterID,
+            chaptersDirectory: chaptersDir
+        ) else { return nil }
+        return ManuscriptShaper.wordCount(of: body)
+    }
+
     /// Walk every shelf + book to find the chapters directory
     /// containing the chapter ID (= cheap because chapter .md files
     /// are named `<uuid>.md`).
