@@ -145,5 +145,3 @@ struct LibraryFullTextSearchTests {
         #expect(snippet.contains("harbour"), "the snippet must still carry the excerpt")
     }
 }
-
-
