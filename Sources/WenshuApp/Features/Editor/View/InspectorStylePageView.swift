@@ -10,11 +10,15 @@
 //  The format page stopped being a wall of commands and became the
 //  BOOK's style sheet:
 //
-//    - THIS BOOK'S STYLES: the twelve roles a novel uses (= the body,
-//      = the quote, = the note, = the three heading levels, = the book
-//      title, = the two captions, = the image, = the rule, = and the
-//      monospace code), = each row naming its role and showing the
-//      face, = the size and = the leading the book's sheet gives it.
+//    - THIS BOOK'S STYLES: the eleven roles a novel uses (= the body,
+//      = the quote, = the note, = the three heading levels, = the two
+//      captions, = the image, = the rule, = and the monospace code), =
+//      each row naming its role and showing the face, = the size and =
+//      the leading the book's sheet gives it.
+//
+//      THE BOOK'S OWN NAME IS NOT ONE OF THEM. = The book's title is
+//      the book's own (= it is drawn on the cover, = and it is not a
+//      kind of text the body is made of), = so it has no row here.
 //    - FINE TUNING: the five knobs a book is set with (= the body
 //      size, = the line spacing, = the first-line indent, = the space
 //      between segments, = and the body's face), = each at one of its
@@ -122,7 +126,7 @@ struct InspectorStylePageView: View {
         }
     }
 
-    /// The style table (= the twelve roles the book is set in).
+    /// The style table (= the eleven roles the book is set in).
     private var stylesGroup: some View {
         InspectorFormatGroup(title: String(localized: "inspector.style.group.styles")) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
@@ -194,7 +198,7 @@ struct InspectorStylePageView: View {
 
 // MARK: - The model
 
-/// What the style page shows: = the book's twelve style roles, = and
+/// What the style page shows: = the book's eleven style roles, = and
 /// the five knobs it is fine-tuned with.
 struct InspectorStylePageModel: Equatable, Sendable {
     /// The style table's rows (= one per role).
@@ -216,7 +220,7 @@ struct InspectorStylePageModel: Equatable, Sendable {
         currentPreset = BookStylePreset.matching(sheet)
     }
 
-    /// The twelve roles, as the sheet sets them.
+    /// The eleven roles, as the sheet sets them.
     ///
     /// A role the sheet names nothing for shows a dash (= the print
     /// standard's own table writes a dash for the image and the rule),
@@ -261,12 +265,6 @@ struct InspectorStylePageModel: Equatable, Sendable {
                 family: heading,
                 size: sheet.headingSize(forLevel: 3),
                 spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .bookTitle,
-                family: heading,
-                size: nil,
-                spacing: nil
             ),
             InspectorStyleRow(
                 role: .figureCaption,
@@ -396,7 +394,7 @@ struct InspectorStylePageModel: Equatable, Sendable {
 
 // MARK: - The role
 
-/// The twelve style roles a novel uses.
+/// The eleven style roles a novel uses.
 ///
 /// The roles are the book's own (= the kinds of text a book is made
 /// of), = and the sheet sets what each of them looks like.
@@ -407,7 +405,6 @@ enum InspectorStyleRole: String, CaseIterable, Sendable {
     case headingOne
     case headingTwo
     case headingThree
-    case bookTitle
     case figureCaption
     case tableCaption
     case image

@@ -3,13 +3,13 @@
 //
 //  The inspector column's style page, rendered.
 //
-//  The style page is the BOOK's style sheet: = the twelve styles a
+//  The style page is the BOOK's style sheet: = the eleven styles a
 //  novel uses, = and the five knobs the book is fine-tuned with. = This
 //  suite renders the real page and reads the rendered accessibility tree
 //  back, so the facts a source read cannot reach are measured on the
 //  page itself:
 //
-//  1. The page carries the twelve roles and the five knobs.
+//  1. The page carries the eleven roles and the five knobs.
 //  2. Each row shows the face, = the size and = the leading the book's
 //     own sheet gives that role.
 //  3. The knobs show the SELECTED BOOK's positions, = and two books
@@ -40,22 +40,26 @@ import Testing
 @MainActor
 @Suite("Inspector column style page, rendered", .serialized)
 struct InspectorStylePageRenderTests {
-    /// The page carries the twelve roles and the five knobs.
-    @Test("the page carries the twelve styles and the five knobs")
+    /// The page carries the eleven roles and the five knobs.
+    @Test("the page carries the eleven styles and the five knobs")
     func thePageCarriesTheStylesAndTheKnobs() {
         let model = InspectorStylePageModel(sheet: .default)
         #expect(
-            model.rows.count == 12,
-            "the style table names the twelve roles a novel uses"
+            model.rows.count == 11,
+            "the style table names the eleven roles a novel uses"
         )
         #expect(
             model.rows.map(\.role) == [
                 .body, .quote, .note,
                 .headingOne, .headingTwo, .headingThree,
-                .bookTitle, .figureCaption, .tableCaption,
+                .figureCaption, .tableCaption,
                 .image, .rule, .monospace,
             ],
-            "the style table names the twelve roles in the order a book is made of"
+            "the style table names the eleven roles in the order a book is made of"
+        )
+        #expect(
+            InspectorStyleRole.allCases.count == 11,
+            "the role enum carries the eleven roles (= the book's own name is not one of them)"
         )
         #expect(
             model.knobs.map(\.id) == [
@@ -213,7 +217,7 @@ struct InspectorStylePageRenderTests {
 
     /// THE RENDERED STYLE ROWS ARE HELD.
     ///
-    /// The twelve rows are the page's other half, = and they are NOT
+    /// The eleven rows are the page's other half, = and they are NOT
     /// in the accessibility tree (= a bare `Text` publishes nothing:
     /// = the reviewer measured `Text`, = `.accessibilityElement(children:
     /// .combine)` and = `.accessibilityElement(children: .ignore)` +

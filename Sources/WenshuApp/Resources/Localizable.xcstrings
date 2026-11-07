@@ -7720,23 +7720,6 @@
         }
       }
     },
-    "inspector.style.role.bookTitle": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Book Title"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "书名"
-          }
-        }
-      }
-    },
     "inspector.style.role.figureCaption": {
       "extractionState": "manual",
       "localizations": {
@@ -8677,6 +8660,23 @@
         }
       }
     },
+    "inspector.style.group.presets": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sets"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预设"
+          }
+        }
+      }
+    },
     "settings.pane.roles": {
       "extractionState": "manual",
       "localizations": {
@@ -8916,23 +8916,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "全部"
-          }
-        }
-      }
-    },
-    "inspector.style.group.presets": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sets"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "预设"
           }
         }
       }

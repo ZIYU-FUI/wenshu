@@ -6,7 +6,7 @@
 //
 //  WHY IT IS ITS OWN FILE
 //
-//  The page that draws the twelve styles and the five knobs already
+//  The page that draws the eleven styles and the five knobs already
 //  grew past comfortable, = so the set's own view lives here, = beside
 //  the knob's. = The page keeps the MODEL (= the rows, = the knobs, =
 //  and the sets), = and this file draws one set.

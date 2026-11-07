@@ -11,7 +11,7 @@
 //  a heading menu and a link field of their own. = It is now the
 //  BOOK's style sheet: = the three commands a novel uses inline (=
 //  bold, = italic, = and the highlight), = and then the style page,
-//  = which names the book's twelve styles and the five knobs it is
+//  = which names the book's eleven styles and the five knobs it is
 //  fine-tuned with.
 //
 //  WHY THE RIGHT COLUMN AND NOT THE EDITOR

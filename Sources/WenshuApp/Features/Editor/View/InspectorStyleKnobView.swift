@@ -7,7 +7,7 @@
 //
 //  WHY IT IS ITS OWN FILE
 //
-//  The page that draws the twelve styles and the five knobs grew past
+//  The page that draws the eleven styles and the five knobs grew past
 //  comfortable when the knobs became writable (= the write-back, = the
 //  position's raw value and its label, = and the menu's own action),
 //  = so the knob's own view moved out. = The page keeps the MODEL (=
