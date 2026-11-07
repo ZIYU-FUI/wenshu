@@ -110,6 +110,23 @@ CARD_NO_GATES = """## GOAL
 - `swift test --filter 'BookStyleSheetTests'`
 """
 
+# A card that names its suite in a MARKDOWN TABLE ROW. = A table row is
+# a DECLARATION (= not prose), = so the reader must lift the filter out
+# of it. = The shape is the one that reopened the vacuous green: = the
+# suite in the table matches nothing, = and a reader that drops the row
+# measures the other suite and declares every gate green.
+CARD_TABLE_ROW = """## GOAL
+
+A verdict on a card whose suite is named in a table.
+
+## GATES
+
+| the gate | what it proves |
+|---|---|
+| `swift test --filter 'RenamedSuitesV2'` | the suite that matches nothing |
+| `swift test --filter 'StyleSheetWiringTests'` | the suite that passes |
+"""
+
 # A CJK literal on a line that ALSO carries a trailing comment. = The
 # literal is not a comment, = so the audit must not report it.
 #
@@ -120,6 +137,20 @@ CARD_NO_GATES = """## GOAL
 CJK_LITERAL_WITH_TRAILING_COMMENT = 'let u = "https://example.com/唐朝"  // the link'
 CJK_IN_TRAILING_COMMENT = 'let size = 11  // the body is 通用'
 CJK_IN_BLOCK_COMMENT = "/* the body is 通用 */"
+# A BLOCK comment that opens BEFORE a `//` on the same line. = The
+# comment part must start at the comment's OWN marker (= the `/*`), = so
+# the CJK inside the block is read; = reading from the `//` instead
+# slices the part from the wrong marker and misses the CJK.
+#
+# = The first line carries a URL inside the block (= the repository's own
+# idiom: = 58 tracked Swift lines carry both `/*` and `//`), = so it is
+# the shape that hides the CJK twice over.
+CJK_IN_BLOCK_COMMENT_WITH_URL = "let x = 1  /* the body is 通用 = see http://example.com */"
+# The same shape, = with a trailing note after the block.
+CJK_IN_BLOCK_COMMENT_WITH_TRAILING_NOTE = "let x = 1  /* the body is 通用 */  // a trailing note"
+# The same shape, = with the CJK after the URL (= so the `//` inside the
+# block is the FIRST `//` on the line).
+CJK_IN_BLOCK_COMMENT_AFTER_URL = "let x = 1  /* see http://example.com = the body is 通用 */"
 # A MULTILINE literal (= = three double quotes) = whose own text holds a
 # `//`. = The scanner that toggles on the quote one at a time leaves its
 # state wrong after the triple, = so the `//` inside the literal would be
@@ -289,6 +320,30 @@ def main() -> int:
         "a `//` inside a MULTILINE literal is NOT a comment (= the triple is matched as one)",
         audited == [],
         f"audited={audited}",
+    )
+
+    # 18. a CJK in a BLOCK comment that opens BEFORE a `//` on the same
+    #     line IS reported (= the comment part starts at the comment's
+    #     OWN marker, = not at the first `//` on the line).
+    for fixture, label in (
+        (CJK_IN_BLOCK_COMMENT_WITH_URL, "= the block holds a URL"),
+        (CJK_IN_BLOCK_COMMENT_WITH_TRAILING_NOTE, "= a trailing note follows the block"),
+        (CJK_IN_BLOCK_COMMENT_AFTER_URL, "= the CJK sits after the URL"),
+    ):
+        audited = [line for line, part in gate.comment_parts([fixture]) if gate.CJK.search(part)]
+        case(
+            f"a CJK in a BLOCK comment beside a `//` IS reported ({label})",
+            len(audited) == 1,
+            f"audited={audited}",
+        )
+
+    # 19. a suite named in a MARKDOWN TABLE ROW is lifted (= a table row
+    #     is a declaration, = and dropping it would measure nothing).
+    filters, unparsed = gate.filters_from_card(CARD_TABLE_ROW)
+    case(
+        "a suite named in a TABLE ROW is lifted (= the row is a declaration)",
+        "RenamedSuitesV2" in filters and "StyleSheetWiringTests" in filters and not unparsed,
+        f"filters={filters} unparsed={unparsed}",
     )
 
     failed = PASSED.count(False)

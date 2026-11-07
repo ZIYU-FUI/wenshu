@@ -136,6 +136,11 @@ def is_gate_line(line):
     core = re.sub(r"^[-*+]\s+", "", core)
     core = re.sub(r"^\d+\.\s+", "", core)
     core = core.strip()
+    # A MARKDOWN TABLE ROW is a DECLARATION, = not prose: = a gate
+    # written in a table cell is a gate the reader must lift. = So the
+    # row's own text starts the command, = whatever cell it sits in.
+    if core.startswith("|"):
+        core = core.lstrip("|").strip()
     while core.startswith("`"):
         core = core[1:].strip()
     core = re.sub(r"^\$\s*", "", core)
@@ -286,13 +291,17 @@ def comment_parts(added_lines):
             is_comment = True
         if not is_comment:
             continue
+        # The comment part starts at the comment's OWN marker: = a block
+        # comment that opens BEFORE a `//` on the same line is a block
+        # comment, = and its own text is what the CJK audit must read.
+        # (Reading from the `//` alone misses a CJK inside the block.)
         marker = scrubbed.find("//")
+        block = scrubbed.find("/*")
+        if block != -1 and (marker == -1 or block < marker):
+            parts.append((raw, raw[block:]))
+            continue
         if marker != -1:
             parts.append((raw, raw[marker:]))
-            continue
-        block = scrubbed.find("/*")
-        if block != -1:
-            parts.append((raw, raw[block:]))
             continue
         parts.append((raw, raw))
     return parts
