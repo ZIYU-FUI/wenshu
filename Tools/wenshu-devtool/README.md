@@ -266,12 +266,21 @@ Four rules, each of which can fail:
    measured something** — a `swift test --filter` that matches no test
    case exits 0, prints no summary, and prints "No matching test cases
    were run", so a reader that reads only the exit code calls a renamed
-   suite a PASS; and a card that names no suite at all measures nothing,
+   suite a PASS; and a card that names no suite at all measures nothing.
+   The card's **GATE lines** are the ones that count: the reader reads the
+   GATES section, and within it only the lines that read as commands, so a
+   WHY sentence that merely *mentions* `swift test --filter` is not a gate
+   (and a filter quoted in prose is not run);
 4. **every tree the change touches must have its own suite** (the vendored
    engine has its own, and a change that touches it runs it).
 
 Rule 3 is the one the repository's own CI already holds: a log with no
 `Test run with` summary is a failure (`.github/workflows/ci.yml`).
+
+The CJK audit (rule 7.5) reads the **comment part** of a line, not the
+whole raw line, so a CJK string literal beside a trailing comment stays a
+literal — and a multiline literal's state is carried across its lines, so a
+`//` inside one is not a comment either.
 
 Its test suite runs on fixture text:
 
