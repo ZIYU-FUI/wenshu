@@ -9,8 +9,9 @@ had never been independently reviewed.** = The corpus review then found
 three real defects in code the user was already running, = and those
 were fixed here too.
 
-**⇒ Eleven commits, = = = on `main` and on both remotes:**
-`b0e7e9ec01d40d3a202890c76a4ecc8cbb188d58`.
+**⇒ Twelve commits of this scope, = = = on `main` and on both remotes** (= = =
+`b0e7e9ec01d40d3a202890c76a4ecc8cbb188d58`), = = = **and then a second
+wave's 34 commits landed on top of them** (= = = `8a9163b1a14416f52dec42087a83eb9dbf640a6a`).
 
 | the requirement | the commit | the verdict |
 | --- | --- | --- |
@@ -25,6 +26,10 @@ were fixed here too.
 | the baseline's five runs, = and this change's failing SET | `5d04e8bf3` | = = = |
 | the blank lines the removal left | `8399219ca` | = = = |
 | the registry row the landing commit left behind | `b0e7e9ec0` | = = = |
+| the closure doc itself | `726cb58719` | = = = |
+| **⇒ AND A SECOND WAVE LANDED ON TOP OF THIS ONE** | | |
+| the book's style sheet wave (= 34 commits: = = = the footnote marker that swallowed a paragraph's prose, = = = the export that writes the file it was given, = = = the engine's two new content roles) | `8a9163b1a` | `t_782a9e47` **approved** |
+| the registry row the footnote fix left behind | (in `8a9163b1a`) | = = = |
 
 ## The four defects, and what each one was
 
