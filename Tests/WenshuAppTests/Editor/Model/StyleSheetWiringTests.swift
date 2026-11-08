@@ -180,11 +180,30 @@ final class StyleSheetWiringTests: XCTestCase {
         let code = try Self.code(of: "Sources/WenshuApp/Features/Editor/View/InspectorStylePageView.swift")
         XCTAssertTrue(
             code.contains("try BookStyleSheetWriteBack.apply("),
-            "the page must write the sheet back (= the knobs are not read-only)"
+            "the page must write the sheet back at all (= the knobs are not read-only)"
+        )
+        // = = THE CALL SITE, = = SCOPED TO THE SAME BODY. = = A
+        // = = whole-file `contains("to: bookID,")` is satisfied by the
+        // = = page's OTHER write-back (= `applyPreset` spells it too), = =
+        // = = and that one is not the knob's call. = = So the call site
+        // = = is read from `moveKnob`'s OWN body, = = and it must appear
+        // = = there EXACTLY once: = = the knob writes one book's sheet.
+        let knobBody = try Self.body(of: code, of: "private func moveKnob(")
+        let targets = knobBody
+            .split(separator: "\n")
+            .filter { $0.contains("to: bookID,") }
+        XCTAssertEqual(
+            targets.count,
+            1,
+            "the page writes the book it SHOWS EXACTLY ONCE (= a second target is a decoy that satisfies a whole-file contains)"
         )
         XCTAssertTrue(
-            code.contains("to: bookID,"),
+            targets.first?.trimmingCharacters(in: .whitespaces) == "to: bookID,",
             "the page must write the book it is showing (= the store's first book is not the page's book)"
+        )
+        XCTAssertTrue(
+            knobBody.contains("try BookStyleSheetWriteBack.apply("),
+            "the knob must write the sheet back (= the knob is not read-only)"
         )
         // The call site spells the id, = but the BINDING decides which
         // book that name carries: = a page that binds the store's first
