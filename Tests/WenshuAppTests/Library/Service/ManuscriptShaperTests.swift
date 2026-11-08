@@ -556,4 +556,65 @@ final class ManuscriptShaperTests: XCTestCase {
         XCTAssertTrue(manuscript.contains("作者：文枢"))
         XCTAssertTrue(manuscript.contains("第一段。"))
     }
+
+    /// A frontmatter block with a NON-ASCII key is stripped.
+    ///
+    /// = The rule is the KEY's SHAPE (= any non-empty run before the
+    /// first colon), = not its encoding: = a Chinese title's metadata
+    /// is metadata, = and the manuscript must not carry it. = The app's
+    /// own reader strips such a block key-agnostically, = so keeping it
+    /// here would make the manuscript and the app read one body two
+    /// different ways.
+    ///
+    /// MUTATION: = require the key to be ASCII = would leave the
+    /// block in the manuscript.
+    func testANonASCIIFrontmatterKeyIsStripped() {
+        let body = """
+        ---
+        标题: 第一章
+        作者: 文枢
+        ---
+
+        第一段。
+        """
+
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+        XCTAssertFalse(manuscript.contains("标题"))
+        XCTAssertFalse(manuscript.contains("作者"))
+        XCTAssertTrue(manuscript.contains("第一段。"))
+    }
+
+    /// A full-width colon is not a YAML colon, = and the KEY's shape
+    /// does not change that.
+    ///
+    /// = The key here is ASCII (= `title`), = so the ONLY rule that can
+    /// reject these lines is the colon rule: = the key's shape passes
+    /// (a non-empty run before the first ASCII colon), = and the block
+    /// is rejected because the lines carry a full-width colon (= U+FF1A)
+    /// and not an ASCII one. = A case whose key was Chinese would be
+    /// rejected twice over (= by the shape rule's absence of an ASCII
+    /// colon AND by the key's own characters), = and would prove
+    /// nothing about the colon rule on its own.
+    ///
+    /// MUTATION: = accept a full-width colon as the key's separator
+    /// (= `firstIndex(of: ":") ?? firstIndex(of: "\u{FF1A}")`) = =
+    /// would strip the block, = and this test goes red.
+    func testAFullWidthColonIsNotAYAMLColonWithAnASCIIKey() {
+        let body = """
+        ---
+        title：第一章
+        author：文枢
+        ---
+
+        第一段。
+        """
+
+        let manuscript = ManuscriptShaper.manuscript(body: body, target: .qidian)
+        XCTAssertTrue(
+            manuscript.contains("title：第一章"),
+            "a full-width colon is not a YAML colon, = so the block is the author's prose and it stays"
+        )
+        XCTAssertTrue(manuscript.contains("author：文枢"))
+        XCTAssertTrue(manuscript.contains("第一段。"))
+    }
 }

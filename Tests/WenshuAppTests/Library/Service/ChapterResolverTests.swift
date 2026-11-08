@@ -364,4 +364,38 @@ struct ChapterResolverTests {
         #expect(ResolvedChapter.fileURL(for: nil, in: [chapter]) == nil)
         #expect(ResolvedChapter.fileURL(for: UUID(), in: [chapter]) == nil)
     }
+
+    /// The SHEET hands the seam's file over, = and does not rebuild the
+    /// name from the id.
+    ///
+    /// = The seam itself is pinned above (= = mutating
+    /// `ResolvedChapter.fileURL` turns that suite red), = = but nothing
+    /// drove the SHEET's own line: = = the sheet could stop calling the
+    /// seam and rebuild `<id>.md` instead, = = and the export would
+    /// write nothing for an imported chapter again (= = the original
+    /// defect), = = with no test failing.
+    ///
+    /// MUTATION: = `ExportSheet.swift` rebuilds the name from the id
+    /// (= `chaptersDirectory.appendingPathComponent("\(id).md")`) = =
+    /// leaves this assertion red.
+    @Test("the sheet hands over the resolver's file, = and does not rebuild the name")
+    func theSheetHandsOverTheResolversFile() throws {
+        let source = try SourceLocator.read(
+            "Sources/WenshuApp/Features/Library/View/ExportSheet.swift"
+        )
+        let sheet = source
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && !$0.hasPrefix("//") }
+            .joined(separator: "\n")
+
+        #expect(
+            sheet.contains("ResolvedChapter.fileURL(for: selectedChapterID, in: chapters)"),
+            "the sheet must hand the export the file the resolver gave (= an imported chapter's own file)"
+        )
+        #expect(
+            !sheet.contains("appendingPathComponent(\"\\(selectedChapterID"),
+            "the sheet must not rebuild the file name from the id (= an imported chapter is named after its title)"
+        )
+    }
 }

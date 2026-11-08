@@ -171,9 +171,16 @@ enum ManuscriptShaper {
     ///
     /// A metadata line is a blank one, = an indented continuation (= the
     /// tail of a multi-line value), = or a `key: value` pair whose key
-    /// is ASCII (= `title: Café`, = `date: 2026-11-06`). = A prose
+    /// is a non-empty run before the colon (= `title: Café`, =
+    /// `date: 2026-11-06`, = and a Chinese key too). = A prose
     /// line is anything else (= and a full-width colon is not a YAML
     /// colon, = so Chinese prose with a colon in it is prose).
+    ///
+    /// WHY THE KEY'S SHAPE AND NOT ITS ENCODING: = = the app's own
+    /// reader strips a leading `---` block key-agnostically
+    /// (= `FileSystemLibraryStore.extractSummary`), = so a rule that
+    /// KEPT a block with a Chinese key would make the manuscript and
+    /// the app read the same body two different ways.
     private static func isFrontmatterLine(_ line: String) -> Bool {
         if line.trimmingCharacters(in: .whitespaces).isEmpty {
             return true
@@ -184,8 +191,7 @@ enum ManuscriptShaper {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard let colon = trimmed.firstIndex(of: ":") else { return false }
         let key = trimmed[..<colon].trimmingCharacters(in: .whitespaces)
-        guard !key.isEmpty else { return false }
-        return key.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_" || $0 == "-") }
+        return !key.isEmpty
     }
 
     // MARK: - The title
