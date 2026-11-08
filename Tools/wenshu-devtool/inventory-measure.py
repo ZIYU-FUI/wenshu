@@ -17,14 +17,15 @@ import sys
 import tempfile
 
 CJK = re.compile(r"[\u4e00-\u9fff]")
-# The tree's ticket forms, = = and EVERY one of them:
+# The ticket families the tree's comment lines use, = = and the
+# alternatives that reach them:
 #
-# = = `T4-` / `P1-02` / `OOB-` = = the hyphenated family; = =
+# = = `T4-SUBAGENT-UI` / `P1-02` / `C-4` = = the hyphenated family; = =
 # = = `A112` / `Q112` / `M1` = = = the bare-number family; = =
-# = = `T20c` / `T1a` / `H2s` = = = the LETTER-SUFFIXED family, = = which
-# = = the tree uses most often (22 occurrences in the production tree's
-# = = comment lines alone); = =
-# = = `round-19` = = the lowercase-prefixed family.
+# = = `T20c` / `T1a` / `H2s` = = = the LETTER-SUFFIXED family; = =
+# = = `round-19` = = the lowercase-prefixed family; = =
+# = = `GAP-003` / `TICKET-HERMES-GAP-002` / `TKT-028-025` = = = the
+# = = connector-ticket family.
 #
 # = = The bare-number alternative cannot match the letter-suffixed
 # = = family, = = because `\d{1,4}\b` needs a word boundary right after
@@ -32,11 +33,36 @@ CJK = re.compile(r"[\u4e00-\u9fff]")
 # = = letter-suffixed family needs its OWN alternative, = = and the
 # = = measured consequence of leaving it out was 22 invisible
 # = = occurrences.
+#
+# = = THE CONNECTOR-TICKET FAMILY IS A FAMILY THE TREE CALLS TICKETS:
+# = = its own prose says "out of scope per the GAP-003 ticket body" and
+# = = "belong on the connector layer (ticket GAP-002)", = = so a census
+# = = that named the tree's own ticket families and could not see these
+# = = was not a census of them. = = The alternative below reaches them,
+# = = and the suite names them.
 TICKET_ID = re.compile(
-    r"\b(?:T|P|A|B|C|Q|OOB|E|W|F|H|S|R)-\d+[A-Z0-9.-]*"
-    r"|\b[A-Z]{1,3}\d{1,4}\b"
+    # = = THE HYPHENATED FAMILY. = = Its shape is a letter prefix, = = a
+    # = = number, = = and then a hyphenated tail (= = `P1-02`, = =
+    # = = `T4-SUBAGENT-UI`, = = `C-4`, = = `T0-PATH`, = = `P1-1`). = = The
+    # = = tail is part of the id, = = so it is matched whole: = = a bare
+    # = = `P1` would be a fragment of `P1-02`, = = and the at_base
+    # = = attribution would be decided on a fragment.
+    r"\b(?:T|P|A|B|C|Q|OOB|E|W|F|H|S|R)\d*-[A-Za-z0-9][A-Za-z0-9.-]*"
+    # = = THE BARE-NUMBER FAMILY (= = A112, = = Q112, = = M1, = = T0). = =
+    # = = Its boundary must NOT be a hyphen or a letter: = = otherwise it
+    # = = wins over the hyphenated family on `P1-02` and reports the
+    # = = half.
+    r"|\b[A-Z]{1,3}\d{1,4}(?![-.A-Za-z0-9_])"
+    # = = THE LETTER-SUFFIXED FAMILY (= = T20c, = = T1a, = = H2s, = =
+    # = = = = the one the bare-number alternative cannot match, = = because
+    # = = the suffix letter continues the word.
     r"|\b[A-Z]{1,3}\d{1,4}[a-z]\b"
+    # = = THE LOWERCASE-PREFIXED FAMILY (= = round-19)
     r"|\bround-\d+\b"
+    # = = THE CONNECTOR-TICKET FAMILY (= = GAP-003, = =
+    # = = TICKET-HERMES-GAP-002, = = TKT-028-025): = = the tree's own
+    # = = prose calls these tickets.
+    r"|\b(?:GAP|TKT|TICKET-HERMES)[-][A-Za-z0-9][A-Za-z0-9.-]*"
 )
 RECEIPT = re.compile(r"rationale lines collapsed")
 
@@ -84,9 +110,35 @@ def strip_string_literals(line):
     return re.sub(r'"(?:\\.|[^"\\])*"', '""', line)
 
 
+
+def changed_files(base, tip):
+    """The production files the change touched (= base vs tip).
+
+    = = The attribution is about the change, = = so it names the files the
+    = = change touched. = = The comparison is two-point (= = base vs tip),
+    = = NOT the merge-base's merge-base semantics: = = `git diff base tip`
+    = = = = exactly what changed between the two trees.
+    """
+    out = subprocess.run(
+        ["git", "diff", "--name-only", base, tip],
+        capture_output=True,
+        text=True,
+    ).stdout
+    return {line.strip() for line in out.splitlines() if line.strip()}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="HEAD")
+    ap.add_argument(
+        "--tip",
+        default=None,
+        metavar="SHA",
+        help="the tree the change produced (= the working tree when omitted). "
+        "With it, the ticket-id row also says, for each hit, whether the "
+        "same hit was already at the base (= the base's debt) or is the "
+        "change's own.",
+    )
     ap.add_argument(
         "--files",
         nargs="+",
@@ -98,6 +150,7 @@ def main():
     )
     args = ap.parse_args()
     base = args.base
+    tip = args.tip
 
     if args.files:
         # A card's own file list: the paths are read at the base, so the
@@ -199,8 +252,9 @@ def main():
     # 5. ticket ids
     ids = 0
     distinct = set()
+    hits = []
     for p in files:
-        for line in read(base, p).splitlines():
+        for lineno, line in enumerate(read(base, p).splitlines(), 1):
             if not is_comment(line):
                 continue
             # the collapse receipts carry their own A112/A115 labels; those are
@@ -210,23 +264,100 @@ def main():
             for m in TICKET_ID.finditer(line):
                 ids += 1
                 distinct.add(m.group(0))
+                hits.append((p, lineno, m.group(0)))
     print("5. ticket ids")
     print("   method: a form-complete ticket-id match in a production comment line:")
-    print("   `\\b(?:T|P|A|B|C|Q|OOB|E|W|F|H|S|R)-\\d+[A-Z0-9.-]*`")
-    print("   `|\\b[A-Z]{1,3}\\d{1,4}\\b`")
+    print("   `\\b(?:T|P|A|B|C|Q|OOB|E|W|F|H|S|R)\\d*-[A-Za-z0-9][A-Za-z0-9.-]*`")
+    print("   `|\\b[A-Z]{1,3}\\d{1,4}(?![-.A-Za-z0-9_])`")
     print("   `|\\b[A-Z]{1,3}\\d{1,4}[a-z]\\b`")
     print("   `|\\bround-\\d+\\b`")
-    print("   (= the tree's real forms, = = all four families:")
-    print("   the hyphenated one (= T4-, T8-, P1-02, OOB-);")
+    print("   `|\\b(?:GAP|TKT|TICKET-HERMES)[-][A-Za-z0-9][A-Za-z0-9.-]*`")
+    print("   (= the families this rule covers, = = each with a form it")
+    print("   reaches:")
+    print("   the hyphenated one (= T4-SUBAGENT-UI, P1-02, C-4);")
     print("   the bare-number one (= A112, Q112, M1, T0);")
     print("   the LETTER-SUFFIXED one (= T20c, T1a, H2s, = = which the")
     print("   bare-number alternative cannot match, = = because the suffix")
     print("   letter continues the word);")
     print("   the lowercase-prefixed one (= round-19);")
+    print("   the connector-ticket one (= GAP-003, TICKET-HERMES-GAP-002,")
+    print("   TKT-028-025), = = which the tree's own prose calls tickets;")
+    print("   AND TWO SKIPS, = = and the row above counts what survives them:")
     print("   the collapse receipts are skipped, because their own A112/A115")
-    print("   labels are measure 2's business, not a ticket reference)")
+    print("    labels are measure 2's business, not a ticket reference;")
+    print("   the `// /` lines are skipped too, = = because they are malformed")
+    print("    doc comments, = = and measure 1's business.)")
     print(f"   {ids} occurrences, {len(distinct)} distinct")
     print()
+
+    # = = EACH HIT'S AT_BASE STATUS ( = = the base's debt vs the change's own )
+    # = =
+    # = = The aggregate row says how many; = = this says WHICH. = = A hit
+    # = = is the base's debt when the base already carried that ticket id
+    # = = on that line, = = and it is the change's own when the base's line
+    # = = did not carry it. = = The comparison is on the LINE'S TEXT, = =
+    # = = not on its number, = = because a change moves lines.
+    if tip:
+        # = = the hits, = = per file and per line, = = with each one's
+        # = = at_base status. = = The status is decided on the LINE'S OWN
+        # = = TEXT at the base: = = a hit is the base's debt when the base
+        # = = already carried that ticket id, = = and the change's own
+        # = = when it did not. = = (The line's NUMBER is not the test: = =
+        # = = a change moves lines.)
+        def hits_in(text):
+            found = []
+            for lineno, line in enumerate(text.splitlines(), 1):
+                if not is_comment(line):
+                    continue
+                if RECEIPT.search(line) or line.strip().startswith("// /"):
+                    continue
+                for m in TICKET_ID.finditer(line):
+                    found.append((lineno, m.group(0)))
+            return found
+
+        base_hits = set()
+        for p in files:
+            for _, token in hits_in(read(base, p)):
+                base_hits.add(token)
+
+        # = = the CHANGED files: = = the ones the change touched. = = The
+        # = = attribution is about the change, = = so it is published for
+        # = = the files the change touched, = = and the whole tree's row
+        # = = is published beside it.
+        changed = changed_files(base, tip)
+        print("   each hit's at_base status:")
+        reported = 0
+        for p in files:
+            if p not in changed:
+                continue
+            base_by_line = {}
+            try:
+                base_by_line = {
+                    lineno: token
+                    for lineno, token in hits_in(read(base, p))
+                }
+            except subprocess.CalledProcessError:
+                base_by_line = {}
+            for lineno, token in hits_in(read(tip, p)):
+                status = "at_base" if token in base_hits else "the change's own"
+                print(f"     {token:16s} {p}:{lineno} {status}")
+                reported += 1
+        print(f"   {reported} hit(s) over the {len(changed)} file(s) this change touched")
+
+        tip_hits = set()
+        for p in files:
+            try:
+                for _, token in hits_in(read(tip, p)):
+                    tip_hits.add(token)
+            except subprocess.CalledProcessError:
+                continue
+        debt = base_hits & tip_hits
+        own = tip_hits - base_hits
+        print(
+            f"   the tree's row: base {len(base_hits)} -> tip {len(tip_hits)}, "
+            f"of which {len(debt)} are the base's debt and {len(own)} the change's own"
+        )
+        print()
 
     if scoped:
         print("(the tree-level measures (= the size census and the three size")

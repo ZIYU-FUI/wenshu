@@ -470,16 +470,26 @@ python3 Tools/wenshu-devtool/inventory-measure.py --base main
 python3 Tools/wenshu-devtool/inventory-measure.py --files <path> [<path> ...]
 ```
 
-= = The ticket-id row (= = measure 5) = = reaches ALL FOUR of the tree's
-families: = = the hyphenated one (`T4-`, = = `P1-02`, = = `OOB-`), = = the
-bare-number one (`A112`, = = `Q112`, = = `M1`), = = the LETTER-SUFFIXED one
-(`T20c`, = = `T1a`, = = `H2s`), = = and the lowercase-prefixed one
-(`round-19`). = = The bare-number alternative alone cannot match the
-letter-suffixed family, = = because the suffix letter continues the word: = =
-measured over the production tree at the base, = = the old matcher saw **0**
-of the family's **22** occurrences, = = and the whole-file row it shipped
-read `base 71 -> tip 2` where a form-complete matcher reads `base 76 -> tip
-6`. = = So the matcher carries its own cases.
+= = The ticket-id row (= = measure 5) = = reaches the families this rule
+covers, = = each with a form the rule reaches: = = the hyphenated one
+(`T4-SUBAGENT-UI`, = = `P1-02`, = = `C-4`), = = the bare-number one (`A112`,
+= = `Q112`, = = `M1`), = = the LETTER-SUFFIXED one (`T20c`, = = `T1a`, = =
+`H2s`), = = the lowercase-prefixed one (`round-19`), = = and the
+connector-ticket one (`GAP-003`, = = `TICKET-HERMES-GAP-002`, = =
+`TKT-028-025`), = = which the tree's own prose calls tickets (= = "out of
+scope per the GAP-003 ticket body"). = = The bare-number alternative alone
+cannot match the letter-suffixed family, = = because the suffix letter
+continues the word: = = measured over the production tree at the base, = =
+the old matcher saw **0** of the family's **22** occurrences. = = The
+hyphenated family is matched WHOLE (= = `P1-02`, = = not the fragment
+`P1`), = = because a truncated id makes the at_base attribution decide on
+a fragment. = = So the matcher carries its own cases.
+
+= = The row also publishes EACH HIT's `at_base` status (= = the base's debt
+against the change's own) for the files the change touched, = = and the
+tree's own row (= = base 362 -> tip 306 at the review's base). = = The
+aggregate pair alone was not enough: = = the numbers were right and the
+reader could not check them.
 
 ```
 python3 Tools/wenshu-devtool/tests/test_inventory_measure.py
@@ -488,9 +498,17 @@ python3 Tools/wenshu-devtool/tests/test_inventory_measure.py
 = = The suite names every form the tree really uses, = = every ordinary
 word a loose matcher would catch, = = the branch's added comment lines
 (= = which must carry no ticket id), = = and the rewritten block (= = which
-must carry its clause once). = = Each case can fail: = = narrowing the
-matcher turns the family's own cases red, = = and putting a ticket id back
-turns the added-lines case red.
+must carry its clause once). = = It also holds the PRINTED METHOD to what
+the code does: = = the method's own skip list must equal the code's, = =
+every exemplar it names must be reachable by the matcher, = = and the rule
+it prints must be the rule the matcher compiles. = = Those three checks are
+general (= = they parse the method's own text), = = so they catch the class
+of defect rather than one literal. = = And the tool's PUBLICATION of each
+hit's `at_base` status is guarded too, = = because the attribution can be
+correct and unpublished. = = Each case can fail: = = narrowing the matcher
+turns the family's own cases red, = = putting a ticket id back turns the
+added-lines case red, = = and dropping a skip from the method turns the
+method's own case red.
 
 ## Card sha
 
