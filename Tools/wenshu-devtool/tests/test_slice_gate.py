@@ -219,6 +219,40 @@ def main() -> int:
     print("slice_gate: the minimum verifiable slice\n")
 
     # 1. A card that writes one feature and names its suite IS a slice.
+
+    # = = THE FILE NAMES THAT CARRY A `+`. = = = =
+    #
+    # = = A split file is named `Name+Cluster.swift`, = = and the `+` is part
+    # = = of the name. = = The matcher here has FOUR alternatives = = = = one
+    # = = per way a card names a gate command = = = = and a character class
+    # = = that leaves `+` out kills the alternative it is in. = = ⇒ Each
+    # = = alternative gets its own case, = = = = and each case reads the WHOLE
+    # = = match: = = = = the alternatives overlap = = = = (the script one
+    # = = = = also matches the path inside "python3 Scripts/x.py"), = = = = so
+    # = = = = a case that only asked "did something match" = = = = = would be
+    # = = = = satisfied by a DIFFERENT alternative = = = = = and would pass
+    # = = = = while the alternative it names was dead. = = = = The prefix is
+    # = = = = what tells the alternatives apart.
+    tool = load_tool()
+
+    m = tool.NAMED_GATE_RE.search("Scripts/merge-preflight+check.sh")
+    check(
+        "NAMED_GATE_RE's script alternative sees a split file's `+`",
+        bool(m and m.group(0).startswith("Scripts/")),
+        True,
+    )
+    m = tool.NAMED_GATE_RE.search("python3 Scripts/merge-preflight+check.py")
+    check(
+        "NAMED_GATE_RE's python alternative sees a split file's `+`",
+        bool(m and m.group(0).startswith("python3 ")),
+        True,
+    )
+    m = tool.NAMED_GATE_RE.search("bash Scripts/merge-preflight+check.sh")
+    check(
+        "NAMED_GATE_RE's bash alternative sees a split file's `+`",
+        bool(m and m.group(0).startswith("bash ")),
+        True,
+    )
     check("one feature with its suite is a slice", tool.contract_errors(ONE_SLICE), [])
     check(
         "the slice's files are the order's files",

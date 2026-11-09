@@ -368,6 +368,18 @@ check(
     bool(pl.PATH_RE.findall("Sources/WenshuApp/App/ClientShell.swift")),
     True,
 )
+# = = ⇒ AND THE MATCH MUST START AT "Mobile/". = = The first alternative
+# = = of this matcher names "Sources/" = = = = which sits INSIDE the mobile
+# = = path, = = = = so a mobile path matches even when the mobile
+# = = alternative is dead. = = = = The case asks which alternative matched.
+_mobile = pl.PATH_RE.search(
+    "Mobile/Sources/WenshuMobileApp/Features/Chat/View/ChatView+KeyboardShortcuts.swift"
+)
+check(
+    "PATH_RE sees a split file's `+` in the MOBILE path",
+    bool(_mobile and _mobile.group(0).startswith("Mobile/")),
+    True,
+)
 check(
     "PATH_RE still reads the mobile path",
     bool(pl.PATH_RE.findall("Mobile/Sources/WenshuMobileApp/App/ClientShell.swift")),

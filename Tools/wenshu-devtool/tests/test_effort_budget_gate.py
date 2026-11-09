@@ -147,6 +147,51 @@ def main() -> int:
     errors = ebg.contract_errors(card(budget=good_budget()))
     results.append(case("a card with all four budget lines passes", not errors, f"got {errors}"))
 
+    # = = THE FILE NAMES THAT CARRY A `+`. = = = =
+    #
+    # = = A split file is named `Name+Cluster.swift`, = = and the `+` is part
+    # = = of the name. = = So a path matcher whose character class leaves `+`
+    # = = out does not see the file AT ALL: = = and a card that writes one is
+    # = = rated as if it wrote nothing. = =
+    #
+    # = = ⇒ SO EACH MATCHER MUST SEE IT. = = And each of these three is a
+    # = = DIFFERENT matcher, = = = = for a different job: = = = = one names a
+    # = = source file, = = = = one names any file the card names, = = = = and
+    # = = one names a path in the catalogue. = = = = A test on one of them says
+    # = = nothing about the other two, = = = = so each gets its own.
+    #
+    # = = ⇒ AND THE MATCH MUST BE THE WHOLE PATH. = = Two of these three
+    # = = matchers have no directory anchor, = = = = so a matcher whose
+    # = = character class leaves `+` out still matches = = = = the TAIL of
+    # = = the name (= "KeyboardShortcuts.swift") = = = = and the case would
+    # = = = pass while the path was cut in half. = = ⇒ So the case reads the
+    # = = = whole match and asks for the split name inside it.
+    split_name = "ChatView+KeyboardShortcuts.swift"
+    m = ebg.CODE_PATH_RE.search(f"Sources/WenshuApp/{split_name}")
+    results.append(
+        case(
+            "CODE_PATH_RE sees a split file's `+` in its name",
+            bool(m and split_name in m.group(0)),
+            "the matcher did not read the whole split path",
+        )
+    )
+    m = ebg.FILE_PATH_RE.search(f"Tools/wenshu-devtool/{split_name}")
+    results.append(
+        case(
+            "FILE_PATH_RE sees a split file's `+` in its name",
+            bool(m and split_name in m.group(0)),
+            "the matcher did not read the whole split path",
+        )
+    )
+    m = ebg.CATALOG_PATH_RE.search(f"docs/agents/{split_name}")
+    results.append(
+        case(
+            "CATALOG_PATH_RE sees a split file's `+` in its name",
+            bool(m and split_name in m.group(0)),
+            "the matcher did not read the whole split path",
+        )
+    )
+
     # 3. one line missing -> an error naming the missing key
     partial = "\n".join(
         [

@@ -1556,6 +1556,24 @@ def main() -> int:
         ["Sources/WenshuApp/Features", "Tests/WenshuAppTests/Chat"],
     )
 
+    # = = THE CONSTANTS NOBODY READS. = = = =
+    #
+    # = = A constant that nothing reads is not a matcher, = = = = it is a
+    # = = lie: = = the next reader widens it, = = = = believes it guards
+    # = = something, = = = = and it guards nothing. = = = = This module had
+    # = = two such constants (= = "CITATION_RE" and "SWIFT_RE"), = = = = and
+    # = = the citation one was widened to see a split file's `+` = = = = =
+    # = = = widening a name that no code ever read. = = ⇒ So the case is
+    # = = = that they stay gone. = = = = A deleted name cannot fail a test
+    # = = = = on its own, = = = = so the test names the absence.
+    _tier = load_tool()
+    check(
+        "ticket_tier.py defines no constant that nothing reads",
+        not hasattr(_tier, "CITATION_RE") and not hasattr(_tier, "SWIFT_RE"),
+        True,
+    )
+
+
     # 20. THE BOARD READER MUST CARRY THE RUNS, BECAUSE THE LIST VIEW HAS
     #     NONE. `hermes kanban list --json` returns a card without its run
     #     history, and the type derivation reads the runs to tell a review

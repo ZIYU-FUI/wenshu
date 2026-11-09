@@ -406,6 +406,23 @@ check(
     f"tier={[tier.work_scope(b) for b in BODIES_FOR_BOTH_TOOLS]}",
 )
 
+# = = THE FILE NAMES THAT CARRY A `+`. = = = =
+#
+# = = A split file is named `Name+Cluster.swift`, = = and the `+` is part
+# = = of the name. = = The citation matcher reads a path that is followed by
+# = = a section marker (= "AGENTS.md §7.3"), = = and a character class that
+# = = leaves `+` out cuts the path in half: = = the matcher then finds the
+# = = TAIL of the name (= "KeyboardShortcuts.swift §7.3") = = = = and calls
+# = = that a citation. = = ⇒ So the case reads the WHOLE match, = = = = and
+# = = not merely the fact that something matched.
+split_path = "Sources/WenshuApp/Features/Chat/View/ChatView+KeyboardShortcuts.swift"
+_m = wg.CITATION_RE.search(split_path + " §7.3")
+check(
+    "CITATION_RE reads a split file's `+` in its name",
+    bool(_m and _m.group(0).startswith("Sources/")),
+    "the matcher did not read the whole split path",
+)
+
 print()
 if FAILURES == 0:
     print("wave gate: all tests passed")
