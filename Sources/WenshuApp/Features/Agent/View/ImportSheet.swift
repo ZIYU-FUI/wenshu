@@ -17,7 +17,6 @@ import UniformTypeIdentifiers
 /// The `ImportSheet` body. It hosts the two pickers and a progress strip (= a
 /// per-file row) with the start and cancel buttons.
 struct ImportSheet: View {
-
     @State var currentStep: WizardStep = .configure
 
     /// Bumped when the `wenshuImportRequested` notification fires (= the
@@ -61,7 +60,6 @@ struct ImportSheet: View {
     /// The selected target book folder. The user picks the second-level folder
     /// themselves.
     @State var selectedBookFolder: BookFolder?
-
 
     @State var importDestination: ImportDestination = .book
 

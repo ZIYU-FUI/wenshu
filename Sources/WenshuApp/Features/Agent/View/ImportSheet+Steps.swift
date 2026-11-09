@@ -3,7 +3,6 @@
 // same nested types the sheet has always had), = = so `ImportSheet.WizardStep`
 // and `ImportSheet.ImportDestination` keep naming exactly what they named
 // before this file existed.
-import SwiftUI
 
 extension ImportSheet {
     /// The four-step wizard. Each step is a page the user can go back to in order
