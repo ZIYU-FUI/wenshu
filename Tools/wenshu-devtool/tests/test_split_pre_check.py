@@ -404,25 +404,52 @@ def case_removed_import_needs_the_base_to_have_had_it() -> None:
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         repo = make_repo(tmp)
+        # = = ⇒ AND EVERY BODY IS WRITTEN OUT, = = = = because a
+        # = = = = single-line body is the tree's OWN swiftformat
+        # = = = = violation (= = = = `wrapFunctionBodies`), = = = = and this
+        # = = = = case is about the Foundation arm, = = = = not about it.
         write(repo, "Sources/Thing.swift", """
             import SwiftUI
 
             public struct Thing {
-                public func day() -> Date { Date() }
-                public func other() -> Date { Date() }
-                public func third() -> Date { Date() }
+                public func day() -> Date {
+                    Date()
+                }
+
+                public func other() -> Date {
+                    Date()
+                }
+
+                public func third() -> Date {
+                    Date()
+                }
             }
         """)
         commit(repo, "base")
         base = git(repo, "rev-parse", "HEAD").strip()
+        # = = ⇒ AND THE TIP'S OWN ADDITION IS SWIFTFORMAT-CLEAN, = = = =
+        # = = = = because a single-line body and a missing blank line are
+        # = = = = the tree's own violations, = = = = and this case is about
+        # = = = = the Foundation arm, = = = = not about them.
         write(repo, "Sources/Thing.swift", """
             import SwiftUI
 
             public struct Thing {
-                public func day() -> Date { Date() }
-                public func other() -> Date { Date() }
-                public func third() -> Date { Date() }
-                public func fourth() -> Date { Date() }
+                public func day() -> Date {
+                    Date()
+                }
+
+                public func other() -> Date {
+                    Date()
+                }
+
+                public func third() -> Date {
+                    Date()
+                }
+
+                public func fourth() -> Date {
+                    Date()
+                }
             }
         """)
         commit(repo, "tip")
@@ -731,6 +758,63 @@ def case_a_split_created_file_is_checked_for_promotions() -> None:
         )
 
 
+def case_two_consecutive_blank_lines_are_reported() -> None:
+    """THE CLASS THE TREE'S OWN FORMATTING GATE CHARGES, = = AND WHICH
+    THE TOOL DID NOT SEE.
+
+    = = ⇒ Measured 2026-11-09: = = a helper added with TWO blank lines
+    # = = = = before it cost a review card a round, = = = = and the card
+    # = = = = claimed the gate exits 0. = = ⇒ The tree's gate runs
+    # = = = = SWIFTFORMAT (= = and not swiftlint), = = = = and swiftlint
+    # = = = = does not have this rule.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        write(repo, "Sources/Thing.swift", "public struct Thing {}\n")
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        (repo / "Sources/Thing.swift").write_text(
+            "public struct Thing {}\n\n\npublic func one() {}\n", encoding="utf-8"
+        )
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        code, out = check(repo, base, head)
+        # = = ⇒ AND THE ASSERTION NAMES THE RULE, = = = = and not the
+        # = = = = arm's TITLE (= = = = "swiftformat" is in the title of
+        # = = = = every run, = = = = so an assertion on it passes even when
+        # = = = = the arm does nothing).
+        expect(
+            "TWO consecutive blank lines are reported (= = the tree's own gate charges them)",
+            code != 0 and "consecutiveBlankLines" in out,
+            out,
+        )
+
+
+def case_a_single_blank_line_is_not_reported() -> None:
+    """THE COUNTER-CASE: = = one blank line is the house style, = = and it
+    is not a finding."""
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        write(repo, "Sources/Thing.swift", "public struct Thing {}\n")
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        (repo / "Sources/Thing.swift").write_text(
+            "public struct Thing {}\n\npublic func one() {}\n", encoding="utf-8"
+        )
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        code, out = check(repo, base, head)
+        expect(
+            "ONE blank line is not a finding",
+            code == 0,
+            out,
+        )
+
+
 def main() -> int:
     print("split_pre_check: every check has a positive control")
     for case in (
@@ -749,6 +833,8 @@ def main() -> int:
         case_a_change_with_no_swift_file_is_not_a_crash,
         case_a_new_finding_is_not_swallowed_by_an_unrelated_one,
         case_a_split_created_file_is_checked_for_promotions,
+        case_two_consecutive_blank_lines_are_reported,
+        case_a_single_blank_line_is_not_reported,
     ):
         print(f"--- {case.__name__}")
         case()

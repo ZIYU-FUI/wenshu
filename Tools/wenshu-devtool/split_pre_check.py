@@ -291,6 +291,105 @@ def lint_in_tree(ref: str, paths: list[str]) -> dict[str, list[str]]:
     return findings
 
 
+
+def _added_lines(base: str, head: str, path: str) -> set[int]:
+    """The line numbers a change ADDED in a file.
+
+    = = ⇒ AND THE VIOLATION MUST BE ON AN ADDED LINE. = = The tree's own
+    # = = = = formatting gate charges a change for the lines IT ADDED (= =
+    # = = = = `git diff --unified=0`), = = = = and a violation that was
+    # = = = = already there is the tree's own business. = = ⇒ So the
+    # = = = = check is on the ADDED lines, = = = = and a file whose
+    # = = = = pre-existing violations this change did not touch says
+    # = = = = nothing.
+    """
+    code, out = sh("diff", "--unified=0", base, head, "--", path)
+    added: set[int] = set()
+    for line in out.split("\n"):
+        # = = ⇒ AND THE GROUPS ARE THE RIGHT ONES. = = A hunk header is
+        # = = = = `@@ -OLD[,OLD] +NEW[,NEW] @@`, = = = = so the NEW start
+        # = = = = is the THIRD group, = = = = and the OLD start is the
+        # = = = = first. = = = = ⇒ Reading the first one charged the
+        # = = = = change for a violation on a line it did not touch.
+        m = re.match(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@", line)
+        if not m:
+            continue
+        start = int(m.group(3))
+        count = int(m.group(4) or "1")
+        for n in range(start, start + count):
+            added.add(n)
+    return added
+
+
+SWIFTFORMAT_VIOLATION = re.compile(
+    r"^(?P<path>.+?):(?P<line>\d+):(?P<col>\d+):\s*error:\s*\((?P<rule>[^)]*)\)\s*(?P<message>.*)$"
+)
+
+
+def swiftformat_findings(base: str, head: str, paths: list[str]) -> list[str]:
+    """The SwiftFormat rules the change's ADDED lines break.
+
+    = = ⇒ AND NOT SWIFTLINT'S RULES. = = The tree's formatting gate
+    # = = = = charges a change for the lines IT ADDED, = = = = and it runs
+    # = = = = SWIFTFORMAT (= = and not swiftlint). = = = = So a tool that
+    # = = = = only runs swiftlint misses exactly the class the gate
+    # = = = = charges: = = = = two consecutive blank lines, = = = = a
+    # = = = = trailing comma, = = = = a space before a colon. = = = = ⇒
+    # = = = = And that class is REAL: = = = = measured 2026-11-09, = = =
+    # = = = = a helper added with TWO blank lines before it cost a
+    # = = = = review card a round, = = = = and the card's own claim that
+    # = = = = the gate exits 0 was false.
+
+    = = = = ⇒ AND IT IS THE TREE'S OWN PARSING, = = = = so the two agree
+    # = = = = on what a violation is: = = = = the same regex, = = = = the
+    # = = = = same default rules (= = = = no config, = = = = because the
+    # = = = = repo's config is in a dialect this SwiftFormat rejects), = =
+    # = = = = and the same "only the ADDED lines" rule.
+
+    = = = = ⇒ AND A RUN THAT COULD NOT COMPLETE IS LOUD, = = = = because
+    # = = = = SwiftFormat exits 70 when it cannot do the work at all (= =
+    # = = = = a missing file, = = = = a config it rejects, = = = = a syntax
+    # = = = = error), = = = = and it reports NO violation, = = = = = so
+    # = = = = "no violation" would read as clean.
+    """
+    findings: list[str] = []
+    if shutil.which("swiftformat") is None:
+        return findings
+    parent = Path(tempfile.mkdtemp(prefix="wenshu-format-"))
+    work = parent / "tree"
+    try:
+        code, out = sh("worktree", "add", "--detach", str(work), head)
+        if code != 0:
+            return [f"the worktree at {head} could not be made: {out.strip()[:160]}"]
+        present = [p for p in paths if (work / p).is_file()]
+        if not present:
+            return findings
+        proc = subprocess.run(
+            ["swiftformat", "--lint", *present],
+            capture_output=True, text=True, cwd=str(work), timeout=600,
+        )
+        if proc.returncode == 70:
+            return [f"swiftformat refused to lint (= = its report is not trustworthy): "
+                    f"{(proc.stdout + proc.stderr).strip()[:200]}"]
+        for raw in (proc.stdout + proc.stderr).split("\n"):
+            m = SWIFTFORMAT_VIOLATION.match(raw.strip())
+            if not m:
+                continue
+            path = m.group("path")
+            try:
+                rel = str(Path(path).resolve().relative_to(work.resolve()))
+            except ValueError:
+                rel = path
+            line = int(m.group("line"))
+            if line not in _added_lines(base, head, rel):
+                continue
+            findings.append(f"{rel}:{line}: {m.group('rule')} = = {m.group('message').strip()}")
+    finally:
+        sh("worktree", "remove", "--force", str(work))
+        shutil.rmtree(parent, ignore_errors=True)
+    return findings
+
+
 def _same_rule(a: str, b: str) -> bool:
     """Whether two swiftlint findings are the SAME finding, = = wherever
     they landed."""
@@ -807,6 +906,21 @@ def main() -> int:
                 print(f"  ok  no NEW finding (= = {total} pre-existing one(s) carried over)")
             else:
                 print("  ok  no finding")
+
+    print()
+    print("=== 1b. swiftformat (= = the tree's formatting gate runs THIS, = = and it charges the ADDED lines) ===")
+    if shutil.which("swiftformat") is None:
+        print("  ok  swiftformat is not installed (= = the tree's own gate still runs it)")
+    elif not paths:
+        print("  ok  no Swift file changed")
+    else:
+        fmt = swiftformat_findings(args.base, args.head, paths)
+        if fmt:
+            for f in fmt:
+                print(f"  ! {f}")
+            failures.append(f"{len(fmt)} swiftformat finding(s) this change introduced")
+        else:
+            print("  ok  no finding")
 
     print()
     print("=== 2. the header shape (= = a deleted import leaves a blank line behind) ===")
