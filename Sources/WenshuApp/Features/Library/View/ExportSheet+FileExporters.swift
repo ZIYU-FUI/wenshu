@@ -3,10 +3,15 @@
 // their destination.
 //
 // They live together because they are ONE concern: = = each is the system
-// save panel for one export kind, = = each dispatches to its own engine,
-// = = and all three read the same remembered destination. = = The sheet
-// itself keeps the kind enum, the three format enums, and the sections
-// that offer them.
+// save panel for one export kind, = = and each dispatches to its own
+// engine. = = The sheet itself keeps the kind enum, = = the three format
+// enums, = = and the sections that offer them.
+//
+// AND `lastURL` IS HERE BECAUSE TWO OF THEM CALL IT: = = the library and
+// the book panels remember where they last wrote, = = and they name their
+// next file from that. = = The chapter panel does NOT call it (= = its
+// document carries no URL default = = = = `MarkdownDocument(text: "")`
+// has nothing to name), = = = = so it is two callers, not three.
 import SwiftUI
 import UniformTypeIdentifiers
 
