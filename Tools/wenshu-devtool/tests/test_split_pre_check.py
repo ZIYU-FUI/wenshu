@@ -69,6 +69,12 @@ def commit(repo: Path, message: str) -> None:
 
 
 
+
+def wc_lines(path: Path) -> int:
+    """The file's own `wc -l` count (= = the registry's own convention)."""
+    with open(path, "rb") as handle:
+        return sum(1 for _ in handle)
+
 def make_buildable_repo(tmp: Path) -> Path:
     """A repo whose `swift build` ACTUALLY RUNS.
 
@@ -1375,6 +1381,191 @@ def case_a_widening_of_a_static_member_is_seen() -> None:
         )
 
 
+def case_a_registry_row_that_is_stale_is_reported() -> None:
+    """THE GAP THE REVIEW OF A REAL SPLIT FOUND: = = the tool had no arm
+    for the registry's LOC column, = = and a row that carried a count its
+    file does not have went unreported.
+
+    = = ⇒ Measured: = = the export sheet's split carried 192 in the
+    # = = = = registry while the file was 197, = = = = and the tree's own
+    # = = = = `nfi-loc-check` caught it (= = = = and this tool did not).
+
+    = = ⇒ AND THE COUNT COMES FROM THE COMMIT, = = = = not from the
+    # = = = = working tree, = = = = because the tree under test may
+    # = = = = already carry a fix the reviewed commit does not have.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        write(repo, "Sources/Thing.swift", "public struct Thing {\n}\n")
+        # = = ⇒ THE BASE HAS A REGISTRY TOO, = = = = so the arm has to
+        # = = = = tell this row apart from the ones the base already had.
+        write(repo, "docs/agents/nfi.md", (
+            "| Parent | Extracted | LOC | Tag |\n"
+            "| --- | --- | --- | --- |\n"
+            "| `Sources/Thing.swift` | `Sources/Thing+Other.swift` | 2 | `the other` |\n"
+        ))
+        write(repo, "Sources/Thing+Other.swift", "public struct Other {\n}\n")
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        # = = ⇒ THE ROW SAYS A COUNT THE FILE DOES NOT HAVE.
+        write(repo, "docs/agents/nfi.md", (
+            "| Parent | Extracted | LOC | Tag |\n"
+            "| --- | --- | --- | --- |\n"
+            "| `Sources/Thing.swift` | `Sources/Thing+Parts.swift` | 99 | `the parts` |\n"
+        ))
+        write(repo, "Sources/Thing+Parts.swift", "public struct Parts {\n}\n")
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "a registry row that carries a count its file does not have is reported",
+            "carries a count their file does not have" in out
+            or "says 99" in out,
+            out[-900:],
+        )
+
+
+def case_a_registry_row_that_is_right_is_not_reported() -> None:
+    """The other half: = = a row that carries its file's own count is
+    quiet. = = ⇒ A check that cannot stay quiet is not a check.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        write(repo, "Sources/Thing.swift", "public struct Thing {\n}\n")
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Thing+Parts.swift", "public struct Parts {\n}\n")
+        parts = wc_lines(repo / "Sources/Thing+Parts.swift")
+        write(repo, "docs/agents/nfi.md", (
+            "| Parent | Extracted | LOC | Tag |\n"
+            "| --- | --- | --- | --- |\n"
+            f"| `Sources/Thing.swift` | `Sources/Thing+Parts.swift` | {parts} | `the parts` |\n"
+        ))
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "a registry row that carries its file's own count is quiet",
+            "every added row carries its file's own count" in out,
+            out[-900:],
+        )
+
+
+def case_a_widening_is_measured_on_a_file_that_changed() -> None:
+    """THE REVIEW'S BLOCKING 1: = = the arm's REWRITE did not take the
+    access modifier, = = so it rewrote nothing, = = the build succeeded,
+    = = and the arm reported the OPPOSITE of the truth.
+
+    = = ⇒ Measured: = = the rewrite changed nothing (= = = = new_text ==
+    # = = = = text), = = = = the build succeeded, = = = = and the tool
+    # = = = = said "no file needed it", = = = = while a hand revert to
+    # = = = = `private` gives `swift build` exit 1 with "helper" is
+    # = = = = inaccessible.
+
+    = = ⇒ AND THE FIX FLIPS THE VERDICT: = = the rewrite takes the same
+    # = = = = modifier vocabulary the detection takes, = = = = and swaps
+    # = = = = ONLY the access level.
+
+    = = ⇒ AND THE READER IS IN ANOTHER FILE: = = a member read from its
+    # = = = = OWN file is visible even when it is `private`, = = = = so
+    # = = = = the reader has to reach it from ANOTHER file for putting
+    # = = = = it back to `private` to break the build at all.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                private func helper() -> Int {
+                    1
+                }
+            }
+        """)
+        write(repo, "Sources/Probe/Reader.swift", """
+            public struct Reader {
+                public func two(_ thing: Thing) -> Int {
+                    thing.helper()
+                }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                public func helper() -> Int {
+                    1
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        # = = ⇒ THE ARM MUST SEE THE WIDENING, = = = = and the fix makes
+        # = = = = the rewrite ACTUALLY rewrite (= = = = so the build fails
+        # = = = = and the arm says the member IS read across the seam).
+        expect(
+            "a widening is measured on a file that really changed",
+            "every widened member is read across the file boundary" in out,
+            out[-1200:],
+        )
+def case_the_injection_hook_does_not_delete_the_callers_directory() -> None:
+    """THE REVIEW'S BLOCKING 2: = = `--lint-work-parent` deleted the
+    CALLER's directory.
+
+    = = ⇒ Measured: = = a directory holding a file and a subdirectory was
+    # = = = = GONE after a run that exited 0. = = ⇒ The flag says where
+    # = = = = the throwaway worktree goes, = = = = and the tool removes
+    # = = = = ONLY that worktree.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Thing.swift", "public struct Thing {\n    public func one() -> Int {\n        1\n    }\n}\n")
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Thing.swift", "public struct Thing {\n    public func one() -> Int {\n        2\n    }\n}\n")
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        # = = ⇒ A DIRECTORY THE CALLER OWNS, = = = = with something in it.
+        caller_dir = tmp / "caller-owns-this"
+        (caller_dir / "sub").mkdir(parents=True)
+        (caller_dir / "precious.txt").write_text("keep me", encoding="utf-8")
+        (caller_dir / "sub" / "also.txt").write_text("keep me too", encoding="utf-8")
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--lint-work-parent", str(caller_dir)],
+            capture_output=True, text=True,
+        )
+        expect(
+            "the injection hook does not delete the caller's directory",
+            (caller_dir / "precious.txt").exists()
+            and (caller_dir / "sub" / "also.txt").exists(),
+            f"the caller's directory was deleted (exit={proc.returncode})",
+        )
+
+
 def main() -> int:
     print("split_pre_check: every check has a positive control")
     for case in (
@@ -1405,6 +1596,10 @@ def main() -> int:
         case_a_member_that_is_still_private_is_not_a_widening,
         case_a_dropped_module_nobody_uses_is_not_a_defect,
         case_a_widening_of_a_static_member_is_seen,
+        case_a_registry_row_that_is_stale_is_reported,
+        case_a_registry_row_that_is_right_is_not_reported,
+        case_a_widening_is_measured_on_a_file_that_changed,
+        case_the_injection_hook_does_not_delete_the_callers_directory,
     ):
         print(f"--- {case.__name__}")
         case()

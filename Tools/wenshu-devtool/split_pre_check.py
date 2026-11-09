@@ -250,6 +250,15 @@ def lint_in_tree(ref: str, paths: list[str], work_parent: Path | None = None) ->
     # = = = = worktree add` refuses an existing directory, = = = = and
     # = = = = `mkdtemp` creates one. = = ⇒ So the worktree goes into a
     # = = = = fresh directory's CHILD.
+    # = = ⇒ AND THE TOOL OWNS ONLY WHAT IT MADE. = = A caller may point
+    # = = = = `--lint-work-parent` at a directory of its own, = = = = and
+    # = = = = the old code DELETED that directory (= = = = and everything
+    # = = = = in it) = = = = because the flag was meant to make an
+    # = = = = unreadable base injectable. = = ⇒ So the flag says where
+    # = = = = the throwaway worktree goes, = = = = and the tool removes
+    # = = = = ONLY that worktree (= = = = never the directory it was
+    # = = = = pointed at).
+    own_parent = work_parent is None
     parent = Path(work_parent) if work_parent else Path(
         tempfile.mkdtemp(prefix="wenshu-lint-")
     )
@@ -309,7 +318,14 @@ def lint_in_tree(ref: str, paths: list[str], work_parent: Path | None = None) ->
             findings.setdefault(rel, []).append(f"{rel}{rest}")
     finally:
         sh("worktree", "remove", "--force", str(work))
-        shutil.rmtree(parent, ignore_errors=True)
+        # = = ⇒ AND ONLY THE DIRECTORY THE TOOL MADE GOES. = = A parent
+        # = = = = the caller supplied is NOT the tool's to remove, = = = =
+        # = = = = and measured: = = = = a directory holding a file and a
+        # = = = = subdirectory was GONE after a run that exited 0.
+        if own_parent:
+            shutil.rmtree(parent, ignore_errors=True)
+        else:
+            shutil.rmtree(work, ignore_errors=True)
     return findings
 
 
@@ -899,8 +915,23 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
             for rel, name, line in widened:
                 target = work / rel
                 text = target.read_text(encoding="utf-8")
+                # = = ⇒ AND THE REWRITE TAKES THE SAME MODIFIER
+                # = = = = VOCABULARY THE DETECTION TAKES, = = = = and it
+                # = = = = swaps ONLY the access level. = = = = The old
+                # = = = = rewrite matched `(var|let|func)` directly, = =
+                # = = = = so a line that said `public func helper` (= = =
+                # = = = the very shape a widening produces) = = = = did
+                # = = = = NOT match, = = = = the file was unchanged, = = =
+                # = = = = the build succeeded, = = = = = and the arm said
+                # = = = = "no file needed it" (= = = = measured: = = = =
+                # = = = = the verdict was the OPPOSITE of the truth). = =
+                # = = = = ⇒ The modifier words stay, = = = = the access
+                # = = = = level becomes `private`, = = = = and a member
+                # = = = = that was already `private` is left alone.
                 new_text = re.sub(
-                    rf"^(\s*)((?:@\w+(?:\([^)]*\))?\s+)*)(var|let|func)\s+{re.escape(name)}\b",
+                    rf"^(\s*)((?:@\w+(?:\([^)]*\))?\s+)*)"
+                    rf"(?:(?:public|internal|private|fileprivate|open)\s+)?"
+                    rf"{_MEMBER_MODIFIERS}(var|let|func)\s+{re.escape(name)}\b",
                     rf"\g<1>\g<2>private \g<3> {name}",
                     text, count=1, flags=re.M,
                 )
@@ -939,6 +970,131 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
         shutil.rmtree(parent, ignore_errors=True)
     return findings
 
+
+
+def registry_loc_mismatches(base: str, head: str, paths: list[str]) -> list[str]:
+    """The registry rows this change ADDED, = = and whether they carry
+    their file's own line count.
+
+    = = ⇒ AND THE COUNT IS THE FILE'S, = = counted the way the registry
+    # = = = = itself counts (= = `wc -l`, = = = = the newline-terminated
+    # = = = = count). = = ⇒ A row that names a file the change added or
+    # = = = = rewrote must carry THAT file's count, = = = = because the
+    # = = = = registry's merge driver merges at the KEY level, = = = = and
+    # = = = = a key's whole row text is its value (= = = = so one side's
+    # = = = = wrong number is carried through silently).
+
+    = = ⇒ MEASURED: = = the review of the export sheet's split found the
+    # = = = = row carrying 192 while the file was 197, = = = = and the
+    # = = = = tree's own `nfi-loc-check` caught it (= = = = and this arm
+    # = = = = did not, = = = = because the arm set had no such check).
+    """
+    findings: list[str] = []
+    # = = ⇒ AND THE BASE IS THE BASE, = = = = not "HEAD". = = = = "HEAD"
+    # = = = = IS THE BRANCH UNDER TEST, = = = = so reading it here made
+    # = = = = every row look old, = = = = and the check reported nothing
+    # = = = = about a row that was wrong.
+    # = = ⇒ AND A BASE WITH NO REGISTRY MEANS EVERY ROW IS NEW. = = = =
+    # = = = = Returning nothing there made the arm silently blind on a
+    # = = = = tree that did not have the registry yet (= = = = and on the
+    # = = = = first change that adds it).
+    base_text = _git_show(base, "docs/agents/nfi.md")
+    if not base_text:
+        base_keys: set[str] = set()
+    else:
+        base_keys = _registry_keys(base_text)
+    try:
+        head_text = _git_show(head, "docs/agents/nfi.md")
+    except Exception:
+        return findings
+    head_rows = _registry_rows(head_text)
+    for key, cells in head_rows:
+        if key in base_keys:
+            continue
+        if not any(key.endswith(p) or p.endswith(key) for p in paths):
+            continue
+        loc_cell = next((c for c in cells[2:] if re.fullmatch(r"\d+", c)), None)
+        if loc_cell is None:
+            continue
+        actual = _wc_lines(key, ref=head)
+        if actual is None:
+            continue
+        if int(loc_cell) != actual:
+            findings.append(
+                f"the registry row for {key} says {loc_cell}, = = and the file is {actual}"
+            )
+    return findings
+
+
+def _git_show(ref: str, path: str) -> str:
+    """A file at a ref, = = read in the tree under test.
+
+    = = ⇒ AND IT RUNS IN THAT TREE, = = = = because `git show` resolves
+    # = = = = the ref against the CURRENT repository, = = = = and the
+    # = = = = current repository is wherever the caller stood. = = = = On
+    # = = = = a fixture in a temporary directory that is not the current
+    # = = = = one, = = = = the read returned nothing, = = = = and the arm
+    # = = = = that used it reported nothing about a row that was wrong.
+    """
+    out = subprocess.run(
+        ["git", "show", f"{ref}:{path}"],
+        cwd=str(CHECK_REPO),
+        capture_output=True,
+        text=True,
+    )
+    return out.stdout
+
+
+def _registry_rows(text: str) -> list[tuple[str, list[str]]]:
+    """The table's rows, = = each as (the key, the cells)."""
+    rows = []
+    for line in text.split("\n"):
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 3:
+            continue
+        key = cells[1].strip("`")
+        if key:
+            rows.append((key, cells))
+    return rows
+
+
+def _registry_keys(text: str) -> set[str]:
+    return {key for key, _ in _registry_rows(text)}
+
+
+def _wc_lines(path: str, ref: str | None = None) -> int | None:
+    """The file's own `wc -l` count (= = the registry's own convention).
+
+    = = ⇒ AND THE PATH IS RESOLVED AGAINST THE TREE UNDER TEST, = = = =
+    # = = = = not against the process's own directory. = = = = The tool
+    # = = = = runs from wherever the caller stood, = = = = and a relative
+    # = = = = key (= = "Sources/...") = = = = read against that directory
+    # = = = = silently found nothing, = = = = and the check said "ok"
+    # = = = = without having looked at anything.
+
+    = = ⇒ AND THE COUNT COMES FROM THE COMMIT, = = = = not from the
+    # = = = = working tree. = = = = The tree under test may already carry
+    # = = = = a fix that the reviewed commit does not have, = = = = and a
+    # = = = = check that reads the working tree measures the WRONG tree.
+    """
+    if ref:
+        out = subprocess.run(
+            ["git", "show", f"{ref}:{path}"],
+            cwd=str(CHECK_REPO),
+            capture_output=True,
+            text=True,
+        )
+        if out.returncode == 0:
+            return out.stdout.count("\n")
+        return None
+    full = Path(CHECK_REPO) / path
+    try:
+        with open(full, "rb") as handle:
+            return sum(1 for _ in handle)
+    except OSError:
+        return None
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -1109,6 +1265,16 @@ def main() -> int:
         failures.append(f"{len(findings)} lost token(s)")
     else:
         print("  ok  no modifier lost, = = no doc comment downgraded")
+
+    print()
+    print("=== 6. the registry rows this change added, = = and their own counts ===")
+    reg = registry_loc_mismatches(args.base, args.head, paths)
+    if reg:
+        for f in reg:
+            print(f"  ! {f}")
+        failures.append(f"{len(reg)} registry row(s) carry a count their file does not have")
+    else:
+        print("  ok  every added row carries its file's own count")
 
     if args.probe_promotions:
         print()
