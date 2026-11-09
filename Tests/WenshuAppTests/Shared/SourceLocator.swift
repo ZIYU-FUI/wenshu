@@ -24,7 +24,6 @@
 import Foundation
 
 enum SourceLocator {
-
     /// Repo root = the nearest ancestor directory holding a Package.swift.
     /// PERF: resolved once per process; the walk is 3-5 `exists` calls.
     static let repoRoot: URL = {
@@ -81,8 +80,12 @@ enum SourceLocator {
     /// A path's file name without its `.swift` extension.
     static func pathWithoutExtension(of path: String) -> String {
         var name = path
-        if let slash = name.lastIndex(of: "/") { name = String(name[name.index(after: slash)...]) }
-        if name.hasSuffix(".swift") { name = String(name.dropLast(".swift".count)) }
+        if let slash = name.lastIndex(of: "/") {
+            name = String(name[name.index(after: slash)...])
+        }
+        if name.hasSuffix(".swift") {
+            name = String(name.dropLast(".swift".count))
+        }
         return name
     }
 
@@ -93,7 +96,7 @@ enum SourceLocator {
     /// silently-empty string.
     static func read(_ relativePath: String) throws -> String {
         let fileURL = url(relativePath)
-        guard let text = String(data: try Data(contentsOf: fileURL), encoding: .utf8) else {
+        guard let text = try String(data: Data(contentsOf: fileURL), encoding: .utf8) else {
             throw CocoaError(.fileReadCorruptFile)
         }
         return text
@@ -140,12 +143,15 @@ enum SourceLocator {
         }
         var all: [String] = []
         for case let entry as URL in walker
-        where entry.pathExtension == "swift" {
+            where entry.pathExtension == "swift"
+        {
             let relative = entry.path
                 .replacingOccurrences(of: repoRoot.path + "/", with: "")
             // A previous build's intermediates can shadow the real
             // source; they are never the file under test.
-            if !relative.contains("/.build/") { all.append(relative) }
+            if !relative.contains("/.build/") {
+                all.append(relative)
+            }
         }
         guard let stemPath = all.first(where: { pathWithoutExtension(of: $0) == stem }) else {
             return []
@@ -171,7 +177,8 @@ enum SourceLocator {
         }
         var found: [String] = []
         for case let entry as URL in walker
-        where entry.lastPathComponent == fileName && entry.pathExtension == "swift" {
+            where entry.lastPathComponent == fileName && entry.pathExtension == "swift"
+        {
             let relative = entry.path
                 .replacingOccurrences(of: repoRoot.path + "/", with: "")
             // A previous build's intermediates can shadow the real

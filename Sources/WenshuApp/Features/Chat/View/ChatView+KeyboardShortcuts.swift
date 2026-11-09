@@ -6,15 +6,14 @@
 // chat's VStack has spacing 0, = = so a stack of zero-size children takes no
 // room, = = and these shortcuts do not change what the chat renders.
 
-import SwiftUI
 import os.log
+import SwiftUI
 
-// The chat view's own logger, = = declared here because a file-scope
-// `private` is private to ITS file, = = and this file is its own.
+/// The chat view's own logger, = = declared here because a file-scope
+/// `private` is private to ITS file, = = and this file is its own.
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "chatview")
 
 extension ChatView {
-
     /// The chat's keyboard shortcuts.
     ///
     /// Each button is hidden: = = it exists only to carry a shortcut.
@@ -576,4 +575,3 @@ extension ChatView {
         .accessibilityHidden(true)
     }
 }
-
