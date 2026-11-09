@@ -35,6 +35,7 @@ inv = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(inv)
 
 TICKET_ID = inv.TICKET_ID
+SKIP_RULE = inv.SKIP_RULE
 
 
 # = = the four families the tree really uses = =
@@ -256,23 +257,28 @@ def check_the_printed_method():
     # = = must each be reachable by the matcher. = = The forms are read
     # = = from the printed method itself, = = so a new exemplar that the
     # = = matcher cannot reach is caught the day it is printed.
+    # = = THE METHOD'S EXEMPLARS ARE READ FROM ITS OWN LISTING GROUPS.
+    # = = = =
+    # = = The method lists the forms it reaches inside "(= = ...)" groups,
+    # = = and a group can SPAN TWO print lines (= = the connector-ticket
+    # = = family's example does), = = so the method's text is JOINED first
+    # = = and the groups are parsed out of the whole. = = That is also
+    # = = what separates an ADVERTISED FORM from a MENTION: = = a mention
+    # = = (= = "their own A112/A115 labels", = = "the p90") sits outside
+    # = = a group.
+    method_lines = [
+        line for line in source.split("\n") if line.strip().startswith("print(")
+    ]
+    # = = the print calls' own text, = = with the regex lines removed (= =
+    # = = = a regex's character classes are not ticket forms)
+    method_text = "\n".join(
+        line
+        for line in method_lines
+        if "\\\\" not in line and "b(" not in line
+    )
     exemplars = set()
-    for line in source.split("\n"):
-        if not line.strip().startswith("print("):
-            continue
-        # = = the method ALSO prints its regexes, = = and a regex's own
-        # = = character classes are not exemplars (= = `A-Za-z0-9.-` is
-        # = = not a ticket form). = = The regex lines are the ones that
-        # = = carry a backslash, = = so they are excluded, = = and what
-        # = = remains is the method's prose (= = where its exemplars and
-        # = = its skip claims live).
-        if "\\\\" in line or "b(" in line:
-            continue
-        # = = a token MAY END IN A HYPHEN (= = `OOB-`), = = because that is
-        # = = exactly the shape the round-4 review named: = = a form the
-        # = = method advertised and the matcher could not reach. = = So the
-        # = = trailing hyphen is part of the token, = = not a separator.
-        for token in re.findall(r"\b[A-Z][A-Za-z0-9]*(?:-[A-Za-z0-9.]*)*-?", line):
+    for group in re.findall(r"\(=[^)]*\)", method_text):
+        for token in re.findall(r"\b[a-zA-Z][A-Za-z0-9]*(?:-[A-Za-z0-9.]*)*-?", group):
             if token in ("TICKET_ID", "THE", "AND", "OR"):
                 continue
             # = = a token that ends in a hyphen (= = `OOB-`, = = `GAP-`)
@@ -283,14 +289,32 @@ def check_the_printed_method():
             if token.endswith("-"):
                 exemplars.add(token)
                 continue
-            if re.match(r"^[A-Z][A-Za-z]*-?\d", token) or re.match(
+            # = = AN EXEMPLAR LOOKS LIKE A TICKET ID, = = NOT LIKE A WORD.
+            looks_like_id = "-" in token or bool(re.match(r"^[A-Za-z]{1,3}\d", token))
+            if not looks_like_id:
+                continue
+            # = = THE FORM ITSELF, = = NOT A SUFFIX OF IT. = = `round-x`
+            # = = is a lowercase form the matcher cannot reach, = = and it
+            # = = must be caught (= = the last round measured a method
+            # = = advertising one leaving the suite green).
+            if re.match(r"^[A-Za-z][A-Za-z]*-?\d", token) or re.match(
                 r"^(?:TICKET-HERMES|GAP|TKT)[-_]", token
-            ):
+            ) or re.match(r"^round-", token):
                 exemplars.add(token)
     for token in sorted(exemplars):
-        if not TICKET_ID.search(token):
+        # = = THE SPAN, = = NOT THE PRESENCE. = = `search` is truthy for a
+        # = = FRAGMENT (= = `P1` inside `P1-02`), = = so reachability alone
+        # = = does not hold the "matched whole" property. = = The matched
+        # = = TEXT must equal the exemplar.
+        matched = TICKET_ID.search(token)
+        if matched is None:
             failures.append(
                 f"the printed method names {token!r}, = = so the matcher must reach it"
+            )
+        elif matched.group(0) != token:
+            failures.append(
+                f"the printed method names {token!r}, = = and the matcher matches "
+                f"{matched.group(0)!r} = = = = the id must be matched WHOLE"
             )
 
     # = = THE METHOD MUST PRINT THE MATCHER IT USES. = = The method
@@ -382,11 +406,52 @@ def check_the_printed_method():
     # = = method must say both. = = This is read from the CODE (= = the
     # = = skip expression) and from the METHOD TEXT, = = so a change to
     # = = either one without the other is caught.
-    code_skips = []
-    if "RECEIPT.search(line)" in source:
-        code_skips.append("the collapse receipts")
-    if 'startswith("// /")' in source:
-        code_skips.append("the `// /` lines")
+    code_skips = list(SKIP_RULE.keys())
+
+    # = = AND THE MEASURED ROW MUST CALL THE PREDICATE. = = A table the
+    # = = guard reads is not enough: = = the measured row could still run
+    # = = its own copy of the rule, = = and the last round measured that
+    # = = (the row's number moved while the guard was green). = = So the
+    # = = guard also checks that the rule's expressions appear ONLY inside
+    # = = the table, = = and that the table has the readers.
+    # = = THE TABLE IS THE ONLY COPY OF THE RULE THAT THE TICKET ROW
+    # = = READS. = = Measures 1 and 2 legitimately LOOK at those two kinds
+    # = = of line (= = they count them), = = so their use of the same
+    # = = expressions is not a second copy of the ticket row's rule. = =
+    # = = = The defect was a COMBINED condition (= = a skip written as
+    # = = = = `RECEIPT.search(line) or line.strip().startswith("// /")`)
+    # = = = = inside the ticket row, = = = = which is a copy the table
+    # = = = = does not see. = = So the guard looks for the COMBINED form.
+    for combined in (
+        'RECEIPT.search(line) or line.strip().startswith("// /")',
+        'line.strip().startswith("// /") or RECEIPT.search(line)',
+    ):
+        if combined in source:
+            failures.append(
+                "the ticket row's skip rule is written out as a combined "
+                f"condition (= = {combined!r}), = = and it must read the one table"
+            )
+    if source.count("skipped(line)") < 3:
+        # = = three: = = the predicate's own body, = = the measured row,
+        # = = and the per-hit reader
+        failures.append(
+            "both the measured row and the per-hit reader must call "
+            "'skipped(line)', = = so the rule has one reader"
+        )
+
+    # = = AND THE MEASURED ROW MUST CALL THE PREDICATE. = = A table the
+    # = = guard reads is not enough: = = the measured row could still run
+    # = = its own copy of the rule, = = and the last round measured that
+    # = = (the row's number moved while the guard was green). = = So the
+    # = = guard also checks that BOTH readers call `skipped`, = = and that
+    # = = the rule's expressions appear ONLY inside the table.
+    if source.count("skipped(line)") < 3:
+        # = = three: = = the predicate's own body, = = the measured row,
+        # = = and the per-hit reader
+        failures.append(
+            "both the measured row and the per-hit reader must call "
+            "'skipped(line)', = = so the rule has one reader"
+        )
 
     # = = THE METHOD MUST STATE EACH SKIP AS ITS OWN CLAUSE. = = A
     # = = mention is not a statement: = = the defect was a method that
@@ -477,6 +542,195 @@ def check_the_at_base_attribution():
     return failures
 
 
+
+def check_the_at_base_attribution_is_per_file():
+    """The at_base status is the BASE'S debt IN THAT FILE, = = not anywhere.
+
+    = = THE DEFECT THIS GUARDS: = = the tool's own text said the status is
+    = = decided on the base's own line text, = = and the code decided it
+    = = on a TREE-WIDE token set, = = and the per-line map that would have
+    = = implemented the stated rule was computed and thrown away. = = So a
+    = = token the base carried in ONE file was published as `at_base` for
+    = = a DIFFERENT file the base never touched, = = and the reader was
+    = = asked to check a number the rule did not produce.
+    = =
+    = = So the test builds a REAL repo with a REAL base and a REAL tip:
+    = = file A carries the id at the base, = = and the change adds the SAME
+    = = id to file B. = = B's hit is the CHANGE'S OWN, = = and the tool
+    = = must say so.
+    """
+    import subprocess
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as scratch:
+        repo = Path(scratch) / "repo"
+        repo.mkdir()
+        run_git = lambda *args: subprocess.run(
+            ["git", "-C", str(repo), *args],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        run_git("init", "-q")
+        run_git("config", "user.email", "t@example.com")
+        run_git("config", "user.name", "t")
+        sources = repo / "Sources"
+        sources.mkdir()
+        file_a = sources / "A.swift"
+        file_b = sources / "B.swift"
+        file_a.write_text("// T4-REF old\n", encoding="utf-8")
+        file_b.write_text("// nothing here yet\n", encoding="utf-8")
+        run_git("add", ".")
+        run_git("commit", "-q", "-m", "base")
+        base = run_git("rev-parse", "HEAD").stdout.strip()
+
+        file_b.write_text("// nothing here yet\n// T4-REF new in B\n", encoding="utf-8")
+        run_git("add", ".")
+        run_git("commit", "-q", "-m", "tip")
+        tip = run_git("rev-parse", "HEAD").stdout.strip()
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(TOOL),
+                "--base",
+                base,
+                "--tip",
+                tip,
+            ],
+            cwd=str(repo),
+            capture_output=True,
+            text=True,
+        )
+        out = result.stdout + result.stderr
+        if result.returncode != 0:
+            return [f"the tool failed on the synthetic repo: {out.strip()[-300:]}"]
+        failures = []
+        # = = B's hit must be the CHANGE'S OWN: = = the base never carried
+        # = = that id in B, = = so the tree-wide reading would say at_base
+        line = next(
+            (
+                l
+                for l in out.split("\n")
+                if "B.swift" in l and "T4-REF" in l
+            ),
+            None,
+        )
+        if line is None:
+            return ["the tool published no hit for the file the change added"]
+        if "the change's own" not in line:
+            failures.append(
+                f"the hit the change added to B.swift is published as {line.strip()!r}, "
+                f"= = and the base never carried that id in B, = = so it is the change's own"
+            )
+        # = = and A's hit IS the base's debt = = (the base carried it there)
+        line_a = next(
+            (l for l in out.split("\n") if "A.swift" in l and "T4-REF" in l),
+            None,
+        )
+        if line_a is not None and "at_base" not in line_a:
+            failures.append(
+                f"the hit the base carried in A.swift is published as {line_a.strip()!r}, "
+                f"= = and it is the base's debt"
+            )
+        return failures
+
+
+def check_the_tip_read_survives_the_tree():
+    """The tip's file set is the TIP's own, = = and a deleted file is not fatal.
+
+    = = THREE DEFECTS, = = ONE SHAPE. = = The last round measured them:
+    = = = = (1) a file the change DELETED was read at the tip with no
+    = = = = guard, = = and the tool DIED; = = (2) a file the change ADDED
+    = = = = was never measured, = = because the file list came from the
+    = = = = base; = = = = (3) the denominator counted every changed path
+    = = = = (= = 13) while the table read only the production `.swift`
+    = = = = files among them (= = 8).
+    = =
+    = = = = So the tool must read the tip's own file set, = = skip a file
+    = = = = the tip does not have, = = and print the number of files it
+    = = = = actually measured.
+    """
+    import subprocess
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as scratch:
+        repo = Path(scratch) / "repo"
+        repo.mkdir()
+        run_git = lambda *args: subprocess.run(
+            ["git", "-C", str(repo), *args],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        run_git("init", "-q")
+        run_git("config", "user.email", "t@example.com")
+        run_git("config", "user.name", "t")
+        sources = repo / "Sources"
+        sources.mkdir()
+        kept = sources / "Kept.swift"
+        removed = sources / "Removed.swift"
+        kept.write_text("// T4-KEEP one\n", encoding="utf-8")
+        removed.write_text("// T4-GONE one\n", encoding="utf-8")
+        run_git("add", ".")
+        run_git("commit", "-q", "-m", "base")
+        base = run_git("rev-parse", "HEAD").stdout.strip()
+
+        # = = the change DELETES one file and ADDS another = =
+        removed.unlink()
+        (sources / "Added.swift").write_text("// T4-NEW one\n", encoding="utf-8")
+        # = = and it touches a NON-PRODUCTION file, = = so "every changed
+        # = = path" (= = 3) and "the production files among them" (= = 2)
+        # = = are different numbers: = = the denominator must be the second
+        (repo / "README.md").write_text("# a doc the change touched\n", encoding="utf-8")
+        run_git("add", "-A")
+        run_git("commit", "-q", "-m", "tip")
+        tip = run_git("rev-parse", "HEAD").stdout.strip()
+
+        result = subprocess.run(
+            [sys.executable, str(TOOL), "--base", base, "--tip", tip],
+            cwd=str(repo),
+            capture_output=True,
+            text=True,
+        )
+        out = result.stdout + result.stderr
+        if result.returncode != 0:
+            return [
+                "the tool died on a change that deleted a production file: "
+                + out.strip()[-300:]
+            ]
+        failures = []
+        # = = the ADDED file's hit must be published = =
+        added_line = next(
+            (l for l in out.split("\n") if "Added.swift" in l and "T4-NEW" in l),
+            None,
+        )
+        if added_line is None:
+            failures.append(
+                "the tool measured no hit for the file the change ADDED, = = so a "
+                "ticket id introduced in a new file is invisible to the attribution"
+            )
+        # = = and the DELETED file must not be published = =
+        if "Removed.swift" in out and "T4-GONE" in out:
+            failures.append(
+                "the tool published a hit for the file the change DELETED"
+            )
+        # = = the denominator must be the number of files READ = =
+        denominator = next(
+            (l for l in out.split("\n") if "production file(s) this change touched" in l),
+            None,
+        )
+        if denominator is None:
+            failures.append("the tool did not print the number of files it measured")
+        else:
+            # = = two production files changed (= = Kept and Added) = =
+            if "2 production file(s)" not in denominator:
+                failures.append(
+                    f"the tool says {denominator.strip()!r}, = = and it measured two "
+                    f"production files (= = the kept one and the added one)"
+                )
+        return failures
+
 def main():
     failures = []
 
@@ -502,6 +756,8 @@ def main():
     # = = BOTH the unstated skip and the unreachable exemplar).
     failures.extend(check_the_printed_method())
     failures.extend(check_the_at_base_attribution())
+    failures.extend(check_the_at_base_attribution_is_per_file())
+    failures.extend(check_the_tip_read_survives_the_tree())
 
     # = = the two comment defects the last review measured, = = checked
     # = = against the tree itself (= = the branch's own added lines, = =

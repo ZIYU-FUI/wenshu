@@ -467,6 +467,7 @@ prints the method that produced it, = = so a number can be reproduced.
 ```
 python3 Tools/wenshu-devtool/inventory-measure.py
 python3 Tools/wenshu-devtool/inventory-measure.py --base main
+python3 Tools/wenshu-devtool/inventory-measure.py --base <base sha> --tip <tip sha>
 python3 Tools/wenshu-devtool/inventory-measure.py --files <path> [<path> ...]
 ```
 
@@ -487,9 +488,20 @@ a fragment. = = So the matcher carries its own cases.
 
 = = The row also publishes EACH HIT's `at_base` status (= = the base's debt
 against the change's own) for the files the change touched, = = and the
-tree's own row (= = base 362 -> tip 306 at the review's base). = = The
+tree's own row. = = The status is the base's debt IN THAT FILE: = = a
+token the base carried in another file is not this file's debt. = = The
 aggregate pair alone was not enough: = = the numbers were right and the
 reader could not check them.
+
+= = The numbers depend on the base, = = so they are stated with the sha
+they were measured at: = = at base `722e73ec13f2a8a5140afce82449fd0689ee1feb`
+the tree's row reads `base 362 -> tip 306`; = = at base
+`e19d6bb579496a5a81061d172e663c6713bd2288` it reads `base 306 -> tip 306`.
+= = And the connector-ticket family (= = the forms the tree's own prose
+calls tickets) occurs **22** times in production comment lines at
+`722e73ec13f2a8a5140afce82449fd0689ee1feb` and **21** at
+`e19d6bb579496a5a81061d172e663c6713bd2288`; = = of those, `GAP-003` alone
+occurs **4** times.
 
 ```
 python3 Tools/wenshu-devtool/tests/test_inventory_measure.py

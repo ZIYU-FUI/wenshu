@@ -110,6 +110,40 @@ def strip_string_literals(line):
     return re.sub(r'"(?:\\.|[^"\\])*"', '""', line)
 
 
+# = = THE SKIP RULE, = = IN ONE PLACE. = =
+# = =
+# = = Two kinds of comment line are NOT ticket references: = = the
+# = = collapse receipts (= = they carry their own A112/A115 labels, = =
+# = = and those labels are measure 2's business), = = and the malformed
+# = = `// /` doc comments (= = measure 1's business).
+# = =
+# = = THIS PREDICATE IS THE ONLY STATEMENT OF THAT RULE. = = Measure 5
+# = = counts what survives it, = = the per-hit attribution reads what
+# = = survives it, = = and the suite's guard PARSES IT = = so the
+# = = printed method cannot drift from the measured row. = = A second
+# = = copy of the rule would let the two drift again, = = which is the
+# = = defect class this card exists to close.
+SKIP_RULE = {
+    "the collapse receipts": "RECEIPT.search(line)",
+    "the `// /` lines": 'line.strip().startswith("// /")',
+}
+
+
+def skipped(line):
+    """Whether this comment line is excluded from the ticket-id count.
+
+    = = THE BODY IS GENERATED FROM `SKIP_RULE`. = = The rule lives in
+    = = ONE table, = = and this function is that table compiled, = = so
+    = = the measured row, = = the per-hit attribution and the suite's
+    = = guard all read the SAME rule. = = A hand-written body beside the
+    = = table would be a SECOND copy, = = and the last round measured
+    = = exactly that: = = the guard saw the table, = = the measured row
+    = = ran the copy, = = and removing a skip from the measured row left
+    = = the guard green and the published number moving.
+    """
+    return any(eval(expression, {"RECEIPT": RECEIPT, "line": line}) for expression in SKIP_RULE.values())
+
+
 
 def changed_files(base, tip):
     """The production files the change touched (= base vs tip).
@@ -252,19 +286,17 @@ def main():
     # 5. ticket ids
     ids = 0
     distinct = set()
-    hits = []
     for p in files:
-        for lineno, line in enumerate(read(base, p).splitlines(), 1):
+        for line in read(base, p).splitlines():
             if not is_comment(line):
                 continue
-            # the collapse receipts carry their own A112/A115 labels; those are
-            # measure 2's business, not a ticket reference
-            if RECEIPT.search(line) or line.strip().startswith("// /"):
+            # = = the ONE skip rule (= = `skipped`), = = so the measured row
+            # = = and the printed method cannot drift apart
+            if skipped(line):
                 continue
             for m in TICKET_ID.finditer(line):
                 ids += 1
                 distinct.add(m.group(0))
-                hits.append((p, lineno, m.group(0)))
     print("5. ticket ids")
     print("   method: a form-complete ticket-id match in a production comment line:")
     print("   `\\b(?:T|P|A|B|C|Q|OOB|E|W|F|H|S|R)\\d*-[A-Za-z0-9][A-Za-z0-9.-]*`")
@@ -299,58 +331,84 @@ def main():
     # = = not on its number, = = because a change moves lines.
     if tip:
         # = = the hits, = = per file and per line, = = with each one's
-        # = = at_base status. = = The status is decided on the LINE'S OWN
-        # = = TEXT at the base: = = a hit is the base's debt when the base
-        # = = already carried that ticket id, = = and the change's own
-        # = = when it did not. = = (The line's NUMBER is not the test: = =
-        # = = a change moves lines.)
+        # = = at_base status.
+        # = =
+        # = = THE STATUS IS DECIDED ON THE BASE'S OWN TEXT FOR THAT FILE.
+        # = = A hit is the base's debt when the base's SAME file already
+        # = = carried that ticket id, = = and the change's own when it did
+        # = = not. = = The comparison is on the FILE and the TOKEN, = =
+        # = = not on the line's number (= = a change moves lines), = = and
+        # = = NOT on a tree-wide token set: = = a token the base carried
+        # = = in ANOTHER file is not this file's debt.
         def hits_in(text):
             found = []
             for lineno, line in enumerate(text.splitlines(), 1):
                 if not is_comment(line):
                     continue
-                if RECEIPT.search(line) or line.strip().startswith("// /"):
+                # = = the ONE skip rule (= = `skipped`)
+                if skipped(line):
                     continue
                 for m in TICKET_ID.finditer(line):
                     found.append((lineno, m.group(0)))
             return found
 
-        base_hits = set()
-        for p in files:
-            for _, token in hits_in(read(base, p)):
-                base_hits.add(token)
+        def read_at(rev, path):
+            """The file's text at a revision, = = or None if it is not there.
 
-        # = = the CHANGED files: = = the ones the change touched. = = The
-        # = = attribution is about the change, = = so it is published for
-        # = = the files the change touched, = = and the whole tree's row
-        # = = is published beside it.
-        changed = changed_files(base, tip)
+            = = A file the change DELETED is not an error: = = it is absent
+            = = at that revision, = = and the reader says so.
+            """
+            try:
+                return read(rev, path)
+            except subprocess.CalledProcessError:
+                return None
+
+        # = = the file sets: = = the base's own, = = and the tip's own. = =
+        # = = The tip's set is NOT the base's set: = = a file the change
+        # = = ADDED is in the tip and not in the base, = = and a file it
+        # = = DELETED is in the base and not in the tip. = = Measuring the
+        # = = base's list alone would miss an added file entirely.
+        base_files = set(files)
+        tip_files = {p for p in production_files(tip) if p.endswith(".swift")}
+        measured_files = sorted((base_files | tip_files) & changed_files(base, tip))
+
+        # = = the base's tokens, = = PER FILE (= = so the attribution is
+        # = = the base's debt IN THAT FILE, = = not anywhere in the tree)
+        base_by_file = {}
+        for p in base_files:
+            text = read_at(base, p)
+            if text is None:
+                continue
+            base_by_file[p] = {token for _, token in hits_in(text)}
+        base_hits = set()
+        for tokens in base_by_file.values():
+            base_hits |= tokens
+
         print("   each hit's at_base status:")
         reported = 0
-        for p in files:
-            if p not in changed:
+        for p in measured_files:
+            text = read_at(tip, p)
+            if text is None:
+                # = = the change DELETED this file: = = there is nothing at
+                # = = the tip to attribute
                 continue
-            base_by_line = {}
-            try:
-                base_by_line = {
-                    lineno: token
-                    for lineno, token in hits_in(read(base, p))
-                }
-            except subprocess.CalledProcessError:
-                base_by_line = {}
-            for lineno, token in hits_in(read(tip, p)):
-                status = "at_base" if token in base_hits else "the change's own"
+            base_tokens = base_by_file.get(p, set())
+            for lineno, token in hits_in(text):
+                status = "at_base" if token in base_tokens else "the change's own"
                 print(f"     {token:16s} {p}:{lineno} {status}")
                 reported += 1
-        print(f"   {reported} hit(s) over the {len(changed)} file(s) this change touched")
+        print(
+            f"   {reported} hit(s) over the {len(measured_files)} production file(s) "
+            f"this change touched"
+        )
 
         tip_hits = set()
-        for p in files:
-            try:
-                for _, token in hits_in(read(tip, p)):
-                    tip_hits.add(token)
-            except subprocess.CalledProcessError:
+        for p in tip_files:
+            text = read_at(tip, p)
+            if text is None:
                 continue
+            for _, token in hits_in(text):
+                tip_hits.add(token)
         debt = base_hits & tip_hits
         own = tip_hits - base_hits
         print(
@@ -386,7 +444,20 @@ def main():
     print("           that narrower run reports a different number)")
     # verify-dead.py reads files from disk, so the pinned tree has to be on
     # disk: a temporary worktree at the base, removed afterwards.
-    repo = pathlib.Path(__file__).resolve().parents[2]
+    # = = THE REPOSITORY IS THE ONE THE TOOL RUNS IN, = = not the one the
+    # = = tool happens to live in. = = The base and the tip are read with
+    # = = `git show`, = = so they can name any repository, = = and the tree
+    # = = that has to be ON DISK (= = for verify-dead) must be the SAME
+    # = = repository's. = = Otherwise a run against another repository
+    # = = builds a worktree of the wrong one.
+    repo = pathlib.Path(
+        subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+    )
     with tempfile.TemporaryDirectory() as tmp:
         # The path has to be RESOLVED: the tool compares the paths it is
         # given against the git root it reports, and on macOS the
