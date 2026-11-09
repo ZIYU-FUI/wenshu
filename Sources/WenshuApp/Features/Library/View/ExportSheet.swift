@@ -427,4 +427,3 @@ enum ChapterExportFormat: String, CaseIterable, Identifiable, Sendable {
         rawValue
     }
 }
-
