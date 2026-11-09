@@ -340,82 +340,56 @@ def case_promotion_not_needed_is_reported() -> None:
         )
 
 
-def case_swiftlint_uses_the_under_test_repo_config() -> None:
-    """THE REVIEW'S BLOCKING 1: = = swiftlint resolves `.swiftlint.yml`
-    from the WORKING DIRECTORY, = = and not from the tree it is given.
+def case_the_repos_own_custom_rule_is_loaded() -> None:
+    """THE REVIEW'S BLOCKING 1, = = measured on the REAL repo: = = a copy
+    of the files carries no config, = = so the repo's OWN custom rule
+    (= = the one that catches the forbidden vocabulary) is never loaded,
+    and the same forbidden token reports "ok, no finding".
 
-    = = ⇒ So the case puts a rule the repo DISABLES into the file it
-    # = = checks, = = and the rule is only silent if the tool passed the
-    # = = repo's own config. = = And the case runs the tool from a
-    # = = directory whose own config DISABLES NOTHING, = = = = so a tool
-    # = = that let swiftlint find its own config reads the rule.
-
-    = = ⇒ AND THE COUNTER-CASE: = = the same rule in a repo whose config
-    # = = does not disable it IS reported.
+    = = ⇒ The repo's config has a custom rule, = = and the tool runs
+    # = = = = swiftlint INSIDE the worktree, = = = = so the rule is there.
     """
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         repo = make_repo(tmp)
-        # = = The repo DISABLES the rule.
         (repo / ".swiftlint.yml").write_text(
-            "disabled_rules:\n  - file_length\n", encoding="utf-8"
+            "custom_rules:\n"
+            "  forbidden_token:\n"
+            "    name: \"Forbidden token\"\n"
+            "    regex: 'BADTOKEN'\n"
+            "    message: \"the forbidden token is here\"\n"
+            "    severity: error\n",
+            encoding="utf-8",
         )
         write(repo, "Sources/Thing.swift", """
             public struct Thing {
-                public func one() {}
+                public func one() {
+                    let name = "clean"
+                    _ = name
+                }
             }
         """)
         commit(repo, "base")
         base = git(repo, "rev-parse", "HEAD").strip()
+        # = = ⇒ AND THE TOKEN IS INTRODUCED BY THIS CHANGE, = = = = because
+        # = = = = a token the base already had is not this change's.
         write(repo, "Sources/Thing.swift", """
             public struct Thing {
-                public func one() {}
+                public func one() {
+                    let name = "BADTOKEN"
+                    _ = name
+                }
                 public func two() {}
             }
         """)
         commit(repo, "tip")
         head = git(repo, "rev-parse", "HEAD").strip()
 
-        # = = A LONG file: = = over the rule's limit.
-        long_body = "public struct Thing {\n" + "".join(
-            f"    public func f{i}() {{}}\n" for i in range(500)
-        ) + "}\n"
-        (repo / "Sources/Thing.swift").write_text(long_body, encoding="utf-8")
-        commit(repo, "a long file")
-        long_head = git(repo, "rev-parse", "HEAD").strip()
-
-        # = = ⇒ THE TOOL RUNS FROM A DIRECTORY WITH NO `.swiftlint.yml`,
-        # = = = = because that is the situation the review measured: = =
-        # = = = = a run from elsewhere read no config, = = = = and the
-        # = = = = repo's disabled rules came back to life. = = ⇒ So the
-        # = = = = cwd here has no config of its own, = = = = and only the
-        # = = = = tool's own handling of the under-test repo's config can
-        # = = = = keep the rule disabled.
-        elsewhere = tmp / "elsewhere"
-        elsewhere.mkdir()
-        code, out = check(repo, base, long_head, cwd=elsewhere)
+        code, out = check(repo, base, head)
         expect(
-            "the under-test repo's OWN swiftlint config is used (= = its disabled rules stay disabled)",
-            "file_length" not in out,
+            "the repo's OWN custom rule is loaded (= = the forbidden token is reported)",
+            "forbidden token" in out.lower(),
             out,
-        )
-
-        # = = AND THE COUNTER-CASE: = = a repo that does NOT disable it.
-        repo2 = make_repo(tmp / "b")
-        (repo2 / ".swiftlint.yml").write_text(
-            "disabled_rules: []\n", encoding="utf-8"
-        )
-        write(repo2, "Sources/Thing.swift", "public struct Thing {}\n")
-        commit(repo2, "base")
-        b2 = git(repo2, "rev-parse", "HEAD").strip()
-        (repo2 / "Sources/Thing.swift").write_text(long_body, encoding="utf-8")
-        commit(repo2, "tip")
-        h2 = git(repo2, "rev-parse", "HEAD").strip()
-        code2, out2 = check(repo2, b2, h2, cwd=elsewhere)
-        expect(
-            "a repo that does NOT disable the rule reports it (= = the rule is really running)",
-            code2 != 0 and "file_length" in out2,
-            out2,
         )
 
 
@@ -584,6 +558,179 @@ def case_the_link_needs_the_declarations_and_not_the_name() -> None:
         )
 
 
+def case_a_test_file_is_read_and_checked() -> None:
+    """THE REVIEW'S BLOCKING 5: = = the tree read `Sources/` only, = = and
+    the changed files include `Tests/`.
+
+    = = ⇒ So a change to a TEST file was invisible to every check that
+    # = = = = reads the tree, = = = = and the tool reported a finding in
+    # = = = = a file it never read. = = ⇒ The case puts a real defect in
+    # = = = = a TEST file, = = = = and the tool must find it.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        write(repo, "Sources/Thing.swift", "public struct Thing {}\n")
+        write(repo, "Tests/ThingTests.swift", """
+            /// ThingTests: the suite
+            public struct ThingTests {}
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Tests/ThingTests.swift", """
+            // ThingTests: the suite
+            public struct ThingTests {}
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        code, out = check(repo, base, head)
+        expect(
+            "a defect in a TEST file is found (= = the tool reads Tests/ too)",
+            code != 0 and "doc comment became a plain" in out,
+            out,
+        )
+
+
+def case_a_change_with_no_swift_file_is_not_a_crash() -> None:
+    """THE REVIEW'S NEW DEFECT 4: = = the tool CRASHED with an IndexError
+    on any change touching no Swift file (= = = = including a change of
+    two Python files).
+
+    = = ⇒ A tool that crashes says nothing, = = = = and the change it
+    # = = = = cannot judge is not a change that passed.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        write(repo, "Sources/Thing.swift", "public struct Thing {}\n")
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Tools/thing.py", "print('x')\n")
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base, "--head", head],
+            capture_output=True, text=True,
+        )
+        expect(
+            "a change with no Swift file does not crash",
+            "Traceback" not in proc.stderr and "IndexError" not in proc.stderr,
+            proc.stderr[-400:],
+        )
+
+
+def case_a_new_finding_is_not_swallowed_by_an_unrelated_one() -> None:
+    """THE REVIEW'S NEW DEFECT 3: = = the base was linted WHOLE, = = so an
+    UNRELATED pre-existing finding could swallow a new one in a changed
+    file.
+
+    = = ⇒ The comparison is PER FILE, = = = = so a new finding in the
+    # = = = = changed file is compared with THAT file's own base, = = = =
+    # = = = = and the unrelated one elsewhere cannot hide it.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        # = = The repo's config DISABLES identifier_name (= = the tree's
+        # = = own does), = = so this case's config does not, = = and the
+        # = = finding is a real one.
+        (repo / ".swiftlint.yml").write_text(
+            "disabled_rules:\n  - file_length\n  - type_body_length\n", encoding="utf-8"
+        )
+        # = = An UNRELATED file that carries the SAME rule and the SAME
+        # = = message (= = a one-letter variable name).
+        write(repo, "Sources/Other.swift", """
+            public struct Other {
+                public func one() {
+                    let a = 1
+                    _ = a
+                }
+            }
+        """)
+        write(repo, "Sources/Thing.swift", "public struct Thing {}\n")
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        # = = The CHANGED file grows a finding of the same rule and the
+        # = = same message (= = and a per-file comparison has to report
+        # = = it, = = because the base's own Thing.swift has none).
+        write(repo, "Sources/Thing.swift", """
+            public struct Thing {
+                public func one() {
+                    let a = 1
+                    _ = a
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        code, out = check(repo, base, head)
+        expect(
+            "a new finding in a changed file is reported (= = not swallowed by an unrelated base finding)",
+            code != 0 and "Thing.swift" in out,
+            out,
+        )
+
+
+def case_a_split_created_file_is_checked_for_promotions() -> None:
+    """THE REVIEW'S BLOCKING 4: = = check 5 skipped a split-created file.
+
+    = = ⇒ The base's file is DELETED, = = = = and the widened member lives
+    # = = = = in the file the split created, = = = = so a lookup by path
+    # = = = = found nothing and the check said nothing. = = ⇒ The base is
+    # = = = = read BY FAMILY.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        write(repo, "Sources/Old.swift", """
+            public struct Old {
+                private func helper() -> Int { 1 }
+                public func one() -> Int { helper() }
+                public func two() -> Int { helper() }
+                public func three() -> Int { helper() }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        (repo / "Sources/Old.swift").unlink()
+        write(repo, "Sources/New.swift", """
+            public struct New {
+                func helper() -> Int { 1 }
+                public func one() -> Int { helper() }
+                public func two() -> Int { helper() }
+                public func three() -> Int { helper() }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        # = = The probe arm is opt-in, = = and this is the arm.
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(TOOL),
+                "--repo",
+                str(repo),
+                "--base",
+                base,
+                "--head",
+                head,
+                "--probe-promotions",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "the split-created file IS probed for a widened member",
+            "Traceback" not in proc.stderr and "helper" in out,
+            out[-800:],
+        )
+
+
 def main() -> int:
     print("split_pre_check: every check has a positive control")
     for case in (
@@ -593,11 +740,15 @@ def main() -> int:
         case_clean_tree_is_green,
         case_pre_existing_finding_is_not_reported,
         case_promotion_not_needed_is_reported,
-        case_swiftlint_uses_the_under_test_repo_config,
+        case_the_repos_own_custom_rule_is_loaded,
         case_removed_import_needs_the_base_to_have_had_it,
         case_found_by_declaration_not_by_name,
         case_a_finding_that_moved_is_not_a_new_finding,
         case_the_link_needs_the_declarations_and_not_the_name,
+        case_a_test_file_is_read_and_checked,
+        case_a_change_with_no_swift_file_is_not_a_crash,
+        case_a_new_finding_is_not_swallowed_by_an_unrelated_one,
+        case_a_split_created_file_is_checked_for_promotions,
     ):
         print(f"--- {case.__name__}")
         case()

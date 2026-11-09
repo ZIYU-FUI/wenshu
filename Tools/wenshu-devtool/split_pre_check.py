@@ -13,7 +13,7 @@ any gate the tree runs:
 
 = = = = the defect = = = = and why no gate saw it
 | unused import lines | SwiftFormat has no unused-import rule, = = and swiftlint's config has no unused_import entry |
-| an orphan leading blank line | swiftlint's `leading_whitespace` DOES catch it, = = and the tree's CI does not run swiftlint |
+| an orphan leading blank line | swiftlint's `leading_whitespace` DOES catch it, = = and the tree's CI runs swiftlint report-only (= = it prints, = = and it does not fail a change) |
 | a doc comment downgraded `///` to `//` by hand | no rule reads it |
 | a semantic modifier lost (= = `nonisolated`) | no rule reads it |
 | a promotion no file needed | no rule reads it |
@@ -140,8 +140,17 @@ def read_tree(ref: str) -> dict[str, str]:
     tree: dict[str, str] = {}
     tmp = Path(tempfile.mkdtemp(prefix="wenshu-tree-"))
     try:
+        # = = ⇒ AND THE WHOLE TREE, = = and not `Sources/`. = = A change
+        # = = = = that touches only a TEST file is a real change (= = the
+        # = = = = chat view's split changed 37 of them), = = = = and a tree
+        # = = = = that reads `Sources/` only cannot see the test file at
+        # = = = = all, = = = = so the tool reports a finding in a file it
+        # = = = = never read. = = ⇒ AND THE PATHS ARE NOT NAMED, = = = =
+        # = = = = because `git archive` FAILS ENTIRELY on a pathspec that
+        # = = = = does not exist (= = a repo with no `Tests/`), = = = = =
+        # = = = = and then the tree reads as EMPTY.
         proc = subprocess.run(
-            ["git", "archive", ref, "Sources/"],
+            ["git", "archive", ref],
             cwd=str(CHECK_REPO), capture_output=True,
         )
         if proc.returncode == 0:
@@ -198,104 +207,87 @@ def swiftlint_available() -> bool:
     return shutil.which("swiftlint") is not None
 
 
-def run_swiftlint(paths: list[str], ref: str) -> list[str]:
-    """swiftlint over the files, = = on a throwaway tree of the ref."""
-    findings = []
+def lint_in_tree(ref: str, paths: list[str]) -> dict[str, list[str]]:
+    """swiftlint over `paths` inside a THROWAWAY WORKTREE at `ref`.
+
+    = = ⇒ AND THE WORKTREE, = = NOT A TEMP COPY OF THE FILES. = = A copy
+    # = = = = carries no config, = = = = and the repo's config has an
+    # = = = = `excluded:` list of RELATIVE paths, = = = = and those paths
+    # = = = = do not resolve in a copy (= = so the copy lints files the
+    # = = = = repo's own lint excludes, = = = = and the xianxia rule
+    # = = = = reported 24 times where the repo's own lint reports 0).
+    # = = = = ⇒ In the worktree the config, = = = = its excludes and the
+    # = = = = paths all resolve, = = = = because it IS the repo.
+
+    = = ⇒ AND THE RESULT IS PER FILE, = = because the comparison is
+    # = = = = per file (= = a new finding in a changed file must not be
+    # = = = = swallowed by an UNRELATED pre-existing finding elsewhere).
+    """
+    findings: dict[str, list[str]] = {}
     if not swiftlint_available():
-        return ["swiftlint is not installed (= = the orphan-blank-line case cannot be checked)"]
-    work = Path(tempfile.mkdtemp(prefix="wenshu-lint-"))
+        return findings
+    # = = ⇒ AND THE WORKTREE'S DIRECTORY MUST NOT EXIST YET. = = `git
+    # = = = = worktree add` refuses an existing directory, = = = = and
+    # = = = = `mkdtemp` creates one. = = ⇒ So the worktree goes into a
+    # = = = = fresh directory's CHILD.
+    parent = Path(tempfile.mkdtemp(prefix="wenshu-lint-"))
+    work = parent / "tree"
     try:
-        for rel in paths:
-            src = file_at(ref, rel)
-            if src is None:
-                continue
-            target = work / rel
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(src, encoding="utf-8")
-        proc = _run_swiftlint(work)
+        code, out = sh("worktree", "add", "--detach", str(work), ref)
+        if code != 0:
+            # = = ⇒ AND A FAILURE TO MAKE THE WORKTREE IS SAID OUT
+            # = = = = LOUD. = = An empty finding set reads as "nothing to
+            # = = = = report", = = = = and that is the worst failure this
+            # = = = = tool can have: = = = = it says nothing while it
+            # = = = = checked nothing.
+            findings["__ERROR__"] = [
+                f"the worktree at {ref} could not be made: {out.strip()[:160]}"
+            ]
+            return findings
+        present = [p for p in paths if (work / p).is_file()]
+        if not present:
+            return findings
+        # = = ⇒ AND NO `--config`, = = because the worktree IS the repo
+        # = = = = at that ref, = = = = and swiftlint finds the config
+        # = = = = there (= = = = and a config that does not exist at that
+        # = = = = ref is the one that ref had, = = = = which is right).
+        cmd = ["swiftlint", "lint", "--quiet"] + present
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, cwd=str(work), timeout=1800
+        )
         for line in (proc.stdout + proc.stderr).splitlines():
             line = line.strip()
             if not line or ":" not in line:
                 continue
-            # = = keep the tree-relative part, = = and drop the temp path.
-            if str(work) in line:
-                line = line.split(str(work) + "/", 1)[1]
+            head = line.split(":", 1)[0]
+            if not head.endswith(".swift"):
+                continue
+            # = = ⇒ AND THE PATH IS RELATIVE TO THE WORKTREE. = = The
+            # = = = = finding carries the worktree's own path (= = a
+            # = = = = temporary directory), = = = = and the base's finding
+            # = = = = carries ANOTHER temporary directory, = = = = so the
+            # = = = = two do not compare (= = = = and a pre-existing
+            # = = = = finding reads as a new one).
+            # = = ⇒ AND BOTH SIDES ARE RESOLVED, = = = = because on
+            # = = = = macOS `/var` is a symlink to `/private/var`, = = = =
+            # = = = = and swiftlint prints the RESOLVED path while
+            # = = = = `mkdtemp` hands back the unresolved one. = = ⇒ So a
+            # = = = = plain `relative_to` raises, = = = = and the finding
+            # = = = = keeps its absolute path (= = = = and the base's and
+            # = = = = the tip's never compare).
+            try:
+                rel = str(Path(head).resolve().relative_to(work.resolve()))
+            except ValueError:
+                rel = head
             # = = A rule RENAMED by swiftlint is a warning about the tool,
             # = = not about the file.
             if "has been renamed to" in line:
                 continue
-            findings.append(line)
+            rest = line[len(head):]
+            findings.setdefault(rel, []).append(f"{rel}{rest}")
     finally:
-        shutil.rmtree(work, ignore_errors=True)
-    return findings
-
-
-def _swiftlint_command(work: Path) -> list[str]:
-    """swiftlint over a tree, = = with the REPO's rules.
-
-    = = ⇒ swiftlint resolves `.swiftlint.yml` from the WORKING
-    # = = DIRECTORY, = = and NOT from the tree it is given. = = So a run
-    # = = from a scratch directory reads NO config, = = and the repo's
-    # = = disabled rules (= = file_length, = = type_body_length) come back
-    # = = to life, = = and the repo's OWN custom rule (= = the one that
-    # = = catches the forbidden vocabulary) is never loaded at all. = =
-    # = = And a split's base is 1125 lines while its tip is 555, = = so
-    # = = the file_length messages differ in the NUMBER they carry, = =
-    # = and the base-vs-tip comparison reads that as a new finding.
-    # = = ⇒ So: the run's cwd is the repo, = = the config is the repo's,
-    # = = and the comparison drops the numbers.
-    """
-    cmd = ["swiftlint", "lint", "--quiet"]
-    config = CHECK_REPO / ".swiftlint.yml"
-    if config.exists():
-        cmd += ["--config", str(config)]
-    cmd.append(str(work))
-    return cmd
-
-
-def _run_swiftlint(work: Path) -> subprocess.CompletedProcess:
-    """swiftlint over a tree, = = from the REPO's directory.
-
-    = = ⇒ THE CWD IS THE LOAD-BEARING PART, = = and not the `--config`
-    # = = = = because swiftlint resolves `.swiftlint.yml` from the WORKING
-    # = = = = DIRECTORY and not from the tree it is given. = = And the
-    # = = = = `--config` is kept as well, = = = = because a tree with NO
-    # = = = = config of its own still has to read the repo's.
-    """
-    return subprocess.run(
-        _swiftlint_command(work),
-        capture_output=True,
-        text=True,
-        cwd=str(CHECK_REPO),
-    )
-
-
-def run_swiftlint_whole_tree(ref: str) -> list[str]:
-    """swiftlint over EVERY Swift file of a ref, = = in one call."""
-    findings = []
-    if not swiftlint_available():
-        return []
-    tree = read_tree(ref)
-    if not tree:
-        return []
-    work = Path(tempfile.mkdtemp(prefix="wenshu-lint-all-"))
-    try:
-        for rel, text in tree.items():
-            target = work / rel
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(text, encoding="utf-8")
-        proc = _run_swiftlint(work)
-        for line in (proc.stdout + proc.stderr).splitlines():
-            line = line.strip()
-            if not line or ":" not in line:
-                continue
-            if str(work) in line:
-                line = line.split(str(work) + "/", 1)[1]
-            if "has been renamed to" in line:
-                continue
-            findings.append(line)
-    finally:
-        shutil.rmtree(work, ignore_errors=True)
+        sh("worktree", "remove", "--force", str(work))
+        shutil.rmtree(parent, ignore_errors=True)
     return findings
 
 
@@ -314,42 +306,17 @@ def _same_rule(a: str, b: str) -> bool:
     return norm(a) == norm(b)
 
 
-def _base_counterpart(paths: list[str], base: str) -> list[str]:
-    """The base's file for each tip file, = = matched by STEM.
-
-    = = A split creates `Name+Cluster.swift` out of `Name.swift`, = = and
-    # = = the base's file is the one whose name (without its extension) is
-    # = = the tip file's stem. = = Without this, = = every finding in a
-    # = = NEW file reads as "introduced by this change", = = because the
-    # = = base has no counterpart to compare it with.
-    """
-    tree = read_tree(base)
-    base_names = {Path(p).name.replace(".swift", "") for p in tree}
-    out = []
-    for rel in paths:
-        name = Path(rel).name
-        stem = name.split("+")[0].replace(".swift", "")
-        if name.replace(".swift", "") in base_names:
-            out.append(rel)
-            continue
-        if stem in base_names:
-            for p in tree:
-                if Path(p).name.replace(".swift", "") == stem:
-                    out.append(p)
-                    break
-    return sorted(set(out))
-
-
 def header_shape(paths: list[str], ref: str) -> list[str]:
     out = []
     for rel in paths:
         src = file_at(ref, rel)
         if src is None:
             continue
-        if src.startswith("\n"):
+        leading = len(src) - len(src.lstrip("\n"))
+        if leading == 1:
             out.append(f"{rel}: starts with a BLANK LINE (= = an import that was deleted left its line behind)")
-        elif src.startswith("\n\n"):
-            out.append(f"{rel}: starts with TWO blank lines")
+        elif leading > 1:
+            out.append(f"{rel}: starts with {leading} blank lines")
     return out
 
 
@@ -445,6 +412,25 @@ def removed_imports(base: str, head: str, paths: list[str]) -> list[tuple[str, s
     return out
 
 
+
+def _counterparts(base_tree: dict, head_tree: dict, paths: list[str]) -> dict[str, list[str]]:
+    """The base's files each changed tip file came from.
+
+    = = ⇒ AND THE COMPARISON IS PER FILE, = = because a whole-tree base
+    # = = = = lets an UNRELATED pre-existing finding swallow a new one in
+    # = = = = a changed file (= = the rule and the message match, = = = =
+    # = = = = and the path is not part of the comparison). = = ⇒ So each
+    # = = = = tip file is compared with ITS OWN base, = = = = and a tip
+    # = = = = file with no base at all (= = a brand-new file) has every
+    # = = = = one of its findings as new.
+    """
+    out: dict[str, list[str]] = {}
+    for tip_rel, base_rel in _origins(base_tree, head_tree, paths).items():
+        out[tip_rel] = [base_rel]
+    for tip_rel in paths:
+        out.setdefault(tip_rel, [])
+    return out
+
 def _foundation_members(code: str) -> list[str]:
     """The Foundation names a body uses, = = types AND extension members."""
     found = [t for t in FOUNDATION_TYPE_NAMES if re.search(rf"\b{t}\b", code)]
@@ -457,20 +443,22 @@ def _families(base_tree: dict, head_tree: dict, paths: list[str]) -> list[tuple[
     base file became.
 
     = = ⇒ THE LINK IS BY DECLARATION, = = AND NOT BY NAME. = = A split
-    # = = can RENAME the parent (= = `ChatSessionViewModel.swift` becomes
-    # = = `ChatViewModel.swift`), = = and a name-based link misses that
-    # = = entirely. = = And a name-based link that tries to fix it with
-    # = = "the declarations overlap" fails too, = = because the parent's
-    # = = METHODS moved into the sibling files, = = and the parent kept
-    # = = only its stored properties.
+    # = = = = can RENAME the parent (= = `ChatSessionViewModel.swift`
+    # = = = = becomes `ChatViewModel.swift`), = = = = and a name-based
+    # = = = = link misses that entirely. = = And a name-based link that
+    # = = = = tries to fix it with "the declarations overlap" fails too, = =
+    # = = = because the parent's METHODS moved into the sibling files, = =
+    # = = = and the parent kept only its stored properties.
 
-    = = ⇒ AND EVERY TIP FILE HAS EXACTLY ONE ORIGIN. = = A declaration's
-    # = = name is not unique (= = `messages`, = = `body` and `id` are
-    # = = everywhere), = = so "the base files that declare one of my
-    # = = declarations" is almost the whole tree. = = ⇒ So the origin is
-    # = = the base file that holds the MOST of this file's declarations,
-    # = = and the link has to be a strong one (= = at least half of them,
-    # = = and at least three).
+    = = ⇒ AND EVERY TIP FILE HAS AT MOST ONE ORIGIN, = = AND THE LINK IS
+    # = = = = ONLY MADE WHEN IT IS UNAMBIGUOUS. = = = = A declaration's
+    # = = = = name is not unique (= = `one`, = = `body` and `id` are
+    # = = = = everywhere), = = = = so a tip file that declares `func one`
+    # = = = = can match TWO base files that each declare it. = = ⇒ And a
+    # = = = = link that is ambiguous is WORSE THAN NO LINK: = = = = the
+    # = = = = other file's findings then read as this one's, = = = = and
+    # = = = = a new finding is swallowed. = = ⇒ So an ambiguous tip file
+    # = = = = has NO origin, = = = = and every one of its findings is new.
 
     = = And the STEM is kept for the extension files (= = a
     # = = `Name+Cluster.swift` may hold no declaration of its own).
@@ -490,15 +478,11 @@ def _families(base_tree: dict, head_tree: dict, paths: list[str]) -> list[tuple[
     for rel, decls in tip_decls.items():
         if not decls:
             continue
-        # = = ⇒ THE LINK IS "THIS BASE HOLDS THE MAJORITY OF THIS
-        # = = = = FILE'S DECLARATIONS", = = and not a count of three.
-        # = = = = A count of three is blind to a file that declares two
-        # = = = = things, = = = = and a split's smallest file is often
-        # = = = = exactly that small. = = ⇒ So: at least one, and at
-        # = = = = least half, = = and the winner has to be UNAMBIGUOUS
-        # = = = = (= = two bases tying on the same count = = = = the
-        # = = = = link is not known, = = = = and a wrong link invents
-        # = = = = findings).
+        # = = ⇒ "THIS BASE HOLDS THE MAJORITY OF THIS FILE'S
+        # = = = = DECLARATIONS", = = = = and the winner has to be
+        # = = = = UNAMBIGUOUS. = = = = A count of three is blind to a
+        # = = = = file that declares two things, = = = = and a split's
+        # = = = = smallest file is often smaller than that.
         scored: list[tuple[int, float, str]] = []
         for base_rel, base_names in base_decls.items():
             shared = len(decls & base_names)
@@ -509,18 +493,15 @@ def _families(base_tree: dict, head_tree: dict, paths: list[str]) -> list[tuple[
             continue
         scored.sort(reverse=True)
         top_shared = scored[0][0]
-        if top_shared < 1 or scored[0][1] < 0.5:
+        if scored[0][1] < 0.5:
             continue
         if len(scored) > 1 and scored[1][0] == top_shared:
+            # = = ⇒ AMBIGUOUS, = = = = and so there is NO link.
             continue
         origin[rel] = scored[0][2]
 
-    families: dict[str, list[str]] = {}
-    for rel, base_rel in origin.items():
-        families.setdefault(base_rel, []).append(rel)
-
-    # = = The stem link, = = for the extension files that declare nothing
-    # = = of their own.
+    # = = And the stem link, = = for the extension files that declare
+    # = = nothing of their own.
     base_stems = {Path(p).name.replace(".swift", "") for p in base_tree}
     for rel in tip_decls:
         if rel in origin:
@@ -530,22 +511,75 @@ def _families(base_tree: dict, head_tree: dict, paths: list[str]) -> list[tuple[
         if stem != name and stem in base_stems:
             for base_rel in base_tree:
                 if Path(base_rel).name.replace(".swift", "") == stem:
-                    families.setdefault(base_rel, []).append(rel)
+                    origin[rel] = base_rel
+                    break
 
+    families: dict[str, list[str]] = {}
+    for rel, base_rel in origin.items():
+        families.setdefault(base_rel, []).append(rel)
     return [(b, sorted(set(t))) for b, t in sorted(families.items())]
+
+
+def _origins(base_tree: dict, head_tree: dict, paths: list[str]) -> dict[str, str]:
+    """Each tip file's ONE origin, = = and nothing for an ambiguous one."""
+    out: dict[str, str] = {}
+    for base_rel, tip_rels in _families(base_tree, head_tree, paths):
+        for tip_rel in tip_rels:
+            out.setdefault(tip_rel, base_rel)
+    return out
 
 
 
 def _declarations(text: str) -> set[str]:
-    """The names a file declares."""
+    """The names a file DECLARES AS MEMBERS.
+
+    = = ⇒ AND ONLY THE MEMBERS, = = and not every identifier. = = A
+    # = = = = function body's `let a = 1` is a LOCAL, = = = = and two
+    # = = = = files that both have one (= = `let a = 1` is everywhere)
+    # = = = = are not related by it. = = ⇒ And a local that leaked into
+    # = = = = the set made a tip file match an UNRELATED base file, = =
+    # = = = = and that file's findings then read as this one's, = = = =
+    # = = = = and a new finding was swallowed.
+
+    = = ⇒ SO A MEMBER IS A DECLARATION AT THE TYPE'S OWN DEPTH. = = The
+    # = = = = depth is the brace depth, = = = = and a type's body is one
+    # = = = = level in, = = = = and a function's body is two.
+    """
     code = strip_comments(text)
-    found = set(re.findall(r"\b(?:func|var|let|init)\s+(\w+)", code))
-    found |= set(re.findall(r"\bclass\s+(\w+)", code))
-    found |= set(re.findall(r"\bstruct\s+(\w+)", code))
-    found |= set(re.findall(r"\benum\s+(\w+)", code))
-    found |= set(re.findall(r"\bprotocol\s+(\w+)", code))
-    found |= set(re.findall(r"\btypealias\s+(\w+)", code))
-    return {f for f in found if not f.startswith("_")}
+    depth = 0
+    names: set[str] = set()
+    for line in code.split("\n"):
+        current = depth
+        # = = The declarations this line carries, = = read BEFORE its own
+        # = = braces move the depth.
+        if current == 1:
+            m = re.match(
+                r"\s*(?:@[\w]+(?:\([^)]*\))?\s+)*(?:public\s+|internal\s+|private\s+|fileprivate\s+|open\s+)?"
+                r"(?:final\s+)?(?:mutating\s+|nonmutating\s+|static\s+|class\s+)?"
+                r"(?:var|let)\s+(\w+)",
+                line,
+            )
+            if m:
+                names.add(m.group(1))
+            m = re.match(
+                r"\s*(?:@[\w]+(?:\([^)]*\))?\s+)*(?:public\s+|internal\s+|private\s+|fileprivate\s+|open\s+)?"
+                r"(?:final\s+)?(?:mutating\s+|nonmutating\s+|static\s+|class\s+)?"
+                r"func\s+(\w+)",
+                line,
+            )
+            if m:
+                names.add(m.group(1))
+            m = re.match(r"\s*init\b", line)
+            if m:
+                names.add("init")
+        for ch in line:
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth = max(0, depth - 1)
+    for m in re.finditer(r"\b(?:class|struct|enum|protocol)\s+(\w+)", code):
+        names.add(m.group(1))
+    return {f for f in names if not f.startswith("_")}
 
 
 
@@ -641,15 +675,34 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
     # = = needed.
     """
     findings = []
-    work = Path(tempfile.mkdtemp(prefix="wenshu-probe-"))
+    parent = Path(tempfile.mkdtemp(prefix="wenshu-probe-"))
+    work = parent / "tree"
     try:
         code, out = sh("worktree", "add", "--detach", str(work), head)
         if code != 0:
             return [f"the probe worktree could not be made: {out.strip()[:160]}"]
         try:
+            # = = ⇒ AND THE BASE IS READ BY FAMILY, = = and not by path.
+            # = = = = A split DELETES the base's file, = = = = so a lookup
+            # = = = = by path finds nothing, = = = = and the check skips
+            # = = = = the very file the split created (= = = = and the
+            # = = = = member it widened is in THAT file).
+            base_tree = read_tree(base)
+            head_tree = read_tree(head)
+            counterparts = _counterparts(base_tree, head_tree, paths)
+            # = = The base's members, = = by name, = = and whether the
+            # = = base said `private`.
+            base_members: dict[str, bool] = {}
+            for base_rel in {b for bs in counterparts.values() for b in bs}:
+                text = base_tree.get(base_rel) or ""
+                for m in re.finditer(
+                    r"^(\s*)(private\s+)?((?:@\w+(?:\([^)]*\))?\s+)*)(var|let|func)\s+(\w+)",
+                    text, re.M,
+                ):
+                    base_members[m.group(5)] = bool(m.group(2))
             widened = []
             for rel in paths:
-                after = file_at(head, rel)
+                after = head_tree.get(rel)
                 if after is None:
                     continue
                 for i, line in enumerate(after.split("\n")):
@@ -657,15 +710,12 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
                     if not m:
                         continue
                     name = m.group(4)
-                    after_text = file_at(head, rel)
-                    # = = Only a member whose base line said `private`
-                    # = = and whose tip line does not = = was widened.
-                    before = file_at(base, rel)
-                    if before is None:
+                    # = = Only a member whose base said `private` and
+                    # = = whose tip line does not = = was widened.
+                    if base_members.get(name) is not True:
                         continue
-                    if re.search(rf"^\s*private\s+(?:@\w+\s+)*(?:var|let|func)\s+{re.escape(name)}\b", before, re.M):
-                        if not re.search(rf"^\s*private\s+{re.escape(name)}\b", line):
-                            widened.append((rel, name, line))
+                    if not re.search(rf"^\s*private\s+{re.escape(name)}\b", line):
+                        widened.append((rel, name, line))
             if not widened:
                 return []
             for rel, name, line in widened:
@@ -691,7 +741,7 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
         finally:
             subprocess.run(["git", "worktree", "remove", "--force", str(work)], cwd=str(CHECK_REPO), capture_output=True)
     finally:
-        shutil.rmtree(work, ignore_errors=True)
+        shutil.rmtree(parent, ignore_errors=True)
     return findings
 
 
@@ -710,36 +760,53 @@ def main() -> int:
 
     paths = changed_swift_files(args.base, args.head)
     print(f"split_pre_check: {len(paths)} changed Swift file(s) between {args.base[:12]} and {args.head[:12]}")
+    for rel in paths:
+        print(f"    = {rel}")
     print()
 
     failures = []
 
-    print("=== 1. swiftlint (= = the tree's CI does not run it) ===")
+    print("=== 1. swiftlint (= = the tree's CI runs it report-only) ===")
     if not swiftlint_available():
         print("  ! swiftlint is not installed")
         failures.append("swiftlint is not installed")
+    elif not paths:
+        print("  ok  no Swift file changed (= = nothing for swiftlint to say)")
     else:
-        head_findings = run_swiftlint(paths, args.head)
-        # = = The base is linted WHOLE: = = a pre-existing finding in a
-        # = = file this change did not touch must not read as new, = =
-        # = and the tip's new files have no base counterpart at all.
-        base_findings = run_swiftlint_whole_tree(args.base)
-        # = = A finding's LINE NUMBER is not part of it: = = a split moves
-        # = = the code, = = so the same warning sits on a different line
-        # = = in the tip. = = So the comparison is on the rule and the
-        # = = message, = = and not on where it landed.
-        new_findings = [
-            f for f in head_findings
-            if not any(_same_rule(f, b) for b in base_findings)
-        ]
+        # = = ⇒ THE COMPARISON IS PER FILE. = = The base is linted over
+        # = = = = the base's COUNTERPART of each changed file (= = the
+        # = = = = same path, = = = = or the base's file the tip's file was
+        # = = = = split out of), = = = = and NOT over the whole tree. = =
+        # = = = = ⇒ Because a whole-tree base lets an UNRELATED
+        # = = = = pre-existing finding SWALLOW a new one in a changed
+        # = = = = file (= = the rule and the message match, = = = = and
+        # = = = = the path is not part of the comparison).
+        head_by_file = lint_in_tree(args.head, paths)
+        base_tree = read_tree(args.base)
+        head_tree = read_tree(args.head)
+        counterparts = _counterparts(base_tree, head_tree, paths)
+        base_by_file = lint_in_tree(args.base, sorted({b for bs in counterparts.values() for b in bs}))
+        new_findings = []
+        for tip_path, tip_list in sorted(head_by_file.items()):
+            base_list: list[str] = []
+            for counterpart in counterparts.get(tip_path, []):
+                base_list += base_by_file.get(counterpart, [])
+            for f in tip_list:
+                # = = A finding's LINE NUMBER is not part of it: = = a
+                # = = split moves the code, = = so the same warning sits
+                # = = on a different line in the tip.
+                if not any(_same_rule(f, b) for b in base_list):
+                    new_findings.append(f)
         for f in new_findings:
             print(f"  ! {f}")
         if new_findings:
             failures.append(f"{len(new_findings)} swiftlint finding(s) this change introduced")
-        elif head_findings:
-            print(f"  ok  no NEW finding (= = {len(head_findings)} pre-existing one(s) carried over)")
         else:
-            print("  ok  no finding")
+            total = sum(len(v) for v in head_by_file.values())
+            if total:
+                print(f"  ok  no NEW finding (= = {total} pre-existing one(s) carried over)")
+            else:
+                print("  ok  no finding")
 
     print()
     print("=== 2. the header shape (= = a deleted import leaves a blank line behind) ===")
