@@ -206,26 +206,46 @@ final class StyleSheetWiringTests: XCTestCase {
                 // = = book `bookID`). = = The value must be the bare name:
                 // = = `bookID.first` or `bookID ?? other` would name
                 // = = something else.
-                let target = text
-                    .split(separator: "\n")
-                    .compactMap { line -> String? in
-                        let trimmed = line.trimmingCharacters(in: .whitespaces)
-                        guard trimmed.hasPrefix("to:") else { return nil }
-                        var value = String(trimmed.dropFirst("to:".count))
-                        while value.last == "," || value.last == " " {
-                            value.removeLast()
-                        }
-                        while value.first == " " {
-                            value.removeFirst()
-                        }
-                        return value
-                    }
-                    .first ?? ""
+                let target = Self.argumentValue(named: "to", in: text)
                 found.append((target, text, index, depths[index]))
             }
             index = cursor + 1
         }
         return found
+    }
+
+
+    /// The value of a named argument, = = read from the CALL'S TEXT.
+    ///
+    /// = = ⇒ AND NOT FROM A LINE THAT BEGINS WITH THE LABEL. = = A call
+    /// = = = = is written either way: = = the tree's own is one argument
+    /// = = = = per line (= = `to: bookID,` on its own line), = = and
+    /// = = = = SwiftFormat accepts the ONE-LINE spelling too (= = the
+    /// = = = = repo's own `--lint` reports 0/1 files need formatting for
+    /// = = = = it). = = ⇒ A reader that only looks at a line's START
+    /// = = = = reads the one-line call's target as "", = = = = and calls
+    /// = = = = a CORRECT page broken. = = ⇒ So the label is found
+    /// = = = = anywhere in the call's text, = = = = and the value runs
+    /// = = = = from the label to the argument's end.
+    ///
+    /// The value must be the BARE name: = = `bookID.first` or
+    /// `bookID ?? other` would name something else, = = and so the value
+    /// stops at the first character that is not part of an identifier.
+    private static func argumentValue(named label: String, in text: String) -> String {
+        guard let range = text.range(of: "\(label):") else { return "" }
+        var rest = text[range.upperBound...]
+        while rest.first == " " || rest.first == "\n" {
+            rest = rest.dropFirst()
+        }
+        var value = ""
+        for character in rest {
+            if character.isLetter || character.isNumber || character == "_" {
+                value.append(character)
+            } else {
+                break
+            }
+        }
+        return value
     }
 
     /// The brace depth at the START of each line.
@@ -464,7 +484,17 @@ final class StyleSheetWiringTests: XCTestCase {
             let opensBody: Bool? =
                 if trimmed.range(of: #"\bguard\s+let\s+bookID\b"#, options: .regularExpression) != nil {
                     false
-                } else if trimmed.range(of: #"\b(if|while)\s+let\s+bookID\b"#, options: .regularExpression) != nil {
+                } else if trimmed.range(of: #"\b(if|while)\s+(let|var)\s+bookID\b"#, options: .regularExpression) != nil {
+                    // = = `if var` and `while var` bind in the scope their
+                    // = = BODY opens, = = exactly like `if let` and
+                    // = = `while let`: = = the variable is the body's own
+                    // = = (= = and a `var` is mutable, = = so the body's
+                    // = = own scope is where it lives). = = ⇒ WITHOUT
+                    // = = `var` IN THIS ARM, = = an `if var` fell to the
+                    // = = plain-declaration arm below, = = = = which gives
+                    // = = the ENCLOSING scope, = = = = and a LEGITIMATE
+                    // = = = = `if var` that does not enclose the call read
+                    // = = = = RED on a correct page.
                     true
                 } else if trimmed.range(of: #"\b(let|var)\s+bookID\b"#, options: .regularExpression) != nil {
                     false
