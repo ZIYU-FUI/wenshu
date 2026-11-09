@@ -380,9 +380,13 @@ struct ChapterResolverTests {
     /// leaves this assertion red.
     @Test("the sheet hands over the resolver's file, = and does not rebuild the name")
     func theSheetHandsOverTheResolversFile() throws {
-        let source = try SourceLocator.read(
-            "Sources/WenshuApp/Features/Library/View/ExportSheet.swift"
-        )
+        // = = ⇒ THE SHEET IS A GROUP NOW, = = = = and the mutation this
+        // = = = = assertion holds must be caught in EITHER file: = = = =
+        // = = = = the sheet's own code and the save panel that runs the
+        // = = = = export both live under the `ExportSheet` stem, = = = =
+        // = = = = and a reader that took only the parent would answer
+        // = = = = about half of what it is about.
+        let source = try SourceLocator.readGroup(prefixed: "ExportSheet")
         let sheet = source
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map { $0.trimmingCharacters(in: .whitespaces) }
