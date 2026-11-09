@@ -161,10 +161,24 @@ for b in "${branches[@]}"; do
             # verdict of the card this branch names is what is asked
             # for, so the gate's own answer stands.
             gate_out="$(python3 "$GATE" --card "$card" --board "$BOARD" 2>&1)"
-            unreviewed=1
-            echo "UNREVIEWED $b"
-            echo "$gate_out" | sed 's/^/         /'
-            continue
+            # = = BUT A CARD THAT IS NOT A REVIEW CARD AT ALL DOES NOT
+            # = = DECIDE THE BRANCH. = = A branch name can carry the id of
+            # = = a BUILD card (= = one that never handed off for review),
+            # = = and that card's verdict is nobody's verdict on the work.
+            # = = So the CLAIM falls through to the sha lookup below,
+            # = = which is the authority. = = Measured 2026-11-09: the
+            # = = layout tree's split branch was named after its BUILD
+            # = = card, = = and that card read `no_handoff`, = = so the
+            # = = gate refused a branch whose REVIEW card carried an
+            # = = approving verdict on the very sha the branch pointed at.
+            if echo "$gate_out" | grep -q 'no_handoff'; then
+                card=""
+            else
+                unreviewed=1
+                echo "UNREVIEWED $b"
+                echo "$gate_out" | sed 's/^/         /'
+                continue
+            fi
         fi
     fi
     if [[ -z "$card" ]]; then
