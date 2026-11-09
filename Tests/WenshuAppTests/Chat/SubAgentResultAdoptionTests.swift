@@ -323,7 +323,9 @@ struct SubAgentResultAdoptionTests {
     /// occurrence.
     @Test("the conversation observes the delivery's notification and adopts what it names")
     func theConversationIsWiredToTheDelivery() throws {
-        let source = try String(contentsOf: Self.viewModelURL(), encoding: .utf8)
+        let source = try Self.viewModelURLs()
+            .map { try String(contentsOf: $0, encoding: .utf8) }
+            .joined(separator: "\n")
 
         let observerStart = try #require(
             source.range(of: "forName: Notification.Name(AppStateEvents.subAgentResultDelivered.rawValue)"),
@@ -381,16 +383,21 @@ struct SubAgentResultAdoptionTests {
     /// The path is built from the test's own path, = so a checkout
     /// that is moved still finds it. = A hardcoded absolute path
     /// would not.
-    private static func viewModelURL() -> URL {
+    private static func viewModelURLs() -> [URL] {
         // .../Tests/WenshuAppTests/Chat/<this file>
-        // .../Sources/WenshuApp/Features/Chat/Store/ChatSessionViewModel.swift
-        var url = URL(fileURLWithPath: #filePath)
-        url.deleteLastPathComponent()   // Chat
-        url.deleteLastPathComponent()   // WenshuAppTests
-        url.deleteLastPathComponent()   // Tests
-        url.deleteLastPathComponent()   // the repository root
-        url.appendPathComponent("Sources/WenshuApp/Features/Chat/Store/ChatSessionViewModel.swift")
-        return url
+        // .../Sources/WenshuApp/Features/Chat/Store/<the view model's files>
+        var root = URL(fileURLWithPath: #filePath)
+        root.deleteLastPathComponent()   // Chat
+        root.deleteLastPathComponent()   // WenshuAppTests
+        root.deleteLastPathComponent()   // Tests
+        root.deleteLastPathComponent()   // the repository root
+        root.appendPathComponent("Sources/WenshuApp/Features/Chat/Store")
+        // The view model's source is spread over the files the split left
+        // it in, = = so the reader takes ALL of them and joins them with a
+        // newline: = = a token is then counted the same way it was counted
+        // when the file was one.
+        return ["ChatViewModel.swift", "ChatViewModel+Session.swift"]
+            .map { root.appendingPathComponent($0) }
     }
 }
 
