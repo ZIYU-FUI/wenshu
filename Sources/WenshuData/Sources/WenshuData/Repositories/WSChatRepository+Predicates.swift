@@ -10,6 +10,7 @@ import Foundation
 import SwiftData
 
 extension WSChatRepository {
+
     // MARK: - Predicates (chat-by-book row-level split)
     //
     // SwiftData #Predicate macros capture local variables by reference at
@@ -55,6 +56,12 @@ extension WSChatRepository {
 
     /// Predicate combining "not archived" + bookID filter.
     static func combinedPredicate(archivedNotSet: Bool, bookID: String?) -> Predicate<WSSession> {
+        // = = The parameter says WHAT the caller wants (= "not archived");
+        // = = the body below always writes the same thing, = = and the one
+        // = = caller asks for exactly that. = = Saying so out loud is
+        // = = better than a silent argument (= = and the same shape as
+        // = = the `bookID` the two builders below ignore).
+        _ = archivedNotSet
         if let bookID {
             let bookIDRaw = bookID
             return #Predicate { $0.archivedAt == nil && $0.bookID == bookIDRaw }
