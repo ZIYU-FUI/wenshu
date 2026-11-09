@@ -6,7 +6,6 @@
 // message list. 4. returns the result (= the response plus the full message
 // history and the task id for tracing).
 import Foundation
-import os.log
 
 /// The agent's main loop engine. One ConversationLoop per session (= per
 /// profile per Settings → LLM Connector pane) and returns the result.

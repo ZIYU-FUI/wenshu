@@ -215,7 +215,7 @@ extension ConversationLoop {
 
     /// Resolves the default model for the active connector (= the first model the
     /// connector offers, or the model the user chose via the Settings pane).
-    func defaultModelForConnector() -> String {
+    nonisolated func defaultModelForConnector() -> String {
         // The provider enum lookup by connector id (= a thin integration on the
         // provider's own slug).
         if let provider = Provider.all.first(where: { $0.slug == connector.connectorID }) {

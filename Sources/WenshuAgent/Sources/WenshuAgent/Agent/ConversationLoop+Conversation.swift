@@ -4,7 +4,6 @@
 // properties cannot live in an extension).
 
 import Foundation
-import os.log
 
 public extension ConversationLoop {
     /// Runs a complete conversation turn (= the hermes `run_conversation`).

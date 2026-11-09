@@ -3,9 +3,6 @@
 // properties stay in ConversationLoop.swift (= = an actor's stored
 // properties cannot live in an extension).
 
-import Foundation
-import os.log
-
 extension ConversationLoop {
     /// Composes the effective system prompt via the PromptBuilder. The
     /// adapters read live data, and this method reads it from those adapters.
