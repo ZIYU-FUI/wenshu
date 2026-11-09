@@ -244,6 +244,15 @@ private struct OnboardingAwareToolbar: ViewModifier {
             content.toolbar {
                 ChromeMainToolbar(openWindow: openWindow, sheetRequests: sheetRequests)
             }
+            // / The window toolbar's background is one material for the whole
+            // / window (= the window's titlebar strip).
+            // / Without it, each split column paints its own flat fill into
+            // / the strip (= a per-column band with a step at every column
+            // / boundary, and a flat plate over the main content column).
+            // / The material is the window chrome's own (= it reads what is
+            // / behind the strip, so the strip carries the window's depth
+            // / instead of a painted band).
+            .toolbarBackground(.ultraThinMaterial, for: .windowToolbar)
         }
     }
 }
