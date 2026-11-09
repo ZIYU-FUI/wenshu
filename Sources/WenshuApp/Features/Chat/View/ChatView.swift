@@ -122,7 +122,7 @@ struct ChatView: View {
 
     /// The transcript's turns. Each turn pairs the user message with the agent's
     /// reply, so the view can tell which question the AI is replying to.
-    var turns: [ChatTurn] {
+    private var turns: [ChatTurn] {
         var result: [ChatTurn] = []
         for msg in vm.messages {
             if msg.source == .user {
@@ -345,7 +345,7 @@ struct ChatView: View {
     // The transcript viewport (= the inner ScrollView { LazyVStack { ForEach
     // turns { Section { ... } } } } block).
 
-    var transcript: some View {
+    private var transcript: some View {
         ScrollView {
             // 'the user's message bubble, like hermes AI ' (= implement
             // sticky-top for the user bubble like hermes; = so the user can see
