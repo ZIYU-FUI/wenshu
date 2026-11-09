@@ -164,7 +164,15 @@ def branch_base():
 # = = branch is on `main`, = = the merge-base IS `HEAD`, = = the diff is
 # = = empty, = = and the added-lines certificate silently measures ZERO
 # = = lines = = = = a green that says nothing. = = This SHA does not move.
-BASE_COMMIT = "722e73ec13f2a8a5140afce82449fd0689ee1feb"
+# = =
+# = = AND IT IS THE REBASE'S STARTING POINT, = = not the branch's old
+# = = = = base. = = After a rebase the branch's tip CARRIES `main`'s
+# = = = = commits, = = so `git diff <old base> HEAD` also shows what `main`
+# = = = = changed in the meantime (= = 79 ticket ids this branch never
+# = = = = wrote), = = and the certificate charged the branch for another
+# = = = = lane's lines. = = The branch's OWN diff is measured against the
+# = = = = commit the branch started from.
+BASE_COMMIT = "77635be756560dd670a37f9346701a77d78c20b2"
 
 
 def check_added_comment_lines():
