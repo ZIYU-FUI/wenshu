@@ -212,10 +212,7 @@ def run_swiftlint(paths: list[str], ref: str) -> list[str]:
             target = work / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(src, encoding="utf-8")
-        proc = subprocess.run(
-            ["swiftlint", "lint", "--quiet", str(work)],
-            capture_output=True, text=True,
-        )
+        proc = _run_swiftlint(work)
         for line in (proc.stdout + proc.stderr).splitlines():
             line = line.strip()
             if not line or ":" not in line:
@@ -233,6 +230,46 @@ def run_swiftlint(paths: list[str], ref: str) -> list[str]:
     return findings
 
 
+def _swiftlint_command(work: Path) -> list[str]:
+    """swiftlint over a tree, = = with the REPO's rules.
+
+    = = ⇒ swiftlint resolves `.swiftlint.yml` from the WORKING
+    # = = DIRECTORY, = = and NOT from the tree it is given. = = So a run
+    # = = from a scratch directory reads NO config, = = and the repo's
+    # = = disabled rules (= = file_length, = = type_body_length) come back
+    # = = to life, = = and the repo's OWN custom rule (= = the one that
+    # = = catches the forbidden vocabulary) is never loaded at all. = =
+    # = = And a split's base is 1125 lines while its tip is 555, = = so
+    # = = the file_length messages differ in the NUMBER they carry, = =
+    # = and the base-vs-tip comparison reads that as a new finding.
+    # = = ⇒ So: the run's cwd is the repo, = = the config is the repo's,
+    # = = and the comparison drops the numbers.
+    """
+    cmd = ["swiftlint", "lint", "--quiet"]
+    config = CHECK_REPO / ".swiftlint.yml"
+    if config.exists():
+        cmd += ["--config", str(config)]
+    cmd.append(str(work))
+    return cmd
+
+
+def _run_swiftlint(work: Path) -> subprocess.CompletedProcess:
+    """swiftlint over a tree, = = from the REPO's directory.
+
+    = = ⇒ THE CWD IS THE LOAD-BEARING PART, = = and not the `--config`
+    # = = = = because swiftlint resolves `.swiftlint.yml` from the WORKING
+    # = = = = DIRECTORY and not from the tree it is given. = = And the
+    # = = = = `--config` is kept as well, = = = = because a tree with NO
+    # = = = = config of its own still has to read the repo's.
+    """
+    return subprocess.run(
+        _swiftlint_command(work),
+        capture_output=True,
+        text=True,
+        cwd=str(CHECK_REPO),
+    )
+
+
 def run_swiftlint_whole_tree(ref: str) -> list[str]:
     """swiftlint over EVERY Swift file of a ref, = = in one call."""
     findings = []
@@ -247,10 +284,7 @@ def run_swiftlint_whole_tree(ref: str) -> list[str]:
             target = work / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(text, encoding="utf-8")
-        proc = subprocess.run(
-            ["swiftlint", "lint", "--quiet", str(work)],
-            capture_output=True, text=True,
-        )
+        proc = _run_swiftlint(work)
         for line in (proc.stdout + proc.stderr).splitlines():
             line = line.strip()
             if not line or ":" not in line:
@@ -271,6 +305,11 @@ def _same_rule(a: str, b: str) -> bool:
     def norm(text: str) -> str:
         text = re.sub(r"^\S+?\.swift:\d+:\d+:\s*", "", text)
         text = re.sub(r"\b\d+:\d+\b", "", text)
+        # = = A message that carries a COUNT (= = "555 lines", = = "373
+        # = = lines") = = is not the same finding when the count moved:
+        # = = a split's parent is 1125 lines and its tip is 555, = = and
+        # = = that is the split itself, = = not a new violation.
+        text = re.sub(r"\b\d+\b", "#", text)
         return text.strip()
     return norm(a) == norm(b)
 
@@ -315,44 +354,199 @@ def header_shape(paths: list[str], ref: str) -> list[str]:
 
 
 def removed_imports(base: str, head: str, paths: list[str]) -> list[tuple[str, str, list[str]]]:
-    """Every module the change stopped importing, = = and which tip file
-    still uses one of its members.
+    """Every module a file LOST, = = and which tip file still uses one of
+    its members.
 
-    = = The comparison is over the WHOLE change, = = not file by file: = =
-    = = a split moves a file's contents into several files, = = so a
-    = = per-file comparison sees "the tip's new file has no import" and
-    = = calls it fine, = = while the module the base imported is gone
-    = = from every file that needs it.
+    = = ⇒ THE COMPARISON IS PER FILE, = = AND NOT OVER THE TREE'S UNION
+    # = = OF IMPORTS. = = A union says "Foundation is still imported, = =
+    # = = 473 files import it", = = and that is true, = = and it says
+    # = = NOTHING about the one file that needs it and does not have it.
+    # = = = = ⇒ The defect is a file's OWN import list, = = so the check
+    # = = is a file's own import list.
+
+    = = ⇒ AND THE QUESTION IS NOT "does this file compile", = = because
+    # = = an extension MEMBER on a stdlib type leaks across the files of a
+    # = = module: = = a file that calls `String.trimmingCharacters(in:)`
+    # = = compiles without `import Foundation` as long as a SIBLING file
+    # = = imports it. = = So the check asks a different question: = = does
+    # = = THIS file name a member of the module, = = and is the module's
+    # = = import in THIS file? = = The answer is yes for a type name, = =
+    # = and the answer is a latent dependency for an extension member.
+
+    = = ⇒ AND THE BASE SAYS WHETHER IT IS NEW: = = a file that used a
+    # = = member without the import, = = and whose base held the same code
+    # = = with the import, = = is this change's defect.
     """
     out = []
-    base_files = [p for p in _all_swift(base)]
-    head_files = [p for p in _all_swift(head)]
-    b_modules = set()
-    for rel in base_files:
-        text = file_at(base, rel)
-        if text:
-            b_modules |= set(re.findall(r"^import\s+(\S+)", text, re.M))
-    a_modules = set()
-    for rel in head_files:
-        text = file_at(head, rel)
-        if text:
-            a_modules |= set(re.findall(r"^import\s+(\S+)", text, re.M))
-    for module in sorted(b_modules - a_modules):
-        uses = []
-        for rel in head_files:
-            text = file_at(head, rel)
+    base_tree = read_tree(base)
+    head_tree = read_tree(head)
+    # = = ⇒ ONLY THE FAMILIES THIS CHANGE TOUCHED. = = The check is
+    # = = about THIS change, = = and a file elsewhere in the tree that
+    # = = names a Foundation member without importing it is the tree's
+    # = = own business (= = = = and it is a great many files, = = = =
+    # = = because the repo leans on the module's other files' imports).
+    family = [f for f in _families(base_tree, head_tree, paths)
+              if set(f[1]) & set(paths)]
+
+    for base_rel, tip_rels in family:
+        base_text = base_tree.get(base_rel)
+        if not base_text:
+            continue
+        base_imports = set(re.findall(r"^import\s+(\S+)", base_text, re.M))
+        base_uses_foundation = _foundation_members(strip_comments(base_text))
+
+        for rel in tip_rels:
+            text = head_tree.get(rel)
             if not text:
                 continue
+            imports = set(re.findall(r"^import\s+(\S+)", text, re.M))
             code = strip_comments(text)
-            if module == "Foundation":
-                found = [t for t in FOUNDATION_TYPE_NAMES if re.search(rf"\b{t}\b", code)]
-                found += [e for e in FOUNDATION_EXTENSION_MEMBERS if e in code]
-            else:
-                found = []
-            if found:
-                uses.append(f"{rel} uses {sorted(set(found))}")
-        out.append((module, uses))
+            used = _foundation_members(code)
+            if not used:
+                continue
+            if "Foundation" in imports:
+                continue
+            # = = ⇒ AND THE REPORT IS ABOUT THIS CHANGE, = = SO IT NEEDS
+            # = = THE BASE'S SAYING. = = A file that names a Foundation
+            # = = member without importing Foundation is NOT this change's
+            # = = defect when the base's file did the same: = = the tree
+            # = = leans on `import SwiftUI` (= = which re-exports
+            # = = Foundation), = = and that was true before the change too.
+            # = = ⇒ So the finding is only a finding when the BASE's file
+            # = = imported Foundation and the tip's does not.
+            if "Foundation" not in base_imports:
+                continue
+            kinds = set()
+            for member in used:
+                kinds.add("type" if member in FOUNDATION_TYPE_NAMES else "extension member")
+            reexport = "SwiftUI" in imports
+            note = (f"{rel} uses {sorted(used)} ({', '.join(sorted(kinds))}) and does not "
+                    f"import Foundation (= = and the base's file DID import it)")
+            if reexport:
+                note += (" (= = `import SwiftUI` re-exports Foundation, = = so it still "
+                         "compiles, = = and the direct import is what this change dropped)")
+            out.append(("Foundation", rel, [note]))
+            break
+
+    # = = AND THE FAMILY-SCOPE REMOVAL: = = a module the base's file
+    # = = imported and NO tip file of the family imports any more.
+    for base_rel, tip_rels in family:
+        base_text = base_tree.get(base_rel)
+        if not base_text:
+            continue
+        base_imports = set(re.findall(r"^import\s+(\S+)", base_text, re.M))
+        tip_imports = set()
+        for rel in tip_rels:
+            text = head_tree.get(rel)
+            if text:
+                tip_imports |= set(re.findall(r"^import\s+(\S+)", text, re.M))
+        for module in sorted(base_imports - tip_imports):
+            out.append((module, base_rel, [f"the family of {base_rel} dropped `{module}` entirely"]))
     return out
+
+
+def _foundation_members(code: str) -> list[str]:
+    """The Foundation names a body uses, = = types AND extension members."""
+    found = [t for t in FOUNDATION_TYPE_NAMES if re.search(rf"\b{t}\b", code)]
+    found += [e for e in FOUNDATION_EXTENSION_MEMBERS if e in code]
+    return sorted(set(found))
+
+
+def _families(base_tree: dict, head_tree: dict, paths: list[str]) -> list[tuple[str, list[str]]]:
+    """The base file each tip file came from, = = and the tip files each
+    base file became.
+
+    = = ⇒ THE LINK IS BY DECLARATION, = = AND NOT BY NAME. = = A split
+    # = = can RENAME the parent (= = `ChatSessionViewModel.swift` becomes
+    # = = `ChatViewModel.swift`), = = and a name-based link misses that
+    # = = entirely. = = And a name-based link that tries to fix it with
+    # = = "the declarations overlap" fails too, = = because the parent's
+    # = = METHODS moved into the sibling files, = = and the parent kept
+    # = = only its stored properties.
+
+    = = ⇒ AND EVERY TIP FILE HAS EXACTLY ONE ORIGIN. = = A declaration's
+    # = = name is not unique (= = `messages`, = = `body` and `id` are
+    # = = everywhere), = = so "the base files that declare one of my
+    # = = declarations" is almost the whole tree. = = ⇒ So the origin is
+    # = = the base file that holds the MOST of this file's declarations,
+    # = = and the link has to be a strong one (= = at least half of them,
+    # = = and at least three).
+
+    = = And the STEM is kept for the extension files (= = a
+    # = = `Name+Cluster.swift` may hold no declaration of its own).
+    """
+    base_decls = {
+        rel: _declarations(text)
+        for rel, text in base_tree.items()
+        if rel.endswith(".swift")
+    }
+    tip_decls = {
+        rel: _declarations(text)
+        for rel, text in head_tree.items()
+        if rel.endswith(".swift")
+    }
+
+    origin: dict[str, str] = {}
+    for rel, decls in tip_decls.items():
+        if not decls:
+            continue
+        # = = ⇒ THE LINK IS "THIS BASE HOLDS THE MAJORITY OF THIS
+        # = = = = FILE'S DECLARATIONS", = = and not a count of three.
+        # = = = = A count of three is blind to a file that declares two
+        # = = = = things, = = = = and a split's smallest file is often
+        # = = = = exactly that small. = = ⇒ So: at least one, and at
+        # = = = = least half, = = and the winner has to be UNAMBIGUOUS
+        # = = = = (= = two bases tying on the same count = = = = the
+        # = = = = link is not known, = = = = and a wrong link invents
+        # = = = = findings).
+        scored: list[tuple[int, float, str]] = []
+        for base_rel, base_names in base_decls.items():
+            shared = len(decls & base_names)
+            if shared < 1:
+                continue
+            scored.append((shared, shared / len(decls), base_rel))
+        if not scored:
+            continue
+        scored.sort(reverse=True)
+        top_shared = scored[0][0]
+        if top_shared < 1 or scored[0][1] < 0.5:
+            continue
+        if len(scored) > 1 and scored[1][0] == top_shared:
+            continue
+        origin[rel] = scored[0][2]
+
+    families: dict[str, list[str]] = {}
+    for rel, base_rel in origin.items():
+        families.setdefault(base_rel, []).append(rel)
+
+    # = = The stem link, = = for the extension files that declare nothing
+    # = = of their own.
+    base_stems = {Path(p).name.replace(".swift", "") for p in base_tree}
+    for rel in tip_decls:
+        if rel in origin:
+            continue
+        name = Path(rel).name.replace(".swift", "")
+        stem = name.split("+")[0]
+        if stem != name and stem in base_stems:
+            for base_rel in base_tree:
+                if Path(base_rel).name.replace(".swift", "") == stem:
+                    families.setdefault(base_rel, []).append(rel)
+
+    return [(b, sorted(set(t))) for b, t in sorted(families.items())]
+
+
+
+def _declarations(text: str) -> set[str]:
+    """The names a file declares."""
+    code = strip_comments(text)
+    found = set(re.findall(r"\b(?:func|var|let|init)\s+(\w+)", code))
+    found |= set(re.findall(r"\bclass\s+(\w+)", code))
+    found |= set(re.findall(r"\bstruct\s+(\w+)", code))
+    found |= set(re.findall(r"\benum\s+(\w+)", code))
+    found |= set(re.findall(r"\bprotocol\s+(\w+)", code))
+    found |= set(re.findall(r"\btypealias\s+(\w+)", code))
+    return {f for f in found if not f.startswith("_")}
+
 
 
 def _all_swift(ref: str) -> list[str]:
@@ -362,54 +556,50 @@ def _all_swift(ref: str) -> list[str]:
 def lost_tokens(base: str, head: str, paths: list[str]) -> list[str]:
     """The tokens the base had and the tip does not.
 
-    = = Over the WHOLE change: = = a split moves a file's contents into
-    = = several files, = = so a per-file comparison calls every modifier
-    = = that moved "lost".
+    = = ⇒ THE BASE IS READ BY FAMILY, = = AND NOT BY PATH. = = A split
+    # = = DELETES the base's file (= = `ChatSessionViewModel.swift` is
+    # = = gone) and creates several, = = so a lookup by the base's own
+    # = = path finds nothing, = = and the check is BLIND to exactly the
+    # = = change it exists for. = = ⇒ The base's file is found by the
+    # = = family it became, = = and its tokens are compared with the
+    # = = tokens of every file that family produced.
+
+    = = And the tip's side is the same: = = the tip's files that came out
+    = = of the base's file, = = = = and nothing else, = = because a file
+    = = the change did not touch cannot have lost a token.
     """
     out = []
     base_tree = read_tree(base)
     head_tree = read_tree(head)
-    # = = Only the files this change TOUCHED count. = = A split moves a
-    # = = file's contents into new files, = = so the base's file and the
-    # = = tip's files are compared as ONE SET (= = the base's file plus
-    # = = every file the tip created out of it).
-    touched = set(paths)
-    created = {
-        rel for rel in head_tree
-        if rel not in base_tree and _shares_stem(base_tree, head_tree, rel)
-    }
-    b_tokens = []
-    for rel in touched:
-        text = base_tree.get(rel)
-        if text:
-            b_tokens += tokens(text)
-    a_tokens = []
-    for rel in touched | created:
-        text = head_tree.get(rel)
-        if text:
-            a_tokens += tokens(text)
-    a_set = set(a_tokens)
-    missing = [t for t in b_tokens if t not in a_set]
-    for modifier in SEMANTIC_MODIFIERS:
-        if modifier in missing:
-            out.append(f"the base had `{modifier}` and the tip does not (= = a modifier a split lost)")
-    # = = A doc comment that became a plain comment: = = the base's
-    # = = `///` line and the tip's `//` line, = = in the SAME file set.
-    # = = The plain comments are collected PER FILE SET (= = the base's
-    # = = file plus the tip's files split out of it). = = A sentence that
-    # = = appears as a plain comment SOMEWHERE ELSE in the tree is not a
-    # = = downgraded doc comment: = = the tree says the same thing in
-    # = = more than one place, = = and that is not this change's doing.
-    for rel in touched:
-        before = base_tree.get(rel)
+    families = _families(base_tree, head_tree, paths)
+
+    for base_rel, tip_rels in families:
+        before = base_tree.get(base_rel)
         if not before:
             continue
-        family = {rel} | {c for c in created if _shares_stem(base_tree, head_tree, c)
-                          and _shares_stem_for(base_tree, head_tree, rel, c)}
+        # = = Only the families this change touched matter.
+        if not (set(tip_rels) & set(paths)):
+            continue
+        b_tokens = tokens(before)
+        a_tokens = []
+        for rel in tip_rels:
+            text = head_tree.get(rel)
+            if text:
+                a_tokens += tokens(text)
+        a_set = set(a_tokens)
+        missing = [t for t in b_tokens if t not in a_set]
+        for modifier in SEMANTIC_MODIFIERS:
+            if modifier in missing:
+                out.append(
+                    f"{base_rel} had `{modifier}` and the family that replaced it "
+                    f"does not (= = a modifier a split lost)"
+                )
+        # = = A doc comment that became a plain comment: = = the base's
+        # = = `///` line and the tip's `//` line, = = in the SAME family.
         a_doc = set()
         a_plain = set()
-        for fam in family:
-            text = head_tree.get(fam)
+        for rel in tip_rels:
+            text = head_tree.get(rel)
             if not text:
                 continue
             for line in text.split("\n"):
@@ -420,9 +610,13 @@ def lost_tokens(base: str, head: str, paths: list[str]) -> list[str]:
                     a_plain.add(s[2:].strip())
         for line in [l.strip()[3:].strip() for l in before.split("\n") if l.strip().startswith("///")]:
             if line and line not in a_doc and line in a_plain:
-                out.append(f"{rel}: the base's `///` doc comment became a plain `//` (= = {line[:70]})")
+                out.append(
+                    f"{base_rel}: the base's `///` doc comment became a plain `//` "
+                    f"(= = {line[:70]})"
+                )
                 break
     return out
+
 
 
 def _shares_stem_for(base_tree: dict, head_tree: dict, base_rel: str, tip_rel: str) -> bool:
@@ -561,15 +755,20 @@ def main() -> int:
     print("=== 3. the imports the change removed (= = and what the file still uses) ===")
     removed = removed_imports(args.base, args.head, paths)
     if not removed:
-        print("  ok  no module was dropped from the whole tree")
-    for module, uses in removed:
-        print(f"  ! `import {module}` was removed from the WHOLE tree")
-        if uses:
-            for u in uses:
-                leak = "EXTENSION MEMBER (= = it LEAKS across files, = = so 'it still builds' proves nothing)" if any(e in FOUNDATION_EXTENSION_MEMBERS for e in re.findall(r"'([^']+)'", u)) else "type name (= = file-scoped)"
-                print(f"        {u}  (= = {leak})")
-        else:
-            print("        no tip file names a member of it")
+        print("  ok  no file lost an import it still needs")
+    for module, where, notes in removed:
+        print(f"  ! `import {module}` was removed, = = and {where} still needs it")
+        for note in notes:
+            if "extension member" in note:
+                kind = ("EXTENSION MEMBER (= = it LEAKS across files, = = so "
+                        "'it still builds' proves nothing)")
+            elif "type name" in note:
+                kind = "type name (= = file-scoped, = = so the compiler catches it)"
+            else:
+                kind = ""
+            print(f"        {note}")
+            if kind:
+                print(f"          (= = {kind})")
     if removed:
         failures.append(f"{len(removed)} removed import(s) to confirm")
 
