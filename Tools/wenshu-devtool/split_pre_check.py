@@ -94,6 +94,10 @@ FOUNDATION_EXTENSION_MEMBERS = [
 
 # = = The modifiers a split can lose, = = and the compiler will not
 # = = complain about losing.
+#: The vendored tree's prefix (= = upstream's own code, = = byte for
+#: byte), = = and the tree's own formatting gate exempts it.
+VENDORED_PREFIX = "Vendor/"
+
 SEMANTIC_MODIFIERS = [
     "nonisolated", "mutating", "nonmutating", "static", "final",
     "lazy", "weak", "unowned", "indirect", "dynamic", "optional",
@@ -108,6 +112,12 @@ def sh(*args: str, cwd: Path | None = None) -> tuple[int, str]:
     return proc.returncode, proc.stdout + proc.stderr
 
 
+
+def _ref_exists(ref: str) -> bool:
+    """Whether a ref is in this repo at all."""
+    code, _ = sh("rev-parse", "--verify", f"{ref}^{{commit}}")
+    return code == 0
+
 def changed_swift_files(base: str, head: str) -> list[str]:
     code, out = sh("diff", "--name-status", base, head)
     files = []
@@ -120,6 +130,14 @@ def changed_swift_files(base: str, head: str) -> list[str]:
         if not path.endswith(".swift"):
             continue
         if status.startswith("D"):
+            continue
+        # = = ⇒ AND THE VENDORED TREE IS EXEMPT, = = exactly as the
+        # = = = = tree's own formatting gate exempts it (= = = = the gate
+        # = = = = drops the path before the lint, = = = = because the
+        # = = = = vendored files are upstream's own code byte for byte).
+        # = = = = ⇒ A tool that lints them charges the change for 61
+        # = = = = findings the gate never charges anybody for.
+        if path.startswith(VENDORED_PREFIX):
             continue
         files.append(path)
     return files
@@ -207,7 +225,7 @@ def swiftlint_available() -> bool:
     return shutil.which("swiftlint") is not None
 
 
-def lint_in_tree(ref: str, paths: list[str]) -> dict[str, list[str]]:
+def lint_in_tree(ref: str, paths: list[str], work_parent: Path | None = None) -> dict[str, list[str]]:
     """swiftlint over `paths` inside a THROWAWAY WORKTREE at `ref`.
 
     = = ⇒ AND THE WORKTREE, = = NOT A TEMP COPY OF THE FILES. = = A copy
@@ -230,7 +248,9 @@ def lint_in_tree(ref: str, paths: list[str]) -> dict[str, list[str]]:
     # = = = = worktree add` refuses an existing directory, = = = = and
     # = = = = `mkdtemp` creates one. = = ⇒ So the worktree goes into a
     # = = = = fresh directory's CHILD.
-    parent = Path(tempfile.mkdtemp(prefix="wenshu-lint-"))
+    parent = Path(work_parent) if work_parent else Path(
+        tempfile.mkdtemp(prefix="wenshu-lint-")
+    )
     work = parent / "tree"
     try:
         code, out = sh("worktree", "add", "--detach", str(work), ref)
@@ -791,27 +811,58 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
             counterparts = _counterparts(base_tree, head_tree, paths)
             # = = The base's members, = = by name, = = and whether the
             # = = base said `private`.
-            base_members: dict[str, bool] = {}
+            # = = ⇒ AND THE BASE'S MEMBERS ARE KEYED BY (FILE, NAME),
+            # = = = = and not by NAME alone. = = = = ⇒ 322 real names
+            # = = = = collide across the tree, = = = = and the same name
+            # = = = = is private in one file and internal in another, = =
+            # = = = = and a global name key made the arm's verdict FLIP
+            # = = = = (5 against 7) = = = = = across twelve PYTHONHASHSEEDs
+            # = = = = on one repo and one pair of shas. = = ⇒ The base is
+            # = = = = the file this tip file came from, = = = = and the
+            # = = = = member is looked up there.
+            base_members: dict[tuple[str, str], bool] = {}
             for base_rel in {b for bs in counterparts.values() for b in bs}:
                 text = base_tree.get(base_rel) or ""
                 for m in re.finditer(
                     r"^(\s*)(private\s+)?((?:@\w+(?:\([^)]*\))?\s+)*)(var|let|func)\s+(\w+)",
                     text, re.M,
                 ):
-                    base_members[m.group(5)] = bool(m.group(2))
+                    base_members[(base_rel, m.group(5))] = bool(m.group(2))
             widened = []
             for rel in paths:
                 after = head_tree.get(rel)
                 if after is None:
                     continue
                 for i, line in enumerate(after.split("\n")):
-                    m = re.match(r"^(\s*)((?:@\w+(?:\([^)]*\))?\s+)*)(var|let|func)\s+(\w+)", line)
+                    # = = ⇒ AND THE TIP SIDE ACCEPTS AN ACCESS MODIFIER.
+                    # = = = = The old regex admitted none, = = = = so a
+                    # = = = = `private` -> `public` (= = = = and every
+                    # = = = = other widening) = = = = was invisible, = = = =
+                    # = = = = and the arm reported "every widened member is
+                    # = = = = read across the file boundary" (= = = = = exit
+                    # = = = = 0, = = = = measured).
+                    m = re.match(
+                        r"^(\s*)((?:@\w+(?:\([^)]*\))?\s+)*)"
+                        r"(?:(public|internal|private|fileprivate|open)\s+)?"
+                        r"(var|let|func)\s+(\w+)",
+                        line,
+                    )
                     if not m:
                         continue
-                    name = m.group(4)
+                    # = = ⇒ AND THE GROUP NUMBERS, = = because the
+                    # = = = = access modifier added one. = = ⇒ The NAME is
+                    # = = = = the FIFTH group (= = = = and the kind is the
+                    # = = = = fourth), = = = = and reading the fourth as
+                    # = = = = the name makes every member look like a
+                    # = = = = keyword.
+                    name = m.group(5)
                     # = = Only a member whose base said `private` and
-                    # = = whose tip line does not = = was widened.
-                    if base_members.get(name) is not True:
+                    # = = whose tip line does not = = was widened, = = and
+                    # = = only in ITS OWN base file.
+                    own_bases = counterparts.get(rel, [])
+                    if not any(
+                        base_members.get((base_rel, name)) is True for base_rel in own_bases
+                    ):
                         continue
                     if not re.search(rf"^\s*private\s+{re.escape(name)}\b", line):
                         widened.append((rel, name, line))
@@ -832,6 +883,23 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
                 log = proc.stdout + proc.stderr
                 complained = re.search(rf"'{re.escape(name)}' is inaccessible", log)
                 target.write_text(text, encoding="utf-8")
+                # = = ⇒ AND THE BUILD'S EXIT CODE IS READ. = = The probe
+                # = = = = used to grep the log for "is inaccessible" and
+                # = = = = never looked at the status, = = = = so a FAILED
+                # = = = = build (= = = = no compiler ran, = = = = or one
+                # = = = = that died on something else) = = = = read as a
+                # = = = = clean one (= = = = measured: = = = = exit 1 and
+                # = = = = the tool still said "still builds (= = = = so no
+                # = = = = file needed it)"). = = ⇒ A build that did not
+                # = = = = succeed measures NOTHING, = = = = and it is said
+                # = = = = out loud.
+                if proc.returncode != 0 and not complained:
+                    findings.append(
+                        f"{rel}: `{name}` was widened, = = and the build with it put "
+                        f"back to `private` FAILED (= = so the probe could not "
+                        f"measure it, = = and this is not a verdict)"
+                    )
+                    continue
                 if not complained:
                     findings.append(
                         f"{rel}: `{name}` was widened, = = and putting it back to `private` still builds"
@@ -850,6 +918,11 @@ def main() -> int:
     parser.add_argument("--head", default="HEAD", help="the tip sha (= = HEAD)")
     parser.add_argument("--probe-promotions", action="store_true", help="also rebuild with every widened member put back to private (= = slow)")
     parser.add_argument("--repo", default=None, help="the tree to check (= = the worktree the branch is in)")
+    parser.add_argument(
+        "--lint-work-parent",
+        default=None,
+        help="where the throwaway lint worktrees go (= = for a test that needs the base's worktree to FAIL)",
+    )
     args = parser.parse_args()
 
     global CHECK_REPO
@@ -857,6 +930,21 @@ def main() -> int:
         CHECK_REPO = Path(args.repo).resolve()
     print(f"split_pre_check: the tree under test = {CHECK_REPO}")
 
+    # = = ⇒ AND THE BASE MUST EXIST. = = A base that does not exist
+    # = = = = makes every comparison vacuous, = = = = and the run then
+    # = = = = says "every case passed" (= = = = measured: = = = = a base
+    # = = = = that does not exist gives byte-identical output to a change
+    # = = = = with no Swift file).
+    if not _ref_exists(args.base):
+        print(f"split_pre_check: the base {args.base[:12]} does not exist in this repo")
+        print("⇒ ⇒ ⇒ A BASE THAT DOES NOT EXIST MEANS NOTHING, = = = not clean.")
+        return 1
+    # = = ⇒ AND THE TIP IS CHECKED TOO, = = = = because a tip that
+    # = = = = cannot be looked at is the same silence from the other side.
+    if not _ref_exists(args.head):
+        print(f"split_pre_check: the tip {args.head[:12]} does not exist in this repo")
+        print("⇒ ⇒ ⇒ A TIP THAT CANNOT BE LOOKED AT MEANS NOTHING, = = = not clean.")
+        return 1
     paths = changed_swift_files(args.base, args.head)
     print(f"split_pre_check: {len(paths)} changed Swift file(s) between {args.base[:12]} and {args.head[:12]}")
     for rel in paths:
@@ -884,18 +972,49 @@ def main() -> int:
         base_tree = read_tree(args.base)
         head_tree = read_tree(args.head)
         counterparts = _counterparts(base_tree, head_tree, paths)
-        base_by_file = lint_in_tree(args.base, sorted({b for bs in counterparts.values() for b in bs}))
+        base_by_file = lint_in_tree(
+            args.base,
+            sorted({b for bs in counterparts.values() for b in bs}),
+            Path(args.lint_work_parent) if args.lint_work_parent else None,
+        )
+        # = = ⇒ AND A TREE THAT COULD NOT BE READ IS SAID OUT LOUD. = =
+        # = = = = A worktree that could not be made puts its failure in
+        # = = = = `__ERROR__`, = = = = and nobody read it (= = = = so seven
+        # = = = = pre-existing findings were reported as introduced, = =
+        # = = = = with no "could not be made" anywhere). = = ⇒ And a base
+        # = = = = that does not exist gives byte-identical output to a
+        # = = = = change with no Swift file (= = = = "every case passed",
+        # = = = = exit 0), = = = = and that is the worst thing a check can
+        # = = = = do.
+        for side, table in (("the base", base_by_file), ("the tip", head_by_file)):
+            for problem in table.get("__ERROR__", []):
+                print(f"  ! {side} could not be looked at: {problem}")
+                failures.append(f"{side} could not be looked at")
         new_findings = []
         for tip_path, tip_list in sorted(head_by_file.items()):
             base_list: list[str] = []
             for counterpart in counterparts.get(tip_path, []):
                 base_list += base_by_file.get(counterpart, [])
+            # = = ⇒ AND THE COMPARISON IS A MULTISET, = = = = and not an
+            # = = = = `any`. = = = = ⇒ A `any` says "the base had ONE of
+            # = = = = these", = = = = and then it hides the tip's SECOND
+            # = = = = finding of the same rule in the same file (= = = =
+            # = = = = measured: = = = = swiftlint's own verdict was 2 and
+            # = = = = the tool said 0, = = = = and 136 real files carry at
+            # = = = = least one finding, = = = = 322 in all). = = ⇒ So
+            # = = = = each base finding is CONSUMED once, = = = = and the
+            # = = = = tip's extras are new.
+            pool = list(base_list)
             for f in tip_list:
-                # = = A finding's LINE NUMBER is not part of it: = = a
-                # = = split moves the code, = = so the same warning sits
-                # = = on a different line in the tip.
-                if not any(_same_rule(f, b) for b in base_list):
+                match = None
+                for index, b in enumerate(pool):
+                    if _same_rule(f, b):
+                        match = index
+                        break
+                if match is None:
                     new_findings.append(f)
+                else:
+                    pool.pop(match)
         for f in new_findings:
             print(f"  ! {f}")
         if new_findings:

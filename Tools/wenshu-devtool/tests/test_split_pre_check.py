@@ -68,6 +68,31 @@ def commit(repo: Path, message: str) -> None:
     git(repo, "commit", "-q", "-m", message)
 
 
+
+def make_buildable_repo(tmp: Path) -> Path:
+    """A repo whose `swift build` ACTUALLY RUNS.
+
+    = = ⇒ AND A FIXTURE WITH NO PACKAGE.SWIFT IS WORTHLESS FOR THE
+    # = = = = PROMOTION ARM. = = = = `swift build` in a directory with no
+    # = = = = package fails, = = = = so the probe's build never compiled
+    # = = = = anything, = = = = and the arm's answer was vacuous (= = = =
+    # = = = = measured: = = = = the card's own case was green on such a
+    # = = = = fixture, = = = = and the review found it). = = ⇒ So the
+    # = = = = fixture is a REAL SwiftPM package, = = = = with the repo's
+    # = = = = own tools version.
+    """
+    repo = make_repo(tmp)
+    write(repo, "Package.swift", """
+        // swift-tools-version: 6.4
+        import PackageDescription
+        let package = Package(
+            name: "Probe",
+            targets: [.target(name: "Probe", path: "Sources/Probe")]
+        )
+    """)
+    (repo / "Sources/Probe").mkdir(parents=True, exist_ok=True)
+    return repo
+
 def check(repo: Path, base: str, head: str, cwd: Path | None = None) -> tuple[int, str]:
     proc = subprocess.run(
         [
@@ -711,24 +736,46 @@ def case_a_split_created_file_is_checked_for_promotions() -> None:
     """
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
-        repo = make_repo(tmp)
-        write(repo, "Sources/Old.swift", """
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Old.swift", """
             public struct Old {
-                private func helper() -> Int { 1 }
-                public func one() -> Int { helper() }
-                public func two() -> Int { helper() }
-                public func three() -> Int { helper() }
+                private func helper() -> Int {
+                    1
+                }
+
+                public func one() -> Int {
+                    helper()
+                }
+
+                public func two() -> Int {
+                    helper()
+                }
+
+                public func three() -> Int {
+                    helper()
+                }
             }
         """)
         commit(repo, "base")
         base = git(repo, "rev-parse", "HEAD").strip()
-        (repo / "Sources/Old.swift").unlink()
-        write(repo, "Sources/New.swift", """
+        (repo / "Sources/Probe/Old.swift").unlink()
+        write(repo, "Sources/Probe/New.swift", """
             public struct New {
-                func helper() -> Int { 1 }
-                public func one() -> Int { helper() }
-                public func two() -> Int { helper() }
-                public func three() -> Int { helper() }
+                func helper() -> Int {
+                    1
+                }
+
+                public func one() -> Int {
+                    helper()
+                }
+
+                public func two() -> Int {
+                    helper()
+                }
+
+                public func three() -> Int {
+                    helper()
+                }
             }
         """)
         commit(repo, "tip")
@@ -815,6 +862,333 @@ def case_a_single_blank_line_is_not_reported() -> None:
         )
 
 
+def case_the_vendored_tree_is_exempt() -> None:
+    """THE REVIEW'S BLOCKING 1: = = the swiftformat arm charged the
+    VENDORED tree, = = which the tree's own gate deliberately exempts.
+
+    = = ⇒ Measured on a real commit: = = the gate says "no unformatted
+    # = = = = line", = = = = and the tool says 61 findings, = = = = all of
+    # = = = = them in Vendor/.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        write(repo, "Sources/Thing.swift", "public struct Thing {}\n")
+        write(repo, "Vendor/Upstream/Thing.swift", "public struct Upstream {}\n")
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Vendor/Upstream/Thing.swift",
+              "public struct Upstream {}\n\n\npublic func one() {}\n")
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        code, out = check(repo, base, head)
+        expect(
+            "the VENDORED tree is exempt (= = the tree's own gate exempts it)",
+            "Vendor/" not in out,
+            out,
+        )
+
+
+def case_a_failed_build_is_not_a_clean_one() -> None:
+    """THE REVIEW'S BLOCKING 2: = = the promotions arm grepped the build
+    log for "is inaccessible" and never read the EXIT CODE.
+
+    = = ⇒ Measured: = = exit 1, = = = = and the tool still said "still
+    # = = = = builds (= = = = so no file needed it)". = = ⇒ A build that
+    # = = = = did not succeed measures NOTHING.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        # = = A package that CANNOT build (= = = = the file does not
+        # = = = = compile), = = = = so the probe's build fails.
+        write(repo, "Sources/Probe/Broken.swift",
+              "public struct Broken { this is not swift }\n")
+        # = = ⇒ AND THE BASE HOLDS THE MEMBER AS `private`, = = = = so the
+        # = = = = tip's version IS a widening (= = = = a member that is
+        # = = = = new in the tip is not a widening, = = = = and the probe
+        # = = = = says so).
+        write(repo, "Sources/Probe/Other.swift", """
+            public struct Other {
+                private func helper() -> Int {
+                    1
+                }
+
+                public func one() -> Int {
+                    helper()
+                }
+
+                public func two() -> Int {
+                    helper()
+                }
+
+                public func three() -> Int {
+                    helper()
+                }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Probe/Broken.swift",
+              "public struct Broken { this is not swift }\n")
+        # = = ⇒ AND A MEMBER THAT IS REALLY WIDENED, = = = = so the
+        # = = = = probe HAS something to measure (= = = = and the build
+        # = = = = still cannot succeed, = = = = because the other file does
+        # = = = = not compile).
+        # = = ⇒ AND THE MEMBER IS REALLY WIDENED IN THE TIP (= = = = the
+        # = = = = base says `private`, = = = = the tip says nothing), = =
+        # = = = = so the probe HAS something to measure, = = = = and the
+        # = = = = build still cannot succeed (= = = = because the OTHER
+        # = = = = file does not compile).
+        write(repo, "Sources/Probe/Other.swift", """
+            public struct Other {
+                func helper() -> Int {
+                    1
+                }
+
+                public func one() -> Int {
+                    helper()
+                }
+
+                public func two() -> Int {
+                    helper()
+                }
+
+                public func three() -> Int {
+                    helper()
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        # = = ⇒ AND THE ASSERTION REQUIRES THE SAYING, = = = = and not
+        # = = = = merely the absence of the other message (= = = = because
+        # = = = = "not X" is true when the tool says nothing at all).
+        expect(
+            "a FAILED build is not read as a clean one",
+            "could not measure it" in out,
+            out[-900:],
+        )
+
+
+def case_a_widening_to_public_is_seen() -> None:
+    """THE REVIEW'S BLOCKING 3: = = the promotions arm's tip-side regex
+    admitted NO access modifier, = = so `private` -> `public` was
+    invisible.
+
+    = = ⇒ Measured: = = exit 0, = = = = "every widened member is read
+    # = = = = across the file boundary".
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                private func helper() -> Int {
+                    1
+                }
+
+                public func one() -> Int {
+                    helper()
+                }
+
+                public func two() -> Int {
+                    helper()
+                }
+
+                public func three() -> Int {
+                    helper()
+                }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                public func helper() -> Int {
+                    1
+                }
+
+                public func one() -> Int {
+                    helper()
+                }
+
+                public func two() -> Int {
+                    helper()
+                }
+
+                public func three() -> Int {
+                    helper()
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        # = = ⇒ THE ARM MUST SEE THE WIDENING AT ALL, = = = = and the
+        # = = = = old regex admitted no access modifier, = = = = so this
+        # = = = = shape was invisible (= = = = exit 0, = = = = "every
+        # = = = = widened member is read across the file boundary").
+        expect(
+            "a `private` -> `public` widening is seen",
+            "helper" in out and "every widened member is read" not in out,
+            out[-900:],
+        )
+
+
+def case_a_base_that_does_not_exist_is_not_clean() -> None:
+    """THE REVIEW'S BLOCKING 4: = = a base that does not exist gave
+    byte-identical output to a change with no Swift file (= = "every case
+    passed", = = exit 0).
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        write(repo, "Sources/Thing.swift", "public struct Thing {}\n")
+        commit(repo, "base")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo),
+             "--base", "0" * 40, "--head", head],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "a base that does not exist is NOT clean",
+            proc.returncode != 0 and "does not exist" in out,
+            out[-700:],
+        )
+
+
+def case_a_second_finding_of_the_same_rule_is_not_swallowed() -> None:
+    """THE REVIEW'S BLOCKING 5: = = the comparison was an `any` over a
+    list, = = so the tip's SECOND finding of the same rule in the same
+    file was hidden by the base's ONE.
+
+    = = ⇒ Measured: = = swiftlint's own verdict was 2, = = = = and the
+    # = = = = tool said 0.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        (repo / ".swiftlint.yml").write_text(
+            "disabled_rules:\n  - file_length\n  - type_body_length\n", encoding="utf-8"
+        )
+        write(repo, "Sources/Thing.swift", """
+            public struct Thing {
+                public func one() {
+                    let a = 1
+                    _ = a
+                }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Thing.swift", """
+            public struct Thing {
+                public func one() {
+                    let a = 1
+                    _ = a
+                }
+
+                public func two() {
+                    let a = 2
+                    _ = a
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        code, out = check(repo, base, head)
+        expect(
+            "the tip's SECOND finding of the same rule is reported",
+            code != 0 and out.count("identifier_name") >= 1,
+            out,
+        )
+
+
+def case_a_tip_that_cannot_be_looked_at_is_not_clean() -> None:
+    """THE REVIEW'S BLOCKING 4, = = the other side: = = a tree that could
+    not be READ is said out loud, = = and not read as "nothing to report".
+
+    = = ⇒ AND A TIP THAT DOES NOT EXIST IS THE SAME SILENCE FROM THE
+    # = = = = OTHER SIDE.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        write(repo, "Sources/Thing.swift", "public struct Thing {}\n")
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo),
+             "--base", base, "--head", "0" * 40],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "a tip that cannot be looked at is NOT clean",
+            proc.returncode != 0 and "does not exist" in out,
+            out[-700:],
+        )
+
+
+def case_a_base_that_cannot_be_looked_at_is_not_clean() -> None:
+    """THE REVIEW'S BLOCKING 4: = = a tree that could not be READ is said
+    out loud.
+
+    = = ⇒ AND THE FAILURE IS INJECTED, = = = = because a base that
+    # = = = = cannot be looked at is otherwise untestable from outside
+    # = = = = (= = = = and an untestable path is an unheld one).
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        write(repo, "Sources/Thing.swift", "public struct Thing {}\n")
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Thing.swift", "public struct Thing { public func one() {} }\n")
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        # = = A PARENT THAT IS A FILE, = = = = so the worktree's own
+        # = = directory cannot be created (= = = = `git worktree add`
+        # = = = = refuses it, = = = = and the failure is the tree's, = =
+        # = = = not the tool's).
+        blocked = tmp / "a-file-not-a-directory"
+        blocked.write_text("x", encoding="utf-8")
+        broken_parent = blocked
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--lint-work-parent", str(broken_parent)],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "a base that could NOT be looked at is said out loud",
+            proc.returncode != 0 and "could not be looked at" in out,
+            out[-900:],
+        )
+
+
 def main() -> int:
     print("split_pre_check: every check has a positive control")
     for case in (
@@ -835,6 +1209,13 @@ def main() -> int:
         case_a_split_created_file_is_checked_for_promotions,
         case_two_consecutive_blank_lines_are_reported,
         case_a_single_blank_line_is_not_reported,
+        case_the_vendored_tree_is_exempt,
+        case_a_failed_build_is_not_a_clean_one,
+        case_a_widening_to_public_is_seen,
+        case_a_base_that_does_not_exist_is_not_clean,
+        case_a_second_finding_of_the_same_rule_is_not_swallowed,
+        case_a_tip_that_cannot_be_looked_at_is_not_clean,
+        case_a_base_that_cannot_be_looked_at_is_not_clean,
     ):
         print(f"--- {case.__name__}")
         case()
