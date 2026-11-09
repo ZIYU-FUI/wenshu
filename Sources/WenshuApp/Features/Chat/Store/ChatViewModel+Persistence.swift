@@ -3,7 +3,6 @@
 // The try-logging helper the persistence path uses, = = so a dropped row is
 // reported instead of swallowed.
 
-import Foundation
 import os.log
 
 // MARK: - Try-logging helper (= 12 standard P1-02 try?  scaffolding)

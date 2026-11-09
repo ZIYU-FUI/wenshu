@@ -3,8 +3,6 @@
 // properties stay in ChatViewModel.swift (= = an extension cannot hold them).
 
 import Foundation
-import os.log
-import WenshuAgent
 import WenshuData
 
 extension ChatViewModel {

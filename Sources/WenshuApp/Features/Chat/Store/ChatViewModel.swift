@@ -3,11 +3,10 @@
 // The class's STORED PROPERTIES live here (= = an extension cannot hold
 // them); = = its methods live in the files beside it.
 import Foundation
-import os.log
 import WenshuAgent
 import WenshuData
 
-// ChatViewModel: state management (Apple Observable + WSChatRepository + WenshuConductor)
+/// ChatViewModel: state management (Apple Observable + WSChatRepository + WenshuConductor)
 @MainActor
 @Observable
 final class ChatViewModel {

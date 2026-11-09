@@ -4,7 +4,6 @@
 
 import Foundation
 import os.log
-import WenshuAgent
 import WenshuData
 
 extension ChatViewModel {
