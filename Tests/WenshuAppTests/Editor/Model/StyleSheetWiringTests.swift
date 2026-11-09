@@ -292,7 +292,9 @@ final class StyleSheetWiringTests: XCTestCase {
                     if character == "{" {
                         stack.append(index)
                     } else if character == "}" {
-                        if !stack.isEmpty { stack.removeLast() }
+                        if !stack.isEmpty {
+                            stack.removeLast()
+                        }
                     }
                 }
                 index2 += 1
@@ -447,9 +449,9 @@ final class StyleSheetWiringTests: XCTestCase {
             // = = the FORM of the binding, = = and the NAME it binds.
             let opensBody: Bool? =
                 if trimmed.range(of: #"\b(if|guard|while)\s+let\s+bookID\b"#, options: .regularExpression) != nil {
-                    (true)
+                    true
                 } else if trimmed.range(of: #"\b(let|var)\s+bookID\b"#, options: .regularExpression) != nil {
-                    (false)
+                    false
                 } else {
                     nil
                 }
@@ -470,7 +472,9 @@ final class StyleSheetWiringTests: XCTestCase {
             guard Array(callChain.prefix(bindChain.count)) == bindChain else { return nil }
             // = = in the SAME scope, = = the binding must come BEFORE
             // = = the call: = = a declaration after it cannot shadow it.
-            if bindChain.count == callChain.count, index > knobCall.line { return nil }
+            if bindChain.count == callChain.count, index > knobCall.line {
+                return nil
+            }
             return trimmed
         }
         XCTAssertEqual(
