@@ -170,6 +170,63 @@ final class StyleSheetWiringTests: XCTestCase {
         return body.joined(separator: "\n")
     }
 
+    /// The write-back calls in a body that carry the given argument labels.
+    ///
+    /// A call is a `BookStyleSheetWriteBack.apply(` with its arguments
+    /// spanning to the matching close. = = A call is identified by the
+    /// LABELS it carries (= = `knob:` and `position:` are the knob's own),
+    /// = = NOT by a spelling of its target: = = so a second path that
+    /// happens to write the same book the same way is a different call,
+    /// = = and the knob's own call is still found.
+    private static func calls(
+        in body: String,
+        carrying labels: [String]
+    ) -> [(target: String, text: String)] {
+        var found: [(target: String, text: String)] = []
+        let lines = body.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        var index = 0
+        while index < lines.count {
+            let line = lines[index]
+            guard line.contains("BookStyleSheetWriteBack.apply(") else {
+                index += 1
+                continue
+            }
+            // = = the call's arguments span to the line that closes it = =
+            var text = line
+            var cursor = index
+            while !text.contains(")"), cursor + 1 < lines.count {
+                cursor += 1
+                text += "\n" + lines[cursor]
+            }
+            let carries = labels.allSatisfy { text.contains($0) }
+            if carries {
+                // = = the `to:` argument's VALUE, = = with the argument's
+                // = = trailing comma removed (= = `to: bookID,` names the
+                // = = book `bookID`). = = The value must be the bare name:
+                // = = `bookID.first` or `bookID ?? other` would name
+                // = = something else.
+                let target = text
+                    .split(separator: "\n")
+                    .compactMap { line -> String? in
+                        let trimmed = line.trimmingCharacters(in: .whitespaces)
+                        guard trimmed.hasPrefix("to:") else { return nil }
+                        var value = String(trimmed.dropFirst("to:".count))
+                        while value.last == "," || value.last == " " {
+                            value.removeLast()
+                        }
+                        while value.first == " " {
+                            value.removeFirst()
+                        }
+                        return value
+                    }
+                    .first ?? ""
+                found.append((target, text))
+            }
+            index = cursor + 1
+        }
+        return found
+    }
+
     /// THE PAGE'S OWN CALL WRITES THE BOOK IT IS SHOWING.
     ///
     /// MUTATION: = the call removed (= the knob writes nothing at all),
@@ -182,28 +239,39 @@ final class StyleSheetWiringTests: XCTestCase {
             code.contains("try BookStyleSheetWriteBack.apply("),
             "the page must write the sheet back at all (= the knobs are not read-only)"
         )
-        // = = THE CALL SITE, = = SCOPED TO THE SAME BODY. = = A
-        // = = whole-file `contains("to: bookID,")` is satisfied by the
-        // = = page's OTHER write-back (= `applyPreset` spells it too), = =
-        // = = and that one is not the knob's call. = = So the call site
-        // = = is read from `moveKnob`'s OWN body, = = and it must appear
-        // = = there EXACTLY once: = = the knob writes one book's sheet.
+        // = = THE KNOB'S OWN CALL, = = NOT A SPELLING. = =
+        // = =
+        // = = The last round measured this failing: = = a count of the
+        // = = lines carrying `to: bookID,` is satisfied by a SECOND
+        // = = write-back inside the body that spells the same thing, = =
+        // = = while the knob's real call names the store's FIRST book. = =
+        // = = And the same count turns a legitimate second path RED when
+        // = = that path happens to spell its target the same way. = = So
+        // = = the outcome depended on the NAME a path used, = = not on
+        // = = what it did.
+        // = =
+        // = = The anchor is the knob's OWN call: = = the one that carries
+        // = = the knob's arguments (`knob:` and `position:`). = = There
+        // = = must be exactly ONE such call in `moveKnob`'s body, = = and
+        // = = THAT call's `to:` must be exactly `bookID`.
         let knobBody = try Self.body(of: code, of: "private func moveKnob(")
-        let targets = knobBody
-            .split(separator: "\n")
-            .filter { $0.contains("to: bookID,") }
+        let knobCalls = Self.calls(in: knobBody, carrying: ["knob:", "position:"])
         XCTAssertEqual(
-            targets.count,
+            knobCalls.count,
             1,
-            "the page writes the book it SHOWS EXACTLY ONCE (= a second target is a decoy that satisfies a whole-file contains)"
+            "the knob must make EXACTLY ONE write-back of its own (= a second one is a second path, = = and the knob's own write is the one that decides which book it writes)"
         )
-        XCTAssertTrue(
-            targets.first?.trimmingCharacters(in: .whitespaces) == "to: bookID,",
-            "the page must write the book it is showing (= the store's first book is not the page's book)"
+        XCTAssertEqual(
+            knobCalls.first?.target,
+            "bookID",
+            "the knob's own write-back must name the book it SHOWS (= the store's first book is not the page's book)"
         )
+        // = = And the page does write the sheet back at all: = = the knob's
+        // = = own call is what this test now reads, = = so the file-wide
+        // = = check stays as the page-level statement it is.
         XCTAssertTrue(
-            knobBody.contains("try BookStyleSheetWriteBack.apply("),
-            "the knob must write the sheet back (= the knob is not read-only)"
+            code.contains("try BookStyleSheetWriteBack.apply("),
+            "the page must write the sheet back at all (= the knobs are not read-only)"
         )
         // The call site spells the id, = but the BINDING decides which
         // book that name carries: = a page that binds the store's first
@@ -223,19 +291,35 @@ final class StyleSheetWiringTests: XCTestCase {
         // unrelated `let bookID = currentBookID` elsewhere in the file
         // satisfies a whole-file `contains` (= the decoy), = so the
         // count is part of the guard.
+        // = = THE KNOB'S OWN BINDING, = = NOT EVERY BINDING IN ITS BODY.
+        // = = = =
+        // = = The count was over every `let bookID =` in the body, = = so
+        // = = a SECOND PATH's own binding (= = a real path, = = writing a
+        // = = real book) was read as a second binding of the knob's, = = and
+        // = = turned a legitimate page RED. = = So the binding is read from
+        // = = the knob's OWN DECLARATION: = = the line that introduces it,
+        // = = and there must be exactly one such line.
         let moveKnob = try Self.body(of: code, of: "private func moveKnob(")
+        // = = And a DECLARATION is not an OPTIONAL BINDING. = = `if let
+        // = = bookID = currentBookID` is Swift's optional binding: = = it
+        // = = introduces a shadow in an inner scope, = = and a legitimate
+        // = = second path may well write one. = = So the line must BEGIN
+        // = = with `let bookID =` (= = the declaration), = = not merely
+        // = = contain it.
         let bindings = moveKnob
             .split(separator: "\n")
-            .filter { $0.contains("let bookID =") }
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { $0.hasPrefix("let bookID =") }
+            .filter { $0.contains("currentBookID") }
         XCTAssertEqual(
             bindings.count,
             1,
-            "the page binds the book it shows EXACTLY ONCE (= a second binding is a decoy that satisfies a whole-file contains)"
+            "the page binds the book it shows EXACTLY ONCE (= a second binding of it is a decoy that satisfies a whole-file contains)"
         )
         XCTAssertTrue(
             bindings.first?.trimmingCharacters(in: .whitespaces)
                 == "let bookID = currentBookID",
-            "the book the page writes must be the book it SHOWS (= the binding must be exactly currentBookID, = with no fallback that names another book)"
+            "the book the page writes must be the book it SHOWS (= the binding must be exactly currentBookID, = = and a whole-file contains holds a PREFIX)"
         )
     }
 
