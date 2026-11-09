@@ -321,8 +321,15 @@ final class StyleSheetWiringTests: XCTestCase {
         if !opensBody {
             return chains[line]
         }
-        // The scope the body opens = = the next `{` after this line.
-        var index = line + 1
+        // = = The scope the body opens = = the `{` that FOLLOWS the
+        // binding, = = and it may be ON THE SAME LINE. = =
+        // = = Swift writes `if let x = y {` on one line as often as it
+        // = = writes it on two, = = so a scan that starts at the next
+        // = = line walks past the body's own brace and lands on some
+        // = = unrelated `{` further down. = = The shadowing then reads
+        // = = as invisible, = = and the guard answers GREEN on a page
+        // = = that writes the wrong book.
+        var index = line
         while index < lines.count {
             if lines[index].contains("{") {
                 return chains[index] + [index]
@@ -447,8 +454,17 @@ final class StyleSheetWiringTests: XCTestCase {
         let bindings = knobLines.enumerated().compactMap { index, line -> String? in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             // = = the FORM of the binding, = = and the NAME it binds.
+            // = = `guard let` IS NOT `if let`. = = Swift binds a `guard
+            // = = let` in the ENCLOSING scope (= = the guard's body must
+            // = = LEAVE, = = so the binding cannot belong to it), = = while
+            // = = `if let` and `while let` bind in the scope their body
+            // = = opens. = = A guard let that shadows the outer book
+            // = = therefore shadows it for the WHOLE of the rest of the
+            // = = scope, = = and the guard must count it.
             let opensBody: Bool? =
-                if trimmed.range(of: #"\b(if|guard|while)\s+let\s+bookID\b"#, options: .regularExpression) != nil {
+                if trimmed.range(of: #"\bguard\s+let\s+bookID\b"#, options: .regularExpression) != nil {
+                    false
+                } else if trimmed.range(of: #"\b(if|while)\s+let\s+bookID\b"#, options: .regularExpression) != nil {
                     true
                 } else if trimmed.range(of: #"\b(let|var)\s+bookID\b"#, options: .regularExpression) != nil {
                     false
