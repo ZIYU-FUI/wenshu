@@ -889,9 +889,52 @@ def case_the_vendored_tree_is_exempt() -> None:
         head = git(repo, "rev-parse", "HEAD").strip()
 
         code, out = check(repo, base, head)
+        # = = ⇒ THE FINDING LINES, = = = = not the whole output: = = = =
+        # = = = = the file LIST names the vendored file (= = = = the
+        # = = = = swiftlint arm sees it, = = = = as the tree's own lint
+        # = = = = does), = = = = and the line that matters is the
+        # = = = = FINDING, = = = = and the swiftformat arm must not
+        # = = = = charge it.
+        findings = [
+            line for line in out.split("\n")
+            if line.strip().startswith("!")
+        ]
         expect(
             "the VENDORED tree is exempt (= = the tree's own gate exempts it)",
-            "Vendor/" not in out,
+            not any("Vendor/" in line for line in findings),
+            out,
+        )
+
+
+def case_the_swiftlint_arm_still_sees_the_vendored_tree() -> None:
+    """THE REVIEW'S NON-BLOCKING FINDING: = = the exemption was WIDER
+    than the tree's own lint.
+
+    = = ⇒ Measured by the review: = = the tree's `.swiftlint.yml` has no
+    # = = = = Vendor entry, = = = = the forbidden-vocab rule is severity
+    # = = = = error, = = = = and CI's SwiftLint step hard-fails on error
+    # = = = = severity: = = = = a vendored file carrying a forbidden
+    # = = = = token makes the tree's own swiftlint exit 2. = = ⇒ The
+    # = = = = tree's lint does NOT exempt Vendor/, = = = = so this tool's
+    # = = = = swiftlint arm must not either (= = = = and the exemption
+    # = = = = belongs to the swiftformat arm alone).
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        write(repo, "Sources/Thing.swift", "public struct Thing {}\n")
+        write(repo, "Vendor/Upstream/Thing.swift", "public struct Upstream {}\n")
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Vendor/Upstream/Thing.swift",
+              "public struct Upstream {}\n\n\npublic func one() {}\n")
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        code, out = check(repo, base, head)
+        expect(
+            "the swiftlint arm still sees the vendored tree",
+            "Vendor/Upstream/Thing.swift" in out,
             out,
         )
 
@@ -1587,6 +1630,7 @@ def main() -> int:
         case_two_consecutive_blank_lines_are_reported,
         case_a_single_blank_line_is_not_reported,
         case_the_vendored_tree_is_exempt,
+        case_the_swiftlint_arm_still_sees_the_vendored_tree,
         case_a_failed_build_is_not_a_clean_one,
         case_a_widening_to_public_is_seen,
         case_a_base_that_does_not_exist_is_not_clean,

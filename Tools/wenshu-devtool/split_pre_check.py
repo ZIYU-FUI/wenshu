@@ -133,14 +133,6 @@ def changed_swift_files(base: str, head: str) -> list[str]:
             continue
         if status.startswith("D"):
             continue
-        # = = ⇒ AND THE VENDORED TREE IS EXEMPT, = = exactly as the
-        # = = = = tree's own formatting gate exempts it (= = = = the gate
-        # = = = = drops the path before the lint, = = = = because the
-        # = = = = vendored files are upstream's own code byte for byte).
-        # = = = = ⇒ A tool that lints them charges the change for 61
-        # = = = = findings the gate never charges anybody for.
-        if path.startswith(VENDORED_PREFIX):
-            continue
         files.append(path)
     return files
 
@@ -275,7 +267,20 @@ def lint_in_tree(ref: str, paths: list[str], work_parent: Path | None = None) ->
                 f"the worktree at {ref} could not be made: {out.strip()[:160]}"
             ]
             return findings
-        present = [p for p in paths if (work / p).is_file()]
+        # = = ⇒ AND THE VENDORED TREE IS EXEMPT HERE, = = = = and ONLY
+        # = = = = HERE. = = = = The tree's own formatting gate drops the
+        # = = = = vendored paths before its SwiftFormat run (= = = = they
+        # = = = = are upstream's own code byte for byte), = = = = but the
+        # = = = = tree's SWIFTLINT does not exclude them (= = = = and a
+        # = = = = vendored file carrying a forbidden token makes the
+        # = = = = tree's own lint exit 2). = = ⇒ The exemption belongs to
+        # = = = = the arm that needs it, = = = = and the swiftlint arm
+        # = = = = still sees the vendored tree (= = = = as the tree's own
+        # = = = = lint does).
+        present = [
+            p for p in paths
+            if (work / p).is_file() and not p.startswith(VENDORED_PREFIX)
+        ]
         if not present:
             return findings
         # = = ⇒ AND NO `--config`, = = because the worktree IS the repo
@@ -399,7 +404,20 @@ def swiftformat_findings(base: str, head: str, paths: list[str]) -> list[str]:
         code, out = sh("worktree", "add", "--detach", str(work), head)
         if code != 0:
             return [f"the worktree at {head} could not be made: {out.strip()[:160]}"]
-        present = [p for p in paths if (work / p).is_file()]
+        # = = ⇒ AND THE VENDORED TREE IS EXEMPT HERE, = = = = and ONLY
+        # = = = = HERE. = = = = The tree's own formatting gate drops the
+        # = = = = vendored paths before its SwiftFormat run (= = = = they
+        # = = = = are upstream's own code byte for byte), = = = = but the
+        # = = = = tree's SWIFTLINT does not exclude them (= = = = and a
+        # = = = = vendored file carrying a forbidden token makes the
+        # = = = = tree's own lint exit 2). = = ⇒ The exemption belongs to
+        # = = = = the arm that needs it, = = = = and the swiftlint arm
+        # = = = = still sees the vendored tree (= = = = as the tree's own
+        # = = = = lint does).
+        present = [
+            p for p in paths
+            if (work / p).is_file() and not p.startswith(VENDORED_PREFIX)
+        ]
         if not present:
             return findings
         proc = subprocess.run(
