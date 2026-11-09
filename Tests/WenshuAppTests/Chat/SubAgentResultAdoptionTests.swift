@@ -387,10 +387,10 @@ struct SubAgentResultAdoptionTests {
         // .../Tests/WenshuAppTests/Chat/<this file>
         // .../Sources/WenshuApp/Features/Chat/Store/<the view model's files>
         var root = URL(fileURLWithPath: #filePath)
-        root.deleteLastPathComponent()   // Chat
-        root.deleteLastPathComponent()   // WenshuAppTests
-        root.deleteLastPathComponent()   // Tests
-        root.deleteLastPathComponent()   // the repository root
+        root.deleteLastPathComponent() // Chat
+        root.deleteLastPathComponent() // WenshuAppTests
+        root.deleteLastPathComponent() // Tests
+        root.deleteLastPathComponent() // the repository root
         root.appendPathComponent("Sources/WenshuApp/Features/Chat/Store")
         // The view model's source is spread over the files the split left
         // it in, = = so the reader takes ALL of them and joins them with a
