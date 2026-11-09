@@ -249,10 +249,10 @@ TYPE_TAG_RE = re.compile(r"^\[(T[123])\]\s*\[(" + "|".join(TYPE_TAGS) + r")\]\s*
 # A cited rule is not a write. A path followed by a section marker
 # ("AGENTS.md §7.3") is a reference, so it must not count as work scope.
 CITATION_RE = re.compile(
-    r"[A-Za-z0-9_./-]+\.(?:swift|md|sh|xcstrings|py|yml|yaml|plist)"
+    r"[A-Za-z0-9_./+-]+\.(?:swift|md|sh|xcstrings|py|yml|yaml|plist)"
     r"[\"'`\s]*(?:§|section|rule|clause)\s*[0-9]+(?:\.[0-9]+)*"
 )
-SWIFT_RE = re.compile(r"(?:Sources|Tests)/[A-Za-z0-9_./-]+\.swift")
+SWIFT_RE = re.compile(r"(?:Sources|Tests)/[A-Za-z0-9_./+-]+\.swift")
 CODE_RE = re.compile(r"```[a-zA-Z]*\n(.*?)```", re.S)
 
 # Work-shaped signals. Each names the WORK, not the prose: a short body for a

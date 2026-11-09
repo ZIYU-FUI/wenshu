@@ -341,6 +341,39 @@ check(
     [],
 )
 
+
+# = = THE FILE NAMES THAT CARRY A `+`. = = = =
+#
+# = = A split file is named `Name+Cluster.swift`, = = and the `+` is part
+# of the name. = = So a path matcher whose character class leaves `+` out
+# does not see the file AT ALL: = = and a card that writes one is rated
+# as if it wrote nothing. = =
+#
+# = = ⇒ SO THE MATCHER MUST SEE IT. = = And a matcher that sees `+` must
+# still read `+` as itself: = = a `+` that became a quantifier would
+# match a path that has no `+` in it.
+SPLIT_PATH = "Sources/WenshuApp/Features/Chat/View/ChatView+KeyboardShortcuts.swift"
+check(
+    "PATH_RE sees a split file's `+` in its name",
+    bool(pl.PATH_RE.findall(SPLIT_PATH)),
+    True,
+)
+check(
+    "PATH_RE matches the split path WHOLE (= = the `+` is a character, = = not a quantifier)",
+    pl.PATH_RE.findall(SPLIT_PATH),
+    [SPLIT_PATH],
+)
+check(
+    "PATH_RE still reads an ordinary path",
+    bool(pl.PATH_RE.findall("Sources/WenshuApp/App/ClientShell.swift")),
+    True,
+)
+check(
+    "PATH_RE still reads the mobile path",
+    bool(pl.PATH_RE.findall("Mobile/Sources/WenshuMobileApp/App/ClientShell.swift")),
+    True,
+)
+
 print()
 if FAILURES:
     print(f"product_lines: {len(FAILURES)} case(s) FAILED")

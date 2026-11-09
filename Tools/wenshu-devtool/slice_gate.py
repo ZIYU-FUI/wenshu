@@ -98,9 +98,9 @@ FILTER_RE = re.compile(r"swift\s+test\s+--filter\s+([A-Za-z0-9_]+)")
 # A named gate command that is not a suite (= a card with no Swift code
 # names its own gate: a script, a probe, a doctor command).
 NAMED_GATE_RE = re.compile(
-    r"(?:^|\s)(?:\./)?(?:Scripts|Tools)/[A-Za-z0-9_./-]+\.(?:sh|py)"
-    r"|(?:^|\s)python3\s+(?:Scripts|Tools)/[A-Za-z0-9_./-]+\.py"
-    r"|(?:^|\s)bash\s+(?:Scripts|Tools)/[A-Za-z0-9_./-]+\.sh"
+    r"(?:^|\s)(?:\./)?(?:Scripts|Tools)/[A-Za-z0-9_./+-]+\.(?:sh|py)"
+    r"|(?:^|\s)python3\s+(?:Scripts|Tools)/[A-Za-z0-9_./+-]+\.py"
+    r"|(?:^|\s)bash\s+(?:Scripts|Tools)/[A-Za-z0-9_./+-]+\.sh"
     r"|(?:^|\s)swift\s+(?:build|format|lint)"
 )
 

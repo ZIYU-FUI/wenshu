@@ -138,14 +138,14 @@ RESEARCH_RE = re.compile(
 )
 # A card that names a source file is doing work on code, so it is in scope
 # whether or not it says the word "design".
-CODE_PATH_RE = re.compile(r"(?:Sources|Tests)/[A-Za-z0-9_./-]+\.swift")
+CODE_PATH_RE = re.compile(r"(?:Sources|Tests)/[A-Za-z0-9_./+-]+\.swift")
 # A file the card names. Not just .swift: a card that reads a tool script
 # reads a .py, a card that reads a shell gate reads a .sh, and a card that
 # reads the rulebook reads a .md. The first draft matched only .swift and
 # reported the governance card as naming zero files, because every path in
 # its budget was a .py.
 FILE_PATH_RE = re.compile(
-    r"[A-Za-z0-9_][A-Za-z0-9_./-]*\.(?:swift|py|sh|md|json|yaml|yml|txt|plist|xcstrings)"
+    r"[A-Za-z0-9_][A-Za-z0-9_./+-]*\.(?:swift|py|sh|md|json|yaml|yml|txt|plist|xcstrings)"
 )
 
 # A card that already names the files it will change has bound its evidence
@@ -469,7 +469,7 @@ def _anchored(section: str, path: str) -> bool:
 LOCALIZATION_HEADING_RE = re.compile(r"(?im)^#{1,6}\s*localization\s*$")
 CATALOG_MENTION_RE = re.compile(r"catalog|xcstrings|\.strings\b", re.I)
 CATALOG_FILE_RE = re.compile(r"`([A-Za-z0-9_][A-Za-z0-9_.-]*\.(?:xcstrings|strings))`")
-CATALOG_PATH_RE = re.compile(r"(?:Sources|Tests|Tools|Scripts|docs)/[A-Za-z0-9_./-]+")
+CATALOG_PATH_RE = re.compile(r"(?:Sources|Tests|Tools|Scripts|docs)/[A-Za-z0-9_./+-]+")
 NO_CATALOG_RE = re.compile(
     r"\bno\s+(?:string\s+)?catalog\b|\bdoes\s+not\s+have\s+a\b[^.\n]{0,30}\bcatalog\b"
     r"|\bno\s+\.xcstrings\b|\bnot\s+a\s+string\s+catalog\b",

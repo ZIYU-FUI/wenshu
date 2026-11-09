@@ -190,7 +190,7 @@ EXCLUSION_SECTIONS = {
 # reference, and a card that says "make `AGENTS.md` say which" IS asking to
 # edit that file, and that grant must survive.
 CITATION_RE = re.compile(
-    r"[A-Za-z0-9_./-]+\.(?:swift|md|sh|xcstrings|py|yml|yaml|plist)"
+    r"[A-Za-z0-9_./+-]+\.(?:swift|md|sh|xcstrings|py|yml|yaml|plist)"
     r"(?:[\"'`\s]*(?:§|section|rule|clause)\s*[0-9]+(?:\.[0-9]+)*"
     r"|[\"'`\s]+[0-9]+\.[0-9]+(?:\.[0-9]+)*)"
 )

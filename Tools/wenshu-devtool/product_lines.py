@@ -320,8 +320,8 @@ def board_db(board: str = DEFAULT_BOARD) -> str:
 # (`Mobile/Sources/...`) is recognised too, because a card that names a
 # file by its repo path is naming a real file.
 PATH_RE = re.compile(
-    r"(?:Sources|Tests|Tools|docs|Scripts)/[A-Za-z0-9_./-]+\.[A-Za-z0-9]+"
-    r"|Mobile/(?:Sources|Tests)/[A-Za-z0-9_./-]+\.[A-Za-z0-9]+"
+    r"(?:Sources|Tests|Tools|docs|Scripts)/[A-Za-z0-9_./+-]+\.[A-Za-z0-9]+"
+    r"|Mobile/(?:Sources|Tests)/[A-Za-z0-9_./+-]+\.[A-Za-z0-9]+"
     r"|(?:AGENTS|Package|CHANGELOG|OOB|CONTEXT|README)\.md"
     r"|Package\.(?:swift|resolved)"
     r"|\.(?:swiftlint\.yml|swift-format)"
