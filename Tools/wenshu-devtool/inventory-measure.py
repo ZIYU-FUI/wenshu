@@ -369,13 +369,41 @@ def main():
         # = = DELETED is in the base and not in the tip. = = Measuring the
         # = = base's list alone would miss an added file entirely.
         base_files = set(files)
+        # = = THE SCOPE HOLDS ON BOTH SIDES. = = The last round measured
+        # = = this failing: = = the tip's file set was the WHOLE tree, = =
+        # = = so a `--files` run re-admitted every changed production file
+        # = = = = the per-hit table published hits for files the caller did
+        # = = = = NOT name, = = = = and (because the base's map was built
+        # = = = = from the SCOPED set) = = the SAME hit flipped from
+        # = = = = `at_base` to `the change's own` depending on an unrelated
+        # = = = = flag. = = So the tip's set is the named set INTERSECTED
+        # = = = = with the tip's own, = = and the scope is symmetric.
         tip_files = {p for p in production_files(tip) if p.endswith(".swift")}
+        if scoped:
+            # = = the SCOPE is the caller's OWN list of paths (= = `files`
+            # = = = = at :192), = = so the tip's set is intersected with
+            # = = = = THAT, = = not with the base's file set (= = a file
+            # = = = = the change ADDED is in the tip and not in the base).
+            tip_files &= set(files)
         measured_files = sorted((base_files | tip_files) & changed_files(base, tip))
 
-        # = = the base's tokens, = = PER FILE (= = so the attribution is
-        # = = the base's debt IN THAT FILE, = = not anywhere in the tree)
+        # = = THE SCOPE'S OWN FILE SET, = = FOR THE TREE'S ROW. = =
+        # = =
+        # = = The tree's row compares the base's tokens against the tip's
+        # = = tokens, = = so BOTH SIDES MUST READ THE SAME FILES. = = The
+        # = = last round measured this failing: = = the base side was
+        # = = built from the CHANGED files and the tip side from the tip's
+        # = = whole tree, = = so a scoped run published "base 43 -> tip
+        # = = = = 306" (= = one file's base against the whole tree's tip)
+        # = = = = and its own unscoped run said the true figure was 0.
+        # = =
+        # = = So the row reads the scope: = = the named files when the
+        # = = caller named them, = = and the tip's production files when
+        # = = they did not. = = And a file the scope names but the base
+        # = = does not have is not an error (= = the change added it).
+        scope_files = set(files) if scoped else set(tip_files)
         base_by_file = {}
-        for p in base_files:
+        for p in scope_files:
             text = read_at(base, p)
             if text is None:
                 continue
@@ -386,24 +414,32 @@ def main():
 
         print("   each hit's at_base status:")
         reported = 0
+        # = = THE FILES THE TABLE ACTUALLY READ. = = A file the change
+        # = = DELETED is in the changed set and not at the tip, = = so it
+        # = = = = the table never read it, = = = = and counting it in the
+        # = = = = denominator would publish a number the table does not
+        # = = = = support (= = the last round measured 2 where the table
+        # = = = = read 1).
+        read_files = []
         for p in measured_files:
             text = read_at(tip, p)
             if text is None:
                 # = = the change DELETED this file: = = there is nothing at
                 # = = the tip to attribute
                 continue
+            read_files.append(p)
             base_tokens = base_by_file.get(p, set())
             for lineno, token in hits_in(text):
                 status = "at_base" if token in base_tokens else "the change's own"
                 print(f"     {token:16s} {p}:{lineno} {status}")
                 reported += 1
         print(
-            f"   {reported} hit(s) over the {len(measured_files)} production file(s) "
+            f"   {reported} hit(s) over the {len(read_files)} production file(s) "
             f"this change touched"
         )
 
         tip_hits = set()
-        for p in tip_files:
+        for p in scope_files:
             text = read_at(tip, p)
             if text is None:
                 continue

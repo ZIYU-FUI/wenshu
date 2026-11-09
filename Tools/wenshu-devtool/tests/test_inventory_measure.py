@@ -409,12 +409,58 @@ def check_the_printed_method():
                     f"{real!r} = = = = the method must print the matcher it uses"
                 )
 
-    # = = the method's SKIP LIST must equal the code's. = = The code
-    # = = skips the collapse receipts and the `// /` lines; = = the
-    # = = method must say both. = = This is read from the CODE (= = the
-    # = = skip expression) and from the METHOD TEXT, = = so a change to
-    # = = either one without the other is caught.
+    # = = the skip names the CODE carries (= = the table's keys). = = The
+    # = = name-level check below reads these, = = because the printed
+    # = = method must SAY each skip the code performs. = = But the names
+    # = = alone cannot hold the rule (= = see below), = = so this list is
+    # = = not the guard: = = = it is the method's own vocabulary.
     code_skips = list(SKIP_RULE.keys())
+
+    # = = THE RULE'S BEHAVIOUR, = = NOT ITS NAMES. = =
+    # = =
+    # = = The last round measured this failing: = = the guard compared the
+    # = = table's KEY NAMES, = = so editing one cell's EXPRESSION (= = the
+    # = = cell's value) left the guard green, = = and the published
+    # = = census row moved by 917 (= = a 2.1x change in the tree's
+    # = = headline number) while the printed method still claimed the
+    # = = opposite of what the code did. = =
+    # = =
+    # = = So the guard calls the tool's OWN predicate (= = `skipped`, = =
+    # = = which is compiled from that one table) on three sample lines
+    # = = and asserts the OUTCOMES: = = a collapse receipt is skipped,
+    # = = a `// /` line is skipped, = = and an ordinary comment carrying
+    # = = a ticket id is NOT skipped. = = No edit to the table's
+    # = = expressions can defeat that, = = because the predicate IS the
+    # = = table. = =
+    # = =
+    # = = AND THIS IS NOT A COPY OF THE RULE: = = a test that asserted
+    # = = the table's VALUES against literals would carry a second copy
+    # = = of the rule (= = the defect class this card exists to close).
+    # = = These three lines are SAMPLES (= = the shapes the tree really
+    # = = has), = = and their EXPECTATIONS are the rule's BEHAVIOUR.
+    for sample, expected, what in (
+        (
+            "    // rationale lines collapsed (= = the A112/A115 labels)",
+            True,
+            "a collapse receipt",
+        ),
+        (
+            "    // / a malformed doc comment",
+            True,
+            "a `// /` line",
+        ),
+        (
+            "    // T4-REF the tree's own reference",
+            False,
+            "an ordinary comment carrying a ticket id",
+        ),
+    ):
+        actual = inv.skipped(sample)
+        if actual is not expected:
+            failures.append(
+                f"the skip rule does not skip {what} (= = {sample.strip()!r} = = "
+                f"skipped() said {actual}, = = and the rule says {expected})"
+            )
 
     # = = AND THE MEASURED ROW MUST CALL THE PREDICATE. = = A table the
     # = = guard reads is not enough: = = the measured row could still run
@@ -731,11 +777,25 @@ def check_the_tip_read_survives_the_tree():
         if denominator is None:
             failures.append("the tool did not print the number of files it measured")
         else:
-            # = = two production files changed (= = Kept and Added) = =
-            if "2 production file(s)" not in denominator:
+            # = = ONE production file was READ (= = the added one). = =
+            # = =
+            # = = The changed production files are TWO (= = the added one
+            # = = and the DELETED one), = = and the file the change did
+            # = = NOT touch (= = `Kept.swift`) is not among them. = = So the
+            # = = denominator must be the number of files the table READ
+            # = = (= = one), = = not the number of paths the change moved
+            # = = (= = two). = =
+            # = =
+            # = = The last round measured this failing: = = the
+            # = = denominator counted the DELETED file, = = which the table
+            # = = skipped because there is nothing at the tip to attribute,
+            # = = = = so the published number named a file the number did
+            # = = = = not come from.
+            if "1 production file(s)" not in denominator:
                 failures.append(
-                    f"the tool says {denominator.strip()!r}, = = and it measured two "
-                    f"production files (= = the kept one and the added one)"
+                    f"the tool says {denominator.strip()!r}, = = and it read ONE "
+                    f"production file (= = the added one), = = because the deleted "
+                    f"one is not at the tip to read"
                 )
         return failures
 
