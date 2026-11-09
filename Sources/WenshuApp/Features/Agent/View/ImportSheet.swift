@@ -20,10 +20,10 @@ struct ImportSheet: View {
     /// The four-step wizard. Each step is a page the user can go back to in order
     /// to fix a setting, or forward from when they are ready.
     enum WizardStep: Int, CaseIterable, Identifiable {
-        case configure = 0 // 步骤 1: 选目标 (= source dir + file type + destination + book + AI 程度 + 并发数)
-        case running = 1 // 步骤 2: 进度 (= ProgressView + progressLabel + per-file strip)
-        case results = 2 // 步骤 3: 结果 (= per-file list + per-row 重试 + 总重新调研所有失败)
-        case done = 3 // 步骤 4: 完成 (= 摘要 + 完成 button)
+        case configure = 0 // Step 1: pick the target (= source dir + file type + destination + book + AI level + concurrency)
+        case running = 1 // Step 2: progress (= ProgressView + progressLabel + per-file strip)
+        case results = 2 // Step 3: results (= per-file list + a retry per row + a way to re-research every failure)
+        case done = 3 // Step 4: done (= a summary + a done button)
 
         var id: Int {
             rawValue
