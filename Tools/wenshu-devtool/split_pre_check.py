@@ -31,8 +31,10 @@ member, = = and one split lost a `Foundation` import that way.
 
 ⇒ So this tool does five things the tree's gates do not:
 
-1. = = SWIFTLINT, on every file the change touched. = = (The tree's CI
-   does not run it, = = and it catches the orphan blank line.)
+1. = = SWIFTLINT, on every file the change touched, = = and only the
+   findings this change INTRODUCED. = = (The tree's CI runs swiftlint
+   REPORT-ONLY, = = = = so it prints a pre-existing finding and does not
+   fail the change, = = = = and it cannot say which findings are NEW.)
 2. = = THE HEADER SHAPE: = = a file must not start with a blank line, = =
    and a deleted import must not leave one behind.
 3. = = THE DELETED IMPORTS: = = every import the change removed is named,
@@ -479,7 +481,6 @@ def removed_imports(base: str, head: str, paths: list[str]) -> list[tuple[str, s
         if not base_text:
             continue
         base_imports = set(re.findall(r"^import\s+(\S+)", base_text, re.M))
-        base_uses_foundation = _foundation_members(strip_comments(base_text))
 
         for rel in tip_rels:
             text = head_tree.get(rel)
@@ -770,21 +771,6 @@ def lost_tokens(base: str, head: str, paths: list[str]) -> list[str]:
                 break
     return out
 
-
-
-def _shares_stem_for(base_tree: dict, head_tree: dict, base_rel: str, tip_rel: str) -> bool:
-    """Whether a tip file was split out of a particular base file."""
-    stem = Path(tip_rel).name.split("+")[0].replace(".swift", "")
-    return Path(base_rel).name.replace(".swift", "") == stem
-
-
-def _shares_stem(base_tree: dict, head_tree: dict, rel: str) -> bool:
-    """Whether a tip file was split out of one of the base's files."""
-    stem = Path(rel).name.split("+")[0].replace(".swift", "")
-    for base_rel in base_tree:
-        if Path(base_rel).name.replace(".swift", "") == stem:
-            return True
-    return False
 
 
 def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
