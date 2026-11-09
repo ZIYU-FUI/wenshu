@@ -181,9 +181,10 @@ final class StyleSheetWiringTests: XCTestCase {
     private static func calls(
         in body: String,
         carrying labels: [String]
-    ) -> [(target: String, text: String)] {
-        var found: [(target: String, text: String)] = []
+    ) -> [(target: String, text: String, line: Int, depth: Int)] {
+        var found: [(target: String, text: String, line: Int, depth: Int)] = []
         let lines = body.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        let depths = Self.braceDepths(of: lines)
         var index = 0
         while index < lines.count {
             let line = lines[index]
@@ -220,11 +221,35 @@ final class StyleSheetWiringTests: XCTestCase {
                         return value
                     }
                     .first ?? ""
-                found.append((target, text))
+                found.append((target, text, index, depths[index]))
             }
             index = cursor + 1
         }
         return found
+    }
+
+    /// The brace depth at the START of each line.
+    ///
+    /// A depth is the number of scopes OPEN at that line, = = so a
+    /// declaration and the call it feeds sit at the same depth when they
+    /// share a scope, = = and a nested path's own declaration sits deeper.
+    /// This is what separates the knob's OWN binding from a second path's:
+    /// the first SHADOWS the knob's write (= = and must be counted), = =
+    /// the second is that path's own (= = and must not be).
+    private static func braceDepths(of lines: [String]) -> [Int] {
+        var depths: [Int] = []
+        var depth = 0
+        for line in lines {
+            depths.append(depth)
+            for character in line {
+                if character == "{" {
+                    depth += 1
+                } else if character == "}" {
+                    depth -= 1
+                }
+            }
+        }
+        return depths
     }
 
     /// THE PAGE'S OWN CALL WRITES THE BOOK IT IS SHOWING.
@@ -291,35 +316,61 @@ final class StyleSheetWiringTests: XCTestCase {
         // unrelated `let bookID = currentBookID` elsewhere in the file
         // satisfies a whole-file `contains` (= the decoy), = so the
         // count is part of the guard.
-        // = = THE KNOB'S OWN BINDING, = = NOT EVERY BINDING IN ITS BODY.
+        // = = THE KNOB'S OWN BINDING, = = READ BY SCOPE. = =
         // = = = =
-        // = = The count was over every `let bookID =` in the body, = = so
-        // = = a SECOND PATH's own binding (= = a real path, = = writing a
-        // = = real book) was read as a second binding of the knob's, = = and
-        // = = turned a legitimate page RED. = = So the binding is read from
-        // = = the knob's OWN DECLARATION: = = the line that introduces it,
-        // = = and there must be exactly one such line.
+        // = = A binding is the knob's own when the scope it sits in
+        // = = ENCLOSES the knob's own write-back. = = Two arms follow from
+        // = = that, = = and both were measured by the round-7 review:
+        // = = = =
+        // = = = = A declaration in the CALL'S OWN scope SHADOWS the knob's
+        // = = = = write (= = Swift's scoping is the mechanism), = = so the
+        // = = = = knob writes ANOTHER book's sheet = = and it must be
+        // = = = = COUNTED (= = the page binds twice = = red).
+        // = = = = A nested path's own declaration is DEEPER than the call,
+        // = = = = so it is that path's own (= = a real path, = = writing a
+        // = = = = real book) = = and it must NOT be counted (= = green).
+        // = = = =
+        // = = And a DECLARATION is not an OPTIONAL BINDING: = = `if let
+        // = = = = bookID = currentBookID` is Swift's optional binding, = =
+        // = = = = and it introduces a shadow in an inner scope. = = So the
+        // = = = = line must BEGIN with `let bookID =`.
+        // = = = =
+        // = = So the anchor reads the DECLARATIONS whose scope encloses the
+        // = = knob's own call, = = and NOT every line that matches a text
+        // = = pattern. = = The last round measured what a text pattern
+        // = = costs: = = a conjunct that read `currentBookID` dropped a
+        // = = = = harmful declaration from the count (= = green), = = and
+        // = = = = kept a legitimate one in (= = red), = = so the verdict
+        // = = = = followed the NAME a path used, = = not what it did.
         let moveKnob = try Self.body(of: code, of: "private func moveKnob(")
-        // = = And a DECLARATION is not an OPTIONAL BINDING. = = `if let
-        // = = bookID = currentBookID` is Swift's optional binding: = = it
-        // = = introduces a shadow in an inner scope, = = and a legitimate
-        // = = second path may well write one. = = So the line must BEGIN
-        // = = with `let bookID =` (= = the declaration), = = not merely
-        // = = contain it.
-        let bindings = moveKnob
-            .split(separator: "\n")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { $0.hasPrefix("let bookID =") }
-            .filter { $0.contains("currentBookID") }
+        let knobLines = moveKnob
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map(String.init)
+        let knobDepths = Self.braceDepths(of: knobLines)
+        // = = the knob's OWN call is found by the LABELS in its argument
+        // = = block (= = the same rule the call-site anchor reads), = = so
+        // = = a decoy `apply(` before it cannot be mistaken for it.
+        guard let knobCall = knobCalls.first else {
+            XCTFail("the knob makes no write-back of its own, = = so its binding cannot be read")
+            return
+        }
+        let bindings = knobLines.enumerated().compactMap { index, line -> String? in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.hasPrefix("let bookID =") else { return nil }
+            // = = the scope must ENCLOSE the knob's own call: = = a
+            // = = declaration at the call's depth shadows it, = = and one
+            // = = DEEPER belongs to a nested path.
+            guard knobDepths[index] <= knobCall.depth else { return nil }
+            return trimmed
+        }
         XCTAssertEqual(
             bindings.count,
             1,
-            "the page binds the book it shows EXACTLY ONCE (= a second binding of it is a decoy that satisfies a whole-file contains)"
+            "the page binds the book it shows EXACTLY ONCE (= a second binding in the knob's own scope shadows its write)"
         )
         XCTAssertTrue(
-            bindings.first?.trimmingCharacters(in: .whitespaces)
-                == "let bookID = currentBookID",
-            "the book the page writes must be the book it SHOWS (= the binding must be exactly currentBookID, = = and a whole-file contains holds a PREFIX)"
+            bindings.first == "let bookID = currentBookID",
+            "the book the page writes must be the book it SHOWS (= the binding must be exactly currentBookID, = = and no fallback to the store's first book)"
         )
     }
 
