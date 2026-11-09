@@ -386,6 +386,7 @@ reference, LOC, and content tag.
 | `Sources/WenshuApp/Shared/State/LayoutTreeState.swift` (now 140 LOC, under cap) | `Sources/WenshuApp/Shared/State/LayoutTreeState+Merging.swift` | 79 | `func groupLeafIDs; func mergeZonesWithPane` = the zone merge, = = the one operation that reads a rectangular region of the tree and folds it into one group, = = moved out of the model file unchanged. |
 | `Sources/WenshuApp/Shared/State/LayoutTreeState.swift` (now 140 LOC, under cap) | `Sources/WenshuApp/Shared/State/LayoutTreeState+Edits.swift` | 153 | `func setActivePane; func reorderPanesInGroup; func setGroupMinimized; func setGroupTabStrip; func mirrorTreeHorizontal; func setSplitWeights; func migratePersistedTree` = the attribute edits and the persisted-tree migration, = = moved out of the model file unchanged. |
 | `Sources/WenshuApp/Features/Chat/View/ChatView.swift` (now 400 LOC, under cap) | `Sources/WenshuApp/Features/Chat/View/ChatView+KeyboardShortcuts.swift` | 577 | `extension ChatView { var keyboardShortcuts: some View }` = the chat's 36 keyboard-shortcut buttons, = = every one of them a hidden button that carries only a shortcut, = = moved out of ChatView.swift's body. |
+| `Sources/WenshuApp/Features/Agent/View/ImportSheet.swift` (now 551 LOC, under cap) | `Sources/WenshuApp/Features/Agent/View/ImportSheet+Steps.swift` | 64 | `extension ImportSheet { enum WizardStep + enum ImportDestination }` |
 
 <!-- Append new rows at the END of the table above. The key-level merge
      driver keeps both rows when two cards add one each. -->
