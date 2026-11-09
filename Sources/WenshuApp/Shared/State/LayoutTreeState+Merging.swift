@@ -1,9 +1,6 @@
 // LayoutTreeState+Merging.swift = part of the split tree model, = = moved out of LayoutTreeState.swift.
 // The clusters below keep their own comments and their own MARK banners.
 
-import CoreGraphics
-import Foundation
-
 // MARK: - groupLeafIds + findCover (= hermes model.ts lines 418-445)
 
 /// The group ids of every leaf under a node, in tree order.

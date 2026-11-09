@@ -9,7 +9,6 @@
 // with LayoutTreeStore.swift (= the schema and its migration logic are
 // inseparable — see ticket spec for the justification; = shipped together per the
 // standing rule).
-import CoreGraphics
 import Foundation
 
 // MARK: - Tree node constructors (= hermes model.ts lines 63-86)

@@ -1,9 +1,6 @@
 // LayoutTreeState+Edits.swift = part of the split tree model, = = moved out of LayoutTreeState.swift.
 // The clusters below keep their own comments and their own MARK banners.
 
-import CoreGraphics
-import Foundation
-
 // MARK: - Attribute edits (= hermes model.ts lines 507-587)
 
 private func mapGroups(_ node: LayoutNode, _ fn: (GroupNode) -> GroupNode) -> LayoutNode {
