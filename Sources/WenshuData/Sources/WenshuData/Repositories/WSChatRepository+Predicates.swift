@@ -10,8 +10,8 @@ import Foundation
 import SwiftData
 
 extension WSChatRepository {
-
     // MARK: - Predicates (chat-by-book row-level split)
+
     //
     // SwiftData #Predicate macros capture local variables by reference at
     // macro-expansion time, which means the predicate body cannot reference
