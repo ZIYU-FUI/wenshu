@@ -467,7 +467,6 @@ public final class WSChatRepository {
         context.insert(session)
         try context.save()
     }
-
 }
 
 // MARK: - Errors

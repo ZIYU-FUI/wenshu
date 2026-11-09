@@ -7,7 +7,6 @@
 // SwiftData #Predicate macro cannot express inside the predicate body.
 // The repository keeps the operations; = = this file keeps the matching.
 import Foundation
-import SwiftData
 
 extension WSChatRepository {
     // MARK: - Predicates (chat-by-book row-level split)
