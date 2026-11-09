@@ -22,6 +22,7 @@ matcher, = = so the case and the tool cannot drift apart).
 from __future__ import annotations
 
 import importlib.util
+import os
 import re
 import subprocess
 import sys
@@ -456,9 +457,9 @@ def check_the_printed_method():
     # = = = = holds receipts the narrowing would let through.
     receipt_marker = "rationale lines collapsed"
     tree_receipts = []
-    for tree_path in inv.production_files("HEAD"):
+    for tree_path in inv.production_files("HEAD", cwd=str(REPO)):
         try:
-            tree_text = inv.read("HEAD", tree_path)
+            tree_text = inv.read("HEAD", tree_path, cwd=str(REPO))
         except subprocess.CalledProcessError:
             continue
         for tree_line in tree_text.splitlines():
@@ -841,6 +842,44 @@ def check_the_tip_read_survives_the_tree():
                 )
         return failures
 
+
+def check_the_guard_does_not_depend_on_where_it_stands():
+    """The guard must read the tree it MEANS, = = not the tree under the
+    caller's feet.
+
+    = = WHY THIS CASE EXISTS: = = `production_files` and `read` ask git
+    for a tree, = = and git answers about the directory the process
+    stands in. = = So a guard that ran from a subdirectory asked about a
+    different tree, = = found no receipts in it, = = and said so. = = That
+    is a false reading, = = not a failure of the tree.
+
+    = = ⇒ SO THE CASE RUNS THE GUARD FROM A SUBDIRECTORY. = = A child
+    process, = = with a marker that stops it from running this case
+    again, = = so the case cannot recurse.
+    """
+    if os.environ.get("WENSHU_INVENTORY_GUARD_CHILD") == "1":
+        return []
+
+    subdir = REPO / "Tools" / "wenshu-devtool"
+    env = dict(os.environ)
+    env["WENSHU_INVENTORY_GUARD_CHILD"] = "1"
+    run = subprocess.run(
+        [sys.executable, str(Path(__file__).resolve())],
+        cwd=str(subdir),
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    if run.returncode == 0:
+        return []
+    return [
+        "the guard fails when it is run from a subdirectory (= = it reads the "
+        "tree by the CALLER's directory, = = and not by the repository it "
+        "means): "
+        + (run.stdout + run.stderr).strip().splitlines()[-1][:300]
+    ]
+
+
 def main():
     failures = []
 
@@ -868,6 +907,7 @@ def main():
     failures.extend(check_the_at_base_attribution())
     failures.extend(check_the_at_base_attribution_is_per_file())
     failures.extend(check_the_tip_read_survives_the_tree())
+    failures.extend(check_the_guard_does_not_depend_on_where_it_stands())
 
     # = = the two comment defects the last review measured, = = checked
     # = = against the tree itself (= = the branch's own added lines, = =

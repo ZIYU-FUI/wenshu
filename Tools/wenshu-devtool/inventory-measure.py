@@ -67,26 +67,34 @@ TICKET_ID = re.compile(
 RECEIPT = re.compile(r"rationale lines collapsed")
 
 
-def production_files(base):
-    """Every `.swift` under `Sources/`, minus the package-local `Tests/`."""
+def production_files(base, cwd=None):
+    """Every `.swift` under `Sources/`, minus the package-local `Tests/`.
+
+    `cwd` says which repository to ask. = = Left unset, = = the question
+    goes to the process's own directory, = = and the answer depends on
+    where the caller happens to stand. = = A caller that must be right
+    from any directory says which repository it means.
+    """
     out = subprocess.run(
         ["git", "ls-tree", "-r", "--name-only", base, "--", "Sources/"],
-        capture_output=True, text=True, check=True,
+        capture_output=True, text=True, check=True, cwd=cwd,
     ).stdout.splitlines()
     return [p for p in out if p.endswith(".swift") and "/Tests/" not in p]
 
 
-def package_test_files(base):
+def package_test_files(base, cwd=None):
     out = subprocess.run(
         ["git", "ls-tree", "-r", "--name-only", base, "--", "Sources/"],
-        capture_output=True, text=True, check=True,
+        capture_output=True, text=True, check=True, cwd=cwd,
     ).stdout.splitlines()
     return [p for p in out if p.endswith(".swift") and "/Tests/" in p]
 
 
-def read(base, path):
+def read(base, path, cwd=None):
+    """One file's text at `base`, read from the repository `cwd` names."""
     return subprocess.run(
-        ["git", "show", f"{base}:{path}"], capture_output=True, text=True, check=True
+        ["git", "show", f"{base}:{path}"],
+        capture_output=True, text=True, check=True, cwd=cwd,
     ).stdout
 
 
