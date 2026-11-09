@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import importlib.util
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -438,12 +439,53 @@ def check_the_printed_method():
     # = = of the rule (= = the defect class this card exists to close).
     # = = These three lines are SAMPLES (= = the shapes the tree really
     # = = has), = = and their EXPECTATIONS are the rule's BEHAVIOUR.
+    # = = AND THE RECEIPTS ARE ENUMERATED, = = NOT SAMPLED. = =
+    # = =
+    # = = The last round measured this failing: = = the guard's receipt
+    # = = sample was a line INVENTED by the test (= = it carried both
+    # = = A112 and A115), = = and the tree's receipts carry ONE of them
+    # = = (= = 627 carry A112, = = 290 carry A115, = = and NONE carries
+    # = = = = both). = = So narrowing the rule to A112-only, = =
+    # = = A115-only, = = or both-labels kept that invented sample
+    # = = skipped, = = the suite stayed GREEN, = = and the published row
+    # = = = = moved 833 -> 1123 / 1460 / 1750. = =
+    # = =
+    # = = So the guard reads the TREE's own receipts (= = every line that
+    # = = carries the receipt marker) and asserts the rule skips EVERY one
+    # = = of them. = = A narrowing cannot pass that, = = because the tree
+    # = = = = holds receipts the narrowing would let through.
+    receipt_marker = "rationale lines collapsed"
+    tree_receipts = []
+    for tree_path in inv.production_files("HEAD"):
+        try:
+            tree_text = inv.read("HEAD", tree_path)
+        except subprocess.CalledProcessError:
+            continue
+        for tree_line in tree_text.splitlines():
+            if receipt_marker in tree_line and inv.is_comment(tree_line):
+                tree_receipts.append((tree_path, tree_line))
+    if not tree_receipts:
+        failures.append(
+            "the tree carries no collapse receipt (= = the marker "
+            f"{receipt_marker!r} is in no production comment), = = so the guard "
+            "has nothing to hold the receipt rule"
+        )
+    else:
+        missed = [
+            (path, line)
+            for path, line in tree_receipts
+            if not inv.skipped(line)
+        ]
+        if missed:
+            path, line = missed[0]
+            failures.append(
+                f"the skip rule does not skip {len(missed)} of the tree's "
+                f"{len(tree_receipts)} collapse receipts (= = {path}: "
+                f"{line.strip()[:80]!r}), = = and a receipt the rule lets "
+                "through is counted as a ticket reference"
+            )
+
     for sample, expected, what in (
-        (
-            "    // rationale lines collapsed (= = the A112/A115 labels)",
-            True,
-            "a collapse receipt",
-        ),
         (
             "    // / a malformed doc comment",
             True,
