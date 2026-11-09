@@ -1189,6 +1189,192 @@ def case_a_base_that_cannot_be_looked_at_is_not_clean() -> None:
         )
 
 
+def case_a_member_that_is_still_private_is_not_a_widening() -> None:
+    """THE MEASURED FALSE POSITIVE: = = the promotions arm read `private`
+    as IMMEDIATELY followed by the name, = = so every `private var x` and
+    every `private func x` read as "not private any more".
+
+    = = ⇒ Measured: = = thirteen false positives on ONE real split, = =
+    # = = = = every one of them a member that was private in the base
+    # = = = = and private in the tip.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                private var counter: Int = 0
+                private static var shared: Int = 0
+
+                public func one() -> Int {
+                    counter
+                }
+
+                public func two() -> Int {
+                    counter
+                }
+
+                public func three() -> Int {
+                    counter
+                }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        # = = ⇒ THE TIP CHANGES THE FILE (= = so the file is one the
+        # = = = = change touched), = = = = and it does NOT touch the two
+        # = = = = members: = = = = both are still private.
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                private var counter: Int = 0
+                private static var shared: Int = 0
+
+                public func one() -> Int {
+                    counter
+                }
+
+                public func two() -> Int {
+                    counter
+                }
+
+                public func three() -> Int {
+                    counter
+                }
+
+                public func four() -> Int {
+                    counter
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "a member that is STILL private is not a widening",
+            "every widened member is read across the file boundary" in out,
+            out[-900:],
+        )
+
+
+def case_a_dropped_module_nobody_uses_is_not_a_defect() -> None:
+    """THE MEASURED FALSE POSITIVE: = = the arm reported "the family
+    dropped `AppKit` entirely" for a module nothing in the family used.
+
+    = = ⇒ Measured: = = on a real split the family dropped AppKit, = = =
+    # = = = = nothing in it used AppKit, = = = = and the arm said "still
+    # = = = = needs it".
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Thing.swift", """
+            import AppKit
+            import SwiftUI
+
+            public struct Thing {
+                public func one() -> Int {
+                    1
+                }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Probe/Thing.swift", """
+            import SwiftUI
+
+            public struct Thing {
+                public func one() -> Int {
+                    1
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "a module nobody uses any more is not a lost import",
+            "no file lost an import it still needs" in out,
+            out[-900:],
+        )
+
+
+def case_a_widening_of_a_static_member_is_seen() -> None:
+    """THE GAP THE MEASUREMENT FOUND: = = the base-side regex read
+    `private` as IMMEDIATELY followed by the name, = = so a
+    `private static var` in the base was not recorded as private, = = and
+    a `private static var` -> `public static var` widening was invisible.
+
+    = = ⇒ The tip-side regex reads the modifier words, = = and the
+    # = = = = base-side one must read them too, = = = = or the two sides
+    # = = = = disagree about what a member is.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                private static var shared: Int = 0
+
+                public func one() -> Int {
+                    shared
+                }
+
+                public func two() -> Int {
+                    shared
+                }
+
+                public func three() -> Int {
+                    shared
+                }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                public static var shared: Int = 0
+
+                public func one() -> Int {
+                    shared
+                }
+
+                public func two() -> Int {
+                    shared
+                }
+
+                public func three() -> Int {
+                    shared
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "a `private static` -> `public static` widening is seen",
+            "shared" in out and "every widened member is read" not in out,
+            out[-900:],
+        )
+
+
 def main() -> int:
     print("split_pre_check: every check has a positive control")
     for case in (
@@ -1216,6 +1402,9 @@ def main() -> int:
         case_a_second_finding_of_the_same_rule_is_not_swallowed,
         case_a_tip_that_cannot_be_looked_at_is_not_clean,
         case_a_base_that_cannot_be_looked_at_is_not_clean,
+        case_a_member_that_is_still_private_is_not_a_widening,
+        case_a_dropped_module_nobody_uses_is_not_a_defect,
+        case_a_widening_of_a_static_member_is_seen,
     ):
         print(f"--- {case.__name__}")
         case()

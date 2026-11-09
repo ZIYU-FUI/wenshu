@@ -528,7 +528,30 @@ def removed_imports(base: str, head: str, paths: list[str]) -> list[tuple[str, s
             if text:
                 tip_imports |= set(re.findall(r"^import\s+(\S+)", text, re.M))
         for module in sorted(base_imports - tip_imports):
-            out.append((module, base_rel, [f"the family of {base_rel} dropped `{module}` entirely"]))
+            # = = ⇒ AND A DROPPED MODULE IS A FINDING ONLY WHEN A FILE IN
+            # = = = = THE FAMILY STILL USES IT AND DOES NOT IMPORT IT. = =
+            # = = = = A module the family used and does not need any more
+            # = = = = (= = = = the import was dead) = = = = is not a defect,
+            # = = = = and saying so is how this arm stays worth reading:
+            # = = = = measured: = = = = on a real split the family dropped
+            # = = = = `AppKit` entirely, = = = = and nothing in it used
+            # = = = = AppKit, = = = = and the arm said "still needs it".
+            users = []
+            for rel in tip_rels:
+                text = head_tree.get(rel)
+                if not text:
+                    continue
+                file_imports = set(re.findall(r"^import\s+(\S+)", text, re.M))
+                if module in file_imports:
+                    continue
+                if module == "Foundation" and _foundation_members(strip_comments(text)):
+                    users.append(rel)
+            if users:
+                out.append((
+                    module, base_rel,
+                    [f"the family of {base_rel} dropped `{module}` entirely, = = and "
+                     f"{users[0]} still uses it (= = and does not import it)"],
+                ))
     return out
 
 
@@ -773,6 +796,21 @@ def lost_tokens(base: str, head: str, paths: list[str]) -> list[str]:
 
 
 
+# = = ⇒ AND THE MEMBER REGEX KNOWS SWIFT'S REAL MODIFIER ORDER. = =
+# = = = = A member is `private` OR `private static` OR `private final`
+# = = = = OR `private lazy` OR `private weak`, = = = = and the old
+# = = = = regex read `private` as IMMEDIATELY followed by the name, = =
+# = = = = so EVERY `private var x` and EVERY `private func x` read as
+# = = = = "not private any more" (= = = = measured: = = = = 13 false
+# = = = = = positives on one real split, = = = = every one of them a
+# = = = = = member that was private in the base and private in the tip).
+# = = = = ⇒ The modifier words sit BETWEEN the access level and the
+# = = = = kind, = = = = and the regex says so.
+_MEMBER_MODIFIERS = (
+    r"(?:(?:static|final|lazy|weak|unowned|override|nonisolated|class|mutating|dynamic)\s+)*"
+)
+
+
 def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
     """Put every widened member back to `private` and rebuild.
 
@@ -810,7 +848,7 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
             for base_rel in {b for bs in counterparts.values() for b in bs}:
                 text = base_tree.get(base_rel) or ""
                 for m in re.finditer(
-                    r"^(\s*)(private\s+)?((?:@\w+(?:\([^)]*\))?\s+)*)(var|let|func)\s+(\w+)",
+                    rf"^(\s*)(private\s+)?((?:@\w+(?:\([^)]*\))?\s+)*){_MEMBER_MODIFIERS}(var|let|func)\s+(\w+)",
                     text, re.M,
                 ):
                     base_members[(base_rel, m.group(5))] = bool(m.group(2))
@@ -828,9 +866,9 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
                     # = = = = read across the file boundary" (= = = = = exit
                     # = = = = 0, = = = = measured).
                     m = re.match(
-                        r"^(\s*)((?:@\w+(?:\([^)]*\))?\s+)*)"
-                        r"(?:(public|internal|private|fileprivate|open)\s+)?"
-                        r"(var|let|func)\s+(\w+)",
+                        rf"^(\s*)((?:@\w+(?:\([^)]*\))?\s+)*)"
+                        rf"(?:(public|internal|private|fileprivate|open)\s+)?"
+                        rf"{_MEMBER_MODIFIERS}(var|let|func)\s+(\w+)",
                         line,
                     )
                     if not m:
@@ -850,7 +888,11 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
                         base_members.get((base_rel, name)) is True for base_rel in own_bases
                     ):
                         continue
-                    if not re.search(rf"^\s*private\s+{re.escape(name)}\b", line):
+                    if not re.search(
+                        rf"^\s*private\s+{_MEMBER_MODIFIERS}"
+                        rf"(?:var|let|func)\s+{re.escape(name)}\b",
+                        line,
+                    ):
                         widened.append((rel, name, line))
             if not widened:
                 return []
