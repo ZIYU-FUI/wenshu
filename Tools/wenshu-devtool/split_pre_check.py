@@ -255,9 +255,24 @@ def lint_in_tree(ref: str, paths: list[str], work_parent: Path | None = None) ->
         tempfile.mkdtemp(prefix="wenshu-lint-")
     )
     work = parent / "tree"
+    # = = ⇒ AND WHETHER THE TOOL MADE IT. = = The hook exists so that a
+    # = = = = caller can point at a directory that already holds a
+    # = = = = `tree/`, = = = = and the refusal of `git worktree add` is
+    # = = = = what makes the base unreadable. = = ⇒ If the directory was
+    # = = = = already there, = = = = it is NOT the tool's, = = = = and the
+    # = = = = tool must not remove it.
+    made_work = not work.exists()
     try:
         code, out = sh("worktree", "add", "--detach", str(work), ref)
         if code != 0:
+            # = = ⇒ AND A `tree/` THAT WAS ALREADY THERE IS NOT OURS TO
+            # = = = = REMOVE. = = `git worktree add` refuses an existing
+            # = = = = directory, = = = = and when the caller's directory
+            # = = = = already holds a `tree/`, = = = = that refusal is the
+            # = = = = ONLY reason the tool is here. = = ⇒ Measured: = = = =
+            # = = = = a caller's `tree/precious.txt` and `tree/sub/also.txt`
+            # = = = = were GONE after a run that exited 0. = = ⇒ So the
+            # = = = = directory is removed ONLY when the tool MADE it.
             # = = ⇒ AND A FAILURE TO MAKE THE WORKTREE IS SAID OUT
             # = = = = LOUD. = = An empty finding set reads as "nothing to
             # = = = = report", = = = = and that is the worst failure this
@@ -277,10 +292,16 @@ def lint_in_tree(ref: str, paths: list[str], work_parent: Path | None = None) ->
         # = = = = the arm that needs it, = = = = and the swiftlint arm
         # = = = = still sees the vendored tree (= = = = as the tree's own
         # = = = = lint does).
-        present = [
-            p for p in paths
-            if (work / p).is_file() and not p.startswith(VENDORED_PREFIX)
-        ]
+        # = = ⇒ AND THE VENDORED TREE IS NOT EXEMPT HERE. = = The tree's
+        # = = = = own `.swiftlint.yml` excludes `.build`, = = = = `build`,
+        # = = = = `DerivedData`, = = = = `.scratch` and a handful of named
+        # = = = = files, = = = = and `Vendor/` is NOT among them. = = ⇒ So
+        # = = = = the lint arm sees the vendored tree, = = = = = because the
+        # = = = = tree's own lint does. = = ⇒ Measured: = = = = the tree's
+        # = = = = lint on a vendored file carrying a forbidden token exits
+        # = = = = 2, = = = = so a tool that hid it would be hiding a
+        # = = = = failure the tree really has.
+        present = [p for p in paths if (work / p).is_file()]
         if not present:
             return findings
         # = = ⇒ AND NO `--config`, = = because the worktree IS the repo
@@ -327,9 +348,15 @@ def lint_in_tree(ref: str, paths: list[str], work_parent: Path | None = None) ->
         # = = = = the caller supplied is NOT the tool's to remove, = = = =
         # = = = = and measured: = = = = a directory holding a file and a
         # = = = = subdirectory was GONE after a run that exited 0.
+        # = = ⇒ AND THE SAME RULE GOVERNS THE WORKTREE'S OWN DIRECTORY.
+        # = = = = A caller's directory that ALREADY held a `tree/` is the
+        # = = = = caller's, = = = = and `git worktree add` refuses to
+        # = = = = write into it (= = = = which is the point of the hook),
+        # = = = = so removing it after that refusal deletes what the
+        # = = = = refusal protected.
         if own_parent:
             shutil.rmtree(parent, ignore_errors=True)
-        else:
+        elif made_work:
             shutil.rmtree(work, ignore_errors=True)
     return findings
 
@@ -843,6 +870,34 @@ def lost_tokens(base: str, head: str, paths: list[str]) -> list[str]:
 _MEMBER_MODIFIERS = (
     r"(?:(?:static|final|lazy|weak|unowned|override|nonisolated|class|mutating|dynamic)\s+)*"
 )
+# = = ⇒ AND THE SAME VOCABULARY, CAPTURED. = = The rewrite has to put the
+# = = = = modifier words BACK, = = = = and a non-capturing group cannot be
+# = = = = re-emitted (= = = = `\g<n>` of a group that never matched). = = ⇒
+# = = = = So the rewrite uses its own capturing form, = = = = and the
+# = = = = capture is the modifiers = = = = = and nothing else.
+_MEMBER_MODIFIERS_CAPTURE = (
+    r"(?:(?:static|final|lazy|weak|unowned|override|nonisolated|class|mutating|dynamic)\s+)*"
+)
+
+
+def _rewrite_to_private(text: str, name: str) -> str:
+    """The promotions arm's REWRITE: = = the access level becomes
+    `private`, = = and the modifier words STAY.
+
+    = = ⇒ AND THIS IS ONE FUNCTION, = = = = NOT A PATTERN INLINED IN THE
+    # = = = = ARM. = = ⇒ A case that copies the pattern into itself = = = =
+    # = = = = cannot see the arm change its own pattern (= = = = measured:
+    # = = = = the review's MUT C left the suite green, = = = = and so would
+    # = = = = mine). = = ⇒ So the case calls THIS, = = = = and a mutation
+    # = = = = here is a mutation the case sees.
+    """
+    return re.sub(
+        rf"^(\s*)((?:@\w+(?:\([^)]*\))?\s+)*)"
+        rf"(?:(?:public|internal|private|fileprivate|open)\s+)?"
+        rf"({_MEMBER_MODIFIERS_CAPTURE})(var|let|func)\s+{re.escape(name)}\b",
+        rf"\g<1>\g<2>private \g<3>\g<4> {name}",
+        text, count=1, flags=re.M,
+    )
 
 
 def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
@@ -946,13 +1001,18 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
                 # = = = = ⇒ The modifier words stay, = = = = the access
                 # = = = = level becomes `private`, = = = = and a member
                 # = = = = that was already `private` is left alone.
-                new_text = re.sub(
-                    rf"^(\s*)((?:@\w+(?:\([^)]*\))?\s+)*)"
-                    rf"(?:(?:public|internal|private|fileprivate|open)\s+)?"
-                    rf"{_MEMBER_MODIFIERS}(var|let|func)\s+{re.escape(name)}\b",
-                    rf"\g<1>\g<2>private \g<3> {name}",
-                    text, count=1, flags=re.M,
-                )
+                # = = ⇒ AND THE MODIFIER WORDS COME BACK OUT. = = The
+                # = = = = detection's modifier vocabulary is NOT a capture
+                # = = = = group, = = = = so a match CONSUMED them and never
+                # = = = = re-emitted them: = = = = `public static func` became
+                # = = = = `private func`, = = = = and the probe then built a
+                # = = = = DIFFERENT PROGRAM than the one under review (= = =
+                # = = = = measured on a real file: = = = = `private static
+                # = = = = func blocks` lost its `static`). = = ⇒ So the
+                # = = = = modifiers are captured in their OWN group, = = = =
+                # = = = = and the rewrite re-emits them = = = = = and swaps
+                # = = = = ONLY the access level.
+                new_text = _rewrite_to_private(text, name)
                 target.write_text(new_text, encoding="utf-8")
                 proc = subprocess.run(
                     ["swift", "build"], cwd=str(work), capture_output=True, text=True, timeout=1800

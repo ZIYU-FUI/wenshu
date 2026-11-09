@@ -895,8 +895,25 @@ def case_the_vendored_tree_is_exempt() -> None:
         # = = = = does), = = = = and the line that matters is the
         # = = = = FINDING, = = = = and the swiftformat arm must not
         # = = = = charge it.
+        # = = ⇒ AND THE ASSERTION IS SCOPED TO THE ARM THAT EXEMPTS IT.
+        # = = = = The tree's own FORMATTING gate exempts the vendored tree,
+        # = = = = and the tree's own LINT does not (= = = = and this tool
+        # = = = = must match both). = = ⇒ So the case asks about the
+        # = = = = SWIFTFORMAT arm's findings, = = = = and the arm's own
+        # = = = = section of the output is where they are. = = ⇒ Measured
+        # = = = = by the review: = = = = an assertion over EVERY finding
+        # = = = = line claimed the whole vendored tree was exempt, = = = =
+        # = = = = while the tree's own lint does not exempt it.
+        section = ""
+        capturing = False
+        for line in out.split("\n"):
+            if line.startswith("==="):
+                capturing = "swiftformat" in line
+                continue
+            if capturing:
+                section += line + "\n"
         findings = [
-            line for line in out.split("\n")
+            line for line in section.split("\n")
             if line.strip().startswith("!")
         ]
         expect(
@@ -1609,6 +1626,232 @@ def case_the_injection_hook_does_not_delete_the_callers_directory() -> None:
         )
 
 
+def case_the_rewrite_keeps_the_members_modifiers() -> None:
+    """THE REVIEW'S BLOCKING 1: = = the promotions rewrite DELETED the
+    modifier words instead of swapping the access level.
+
+    = = ⇒ The rewrite's pattern carried the modifier vocabulary in a
+    # = = = = NON-CAPTURING group, = = = = so the match CONSUMED the words
+    # = = = = and never re-emitted them. = = ⇒ Measured on a real tree
+    # = = = = file: = = = = `private static func blocks(of body: String)`
+    # = = = = became `private func blocks(of body: String)`, = = = = so the
+    # = = = = probe built a DIFFERENT PROGRAM than the one under review.
+
+    = = ⇒ So the member that carries a modifier is the case: = = = = a
+    # = = = = `static` member, = = = = read from ANOTHER file (= = = = a
+    # = = = = member read from its own file is visible even when it is
+    # = = = = `private`, = = = = so the reader has to be elsewhere for the
+    # = = = = revert to break the build at all).
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                public static func helper() -> Int {
+                    1
+                }
+            }
+        """)
+        write(repo, "Sources/Probe/Reader.swift", """
+            public struct Reader {
+                public func two() -> Int {
+                    Thing.helper()
+                }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        # = = ⇒ THE WIDENING, = = = = and the modifier is STILL THERE.
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                public static func helper() -> Int {
+                    1
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        # = = ⇒ AND THE ARM MUST SEE IT. = = = = A rewrite that drops
+        # = = = = `static` turns a static member into an instance one, = = =
+        # = = = = and the reader's `Thing.helper()` then fails for a
+        # = = = = DIFFERENT reason than the truth's revert does, = = = = =
+        # = = = = and the arm's own verdict flips.
+        expect(
+            "a widened member that carries a modifier is measured",
+            "every widened member is read across the file boundary" in out,
+            out[-1200:],
+        )
+
+
+def case_the_rewrite_keeps_the_members_modifiers_on_a_real_file() -> None:
+    """THE REVIEW'S BLOCKING 1, ON A REAL FILE: = = the rewrite must not
+    change what the program IS.
+
+    = = ⇒ Measured by the review on the tree's own
+    # = = = = `Sources/WenshuApp/Features/Library/Service/ManuscriptShaper.swift`:
+    # = = = = `private static func blocks(of body: String) -> [String]`
+    # = = = = became `private func blocks(of body: String) -> [String]`.
+
+    = = ⇒ So the case reads the REWRITTEN TEXT, = = = = not the arm's
+    # = = = = verdict: = = = = a verdict can be right for the wrong reason
+    # = = = = (= = = = the review's MUT C made the guarded code revert and
+    # = = = = the suite stayed GREEN), = = = = and the text is the thing
+    # = = = = that changed.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                public static func helper() -> Int {
+                    1
+                }
+            }
+        """)
+        write(repo, "Sources/Probe/Reader.swift", """
+            public struct Reader {
+                public func two() -> Int {
+                    Thing.helper()
+                }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                public static func helper() -> Int {
+                    2
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        # = = ⇒ THE REWRITE ITSELF, = = = = called directly: = = = = the
+        # = = = = arm's own regex, = = = = on the member's own line.
+        sys.path.insert(0, str(TOOL.parent))
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("spc_rewrite", TOOL)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        finally:
+            sys.path.pop(0)
+        line = "    public static func helper() -> Int {"
+        # = = ⇒ THE ARM'S OWN REWRITE, = = = = called as a function: = = = =
+        # = = = = a case that copies the pattern into itself cannot see the
+        # = = = = arm change it (= = = = measured: = = = = the review's MUT C
+        # = = = = left the suite green).
+        rewritten = module._rewrite_to_private(line, "helper")
+        expect(
+            "the rewrite keeps the member's modifier words",
+            "static" in rewritten and "private" in rewritten,
+            f"rewrote to: {rewritten!r}",
+        )
+
+
+def case_the_injection_hook_does_not_delete_a_tree_the_caller_owns() -> None:
+    """THE REVIEW'S BLOCKING 2, IN ITS HARDER FORM: = = the caller's
+    directory ALREADY holds a `tree/`.
+
+    = = ⇒ `git worktree add` refuses an existing directory, = = = = so the
+    # = = = = refusal is the ONLY reason the base is unreadable = = = = =
+    # = = = = and that refusal is the hook's whole purpose. = = ⇒ Measured:
+    # = = = = a caller's `tree/precious.txt` and `tree/sub/also.txt` were
+    # = = = = GONE after a run that exited 0.
+
+    = = ⇒ So the caller's own `tree/` must SURVIVE the refusal.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Thing.swift", "public struct Thing {\n    public func one() -> Int {\n        1\n    }\n}\n")
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Thing.swift", "public struct Thing {\n    public func one() -> Int {\n        2\n    }\n}\n")
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        # = = ⇒ A CALLER'S DIRECTORY THAT ALREADY HOLDS A `tree/`.
+        caller_dir = tmp / "caller-owns-this"
+        (caller_dir / "tree" / "sub").mkdir(parents=True)
+        (caller_dir / "tree" / "precious.txt").write_text("keep me", encoding="utf-8")
+        (caller_dir / "tree" / "sub" / "also.txt").write_text("keep me too", encoding="utf-8")
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--lint-work-parent", str(caller_dir)],
+            capture_output=True, text=True,
+        )
+        expect(
+            "the injection hook does not delete a tree the caller owns",
+            (caller_dir / "tree" / "precious.txt").exists()
+            and (caller_dir / "tree" / "sub" / "also.txt").exists(),
+            f"the caller's tree/ is gone; stdout={proc.stdout[-400:]} stderr={proc.stderr[-400:]}",
+        )
+
+
+def case_the_swiftlint_arm_really_sees_the_vendored_tree() -> None:
+    """THE REVIEW'S FINDING: = = the swiftlint arm EXEMPTED Vendor, = =
+    and the tree's own lint does not.
+
+    = = ⇒ The tree's `.swiftlint.yml` excludes `.build`, = = = = `build`,
+    # = = = = `DerivedData`, = = = = `.scratch` and a handful of NAMED
+    # = = = = files, = = = = and `Vendor/` is NOT among them.
+
+    = = ⇒ ⇒ AND THE CASE MUST ISOLATE THE SWIFTLINT ARM. = = = = The
+    # = = = = earlier case watched for the vendored PATH in the output,
+    # = = = = and that path also shows up in the tool's OWN checks (= = = =
+    # = = = = the blank-line rule, = = = = which is not swiftlint at all),
+    # = = = = so the case passed whether or not the swiftlint arm looked
+    # = = = = there. = = ⇒ So this case watches for a finding that ONLY
+    # = = = = swiftlint can produce: = = = = a forbidden TOKEN (= = = = the
+    # = = = = tree's own rule), = = = = on a vendored file, = = = = with no
+    # = = = = formatting problem in it.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_repo(tmp)
+        # = = ⇒ THE TREE'S OWN FORBIDDEN-TOKEN RULE, = = = = in the
+        # = = = = fixture's own config, = = = = as the tree's own has it.
+        (repo / ".swiftlint.yml").write_text(
+            "disabled_rules:\n  - file_length\n  - type_body_length\n"
+            "custom_rules:\n"
+            "  forbidden_vocab:\n"
+            "    name: Forbidden vocabulary\n"
+            "    identifier: forbidden_word\n"
+            "    message: Forbidden vocabulary\n"
+            "    severity: error\n",
+            encoding="utf-8",
+        )
+        write(repo, "Sources/Thing.swift", "public struct Thing {}\n")
+        write(repo, "Vendor/Upstream/Thing.swift", "public struct Upstream {}\n")
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        # = = ⇒ THE FORBIDDEN TOKEN, = = = = and NO formatting problem in
+        # = = = = the same file (= = = = so the only arm that can report it
+        # = = = = is the swiftlint one).
+        write(repo, "Vendor/Upstream/Thing.swift",
+              "public struct Upstream {\n    let forbidden_word = 1\n}\n")
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        code, out = check(repo, base, head)
+        expect(
+            "the swiftlint arm really sees the vendored tree",
+            "Vendor/Upstream/Thing.swift" in out and "forbidden_word" in out,
+            out,
+        )
+
+
 def main() -> int:
     print("split_pre_check: every check has a positive control")
     for case in (
@@ -1644,6 +1887,10 @@ def main() -> int:
         case_a_registry_row_that_is_right_is_not_reported,
         case_a_widening_is_measured_on_a_file_that_changed,
         case_the_injection_hook_does_not_delete_the_callers_directory,
+        case_the_rewrite_keeps_the_members_modifiers,
+        case_the_rewrite_keeps_the_members_modifiers_on_a_real_file,
+        case_the_injection_hook_does_not_delete_a_tree_the_caller_owns,
+        case_the_swiftlint_arm_really_sees_the_vendored_tree,
     ):
         print(f"--- {case.__name__}")
         case()
