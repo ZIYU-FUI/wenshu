@@ -1,4 +1,3 @@
-
 /// The mixture-of-Agents config (= the hermes `moa_config` parameter). The
 /// 9-parameter signature is hermes-compatible from day 1.
 public struct MOAConfig: Sendable {

@@ -1,4 +1,3 @@
-
 /// The result of a single `ConversationLoop.runConversation` call: the
 /// model's reply, the full message history, and the taskId used for tracing
 /// and telemetry.
