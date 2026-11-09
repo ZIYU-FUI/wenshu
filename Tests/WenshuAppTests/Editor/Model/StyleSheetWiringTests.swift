@@ -252,6 +252,84 @@ final class StyleSheetWiringTests: XCTestCase {
         return depths
     }
 
+    /// The SCOPE CHAIN of every line: = = the list of scope IDs the
+    /// line sits in, = = outermost first.
+    ///
+    /// WHY A CHAIN AND NOT A DEPTH: = = a depth is a NUMBER and a scope
+    /// is an IDENTITY, = = and two scopes at the same depth can be
+    /// SIBLINGS (= = a `catch` block beside the `do` block that holds
+    /// the call). = = The measurement that failed read a depth, = = so a
+    /// sibling scope looked like the call's own. = = A chain says WHICH
+    /// scopes enclose the line, = = so a sibling is not an ancestor.
+    ///
+    /// A scope's ID is the index of the line that opened it, = = so two
+    /// scopes at the same depth are still different scopes.
+    private static func scopeChains(of lines: [String]) -> [[Int]] {
+        var chains: [[Int]] = []
+        var stack: [Int] = []
+        for (index, line) in lines.enumerated() {
+            chains.append(stack)
+            // A line's own braces open scopes AFTER it: = = the line
+            // belongs to the scope it is written in, = = and the scope
+            // it opens belongs to what follows.
+            var characters = Array(line)
+            // A string literal's braces are not scopes. = = The tree's
+            // own shapes put no braces in the literals this reads, = =
+            // but a `"}"` inside a string would otherwise close a scope
+            // that never opened.
+            var inString = false
+            var escaped = false
+            var index2 = 0
+            while index2 < characters.count {
+                let character = characters[index2]
+                if escaped {
+                    escaped = false
+                } else if character == "\\" {
+                    escaped = true
+                } else if character == "\"" {
+                    inString.toggle()
+                } else if !inString {
+                    if character == "{" {
+                        stack.append(index)
+                    } else if character == "}" {
+                        if !stack.isEmpty { stack.removeLast() }
+                    }
+                }
+                index2 += 1
+            }
+        }
+        return chains
+    }
+
+    /// The scope chain a BINDING introduces, = = and the line it is
+    /// written on.
+    ///
+    /// A plain `let` / `var` binds in the scope it is written in. = = An
+    /// `if let` / `guard let` / `while let` binds in the scope its BODY
+    /// opens (= = Swift's rule: = = the optional binding shadows the
+    /// outer name FOR THE BODY, = = and not outside it). = = So the
+    /// optional binding's scope is the `{` that follows it, = = and that
+    /// is the scope that encloses a call the binding can shadow.
+    private static func bindingScope(
+        of lines: [String],
+        at line: Int,
+        chains: [[Int]],
+        opensBody: Bool
+    ) -> [Int] {
+        if !opensBody {
+            return chains[line]
+        }
+        // The scope the body opens = = the next `{` after this line.
+        var index = line + 1
+        while index < lines.count {
+            if lines[index].contains("{") {
+                return chains[index] + [index]
+            }
+            index += 1
+        }
+        return chains[line]
+    }
+
     /// THE PAGE'S OWN CALL WRITES THE BOOK IT IS SHOWING.
     ///
     /// MUTATION: = the call removed (= the knob writes nothing at all),
@@ -346,7 +424,6 @@ final class StyleSheetWiringTests: XCTestCase {
         let knobLines = moveKnob
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map(String.init)
-        let knobDepths = Self.braceDepths(of: knobLines)
         // = = the knob's OWN call is found by the LABELS in its argument
         // = = block (= = the same rule the call-site anchor reads), = = so
         // = = a decoy `apply(` before it cannot be mistaken for it.
@@ -354,13 +431,46 @@ final class StyleSheetWiringTests: XCTestCase {
             XCTFail("the knob makes no write-back of its own, = = so its binding cannot be read")
             return
         }
+        // = = THE BINDING IS FOUND BY THE NAME IT BINDS AND THE FORM OF
+        // = = THE BINDING, = = NOT BY A PREFIX ON THE WHOLE LINE.
+        // = =
+        // = = A prefix misses every harm that spells the same binding
+        // = = differently: = = a type annotation (= = `let bookID: UUID
+        // = = =`), = = two spaces (= = `let  bookID =`), = = a `var`,
+        // = = and an optional binding (= = `if let bookID = ...`) that
+        // = = ENCLOSES the knob's own call. = = All four shadow the
+        // = = knob's write-back, = = and all four were GREEN.
+        let knobChains = Self.scopeChains(of: knobLines)
+        let callChain = knobChains[knobCall.line]
         let bindings = knobLines.enumerated().compactMap { index, line -> String? in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard trimmed.hasPrefix("let bookID =") else { return nil }
-            // = = the scope must ENCLOSE the knob's own call: = = a
-            // = = declaration at the call's depth shadows it, = = and one
-            // = = DEEPER belongs to a nested path.
-            guard knobDepths[index] <= knobCall.depth else { return nil }
+            // = = the FORM of the binding, = = and the NAME it binds.
+            let opensBody: Bool? =
+                if trimmed.range(of: #"\b(if|guard|while)\s+let\s+bookID\b"#, options: .regularExpression) != nil {
+                    (true)
+                } else if trimmed.range(of: #"\b(let|var)\s+bookID\b"#, options: .regularExpression) != nil {
+                    (false)
+                } else {
+                    nil
+                }
+            guard let opensBody else { return nil }
+            // = = the binding's own scope, = = by IDENTITY and not by
+            // = = depth: = = an optional binding binds in the scope its
+            // = = body opens, = = and a plain one binds where it is
+            // = = written.
+            let bindChain = Self.bindingScope(
+                of: knobLines, at: index, chains: knobChains, opensBody: opensBody
+            )
+            // = = VISIBLE = = the binding's scope is an ANCESTOR of the
+            // = = call's scope, = = or the SAME scope. = = A scope that
+            // = = merely has the same DEPTH (= = a sibling, = = like a
+            // = = `catch` block beside the `do` block that holds the
+            // = = call) is not an ancestor, = = and must not count.
+            guard bindChain.count <= callChain.count else { return nil }
+            guard Array(callChain.prefix(bindChain.count)) == bindChain else { return nil }
+            // = = in the SAME scope, = = the binding must come BEFORE
+            // = = the call: = = a declaration after it cannot shadow it.
+            if bindChain.count == callChain.count, index > knobCall.line { return nil }
             return trimmed
         }
         XCTAssertEqual(
