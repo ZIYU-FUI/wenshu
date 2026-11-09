@@ -148,7 +148,7 @@ struct ChatUserBubbleReadabilityTests {
     /// vertical band (= the standard spacing token), so the first turn is
     /// not detached from the conversation.
     @Test func transcript_rows_share_one_vertical_band() throws {
-        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let source = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(source.contains("LazyVStack(alignment: .leading, spacing: DesignTokens.spacingStandard"))
         #expect(source.contains(".padding(.vertical, DesignTokens.spacingStandard)"))
         // No raw numeric padding survives in the transcript's vertical rhythm.

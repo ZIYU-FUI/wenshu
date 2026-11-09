@@ -15,13 +15,13 @@ struct ChatViewItalicShortcutTests {
 
     /// T94 contract: ⌘I shortcut registered.
     @Test func cmd_i_shortcut_registered() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"i\", modifiers: [.command])"))
     }
 
     /// T94 contract: Button body wraps vm.inputText in _ _.
     @Test func body_wraps_input_text_in_italic() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         let btnPos = src.range(of: "Button(\"Italicize selected text\")")!
         let startOffset = src.distance(from: src.startIndex, to: btnPos.upperBound)
         let endOffset = min(startOffset + 1500,
@@ -37,7 +37,7 @@ struct ChatViewItalicShortcutTests {
 
     /// T94 contract: button is visually hidden.
     @Test func italic_button_is_visually_hidden() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         let cmdIIdx = src.range(of: ".keyboardShortcut(\"i\", modifiers: [.command])")!
         let after = src[cmdIIdx.upperBound...]
         #expect(after.contains(".frame(width: 0, height: 0)"))
@@ -47,26 +47,26 @@ struct ChatViewItalicShortcutTests {
 
     /// T94 contract: T93 ⌘B Bold shortcut preserved.
     @Test func t93_bold_preserved() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"b\", modifiers: [.command])"))
         #expect(src.contains("Button(\"Bold selected text\")"))
     }
 
     /// T94 contract: T92 ⌘Y History shortcut preserved.
     @Test func t92_history_preserved() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"y\", modifiers: [.command])"))
     }
 
     /// T94 contract: T82 ⌘? shortcut preserved.
     @Test func t82_cmd_question_preserved() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"?\", modifiers: [.command])"))
     }
 
     /// T94 contract: T37/T48/T59/T66/T67/T69/T70/T74/T77/T78/T79/T80 prior shortcuts preserved.
     @Test func prior_shortcuts_preserved() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"n\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"r\", modifiers: [.command])"))
@@ -88,7 +88,7 @@ struct ChatViewItalicShortcutTests {
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Italicize selected text") is only in ChatView).
         let inputBarSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
-        let chatViewSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let chatViewSrc = try SourceLocator.readGroup(prefixed: "ChatView")
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)
         // lives ONLY in the top-layer ChatInputBarView.
         #expect(inputBarSrc.contains("DesignTokens.controlHeightLarge"))

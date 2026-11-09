@@ -15,13 +15,13 @@ struct ChatViewPrintShortcutTests {
 
     /// T80 contract: ⌘P shortcut registered.
     @Test func cmd_p_shortcut_registered() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"p\", modifiers: [.command])"))
     }
 
     /// T80 contract: Button body creates an NSPrintOperation.
     @Test func body_creates_nsprint_operation() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         let btnPos = src.range(of: "Button(\"Print conversation\")")!
         let endOffset = min(src.distance(from: src.startIndex, to: btnPos.upperBound) + 2000,
                             src.distance(from: src.startIndex, to: src.endIndex))
@@ -38,7 +38,7 @@ struct ChatViewPrintShortcutTests {
     /// T80 contract: Body uses Chinese source prefixes (= mirrors
     /// T70/T76/T78 export format).
     @Test func body_uses_chinese_source_prefixes() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         let btnPos = src.range(of: "Button(\"Print conversation\")")!
         let endOffset = min(src.distance(from: src.startIndex, to: btnPos.upperBound) + 2000,
                             src.distance(from: src.startIndex, to: src.endIndex))
@@ -53,7 +53,7 @@ struct ChatViewPrintShortcutTests {
 
     /// T80 contract: button is visually hidden.
     @Test func print_button_is_visually_hidden() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         let cmdPIdx = src.range(of: ".keyboardShortcut(\"p\", modifiers: [.command])")!
         let after = src[cmdPIdx.upperBound...]
         #expect(after.contains(".frame(width: 0, height: 0)"))
@@ -63,7 +63,7 @@ struct ChatViewPrintShortcutTests {
 
     /// T80 contract: prior shortcuts preserved.
     @Test func prior_shortcuts_preserved() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"n\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"r\", modifiers: [.command])"))
@@ -84,7 +84,7 @@ struct ChatViewPrintShortcutTests {
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Print conversation") is only in ChatView).
         let inputBarSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
-        let chatViewSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let chatViewSrc = try SourceLocator.readGroup(prefixed: "ChatView")
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)
         // lives ONLY in the top-layer ChatInputBarView.
         #expect(inputBarSrc.contains("DesignTokens.controlHeightLarge"))

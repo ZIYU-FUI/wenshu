@@ -16,13 +16,13 @@ struct ChatViewHistoryShortcutTests {
 
     /// T92 contract: ⌘Y shortcut registered.
     @Test func cmd_y_shortcut_registered() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"y\", modifiers: [.command])"))
     }
 
     /// T92 contract: Button body NSLogs conversation metadata.
     @Test func body_logs_history_metadata() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         let btnPos = src.range(of: "Button(\"Show conversation history\")")!
         let startOffset = src.distance(from: src.startIndex, to: btnPos.upperBound)
         let endOffset = min(startOffset + 1500,
@@ -39,7 +39,7 @@ struct ChatViewHistoryShortcutTests {
 
     /// T92 contract: button is visually hidden.
     @Test func history_button_is_visually_hidden() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         let cmdYIdx = src.range(of: ".keyboardShortcut(\"y\", modifiers: [.command])")!
         let after = src[cmdYIdx.upperBound...]
         #expect(after.contains(".frame(width: 0, height: 0)"))
@@ -49,26 +49,26 @@ struct ChatViewHistoryShortcutTests {
 
     /// T92 contract: T91 ⌥⌘D shortcut preserved.
     @Test func t91_opt_cmd_d_preserved() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"d\", modifiers: [.command, .option])"))
         #expect(src.contains("Button(\"Save conversation as Markdown\")"))
     }
 
     /// T92 contract: T85 ⌥C shortcut preserved.
     @Test func t85_alt_c_preserved() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"c\", modifiers: [.option])"))
     }
 
     /// T92 contract: T82 ⌘? shortcut preserved.
     @Test func t82_cmd_question_preserved() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"?\", modifiers: [.command])"))
     }
 
     /// T92 contract: T37/T48/T59/T66/T67/T69/T70/T74/T77/T78/T79/T80 prior shortcuts preserved.
     @Test func prior_shortcuts_preserved() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"n\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"r\", modifiers: [.command])"))
@@ -91,7 +91,7 @@ struct ChatViewHistoryShortcutTests {
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Show conversation history") is only in ChatView).
         let inputBarSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
-        let chatViewSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let chatViewSrc = try SourceLocator.readGroup(prefixed: "ChatView")
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)
         // lives ONLY in the top-layer ChatInputBarView.
         #expect(inputBarSrc.contains("DesignTokens.controlHeightLarge"))

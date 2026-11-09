@@ -14,13 +14,13 @@ struct ChatViewThemeToggleTests {
 
     /// T74 contract: ⌥T shortcut registered.
     @Test func option_t_shortcut_registered() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"t\", modifiers: [.option])"))
     }
 
     /// T74 contract: Button body toggles NSApp.appearance.
     @Test func body_toggles_nsapp_appearance() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         let btnPos = src.range(of: "Button(\"Toggle theme\")")!
         let endOffset = min(src.distance(from: src.startIndex, to: btnPos.upperBound) + 1500,
                             src.distance(from: src.startIndex, to: src.endIndex))
@@ -35,7 +35,7 @@ struct ChatViewThemeToggleTests {
 
     /// T74 contract: button is visually hidden.
     @Test func theme_button_is_visually_hidden() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         let cmdTIdx = src.range(of: ".keyboardShortcut(\"t\", modifiers: [.option])")!
         let after = src[cmdTIdx.upperBound...]
         #expect(after.contains(".frame(width: 0, height: 0)"))
@@ -45,7 +45,7 @@ struct ChatViewThemeToggleTests {
 
     /// T74 contract: T37/T48/T59/T66/T67/T69/T70 prior shortcuts preserved.
     @Test func prior_shortcuts_preserved() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"l\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"n\", modifiers: [.command])"))
@@ -69,7 +69,7 @@ struct ChatViewThemeToggleTests {
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Toggle theme") is only in ChatView).
         let inputBarSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
-        let chatViewSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let chatViewSrc = try SourceLocator.readGroup(prefixed: "ChatView")
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)
         // lives ONLY in the top-layer ChatInputBarView.
         #expect(inputBarSrc.contains("DesignTokens.controlHeightLarge"))

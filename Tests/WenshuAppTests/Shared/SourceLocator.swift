@@ -50,6 +50,42 @@ enum SourceLocator {
         url(relativePath).path
     }
 
+    /// Reads every production source file whose name starts with
+    /// `prefix` (= `ChatView` reads `ChatView.swift` AND
+    /// `ChatView+KeyboardShortcuts.swift`), = = joined with a newline.
+    ///
+    /// WHY: a source-content test asserts about a VIEW, = = not about a
+    /// FILE. = = When the view was one file, = = the file WAS the view's
+    /// source; = = after the view was split into several files, = = the
+    /// file is only a SLICE of it, = = and an assertion about the view
+    /// (does it bind this shortcut? = = does it use this padding?)
+    /// would read one slice and answer about the wrong thing. = = So the
+    /// reader takes the whole group, = = and a token is counted the same
+    /// way it was counted when the view was one file.
+    ///
+    /// ORDER: the group's files are read in sorted order, = = so the
+    /// joined text is stable = = (a test that pins a line number or a
+    /// block's neighbours reads the same text every run).
+    ///
+    /// FAILURE MODE: throws `fileReadUnknown` when the group is EMPTY,
+    /// because a reader that silently returned "" would let an assertion
+    /// about the view pass for the wrong reason.
+    static func readGroup(prefixed prefix: String) throws -> String {
+        let group = try filesUnderSources(inGroupOf: prefix)
+        guard !group.isEmpty else { throw CocoaError(.fileReadUnknown) }
+        return try group
+            .map { try read($0) }
+            .joined(separator: "\n")
+    }
+
+    /// A path's file name without its `.swift` extension.
+    static func pathWithoutExtension(of path: String) -> String {
+        var name = path
+        if let slash = name.lastIndex(of: "/") { name = String(name[name.index(after: slash)...]) }
+        if name.hasSuffix(".swift") { name = String(name.dropLast(".swift".count)) }
+        return name
+    }
+
     /// Reads a production source file as UTF-8.
     /// FAILURE MODE: throws `fileNotFound` when the relative path no
     /// longer points at a file (= the source moved during a directory
@@ -80,6 +116,50 @@ enum SourceLocator {
     }
 
     /// Every `.swift` path under Sources/, repo-root relative.
+    /// Every `.swift` path under Sources/ that belongs to `stem`'s
+    /// GROUP, = = repo-root relative. = = A group is the file named
+    /// `stem.swift` PLUS the `stem+<Cluster>.swift` files that sit
+    /// BESIDE it.
+    ///
+    /// WHY THE GROUP AND NOT A PREFIX: = = a prefix would also match a
+    /// DIFFERENT type whose name starts with the same letters (= =
+    /// `ChatViewModelLongRunningGoal.swift` starts with `ChatView`), = =
+    /// and a reader that pulled that in would answer about a file the
+    /// assertion was never about. = = The `+` separator is the tree's
+    /// own convention for a file split OUT of another, = = and a split
+    /// file sits beside the file it was split out of, = = so the group is
+    /// exactly "the stem and the pieces split out of it".
+    static func filesUnderSources(inGroupOf stem: String) throws -> [String] {
+        let sourcesRoot = url("Sources")
+        guard let walker = FileManager.default.enumerator(
+            at: sourcesRoot,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else {
+            throw CocoaError(.fileReadUnknown)
+        }
+        var all: [String] = []
+        for case let entry as URL in walker
+        where entry.pathExtension == "swift" {
+            let relative = entry.path
+                .replacingOccurrences(of: repoRoot.path + "/", with: "")
+            // A previous build's intermediates can shadow the real
+            // source; they are never the file under test.
+            if !relative.contains("/.build/") { all.append(relative) }
+        }
+        guard let stemPath = all.first(where: { pathWithoutExtension(of: $0) == stem }) else {
+            return []
+        }
+        let directory = (stemPath as NSString).deletingLastPathComponent
+        return all.filter { path in
+            let name = pathWithoutExtension(of: path)
+            guard name.hasPrefix(stem) else { return false }
+            guard (path as NSString).deletingLastPathComponent == directory else { return false }
+            // The stem itself, or a piece split out of it.
+            return name == stem || name.hasPrefix(stem + "+")
+        }.sorted()
+    }
+
     static func filesUnderSources(named fileName: String) throws -> [String] {
         let sourcesRoot = url("Sources")
         guard let walker = FileManager.default.enumerator(

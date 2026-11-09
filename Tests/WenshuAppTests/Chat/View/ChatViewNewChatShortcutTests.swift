@@ -15,13 +15,13 @@ struct ChatViewNewChatShortcutTests {
 
     /// T48 contract: ChatView source registers ⌘N shortcut.
     @Test func cmd_n_shortcut_registered() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"n\", modifiers: [.command])"))
     }
 
     /// T48 contract: ⌘N button body calls vm.startNewSession() + focus input.
     @Test func cmd_n_starts_new_session_and_focuses() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         let cmdNRange = src.range(of: "Button(\"New chat\")")!
         let bodyEnd = src.range(of: "}", range: cmdNRange.upperBound..<src.endIndex)!.lowerBound
         let cmdNBody = src[cmdNRange.lowerBound..<bodyEnd]
@@ -32,7 +32,7 @@ struct ChatViewNewChatShortcutTests {
     /// T48 contract: ⌘N button is visually hidden (= .frame(0,0) +
     /// .opacity(0) + .accessibilityHidden(true)).
     @Test func cmd_n_button_is_visually_hidden() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         let cmdNShortcutIdx = src.range(of: ".keyboardShortcut(\"n\", modifiers: [.command])")!
         let after = src[cmdNShortcutIdx.upperBound...]
         #expect(after.contains(".frame(width: 0, height: 0)"))
@@ -42,7 +42,7 @@ struct ChatViewNewChatShortcutTests {
 
     /// T48 contract: T37's existing ⌘K + ⌘L shortcuts preserved.
     @Test func t37_shortcuts_preserved() throws {
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"l\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"g\", modifiers: [.command, .shift])"))
@@ -62,7 +62,7 @@ struct ChatViewNewChatShortcutTests {
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("New chat") is only in ChatView).
         let inputBarSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
-        let chatViewSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let chatViewSrc = try SourceLocator.readGroup(prefixed: "ChatView")
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)
         // lives ONLY in the top-layer ChatInputBarView.
         #expect(inputBarSrc.contains("DesignTokens.controlHeightLarge"))

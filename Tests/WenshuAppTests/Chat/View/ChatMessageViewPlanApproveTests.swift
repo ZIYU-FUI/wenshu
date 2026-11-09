@@ -30,7 +30,7 @@ struct ChatMessageViewPlanApproveTests {
     }
 
     @Test func chatview_passes_real_closure() throws {
-        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let source = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(source.contains("onApprovePlan: { plan in"))
         #expect(source.contains("vm.inputText = plan.query"))
         #expect(source.contains("Task { await vm.send() }"))

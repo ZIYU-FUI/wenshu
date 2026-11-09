@@ -115,7 +115,7 @@ struct ChatViewPasteImageTests {
     ///      the top layer only.
     @Test func paste_handler_outside_hstack() throws {
         let inputBarSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
-        let chatViewSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
+        let chatViewSrc = try SourceLocator.readGroup(prefixed: "ChatView")
         // The paste handler lives in ChatInputBarView (= on the
         // TextField via ImagePasteModifier; = top layer).
         #expect(inputBarSrc.contains(".onPasteCommand(of: [.image])"))
