@@ -189,13 +189,23 @@ struct InspectorViewShellTests {
                 "the column routes the format section")
     }
 
-    @Test("the column mounts the visibility toggle and no SwiftUI picker")
+    @Test("the column mounts the section switch and no separate toggle button")
     func theColumnMountsItsToolbarControls() throws {
         let source = try String(contentsOfFile: inspectorPath, encoding: .utf8)
-        #expect(source.contains("inspectorVisibleBinding.toggle()"),
-                "the column owns its own visibility toggle")
-        #expect(source.contains("ToolbarItemGroup(placement: .principal)"),
-                "the toggle sits in the center toolbar slot")
+        // The column has ONE control: = the section switch in the
+        // window toolbar's rightmost slot. = It is also the column's
+        // visibility control (= the section that is showing turns the
+        // column off, = and any section of a hidden column opens it),
+        // so a second toggle button in the center slot was a duplicate
+        // of the same one binding (= the boss removed it on 2026-11-10).
+        #expect(source.contains("InspectorSectionSwitch("),
+                "the column mounts the section switch")
+        #expect(source.contains("ToolbarItem(placement: .primaryAction)"),
+                "the section switch sits in the window toolbar's rightmost slot")
+        #expect(!source.contains("ToolbarItemGroup(placement: .principal)"),
+                "the column must not carry a second toggle button in the center toolbar slot")
+        #expect(!source.contains("inspectorVisibleBinding.toggle()"),
+                "the section switch is the one writer of the column's visibility")
         // The page switcher is the native segmented control: a SwiftUI
         // `Picker(.segmented)` does not expose the macOS 27 role, so a
         // text-labelled strip cannot paint its selected label through it.

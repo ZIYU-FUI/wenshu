@@ -299,3 +299,119 @@ struct InspectorColumnSwitcherRenderTests {
                 "choosing a segment must write the section back to the shared state")
     }
 }
+
+///
+///  The column's visibility now has ONE control: = the window toolbar's
+///  rightmost section switch (= the boss removed the separate center-slot
+///  toggle button on 2026-11-10). = So the switch must be able to do
+///  BOTH halves of the job on its own: = turn a showing column off, = and
+///  bring a hidden column back.
+///
+///  These are rendered against the PRODUCTION switch, = and the
+///  production binding shape (= the column's own: = the selection is
+///  nil while the column is hidden, = and a press computes the outcome
+///  through `pressOutcome` and writes BOTH the section and the
+///  visibility). = A source read cannot reach whether the real control
+///  fires while nothing is selected (= the case that matters: = the
+///  column is hidden, = so the control shows no selected segment).
+///
+@Suite("Inspector section switch alone controls the column's visibility")
+struct InspectorSectionSwitchVisibilityRenderTests {
+    /// The PRODUCTION binding shape, = rendered: = and the real control
+    /// behind it read back.
+    ///
+    /// `visible` is the column's visibility binding and `section` the
+    /// shared state's section, = exactly as `InspectorView` wires them.
+    @MainActor
+    private func renderedControl(
+        visible: Binding<Bool>,
+        section: Binding<InspectorSection>
+    ) -> NSSegmentedControl {
+        // The PRODUCTION binding (= the one the column's toolbar item
+        // installs), = not a copy of it: = a copy proves nothing about
+        // the wiring that ships.
+        let selection = InspectorView.sectionSwitchSelection(
+            section: section,
+            visible: visible
+        )
+        let host = NSHostingView(rootView: AnyView(
+            InspectorSectionSwitch(selection: selection)
+        ))
+        host.frame = NSRect(x: 0, y: 0, width: 320, height: 40)
+        let window = NSWindow(
+            contentRect: host.frame,
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = host
+        host.layoutSubtreeIfNeeded()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        host.layoutSubtreeIfNeeded()
+        guard let control = Self.findSegmentedControl(in: host) else {
+            Issue.record("the rendered switch carries no NSSegmentedControl")
+            return NSSegmentedControl()
+        }
+        return control
+    }
+
+    @MainActor
+    private static func findSegmentedControl(in view: NSView) -> NSSegmentedControl? {
+        if let control = view as? NSSegmentedControl {
+            return control
+        }
+        for subview in view.subviews {
+            if let found = findSegmentedControl(in: subview) {
+                return found
+            }
+        }
+        return nil
+    }
+
+    @Test("a hidden column shows no selected segment, = and a press still brings it back")
+    @MainActor
+    func aHiddenColumnComesBackOnAPress() {
+        var visible = false
+        var section = InspectorSection.dynamic
+        let control = renderedControl(
+            visible: Binding(get: { visible }, set: { visible = $0 }),
+            section: Binding(get: { section }, set: { section = $0 })
+        )
+        // The hidden column wears no accent: = no segment is chosen.
+        #expect(control.selectedSegment == -1,
+                "a hidden column shows no section at all (= nothing wears the accent)")
+        // The control still has its segments, = so the user has something
+        // to press.
+        #expect(control.segmentCount == InspectorSection.allCases.count,
+                "the switch carries one segment per major section while the column is hidden")
+        // A press on the format segment: = the column comes back, = on
+        // that section. = This is the path that replaces the deleted
+        // toggle button, = so it is the one that must work.
+        control.selectedSegment = 1
+        control.sendAction(control.action, to: control.target)
+        #expect(visible,
+                "pressing a section of a hidden column must bring the column back")
+        #expect(section == .format,
+                "the column comes back on the section that was pressed")
+    }
+
+    @Test("a visible column is turned off by a press on the section that is showing")
+    @MainActor
+    func aVisibleColumnIsTurnedOffByAPress() {
+        var visible = true
+        var section = InspectorSection.dynamic
+        let control = renderedControl(
+            visible: Binding(get: { visible }, set: { visible = $0 }),
+            section: Binding(get: { section }, set: { section = $0 })
+        )
+        #expect(control.selectedSegment == 0,
+                "a visible column shows exactly the section it carries")
+        // A press on the section that is ALREADY showing: = the column
+        // goes away. = This is the other half the deleted toggle used
+        // to do.
+        control.selectedSegment = 0
+        control.sendAction(control.action, to: control.target)
+        #expect(!visible,
+                "pressing the section that is showing must turn the column off")
+    }
+}

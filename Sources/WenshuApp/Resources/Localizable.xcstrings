@@ -1922,40 +1922,6 @@
         }
       }
     },
-    "inspector.toggle.button": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inspector"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "右栏"
-          }
-        }
-      }
-    },
-    "inspector.toggle.help": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show or hide the inspector panel"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "显示或隐藏右栏"
-          }
-        }
-      }
-    },
     "kanban.unselected_book": {
       "extractionState": "manual",
       "localizations": {

@@ -283,7 +283,7 @@ These were removed in various phases (= Apple-API-first sweep + iron-rules pass)
   InspectorView(appState:workspaceUI:inspectorVisibleBinding:)
   // 1 page: status
   ```
-  The column's visibility toggle lives in the window toolbar (`ChromeMainToolbar`).
+  The column's visibility is the window toolbar's rightmost section switch's job (= `InspectorView`'s `.primaryAction` toolbar item): = pressing the section that is showing turns the column off, = and pressing any section of a hidden column opens it. = There is no second toggle button (= the boss removed the center-slot one on 2026-11-10).
 
 ### 8.4 ❌ zoneContentTabBarIcon / dynamicZoneTabBarIcon / chatZoneTabBarIcon
 - **Was in**: same files as 8.3

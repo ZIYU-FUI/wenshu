@@ -26,12 +26,15 @@
 //    v3.0 sweep SKIPS this case (= outside the central SFIcon factory
 //    scope; = Apple first-party surface).
 //
-//  Sweep files (= the files that hold a Label icon slot today, = 6 slots
-//  across 4 call-site files):
+//  Sweep files (= the files that hold a Label icon slot today, = 5 slots
+//    across 3 call-site files):
 //    PromptCacheStatusView (3)
 //    ChatPlanPartView (1)
-//    InspectorView (1)
 //    SettingView (1)
+//
+//  InspectorView held a fourth (= the inspector toggle's own Label,
+//  = removed on 2026-11-10 when the toggle button itself went: = the
+//  column's visibility is now the section switch's job alone).
 //
 //  The `SFLabelRow` factory's own slot (= `IconStylesViews.swift`) is
 //  NOT one of the swept files: the factory draws the slot's frame and
@@ -51,7 +54,7 @@ import SwiftUI
 import Testing
 @testable import WenshuApp
 
-@Suite("Label icon slot sweep (= 6 slots across 4 call-site files, all to SFIcon)")
+@Suite("Label icon slot sweep (= 5 slots across 3 call-site files, all to SFIcon)")
 struct LabelIconSlotSweepTests {
 
     /// The files that hold a Label icon slot, and how many slots each holds.
@@ -62,7 +65,6 @@ struct LabelIconSlotSweepTests {
     static let sweptFiles: [(path: String, sites: Int)] = [
         ("Sources/WenshuApp/Features/Agent/View/PromptCacheStatusView.swift", 3),
         ("Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift", 1),
-        ("Sources/WenshuApp/Features/Editor/View/InspectorView.swift", 1),
         ("Sources/WenshuApp/Features/Settings/View/SettingView.swift", 1),
     ]
 
@@ -138,7 +140,7 @@ struct LabelIconSlotSweepTests {
                     "\(entry.path) holds \(entry.sites) Label icon slot(s), found \(slotsInFile)")
             totalSlots += slotsInFile
         }
-        #expect(totalSlots == 6,
-                "the call-site files hold 6 Label icon slots in total, found \(totalSlots)")
+        #expect(totalSlots == 5,
+                "the call-site files hold 5 Label icon slots in total, found \(totalSlots)")
     }
 }

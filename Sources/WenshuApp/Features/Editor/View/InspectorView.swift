@@ -10,11 +10,13 @@
 //    picks the column's MAJOR SECTION (= the dynamic series, = or the
 //    format inspector), = as the macOS window titlebar's right-hand
 //    capsule (= the place Pages, = Numbers and = Keynote put it),
+//  - that same capsule is the column's VISIBILITY control (= pressing
+//    the section that is showing turns the column off, = and pressing
+//    any section of a hidden column opens it; = so the column has ONE
+//    control, = and a second toggle button is gone (= boss 2026-11-10)),
 //  - the dynamic section carries its own chrome band with the three
 //    tabs it has always carried (= Todos, Sub-Agents, Tasks),
-//  - the column body carries the selected section's content,
-//  - the column's visibility toggle sits in the window toolbar
-//    (= ToolbarItemGroup placement .principal).
+//  - the column body carries the selected section's content.
 //
 //  The column has TWO major sections, = because it carries two kinds of
 //  subject: = the DYNAMIC one (= what the runtime produces: = the todos,
@@ -98,48 +100,34 @@ struct InspectorView: View {
             }
         }
         .toolbar {
-            // The column toggle sits in the center area (= the
-            // Apple HIG "center toolbar" slot; = the same slot the
-            // window's other document-level controls use).
+            // ONE control for the column (= the section switch alone).
             //
-            // One source of truth: the toggle button and any future
-            // menu command all write the same `isPresented` binding,
-            // so any of them can bring the column back.
             // The section switch rides the WINDOW TOOLBAR's rightmost
             // slot (= the Apple answer: = Pages, = Numbers and = Keynote
             // all put their right-column switch in the window titlebar's
             // right-hand button group, = and NOT inside the column
             // itself; = measured on Pages 2026-11-04: = a six-segment
             // capsule whose selected glyph is the accent one).
+            //
+            // It is ALSO the column's visibility control: = the section
+            // that is already showing turns the column off, = and any
+            // section of a hidden column opens it (= `pressOutcome`).
+            // So a separate center-slot toggle button was a SECOND
+            // control for the same one binding (= the boss removed it
+            // on 2026-11-10: = "the fold-away button is useless now,
+            // because the right-column switch group at the far right
+            // already does the same thing").
+            //
+            // One source of truth: = this switch and any future menu
+            // command all write the same `isPresented` binding, = so
+            // any of them can bring the column back.
             ToolbarItem(placement: .primaryAction) {
                 InspectorSectionSwitch(
-                    selection: Binding<InspectorSection?>(
-                        get: { self.inspectorVisibleBinding ? self.workspaceUI.inspectorSection : nil },
-                        set: { picked in
-                            guard let picked else { return }
-                            let outcome = InspectorSection.pressOutcome(
-                                picked,
-                                current: self.workspaceUI.inspectorSection,
-                                visible: self.inspectorVisibleBinding
-                            )
-                            self.workspaceUI.inspectorSection = outcome.section
-                            self.inspectorVisibleBinding = outcome.visible
-                        }
+                    selection: InspectorView.sectionSwitchSelection(
+                        section: $workspaceUI.inspectorSection,
+                        visible: $inspectorVisibleBinding
                     )
                 )
-            }
-
-            ToolbarItemGroup(placement: .principal) {
-                Button {
-                    inspectorVisibleBinding.toggle()
-                } label: {
-                    Label {
-                        Text(String(localized: "inspector.toggle.button"))
-                    } icon: {
-                        SFIcon(inspectorVisibleBinding ? "sidebar.right" : "sidebar.left", style: .paneTab, color: IconColor.tint)
-                    }
-                }
-                .help(String(localized: "inspector.toggle.help"))
             }
         }
         .environment(appState)
@@ -149,6 +137,39 @@ struct InspectorView: View {
         // shows), = and SwiftUI 6 breaks the `@Environment` chain
         // across the NavigationSplitView column boundary.
         .environment(workspaceUI)
+    }
+}
+
+extension InspectorView {
+    /// The binding the window toolbar's section switch writes.
+    ///
+    /// It carries BOTH the column's section and its visibility: = the
+    /// selection is nil while the column is hidden (= nothing wears the
+    /// accent), = and a press computes the outcome through
+    /// `pressOutcome` (= the section that is showing turns the column
+    /// off, = and any section of a hidden column opens it on that
+    /// section).
+    ///
+    /// It is a named function so the test can drive the PRODUCTION
+    /// binding rather than a copy of it: = a copy proves nothing about
+    /// the wiring that ships.
+    static func sectionSwitchSelection(
+        section: Binding<InspectorSection>,
+        visible: Binding<Bool>
+    ) -> Binding<InspectorSection?> {
+        Binding(
+            get: { visible.wrappedValue ? section.wrappedValue : nil },
+            set: { picked in
+                guard let picked else { return }
+                let outcome = InspectorSection.pressOutcome(
+                    picked,
+                    current: section.wrappedValue,
+                    visible: visible.wrappedValue
+                )
+                section.wrappedValue = outcome.section
+                visible.wrappedValue = outcome.visible
+            }
+        )
     }
 }
 

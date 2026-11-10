@@ -71,9 +71,10 @@ struct AppRootScene: Scene {
         // … (= 34 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // standard macOS zoom gesture working as expected.
         .windowResizability(.contentMinSize)
-        // the inspector toggle button
-        // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // `.inspector(isPresented:)` modifier binds.
+        // the inspector column's visibility is the window toolbar's
+        // rightmost section switch's job (= the separate toggle button
+        // is gone; = the boss removed it on 2026-11-10), = and the
+        // `.inspector(isPresented:)` modifier binds the same property.
         .commands {
             // NSV .inspector(isPresented:) modifier already renders a
             // … (= 31 rationale lines collapsed; = A112 docblock collapse per §1.8)

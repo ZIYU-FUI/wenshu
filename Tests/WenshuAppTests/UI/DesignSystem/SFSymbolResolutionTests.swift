@@ -28,6 +28,11 @@
 //  "Update Constraints in Window" pass until AppKit's budget (the
 //  number of views in the window) ran out and AppKit raised.
 //
+//  The toggle button that carried the name is gone (= the boss removed
+//  it on 2026-11-10), = so the pin below no longer reads that one
+//  button: = it reads EVERY source file, = because the failure was
+//  never about which button carried the name.
+//
 //  The single-letter typo was invisible in review because the compiler
 //  cannot check a string literal against the system symbol set. THIS
 //  test is that check: it resolves every symbol name the app renders
@@ -37,8 +42,10 @@
 //  WHAT IT COVERS
 //  1. Every literal passed to SFIcon / Image(systemName:) /
 //     Label(systemImage:) across Sources/ resolves.
-//  2. The inspector toggle in particular names a symbol that exists
-//     (the regression this test was written for).
+//  2. No source file names the exact typo that shipped (= the
+//     regression this test was written for): = the inspector toggle
+//     button itself is gone (= the boss removed it on 2026-11-10), = so
+//     the pin reads every source file instead of one toggle's.
 //  3. The app renders no symbol name whose only difference from a real
 //     one is a hyphen where the real one has a dot (= the exact shape
 //     of this bug).
@@ -254,30 +261,44 @@ struct SFSymbolResolutionTests {
         )
     }
 
-    @Test("The inspector toggle names a symbol that exists")
-    func inspectorToggleSymbolResolves() throws {
+    @Test("No source file names the hyphen-form sidebar symbol that crashed the app")
+    func noHyphenFormSidebarSymbolAnywhere() throws {
         // The regression this suite was written for: the main window's
         // toolbar crashed the app on a preference change because the
-        // inspector toggle's symbol name did not exist.
-        let content = try SourceLocator.read(
-            "Sources/WenshuApp/Features/Editor/View/InspectorView.swift"
-        )
-        let names = ["sidebar.right", "sidebar.left"]
-        for name in names {
-            #expect(
-                content.contains("\"\(name)\""),
-                "InspectorView should name the existing symbol '\(name)'"
+        // inspector toggle's symbol name did not exist ("sidebar-right"
+        // for "sidebar.right"). The toggle button itself is gone (= the
+        // boss removed it on 2026-11-10: = the window toolbar's
+        // rightmost section switch is the column's visibility control
+        // now), so this pin no longer reads one file's toggle: = it
+        // reads EVERY source file, = because the crash was never about
+        // which button carried the name (= it was about AppKit
+        // re-resolving an unresolvable name on every render).
+        //
+        // The sweep above (= every rendered name resolves) is the
+        // general form of the same property; this one pins the exact
+        // typo that shipped, so a future edit that re-introduces that
+        // spelling anywhere is caught by name and not only by kind.
+        let typo = "sidebar-right"
+        var offenders: [String] = []
+        for url in try Self.sourceFiles() {
+            let text = try String(contentsOf: url, encoding: .utf8) ?? ""
+            guard text.contains("\"\(typo)\"") else { continue }
+            let relative = url.path.replacingOccurrences(
+                of: SourceLocator.repoRoot.path + "/", with: ""
             )
+            offenders.append(relative)
         }
         #expect(
-            !content.contains("\"sidebar-right\""),
-            "InspectorView must not name the non-existent symbol 'sidebar-right'"
+            offenders.isEmpty,
+            """
+            these files name the non-existent symbol '\(typo)', = which AppKit \
+            re-resolves on every render and then aborts the window's layout:
+            \(offenders.sorted().joined(separator: "\n"))
+            """
         )
-        for name in names {
-            #expect(
-                Self.systemSymbolExists(name),
-                "'\(name)' should exist in the system symbol set"
-            )
-        }
+        #expect(
+            !Self.systemSymbolExists(typo),
+            "'\(typo)' must not exist in the system symbol set"
+        )
     }
 }
