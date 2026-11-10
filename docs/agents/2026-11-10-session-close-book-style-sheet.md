@@ -159,12 +159,14 @@ the model's own suite (`BookStyleSheetTests`, 23 Swift Testing cases), the
 write-back suite (`BookStyleSheetWriteBackTests`, 10 XCTest cases), the
 engine bridge suite (`EngineStyleSheetBridgeTests`, 15 XCTest cases) and
 the wiring suite (`StyleSheetWiringTests`, 6 XCTest cases) = 54 cases in
-all. Count them with `swift test --list-tests`, and read the result with
-`swift test` WITHOUT a filter, because `--filter` does not select these
-suites on this toolchain: = `swift test --filter StyleSheetWiringTests`
-reports `Executed 0 tests`, and so does the target-qualified form, = = so
-a filter's count is NOT these suites' count. On the merged tree the full
-run printed `Test run with 208 tests in 24 suites passed` for the Swift
+all. Count them with `swift test --list-tests`, and read each suite's own
+line out of a filtered run: = `swift test --filter StyleSheetWiringTests`
+prints one `Executed 6 tests` line for the suite AND one `Executed 0
+tests` line for each of the OTHER bundles it starts as well, = = so the
+count a reader gets depends on WHICH line they read. = = Take the line
+that follows `Test Suite 'StyleSheetWiringTests' passed`, = = not the
+last `Executed` line in the output. On the merged tree the full run
+printed `Test run with 208 tests in 24 suites passed` for the Swift
 Testing half, the three XCTest suites above each printed `passed` with 0
 failures, and NO line in the whole log carried a non-zero failure count.
 
