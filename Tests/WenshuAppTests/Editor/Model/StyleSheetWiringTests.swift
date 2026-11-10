@@ -495,6 +495,27 @@ final class StyleSheetWiringTests: XCTestCase {
                     // = = = = `if var` that does not enclose the call read
                     // = = = = RED on a correct page.
                     true
+                } else if trimmed.range(of: #"\b(if|while)\s+case\b[^\n]*\bbookID\b"#, options: .regularExpression) != nil {
+                    // = = AND A PATTERN BINDING BINDS LIKE AN OPTIONAL
+                    // = = BINDING. = = Swift's `if case let .some(x) = y`
+                    // = = binds `x` in the scope the `if case`'s BODY opens,
+                    // = = exactly like `if let` and `while let`, = = and NOT
+                    // = = like a `guard let` (= = the guard's body must
+                    // = = LEAVE, = = so the binding cannot belong to it). = =
+                    // = = ⇒ So a pattern that binds `bookID` shadows the
+                    // = = = = knob's own binding for the body, = = = = and
+                    // = = = = the guard must catch it.
+                    // = = ⇒ AND THIS ARM COMES BEFORE THE PLAIN-DECLARATION
+                    // = = = = ARM. = = = = A pattern written
+                    // = = = = `if case let .some(let bookID) = ...` holds the
+                    // = = = = text `let bookID` inside it, = = = = and the
+                    // = = = = plain-declaration arm matches THAT text = = = =
+                    // = = = = and gives it the ENCLOSING scope = = = = = so
+                    // = = = = the pattern binding was classified as a plain
+                    // = = = = declaration. = = ⇒ The same harm, = = = = two
+                    // = = = = spellings, = = = = and one of them used to slip
+                    // = = = = through.
+                    true
                 } else if trimmed.range(of: #"\b(let|var)\s+bookID\b"#, options: .regularExpression) != nil {
                     false
                 } else {
