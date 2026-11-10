@@ -126,6 +126,53 @@ def expect(name: str, condition: bool, detail: str = "") -> None:
         FAILURES.append(name)
 
 
+def _arm_helper_calls(tool_text: str, function_name: str, helper_name: str) -> list[str]:
+    """The names of the variables the ARM'S OWN function assigns the helper's RESULT to.
+
+    = = ⇒ AND THE RESULT MUST BE USED, = = = = not merely called: = = a call
+    # = = = = whose value is thrown away changes nothing, = = so a helper call
+    # = = = = that is discarded is not a link.
+
+    = = ⇒ AND THE ARM'S OWN FUNCTION IS THE ONE READ, = = = = so a correct
+    # = = = = caller elsewhere in the file cannot stand in for the arm, = = = =
+    # and a decoy comment cannot either (= = a comment is not a statement).
+
+    = = ⇒ AND NOTHING HERE READS AN ARGUMENT'S NAME, = = = = so a rename of the
+    # = = = = arm's own local (= = = = `text` to `content`) changes no verdict.
+    """
+    import ast
+
+    tree = ast.parse(tool_text)
+    fn = next(
+        (
+            n
+            for n in ast.walk(tree)
+            if isinstance(n, ast.FunctionDef) and n.name == function_name
+        ),
+        None,
+    )
+    if fn is None:
+        return []
+    used: set[str] = set()
+    for node in ast.walk(fn):
+        if isinstance(node, ast.Call):
+            for arg in node.args:
+                if isinstance(arg, ast.Name):
+                    used.add(arg.id)
+    names: list[str] = []
+    for node in ast.walk(fn):
+        if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Call):
+            continue
+        call = node.value
+        called = call.func.id if isinstance(call.func, ast.Name) else None
+        if called != helper_name:
+            continue
+        for tgt in node.targets:
+            if isinstance(tgt, ast.Name) and tgt.id in used:
+                names.append(tgt.id)
+    return names
+
+
 def case_removed_foundation_extension_member() -> None:
     """THE DEFECT THE REVIEW FOUND: = = a file that calls a Foundation
     EXTENSION member and no longer imports Foundation.
@@ -1697,10 +1744,30 @@ def case_the_rewrite_keeps_the_members_modifiers() -> None:
         # = = = = the arm's call site is read, = = = = and it must be the
         # = = = = helper's name.
         tool_text = TOOL.read_text(encoding="utf-8")
+        # = = ⇒ ⇒ ⇒ AND THE ARM'S OWN CALL SITE IS READ, = = = = NOT THE
+        # = = = = FILE'S TEXT. = = = = The whole-file substring test held a
+        # = = = = SPELLING, = = = = and the review measured three shapes that
+        # = = = = pass it while the arm is broken: = = = = the arm inlines its
+        # = = = = own rewrite and a decoy comment carries the literal; = = =
+        # = = = = the arm calls the helper and DISCARDS the result; = = = = and
+        # = = = = the arm inlines its own rewrite while a second, correct caller
+        # = = = = keeps the literal alive elsewhere in the file. = = = = ⇒ So
+        # = = = = the guard reads the AST: = = = = the arm's own function body,
+        # = = = = its CALL to the helper, = = = = the variable that call is
+        # = = = = assigned to, = = = = and the write that USES that variable.
+        # = = = = ⇒ A rename of the arm's local (= = = = `text` to `content`)
+        # = = = = does not change any of those, = = = = so the guard does not
+        # = = = = fire on a rename that changes nothing.
+        arm_calls = _arm_helper_calls(tool_text, "probe_promotions", "_rewrite_to_private")
         expect(
-            "the promotions arm rewrites through the helper that keeps the modifiers",
-            "_rewrite_to_private(text, name)" in tool_text,
-            "the arm does not call _rewrite_to_private",
+            "the promotions arm rewrites THROUGH the helper that keeps the modifiers",
+            len(arm_calls) == 1,
+            f"the arm's own function must CALL the helper exactly once (= = got {len(arm_calls)} call(s) that are assigned a result)",
+        )
+        expect(
+            "the promotions arm USES the helper's result",
+            any(name for name in arm_calls),
+            "the arm calls the helper but does not use what it returns",
         )
 
 
