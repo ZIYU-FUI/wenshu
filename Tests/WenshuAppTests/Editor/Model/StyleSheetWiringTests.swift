@@ -366,6 +366,17 @@ final class StyleSheetWiringTests: XCTestCase {
     /// guard passes, = because that book IS in the store).
     /// The knob's own bindings, read by SCOPE.
     ///
+    /// = = ⇒ AND A `case` ARM READS THE NAME IN THE PATTERN, = = = = not
+    /// = = = = a MENTION further along the line. = = The pattern is the
+    /// = = = = text BETWEEN the `case` and the `=` that separates it
+    /// = = = = from the expression, = = and a name past that `=` belongs
+    /// = = = = to the EXPRESSION (= = the `bookID` inside
+    /// = = = = `first(where: { $0.id == bookID })` is a mention, = = and
+    /// = = = = the pattern binds `book`). = = ⇒ So a page that mentions
+    /// = = = = the book it shows is a CORRECT page, = = and it must read
+    /// = = = = GREEN (= = and an arm that counted the mention read it
+    /// = = = = RED).
+    ///
     /// = = ⇒ AND THIS IS A FUNCTION, = = = = not a block inside one test, = =
     /// = = = = because a SCOPE DECISION THAT NOTHING ELSE CAN REACH IS A
     /// = = = = DECISION HELD BY NOTHING. = = ⇒ A synthetic page can be fed
@@ -390,7 +401,7 @@ final class StyleSheetWiringTests: XCTestCase {
             let opensBody: Bool? =
                 if trimmed.range(of: #"\bguard\s+let\s+bookID\b"#, options: .regularExpression) != nil {
                     false
-                } else if trimmed.range(of: #"\bguard\s+case\b[^\n]*\bbookID\b"#, options: .regularExpression) != nil {
+                } else if trimmed.range(of: #"\bguard\s+case\b[^=\n]*\bbookID\b"#, options: .regularExpression) != nil {
                     // = = AND A `guard case` BINDS LIKE A `guard let`. = =
                     // = = Swift's guard body must LEAVE, = = = = so the
                     // = = = = binding cannot belong to it, = = = = and it
@@ -417,7 +428,7 @@ final class StyleSheetWiringTests: XCTestCase {
                     // = = = = `if var` that does not enclose the call read
                     // = = = = RED on a correct page.
                     true
-                } else if trimmed.range(of: #"\b(if|while)\s+case\b[^\n]*\bbookID\b"#, options: .regularExpression) != nil {
+                } else if trimmed.range(of: #"\b(if|while)\s+case\b[^=\n]*\bbookID\b"#, options: .regularExpression) != nil {
                     // = = AND A PATTERN BINDING BINDS LIKE AN OPTIONAL
                     // = = BINDING. = = Swift's `if case let .some(x) = y`
                     // = = binds `x` in the scope the `if case`'s BODY opens,
@@ -542,6 +553,133 @@ final class StyleSheetWiringTests: XCTestCase {
             bindings.count,
             2,
             "a `guard case` binds in the ENCLOSING scope, = = so it shadows the page's own binding for the rest of that scope (= = and the guard's body must LEAVE, = = so the binding cannot belong to it)"
+        )
+    }
+
+    /// The bindings a synthetic page's own knob write-back sees.
+    ///
+    /// = = ⇒ The page is SYNTHETIC, = = because the production page
+    /// = = = = carries no pattern binding, = = so the rule's own
+    /// = = = = decisions (= = which scope a binding lives in, = = and
+    /// = = = = whether a name is a binding at all) are the ones a
+    /// = = = = synthetic page can vary.
+    private static func bindingCount(of page: String) throws -> Int {
+        let knobBody = try Self.body(of: page, of: "private func moveKnob(")
+        let knobCalls = Self.calls(in: knobBody, carrying: ["knob:", "position:"])
+        XCTAssertEqual(knobCalls.count, 1, "the synthetic page must make EXACTLY ONE write-back")
+        let knobLines = knobBody
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map(String.init)
+        let knobChains = Self.scopeChains(of: knobLines)
+        return Self.bindingLines(
+            in: knobLines,
+            chains: knobChains,
+            callChain: knobChains[knobCalls[0].line],
+            callLine: knobCalls[0].line
+        ).count
+    }
+
+    /// A PATTERN BINDS THE NAME IT SPELLS `let` FOR, = = and a MENTION
+    /// of the book further right is NOT a binding.
+    ///
+    /// = = ⇒ Swift is the authority: = = `case .some(x)` without a
+    /// = = = = `let` is an EXPRESSION PATTERN (= = it compares, = = and
+    /// = = = = it binds nothing), = = and a pattern that binds spells
+    /// = = = = `case let .some(x)`. = = ⇒ And the name a pattern binds
+    /// = = = = is the name in the PATTERN (= = the text between the
+    /// = = = = `case` and the `=` that separates the pattern from the
+    /// = = = = expression), = = so a `bookID` that only appears in the
+    /// = = = = expression is a MENTION, = = and a page that writes the
+    /// = = = = book it shows is a CORRECT page, = = and it must read
+    /// = = = = GREEN.
+    ///
+    /// MUTATION: = the `case` arms' own pattern region widened back to
+    /// = the whole line, = = and the mention on the right of the `=`
+    /// = counted as a binding, = = and these pages read TWO (= = = = RED).
+    func testAMentionOfTheBookIsNotABinding() throws {
+        let guardPage = """
+        private func moveKnob(_ knob: String, _ position: Int) {
+        let bookID = currentBookID
+        guard case let .some(book) = bookStore.books.first(where: { $0.id == bookID }) else { return }
+        try BookStyleSheetWriteBack.apply(knob: knob, position: position, to: bookID)
+        }
+        """
+        XCTAssertEqual(
+            try Self.bindingCount(of: guardPage),
+            1,
+            "a `guard case` that binds ANOTHER book and only MENTIONS this one does not shadow it (= = and a page that writes the book it SHOWS is a correct page, = = and it must read green)"
+        )
+        let ifPage = """
+        private func moveKnob(_ knob: String, _ position: Int) {
+        let bookID = currentBookID
+        if case let .some(book) = bookStore.books.first(where: { $0.id == bookID }) {
+        try BookStyleSheetWriteBack.apply(knob: knob, position: position, to: bookID)
+        }
+        }
+        """
+        XCTAssertEqual(
+            try Self.bindingCount(of: ifPage),
+            1,
+            "an `if case` that binds ANOTHER book and only MENTIONS this one does not shadow it (= = and a page that writes the book it SHOWS is a correct page, = = and it must read green)"
+        )
+    }
+
+    /// AN ENCLOSING `if case` THAT BINDS THE BOOK SHADOWS IT, = = and
+    /// THIS is what holds the `if|while case` arm's PRESENCE.
+    ///
+    /// = = ⇒ The arm's presence was held by nothing: = = a page whose
+    /// = = = = pattern binding sits in a path that does NOT enclose the
+    /// = = = = write-back reads the same with the arm and without it, = =
+    /// = = = = so removing the arm left the suite GREEN (= = and a wrong
+    /// = = = = book write escaped).
+    ///
+    /// MUTATION: = the whole `if|while case` arm removed, = = and the
+    /// = enclosing pattern matched no arm at all, = = so the binding was
+    /// = not counted, = = and this page read ONE (= = = = RED).
+    func testAnEnclosingPatternBindingShadowsTheKnob() throws {
+        let page = """
+        private func moveKnob(_ knob: String, _ position: Int) {
+        let bookID = currentBookID
+        if case let .some(bookID) = bookStore.books.first?.id {
+        try BookStyleSheetWriteBack.apply(knob: knob, position: position, to: bookID)
+        }
+        }
+        """
+        XCTAssertEqual(
+            try Self.bindingCount(of: page),
+            2,
+            "an enclosing `if case` that binds the book shadows the page's own (= = and with the pattern arm gone this page reads ONE, = = so this is what holds the arm's presence)"
+        )
+    }
+
+    /// AN `if var` BINDS IN THE SCOPE ITS BODY OPENS, = = and the
+    /// DECISION is pinned here.
+    ///
+    /// = = ⇒ `if var` is not `if let`: = = the variable is the body's
+    /// = = = = own (= = and it is mutable), = = and it binds in the
+    /// = = = = scope the body opens, = = exactly like `if let`. = = ⇒
+    /// = = = = So an `if var` that sits in a path that does NOT enclose
+    /// = = = = the knob's write-back does NOT shadow it (= = one
+    /// = = = = binding, = = the page's own).
+    ///
+    /// MUTATION: = the `if|while (let|var)` arm's scope decision flipped
+    /// = = (= the body's scope read as the ENCLOSING one), = = and the
+    /// = = binding then binds in the scope that DOES enclose the call,
+    /// = = = = so it shadows it, = = and this assertion goes red.
+    func testAnIfVarBindingInAnotherPathDoesNotShadowTheKnob() throws {
+        let page = """
+        private func moveKnob(_ knob: String, _ position: Int) {
+        let bookID = currentBookID
+        if var bookID = currentBookID {
+        print(bookID)
+        }
+        try BookStyleSheetWriteBack.apply(knob: knob, position: position, to: bookID)
+        }
+        """
+        XCTAssertEqual(
+            try Self.bindingCount(of: page),
+            1,
+            "an `if var` in a path that does NOT enclose the knob's write-back does not shadow it (= = and a scope decision that nothing can reach is a decision held by nothing)"
         )
     }
 
