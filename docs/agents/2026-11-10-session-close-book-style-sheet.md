@@ -151,14 +151,26 @@ python3 Tools/wenshu-devtool/verify-dead.py
 | Gate | Result on the merged tree |
 |---|---|
 | 7.1 `swift build` | `Build complete!` (1.40s) |
-| 7.2 the four style-sheet suites | 31 tests + 23 tests, 0 failures, 0 unexpected |
+| 7.2 the four style-sheet suites | 54 cases, 0 failures (= 31 XCTest cases across the write-back, engine-bridge and wiring suites, = and 23 Swift Testing cases in the model's own suite) |
 | 7.6 `verify-dead.py` | ALIVE 121, PARTIAL 4, DEAD 0 |
 
 The four suite names in the filter are the ones that cover this scope:
-the model's own suite, the write-back suite, the engine bridge suite, and
-the wiring suite. A reader who wants the whole 7.2 gate must run
-`swift test` without a filter; that full run has four known failures on
-`main` that predate this scope and are not touched by it.
+the model's own suite (`BookStyleSheetTests`, 23 Swift Testing cases), the
+write-back suite (`BookStyleSheetWriteBackTests`, 10 XCTest cases), the
+engine bridge suite (`EngineStyleSheetBridgeTests`, 15 XCTest cases) and
+the wiring suite (`StyleSheetWiringTests`, 6 XCTest cases) = 54 cases in
+all. Count them with `swift test --list-tests`, and read the result with
+`swift test` WITHOUT a filter, because `--filter` does not select these
+suites on this toolchain: = `swift test --filter StyleSheetWiringTests`
+reports `Executed 0 tests`, and so does the target-qualified form, = = so
+a filter's count is NOT these suites' count. On the merged tree the full
+run printed `Test run with 208 tests in 24 suites passed` for the Swift
+Testing half, the three XCTest suites above each printed `passed` with 0
+failures, and NO line in the whole log carried a non-zero failure count.
+
+A reader who wants the whole 7.2 gate must run `swift test` without a
+filter. That full run was measured on this tree on 2026-11-10 with zero
+failures, on `main` and on the style-sheet branch alike.
 
 ## 7. The board record
 
