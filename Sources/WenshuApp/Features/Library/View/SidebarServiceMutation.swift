@@ -250,6 +250,7 @@ extension SidebarService {
         existing.updatedAt = Date()
         let updated = try JSONEncoder().encode(existing)
         try updated.write(to: shelfJSONURL)
+        LibraryChangeNotifier.notifyLibraryChanged()
     }
 
     /// rename a book (= rewrites book.json with the new title). The directory
@@ -291,6 +292,7 @@ extension SidebarService {
                 existing.updatedAt = Date()
                 let updated = try JSONEncoder().encode(existing)
                 try updated.write(to: bookJSONURL)
+                LibraryChangeNotifier.notifyLibraryChanged()
                 return
             }
         }
@@ -349,6 +351,7 @@ extension SidebarService {
         // the index + the body).
         let body = referenceStore.loadReferenceBody(id: id) ?? ""
         try referenceStore.replaceReference(updated, bodyMarkdown: body)
+        LibraryChangeNotifier.notifyLibraryChanged()
     }
 
     /// list of all reference titles (= for the duplicate check in
@@ -455,6 +458,7 @@ extension SidebarService {
         try? FileManager.default.removeItem(at: url)
         try updatedBody.write(to: newURL, atomically: true, encoding: .utf8)
         sidebarLogger.info("[wenshu.bookdoc] renamed: \(url.lastPathComponent) -> \(newURL.lastPathComponent)")
+        LibraryChangeNotifier.notifyLibraryChanged()
     }
 
     /// Helper: rewrite the file's H1 heading (= the first non-blank line in the

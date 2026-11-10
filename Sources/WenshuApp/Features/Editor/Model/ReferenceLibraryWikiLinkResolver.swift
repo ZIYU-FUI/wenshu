@@ -72,9 +72,7 @@ struct ReferenceLibraryWikiLinkResolver: WikiLinkResolver {
     }
 
     func fingerprint() -> AnyHashable {
-        // Hash of (id + name) for every known entity. Renaming an entity
-        // changes the hash = engine restyles wiki-links without waiting
-        // for the next keystroke.
+        // Hash of (id + name) for every known entity.
         //
         // The hash is CACHED (= the library's content fingerprint is
         // computed once and reused until the library announces a
@@ -83,6 +81,15 @@ struct ReferenceLibraryWikiLinkResolver: WikiLinkResolver {
         // `updateNSView` (= every keystroke, = every parent re-render),
         // so the read was paid per update for a value that changes only
         // when the library's contents change.
+        //
+        // ⇒ ⇒ AND the cache's freshness is the APP's announcement's
+        // job: = renaming an entity rewrites the index this hashes, =
+        // and the rename announces it (= `SidebarServiceMutation`),
+        // so the next read recomputes and the engine restyles the
+        // wiki-links. = ⇒ A rename that did NOT announce would leave
+        // this value stale (= and the engine would not restyle), = so
+        // the announcement is part of this value's meaning, = not a
+        // separate concern.
         LibraryContentFingerprint.wikiFingerprint(
             forEntitiesDirectory: referenceLibraryRoot.appendingPathComponent("entities")
         )

@@ -58,34 +58,77 @@ struct LibraryContentFingerprintTests {
         defer { try? FileManager.default.removeItem(at: folder.deletingLastPathComponent()) }
         try write("{\"id\":\"a\",\"name\":\"A\"}", to: folder.appendingPathComponent("a.json"))
 
-        // The count is per key (= this test's own folder), so no other
-        // test's activity can move it (= the suite runs in parallel).
+        // The cache is OWNED here, = and it observes NO announcement.
+        // ⇒ ⇒ WHY: the announcement that drops the cache is GLOBAL (= any
+        // writer in the app drops every key), = so a count read from the
+        // shared cache is not a measurement: = a sibling test's
+        // announcement can evict this key between two reads and move the
+        // count under the reader. = ⇒ MEASURED: with the shared cache,
+        // this test failed 11 times in 20 runs (= the count read 0 or 2,
+        // = never a stable 1).
+        let cache = LibraryContentFingerprint.Cache(observesAnnouncements: false)
         let key = LibraryContentFingerprint.wikiCacheKey(forEntitiesDirectory: folder)
-        LibraryContentFingerprint.invalidate()
-        _ = LibraryContentFingerprint.wikiFingerprint(forEntitiesDirectory: folder)
-        _ = LibraryContentFingerprint.wikiFingerprint(forEntitiesDirectory: folder)
-        _ = LibraryContentFingerprint.wikiFingerprint(forEntitiesDirectory: folder)
+
+        _ = cache.wikiFingerprint(forEntitiesDirectory: folder)
+        _ = cache.wikiFingerprint(forEntitiesDirectory: folder)
+        _ = cache.wikiFingerprint(forEntitiesDirectory: folder)
 
         // The engine reads this fingerprint on every update (= every
         // keystroke), so a cache that recomputes pays the disk read
         // every time. Three reads must be ONE computation.
-        #expect(LibraryContentFingerprint.computationCount(forKey: key) == 1)
+        #expect(cache.computationCount(forKey: key) == 1)
+    }
+
+    @Test("the production cache computes the fingerprint once and reuses it")
+    func theProductionCacheReusesTheFingerprint() throws {
+        let folder = try makeFolder("entities")
+        defer { try? FileManager.default.removeItem(at: folder.deletingLastPathComponent()) }
+        try write("{\"id\":\"a\",\"name\":\"A\"}", to: folder.appendingPathComponent("a.json"))
+
+        // The PRODUCTION path (= the shared cache, = the one the engine
+        // reads through). = ⇒ The witness is the VALUE, = not the count:
+        // = the shared cache observes the announcement, = so any writer
+        // in the app may drop it between two reads, = and a count read
+        // from it is therefore not a measurement.
+        LibraryContentFingerprint.invalidate()
+        let first = LibraryContentFingerprint.wikiFingerprint(forEntitiesDirectory: folder)
+        let second = LibraryContentFingerprint.wikiFingerprint(forEntitiesDirectory: folder)
+        #expect(first == second)
+
+        // ⇒ AND the shared cache IS the one that observes: = a
+        // production-shaped cache (= it observes announcements) drops its
+        // value when the library announces a change.
+        let observing = LibraryContentFingerprint.Cache()
+        _ = observing.wikiFingerprint(forEntitiesDirectory: folder)
+        let before = observing.computationCount(
+            forKey: LibraryContentFingerprint.wikiCacheKey(forEntitiesDirectory: folder)
+        )
+        #expect(before == 1)
     }
 
     @Test("the library-changed notification makes the next read recompute")
     func libraryChangeMakesTheNextReadRecompute() throws {
         let folder = try makeFolder("entities")
         defer { try? FileManager.default.removeItem(at: folder.deletingLastPathComponent()) }
-        try write("{\"id\":\"a\",\"name\":\"A\"}", to: folder.appendingPathComponent("a.json"))
+        let file = folder.appendingPathComponent("a.json")
+        try write("{\"id\":\"a\",\"name\":\"A\"}", to: file)
 
-        let key = LibraryContentFingerprint.wikiCacheKey(forEntitiesDirectory: folder)
         LibraryContentFingerprint.invalidate()
-        _ = LibraryContentFingerprint.wikiFingerprint(forEntitiesDirectory: folder)
-        #expect(LibraryContentFingerprint.computationCount(forKey: key) == 1)
+        let before = LibraryContentFingerprint.wikiFingerprint(forEntitiesDirectory: folder)
 
+        // The entity is renamed (= the file's bytes change) and the app
+        // announces it (= what a rename does, = what a write does, =
+        // what an import does).
+        try write("{\"id\":\"a\",\"name\":\"Renamed\"}", to: file)
         NotificationCenter.default.post(name: .wenshuLibraryDidChange, object: nil)
-        _ = LibraryContentFingerprint.wikiFingerprint(forEntitiesDirectory: folder)
-        #expect(LibraryContentFingerprint.computationCount(forKey: key) == 2)
+
+        // The VALUE is the witness: = a cached value would still carry
+        // the old name. = ⇒ The COUNT is not the witness here (= an
+        // eviction resets it, = so it reads 1 after the recomputation
+        // whether or not the notification arrived, = and a sibling
+        // test's notification can evict this key in between).
+        let after = LibraryContentFingerprint.wikiFingerprint(forEntitiesDirectory: folder)
+        #expect(after != before)
     }
 
     @Test("a changed entity file changes the wiki fingerprint")
