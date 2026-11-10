@@ -942,9 +942,23 @@ enum MarkdownASTStyler {
 
     private static func styleCodeBlock(range: NSRange, ctx: Ctx, into attrs: inout [StyledRange]) {
         let parts = codeBlockParts(range, ctx.ns)
-        attrs.append((parts.codeRange, [
-            .font: ctx.codeFont, .backgroundColor: ctx.codeBackground, .paragraphStyle: ctx.codeParagraphStyle,
-        ]))
+        var codeAttributes: [NSAttributedString.Key: Any] = [
+            .font: ctx.codeFont, .paragraphStyle: ctx.codeParagraphStyle,
+        ]
+        // The fill is the code block's OWN knob, separate from the inline
+        // code's (= the two share the highlighter's background upstream, = so
+        // turning one off must not turn the other off with it).
+        //
+        // `.none` means the block carries NO background attribute at all.
+        // That is what removes the slab: the renderer's full-width fill
+        // draws only for a fragment whose leading character carries a
+        // background (= it reads the highlighter's colour to recognise a
+        // code block), so a block with no background paints nothing, and
+        // the code sits on the page's own surface.
+        if ctx.config.codeBlock.fill == .highlighter {
+            codeAttributes[.backgroundColor] = ctx.codeBackground
+        }
+        attrs.append((parts.codeRange, codeAttributes))
         // Suppress spell-check underlines on the whole fenced block — code is not prose.
         attrs.append((parts.codeRange, [.spellingState: 0]))
         let codeContent = ctx.ns.substring(with: parts.content)

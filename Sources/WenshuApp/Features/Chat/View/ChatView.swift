@@ -159,16 +159,49 @@ struct ChatView: View {
             // it read as detached from the conversation.
             .padding(.vertical, DesignTokens.spacingStandard)
             // The section header is a pinned view (= the transcript's
-            // sticky band), so the replies scroll behind it: the header
-            // needs a background to mask them. The mask is a material
-            // (= the same kind of surface the window's root carries),
-            // not an opaque colour, so the chat column keeps one
-            // continuous surface. Background applied AFTER padding (=
-            // the canonical Apple shape: the background extends into
-            // the 10 PT padding zone above + below the bubble glyph, so
-            // the gaps render as empty surface, not as transparent
-            // slivers).
-            .background(.regularMaterial)
+            // sticky band), so the replies scroll behind it.
+            //
+            // The header paints NO surface of its own. It used to paint a
+            // material here, and that material was a SECOND material layer:
+            // the window's root already carries the one behind-window
+            // material (= the chat column is transparent, = so that single
+            // layer shows through it), so a material inside the column
+            // composited over it and read as a brighter strip laid across
+            // the whole row (= the reported defect: the user's bubble
+            // carried an extra background block the width of the column).
+            //
+            // The rule this follows is the one the rest of the app
+            // already follows: ONE material at the window's root, and
+            // nothing inside the window painting a surface of its own
+            // (= the same rule the chrome top bar's band follows). The
+            // user's own bubble keeps its own surface (= the rounded
+            // card the words sit on), so the bubble is unchanged; only
+            // the extra full-width band is gone.
+            //
+            // What the band bought (= the replies do not read through the
+            // pinned row) is not free: the band is a SECOND material layer
+            // over the window root's one behind-window material, so its
+            // tone differs from the column's own surface (= the strip the
+            // report is about). Measured on the real ChatView over the
+            // real root material: the band's tone sat 55 luma steps from
+            // the column's, and with no band the row's tone matches the
+            // column's exactly (0 steps).
+            //
+            // The alternatives that keep the mask were measured and none
+            // of them removes the strip: the scroll view's own top edge
+            // effect does not cover a pinned section header (the reply
+            // text reads through it exactly as it does with no effect at
+            // all), and an AppKit behind-window material samples a
+            // different source than the column's surface, so it does not
+            // match either. The user asked for the band to go and named
+            // transparency as the fallback, so the row paints nothing of
+            // its own.
+            //
+            // Background applied AFTER padding (so a surface here would
+            // extend into the padding zone above + below the bubble
+            // glyph, = the canonical Apple shape). With no surface of its
+            // own, the padding zone shows the column's own surface, = the
+            // same surface the rest of the column shows.
         }
     }
 

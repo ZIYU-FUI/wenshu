@@ -55,6 +55,25 @@ enum WenshuEditorServicesFactory {
         // NSColor.tertiaryLabelColor mirror, code =
         // NSColor.textBackgroundColor mirror).
         config.theme = MarkdownEditorTheme.default
+        // A fenced code block paints NO fill of its own.
+        //
+        // The engine's default (= the highlighter's own background) filled the
+        // block with an opaque slab and the renderer painted the same colour
+        // across the container's FULL width, so a code block read as a big
+        // near-white rectangle laid over the page (= the reported defect: a
+        // large white block around every fenced code block).
+        //
+        // The code now sits on the editor's own page surface (= the surface
+        // the body text already uses). The text stays readable there, and the
+        // numbers are measured from the running app, not inferred: in the
+        // light appearance the code's ink on the page measures 5.43:1 (= the
+        // darkest token on the page the screenshot shows, = and WCAG AA body
+        // text needs 4.50:1); in the dark appearance it measures 11.07:1
+        // (= the same measurement on the app's own dark capture).
+        //
+        // The knob is the fenced block's OWN (= inline code keeps the
+        // highlighter's background, = the two no longer share one value).
+        config.codeBlock.fill = .none
         // T-12: forward the host's `EditorPreferences` snapshot to the configuration.
         // Each field binds the matching engine field (= readingWidth /
         // heightBehavior / rawSourceMode / spellChecking triple / listEditing

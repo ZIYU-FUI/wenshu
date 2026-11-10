@@ -272,6 +272,20 @@ public struct MarkerStyle: Sendable {
 
 // MARK: - Code blocks
 
+/// What a fenced code block paints behind its own text.
+///
+/// The engine's upstream behaviour (= `.highlighter`) paints the syntax
+/// highlighter's background across the block, and the renderer paints the
+/// same colour across the container's FULL width (= the wide slab a code
+/// block used to draw). `.none` paints no fill at all (= the code sits
+/// directly on the page's own surface).
+public enum CodeBlockFill: Sendable, Equatable {
+    /// The syntax highlighter's own background (= the upstream behaviour).
+    case highlighter
+    /// No fill of the block's own (= the code sits on the page's surface).
+    case none
+}
+
 /// Styling for fenced code blocks (```language ... ```).
 public struct CodeBlockStyle: Sendable {
     /// Code-block font size as a fraction of the document base font size.
@@ -280,15 +294,23 @@ public struct CodeBlockStyle: Sendable {
     public var paragraphSpacing: CGFloat
     /// Left/right indent (in points) so code blocks don't run into the gutter.
     public var horizontalIndent: CGFloat
+    /// What the block paints behind its text.
+    ///
+    /// The default (= `.highlighter`) is the upstream's own behaviour: the
+    /// fill comes from the syntax highlighter, and the renderer paints it
+    /// across the container's full width.
+    public var fill: CodeBlockFill
 
     public init(
         fontSizeScale: CGFloat = 0.85,
         paragraphSpacing: CGFloat = 2.0,
-        horizontalIndent: CGFloat = 12.0
+        horizontalIndent: CGFloat = 12.0,
+        fill: CodeBlockFill = .highlighter
     ) {
         self.fontSizeScale = fontSizeScale
         self.paragraphSpacing = paragraphSpacing
         self.horizontalIndent = horizontalIndent
+        self.fill = fill
     }
 
     public static let `default` = CodeBlockStyle()
