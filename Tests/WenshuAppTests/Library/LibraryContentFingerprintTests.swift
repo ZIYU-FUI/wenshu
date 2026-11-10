@@ -95,15 +95,22 @@ struct LibraryContentFingerprintTests {
         let second = LibraryContentFingerprint.wikiFingerprint(forEntitiesDirectory: folder)
         #expect(first == second)
 
-        // ⇒ AND the shared cache IS the one that observes: = a
-        // production-shaped cache (= it observes announcements) drops its
-        // value when the library announces a change.
+        // ⇒ AND the production-shaped cache (= the one that observes
+        // announcements) drops its OWN value when the library announces
+        // a change. = ⇒ The witness is the VALUE, = and the claim is
+        // POSITIVE: = a cache that observes the announcement is dropped
+        // by it, = so the value moves. = ⇒ MEASURED: a negative claim
+        // about the same cache (= "without the announcement the value
+        // did not move") is NOT a property an announcement storm can
+        // hold, = and asserting it failed 8 times in 25 runs under a
+        // storm. = ⇒ So the negative half lives on a cache that
+        // observes NOTHING (= above), = and this half is positive only.
         let observing = LibraryContentFingerprint.Cache()
-        _ = observing.wikiFingerprint(forEntitiesDirectory: folder)
-        let before = observing.computationCount(
-            forKey: LibraryContentFingerprint.wikiCacheKey(forEntitiesDirectory: folder)
-        )
-        #expect(before == 1)
+        let before = observing.wikiFingerprint(forEntitiesDirectory: folder)
+        try write("{\"id\":\"a\",\"name\":\"Renamed\"}", to: folder.appendingPathComponent("a.json"))
+        NotificationCenter.default.post(name: .wenshuLibraryDidChange, object: nil)
+        let fresh = observing.wikiFingerprint(forEntitiesDirectory: folder)
+        #expect(fresh != before, "the announcement must drop the observing cache's value")
     }
 
     @Test("the library-changed notification makes the next read recompute")

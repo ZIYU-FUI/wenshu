@@ -111,21 +111,40 @@ struct LibraryRenameAnnouncesTests {
         #expect(after != before, "the wiki-link fingerprint went stale after a rename")
     }
 
-    @Test("the rename announcement is what makes it visible (= the engine's restyle trigger)")
+    @Test("the announcement makes a cached fingerprint move")
     func theAnnouncementIsWhatMakesItVisible() throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }
 
-        let resolver = ReferenceLibraryWikiLinkResolver(
-            referenceLibraryRoot: fixture.root.appendingPathComponent("reference-library")
-        )
+        // ⇒ ⇒ The cache is OWNED here, = and it observes the
+        // announcement. = ⇒ ⇒ WHY: the shared cache is dropped by ANY
+        // writer in the app (= the announcement is global), = so an
+        // assertion about the shared cache's residency flips the moment
+        // a sibling's announcement lands between two reads. = ⇒
+        // MEASURED: the review drove the announcement continuously and
+        // the old tip's line went RED 3 out of 3, = and under CPU load
+        // it failed 1 run in 25. = ⇒ The author's first repair (= the
+        // same shape, = with an owned cache) still failed 55 times in 25
+        // runs, = because an OBSERVING cache is dropped by the storm
+        // too.
+        //
+        // ⇒ ⇒ ⇒ So the claim here is a POSITIVE one (= "the
+        // announcement makes the value move"), = and a positive claim
+        // is stable under an announcement storm: = any eviction moves
+        // the value, = so the storm can only help it hold. = ⇒ The
+        // NEGATIVE half (= "without the announcement the value does not
+        // move") is NOT stated here, = because it is not a property a
+        // storm can hold: = and the cache's own caching property is
+        // measured on a cache that observes nothing, = in
+        // `LibraryContentFingerprintTests`.
+        let cache = LibraryContentFingerprint.Cache()
+        let entitiesDir = fixture.root
+            .appendingPathComponent("reference-library")
+            .appendingPathComponent("entities")
 
-        LibraryContentFingerprint.invalidate()
-        let before = resolver.fingerprint()
+        let before = cache.wikiFingerprint(forEntitiesDirectory: entitiesDir)
 
-        // The rename WITHOUT the announcement: = the bytes on disk
-        // change, = and the cached value does not. = ⇒ This is the
-        // regression's shape, = stated as a fact about the cache.
+        // The bytes on disk change (= a rename).
         try fixture.store.replaceReference(
             Reference(
                 id: fixture.referenceID,
@@ -135,13 +154,11 @@ struct LibraryRenameAnnouncesTests {
             ),
             bodyMarkdown: "# Renamed Entity\n\nbody\n"
         )
-        let stale = resolver.fingerprint()
-        #expect(stale == before, "without the announcement the cached value is stale")
 
         // ⇒ AND the announcement is what the app does: = with it, the
         // next read recomputes and the value moves.
         NotificationCenter.default.post(name: .wenshuLibraryDidChange, object: nil)
-        let fresh = resolver.fingerprint()
+        let fresh = cache.wikiFingerprint(forEntitiesDirectory: entitiesDir)
         #expect(fresh != before, "the announcement must make the fingerprint move")
     }
 }

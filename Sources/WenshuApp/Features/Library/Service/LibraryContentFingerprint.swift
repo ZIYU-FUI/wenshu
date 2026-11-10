@@ -144,27 +144,6 @@ enum LibraryContentFingerprint {
             computations.removeAll()
         }
 
-        /// Drop ONE key's cached fingerprint (= the library's contents
-        /// changed for that folder set only).
-        ///
-        /// The global announcement drops every key (= the library as a
-        /// whole changed, = so every reader must recompute). = ⇒ This
-        /// narrower drop is for the case where ONE folder set changed:
-        /// the other keys' values are still valid, = and dropping them
-        /// makes their readers pay a recomputation for nothing.
-        ///
-        /// ⇒ ⇒ AND it is what makes the count observable: = a test that
-        /// measures "how many times did this key miss" needs to drop
-        /// THAT key without dropping the others, = because a global drop
-        /// (= any writer in the app, = any sibling test) evicts every
-        /// key and the count then moves under the reader.
-        func removeValue(forKey key: String) {
-            lock.lock()
-            defer { lock.unlock() }
-            entries.removeValue(forKey: key)
-            computations.removeValue(forKey: key)
-        }
-
         /// How many fingerprints were computed per key (= a cache miss
         /// each).
         private var computations: [String: Int] = [:]
@@ -194,12 +173,19 @@ enum LibraryContentFingerprint {
             observerRegistered = true
             lock.unlock()
             guard !alreadyRegistered else { return }
+            // ⇒ ⇒ The observer clears THE INSTANCE it belongs to, = not
+            // the singleton. = ⇒ WHY: a cache that observes the
+            // announcement and does not drop its own value on it is a
+            // cache that lies about what it observes. = ⇒ MEASURED: the
+            // review's probe read "a cache that observes announcements
+            // does NOT drop its own value", = and a test that owns an
+            // observing cache could not see the announcement at all.
             NotificationCenter.default.addObserver(
                 forName: .wenshuLibraryDidChange,
                 object: nil,
                 queue: nil
-            ) { _ in
-                Cache.shared.removeAll()
+            ) { [weak self] _ in
+                self?.removeAll()
             }
         }
 
@@ -300,48 +286,7 @@ enum LibraryContentFingerprint {
         Cache.shared.removeAll()
     }
 
-    /// Drop ONE folder set's cached fingerprint (= that folder set
-    /// changed, = and the others did not).
-    ///
-    /// The global announcement drops every key, = and that is right when
-    /// the library as a whole changed. = ⇒ This narrower drop is for a
-    /// change that touches ONE folder set: = the other keys' values are
-    /// still valid, = and dropping them makes their readers pay a
-    /// recomputation for nothing.
-    ///
-    /// ⇒ ⇒ AND it is what makes the observation hook usable: = a reader
-    /// that counts "how many times did this key miss" needs to drop
-    /// THAT key without dropping the others, = because a global drop
-    /// evicts every key and the count then moves under the reader (= a
-    /// sibling's write can evict this reader's key at any moment).
-    static func invalidate(forKey key: String) {
-        Cache.shared.removeValue(forKey: key)
-    }
-
     // MARK: - The observation hook
-
-    /// How many times a fingerprint was COMPUTED for one key (= the
-    /// cache misses for that key).
-    ///
-    /// The count is the number of computations SINCE THE LAST EVICTION
-    /// (= the last time the library announced a change), = so a warm
-    /// value that is read three times counts 1, = and a value that was
-    /// dropped and recomputed counts 1 again.
-    ///
-    /// ⇒ ⇒ AND that is what makes the count immune to a FOREIGN
-    /// eviction: = the announcement that drops the cache is global
-    /// (= any writer in the app drops every key), = so a sibling test's
-    /// announcement can evict THIS key between this test's reads. = ⇒
-    /// With the count reset on eviction, = the count after N reads of a
-    /// warm value is 1 whichever eviction happened in between.
-    ///
-    /// ⇒ ⇒ AND the count is PER KEY (= not a process-wide total), = so
-    /// a test reads its own folder's count and no other test's own key
-    /// can move it. = ⇒ What CAN move it is a global announcement (= a
-    /// sibling's), = and that is what the reset-on-eviction handles.
-    static func computationCount(forKey key: String) -> Int {
-        Cache.shared.computationCount(forKey: key)
-    }
 
     /// The wiki fingerprint's cache key for one entity index folder
     /// (= the key the wiki fingerprint is stored under).
