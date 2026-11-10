@@ -36,13 +36,51 @@ from pathlib import Path
 DEFAULT_BOARD = "wenshu-par"
 
 
+def home_candidates() -> tuple[Path, ...]:
+    """The Hermes homes that may hold the boards, most specific first.
+
+    = = ⇒ `HERMES_HOME` POINTS AT THE PROFILE'S DIRECTORY, = = NOT AT THE HOME
+    # = = = = that holds the boards, = = and a profile's own copy of the
+    # = = = = boards does not exist (= = `<profile>/kanban` is absent). = = So
+    # = = = = the profile is tried first, = = the home above it second (= = a
+    # = = = = profile's home is `<root>/profiles/<name>`, = = so the root is
+    # = = = = two levels up), = = and the shared home last. = = Getting this
+    # = = = = wrong is not a slow path, = = it is a WRONG path: = = the
+    # = = = = resolver then finds no board at all, = = so it prints nothing, = =
+    # = = = = and the landing script falls back to the convention = = = = = and
+    # = = = = the defect this exists to fix survives unchanged.
+
+    = = ⇒ THIS IS THE TREE'S OWN RULE, = = = = and it is written down in
+    # = = = = three places: = = `Tools/wenshu-devtool/product_lines.py`'s
+    # = = = = `home_candidates()`, = = `Tools/wenshu-devtool/review_gate.py`'s
+    # = = = = `_board_db_path()`, = = and `Tools/wenshu-devtool/ticket_tier.py`'s
+    # = = = = `_board_db_path()`.
+    """
+    candidates: list[Path] = []
+    env = os.environ.get("HERMES_HOME")
+    if env:
+        home = Path(env).expanduser()
+        candidates.append(home)
+        if home.parent.name == "profiles":
+            candidates.append(home.parent.parent)
+    candidates.append(Path.home() / ".hermes")
+    return tuple(candidates)
+
+
 def board_db(board: str = DEFAULT_BOARD) -> str:
-    """The board's database file."""
+    """The board's database file, or "" when no home holds it.
+
+    = = ⇒ THE BOARD'S OWN FILE DECIDES, = = = = not the path arithmetic: = = a
+    # = = = = candidate that does not hold the file is not the board's home.
+    """
     pinned = os.environ.get("HERMES_KANBAN_DB")
     if pinned:
         return pinned
-    home = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
-    return str(Path(home) / "kanban" / "boards" / board / "kanban.db")
+    for home in home_candidates():
+        candidate = home / "kanban" / "boards" / board / "kanban.db"
+        if candidate.is_file():
+            return str(candidate)
+    return ""
 
 
 def card_workspace(db_path: str, card_id: str) -> str:
@@ -53,6 +91,8 @@ def card_workspace(db_path: str, card_id: str) -> str:
     # = = = = do with it (= = = = the landing script falls back to the
     # = = = = convention).
     """
+    if not db_path:
+        return ""
     try:
         con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     except sqlite3.Error:

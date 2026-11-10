@@ -5,6 +5,28 @@
 # rebase again and RE-RUN the gates (a rebase can invalidate what a gate proved).
 set -uo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
+
+resolve_worktree() {
+  # = = = = The convention first, = = = = then the card's own path.
+  local card="$1" repo="$2" wt card_ws
+  wt="$repo/.worktrees/$card"
+  card_ws="$(python3 "$repo/Scripts/land_worktree.py" "$card" 2>/dev/null)"
+  if [ -n "$card_ws" ] && [ -d "$card_ws" ]; then
+    wt="$card_ws"
+  fi
+  printf '%s\n' "$wt"
+}
+
+# = = ⇒ AND THE RESOLUTION CAN BE ASKED FOR ON ITS OWN, = = = = so a test can
+# = = = = run the SHELL'S OWN block (= = and not a copy of it). = = ⇒ A test
+# = = = = that calls the helper directly does NOT hold the seam this exists to
+# = = = = hold: = = removing the shell's call leaves the helper tested and the
+# = = = = script broken, = = and nothing goes red.
+if [ "${1:-}" = "--resolve-only" ]; then
+  shift
+  resolve_worktree "${1:-}" "$REPO"
+  exit 0
+fi
 CARD="$1"; BRANCH="$2"; shift 2
 # = = ⇒ AND THE WORKTREE IS THE ONE THE CARD NAMES, = = = = not one
 # = = = = guessed from the card's id. = = = = The convention that the
@@ -19,10 +41,8 @@ CARD="$1"; BRANCH="$2"; shift 2
 # = = = = `Scripts/land_worktree.py`, = = = = so it can be TESTED (= = = =
 # = = = = and a shell script's path arithmetic is exactly the kind of
 # = = = = thing a test is cheaper for than a reader).
-WT="$REPO/.worktrees/$CARD"
-CARD_WS="$(python3 "$REPO/Scripts/land_worktree.py" "$CARD" 2>/dev/null)"
-if [ -n "$CARD_WS" ] && [ -d "$CARD_WS" ]; then
-  WT="$CARD_WS"
+WT="$(resolve_worktree "$CARD" "$REPO")"
+if [ "$WT" != "$REPO/.worktrees/$CARD" ]; then
   echo "--- the card's own worktree: $WT"
 fi
 LOGDIR="${LOGDIR:-$REPO/.gate-logs}"
