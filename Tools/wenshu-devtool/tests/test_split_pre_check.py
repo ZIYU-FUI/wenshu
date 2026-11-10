@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -1771,6 +1772,122 @@ def case_the_rewrite_keeps_the_members_modifiers() -> None:
         )
 
 
+def typecheck_ref(repo: Path, ref: str, rel: str) -> tuple[bool, str]:
+    """Does the file at `ref` typecheck ON ITS OWN?
+
+    = = ⇒ A FIXTURE WHOSE OWN SOURCE CANNOT COMPILE = = = = makes the arm's
+    # = = = = verdict vacuous: = = = = the review found one such fixture and
+    # = = = = called it a case that measures nothing. = = ⇒ So a fixture
+    # = = = = that claims the arm's verdict must first prove that its base
+    # = = = = and its tip each compile alone.
+    """
+    work = repo.parent / f"typecheck-{ref[:8]}"
+    if work.exists():
+        shutil.rmtree(work)
+    git(repo, "worktree", "add", "--detach", str(work), ref)
+    try:
+        proc = subprocess.run(
+            ["swiftc", "-typecheck", str(work / rel)],
+            capture_output=True, text=True, timeout=600,
+        )
+        return proc.returncode == 0, proc.stdout + proc.stderr
+    finally:
+        subprocess.run(["git", "worktree", "remove", "--force", str(work)],
+                       cwd=str(repo), capture_output=True)
+
+
+def case_the_verdict_is_held_on_a_legal_same_file_reader() -> None:
+    """THE REVIEW'S SECOND FINDING: = = the card's own premise was FALSE.
+
+    = = ⇒ Measured: = = a legal "same-file reader" fixture DOES flip the
+    # = = = = arm's verdict, = = = = so the verdict is a witness and the
+    # = = = = source read is not needed: = = = = the pristine tool says
+    # = = = = "no file needed it" (= = = = the TRUE answer, = = = = because a
+    # = = = = reader in the declaring file needs nothing), = = = = and an arm
+    # = = = = that rewrites with its own (= = = = modifier-dropping) pattern
+    # = = = = says "could not measure it" instead.
+
+    = = ⇒ ⇒ AND THE FIXTURE IS LEGAL SWIFT, = = = = measured here: = = = = the
+    # = = = = base and the tip each compile alone, = = = = because a fixture
+    # = = = = whose own source cannot compile makes the verdict vacuous
+    # = = = = (= = = = the review found one such fixture and called it a
+    # = = = = case that measures nothing).
+
+    = = ⇒ ⇒ ⇒ AND THE READER IS IN THE DECLARING FILE, = = = = because that
+    # = = = = is the shape where the verdict IS a verdict: = = = = the member
+    # = = = = put back to `private` STILL BUILDS (= = = = same-file
+    # = = = = visibility), = = = = and a rewrite that drops the member's
+    # = = = = modifier words breaks the reader's call (= = = = and the build
+    # = = = = then fails for a reason that is NOT "'helper' is inaccessible",
+    # = = = = which is what sends the arm to its "could not measure it"
+    # = = = = branch).
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        # = = ⇒ A REAL WIDENING, = = and the reader is in the DECLARING
+        # = = = = FILE, = = = = so putting the member back to `private` still
+        # = = = = builds (= = = = nothing outside the file needed it).
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                private static func helper() -> Int {
+                    1
+                }
+
+                public static func one() -> Int {
+                    Thing.helper()
+                }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                public static func helper() -> Int {
+                    1
+                }
+
+                public static func one() -> Int {
+                    Thing.helper()
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        # = = ⇒ ⇒ ⇒ AND THE FIXTURE IS LEGAL SWIFT, = = = = measured, = = = =
+        # = = = = not assumed: = = = = the base and the tip each typecheck on
+        # = = = = their own.
+        for label, ref in (("base", base), ("tip", head)):
+            ok, log = typecheck_ref(repo, ref, "Sources/Probe/Thing.swift")
+            expect(
+                f"the fixture's {label} compiles alone",
+                ok,
+                log[-600:],
+            )
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        # = = ⇒ ⇒ ⇒ ⇒ AND THE VERDICT IS THE WITNESS. = = = = the arm's own
+        # = = = = words, = = = = not a spelling of its source: = = = = KEPT
+        # = = = = says "no file needed it", = = = = DROPPED says "could not
+        # = = = = measure it", = = = = and the two cannot both be printed.
+        expect(
+            "a widened member that no file needed is measured",
+            "no file needed it" in out,
+            out[-1200:],
+        )
+        expect(
+            "the arm did not fall back to saying it could not measure it",
+            "could not measure it" not in out,
+            out[-1200:],
+        )
+
+
 def case_the_rewrite_keeps_the_members_modifiers_on_a_real_file() -> None:
     """THE REVIEW'S BLOCKING 1, ON A REAL FILE: = = the rewrite must not
     change what the program IS.
@@ -1998,6 +2115,7 @@ def main() -> int:
         case_a_widening_is_measured_on_a_file_that_changed,
         case_the_injection_hook_does_not_delete_the_callers_directory,
         case_the_rewrite_keeps_the_members_modifiers,
+        case_the_verdict_is_held_on_a_legal_same_file_reader,
         case_the_rewrite_keeps_the_members_modifiers_on_a_real_file,
         case_the_injection_hook_does_not_delete_a_tree_the_caller_owns,
         case_the_swiftlint_arm_really_sees_the_vendored_tree,
