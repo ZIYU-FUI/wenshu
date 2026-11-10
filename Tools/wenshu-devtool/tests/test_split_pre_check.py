@@ -1437,41 +1437,57 @@ def case_a_widening_of_a_static_member_is_seen() -> None:
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         repo = make_buildable_repo(tmp)
+        # = = ⇒ THE FIXTURE MUST BE LEGAL SWIFT. = = ⇒ The review
+        # = = = = measured this one failing `swiftc -typecheck`:
+        # = = = = a mutable `static var` is not concurrency-safe
+        # = = = = (= = "static property 'shared' is not
+        # = = = = concurrency-safe because it is nonisolated global
+        # = = = = shared mutable state"), = = and `shared` inside an
+        # = = = = instance method is Swift's OWN error (= = "static
+        # = = = = member 'shared' cannot be used on instance"). = =
+        # = = = = ⇒ So the TYPE is @MainActor (= = the mutable static
+        # = = = = is MainActor-isolated) = = and the readers name the
+        # = = = = member through the TYPE (= = `Self.shared`). = = = =
+        # = = = = The MEMBER's own line is unchanged (= = `private
+        # = = = = static var shared`), = = because that line is the
+        # = = = = one the base-side scan reads.
         write(repo, "Sources/Probe/Thing.swift", """
-            public struct Thing {
-                private static var shared: Int = 0
+        @MainActor
+        public struct Thing {
+            private static var shared: Int = 0
 
-                public func one() -> Int {
-                    shared
-                }
-
-                public func two() -> Int {
-                    shared
-                }
-
-                public func three() -> Int {
-                    shared
-                }
+            public func one() -> Int {
+                Self.shared
             }
+
+            public func two() -> Int {
+                Self.shared
+            }
+
+            public func three() -> Int {
+                Self.shared
+            }
+        }
         """)
         commit(repo, "base")
         base = git(repo, "rev-parse", "HEAD").strip()
         write(repo, "Sources/Probe/Thing.swift", """
-            public struct Thing {
-                public static var shared: Int = 0
+        @MainActor
+        public struct Thing {
+            public static var shared: Int = 0
 
-                public func one() -> Int {
-                    shared
-                }
-
-                public func two() -> Int {
-                    shared
-                }
-
-                public func three() -> Int {
-                    shared
-                }
+            public func one() -> Int {
+                Self.shared
             }
+
+            public func two() -> Int {
+                Self.shared
+            }
+
+            public func three() -> Int {
+                Self.shared
+            }
+        }
         """)
         commit(repo, "tip")
         head = git(repo, "rev-parse", "HEAD").strip()
@@ -2072,9 +2088,19 @@ def case_the_swiftlint_arm_really_sees_the_vendored_tree() -> None:
         head = git(repo, "rev-parse", "HEAD").strip()
 
         code, out = check(repo, base, head)
+        # = = ⇒ THE ASSERTION MUST PIN THE TREE'S OWN RULE, = = = = and
+        # = = = = not the TOKEN. = = ⇒ The token `forbidden_word` is also
+        # = = = = what the STOCK `identifier_name` rule emits on its own
+        # = = = = (= = a name with an underscore violates it), = = = = so
+        # = = = = an assertion on the token is satisfied whether or not
+        # = = = = the tree's own rule fired. = = ⇒ The rule's ID is the
+        # = = = = thing only the tree's own rule carries: = = = = the
+        # = = = = stock one reports `(identifier_name)`.
         expect(
             "the swiftlint arm really sees the vendored tree",
-            "Vendor/Upstream/Thing.swift" in out and "forbidden_word" in out,
+            "Vendor/Upstream/Thing.swift" in out
+            and "(forbidden_vocab)" in out
+            and "Forbidden vocabulary Violation" in out,
             out,
         )
 
