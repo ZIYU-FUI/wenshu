@@ -22,7 +22,6 @@
 // the stored label).
 
 import Foundation
-import CryptoKit
 import MarkdownEngine
 
 struct ReferenceLibraryWikiLinkResolver: WikiLinkResolver {
@@ -76,15 +75,16 @@ struct ReferenceLibraryWikiLinkResolver: WikiLinkResolver {
         // Hash of (id + name) for every known entity. Renaming an entity
         // changes the hash = engine restyles wiki-links without waiting
         // for the next keystroke.
-        let entitiesDir = referenceLibraryRoot.appendingPathComponent("entities")
-        guard let entries = try? FileManager.default.contentsOfDirectory(
-            at: entitiesDir, includingPropertiesForKeys: nil
-        ) else { return Data() }
-        var hasher = SHA256()
-        for entry in entries.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
-        where entry.pathExtension == "json" {
-            if let data = try? Data(contentsOf: entry) { hasher.update(data: data) }
-        }
-        return Data(hasher.finalize())
+        //
+        // The hash is CACHED (= the library's content fingerprint is
+        // computed once and reused until the library announces a
+        // change). The previous shape read every entity JSON's full
+        // bytes on EVERY call, and the engine calls this on every
+        // `updateNSView` (= every keystroke, = every parent re-render),
+        // so the read was paid per update for a value that changes only
+        // when the library's contents change.
+        LibraryContentFingerprint.wikiFingerprint(
+            forEntitiesDirectory: referenceLibraryRoot.appendingPathComponent("entities")
+        )
     }
 }

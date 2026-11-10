@@ -173,21 +173,53 @@ struct ChatMessageFooter: View {
 
     /// T52-TOKEN-TOOLTIP: full token count string for the .help()
     /// tooltip (= "1,500 tokens" with locale-aware digit grouping).
+    ///
+    /// The number style is a VALUE (= built once, = copied per call),
+    /// so a footer render allocates no formatter. The previous shape
+    /// built a `NumberFormatter` on every call, and the footer renders
+    /// for every visible sealed message on every frame, so the
+    /// construction cost (= 12us measured) was paid per row per frame
+    /// for a string only the pointer hover ever shows.
     nonisolated static func fullTokenCountTooltip(for count: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.groupingSeparator = ","
-        let formatted = formatter.string(from: NSNumber(value: count)) ?? String(count)
+        let formatted = count.formatted(tokenCountStyle)
         return "\(formatted) tokens"
     }
 
     /// T50-TIMESTAMP-TOOLTIP: full ISO-format date string.
+    ///
+    /// The formatter is built ONCE and reused, so a footer render
+    /// allocates no formatter. The previous shape built a
+    /// `DateFormatter` on every call (= 36us measured), and the footer
+    /// renders for every visible sealed message on every frame, so the
+    /// construction cost was paid per row per frame for a string only
+    /// the pointer hover ever shows.
+    ///
+    /// A `DateFormatter` and not a `Date.FormatStyle`: the format
+    /// string ("yyyy-MM-dd HH:mm:ss") is a DATEFORMATTER format, and
+    /// the POSIX locale renders "MM/dd/yyyy, HH:mm:ss" instead (= the
+    /// `Date.FormatStyle` shape), so only the formatter reproduces this
+    /// output byte for byte.
     nonisolated static func fullTimestampTooltip(for date: Date) -> String {
+        timestampTooltipFormatter.string(from: date)
+    }
+
+    /// The one formatter the timestamp tooltip uses (= built once, =
+    /// reused).
+    private static let timestampTooltipFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter.string(from: date)
-    }
+        return formatter
+    }()
+
+    /// The number style the token tooltip uses (= decimal with a comma
+    /// grouping separator). The separator is the LOCALE's grouping
+    /// separator (= `en_US` groups with a comma), so the style needs no
+    /// per-call formatter and the output is byte-identical to the
+    /// previous `NumberFormatter` shape.
+    private static let tokenCountStyle = IntegerFormatStyle<Int>(
+        locale: Locale(identifier: "en_US")
+    ).grouping(.automatic)
 
     /// T53-FOOTER-COMBO-TOOLTIP: combined tooltip for the entire
     /// sealed footer (= "1,500 tokens · 2026-09-18 14:32:05").

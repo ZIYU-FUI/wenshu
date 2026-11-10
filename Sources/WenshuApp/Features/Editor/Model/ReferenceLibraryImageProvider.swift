@@ -19,7 +19,6 @@
 // EmbeddedImageRequest and asks the provider for an image.
 
 import AppKit
-import CryptoKit
 import MarkdownEngine
 
 struct ReferenceLibraryImageProvider: EmbeddedImageProvider {
@@ -73,20 +72,14 @@ struct ReferenceLibraryImageProvider: EmbeddedImageProvider {
         // Hash of all image file mtimes + paths. Engine invalidates its
         // image cache when this changes (= new image added, or existing
         // one edited).
-        let candidates = searchFolders
-        var hasher = SHA256()
-        for dir in candidates {
-            guard let entries = try? FileManager.default.contentsOfDirectory(
-                at: dir, includingPropertiesForKeys: [.contentModificationDateKey]
-            ) else { continue }
-            for entry in entries.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
-                hasher.update(data: Data(entry.lastPathComponent.utf8))
-                if let mtime = try? entry.resourceValues(forKeys: [.contentModificationDateKey])
-                    .contentModificationDate {
-                    hasher.update(data: Data(String(mtime.timeIntervalSince1970).utf8))
-                }
-            }
-        }
-        return Data(hasher.finalize())
+        //
+        // The hash is CACHED (= the folders' listing and each entry's
+        // modification time are read once and reused until the library
+        // announces a change). The previous shape listed the folders
+        // and stat-ed every entry on EVERY call, and the engine calls
+        // this on every `updateNSView` (= every keystroke, = every
+        // parent re-render), so the listing was paid per update for a
+        // value that changes only when the library's contents change.
+        LibraryContentFingerprint.imageFingerprint(forFolders: searchFolders)
     }
 }

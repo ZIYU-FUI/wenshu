@@ -33,8 +33,26 @@ import Foundation
 /// case (= the first transcript entry may be a placeholder like "" with no
 /// preceding user message; = we still want it rendered in scroll order; = it
 /// just has no sticky header).
+///
+/// The identity is the FIRST message of the turn (= the user message, = or
+/// the opening message when there is no user message), NOT a fresh UUID.
+/// The turns array is a computed property, so it rebuilds on every body
+/// pass; a fresh UUID per rebuild handed SwiftUI a new identity for every
+/// row on every pass, and SwiftUI tears a row down and rebuilds it when its
+/// identity changes (= so the whole transcript was rebuilt ~60 times a
+/// second while a reply streamed, instead of the one row that changed).
+/// The turn's own first message is the stable thing: it is the message
+/// that begins the turn, and it keeps its id for the turn's life.
 struct ChatTurn: Identifiable {
-    let id = UUID()
+    let id: UUID
     let userMessage: ChatMessage?
     var replies: [ChatMessage]
+
+    init(userMessage: ChatMessage?, replies: [ChatMessage]) {
+        self.userMessage = userMessage
+        self.replies = replies
+        // The turn opens with the user message, or with the first reply
+        // when the transcript opens on an assistant message.
+        id = userMessage?.id ?? replies.first?.id ?? UUID()
+    }
 }
