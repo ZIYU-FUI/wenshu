@@ -2054,15 +2054,17 @@ def case_the_swiftlint_arm_really_sees_the_vendored_tree() -> None:
     # = = = = the blank-line rule, = = = = which is not swiftlint at all),
     # = = = = so the case passed whether or not the swiftlint arm looked
     # = = = = there. = = ⇒ So this case watches for a finding that ONLY
-    # = = = = swiftlint can produce: = = = = a forbidden TOKEN (= = = = the
-    # = = = = tree's own rule), = = = = on a vendored file, = = = = with no
-    # = = = = formatting problem in it.
+    # = = = = swiftlint can produce: = = = = a CUSTOM rule's own finding
+    # = = = = (= = = = its rule id and its message, = = = = = and NOT the
+    # = = = = token, = = = = = because the stock `identifier_name` rule
+    # = = = = emits that same token on its own), = = = = on a vendored file,
+    # = = = = with no formatting problem in it.
     """
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         repo = make_repo(tmp)
-        # = = ⇒ THE TREE'S OWN FORBIDDEN-TOKEN RULE, = = = = in the
-        # = = = = fixture's own config, = = = = as the tree's own has it.
+        # = = ⇒ A CUSTOM RULE, = = = = the KIND the tree's own lint has, = =
+        # = = = = in the fixture's own config.
         (repo / ".swiftlint.yml").write_text(
             "disabled_rules:\n  - file_length\n  - type_body_length\n"
             "opt_in_rules:\n"
@@ -2088,14 +2090,14 @@ def case_the_swiftlint_arm_really_sees_the_vendored_tree() -> None:
         head = git(repo, "rev-parse", "HEAD").strip()
 
         code, out = check(repo, base, head)
-        # = = ⇒ THE ASSERTION MUST PIN THE TREE'S OWN RULE, = = = = and
+        # = = ⇒ THE ASSERTION MUST PIN THE FIXTURE'S OWN RULE, = = = = and
         # = = = = not the TOKEN. = = ⇒ The token `forbidden_word` is also
         # = = = = what the STOCK `identifier_name` rule emits on its own
         # = = = = (= = a name with an underscore violates it), = = = = so
         # = = = = an assertion on the token is satisfied whether or not
-        # = = = = the tree's own rule fired. = = ⇒ The rule's ID is the
-        # = = = = thing only the tree's own rule carries: = = = = the
-        # = = = = stock one reports `(identifier_name)`.
+        # = = = = the custom rule fired. = = ⇒ The rule's ID is the
+        # = = = = thing only a custom rule carries: = = = = the stock one
+        # = = = = reports `(identifier_name)`.
         expect(
             "the swiftlint arm really sees the vendored tree",
             "Vendor/Upstream/Thing.swift" in out
