@@ -18,16 +18,17 @@ resolve_worktree() {
 }
 
 # = = ⇒ AND THE RESOLUTION CAN BE ASKED FOR ON ITS OWN, = = = = so a test can
-# = = = = run the SHELL'S OWN block (= = and not a copy of it). = = ⇒ A test
-# = = = = that calls the helper directly does NOT hold the seam this exists to
-# = = = = hold: = = removing the shell's call leaves the helper tested and the
-# = = = = script broken, = = and nothing goes red.
+# = = = = run the SHELL'S OWN block (= = and not a copy of it). = = ⇒ The DOOR
+# = = = = sets a flag and does NOT exit, = = = = so the flow below runs and
+# = = = = computes WT where it always computed it: = = = = a test that runs a
+# = = = = SECOND entry point pins the second entry point, = = = = and the line
+# = = = = the landing actually uses stays untested.
+RESOLVE_ONLY=0
 if [ "${1:-}" = "--resolve-only" ]; then
+  RESOLVE_ONLY=1
   shift
-  resolve_worktree "${1:-}" "$REPO"
-  exit 0
 fi
-CARD="$1"; BRANCH="$2"; shift 2
+CARD="${1:-}"; BRANCH="${2:-}"; shift 2
 # = = ⇒ AND THE WORKTREE IS THE ONE THE CARD NAMES, = = = = not one
 # = = = = guessed from the card's id. = = = = The convention that the
 # = = = = worktree lives at `.worktrees/<card id>` is only a convention:
@@ -41,7 +42,15 @@ CARD="$1"; BRANCH="$2"; shift 2
 # = = = = `Scripts/land_worktree.py`, = = = = so it can be TESTED (= = = =
 # = = = = and a shell script's path arithmetic is exactly the kind of
 # = = = = thing a test is cheaper for than a reader).
+# = = ⇒ AND THIS IS THE ONE ASSIGNMENT THAT DECIDES THE WORKTREE, = = = = and
+# = = = = the flow below uses it, = = = = and the door prints it. = = ⇒ A test
+# = = = = that reverses THIS line reverses the landing itself, = = = = not a
+# = = = = test-only path.
 WT="$(resolve_worktree "$CARD" "$REPO")"
+if [ "$RESOLVE_ONLY" = "1" ]; then
+  printf '%s\n' "$WT"
+  exit 0
+fi
 if [ "$WT" != "$REPO/.worktrees/$CARD" ]; then
   echo "--- the card's own worktree: $WT"
 fi
