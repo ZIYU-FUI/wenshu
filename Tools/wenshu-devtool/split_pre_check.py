@@ -343,7 +343,15 @@ def lint_in_tree(ref: str, paths: list[str], work_parent: Path | None = None) ->
             rest = line[len(head):]
             findings.setdefault(rel, []).append(f"{rel}{rest}")
     finally:
-        sh("worktree", "remove", "--force", str(work))
+        # = = ⇒ AND THE GIT REMOVAL IS GUARDED TOO. = = `git worktree
+        # = = = = remove --force` on a path the CALLER registered takes the
+        # = = = = caller's directory, = = = = its files, = = = = its
+        # = = = = uncommitted work and its git registration with it (= =
+        # = = = = measured: = = = = 3/3 trials, = = = = all four gone). = =
+        # = = = = ⇒ So the removal happens ONLY when the tool made the
+        # = = = = worktree, = = = = and the caller's own stays.
+        if made_work:
+            sh("worktree", "remove", "--force", str(work))
         # = = ⇒ AND ONLY THE DIRECTORY THE TOOL MADE GOES. = = A parent
         # = = = = the caller supplied is NOT the tool's to remove, = = = =
         # = = = = and measured: = = = = a directory holding a file and a

@@ -1630,25 +1630,32 @@ def case_the_rewrite_keeps_the_members_modifiers() -> None:
     """THE REVIEW'S BLOCKING 1: = = the promotions rewrite DELETED the
     modifier words instead of swapping the access level.
 
-    = = ⇒ The rewrite's pattern carried the modifier vocabulary in a
-    # = = = = NON-CAPTURING group, = = = = so the match CONSUMED the words
-    # = = = = and never re-emitted them. = = ⇒ Measured on a real tree
-    # = = = = file: = = = = `private static func blocks(of body: String)`
-    # = = = = became `private func blocks(of body: String)`, = = = = so the
-    # = = = = probe built a DIFFERENT PROGRAM than the one under review.
+    = = ⇒ Measured on the tree's own file: = = = = `private static func
+    # = = = = blocks(of body: String)` became `private func blocks(of body:
+    # = = = = String)`, = = = = so the probe built a DIFFERENT PROGRAM than
+    # = = = = the one under review.
 
-    = = ⇒ So the member that carries a modifier is the case: = = = = a
-    # = = = = `static` member, = = = = read from ANOTHER file (= = = = a
-    # = = = = member read from its own file is visible even when it is
-    # = = = = `private`, = = = = so the reader has to be elsewhere for the
-    # = = = = revert to break the build at all).
+    = = ⇒ ⇒ AND THE FIXTURE CARRIES A REAL WIDENING. = = The round-6
+    # = = = = fixture wrote byte-identical base and tip files (= = = = the
+    # = = = = same md5), = = = = so there was no change, = = = = no
+    # = = = = widening, = = = = and the case passed whether or not the arm
+    # = = = = worked at all.
+
+    = = ⇒ ⇒ ⇒ AND THE ARM'S LINK TO THE HELPER IS HELD HERE TOO. = = The
+    # = = = = helper (= = = = `_rewrite_to_private`) can be correct while
+    # = = = = the arm stops calling it, = = = = and then the arm rewrites
+    # = = = = with its own (= = = = modifier-dropping) pattern and the
+    # = = = = helper's case still passes. = = ⇒ So the arm's call site is
+    # = = = = read too.
     """
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         repo = make_buildable_repo(tmp)
+        # = = ⇒ A REAL WIDENING: = = = = private in the base, = = = = public
+        # = = = = in the tip, = = = = and the member CARRIES a modifier.
         write(repo, "Sources/Probe/Thing.swift", """
             public struct Thing {
-                public static func helper() -> Int {
+                private static func helper() -> Int {
                     1
                 }
             }
@@ -1662,7 +1669,6 @@ def case_the_rewrite_keeps_the_members_modifiers() -> None:
         """)
         commit(repo, "base")
         base = git(repo, "rev-parse", "HEAD").strip()
-        # = = ⇒ THE WIDENING, = = = = and the modifier is STILL THERE.
         write(repo, "Sources/Probe/Thing.swift", """
             public struct Thing {
                 public static func helper() -> Int {
@@ -1679,15 +1685,22 @@ def case_the_rewrite_keeps_the_members_modifiers() -> None:
             capture_output=True, text=True,
         )
         out = proc.stdout + proc.stderr
-        # = = ⇒ AND THE ARM MUST SEE IT. = = = = A rewrite that drops
-        # = = = = `static` turns a static member into an instance one, = = =
-        # = = = = and the reader's `Thing.helper()` then fails for a
-        # = = = = DIFFERENT reason than the truth's revert does, = = = = =
-        # = = = = and the arm's own verdict flips.
         expect(
             "a widened member that carries a modifier is measured",
             "every widened member is read across the file boundary" in out,
             out[-1200:],
+        )
+        # = = ⇒ ⇒ ⇒ AND THE ARM CALLS THE HELPER. = = = = A correct helper
+        # = = = = that the arm does not call is not a guard: = = = = the
+        # = = = = arm's own inline rewrite (= = = = one that drops the
+        # = = = = modifier words) leaves the helper's case GREEN. = = ⇒ So
+        # = = = = the arm's call site is read, = = = = and it must be the
+        # = = = = helper's name.
+        tool_text = TOOL.read_text(encoding="utf-8")
+        expect(
+            "the promotions arm rewrites through the helper that keeps the modifiers",
+            "_rewrite_to_private(text, name)" in tool_text,
+            "the arm does not call _rewrite_to_private",
         )
 
 
@@ -1760,15 +1773,28 @@ def case_the_rewrite_keeps_the_members_modifiers_on_a_real_file() -> None:
 
 def case_the_injection_hook_does_not_delete_a_tree_the_caller_owns() -> None:
     """THE REVIEW'S BLOCKING 2, IN ITS HARDER FORM: = = the caller's
-    directory ALREADY holds a `tree/`.
+    directory ALREADY holds a REGISTERED worktree.
 
-    = = ⇒ `git worktree add` refuses an existing directory, = = = = so the
-    # = = = = refusal is the ONLY reason the base is unreadable = = = = =
-    # = = = = and that refusal is the hook's whole purpose. = = ⇒ Measured:
-    # = = = = a caller's `tree/precious.txt` and `tree/sub/also.txt` were
-    # = = = = GONE after a run that exited 0.
+    = = ⇒ Measured by the review: = = = = a caller registers a real
+    # = = = = worktree of the repo under test at `<parent>/tree`, = = = =
+    # = = = = and the tool's `git worktree remove --force` takes the
+    # = = = = caller's directory, = = = = its files, = = = = its
+    # = = = = uncommitted work AND its git registration with it (= = = =
+    # = = = = 3/3 trials, = = = = and the attribution was exact: = = = =
+    # = = = = replacing that one line with `pass` makes the caller's files
+    # = = = = survive). = = ⇒ **⇒ ⇒ AND THE CASE MUST REGISTER A REAL
+    # = = = = WORKTREE.** = = = = A plain directory is not one, = = = = and
+    # = = = = `git worktree remove --force` on an unregistered path fails
+    # = = = = harmlessly (= = = = "not a working tree"), = = = = so a case
+    # = = = = built on one passes whether or not the removal is guarded. = =
+    # = = = = ⇒ Measured: = = = = reverting the guard left the suite
+    # = = = = GREEN, = = = = and that is what this case now refuses.
 
-    = = ⇒ So the caller's own `tree/` must SURVIVE the refusal.
+    = = ⇒ AND THE HOOK'S PURPOSE IS WHY THE REFUSAL EXISTS. = = = =
+    `git worktree add` refuses an existing directory, = = = = so a caller
+    # = = = = that points at a directory already holding a `tree/` is making
+    # = = = = the base unreadable on purpose, = = = = and the tool must not
+    # = = = = delete what the refusal protected.
     """
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
@@ -1780,11 +1806,20 @@ def case_the_injection_hook_does_not_delete_a_tree_the_caller_owns() -> None:
         commit(repo, "tip")
         head = git(repo, "rev-parse", "HEAD").strip()
 
-        # = = ⇒ A CALLER'S DIRECTORY THAT ALREADY HOLDS A `tree/`.
+        # = = ⇒ A CALLER'S DIRECTORY THAT ALREADY HOLDS A REGISTERED
+        # = = = = WORKTREE. = = = = This is the natural shape of the hook's
+        # = = = = use: = = = = the tool's own first act is to register
+        # = = = = `parent/tree` as a worktree of the repo under test.
         caller_dir = tmp / "caller-owns-this"
+        # = = ⇒ THE WORKTREE IS REGISTERED FIRST. = = = = `git worktree add`
+        # = = = = refuses a directory that already exists, = = = = so the
+        # = = = = registration has to come before the files are put in it.
+        git(repo, "worktree", "add", "--detach", str(caller_dir / "tree"), base)
         (caller_dir / "tree" / "sub").mkdir(parents=True)
         (caller_dir / "tree" / "precious.txt").write_text("keep me", encoding="utf-8")
         (caller_dir / "tree" / "sub" / "also.txt").write_text("keep me too", encoding="utf-8")
+        registered = git(repo, "worktree", "list").count("caller-owns-this")
+        expect("the fixture really registered the caller's worktree", registered > 0, f"registered={registered}")
 
         proc = subprocess.run(
             [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
@@ -1796,6 +1831,12 @@ def case_the_injection_hook_does_not_delete_a_tree_the_caller_owns() -> None:
             (caller_dir / "tree" / "precious.txt").exists()
             and (caller_dir / "tree" / "sub" / "also.txt").exists(),
             f"the caller's tree/ is gone; stdout={proc.stdout[-400:]} stderr={proc.stderr[-400:]}",
+        )
+        expect(
+            "the caller's worktree stays REGISTERED",
+            git(repo, "worktree", "list").count("caller-owns-this") == registered
+            and registered > 0,
+            f"registered before={registered}, after={git(repo, 'worktree', 'list').count('caller-owns-this')}",
         )
 
 
@@ -1824,10 +1865,12 @@ def case_the_swiftlint_arm_really_sees_the_vendored_tree() -> None:
         # = = = = fixture's own config, = = = = as the tree's own has it.
         (repo / ".swiftlint.yml").write_text(
             "disabled_rules:\n  - file_length\n  - type_body_length\n"
+            "opt_in_rules:\n"
+            "  - forbidden_vocab\n"
             "custom_rules:\n"
             "  forbidden_vocab:\n"
             "    name: Forbidden vocabulary\n"
-            "    identifier: forbidden_word\n"
+            "    regex: forbidden_word\n"
             "    message: Forbidden vocabulary\n"
             "    severity: error\n",
             encoding="utf-8",
