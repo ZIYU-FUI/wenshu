@@ -6,11 +6,20 @@ Scope: the boss's 2026-11-05 requirement, as written in
 `.scratch/2026-11-05-book-style-sheet/spec.md` (278 lines). This closeout
 covers that requirement's DIRECT functional scope only.
 
-Landed state:
+Landed state (= = the state this record measured, = = and `main` has moved
+on since (= = most of the engineering-depth work in section 8 landed after
+it)):
 
 - `main` = `461910783d0435e1d174ae7681baa7c7a4801cd4`
 - `origin/main` (gitcode) = the same sha
 - `old-origin/main` (github) = the same sha
+
+= = ⇒ These three shas are the SNAPSHOT this record was measured on, = =
+and they are still the tree's own history (= = `461910783d` is an ancestor
+of `main`), = = but `main` itself now points further along. = = ⇒ So a
+reader who wants TODAY's `main` reads it from the repository (= = `git
+rev-parse main`), = = and this record's shas say WHICH tree the numbers
+below were measured on.
 
 The engineering-depth work that grew around this requirement (the file
 splits, the split pre-check tool, the stylesheet call-site guard, the
@@ -152,7 +161,19 @@ python3 Tools/wenshu-devtool/verify-dead.py
 |---|---|
 | 7.1 `swift build` | `Build complete!` (1.40s) |
 | 7.2 the four style-sheet suites | 59 cases, 0 failures (= 36 XCTest cases across the write-back, engine-bridge and wiring suites, = and 23 Swift Testing cases in the model's own suite) |
-| 7.6 `verify-dead.py` | ALIVE 121, PARTIAL 4, DEAD 0 |
+| 7.6 `verify-dead.py` | ALIVE 121, PARTIAL 4, DEAD 0 (= = the tree this record measured; = = on today's `main` it reads ALIVE 122, = = because the tree grew one live file) |
+
+### 7.6's count moved with the tree
+
+The 121 above is the count on the tree this record measured (= = measured
+again on `461910783d` it reads ALIVE 121, = = PARTIAL 4, = = DEAD 0, = = and
+the tool's own summary line reads "Summary: 125 files"), = = and on today's
+`main` it reads ALIVE 122, = = PARTIAL 4, = = DEAD 0 (= = "Summary: 126
+files"). = = ⇒ The unit is FILES, = = not declarations: = = the three
+counts partition the scanned files (= = 121 + 4 + 0 = 125, = = and
+122 + 4 + 0 = 126), = = and what grew is one live FILE. = = The DEAD 0 is
+the load-bearing half (= = nothing is fully dead), = = and the ALIVE count
+is a property of the tree, = = not of this scope.
 
 ### 7.2's count was re-measured, because the wiring suite grew
 
