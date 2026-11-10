@@ -151,17 +151,36 @@ python3 Tools/wenshu-devtool/verify-dead.py
 | Gate | Result on the merged tree |
 |---|---|
 | 7.1 `swift build` | `Build complete!` (1.40s) |
-| 7.2 the four style-sheet suites | 54 cases, 0 failures (= 31 XCTest cases across the write-back, engine-bridge and wiring suites, = and 23 Swift Testing cases in the model's own suite) |
+| 7.2 the four style-sheet suites | 59 cases, 0 failures (= 36 XCTest cases across the write-back, engine-bridge and wiring suites, = and 23 Swift Testing cases in the model's own suite) |
 | 7.6 `verify-dead.py` | ALIVE 121, PARTIAL 4, DEAD 0 |
+
+### 7.2's count was re-measured, because the wiring suite grew
+
+The 54 this record first wrote was the count on the tree it measured (= = the
+wiring suite held 6 cases then); = = the wiring suite holds 11 now (= = the
+pattern-binding scope cases were added), = = and the count is **59**. = = The
+table's 59 was measured on 2026-11-10 on `main` at `90e272a51b`, with:
+
+```sh
+swift test --list-tests | grep -E \
+  'WenshuAppTests[.](BookStyleSheetTests|BookStyleSheetWriteBackTests|EngineStyleSheetBridgeTests|StyleSheetWiringTests)/' \
+  | sed 's|.*WenshuAppTests[.]||; s|/.*||' | sort | uniq -c
+```
+
+= = which printed `23 BookStyleSheetTests`, = = `10 BookStyleSheetWriteBackTests`,
+= = `15 EngineStyleSheetBridgeTests` and `11 StyleSheetWiringTests` (= = 59 in
+all). = = The per-suite counts are read from the LIST, = = not from a filter's
+output (= = the filter's own line is where the count goes stale, = = and the
+list is the population).
 
 The four suite names in the filter are the ones that cover this scope:
 the model's own suite (`BookStyleSheetTests`, 23 Swift Testing cases), the
 write-back suite (`BookStyleSheetWriteBackTests`, 10 XCTest cases), the
 engine bridge suite (`EngineStyleSheetBridgeTests`, 15 XCTest cases) and
-the wiring suite (`StyleSheetWiringTests`, 6 XCTest cases) = 54 cases in
+the wiring suite (`StyleSheetWiringTests`, 11 XCTest cases) = 59 cases in
 all. Count them with `swift test --list-tests`, and read each suite's own
 line out of a filtered run: = `swift test --filter StyleSheetWiringTests`
-prints one `Executed 6 tests` line for the suite AND one `Executed 0
+prints one `Executed 11 tests` line for the suite AND one `Executed 0
 tests` line for each of the OTHER bundles it starts as well, = = so the
 count a reader gets depends on WHICH line they read. = = Take the line
 that follows `Test Suite 'StyleSheetWiringTests' passed`, = = not the
