@@ -6,7 +6,25 @@
 set -uo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 CARD="$1"; BRANCH="$2"; shift 2
+# = = ⇒ AND THE WORKTREE IS THE ONE THE CARD NAMES, = = = = not one
+# = = = = guessed from the card's id. = = = = The convention that the
+# = = = = worktree lives at `.worktrees/<card id>` is only a convention:
+# = = = = a card whose workspace points at an existing worktree (= = = =
+# = = = = the review lane's own, = = = = which is where the reviewer
+# = = = = read the tree from) = = = = has its worktree elsewhere, = = = =
+# = = = = and this script then rebased a path that does not exist, = =
+# = = = = said "REBASE CONFLICT", = = = = and landed nothing. = = ⇒ The
+# = = = = card's own workspace_path is the authority, = = = = and the
+# = = = = convention is the fallback. = = = = ⇒ The resolution lives in
+# = = = = `Scripts/land_worktree.py`, = = = = so it can be TESTED (= = = =
+# = = = = and a shell script's path arithmetic is exactly the kind of
+# = = = = thing a test is cheaper for than a reader).
 WT="$REPO/.worktrees/$CARD"
+CARD_WS="$(python3 "$REPO/Scripts/land_worktree.py" "$CARD" 2>/dev/null)"
+if [ -n "$CARD_WS" ] && [ -d "$CARD_WS" ]; then
+  WT="$CARD_WS"
+  echo "--- the card's own worktree: $WT"
+fi
 LOGDIR="${LOGDIR:-$REPO/.gate-logs}"
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-4}"
 mkdir -p "$LOGDIR"
