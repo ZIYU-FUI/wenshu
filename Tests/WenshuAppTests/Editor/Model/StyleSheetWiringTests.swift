@@ -364,6 +364,187 @@ final class StyleSheetWiringTests: XCTestCase {
     /// = or `to: bookStore.books.first?.id ?? bookID` (= a knob moved on
     /// one book writes ANOTHER book's sheet, = and the write-back's own
     /// guard passes, = because that book IS in the store).
+    /// The knob's own bindings, read by SCOPE.
+    ///
+    /// = = ⇒ AND THIS IS A FUNCTION, = = = = not a block inside one test, = =
+    /// = = = = because a SCOPE DECISION THAT NOTHING ELSE CAN REACH IS A
+    /// = = = = DECISION HELD BY NOTHING. = = ⇒ A synthetic page can be fed
+    /// = = = = here, = = = = so the page's own scope rule can be pinned by a
+    /// = = = = test that does not read the production file.
+    private static func bindingLines(
+        in knobLines: [String],
+        chains: [[Int]],
+        callChain: [Int],
+        callLine: Int
+    ) -> [String] {
+        return knobLines.enumerated().compactMap { index, line -> String? in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            // = = the FORM of the binding, = = and the NAME it binds.
+            // = = `guard let` IS NOT `if let`. = = Swift binds a `guard
+            // = = let` in the ENCLOSING scope (= = the guard's body must
+            // = = LEAVE, = = so the binding cannot belong to it), = = while
+            // = = `if let` and `while let` bind in the scope their body
+            // = = opens. = = A guard let that shadows the outer book
+            // = = therefore shadows it for the WHOLE of the rest of the
+            // = = scope, = = and the guard must count it.
+            let opensBody: Bool? =
+                if trimmed.range(of: #"\bguard\s+let\s+bookID\b"#, options: .regularExpression) != nil {
+                    false
+                } else if trimmed.range(of: #"\bguard\s+case\b[^\n]*\bbookID\b"#, options: .regularExpression) != nil {
+                    // = = AND A `guard case` BINDS LIKE A `guard let`. = =
+                    // = = Swift's guard body must LEAVE, = = = = so the
+                    // = = = = binding cannot belong to it, = = = = and it
+                    // = = = = lives in the ENCLOSING scope. = = ⇒ WITHOUT
+                    // = = = = THIS ARM, = = a `guard case let .some(bookID)
+                    // = = = = = ... else { return }` matched NO arm at all
+                    // = = = = = (= = the `guard let` arm wants `let` beside
+                    // = = = = = `bookID`, = = the `if|while` arm wants `if`
+                    // = = = = = or `while`, = = and the plain-declaration arm
+                    // = = = = = wants `let` beside `bookID`), = = = = so it
+                    // = = = = = fell through to nil, = = = = = the binding
+                    // = = = = = was not counted, = = = = = and the page read
+                    // = = = = = GREEN (= = a wrong-book write escaped).
+                    false
+                } else if trimmed.range(of: #"\b(if|while)\s+(let|var)\s+bookID\b"#, options: .regularExpression) != nil {
+                    // = = `if var` and `while var` bind in the scope their
+                    // = = BODY opens, = = exactly like `if let` and
+                    // = = `while let`: = = the variable is the body's own
+                    // = = (= = and a `var` is mutable, = = so the body's
+                    // = = own scope is where it lives). = = ⇒ WITHOUT
+                    // = = `var` IN THIS ARM, = = an `if var` fell to the
+                    // = = plain-declaration arm below, = = = = which gives
+                    // = = the ENCLOSING scope, = = = = and a LEGITIMATE
+                    // = = = = `if var` that does not enclose the call read
+                    // = = = = RED on a correct page.
+                    true
+                } else if trimmed.range(of: #"\b(if|while)\s+case\b[^\n]*\bbookID\b"#, options: .regularExpression) != nil {
+                    // = = AND A PATTERN BINDING BINDS LIKE AN OPTIONAL
+                    // = = BINDING. = = Swift's `if case let .some(x) = y`
+                    // = = binds `x` in the scope the `if case`'s BODY opens,
+                    // = = exactly like `if let` and `while let`, = = and NOT
+                    // = = like a `guard let` (= = the guard's body must
+                    // = = LEAVE, = = so the binding cannot belong to it). = =
+                    // = = ⇒ So a pattern that binds `bookID` shadows the
+                    // = = = = knob's own binding for the body, = = = = and
+                    // = = = = the guard must catch it.
+                    // = = ⇒ AND THIS ARM COMES BEFORE THE PLAIN-DECLARATION
+                    // = = = = ARM. = = = = A pattern written
+                    // = = = = `if case let .some(let bookID) = ...` holds the
+                    // = = = = text `let bookID` inside it, = = = = and the
+                    // = = = = plain-declaration arm matches THAT text = = = =
+                    // = = = = and gives it the ENCLOSING scope = = = = = so
+                    // = = = = the pattern binding was classified as a plain
+                    // = = = = declaration. = = ⇒ The same harm, = = = = two
+                    // = = = = spellings, = = = = and one of them used to slip
+                    // = = = = through.
+                    true
+                } else if trimmed.range(of: #"\b(let|var)\s+bookID\b"#, options: .regularExpression) != nil {
+                    false
+                } else {
+                    nil
+                }
+            guard let opensBody else { return nil }
+            // = = the binding's own scope, = = by IDENTITY and not by
+            // = = depth: = = an optional binding binds in the scope its
+            // = = body opens, = = and a plain one binds where it is
+            // = = written.
+            let bindChain = Self.bindingScope(
+                of: knobLines, at: index, chains: chains, opensBody: opensBody
+            )
+            // = = VISIBLE = = the binding's scope is an ANCESTOR of the
+            // = = call's scope, = = or the SAME scope. = = A scope that
+            // = = merely has the same DEPTH (= = a sibling, = = like a
+            // = = `catch` block beside the `do` block that holds the
+            // = = call) is not an ancestor, = = and must not count.
+            guard bindChain.count <= callChain.count else { return nil }
+            guard Array(callChain.prefix(bindChain.count)) == bindChain else { return nil }
+            // = = in the SAME scope, = = the binding must come BEFORE
+            // = = the call: = = a declaration after it cannot shadow it.
+            if bindChain.count == callChain.count, index > callLine {
+                return nil
+            }
+            return trimmed
+        }
+    }
+
+    /// A PATTERN BINDING IS READ LIKE AN OPTIONAL BINDING, = = and the
+    /// scope it binds in is pinned by a page that is LEGITIMATE.
+    ///
+    /// = = ⇒ AND THIS PAGE IS SYNTHETIC, = = = = because the production page
+    /// = = = = carries no pattern binding, = = = = so a test that only read
+    /// = = = = the production file could never tell the two scope decisions
+    /// = = = = apart. = = ⇒ ⇒ The pattern binds `bookID` in a path that does
+    /// = = = = NOT enclose the knob's own write-back, = = = = so it does not
+    /// = = = = shadow it: = = = = one binding, = = = = = the page's own.
+    ///
+    /// MUTATION: = the pattern arm's scope decision flipped (= the BODY's
+    /// scope read as the ENCLOSING one), = = and the pattern then binds in
+    /// the scope that DOES enclose the call, = = = = so it shadows it, = =
+    /// = = the page binds twice, = = = = and this assertion goes red.
+    func testAPatternBindingInAnotherPathDoesNotShadowTheKnob() throws {
+        let page = """
+        private func moveKnob(_ knob: String, _ position: Int) {
+            let bookID = currentBookID
+            if case let .some(bookID) = bookStore.books.first?.id {
+                print(bookID)
+            }
+            try BookStyleSheetWriteBack.apply(knob: knob, position: position, to: bookID)
+        }
+        """
+        let knobBody = try Self.body(of: page, of: "private func moveKnob(")
+        let knobCalls = Self.calls(in: knobBody, carrying: ["knob:", "position:"])
+        XCTAssertEqual(
+            knobCalls.count,
+            1,
+            "the synthetic page must make EXACTLY ONE write-back that carries the knob's own arguments"
+        )
+        let knobLines = knobBody
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map(String.init)
+        let knobChains = Self.scopeChains(of: knobLines)
+        let callChain = knobChains[knobCalls[0].line]
+        let bindings = Self.bindingLines(
+            in: knobLines, chains: knobChains, callChain: callChain, callLine: knobCalls[0].line
+        )
+        XCTAssertEqual(
+            bindings.count,
+            1,
+            "a pattern binding in a path that does NOT enclose the knob's write-back does not shadow it (= = and a scope decision that nothing can reach is a decision held by nothing)"
+        )
+    }
+
+    /// A `guard case` BINDS IN THE ENCLOSING SCOPE, = = and the guard's own
+    /// body must leave, = = so the binding cannot belong to it.
+    ///
+    /// MUTATION: = the `guard case` arm removed, = = and the binding then
+    /// matched no arm at all, = = so it was not counted, = = and the page
+    /// read GREEN (= = a wrong-book write escaped).
+    func testAGuardCaseBindingShadowsTheKnob() throws {
+        let page = """
+        private func moveKnob(_ knob: String, _ position: Int) {
+            let bookID = currentBookID
+            guard case let .some(bookID) = bookStore.books.first?.id else { return }
+            try BookStyleSheetWriteBack.apply(knob: knob, position: position, to: bookID)
+        }
+        """
+        let knobBody = try Self.body(of: page, of: "private func moveKnob(")
+        let knobCalls = Self.calls(in: knobBody, carrying: ["knob:", "position:"])
+        XCTAssertEqual(knobCalls.count, 1, "the synthetic page must make EXACTLY ONE write-back")
+        let knobLines = knobBody
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map(String.init)
+        let knobChains = Self.scopeChains(of: knobLines)
+        let callChain = knobChains[knobCalls[0].line]
+        let bindings = Self.bindingLines(
+            in: knobLines, chains: knobChains, callChain: callChain, callLine: knobCalls[0].line
+        )
+        XCTAssertEqual(
+            bindings.count,
+            2,
+            "a `guard case` binds in the ENCLOSING scope, = = so it shadows the page's own binding for the rest of that scope (= = and the guard's body must LEAVE, = = so the binding cannot belong to it)"
+        )
+    }
+
     func testThePageWritesTheBookItIsShowing() throws {
         let code = try Self.code(of: "Sources/WenshuApp/Features/Editor/View/InspectorStylePageView.swift")
         XCTAssertTrue(
@@ -470,79 +651,9 @@ final class StyleSheetWiringTests: XCTestCase {
         // = = knob's write-back, = = and all four were GREEN.
         let knobChains = Self.scopeChains(of: knobLines)
         let callChain = knobChains[knobCall.line]
-        let bindings = knobLines.enumerated().compactMap { index, line -> String? in
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            // = = the FORM of the binding, = = and the NAME it binds.
-            // = = `guard let` IS NOT `if let`. = = Swift binds a `guard
-            // = = let` in the ENCLOSING scope (= = the guard's body must
-            // = = LEAVE, = = so the binding cannot belong to it), = = while
-            // = = `if let` and `while let` bind in the scope their body
-            // = = opens. = = A guard let that shadows the outer book
-            // = = therefore shadows it for the WHOLE of the rest of the
-            // = = scope, = = and the guard must count it.
-            let opensBody: Bool? =
-                if trimmed.range(of: #"\bguard\s+let\s+bookID\b"#, options: .regularExpression) != nil {
-                    false
-                } else if trimmed.range(of: #"\b(if|while)\s+(let|var)\s+bookID\b"#, options: .regularExpression) != nil {
-                    // = = `if var` and `while var` bind in the scope their
-                    // = = BODY opens, = = exactly like `if let` and
-                    // = = `while let`: = = the variable is the body's own
-                    // = = (= = and a `var` is mutable, = = so the body's
-                    // = = own scope is where it lives). = = ⇒ WITHOUT
-                    // = = `var` IN THIS ARM, = = an `if var` fell to the
-                    // = = plain-declaration arm below, = = = = which gives
-                    // = = the ENCLOSING scope, = = = = and a LEGITIMATE
-                    // = = = = `if var` that does not enclose the call read
-                    // = = = = RED on a correct page.
-                    true
-                } else if trimmed.range(of: #"\b(if|while)\s+case\b[^\n]*\bbookID\b"#, options: .regularExpression) != nil {
-                    // = = AND A PATTERN BINDING BINDS LIKE AN OPTIONAL
-                    // = = BINDING. = = Swift's `if case let .some(x) = y`
-                    // = = binds `x` in the scope the `if case`'s BODY opens,
-                    // = = exactly like `if let` and `while let`, = = and NOT
-                    // = = like a `guard let` (= = the guard's body must
-                    // = = LEAVE, = = so the binding cannot belong to it). = =
-                    // = = ⇒ So a pattern that binds `bookID` shadows the
-                    // = = = = knob's own binding for the body, = = = = and
-                    // = = = = the guard must catch it.
-                    // = = ⇒ AND THIS ARM COMES BEFORE THE PLAIN-DECLARATION
-                    // = = = = ARM. = = = = A pattern written
-                    // = = = = `if case let .some(let bookID) = ...` holds the
-                    // = = = = text `let bookID` inside it, = = = = and the
-                    // = = = = plain-declaration arm matches THAT text = = = =
-                    // = = = = and gives it the ENCLOSING scope = = = = = so
-                    // = = = = the pattern binding was classified as a plain
-                    // = = = = declaration. = = ⇒ The same harm, = = = = two
-                    // = = = = spellings, = = = = and one of them used to slip
-                    // = = = = through.
-                    true
-                } else if trimmed.range(of: #"\b(let|var)\s+bookID\b"#, options: .regularExpression) != nil {
-                    false
-                } else {
-                    nil
-                }
-            guard let opensBody else { return nil }
-            // = = the binding's own scope, = = by IDENTITY and not by
-            // = = depth: = = an optional binding binds in the scope its
-            // = = body opens, = = and a plain one binds where it is
-            // = = written.
-            let bindChain = Self.bindingScope(
-                of: knobLines, at: index, chains: knobChains, opensBody: opensBody
-            )
-            // = = VISIBLE = = the binding's scope is an ANCESTOR of the
-            // = = call's scope, = = or the SAME scope. = = A scope that
-            // = = merely has the same DEPTH (= = a sibling, = = like a
-            // = = `catch` block beside the `do` block that holds the
-            // = = call) is not an ancestor, = = and must not count.
-            guard bindChain.count <= callChain.count else { return nil }
-            guard Array(callChain.prefix(bindChain.count)) == bindChain else { return nil }
-            // = = in the SAME scope, = = the binding must come BEFORE
-            // = = the call: = = a declaration after it cannot shadow it.
-            if bindChain.count == callChain.count, index > knobCall.line {
-                return nil
-            }
-            return trimmed
-        }
+        let bindings = Self.bindingLines(
+            in: knobLines, chains: knobChains, callChain: callChain, callLine: knobCall.line
+        )
         XCTAssertEqual(
             bindings.count,
             1,
