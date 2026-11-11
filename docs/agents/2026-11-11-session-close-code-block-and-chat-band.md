@@ -3,7 +3,7 @@
 Date: 2026-11-11
 
 Scope: the boss's 2026-11-10 requirement, as written in
-`.scratch/2026-11-10-code-block-and-chat-bubble/spec.md` (152 lines). This
+`.scratch/2026-11-10-code-block-and-chat-bubble/spec.md` (151 lines). This
 closeout covers that requirement's scope only.
 
 Landed state (= = the state this record measured, = = and `main` may have
@@ -36,6 +36,16 @@ approved card ruled on, so the ruling covers the carrier by construction.
 commit this scope landed, and it was written by this session (`pocock`, in
 the tree as `Hermes Agent`). The three review cards are the `wenshu-review`
 profile's, = = and they carry no commits, = = only verdicts.
+
+**Commits this closeout's PUSH carried that are a sibling's.** The push
+that carried this scope's carrier (`d21bc040b0`) to the remotes also
+carried three commits a sibling session had already merged into `main`
+(= = `bc317f0d81`, `f11f689d3a`, `10c74666a7`, = = the render path's
+caching work, = = ruled `approved` on `t_10c607bc`). They are not this
+scope's work and are not claimed here; = = they were on `main` before this
+closeout committed, = = and pushing them was maintenance of the shared
+server state, = = not authorship. The three commits this closeout's OWN
+push added (= = `d21bc040b0` and `0eec88e721`) are this scope's.
 
 **The three review rounds.** The scope went through three review cards, and
 the middle one is a `changes_requested` verdict that is still on the board:
