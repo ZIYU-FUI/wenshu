@@ -57,6 +57,39 @@ _XCTEST_TALLY = re.compile(
     re.MULTILINE,
 )
 
+# XCTest: where one `.xctest` bundle's section starts. = Each bundle is a
+# SIBLING scope (= the run has three of them), = and each carries its own
+# chain of nested aggregate levels (= the suite, = the `Selected tests`
+# chain, = the bundle's own total).
+_XCTEST_BUNDLE_START = re.compile(r"^Test Suite '([^']+\.xctest)' started", re.MULTILINE)
+
+
+def _per_bundle_failure_total(text: str) -> int:
+    """How many DISTINCT failures the log's tallies report.
+
+    Each bundle's own tally lines are AGGREGATES at nested levels (= the
+    suite, = the `Selected tests` chain, = the bundle's total), = so
+    within a bundle the MAXIMUM is that bundle's distinct-failure count.
+    The bundles are SIBLINGS (= there is no cross-bundle `All tests`
+    level in the repository's logs), = so their counts ADD.
+
+    A log with no bundle boundary (= a fixture, = or a log that names no
+    bundle) is one scope, = and its maximum is the answer.
+    """
+    starts = [(m.start(), m.group(1)) for m in _XCTEST_BUNDLE_START.finditer(text)]
+    if not starts:
+        tallies = [int(failed) for _, failed in _XCTEST_TALLY.findall(text)]
+        return max(tallies) if tallies else 0
+
+    bounds = starts + [(len(text), None)]
+    total = 0
+    for index in range(len(starts)):
+        segment = text[bounds[index][0]:bounds[index + 1][0]]
+        tallies = [int(failed) for _, failed in _XCTEST_TALLY.findall(segment)]
+        if tallies:
+            total += max(tallies)
+    return total
+
 
 def _swift_failures(text: str) -> set[str]:
     """The Swift Testing failures, keyed by file:line:column."""
@@ -100,21 +133,33 @@ def _xctest_failures(text: str) -> set[str]:
     # unnamed ones, = and they are reported with a COUNT-FREE key (= so
     # the key is the same whatever the count is).
     #
-    # ⇒ ⇒ AND THE TALLY IS MAXED, = NOT SUMMED. = ⇒ WHY: the real log
-    # tallies ONE failing test at THREE levels (= the suite, = the
-    # `.xctest` bundle, = and `All tests`), = each line carrying the same
-    # count. = ⇒ So the lines are AGGREGATES at different levels, = not
-    # independent counts, = and summing them counts one failure three
-    # times. = ⇒ MEASURED: with the sum, = one failing test on the real
-    # shape read as TWO failures (= the named one and an invented
-    # "unnamed" one), = and the verdict MOVED with the capture: = a base
-    # carrying one tally level and a tip carrying three read as "the tip
-    # introduced a NEW failure" for a failure present in both.
+    # ⇒ ⇒ AND THE COUNT IS TAKEN AT EACH BUNDLE'S OWN SCOPE, = then
+    # summed across the bundles. = ⇒ WHY: the log's tally lines are
+    # AGGREGATES, = and their levels nest WITHIN one bundle (= the suite,
+    # = the `Selected tests` chain, = the bundle's own total) = while the
+    # BUNDLES are siblings (= three `.xctest` bundles in every run, = each
+    # with its own chain).
     #
-    # ⇒ ⇒ The MAX is the most aggregated level's count, = which is the
-    # number of DISTINCT failures, = and it does not move with how many
-    # tally lines the capture carries.
-    tallied_failures = max([int(failed) for _, failed in _XCTEST_TALLY.findall(text)] or [0])
+    # ⇒ ⇒ MEASURED on the repository's own logs: = there is NO `All
+    # tests` level (= `grep -c "Test Suite 'All tests'"` = 0), = so
+    # there is no cross-bundle aggregate, = and the third level is
+    # `Selected tests`, = which RESTARTS for every bundle (= three
+    # bundles, = three chains, = each closing its own bundle).
+    #
+    # ⇒ ⇒ ⇒ So the two sides of the comparison must be the SAME scope:
+    # the tallied count is the SUM over bundles of each bundle's OWN
+    # maximum (= within a bundle the levels nest, = so the max is that
+    # bundle's distinct-failure count; = across bundles the bundles are
+    # siblings, = so they add).
+    #
+    # ⇒ ⇒ ⇒ AND THE SCOPE MISMATCH IS A FALSE BLOCKER, = MEASURED: = a
+    # base with two failing bundles and a tip with one (= the tip FIXED
+    # one) read as "the tip introduced 1 NEW failure", = because the max
+    # was one bundle's count while the named cases were counted across
+    # all bundles. = ⇒ And the mirror direction: = a tip that ADDED a
+    # failing bundle read as CLEAN. = ⇒ A gate's exit code is its
+    # deliverable, = so both directions have to be right.
+    tallied_failures = _per_bundle_failure_total(text)
     if tallied_failures > len(cases):
         failures.add("XCTest tally: an unnamed failure (no case line parsed)")
 

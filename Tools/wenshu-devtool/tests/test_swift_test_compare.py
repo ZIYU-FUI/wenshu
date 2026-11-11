@@ -79,6 +79,52 @@ Test Case '-[XctlogTests.XctlogTests testFails]' failed (0.055 seconds).
 """
 
 
+# TWO failing bundles: = the run has three `.xctest` bundles, = and each
+# is a SIBLING scope with its own nested aggregate levels. = Bundle A's
+# case line has a shape the parser does NOT recognise (= the fallback
+# exists for exactly that), = and bundle B's case line parses.
+#
+# ⇒ ⇒ AND EACH BUNDLE CARRIES THREE TALLY LINES (= the real shape: = the
+# suite's own tally, = the `Selected tests` chain's, = and the bundle's
+# total) = because that is what makes the two scopes DIFFER: = within one
+# bundle the maximum is 1 (= one failure), = and across two bundles the sum
+# is 2 (= two failures) = while a single maximum over the whole log is 1.
+#
+# ⇒ ⇒ ⇒ AND BUNDLE A'S CASE LINE MUST BE UNPARSEABLE, = because the
+# fallback only fires when the tallied count OUTNUMBERS the named cases.
+# ⇒ ⇒ With two PARSEABLE case lines the two implementations agree (= the
+# count equals the named count, = so the fallback never fires, = so the
+# case passes under both) = and the fixture holds nothing. = ⇒ MEASURED:
+# with two parseable case lines the mutation that takes one scope instead
+# of per-bundle left the suite GREEN.
+XCTEST_TWO_BUNDLES = """Test Suite 'Selected tests' started at 2026-11-11 08:00:00.000.
+Test Suite 'WenshuDataTests.xctest' started at 2026-11-11 08:00:00.010.
+Test Case 'WenshuDataTests.DataTests testFails' failed (0.05 seconds).
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+Test Suite 'WenshuDataTests.xctest' failed at 2026-11-11 08:00:00.100.
+Test Suite 'Selected tests' started at 2026-11-11 08:00:01.000.
+Test Suite 'WenshuAppTests.xctest' started at 2026-11-11 08:00:01.010.
+Test Case '-[WenshuAppTests.AgentToolTests testTool]' failed (0.05 seconds).
+\t Executed 3 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+\t Executed 3 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+\t Executed 3 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+Test Suite 'WenshuAppTests.xctest' failed at 2026-11-11 08:00:01.100.
+"""
+
+# The SAME two bundles, = but the tip FIXED bundle B: = only bundle A
+# remains, = and its case line is the unparseable one.
+XCTEST_ONE_BUNDLE = """Test Suite 'Selected tests' started at 2026-11-11 08:00:00.000.
+Test Suite 'WenshuDataTests.xctest' started at 2026-11-11 08:00:00.010.
+Test Case 'WenshuDataTests.DataTests testFails' failed (0.05 seconds).
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+Test Suite 'WenshuDataTests.xctest' failed at 2026-11-11 08:00:00.100.
+"""
+
+
 def run_tool(base: str, tip: str) -> tuple[int, str]:
     """Run the tool on two log bodies (= written to temp files)."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -207,7 +253,35 @@ Test Case '-[XctlogTests.XctlogTests testFails]' failed (0.055 seconds).
         out[:300],
     )
 
-    # 7. An unreadable log exits 2.
+    # 7. TWO failing bundles (= the run has three `.xctest` bundles, = and
+    #    they are SIBLING scopes). = A tip that FIXED one of them must
+    #    NOT read as "the tip introduced a failure".
+    #    ⇒ MEASURED by the review: with the count taken at ONE bundle's
+    #    scope while the named cases were counted across ALL bundles, = the
+    #    base's two bundles read as a tallied count of 1 against 1 named
+    #    case, = and the tip's one bundle read as 1 against 0, = so the
+    #    fallback APPEARED on the tip only and the gate said the tip
+    #    introduced a failure it had FIXED.
+    code, out = run_tool(XCTEST_TWO_BUNDLES, XCTEST_ONE_BUNDLE)
+    check("a tip that fixed a failing bundle exits 0", code == 0, f"exit={code}")
+    check(
+        "the tip that fixed a bundle is not reported as adding one",
+        "introduced 1 NEW failure" not in out,
+        out[:400],
+    )
+
+    # 8. And the MIRROR: = a tip that ADDED a failing bundle must be
+    #    reported (= the same scope mismatch read the other way and
+    #    called the tip clean).
+    code, out = run_tool(XCTEST_ONE_BUNDLE, XCTEST_TWO_BUNDLES)
+    check("a tip that added a failing bundle exits 1", code == 1, f"exit={code}")
+    check(
+        "the added failure is reported",
+        "introduced 1 NEW failure" in out,
+        out[:400],
+    )
+
+    # 9. An unreadable log exits 2.
     proc = subprocess.run(
         [sys.executable, str(TOOL), "/nonexistent/base.log", "/nonexistent/tip.log"],
         capture_output=True,
