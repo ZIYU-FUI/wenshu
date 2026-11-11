@@ -119,20 +119,10 @@ struct EditorStatusBarView: View {
     /// hardcoded `+ " "` + literal unit gives a single, reliable
     /// render). The number is `count.formatted(.number)` (= the
     /// Apple HIG `1,234` comma-separator format).
-    private var wordCountLabel: String {
-        Self.wordCountLabelForTest(in: textProvider())
-    }
-
-    /// The label the status bar shows (= the measure's number + the
-    /// unit).
-    ///
-    /// ⇒ AND IT IS THE SAME METHOD THE VIEW CALLS: = the label is
-    /// built here, = so a test that asserts the label is asserting the
-    /// production path (= there is no second copy of the rule to
-    /// drift). = ⇒ And the number's formatting (= the Apple HIG comma
-    /// separator) is untouched by the measure change.
-    static func wordCountLabelForTest(in text: String) -> String {
-        let count = characterCount(in: text)
+    /// ⇒ ⇒ ⇒ **⇒ AND IT IS THE PROPERTY THE BODY RENDERS** (= `Text(wordCountLabel)`), = = so it is INTERNAL, = = not private: = = the test reads the SAME statement the view renders, = = so a test that asserts the label is asserting the production path (= there is no second copy of the rule to drift, = = and no door between the test and the pixels).
+    /// ⇒ ⇒ ⇒ **⇒ AND A STATIC THAT MIRRORS IT WOULD BE THE DOOR**: = = a second statement (= `wordCountLabelForTest(in:)`) can hold the new measure while the view renders the old one, = = and then every value-shaped case stays GREEN (= = the case the mode gate's family calls "the reader took the FIRST match instead of the RIGHT one"). = = ⇒ So there is ONE statement, = = and it is the one the body renders.
+    var wordCountLabel: String {
+        let count = Self.characterCount(in: textProvider())
         let formatted = count.formatted(.number)
         // Hardcoded unit string per locale (= no xcstrings token;
         // = the literal lives in code so a missing localization
@@ -140,16 +130,16 @@ struct EditorStatusBarView: View {
         return "\(formatted) 字"
     }
 
-    /// Cursor location label.
-    /// RATIONALE: the "Ln N, Col N" cursor coordinate is a Pages /
-    /// Xcode developer convention; = wenshu users don't read the
-    /// line / column coordinate. The chunk was removed from the
-    /// status bar body on 2026-10-13. The dead helper code +
-    /// the 2 unused xcstrings keys + the `cursorRectProvider`
-    /// closure parameter (= was the only consumer) are deleted
-    /// here per AGENTS.md §10.3 (= outdated = gone; = a future
-    /// ticket that wants the cursor coordinate back can re-introduce
-    /// the closure + helper + xcstrings keys in a single commit).
+    // Cursor location label.
+    // RATIONALE: the "Ln N, Col N" cursor coordinate is a Pages /
+    // Xcode developer convention; = wenshu users don't read the
+    // line / column coordinate. The chunk was removed from the
+    // status bar body on 2026-10-13. The dead helper code +
+    // the 2 unused xcstrings keys + the `cursorRectProvider`
+    // closure parameter (= was the only consumer) are deleted
+    // here per AGENTS.md §10.3 (= outdated = gone; = a future
+    // ticket that wants the cursor coordinate back can re-introduce
+    // the closure + helper + xcstrings keys in a single commit).
 
     /// Autosave icon name (= the deterministic state machine =
     /// the bar shows one of 3 SF Symbols; = the engine's standard

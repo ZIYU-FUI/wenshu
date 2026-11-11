@@ -189,4 +189,36 @@ enum SourceLocator {
         }
         return found.sorted()
     }
+
+    /// Every `.swift` path under Sources/, repo-root relative.
+    ///
+    /// WHY: a gate whose claim is about a TYPE (= "no production file
+    /// reaches this member") cannot name its candidates in advance, = =
+    /// the candidates are every file that mentions the type, = = and
+    /// that set is a property of the tree, = = not of the reader. = ⇒
+    /// So the reader takes the tree.
+    ///
+    /// ORDER: sorted, = = so a reader that pins a line number or a
+    /// block's neighbours reads the same text every run.
+    static func swiftFilesUnderSources() throws -> [String] {
+        let sourcesRoot = url("Sources")
+        guard let walker = FileManager.default.enumerator(
+            at: sourcesRoot,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else {
+            throw CocoaError(.fileReadUnknown)
+        }
+        var all: [String] = []
+        for case let entry as URL in walker where entry.pathExtension == "swift" {
+            let relative = entry.path
+                .replacingOccurrences(of: repoRoot.path + "/", with: "")
+            // A previous build's intermediates can shadow the real
+            // source; they are never the file under test.
+            if !relative.contains("/.build/") {
+                all.append(relative)
+            }
+        }
+        return all.sorted()
+    }
 }
