@@ -58,23 +58,52 @@ _XCTEST_TALLY = re.compile(
 )
 
 # XCTest: where one `.xctest` bundle's section starts. = Each bundle is a
-# SIBLING scope (= the run has three of them), = and each carries its own
-# chain of nested aggregate levels (= the suite, = the `Selected tests`
-# chain, = the bundle's own total).
+# SIBLING scope, = and each carries its own chain of nested aggregate
+# levels (= the suite's own tally, = the chain's tally, = the bundle's
+# own total).
+#
+# ⇒ ⇒ AND THE CHAIN'S NAME IS NOT THE TOOL'S CONTRACT. = The XCTest
+# run prints its outer chain under one of two names (= `All tests` or
+# `Selected tests`, = and WHICH one depends on how the run was
+# invoked), = so a reader that keys off the chain's NAME reads one
+# shape and misses the other.
 _XCTEST_BUNDLE_START = re.compile(r"^Test Suite '([^']+\.xctest)' started", re.MULTILINE)
 
 
 def _per_bundle_failure_total(text: str) -> int:
     """How many DISTINCT failures the log's tallies report.
 
-    Each bundle's own tally lines are AGGREGATES at nested levels (= the
-    suite, = the `Selected tests` chain, = the bundle's total), = so
-    within a bundle the MAXIMUM is that bundle's distinct-failure count.
-    The bundles are SIBLINGS (= there is no cross-bundle `All tests`
-    level in the repository's logs), = so their counts ADD.
+    Each bundle's own tally lines are AGGREGATES at nested levels, = so
+    within a bundle the MAXIMUM is that bundle's distinct-failure
+    count. The bundles are SIBLINGS, = so their counts ADD.
 
-    A log with no bundle boundary (= a fixture, = or a log that names no
-    bundle) is one scope, = and its maximum is the answer.
+    ⇒ ⇒ THE FACT THIS RELIES ON, = MEASURED, = AND IT IS THE
+    SHAPE-AGNOSTIC ONE: = **no chain spans two bundles.** = ⇒ Every
+    repository log agrees: = the outer chain wraps exactly ONE
+    `.xctest` bundle, = and the bundle's own tally lines nest INSIDE
+    it. = ⇒ ⇒ So the bundle boundary is where the count is taken, =
+    and the chain's NAME never matters (= the chain is `All tests` in
+    some runs and `Selected tests` in others, = and the boundary holds
+    in both).
+
+    ⇒ ⇒ ⇒ AND THE FALSE CLAIM THIS REPLACES, = named so the next reader
+    knows it was measured: = an earlier version of this comment said
+    "there is NO `All tests` level in the repository's logs". = ⇒
+    MEASURED on the repository's own logs, = that is FALSE: = of the
+    five XCTest-bearing logs under `.gate-logs`, = two print an `All
+    tests` chain and three print a `Selected tests` chain (= and none
+    prints both). = ⇒ ⇒ So the shape is MULTI-MODAL, = and a claim
+    about it must be measured per log, = not generalized from a sample
+    (= and the sample that produced the false claim was three logs in
+    `/tmp` that no longer exist).
+
+    ⇒ ⇒ ⇒ ⇒ AND THE RESIDUAL THE SEGMENTATION LEAVES, = named so the
+    next reader knows it is a decision: = the segmentation DROPS any
+    tally that sits BEFORE the first `.xctest` boundary. = ⇒ MEASURED:
+    every such tally in every repository log is `Executed 0 tests, with
+    0 failures` (= the outer chain's opening line), = so no failure is
+    lost today. = ⇒ But a capture with a failure OUTSIDE any bundle
+    would be missed, = and the tool would not say so.
     """
     starts = [(m.start(), m.group(1)) for m in _XCTEST_BUNDLE_START.finditer(text)]
     if not starts:
@@ -135,16 +164,16 @@ def _xctest_failures(text: str) -> set[str]:
     #
     # ⇒ ⇒ AND THE COUNT IS TAKEN AT EACH BUNDLE'S OWN SCOPE, = then
     # summed across the bundles. = ⇒ WHY: the log's tally lines are
-    # AGGREGATES, = and their levels nest WITHIN one bundle (= the suite,
-    # = the `Selected tests` chain, = the bundle's own total) = while the
-    # BUNDLES are siblings (= three `.xctest` bundles in every run, = each
-    # with its own chain).
+    # AGGREGATES, = and their levels nest WITHIN one bundle, = while
+    # the BUNDLES are siblings (= each with its own chain).
     #
-    # ⇒ ⇒ MEASURED on the repository's own logs: = there is NO `All
-    # tests` level (= `grep -c "Test Suite 'All tests'"` = 0), = so
-    # there is no cross-bundle aggregate, = and the third level is
-    # `Selected tests`, = which RESTARTS for every bundle (= three
-    # bundles, = three chains, = each closing its own bundle).
+    # ⇒ ⇒ MEASURED on the repository's own logs: = **no chain spans two
+    # bundles** (= the outer chain wraps exactly one `.xctest` bundle, =
+    # and the bundle's own tallies nest inside it), = so the bundle
+    # boundary is where the count is taken, = and the chain's NAME does
+    # not matter (= the chain is `All tests` in two of the five
+    # XCTest-bearing logs under `.gate-logs`, = and `Selected tests` in
+    # the other three).
     #
     # ⇒ ⇒ ⇒ So the two sides of the comparison must be the SAME scope:
     # the tallied count is the SUM over bundles of each bundle's OWN

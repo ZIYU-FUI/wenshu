@@ -124,6 +124,45 @@ Test Case 'WenshuDataTests.DataTests testFails' failed (0.05 seconds).
 Test Suite 'WenshuDataTests.xctest' failed at 2026-11-11 08:00:00.100.
 """
 
+# ⇒ ⇒ ⇒ **⇒ AND THE BUNDLED FIXTURE, = = WHICH IS THE ONE THAT CAN
+# HOLD THE PER-BUNDLE `max`.** = The count is taken at each bundle's own
+# scope, = and the scope's `max` is a DIFFERENT statement from the
+# whole-log `max` (= the one the earlier fixture holds). = ⇒ ⇒ So a
+# fixture that can hold it must (1) CARRY A `.xctest` BOUNDARY (= else
+# the count is taken at the whole-log scope, = which is the other
+# statement), = and (2) give the bundle SEVERAL TALLY LINES (= else
+# the bundle's maximum and its sum are the same number, = and the
+# mutation cannot tell them apart).
+#
+# ⇒ ⇒ ⇒ ⇒ MEASURED, = and this is the trap the previous round hit one
+# level down: = with two PARSEABLE case lines the count equals the
+# named count, = the fallback never fires, = and the mutation that
+# takes one scope instead of per-bundle left the suite GREEN. = ⇒ Here
+# the case line PARSES (= so the named count is 1), = and the bundle
+# carries three tally lines of one failure (= so the bundle's maximum is
+# 1 and its sum is 3).
+XCTEST_BUNDLED_THREE_LEVELS = """Test Suite 'All tests' started at 2026-11-11 08:00:00.000.
+\t Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'WenshuAppTests.xctest' started at 2026-11-11 08:00:00.010.
+Test Case '-[WenshuAppTests.ImportAgentWriteToDiskTests testWrites]' failed (0.05 seconds).
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+Test Suite 'WenshuAppTests.xctest' failed at 2026-11-11 08:00:00.100.
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+"""
+
+# ⇒ ⇒ THE SAME FAILURE CAPTURED AT ONE LEVEL, = and it still carries
+# the `.xctest` boundary (= so the count is still taken at the bundle's
+# scope).
+XCTEST_BUNDLED_ONE_LEVEL = """Test Suite 'All tests' started at 2026-11-11 08:00:00.000.
+\t Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'WenshuAppTests.xctest' started at 2026-11-11 08:00:00.010.
+Test Case '-[WenshuAppTests.ImportAgentWriteToDiskTests testWrites]' failed (0.05 seconds).
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.05 (0.05) seconds
+Test Suite 'WenshuAppTests.xctest' failed at 2026-11-11 08:00:00.100.
+"""
+
 
 def run_tool(base: str, tip: str) -> tuple[int, str]:
     """Run the tool on two log bodies (= written to temp files)."""
@@ -281,7 +320,35 @@ Test Case '-[XctlogTests.XctlogTests testFails]' failed (0.055 seconds).
         out[:400],
     )
 
-    # 9. An unreadable log exits 2.
+    # 9. ⇒ ⇒ THE BUNDLED SHAPE: = the count is taken at each bundle's
+    #    OWN scope, = and that scope's `max` is a DIFFERENT statement
+    #    from the whole-log `max` (= which the earlier fixture holds).
+    #    ⇒ ⇒ So a fixture that can hold it carries a `.xctest` boundary
+    #    AND gives the bundle several tally lines.
+    #
+    #    ⇒ MEASURED: with the per-bundle `max` reverted to a `sum`,
+    #    this case is RED (= the bundle's three tally lines read as
+    #    three failures, = the unnamed-failure key appears, = and the
+    #    verdict MOVES with how many levels the capture carries).
+    code, out = run_tool(XCTEST_BUNDLED_THREE_LEVELS, XCTEST_BUNDLED_THREE_LEVELS)
+    base_body = out.split("=== tip:")[0]
+    check(
+        "one failing test on the real bundled shape reads as ONE failure",
+        "1 failure(s)" in base_body and "unnamed failure" not in out,
+        out[:400],
+    )
+
+    # 10. ⇒ ⇒ AND THE VERDICT DOES NOT MOVE WITH THE CAPTURE'S LEVELS:
+    #     = the same failure, = once at one level and once at three, =
+    #     = the same failure set.
+    code, out = run_tool(XCTEST_BUNDLED_ONE_LEVEL, XCTEST_BUNDLED_THREE_LEVELS)
+    check(
+        "the verdict does not move with the capture's levels (bundled)",
+        code == 0,
+        f"exit={code}",
+    )
+
+    # 11. An unreadable log exits 2.
     proc = subprocess.run(
         [sys.executable, str(TOOL), "/nonexistent/base.log", "/nonexistent/tip.log"],
         capture_output=True,
