@@ -126,7 +126,7 @@ struct EditorView: View {
         }
         // Initialize word count from active tab (= 0 when no tab).
         if let tab = activeTab {
-            editorCounters.wordCount = WordCounter.count(tab.originalBody).charactersNoSpaces
+            editorCounters.wordCount = WordCounter.charactersNoSpaces(tab.originalBody)
         } else {
             editorCounters.wordCount = 0
         }
@@ -506,7 +506,7 @@ struct EditorView: View {
         // Mark the document clean (= cancels any pending auto-save Task).
         EditorPersistence.handleDirtyTransition(false, tab: tab, bookStore: bookStore)
         // Update chrome bottom-bar left (= word count of new content).
-        editorCounters.wordCount = WordCounter.count(result.newContent).charactersNoSpaces
+        editorCounters.wordCount = WordCounter.charactersNoSpaces(result.newContent)
     }
 
     /// editor-mvvm T2b: `writeDraftToDisk()` migrated to

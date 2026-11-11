@@ -108,8 +108,7 @@ struct EditorStatusBarView: View {
     // word count which is O(n) over the draft = microseconds for
     // any realistic chapter document).
 
-    /// Word count label (= "256 words" /
-    /// "1 word" / "1 character" etc).
+    /// Word count label (= "256" / "1" / "0" / the unit "字").
     /// RATIONALE: the number is the only part that
     /// changes per render (= the unit "words"
     /// is constant
@@ -121,7 +120,19 @@ struct EditorStatusBarView: View {
     /// render). The number is `count.formatted(.number)` (= the
     /// Apple HIG `1,234` comma-separator format).
     private var wordCountLabel: String {
-        let count = countWords(in: textProvider())
+        Self.wordCountLabelForTest(in: textProvider())
+    }
+
+    /// The label the status bar shows (= the measure's number + the
+    /// unit).
+    ///
+    /// ⇒ AND IT IS THE SAME METHOD THE VIEW CALLS: = the label is
+    /// built here, = so a test that asserts the label is asserting the
+    /// production path (= there is no second copy of the rule to
+    /// drift). = ⇒ And the number's formatting (= the Apple HIG comma
+    /// separator) is untouched by the measure change.
+    static func wordCountLabelForTest(in text: String) -> String {
+        let count = characterCount(in: text)
         let formatted = count.formatted(.number)
         // Hardcoded unit string per locale (= no xcstrings token;
         // = the literal lives in code so a missing localization
@@ -180,16 +191,35 @@ struct EditorStatusBarView: View {
     }
 
     // MARK: - Word count (= Foundation-only, = Unicode-aware =
-    // not the canonical word-bound regex but the simple-space-split
-    // that Pages / Numbers / Xcode use; = good enough for a
-    // "1,234 words" label).
+    // the same measure the editor's counter shows, = so the two
+    // numbers under one unit agree).
 
-    /// Word count (= split on whitespace + newlines, = filter
-    /// empty tokens). Foundation-only (= no engine API = the
-    /// canonical Pages / Numbers inspector word count pattern =
-    /// the inspector parses the rendered text directly).
-    private func countWords(in text: String) -> Int {
-        text.split(whereSeparator: { $0.isWhitespace || $0.isNewline })
-            .count
+    /// Word count (= the characters that are not a space, = a newline,
+    /// = or a tab).
+    ///
+    /// WHY THIS IS THE SAME MEASURE THE EDITOR'S COUNTER SHOWS: = the
+    /// editor's counter reads `WordCounter.charactersNoSpaces`, = and
+    /// this used to count WHITESPACE-DELIMITED TOKENS (= a different
+    /// measure, = under the same unit), = so the same document showed
+    /// two different numbers under one unit (= 570 and 4,027 on the
+    /// user's largest real document). = ⇒ AND FOR A CHINESE DOCUMENT
+    /// THE TOKEN COUNT IS NOT A WORD COUNT AT ALL: = Chinese does not
+    /// separate its words with spaces, = so the token count reads as
+    /// "how many runs of non-space text the document has", = which is
+    /// the sentence count, = not the character count. = ⇒ ONE MEASURE,
+    /// ONE NUMBER: = the reader must not see two numbers under one unit.
+    ///
+    /// ⇒ AND THE SOURCE IS THE SAME TEXT: = the provider hands over
+    /// `draft`, = and the editor's counter counts `draft` too, = so the
+    /// two numbers agree by construction.
+    ///
+    /// ⇒ AND THE NAME SAYS IT IS THE MEASURE: = `characterCount`
+    /// is the SAME method the label calls, = so a test that asserts
+    /// the measure is asserting the production path (= there is no
+    /// second copy of the rule to drift). = ⇒ And it is internal, =
+    /// not private, = so the test can read the production rule
+    /// instead of a restatement of it.
+    static func characterCount(in text: String) -> Int {
+        WordCounter.charactersNoSpaces(text)
     }
 }

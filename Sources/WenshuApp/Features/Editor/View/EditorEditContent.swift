@@ -71,33 +71,33 @@ struct EditorEditContent: View {
             text: $draft,
             surface: surface
         )
-            // (= per-keystroke; = Foundation-only recompute). Host
-            // (EditorView) routes the value into
-            // AppState.editorWordCount for the chrome bottom-bar left
-            // field. WordCounter.count's charactersNoSpaces matches
-            // Obsidian's default Word count plugin behavior (= exclude
-            // whitespace, line breaks, tabs).
-            .onChange(of: draft) { _, newValue in
-                onWordCountChange(WordCounter.count(newValue).charactersNoSpaces)
-                // auto-save is NOT triggered on every
-                // keystroke (= that wastes memory creating a fresh
-                // Task per keystroke; = Obsidian-style debounce that
-                // the user 9/2 flagged as inefficient). Instead,
-                // auto-save runs once per dirty→clean transition
-                // (= Apple HIG standard auto-save = save when the
-                // document transitions from dirty to saved, not on
-                // every keystroke). The handler is wired below in
-                // .onChange(of: isDirty) → onDirtyChange().
-            }
-            // wire auto-save to dirty-state transitions,
-            // NOT to every keystroke. When dirty becomes true
-            // (= user starts editing), schedule a 3-second Task.
-            // When dirty becomes false (= either Cmd+S saved the
-            // document or the auto-save Task fired), cancel any
-            // pending Task (= no more writes; = matches Apple HIG
-            // TextEdit / Pages behavior).
-            .onChange(of: isDirty) { _, newDirty in
-                onDirtyChange(newDirty)
-            }
+        // (= per-keystroke; = Foundation-only recompute). Host
+        // (EditorView) routes the value into
+        // AppState.editorWordCount for the chrome bottom-bar left
+        // field. WordCounter.charactersNoSpaces matches
+        // Obsidian's default Word count plugin behavior (= exclude
+        // whitespace, line breaks, tabs).
+        .onChange(of: draft) { _, newValue in
+            onWordCountChange(WordCounter.charactersNoSpaces(newValue))
+            // auto-save is NOT triggered on every
+            // keystroke (= that wastes memory creating a fresh
+            // Task per keystroke; = Obsidian-style debounce that
+            // the user 9/2 flagged as inefficient). Instead,
+            // auto-save runs once per dirty→clean transition
+            // (= Apple HIG standard auto-save = save when the
+            // document transitions from dirty to saved, not on
+            // every keystroke). The handler is wired below in
+            // .onChange(of: isDirty) → onDirtyChange().
+        }
+        // wire auto-save to dirty-state transitions,
+        // NOT to every keystroke. When dirty becomes true
+        // (= user starts editing), schedule a 3-second Task.
+        // When dirty becomes false (= either Cmd+S saved the
+        // document or the auto-save Task fired), cancel any
+        // pending Task (= no more writes; = matches Apple HIG
+        // TextEdit / Pages behavior).
+        .onChange(of: isDirty) { _, newDirty in
+            onDirtyChange(newDirty)
+        }
     }
 }
