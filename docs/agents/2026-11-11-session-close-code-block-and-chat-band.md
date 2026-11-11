@@ -157,6 +157,20 @@ method, = = and `EditorPersistenceTests` passes in isolation at both base and
 HEAD (= = a parallelism/timing flake, = = not a regression). Failures on the
 branch that are not on the base: 0.
 
+**§7.7 = THE BOSS LOOKS AT THE RUNNING BUILD, IN PERSON.** This is a
+UI-touching ticket, = = so the merge gate is the boss's own eyes, = = and a
+screenshot would only ever be evidence. The build that was reviewed is the
+one the boss looked at: `build/Wenshu.app` in the shared checkout, rebuilt
+from `main` at `034a45294c` (= = the tip that carries this scope's carrier
+and this closeout's two commits), = = signed (= = "replacing existing
+signature"), = = and launched with a PLAIN `open` (= = never `open -n`, = =
+a second instance of the same bundle id aborts both). The boss's own
+verdict, after looking at it: accepted (= = the code block carries no slab
+and the chat's user bubble carries no full-width band).
+
+**THE APP WAS LEFT RUNNING** (= = pid 19513, = = the merged build, = = so the
+boss could keep it in front), = = and it is the only instance on the machine.
+
 ## 5. The board record
 
 | Card | Status | Verdict |
