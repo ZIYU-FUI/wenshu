@@ -26,6 +26,10 @@ enum BookScopeViolation: Error, LocalizedError, Sendable, Equatable {
     /// LLM tried to write.
     case crossBookWrite(currentChatBookID: UUID, providedBookID: UUID)
 
+    /// The book is the app's own help document (= read-only for the
+    /// user: = it cannot be edited, = and it cannot be modified).
+    case readOnlyBook(bookID: UUID)
+
     var errorDescription: String? {
         switch self {
         case .noChatBookBound(let provided):
@@ -35,6 +39,8 @@ enum BookScopeViolation: Error, LocalizedError, Sendable, Equatable {
             return Self.noChatBookBoundMessageNoProvided()
         case .crossBookWrite(let current, let provided):
             return Self.crossBookWriteMessage(current: current, provided: provided)
+        case let .readOnlyBook(bookID):
+            return Self.readOnlyBookMessage(bookID: bookID)
         }
     }
 
@@ -50,6 +56,14 @@ enum BookScopeViolation: Error, LocalizedError, Sendable, Equatable {
     /// earlier by `invalidInput`, but defensive for completeness).
     private static func noChatBookBoundMessageNoProvided() -> String {
         "I cannot edit any book: the current chat session is not bound to one. Ask the user to pick a book in the sidebar before asking me to edit one."
+    }
+
+    /// LLM-facing soft message for a read-only book (= the app's own
+    /// help document). It says what the agent will not do, and it says
+    /// what the user CAN do, so the LLM can offer the user a way
+    /// forward instead of simply failing.
+    private static func readOnlyBookMessage(bookID: UUID) -> String {
+        "I cannot edit book \(bookID.uuidString): it is the app's own help document, and it is read-only. Ask the user whether they want to work on one of their own books instead."
     }
 
     /// LLM-facing soft message for cross-book writes. Gives the LLM
@@ -89,6 +103,14 @@ enum BookScopeGuard {
         let current = currentChatBookIDProvider()
         guard let current else {
             throw BookScopeViolation.noChatBookBound(providedBookID: providedBookID)
+        }
+        // The read-only check comes FIRST (= before the cross-book
+        // check), because the read-only book is the app's own document
+        // (= the help book): no scope the LLM names makes a write to it
+        // legal, and the refusal should say "read-only" rather than
+        // "wrong book".
+        if BookSessionLifecycle.isHelpBook(current) {
+            throw BookScopeViolation.readOnlyBook(bookID: current)
         }
         if let provided = providedBookID, provided != current {
             throw BookScopeViolation.crossBookWrite(

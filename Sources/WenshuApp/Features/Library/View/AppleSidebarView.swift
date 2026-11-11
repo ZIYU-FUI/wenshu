@@ -458,8 +458,19 @@ struct AppleSidebarView: View {
                     switch target.kind {
                     case .shelf:
                         try service?.deleteShelf(id: target.itemId)
+                        // The deleted row cannot stay selected: = the
+                        // tree would highlight a row that is no longer
+                        // there, = and the chat's scope (= which reads
+                        // this same selection) would still name it.
+                        clearSelectionIfItNames(target.itemId)
                     case .book:
                         try service?.deleteBook(id: target.itemId)
+                        // The book's conversation went with the book
+                        // (= see `BookSessionLifecycle`), = so the
+                        // selection that named the book goes too: = a
+                        // scope with no book behind it has nothing to
+                        // say.
+                        clearSelectionIfItNames(target.itemId)
                     case .reference:
                         // 
                         // … (= 25 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -524,6 +535,31 @@ struct AppleSidebarView: View {
         if workspaceUI.sidebarSelection != nil { return }
         guard let first = currentNodes.first else { return }
         forwardSelection(first)
+    }
+
+    /// Clear the selection when it names the row that was just deleted.
+    ///
+    /// A deleted row cannot stay selected: the tree would highlight a
+    /// row that is no longer there, and the chat's scope (= which reads
+    /// this same field) would still name it. The check is by ID (= the
+    /// row's identity), = not by its title: a folder row belongs to its
+    /// book, = so deleting the book clears the folder rows too.
+    private func clearSelectionIfItNames(_ deletedID: UUID) {
+        guard let selection = workspaceUI.sidebarSelection else { return }
+        let namesDeletedRow: Bool
+        switch selection {
+        case let .book(id):
+            namesDeletedRow = id == deletedID
+        case let .folder(bookID, _):
+            namesDeletedRow = bookID == deletedID
+        case let .shelf(id):
+            namesDeletedRow = id == deletedID
+        case .referenceCategory, .referenceUnclassified, .tag:
+            namesDeletedRow = false
+        }
+        if namesDeletedRow {
+            workspaceUI.sidebarSelection = nil
+        }
     }
 
 

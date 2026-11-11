@@ -3724,23 +3724,6 @@
         }
       }
     },
-    "sidebar_service_error_cannot_delete_default": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cannot delete the default bookshelf."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "默认书架不可删除。"
-          }
-        }
-      }
-    },
     "sidebar_service_error_shelf_not_found": {
       "extractionState": "manual",
       "localizations": {
@@ -8882,6 +8865,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "全部"
+          }
+        }
+      }
+    },
+    "chat.tab.repository_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenshu"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文枢"
+          }
+        }
+      }
+    },
+    "sidebar_service_error_cannot_rename_help_book": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The help book is the app's own document. It cannot be renamed."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "帮助书是本应用自己的文档，不能重命名。"
+          }
+        }
+      }
+    },
+    "sidebar_service_error_cannot_rename_default": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The default shelf's name belongs to the app. It cannot be renamed."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认书架的名称属于本应用，不能重命名。"
           }
         }
       }

@@ -14,8 +14,9 @@
 //  FileManager + JSONEncoder/Decoder for shelvesRoot/, books/<bookId>/
 //  book.json, shelf.json) + the reserved-name guard (= rejects "" /
 //  "Reference Library" legacy system-shelf names) + the default-
-//  shelf-delete guard (= shelf 00000000-... cannot be deleted) +
-//  the duplicate-name validation. The 2 concerns have no shared
+//  shelf-RENAME guard (= the default shelf's NAME is the app's, = and
+//  the shelf itself is deletable) + the duplicate-name validation.
+//  The 2 concerns have no shared
 //  state (= the mutation methods read from the closure-based data
 //  accessors; = they don't access the `nodes` array directly).
 //
@@ -37,29 +38,30 @@ import Foundation
 /// (see OOB.md #2026-09-23) OOB '，'). What lives here: - persistence surface (=
 /// FileManager + JSONEncoder/Decoder for shelvesRoot/, books/<bookId>/book.json,
 /// shelf.json). - reserved-name guard (= rejects "" / "Reference Library" legacy
-/// system-shelf names; = (see OOB.md #2026-09-20) OOB). - default-shelf-delete guard (=
-/// shelf 00000000-... cannot be deleted; = Reference Library is immutable). -
+/// system-shelf names; = (see OOB.md #2026-09-20) OOB). - default-shelf-RENAME guard (=
+/// the default shelf's NAME is the app's; = the shelf itself is deletable). -
 /// duplicate-name validation for create + rename. What does NOT live here: - UI (=
 /// sheets in SidebarSheets.swift + context menu in SidebarContextMenu.swift + alert +
 /// sheet wiring in AppleSidebarView.swift). Error type = one enum with LocalizedError
-/// (= the m1 legacy ShelfError / ShelfDeleteError pair merged into one with all cases;
-/// = same set of reserved + duplicate + cannot-delete-default guards preserved
-/// verbatim).
+/// (= the m1 legacy ShelfError / ShelfDeleteError pair merged into one; = the guards
+/// are the reserved-name ones, = the duplicate-name ones and = the
+/// cannot-rename-default one).
 extension SidebarService {
     /// domain error for the create / delete / rename operations (=
     /// LocalizedError so the caller can present the message in a SwiftUI
     /// `.alert(item:)`).
     enum MutationError: LocalizedError, Equatable {
-        case cannotDeleteDefault
         case duplicateName(String)
         case reservedName(String)
         case bookNotFound
         case shelfNotFound
+        /// The help book (= the app's own document) cannot be renamed.
+        case cannotRenameHelpBook
+        /// The default shelf's name is the app's, so it cannot be renamed.
+        case cannotRenameDefault
 
         var errorDescription: String? {
             switch self {
-            case .cannotDeleteDefault:
-                return String(localized: "sidebar_service_error_cannot_delete_default")
             case let .duplicateName(name):
                 return String(localized: "new_shelf_sheet_duplicate_error")
                     .replacingOccurrences(of: "%@", with: name)
@@ -70,6 +72,10 @@ extension SidebarService {
                 return String(localized: "sidebar_service_error_book_not_found")
             case .shelfNotFound:
                 return String(localized: "sidebar_service_error_shelf_not_found")
+            case .cannotRenameHelpBook:
+                return String(localized: "sidebar_service_error_cannot_rename_help_book")
+            case .cannotRenameDefault:
+                return String(localized: "sidebar_service_error_cannot_rename_default")
             }
         }
     }
@@ -129,6 +135,7 @@ extension SidebarService {
     /// v0.29 LibraryBootstrapper per-book setup pattern. Returns the new book's
     /// UUID on success.
     @discardableResult
+
     func createBook(input: NewBookSheet.NewBookInput) throws -> UUID {
         let trimmedTitle = input.title.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedTitle.isEmpty {
@@ -171,16 +178,19 @@ extension SidebarService {
         )
         let data = try JSONEncoder().encode(book)
         try data.write(to: bookDir.appendingPathComponent("book.json"))
+        // The store's book list is the app's SHARED list (= the chat
+        // zone's session bar reads it, = and its page list is "one page
+        // per ordinary book"). This door wrote the disk, = so this door
+        // writes the list (= or the bar shows no page for the book the
+        // user just created).
+        bookStore?.sidebarRecordBook(book)
         return bookId
     }
 
     /// delete a shelf on disk (= shelves/<uuid>/). The default shelf
-    /// (`00000000-0000-0000-0000-000000000000`) cannot be deleted (= the legacy
-    /// ShelfDeleteError guard; = 'Reference Library cannot be deleted').
+    /// (`00000000-0000-0000-0000-000000000000`) CAN be deleted (= only its
+    /// NAME is the app's; = the boss ruled the shelf itself deletable).
     func deleteShelf(id: UUID) throws {
-        guard id.uuidString != "00000000-0000-0000-0000-000000000000" else {
-            throw MutationError.cannotDeleteDefault
-        }
         guard let shelvesRoot = bookStore?.stores.shelvesRoot else {
             throw MutationError.shelfNotFound
         }
@@ -205,23 +215,57 @@ extension SidebarService {
             at: shelvesRoot,
             includingPropertiesForKeys: nil,
             options: [.skipsHiddenFiles]
-        ) else { return }
+        ) else {
+            // The disk could not be read, = but the shared list may still
+            // name the book: = the list must stop naming it, = or the
+            // chat zone's session bar keeps a page for a book that is
+            // not there.
+            bookStore?.sidebarForgetBook(id: id)
+            return
+        }
         for shelfDir in shelfDirs {
             let bookDir = shelfDir
                 .appendingPathComponent("books")
                 .appendingPathComponent(id.uuidString, isDirectory: true)
             if fm.fileExists(atPath: bookDir.path) {
                 try fm.removeItem(at: bookDir)
+                // The book's conversation goes with the book: the
+                // session, and every message in it, are deleted.
+                BookSessionLifecycle.deleteSession(bookID: id)
+                // The store's book list must stop naming the book once
+                // the book is gone: = the chat zone's session bar reads
+                // that list, = and a page for a deleted book is a page
+                // to a conversation that is not there.
+                //
+                // ⇒ IT IS HERE, = AND NOT IN A `defer`: = a `defer` runs
+                // on EVERY exit path (= including a thrown error), = so
+                // a removal that FAILED (= the book is still on disk)
+                // would drop the book from the list anyway (= the list
+                // and the disk would disagree, = in the direction this
+                // change exists to remove). = MEASURED: the removal can
+                // fail (= a permission error), = and the defer forgot the
+                // book anyway.
+                bookStore?.sidebarForgetBook(id: id)
                 return
             }
         }
-        // Book not on disk = silent no-op (= matches legacy).
+        // Book not on disk = silent no-op (= matches legacy). = The list
+        // still has to stop naming it, = because there the LIST is the
+        // stale one (= the disk has no such book).
+        bookStore?.sidebarForgetBook(id: id)
     }
 
     /// rename a shelf (= rewrites shelf.json with the new name). The directory
     /// name (= UUID) is preserved (= the shelf's identity is stable per Apple
     /// HIG document-based app).
     func renameShelf(id: UUID, newName: String) throws {
+        // The default shelf's name is the app's (= the localized
+        // default-shelf title), so the user may not rename it. The
+        // shelf itself is deletable (= see deleteShelf); = only its
+        // name is protected.
+        guard !BookSessionLifecycle.isDefaultShelf(id) else {
+            throw MutationError.cannotRenameDefault
+        }
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         if Self.reservedNames.contains(where: { trimmed.caseInsensitiveCompare($0) == .orderedSame }) {
             throw MutationError.reservedName(trimmed)
@@ -257,6 +301,13 @@ extension SidebarService {
     /// name (= UUID) is preserved (= the book's identity is stable per Apple
     /// HIG document-based app).
     func renameBook(id: UUID, newTitle: String) throws {
+        // The help book is the app's own document (= read-only for the
+        // user: = it cannot be edited, = and it cannot be renamed). It
+        // CAN be deleted (= the user may clear the app's own document out
+        // of the way).
+        guard !BookSessionLifecycle.isHelpBook(id) else {
+            throw MutationError.cannotRenameHelpBook
+        }
         let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
             throw MutationError.bookNotFound
@@ -292,77 +343,19 @@ extension SidebarService {
                 existing.updatedAt = Date()
                 let updated = try JSONEncoder().encode(existing)
                 try updated.write(to: bookJSONURL)
+                // The store's book list must carry the new name too:
+                // = the chat zone's session bar reads that list, = and
+                // its page for this book is named by the list.
+                bookStore?.sidebarRecordBook(existing)
+                // The book and its conversation move together: the
+                // session keeps its identity (= its id, = its history)
+                // and takes the book's new name.
+                BookSessionLifecycle.renameSession(bookID: id, newTitle: trimmed)
                 LibraryChangeNotifier.notifyLibraryChanged()
                 return
             }
         }
         throw MutationError.bookNotFound
-    }
-
-    /// (= boss 2026-10-10 "素 材区，卡片， 右键菜单， 做删除、重 命名" directive). Delete a single
-    /// reference from the reference library (= removes the `<layer>/<id>.md`
-    /// body file + the index entry from `entities.json`). The reference card
-    /// disappears from the sidebar tree on the next `reload()` (= the sidebar's
-    /// `.onChange(of: workspaceUI. sidebarSelection)` triggers a reload; = we
-    /// also call `reload()` here to refresh immediately).
-    func deleteReference(id: UUID) throws {
-        guard let referenceStore = bookStore?.stores.referenceStore else {
-            throw MutationError.bookNotFound
-        }
-        try referenceStore.deleteReference(id: id)
-    }
-
-    /// rename a single reference (= change only the `title` field; = the .md
-    /// filename is the stable UUID and stays unchanged; = the sidebar row's
-    /// title text updates on next reload). The reference's body content is
-    /// unchanged (= the rename only touches the index entry's `title`).
-    /// Validation: - empty title = rejected - duplicate title (in any layer) =
-    /// rejected (= the reference-library doesn't enforce unique titles but the
-    /// rename sheet shows the duplicate error for consistency with shelf/book
-    /// rename).
-    func renameReference(id: UUID, newTitle: String) throws {
-        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            throw MutationError.bookNotFound
-        }
-        guard let referenceStore = bookStore?.stores.referenceStore else {
-            throw MutationError.bookNotFound
-        }
-        // Look up the reference across all 4 layers; = the reference id is unique across
-        // the library.
-        let all = (try? referenceStore.loadAllReferences()) ?? []
-        guard let existing = all.first(where: { $0.id == id }) else {
-            throw MutationError.bookNotFound
-        }
-        // Duplicate check: if another reference (in any layer) has the same title,
-        // reject.
-        let others = all.filter { $0.id != id }
-        if others.contains(where: { $0.title.caseInsensitiveCompare(trimmed) == .orderedSame }) {
-            throw MutationError.duplicateName(trimmed)
-        }
-        // Build the updated reference (= the existing reference with the new title +
-        // updatedAt). We keep all other fields (= tags, summary, category,
-        // source, etc.) unchanged.
-        var updated = existing
-        updated.title = trimmed
-        updated.updatedAt = Date()
-        // Load the existing body (= the rename only touches the index entry; = the .md
-        // body file is preserved verbatim; = `replaceReference` writes both
-        // the index + the body).
-        let body = referenceStore.loadReferenceBody(id: id) ?? ""
-        try referenceStore.replaceReference(updated, bodyMarkdown: body)
-        LibraryChangeNotifier.notifyLibraryChanged()
-    }
-
-    /// list of all reference titles (= for the duplicate check in
-    /// `renameReference`; = = the v2.7 [archived-round] addition; = the rename sheet
-    /// reads this and shows the duplicate error).
-    func otherReferenceTitles(excluding id: UUID) -> [String] {
-        guard let referenceStore = bookStore?.stores.referenceStore else {
-            return []
-        }
-        let all = (try? referenceStore.loadAllReferences()) ?? []
-        return all.filter { $0.id != id }.map { $0.title }
     }
 
     // MARK: v2.7: bookDoc (= one .md file in a

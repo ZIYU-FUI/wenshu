@@ -91,6 +91,9 @@ enum BookManagerError: Error, LocalizedError, Sendable, Equatable {
     case invalidInput(reason: String)
     /// Underlying BookStore threw (= surfaced verbatim).
     case underlying(String)
+    /// The help book (= the app's own document) is read-only for the
+    /// user: it cannot be edited, and it cannot be renamed.
+    case cannotModifyHelpBook
 
     var errorDescription: String? {
         switch self {
@@ -104,6 +107,8 @@ enum BookManagerError: Error, LocalizedError, Sendable, Equatable {
             return "BookManager: invalid input — \(reason)."
         case .underlying(let msg):
             return "BookManager: underlying error — \(msg)."
+        case .cannotModifyHelpBook:
+            return "BookManager: the help book is read-only. It cannot be renamed or edited. Ask the user to work on another book."
         }
     }
 }
@@ -166,6 +171,14 @@ actor BookManager {
     // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // /     BookDescriptor.lastEditedAt reflects this).
     func renameBook(id: UUID, newTitle: String) async throws {
+        // The help book is the app's own document (= read-only for the
+        // user: = it cannot be edited, = and it cannot be renamed). It
+        // CAN be deleted (= the user may clear the app's own document out
+        // of the way). The same guard reaches the sidebar's door (= see
+        // SidebarService.renameBook), = so the two doors cannot drift.
+        guard !BookSessionLifecycle.isHelpBook(id) else {
+            throw BookManagerError.cannotModifyHelpBook
+        }
         let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             throw BookManagerError.emptyTitle
@@ -182,6 +195,12 @@ actor BookManager {
         } catch {
             throw BookManagerError.underlying(String(describing: error))
         }
+        // The book and its conversation move together: the session keeps
+        // its identity (= its id, = its history) and takes the book's new
+        // name.
+        await MainActor.run {
+            BookSessionLifecycle.renameSession(bookID: id, newTitle: trimmed)
+        }
     }
 
     // / Delete a book (= moves to trash; not physical delete).
@@ -196,6 +215,11 @@ actor BookManager {
             try await MainActor.run { try bookStore.sidebarDeleteBook(id: id) }
         } catch {
             throw BookManagerError.underlying(String(describing: error))
+        }
+        // The book's conversation goes with the book: the session, and
+        // every message in it, are deleted.
+        await MainActor.run {
+            BookSessionLifecycle.deleteSession(bookID: id)
         }
     }
 

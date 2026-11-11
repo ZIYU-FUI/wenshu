@@ -88,7 +88,7 @@ struct LibraryMigrator: Sendable {
         // 2. Create the default shelf (= id = '00000000-0000-0000-0000-000000000000',
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // doc).
-        let defaultShelfId = UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
+        let defaultShelfId = BookSessionLifecycle.defaultShelfID ?? UUID()
         let defaultShelfDir = shelvesRoot.appendingPathComponent(defaultShelfId.uuidString, isDirectory: true)
         if !fm.fileExists(atPath: defaultShelfDir.path) {
             try fm.createDirectory(at: defaultShelfDir, withIntermediateDirectories: true)
@@ -125,7 +125,7 @@ struct LibraryMigrator: Sendable {
     private func alwaysRunOnLaunch(fm: FileManager) throws {
         // 1. Compute the default shelf dir (= all-zeros UUID).
         let shelvesRoot = wsRoot.appendingPathComponent("shelves", isDirectory: true)
-        let defaultShelfId = UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
+        let defaultShelfId = BookSessionLifecycle.defaultShelfID ?? UUID()
         let defaultShelfDir = shelvesRoot.appendingPathComponent(defaultShelfId.uuidString, isDirectory: true)
         guard fm.fileExists(atPath: defaultShelfDir.path) else { return }
         // 2. Rename legacy 'default' → ' (idempotent).
@@ -145,7 +145,7 @@ struct LibraryMigrator: Sendable {
         let defaultBooksDir = defaultShelfDir.appendingPathComponent("books", isDirectory: true)
         let legacyBookIds = [
             UUID(uuidString: "00000000-0000-0000-0000-000000000001"),
-            UUID(uuidString: "11111111-1111-1111-1111-111111111111"),
+            BookSessionLifecycle.helpBookID,
         ]
         for legacyBookId in legacyBookIds {
             guard let bookId = legacyBookId else { continue }

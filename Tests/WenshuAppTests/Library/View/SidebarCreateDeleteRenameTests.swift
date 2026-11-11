@@ -202,15 +202,21 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
         )
     }
 
-    func testSidebarService_blocks_default_shelf_deletion() throws {
+    func testSidebarService_blocks_default_shelf_RENAME_and_allows_its_deletion() throws {
         let body = try loadSidebarServiceBody()
-        // The default shelf (UUID 00000000-0000-0000-0000-000000000000)
-        // must NOT be deletable (= legacy Reference Library behavior;
-        // = boss 2026-09 OOB 'Reference Library cannot be deleted').
+        // The default shelf's NAME is the app's (= the localized
+        // default-shelf title), = so a rename of it must be refused.
         XCTAssertTrue(
-            body.contains("00000000-0000-0000-0000-000000000000") &&
+            body.contains("cannotRenameDefault"),
+            "SidebarService.renameShelf must guard the default shelf's NAME from a rename"
+        )
+        // The shelf ITSELF is the user's to clear away (= boss 2026-11-11:
+        // = the default shelf is not renameable, = but it is deletable),
+        // = so the old delete refusal must be GONE (= the enum case that
+        // carried it is removed with the guard that threw it).
+        XCTAssertFalse(
             body.contains("cannotDeleteDefault"),
-            "SidebarService.deleteShelf must guard the default shelf from deletion"
+            "SidebarService.deleteShelf must NOT refuse the default shelf (= it is deletable)"
         )
     }
 

@@ -92,16 +92,42 @@ extension BookStore {
         try data.write(to: bookDir.appendingPathComponent("book.json"))
         let bootstrapper = LibraryBootstrapper(wsRoot: stores.referenceLibraryRoot.deletingLastPathComponent())
         try bootstrapper.ensureValidStructure()
-        // 015.019: keep `books` in sync. Insert in
-        // `createdAt`-ascending order (= matches
-        // `sidebarLoadAllBooks()` sort). If a duplicate id already
-        // exists, replace it (= idempotent re-save guard).
+        sidebarRecordBook(book)
+    }
+
+    /// Keep the store's book list in step with a book the caller just
+    /// wrote on disk.
+    ///
+    /// The store's list is the app's SHARED list: = the chat zone's
+    /// session bar reads it (= its page list is "one page per ordinary
+    /// book"), = the export sheet reads it, = the asset pane's counts
+    /// read it. So the door that writes the disk must also write the
+    /// list, = or the list names a book that is not there (a page for a
+    /// deleted book) or an old name (a page for a renamed book).
+    ///
+    /// It writes the LIST ONLY (= no disk work): = the caller already
+    /// wrote the disk, = and the bootstrapper's whole-library walk is
+    /// not this door's cost to pay on every rename.
+    ///
+    /// The upsert is the same one `sidebarSaveBook(_:)` uses, so there
+    /// is ONE place that decides what the list holds (= an existing id
+    /// is replaced, = a new one is appended in `createdAt` order).
+    func sidebarRecordBook(_ book: Book) {
         if let existingIndex = books.firstIndex(where: { $0.id == book.id }) {
             books[existingIndex] = book
         } else {
             books.append(book)
             books.sort { $0.createdAt < $1.createdAt }
         }
+    }
+
+    /// Keep the store's book list in step with a book the caller just
+    /// removed from disk.
+    ///
+    /// It writes the LIST ONLY (= no disk work): = the caller already
+    /// removed the directory. An id the list never held is a no-op.
+    func sidebarForgetBook(id: UUID) {
+        books.removeAll { $0.id == id }
     }
 
     /// 015.019: delete a book by id. Mirrors

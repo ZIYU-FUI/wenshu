@@ -18,7 +18,7 @@ extension LibraryMigrator {
         let booksDir = shelfDir.appendingPathComponent("books", isDirectory: true)
         // Skip if the default help-doc book id (= '11111111-...-111111111111')
         // already exists (= preserves user-created/replaced content).
-        let defaultBookId = UUID(uuidString: "11111111-1111-1111-1111-111111111111") ?? UUID()
+        let defaultBookId = BookSessionLifecycle.helpBookID ?? UUID()
         let bookDir = booksDir.appendingPathComponent(defaultBookId.uuidString, isDirectory: true)
         if fm.fileExists(atPath: bookDir.path) {
             return
@@ -52,7 +52,7 @@ extension LibraryMigrator {
             // descriptive).
             title: String(localized: "library.default.book_title"),
             author: "wenshu",
-            shelfId: UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
+            shelfId: BookSessionLifecycle.defaultShelfID ?? UUID()
         )
         let bookData = try JSONEncoder().encode(defaultBook)
         try bookData.write(to: bookDir.appendingPathComponent("book.json"))
@@ -335,14 +335,14 @@ extension LibraryMigrator {
     /// / new help-doc content without needing a schema migration.
     func helpDocUpgrade(fm: FileManager = .default) throws {
         // 1. Find the default shelf (= shelfId 00000000-0000-0000-0000-000000000000)
-        let defaultShelfId = UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
+        let defaultShelfId = BookSessionLifecycle.defaultShelfID ?? UUID()
         let defaultShelfDir = wsRoot
             .appendingPathComponent("shelves", isDirectory: true)
             .appendingPathComponent(defaultShelfId.uuidString, isDirectory: true)
         guard fm.fileExists(atPath: defaultShelfDir.path) else { return }
 
         // 2. Find the default help-doc book (= 11111111-1111-1111-1111-111111111111)
-        let defaultBookId = UUID(uuidString: "11111111-1111-1111-1111-111111111111") ?? UUID()
+        let defaultBookId = BookSessionLifecycle.helpBookID ?? UUID()
         let bookDir = defaultShelfDir
             .appendingPathComponent("books", isDirectory: true)
             .appendingPathComponent(defaultBookId.uuidString, isDirectory: true)

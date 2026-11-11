@@ -110,6 +110,26 @@ struct ChatZoneView: View {
             // / outer body) registers the @State as a body
             // / dependency for the whole `VStack`.
             let _ = keychainRevision
+            // The session tab bar (= the chat zone's top bar). It shows
+            // one page per conversation scope: the repository
+            // conversation, one page per ordinary book, and the
+            // reference-library conversation.
+            //
+            // The bar and the directory tree are two views over ONE
+            // selection (= `workspaceUI.sidebarSelection`), so the
+            // bar's page and the tree's row can never disagree. The
+            // asset pane reads that same field, so its rules are
+            // unchanged (= it shows the filter of the selected tree
+            // row).
+            //
+            // The pages come from the library's CURRENT books, so a
+            // new book gets a page at once (= the page list follows the
+            // collection) and a deleted book leaves none behind.
+            ChatZoneTabBar(
+                pages: scopePages,
+                selectedScope: currentScope,
+                onSelect: { scope in selectScope(scope) }
+            )
             ZStack {
                 ChatView(conductor: conductor, vm: vm)
                 // Switch the empty
@@ -249,33 +269,27 @@ struct ChatZoneView: View {
         // `workspaceUI.sidebarSelection` (= mutated by AppleSidebarView's
         // `forwardSelection(_:)` whenever the user clicks a row; = see
         // AppleSidebarView.swift L446-L465). WenshuLibrary.selectedBookId
-        // was tried first (= the bookish-named field), but no code in
-        // the production tree actually mutates it; = the same pattern
+        // was tried first (= the bookish-named field), but no code in the
+        // production tree actually mutates it; = the same pattern
         // applies to `BookStore.reload(bookId:)` (= both functions exist but
         // neither has a caller; = the field stays at init time).
         //
-        // Resolution: derive bookID from sidebarSelection.
-        // - `.book(let bookID)` → use bookID
-        // - `.folder(let bookID, _)` → use bookID (= folder
-        //   is a sub-row of a book; = same book scope)
-        // - `.shelf / .reference* / nil` → nil (= global
-        //   un-attached; = the previous behavior when no book
-        //   is selected).
+        // Resolution: derive the scope from sidebarSelection.
+        // - `.book` / `.folder` → that book's scope
+        // - the reference-library root → the library scope
+        // - every other row (a shelf, a reference category, a tag, no
+        //   row) → the repository scope
+        //
+        // The bar's page and the tree's row are two views over this ONE
+        // field, so this handler is the tree's half of the linkage.
+        //
+        // The handler also fires for the bar's OWN write (= SwiftUI
+        // delivers it on the next render pass). That is harmless and it
+        // is NOT a loop: the scope the bar wrote maps back to the same
+        // scope, and `ChatViewModel.setScope` does nothing when the
+        // scope is unchanged.
         .onChange(of: workspaceUI.sidebarSelection) { _, newSelection in
-            let bookID: UUID?
-            switch newSelection {
-            case .book(let id):
-                bookID = id
-            case .folder(let id, _):
-                bookID = id
-            case .shelf, .referenceCategory, .referenceUnclassified, .referenceLibraryRoot, .tag, nil:
-                // tag selection maps to no specific book
-                // (= the chat panel scopes to the global un-attached
-                // bucket). All non-book selections clear the per-book
-                // chat scope.
-                bookID = nil
-            }
-            vm.setCurrentBookID(bookID.map { BookID(rawValue: $0.uuidString) })
+            applyScope(ChatScope.scope(for: newSelection))
         }
     }
 
@@ -287,6 +301,61 @@ struct ChatZoneView: View {
     //  conductor's token accounting surfaces elsewhere). See
     //  wenshu-pocock-workflow references/v3.0-design-system-rule.md
     //  + wenshu-dead-code-cleanup SKILL.md.)
+
+    // MARK: - The session scope (= the tab bar and the tree over one selection)
+
+    /// The scope the chat is talking about.
+    ///
+    /// It is derived from the tree's selection (= the tree is the app's
+    /// source of truth for "what is selected"; = the asset pane reads the
+    /// same field), so the bar's page and the tree's row can never
+    /// disagree.
+    private var currentScope: ChatScope {
+        ChatScope.scope(for: workspaceUI.sidebarSelection)
+    }
+
+    /// The bar's pages, in display order.
+    ///
+    /// The repository conversation first, one page per ordinary book
+    /// (= the help book contributes none), and the reference-library
+    /// conversation last.
+    private var scopePages: [ChatScopePage] {
+        ChatScope.pageList(
+            books: bookStore.books,
+            repositoryTitle: String(localized: "chat.tab.repository_title"),
+            libraryTitle: String(localized: "sidebar.reference_library.title")
+        )
+    }
+
+    /// Switch the chat to a scope, and the tree to the row that scope
+    /// names.
+    ///
+    /// The write to the tree selection is the ONLY place the bar pushes
+    /// into the tree. The tree's own selection change reads the same
+    /// field back, so the two directions share one value and one of them
+    /// is always the consequence of the other.
+    ///
+    /// The bar's write is followed by the tree's own change handler
+    /// (= SwiftUI delivers it on the next render pass), and that handler
+    /// maps the new tree selection back onto a scope. The two scopes are
+    /// the SAME scope (= every scope's tree round-trip is the identity:
+    /// = a book scope names its book row, = the library scope names the
+    /// library root, = the repository scope names no row), so the second
+    /// application is a no-op: `ChatViewModel.setScope` does nothing when
+    /// the scope is unchanged. That is what keeps the two from
+    /// ping-ponging, and it is why this method applies the scope itself
+    /// instead of waiting for the tree to echo it back.
+    private func selectScope(_ scope: ChatScope) {
+        workspaceUI.sidebarSelection = scope.treeSelection
+        // The chat's own scope follows the tree's selection, so the
+        // session and the history are re-read against the new scope.
+        applyScope(scope)
+    }
+
+    /// Point the chat at a scope (= its session id, = and its history).
+    private func applyScope(_ scope: ChatScope) {
+        vm.setScope(scope)
+    }
 
     // MARK: - Book scope guard wiring (see OOB.md #2026-09-25)
 

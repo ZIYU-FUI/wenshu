@@ -49,6 +49,25 @@ actor EditChapterActor {
         newText: String,
         summary: String?
     ) async throws -> EditResult {
+        // The help book (= the app's own document) is read-only: it
+        // cannot be edited. The refusal comes before the write, so the
+        // guard is what stops the write, not a check after it.
+        //
+        // Both ids are checked: the id the tool names (= the id the
+        // LLM sent) and the id the chat is bound to (= the id the user
+        // picked). The chat-bound one is the one that decides, because
+        // the write lands in the CHAT's book (= the tool writes into
+        // `bookDirectoryProvider()`), = but the LLM-named one is
+        // checked too, so a caller that names the help book gets the
+        // same refusal even when the chat is bound elsewhere.
+        if BookSessionLifecycle.isHelpBook(bookId) {
+            throw BookScopeViolation.readOnlyBook(bookID: bookId)
+        }
+        if let current = currentChatBookIDProvider(),
+           BookSessionLifecycle.isHelpBook(current)
+        {
+            throw BookScopeViolation.readOnlyBook(bookID: current)
+        }
         // chapter-focus-lock (= single-focus model): throws when the user's editor tab is
         // focused on this chapter. The conductor (=
         // WenshuConductor.executeIfUnlocked) catches this and presents an

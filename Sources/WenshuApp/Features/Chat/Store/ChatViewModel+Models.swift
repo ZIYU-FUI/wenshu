@@ -34,9 +34,9 @@ extension ChatViewModel {
         return "MiniMax-M3"
     }
 
-    /// Updates the active scope (= called by the view layer when the user picks a
-    /// book). It sets the session id and reloads the history. It is a no-op when
-    /// the bookID is unchanged.
+    /// Updates the active scope (= called by the view layer when the user
+    /// picks a different book). It sets the session id and reloads the
+    /// history. It is a no-op when the scope is unchanged.
     func setCurrentBookID(_ bookID: BookID?) {
         if currentBookID == bookID {
             return
@@ -47,6 +47,32 @@ extension ChatViewModel {
         // SwiftData store (= the WSChatMessage.bookID column is what scopes
         // reads, not the session id).
         sessionId = Self.makeSessionID(for: bookID)
+        // Fire-and-forget reload against the new scope.
+        Task { await self.loadHistory() }
+    }
+
+    /// Updates the active scope to a whole conversation scope.
+    ///
+    /// The scope is the chat zone's top bar's unit (= the repository
+    /// conversation, = one per ordinary book, = the reference-library
+    /// conversation), and it owns two things: the session id the
+    /// conversation is stored under, and the book id the conversation is
+    /// scoped to.
+    ///
+    /// It is a no-op when the scope is unchanged, so a repeated write of
+    /// the same scope does not reload the history.
+    func setScope(_ scope: ChatScope) {
+        let newBookID = scope.bookID
+        guard currentBookID != newBookID || sessionId != scope.sessionID else {
+            return
+        }
+        currentBookID = newBookID
+        // The scope owns the session id: a book scope keeps the per-book
+        // key, and the two fixed scopes take their own keys (= the
+        // repository conversation keeps the historical `default` key, =
+        // so the rows written before this feature existed stay
+        // reachable).
+        sessionId = scope.sessionID
         // Fire-and-forget reload against the new scope.
         Task { await self.loadHistory() }
     }

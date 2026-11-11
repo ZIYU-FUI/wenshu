@@ -173,8 +173,15 @@ struct SidebarRowView: View {
                             Button(String(localized: "sidebar_context_menu_new_book_here")) {
                                 callbacks.onNewBookHere(shelf.id)
                             }
-                            Button(String(localized: "sidebar_context_menu_rename")) {
-                                callbacks.onRenameShelf(shelf.id, shelf.name)
+                            // The default shelf's name is the app's
+                            // (= the localized default-shelf title),
+                            // so the user is not offered a rename for
+                            // it. The shelf itself IS deletable (= only
+                            // its name is protected).
+                            if !BookSessionLifecycle.isDefaultShelf(shelf.id) {
+                                Button(String(localized: "sidebar_context_menu_rename")) {
+                                    callbacks.onRenameShelf(shelf.id, shelf.name)
+                                }
                             }
                             Button(
                                 String(localized: "sidebar_context_menu_delete"),
@@ -187,11 +194,18 @@ struct SidebarRowView: View {
                 case .book:
                     if let book = callbacks.resolveBook(node.id) {
                         return AnyView(content.contextMenu {
-                            Button("导入") {
-                                callbacks.onImportToBook(book.id)
-                            }
-                            Button(String(localized: "sidebar_context_menu_rename")) {
-                                callbacks.onRenameBook(book.id, book.name)
+                            // The help book is the app's own document
+                            // (= read-only): it takes no import, and it
+                            // is not offered a rename. It IS
+                            // deletable (= the user may clear the
+                            // app's own document out of the way).
+                            if !BookSessionLifecycle.isHelpBook(book.id) {
+                                Button("导入") {
+                                    callbacks.onImportToBook(book.id)
+                                }
+                                Button(String(localized: "sidebar_context_menu_rename")) {
+                                    callbacks.onRenameBook(book.id, book.name)
+                                }
                             }
                             Button(
                                 String(localized: "sidebar_context_menu_delete"),

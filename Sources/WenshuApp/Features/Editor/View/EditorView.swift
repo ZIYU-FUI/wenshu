@@ -448,7 +448,7 @@ struct EditorView: View {
         }
         surface.isEditable = !(appState.focusedChapterPath != nil
             && !workspaceUI.chatVisible
-            && appState.focusedChapterPath == currentTabDocumentPath)
+            && appState.focusedChapterPath == currentTabDocumentPath) && !EditorReadOnlyGuard.isReadOnly(activeTab)
         return surface
     }
 

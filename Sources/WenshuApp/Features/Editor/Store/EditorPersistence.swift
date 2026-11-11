@@ -42,8 +42,8 @@
 //
 
 import Foundation
-import WenshuData
 import os
+import WenshuData
 
 /// Result of `EditorPersistence.reloadFromDisk(tab:)`. The
 /// `newContent` field carries the on-disk file contents (for the
@@ -62,7 +62,6 @@ struct EditorPersistenceReloadResult: Equatable, Sendable {
 /// structs for the caller to act on.
 @MainActor
 enum EditorPersistence {
-
     /// Save the tab's draft to disk. See the file header for the
     /// 3-path resolution.
     ///
@@ -80,6 +79,29 @@ enum EditorPersistence {
     ///   the legacy `try?` behavior).
     @discardableResult
     static func save(tab: EditorTab, bookStore: BookStore?) -> String? {
+        // The help book (= the app's own document) is read-only: the
+        // editor's auto-save must not write into it.
+        //
+        // ⇒ THE KEY IS THE TAB'S OWN DOCUMENT, = and the ONE rule that
+        // reads it lives in `EditorReadOnlyGuard`: = that guard asks the
+        // tab's own SCOPE (= `tab.sourceScope`) AND the tab's own PATH
+        // (= which names its book by the library's layout, = and which is
+        // the one thing that survives a relaunch), = and it refuses when
+        // either names the read-only book. = ⇒ AND NOT THE TREE'S
+        // SELECTED BOOK: = the tab's document and the selected book are
+        // two different books in the ordinary case, = and a refusal keyed
+        // on the selection refuses the WRONG writes (= it drops an
+        // ordinary book's unsaved edit when the user happens to have the
+        // help book's row selected) while letting the help book's OWN
+        // file through. = Both were measured.
+        //
+        // The editor's SURFACE refuses the edit for the same tab (= see
+        // `EditorView`'s `isEditable` gate, = which asks this same
+        // question), = so this is the second door: = the surface is a UI
+        // gate, = and this one is the write path itself.
+        if EditorReadOnlyGuard.isReadOnly(tab) {
+            return nil
+        }
         // 2026-10-14 perf: the dirty-skip + content-
         // equality short-circuit is the primary
         // perf win for the auto-save path (= most
@@ -150,7 +172,8 @@ enum EditorPersistence {
             // `if let id = ...` chain is only
             // reached on the actual-write path).
             if let existing = try? String(contentsOf: url, encoding: .utf8),
-               existing == tab.draft {
+               existing == tab.draft
+            {
                 // Already on disk with the same
                 // content. Skip the write AND the
                 // SwiftData body update (= both
@@ -168,6 +191,16 @@ enum EditorPersistence {
             os_log("[wenshu.editor.save] writeOk=%{public}@ bytes=%{public}d",
                    written ? "true" : "false",
                    (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int) ?? -1)
+            // ⇒ A WRITE THAT DID NOT LAND IS A FAILED SAVE. = The caller
+            // marks the tab clean when the save returns a path, = so
+            // returning the path after a failed write would tell the
+            // caller the edit is on disk (= it is not), = and the edit
+            // would vanish. = MEASURED: a write into a read-only parent
+            // fails (= a permission error), = and the save reported
+            // success.
+            if !written {
+                return nil
+            }
             // 2026-10-14: doc-truth-git ticket. When the
             // path points inside the library's
             // `references/` directory (= a reference-
@@ -194,7 +227,8 @@ enum EditorPersistence {
                let store = bookStore?.stores.referenceStore,
                (try? store.replaceReferenceByID(
                    id: id, bodyMarkdown: tab.draft
-               )) != nil {
+               )) != nil
+            {
                 // The SwiftData `body` cache is now
                 // consistent with the on-disk file
                 // (= the LLM agent's
@@ -216,6 +250,14 @@ enum EditorPersistence {
         if let proposed = DraftPersistence.proposedPath(
             for: tab, bookStore: bookStore
         ) {
+            // ⇒ THE RULE IS ABOUT THE PATH THE WRITE LANDS ON, = so
+            // every path the write can take is asked. = (A tab with no
+            // document yet writes to the proposed path, = so that path
+            // is asked here, = and the tab's own path is asked by the
+            // guard above.)
+            if BookSessionLifecycle.isReadOnlyDocumentPath(proposed.path) {
+                return nil
+            }
             do {
                 let parent = proposed.deletingLastPathComponent()
                 try FileManager.default.createDirectory(
@@ -232,8 +274,8 @@ enum EditorPersistence {
         // Path 3: no documentPath + no proposed path → legacy /tmp
         // fallback (= the dev inner-loop case = no .ws library).
         let url = URL(fileURLWithPath: "/tmp/wenshu-preview-sample.md")
-        try? tab.draft.write(to: url, atomically: true, encoding: .utf8)
-        return url.path
+        let written = (try? tab.draft.write(to: url, atomically: true, encoding: .utf8)) != nil
+        return written ? url.path : nil
     }
 
     /// Read the on-disk file at `tab.documentPath`. If the tab
@@ -317,12 +359,20 @@ enum EditorPersistence {
                         // but `await Task.sleep` resumes here on the main
                         // actor per the surrounding @MainActor context).
                         // No `MainActor.run` hop needed.
-                        save(tab: tab, bookStore: bookStore)
                         // after auto-save, mark the document as
                         // clean (= originalBody = draft = the cycle
                         // ends; = subsequent handleDirtyTransition
                         // calls find a clean state and skip).
-                        tab.originalBody = tab.draft
+                        //
+                        // ⇒ ONLY WHEN THE SAVE HAPPENED. = A save
+                        // that did NOT happen (= the read-only book's
+                        // refusal, = or a write that failed) leaves the
+                        // tab DIRTY, = so the edit is still pending
+                        // (= it is not silently dropped, = and the
+                        // next auto-save tick tries again).
+                        if save(tab: tab, bookStore: bookStore) != nil {
+                            tab.originalBody = tab.draft
+                        }
                     }
                     tab.autoSaveTask = nil
                 }

@@ -105,6 +105,18 @@ struct WriteBookDocTool: Tool, Sendable {
 
     func execute(input: String) async throws -> String {
         let dict = try ToolInputParser.parseDictionary(input: input)
+        // The help book (= the app's own document) is read-only: the
+        // import agent may not write into it. The check is HERE (= at
+        // the tool's own entry) and not only in the UI, because the
+        // agent reaches this tool without ever touching the sidebar.
+        if let bookRoot = await bookPathProvider(),
+           BookSessionLifecycle.isReadOnlyBookDirectory(URL(fileURLWithPath: bookRoot))
+        {
+            throw ToolExecutorError.invalidInput(
+                name: "writeBookDoc",
+                reason: "This book is the app's own help document and it is read-only. Import into one of the user's own books instead."
+            )
+        }
         // Relative path (= within the current book). MUST NOT start with `/` (= absolute
         // paths are rejected; = the tool is book-scoped; = if a future caller
         // wants cross-book write, they pick a different tool).

@@ -61,6 +61,9 @@ enum ChapterStoreError: Error, LocalizedError {
     case chapterAlreadyExists(id: UUID)
     case chapterNotFound(id: UUID)
     case bookDirectoryMissing(path: String)
+    /// The book is read-only (= the app's own help document), so the
+    /// write is refused.
+    case bookIsReadOnly(bookID: UUID)
 
     var errorDescription: String? {
         switch self {
@@ -70,6 +73,8 @@ enum ChapterStoreError: Error, LocalizedError {
             return "Chapter \(id.uuidString) not found on disk."
         case .bookDirectoryMissing(let path):
             return "Book directory does not exist: \(path). Cannot save chapters."
+        case let .bookIsReadOnly(bookID):
+            return "Book \(bookID.uuidString) is read-only. Its chapters cannot be written."
         }
     }
 }
@@ -111,6 +116,28 @@ struct FileSystemChapterStore: ChapterStoring {
         // convention = .ws/shelves/<shelf>/books/<book-uuid>/).
         let lastComponent = bookDirectory.lastPathComponent
         return UUID(uuidString: lastComponent) ?? UUID()
+    }
+
+    /// Whether this store is pointed at a read-only book.
+    ///
+    /// The help book (= the app's own document) is read-only for the
+    /// user: it cannot be edited, and it cannot be modified. The check
+    /// lives HERE (= the filesystem layer) rather than in the callers,
+    /// because the callers are many (= the agent's chapter tools, = the
+    /// import flow) and a rule that lives in the callers is a rule that
+    /// some caller forgets.
+    ///
+    /// **⇒ WHAT REACHES THIS GUARD (= the reach, stated honestly).** The
+    /// STATIC write paths are the agent's chapter path (= the actor
+    /// callers cannot reach the MainActor-isolated instance methods, =
+    /// so they call the static helpers directly). The INSTANCE methods
+    /// have no production caller yet (= the editor writes its drafts
+    /// through `EditorPersistence.save`, = which has its own read-only
+    /// guard). So the guard is live on the agent's path, = and the
+    /// instance methods are the shape the editor will use when its
+    /// chapter writes move to this store.
+    private var isReadOnlyBook: Bool {
+        BookSessionLifecycle.isHelpBook(bookID)
     }
 
     init(bookDirectory: URL, modelContainer: ModelContainer? = nil) {
@@ -176,6 +203,12 @@ struct FileSystemChapterStore: ChapterStoring {
     }
 
     func saveChapter(_ chapter: Document, bodyMarkdown: String) throws {
+        // The read-only check comes FIRST (= before the write path is
+        // chosen), so both the SwiftData path and the legacy FileSystem
+        // path are covered by one guard.
+        guard !isReadOnlyBook else {
+            throw ChapterStoreError.bookIsReadOnly(bookID: bookID)
+        }
         // Apple HIG dual-write pattern: if no ModelContainer is wired, fall back to the
         // legacy FileSystem path (= actor- based callers that can't reach
         // MainActor; = the existing test suite that instantiates
@@ -238,6 +271,9 @@ struct FileSystemChapterStore: ChapterStoring {
     }
 
     func replaceChapter(_ chapter: Document, bodyMarkdown: String) throws {
+        guard !isReadOnlyBook else {
+            throw ChapterStoreError.bookIsReadOnly(bookID: bookID)
+        }
         guard modelContainer != nil else {
             try Self.writeChapterToFileSystem(
                 chapter: chapter,
@@ -285,6 +321,9 @@ struct FileSystemChapterStore: ChapterStoring {
     }
 
     func deleteChapter(id: UUID) throws {
+        guard !isReadOnlyBook else {
+            throw ChapterStoreError.bookIsReadOnly(bookID: bookID)
+        }
         guard modelContainer != nil else {
             try Self.deleteChapterFromFileSystem(
                 id: id,
@@ -401,6 +440,15 @@ struct FileSystemChapterStore: ChapterStoring {
         chaptersDirectory: URL,
         indexURL: URL
     ) throws {
+        // The read-only guard sits HERE (= the static path) as well as in
+        // the instance method, because the actor-based callers (= the
+        // agent's chapter tools) reach this function directly and never
+        // touch the instance method.
+        guard !BookSessionLifecycle.isReadOnlyBookDirectory(bookDirectory) else {
+            throw ChapterStoreError.bookIsReadOnly(
+                bookID: BookSessionLifecycle.bookID(inBookDirectory: bookDirectory) ?? UUID()
+            )
+        }
         try Self.ensureFileSystemChaptersDirectory(at: chaptersDirectory)
         var chapter = chapter
         chapter.category = .chapter
@@ -428,6 +476,11 @@ struct FileSystemChapterStore: ChapterStoring {
         chaptersDirectory: URL,
         indexURL: URL
     ) throws {
+        guard !BookSessionLifecycle.isReadOnlyBookDirectory(bookDirectory) else {
+            throw ChapterStoreError.bookIsReadOnly(
+                bookID: BookSessionLifecycle.bookID(inBookDirectory: bookDirectory) ?? UUID()
+            )
+        }
         try Self.ensureFileSystemChaptersDirectory(at: chaptersDirectory)
         var chapter = chapter
         chapter.category = .chapter
@@ -457,6 +510,11 @@ struct FileSystemChapterStore: ChapterStoring {
         chaptersDirectory: URL,
         indexURL: URL
     ) throws {
+        guard !BookSessionLifecycle.isReadOnlyBookDirectory(bookDirectory) else {
+            throw ChapterStoreError.bookIsReadOnly(
+                bookID: BookSessionLifecycle.bookID(inBookDirectory: bookDirectory) ?? UUID()
+            )
+        }
         let chapterURL = chaptersDirectory
             .appendingPathComponent("\(id.uuidString).md")
         if FileManager.default.fileExists(atPath: chapterURL.path) {
