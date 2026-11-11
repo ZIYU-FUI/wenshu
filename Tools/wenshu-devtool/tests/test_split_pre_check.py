@@ -2107,6 +2107,430 @@ def case_the_swiftlint_arm_really_sees_the_vendored_tree() -> None:
         )
 
 
+
+def case_a_local_cannot_hide_a_types_private_member() -> None:
+    """NB1, = = THE CLOBBER: = = a LOCAL with the same name.
+
+    = = ⇒ AND THE BASE'S SCAN IS THE ONE THAT FAILS. = = = = The base
+    # = = = = holds a type's `private` member, = = = = and a function
+    # = = = = body later declares a LOCAL with the same name (= = = =
+    # = = = = the flat scan's LAST match wins, = = = = and the local's
+    # = = = = `not private` is what the scan remembers). = = = = ⇒ The tip
+    # = = = = widens the type's member, = = = = and the arm must SEE it.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                private func helper() -> Int {
+                    1
+                }
+
+                public func one() -> Int {
+                    let helper = 2
+                    return helper
+                }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Thing {
+                public func helper() -> Int {
+                    1
+                }
+
+                public func one() -> Int {
+                    let helper = 2
+                    return helper
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "a local cannot hide a type's private member",
+            "Traceback" not in proc.stderr and "helper" in out,
+            out[-1200:],
+        )
+
+
+def case_a_second_type_with_the_same_name_does_not_speak_for_the_first() -> None:
+    """NB1, = = THE OTHER CLOBBER: = = the same NAME in two types.
+
+    = = ⇒ AND THE PRIVACY DISAGREES. = = = = `Alpha.value` is `private`
+    # = = = = and `Beta.value` is not, = = = = and the tip widens
+    # = = = = `Alpha.value`. = = = = ⇒ The arm must report THAT ONE, = =
+    # = = = and a scan that remembers one privacy per NAME would report
+    # = = = = whichever it happened to keep (= = = = and it would report
+    # = = = = `Beta.value` = = = = when `Beta.value` did NOT widen, = = = =
+    # = = = = which is the false positive a sticky scan produces).
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Beta {
+                public var value: Int = 0
+            }
+
+            public struct Alpha {
+                private var value: Int = 0
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Beta {
+                public var value: Int = 0
+            }
+
+            public struct Alpha {
+                public var value: Int = 0
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "the second type's same-named member does not speak for the first",
+            "Traceback" not in proc.stderr
+            and "Alpha" in out
+            and "Beta" not in out,
+            out[-1200:],
+        )
+
+
+def case_the_probe_recognises_the_transitive_inaccessible_initializer() -> None:
+    """THE TRANSITIVE FORM: = = the compiler names the TYPE, = = not the
+    member.
+
+    = = ⇒ AND THE MEMBER IS NEEDED. = = = = Another file builds the
+    # = = = = member through the type's SYNTHESIZED memberwise
+    # = = = = initializer, = = = = and putting the member back to
+    # = = = = `private` makes that initializer inaccessible. = = = = ⇒ The
+    # = = = = compiler says `'Reader' initializer is inaccessible due to
+    # = = = = 'private' protection level`, = = = = and it does NOT name
+    # = = = = the member. = = ⇒ So the arm must read that shape as "a file
+    # = = = = DID need it", = = = = and not as a failure to measure.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Reader.swift", """
+            public struct Reader {
+                private var engine: Int
+            }
+        """)
+        # = = ⇒ AND THE BASE DOES NOT CONSTRUCT THE TYPE. = = = = With the
+        # = = = = member `private`, = = = = the memberwise initializer is
+        # = = = = private too, = = = = and no other file can call it.
+        write(repo, "Sources/Probe/User.swift", """
+            public struct User {
+                public let reader: Reader
+
+                public init(reader: Reader) {
+                    self.reader = reader
+                }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Probe/Reader.swift", """
+            public struct Reader {
+                public var engine: Int
+            }
+        """)
+        # = = ⇒ AND THE TIP DOES. = = = = The member is public, = = = = so
+        # = = = = the memberwise initializer is internal, = = = = and this
+        # = = = = file builds the type through it. = = = = ⇒ Putting the
+        # = = = = member back to `private` makes the initializer private,
+        # = = = = and the compiler says so = = = = BY NAMING THE TYPE.
+        write(repo, "Sources/Probe/User.swift", """
+            public struct User {
+                public let reader: Reader
+
+                public init() {
+                    self.reader = Reader(engine: 1)
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "the transitive inaccessible initializer is read as a need",
+            "Traceback" not in proc.stderr
+            and "could not measure it" not in out
+            and "unneeded promotion" not in out,
+            out[-1600:],
+        )
+
+
+def case_a_renamed_type_still_pairs_with_its_member() -> None:
+    """THE PAIRING, = = RULE 2: = = the type was RENAMED, = = and the
+    member is the same member.
+
+    = = ⇒ AND THE ARM MUST STILL SEE THE WIDENING. = = = = A split that
+    # = = = = renames its type (= = = = `Old` -> `New`) = = = = moves the
+    # = = = = member's identity, = = = = and a pairing that insists on the
+    # = = = = type's NAME = = = = would lose the widening. = = ⇒ So a name
+    # = = = = with ONE candidate in the base file pairs regardless of the
+    # = = = = owner's name.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Old.swift", """
+            public struct Old {
+                private func helper() -> Int {
+                    1
+                }
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        (repo / "Sources/Probe/Old.swift").unlink()
+        write(repo, "Sources/Probe/New.swift", """
+            public struct New {
+                public func helper() -> Int {
+                    1
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "a renamed type still pairs with its member",
+            "Traceback" not in proc.stderr and "helper" in out,
+            out[-1200:],
+        )
+
+
+def case_an_ambiguous_name_says_nothing() -> None:
+    """THE PAIRING, = = RULE 3: = = the name has SEVERAL candidates and
+    the owner matches NONE of them.
+
+    = = ⇒ AND THE ARM SAYS NOTHING. = = = = The base holds two types with
+    # = = = = the same member name, = = = = and the tip's type is a third
+    # = = = = one (= = = = renamed, = = = = or new), = = = = = so the arm
+    # = = = = cannot say which base member this is. = = ⇒ It says nothing,
+    # = = = = because a gate that guesses is worse than a gate that is
+    # = = = = silent (= = = = and the widening it might have reported is
+    # = = = = measured on a MEMBER, = = = = and the probe rewrites one
+    # = = = = line, = = = = so a wrong pairing measures the wrong thing).
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Alpha {
+                private var value: Int = 0
+            }
+
+            public struct Beta {
+                private var value: Int = 0
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Alpha {
+                private var value: Int = 0
+            }
+
+            public struct Beta {
+                private var value: Int = 0
+            }
+
+            public struct Gamma {
+                public var value: Int = 0
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "an ambiguous name says nothing",
+            "Traceback" not in proc.stderr
+            and "was widened" not in out,
+            out[-1200:],
+        )
+
+
+def case_a_new_member_of_another_type_is_not_a_widening() -> None:
+    """THE PAIRING, = = RULE 2's GUARD: = = the base's type is STILL THERE.
+
+    = = ⇒ AND THE TIP'S OTHER MEMBER IS NEW. = = = = The base holds
+    # = = = = `Alpha.value` (= = = = `private`), = = = = and the tip holds
+    # = = = = `Alpha.value` (= = = = still `private`) = = = = and a NEW type
+    # = = = = with a NEW member of the same name. = = ⇒ That new member is
+    # = = = = NOT a widening of the old one, = = = = and the arm must not
+    # = = = = report it. = = = = ⇒ So the renamed-type rule fires only when
+    # = = = = the base's type is GONE from the tip's family.
+
+    = = ⇒ AND THIS IS MEASURED, = = = = not invented: = = = = the export
+    # = = = = sheet's split added `ChapterFileExporter.chapters` (= = = =
+    # = = = = a new member) = = = = while `ExportSheet.chapters` stayed
+    # = = = = `private`, = = = = and the rule without the guard called it a
+    # = = = = widening.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Alpha {
+                private var value: Int = 0
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        write(repo, "Sources/Probe/Thing.swift", """
+            public struct Alpha {
+                private var value: Int = 0
+            }
+
+            public struct Gamma {
+                public var value: Int = 0
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "a new member of another type is not a widening",
+            "Traceback" not in proc.stderr and "was widened" not in out,
+            out[-1200:],
+        )
+
+
+def case_the_probe_recognises_the_projected_value_complaint() -> None:
+    """THE THIRD COMPLAINT SHAPE: = = a property wrapper's PROJECTED VALUE.
+
+    = = ⇒ AND THE COMPILER PUTS A `$` IN THE NAME. = = = = Swift says
+    # = = = = `'$engine' is inaccessible due to 'private' protection level`,
+    # = = = = and the `$` sits between the quote and the name, = = = = so a
+    # = = = = test that reads `'engine' is inaccessible` does NOT match it
+    # = = = = (= = = = measured with `swiftc -swift-version 6 -typecheck`).
+
+    = = ⇒ AND THIS IS THE SAME COUPLED REPAIR. = = = = The arm can only
+    # = = = = reach this shape because the BASE side now reads `private`
+    # = = = = AFTER an attribute (= = = = the old base-side scan placed the
+    # = = = = access level BEFORE the attribute, = = = = so it never saw
+    # = = = = `@Box private var engine` at all). = = ⇒ So the detection and
+    # = = = = the probe's reading of the compiler's answer are ONE repair.
+
+    = = ⇒ AND THE FIXTURE IS LEGAL SWIFT 6. = = = = The property wrapper is
+    # = = = = written in the fixture (= = = = so the fixture needs no
+    # = = = = framework), = = = = and the projected value is read across the
+    # = = = = file boundary (= = = = which is what makes the member's access
+    # = = = = level matter).
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        repo = make_buildable_repo(tmp)
+        write(repo, "Sources/Probe/Box.swift", """
+            @propertyWrapper
+            public struct Box<Value> {
+                private var value: Value
+
+                public init(wrappedValue: Value) {
+                    self.value = wrappedValue
+                }
+
+                public var wrappedValue: Value {
+                    get { value }
+                    set { value = newValue }
+                }
+
+                public var projectedValue: Box<Value> { self }
+            }
+        """)
+        write(repo, "Sources/Probe/Reader.swift", """
+            public struct Reader {
+                @Box private var engine: Int = 0
+
+                public init() {}
+            }
+        """)
+        commit(repo, "base")
+        base = git(repo, "rev-parse", "HEAD").strip()
+        # = = ⇒ THE TIP WIDENS THE MEMBER (= = = = and a NEW file reads
+        # = = = = the projected value across the boundary, = = = = which is
+        # = = = = why the tip widened it).
+        write(repo, "Sources/Probe/Reader.swift", """
+            public struct Reader {
+                @Box internal var engine: Int = 0
+
+                public init() {}
+            }
+        """)
+        write(repo, "Sources/Probe/User.swift", """
+            public struct User {
+                public let reader: Reader
+
+                public init(reader: Reader) {
+                    self.reader = reader
+                    _ = reader.$engine
+                }
+            }
+        """)
+        commit(repo, "tip")
+        head = git(repo, "rev-parse", "HEAD").strip()
+
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), "--repo", str(repo), "--base", base,
+             "--head", head, "--probe-promotions"],
+            capture_output=True, text=True,
+        )
+        out = proc.stdout + proc.stderr
+        expect(
+            "the projected value complaint is read as a need",
+            "Traceback" not in proc.stderr
+            and "could not measure it" not in out
+            and "unneeded promotion" not in out,
+            out[-1600:],
+        )
+
 def main() -> int:
     print("split_pre_check: every check has a positive control")
     for case in (
@@ -2147,6 +2571,13 @@ def main() -> int:
         case_the_rewrite_keeps_the_members_modifiers_on_a_real_file,
         case_the_injection_hook_does_not_delete_a_tree_the_caller_owns,
         case_the_swiftlint_arm_really_sees_the_vendored_tree,
+        case_a_local_cannot_hide_a_types_private_member,
+        case_a_second_type_with_the_same_name_does_not_speak_for_the_first,
+        case_the_probe_recognises_the_transitive_inaccessible_initializer,
+        case_the_probe_recognises_the_projected_value_complaint,
+        case_a_renamed_type_still_pairs_with_its_member,
+        case_an_ambiguous_name_says_nothing,
+        case_a_new_member_of_another_type_is_not_a_widening,
     ):
         print(f"--- {case.__name__}")
         case()

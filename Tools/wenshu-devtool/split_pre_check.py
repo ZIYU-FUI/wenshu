@@ -211,6 +211,154 @@ def strip_comments(text: str) -> str:
     return "\n".join(out)
 
 
+# = = ⇒ AND A MEMBER'S IDENTITY IS (OWNING TYPE, NAME). = = ⇒ The
+# = = = = promotions arm's base-side scan used to key a member by
+# = = = = (file, name) and keep the LAST match, = = = = and two things
+# = = = = overwrote a real `private` member: = = = = a LOCAL in a
+# = = = = function body (= = = = the flat regex admitted any indentation)
+# = = = = and the SAME NAME in a DIFFERENT type of the same file.
+# = = = = Measured on `main`: = = = = 65 (file, name) pairs where a local
+# = = = = hides a type's `private` member (= = = = 52 of them in
+# = = = = `Sources/` and `Tests/`), = = = = and, in `Sources/` and
+# = = = = `Tests/`, = = = = 15 (file, name) pairs where the name lives in
+# = = = = two types with disagreeing privacy (= = = = 14 names).
+_TYPE_DECL = re.compile(
+    r"\b(?:struct|class|enum|actor|protocol|extension)\s+(\w+)"
+)
+
+
+# = = ⇒ AND A STRING LITERAL'S BRACES ARE NOT BRACES. = = Measured on
+# = = = = `main`: = = = = 90 files hold an unbalanced brace inside a
+# = = = = string literal, = = = = and the type stack goes wrong from the
+# = = = = first one. = = ⇒ So the scan reads the code with the literals
+# = = = = masked out.
+_STRING_LITERAL = re.compile(r'"(?:\\.|[^"\\\n])*"')
+
+
+def mask_code(text: str) -> str:
+    """The code, = = with the comments and the string literals' contents
+    blanked, = = and the LINE COUNT kept.
+
+    = = ⇒ AND THE LINE COUNT MATTERS. = = = = The scan says which LINE a
+    # = = = = declaration is on, = = = = and the arm rewrites that line,
+    # = = = = so a mask that DROPPED the comment lines (= = = = the
+    # = = = = tool's own `strip_comments` does) would count them out.
+
+    = = ⇒ AND THE STRINGS ARE MASKED FIRST. = = = = A `//` inside a
+    # = = = = string literal is not a comment, = = = = and a `http://` in
+    # = = = = a literal would otherwise cut the line in half.
+    """
+    masked = _STRING_LITERAL.sub(lambda m: '"' + " " * (len(m.group(0)) - 2) + '"', text)
+    out = []
+    in_block = False
+    for line in masked.split("\n"):
+        stripped = line.strip()
+        if in_block:
+            out.append("")
+            if "*/" in stripped:
+                in_block = False
+            continue
+        if stripped.startswith("/*"):
+            out.append("")
+            if "*/" not in stripped:
+                in_block = True
+            continue
+        if stripped.startswith("//"):
+            out.append("")
+            continue
+        # = = ⇒ A TRAILING comment is masked too, = = because a brace in
+        # = = = = it is not a brace.
+        cut = line.find("//")
+        if cut >= 0:
+            out.append(line[:cut])
+            continue
+        out.append(line)
+    return "\n".join(out)
+
+
+
+def _owner_survives(owner: str, tips_of_base: dict[str, list[str]],
+                    tip_types: dict[str, set[str]]) -> bool:
+    """Does the base's owning type STILL EXIST in the tip's own family?
+
+    = = ⇒ AND THIS IS THE GUARD ON THE RENAMED-TYPE RULE. = = = = A name
+    # = = = = with ONE candidate in the base file pairs with a tip member
+    # = = = = of another owner (= = = = the type was renamed), = = = = but
+    # = = = = only when the base's type is GONE from the tip. = = = = If it
+    # = = = = is still there, = = = = then the tip's other-owner member is a
+    # = = = = DIFFERENT member (= = = = measured: = = = = `ExportSheet`
+    # = = = = still holds `chapters`, = = = = and the tip's NEW
+    # = = = = `ChapterFileExporter.chapters` is a new member, = = = = not a
+    # = = = = widening of it).
+
+    = = ⇒ AND THE FAMILY, = = = = NOT THE ONE FILE. = = = = A split moves
+    # = = = = a type into a NEW file, = # = = = and the type is still there
+    # = = = = (= = = = the tip's family holds it). = = ⇒ So the question is
+    # = = = = asked of every tip file that came from the base's file.
+    """
+    if not owner:
+        return False
+    for base_rel, tip_rels in tips_of_base.items():
+        for tip_rel in tip_rels:
+            if owner in tip_types.get(tip_rel, set()):
+                return True
+    return False
+
+
+def scoped_members(text: str) -> list[tuple[str, str, bool, int]]:
+    """The MEMBERS a file declares, = = each with the TYPE that owns it.
+
+    = = ⇒ AND A MEMBER IS A DECLARATION WHOSE ENCLOSING FRAME IS A TYPE.
+    # = = = = A local inside a function body sits in a deeper frame, = = = =
+    # = = = = and it is not a member (= = = = the tool's own
+    # = = = = `_declarations` says the same thing). = = = = The old scan
+    # = = = = read a local as a member, = = = = and = = = = the LAST match
+    # = = = = won, = = = = so a local overwrote a type's `private` member.
+
+    = = ⇒ AND THE OWNING TYPE IS PART OF THE IDENTITY. = = = = Two types
+    # = = = = can declare the same name, = = = = and one can be private
+    # = = = = while the other is not, = = = = so (type, name) is what
+    # = = = = names a member. = = = = Measured on `main`: = = = = 65
+    # = = = = (file, name) pairs where a local hides a type's `private`
+    # = = = = member (= = = = 52 of them in `Sources/` and `Tests/`), = =
+    # = = = = and, in `Sources/` and `Tests/`, = = = = 15 (file, name)
+    # = = = = pairs where the name lives in two types with disagreeing
+    # = = = = privacy (= = = = 14 names).
+
+    = = ⇒ AND THE ACCESS LEVEL IS READ IN ITS WHOLE VOCABULARY. = = = =
+    # = = = = `public`, `internal`, `private`, `fileprivate` and `open`,
+    # = = = = and an absent access level means `internal`. = = = = The old
+    # = = = = scan admitted `private` only, = = = = so a `fileprivate`
+    # = = = = member was not read as private at all.
+    """
+    code = mask_code(text)
+    frames: list[str] = []   # the type name of each open frame (= = "" = not a type)
+    out: list[tuple[str, str, bool, int]] = []
+    for number, line in enumerate(code.split("\n"), 1):
+        tm = _TYPE_DECL.search(line)
+        dm = re.match(
+            r"^(\s*)(?:@\w+(?:\([^)]*\))?\s+)*"
+            r"(?:(public|internal|private|fileprivate|open)\s+)?"
+            rf"(?:{_MEMBER_MODIFIERS})(?:var|let|func)\s+(\w+)",
+            line,
+        )
+        # = = ⇒ AND THE OWNER IS THE TYPE, = = or the FILE for a
+        # = = = = declaration at file scope (= = = = a top-level `private
+        # = = = = func is file-scoped, = = = = and promoting it IS a
+        # = = = = widening). = = = = A local inside a function body sits
+        # = = = = in a non-type frame, = = = = and it is not a member.
+        if dm and (not frames or frames[-1]):
+            access = (dm.group(2) or "").strip()
+            out.append((frames[-1] if frames else "", dm.group(3),
+                        access in ("private", "fileprivate"), number))
+        for ch in line:
+            if ch == "{":
+                frames.append(tm.group(1) if tm else "")
+            elif ch == "}" and frames:
+                frames.pop()
+    return out
+
+
 def tokens(text: str) -> list[str]:
     return re.findall(r"[A-Za-z_][A-Za-z0-9_]*", strip_comments(text))
 
@@ -888,7 +1036,7 @@ _MEMBER_MODIFIERS_CAPTURE = (
 )
 
 
-def _rewrite_to_private(text: str, name: str) -> str:
+def _rewrite_to_private(text: str, name: str, owner: str | None = None) -> str:
     """The promotions arm's REWRITE: = = the access level becomes
     `private`, = = and the modifier words STAY.
 
@@ -898,14 +1046,45 @@ def _rewrite_to_private(text: str, name: str) -> str:
     # = = = = the review's MUT C left the suite green, = = = = and so would
     # = = = = mine). = = ⇒ So the case calls THIS, = = = = and a mutation
     # = = = = here is a mutation the case sees.
+
+    = = ⇒ AND THE OWNING TYPE PICKS THE LINE. = = = = Without it the
+    # = = = = rewrite takes the FIRST declaration of that name in the
+    # = = = = file, = = = = and a file with the same name in two types
+    # = = = = would have the WRONG one put back to `private` (= = = = and
+    # = = = = the probe then measured a member nobody widened).
     """
-    return re.sub(
+    pattern = (
+        rf"^(\s*)((?:@\w+(?:\([^)]*\))?\s+)*)"
+        rf"(?:(?:public|internal|private|fileprivate|open)\s+)?"
+        rf"({_MEMBER_MODIFIERS_CAPTURE})(var|let|func)\s+{re.escape(name)}\b"
+    )
+    replacement = rf"\g<1>\g<2>private \g<3>\g<4> {name}"
+    if owner is None:
+        # = = ⇒ AND WITHOUT AN OWNER, = = = = the rewrite takes the FIRST
+        # = = = = declaration of that name, = = = = wherever it is (= = = =
+        # = = = = the helper's own contract, = = = = and a caller with no
+        # = = = = type context still gets a rewrite).
+        return re.sub(pattern, replacement, text, count=1, flags=re.M)
+    lines = text.split("\n")
+    target = None
+    for member_owner, member_name, _private, number in scoped_members(text):
+        if member_name != name:
+            continue
+        if member_owner != owner:
+            continue
+        target = number
+        break
+    if target is None:
+        return text
+    line = lines[target - 1]
+    lines[target - 1] = re.sub(
         rf"^(\s*)((?:@\w+(?:\([^)]*\))?\s+)*)"
         rf"(?:(?:public|internal|private|fileprivate|open)\s+)?"
         rf"({_MEMBER_MODIFIERS_CAPTURE})(var|let|func)\s+{re.escape(name)}\b",
         rf"\g<1>\g<2>private \g<3>\g<4> {name}",
-        text, count=1, flags=re.M,
+        line, count=1,
     )
+    return "\n".join(lines)
 
 
 def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
@@ -941,59 +1120,91 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
             # = = = = on one repo and one pair of shas. = = ⇒ The base is
             # = = = = the file this tip file came from, = = = = and the
             # = = = = member is looked up there.
-            base_members: dict[tuple[str, str], bool] = {}
+            # = = ⇒ AND THE BASE'S MEMBERS ARE PAIRED WITH THE TIP'S BY
+            # = = = = THEIR OWN IDENTITY, = = = = and the pairing has
+            # = = = = THREE RULES. = = = = Measured on `main`: = = = = 65
+            # = = = = (file, name) pairs where a LOCAL hides a type's
+            # = = = = `private` member (= = = = 52 of them in `Sources/`
+            # = = = = and `Tests/`), = = = = and, in `Sources/` and
+            # = = = = `Tests/`, = = = = 15 (file, name) pairs where the
+            # = = = = name lives in two types with disagreeing privacy (= =
+            # = = = = = the flat scan's LAST match wins, = = = = = and the
+            # = = = = = private one lost; = = = = = = 14 names).
+            # = = = = 1. THE OWNING TYPE MATCHES = = = = ⇒ that is the
+            # = = = =    same member, = = = = whatever the file.
+            # = = = = 2. THE OWNING TYPE DOES NOT MATCH, = = = = and the
+            # = = = =    NAME has ONE candidate in the base file = = = = ⇒
+            # = = = =    the type was RENAMED (= = = = a split that
+            # = = = =    renamed its type), = = = = and it is the same
+            # = = = =    member.
+            # = = = = 3. THE OWNING TYPE DOES NOT MATCH, = = = = and the
+            # = = = =    NAME has SEVERAL candidates = = = = ⇒ the arm
+            # = = = =    cannot say which one this is, = = = = and it
+            # = = = =    says NOTHING (= = = = the arm is a gate, = = = =
+            # = = = = and a gate that guesses is worse than a gate that
+            # = = = =    is silent).
+            base_members: dict[tuple[str, str, str], bool] = {}
+            base_by_name: dict[str, dict[str, list[tuple[str, bool]]]] = {}
             for base_rel in {b for bs in counterparts.values() for b in bs}:
                 text = base_tree.get(base_rel) or ""
-                for m in re.finditer(
-                    rf"^(\s*)(private\s+)?((?:@\w+(?:\([^)]*\))?\s+)*){_MEMBER_MODIFIERS}(var|let|func)\s+(\w+)",
-                    text, re.M,
-                ):
-                    base_members[(base_rel, m.group(5))] = bool(m.group(2))
+                for owner, name, private, _number in scoped_members(text):
+                    base_members[(base_rel, owner, name)] = private
+                    base_by_name.setdefault(base_rel, {}).setdefault(
+                        name, []
+                    ).append((owner, private))
+            # = = ⇒ THE FAMILY MAPS. = = = = The tip's files that came
+            # = = = = from each base file, = = = = and the types each tip
+            # = = = = file declares.
+            tips_of_base: dict[str, list[str]] = {}
+            for tip_rel, base_rels in counterparts.items():
+                for base_rel in base_rels:
+                    tips_of_base.setdefault(base_rel, []).append(tip_rel)
+            tip_types: dict[str, set[str]] = {
+                rel: set(_TYPE_DECL.findall(head_tree.get(rel) or ""))
+                for rel in paths
+            }
             widened = []
             for rel in paths:
                 after = head_tree.get(rel)
                 if after is None:
                     continue
-                for i, line in enumerate(after.split("\n")):
-                    # = = ⇒ AND THE TIP SIDE ACCEPTS AN ACCESS MODIFIER.
-                    # = = = = The old regex admitted none, = = = = so a
-                    # = = = = `private` -> `public` (= = = = and every
-                    # = = = = other widening) = = = = was invisible, = = = =
-                    # = = = = and the arm reported "every widened member is
-                    # = = = = read across the file boundary" (= = = = = exit
-                    # = = = = 0, = = = = measured).
-                    m = re.match(
-                        rf"^(\s*)((?:@\w+(?:\([^)]*\))?\s+)*)"
-                        rf"(?:(public|internal|private|fileprivate|open)\s+)?"
-                        rf"{_MEMBER_MODIFIERS}(var|let|func)\s+(\w+)",
-                        line,
-                    )
-                    if not m:
+                # = = ⇒ AND THE TIP SIDE READS THE SAME IDENTITY AS THE
+                # = = = = BASE SIDE. = = = = The tip's member is (OWNING
+                # = = = = TYPE, NAME), = = = = and so is the base's, = = = =
+                # = = = = and the two are compared as one pair. = = = = ⇒
+                # = = = = The tip side's own access level is read here
+                # = = = = (= = the old regex admitted none, = = = = so a
+                # = = = = `private` -> `public` widening was invisible).
+                own_bases = counterparts.get(rel, [])
+                for owner, name, private, number in scoped_members(after):
+                    if private:
                         continue
-                    # = = ⇒ AND THE GROUP NUMBERS, = = because the
-                    # = = = = access modifier added one. = = ⇒ The NAME is
-                    # = = = = the FIFTH group (= = = = and the kind is the
-                    # = = = = fourth), = = = = and reading the fourth as
-                    # = = = = the name makes every member look like a
-                    # = = = = keyword.
-                    name = m.group(5)
-                    # = = Only a member whose base said `private` and
-                    # = = whose tip line does not = = was widened, = = and
-                    # = = only in ITS OWN base file.
-                    own_bases = counterparts.get(rel, [])
-                    if not any(
-                        base_members.get((base_rel, name)) is True for base_rel in own_bases
+                    # = = ⇒ AND THE PAIRING IS THE THREE RULES ABOVE.
+                    candidates = [
+                        (base_rel, candidate_owner, candidate_private)
+                        for base_rel in own_bases
+                        for candidate_owner, candidate_private
+                        in base_by_name.get(base_rel, {}).get(name, [])
+                    ]
+                    exact = [c for c in candidates if c[1] == owner]
+                    if exact:
+                        matched = exact[0]
+                    elif len(candidates) == 1 and not _owner_survives(
+                        candidates[0][1], tips_of_base, tip_types
                     ):
+                        # = = ⇒ THE TYPE WAS RENAMED, = = = = and the
+                        # = = = = member is the same member.
+                        matched = candidates[0]
+                    else:
+                        # = = ⇒ AMBIGUOUS, = = = = and the arm says NOTHING.
                         continue
-                    if not re.search(
-                        rf"^\s*private\s+{_MEMBER_MODIFIERS}"
-                        rf"(?:var|let|func)\s+{re.escape(name)}\b",
-                        line,
-                    ):
-                        widened.append((rel, name, line))
+                    if not matched[2]:
+                        continue
+                    lines = after.split("\n")
+                    widened.append((rel, owner, name, lines[number - 1]))
             if not widened:
                 return []
-            for rel, name, line in widened:
+            for rel, owner, name, line in widened:
                 target = work / rel
                 text = target.read_text(encoding="utf-8")
                 # = = ⇒ AND THE REWRITE TAKES THE SAME MODIFIER
@@ -1020,13 +1231,54 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
                 # = = = = modifiers are captured in their OWN group, = = = =
                 # = = = = and the rewrite re-emits them = = = = = and swaps
                 # = = = = ONLY the access level.
-                new_text = _rewrite_to_private(text, name)
+                new_text = _rewrite_to_private(text, name, owner)
                 target.write_text(new_text, encoding="utf-8")
                 proc = subprocess.run(
                     ["swift", "build"], cwd=str(work), capture_output=True, text=True, timeout=1800
                 )
                 log = proc.stdout + proc.stderr
-                complained = re.search(rf"'{re.escape(name)}' is inaccessible", log)
+                # = = ⇒ AND THE COMPLAINT IS READ IN BOTH SHAPES. = = = =
+                # = = = = Swift names the MEMBER when another file reads it
+                # = = = = directly (= = = = `'engine' is inaccessible`), = = = =
+                # = = = = and it names the TYPE when another file builds the
+                # = = = = member through the SYNTHESIZED memberwise
+                # = = = = initializer (= = = = `'Reader' initializer is
+                # = = = = inaccessible due to 'private' protection level`).
+                # = = = = The old test read only the first shape, = = = = and
+                # = = = = the second one (= = = = the common one for a
+                # = = = = stored property) = = = = read as "the probe could
+                # = = = = not measure it" (= = = = measured: = = = = a member
+                # = = = = that genuinely must stay cross-file was reported
+                # = = = = as a finding).
+                # = = ⇒ AND THERE IS A THIRD SHAPE, = = = = and it is a
+                # = = = = PROPERTY WRAPPER'S PROJECTED VALUE. = = = = Swift
+                # = = = = says `'$engine' is inaccessible due to 'private'
+                # = = = = protection level`, = = = = and the `$` sits
+                # = = = = BETWEEN the quote and the name (= = = = measured
+                # = = = = with `swiftc -swift-version 6 -typecheck`). = = = =
+                # = = = = ⇒ So the test reads the `$` as part of the name, = =
+                # = = = = and it is the SAME member (= = = = the projected
+                # = = = = value of the very property that was widened).
+                # = = ⇒ AND THIS SHAPE IS REACHABLE ONLY BECAUSE THE BASE
+                # = = = = SIDE READS `private` AFTER AN ATTRIBUTE (= = = = =
+                # = = = = the old base-side scan placed the access level
+                # = = = = BEFORE the attribute, = = = = = so it never saw
+                # = = = = `@AppStorage(...) private var x` at all). = = = =
+                # = = ⇒ So the repair that DETECTS the widening and the probe
+                # = = = = that READS the compiler's answer are ONE repair, = =
+                # = = = = and the third shape is part of it (= = = = measured
+                # = = = = at `906079ac0d58`: = = = = the base's
+                # = = = = `@AppStorage("wenshu.llm.reasoningEffort") private
+                # = = = = var reasoningEffort` = = = = = and the tip drops the
+                # = = = = `private`).
+                complained = re.search(
+                    rf"'\$?{re.escape(name)}' is inaccessible", log
+                ) or (
+                    bool(owner)
+                    and re.search(
+                        rf"'{re.escape(owner)}' initializer is inaccessible", log
+                    )
+                )
                 target.write_text(text, encoding="utf-8")
                 # = = ⇒ AND THE BUILD'S EXIT CODE IS READ. = = The probe
                 # = = = = used to grep the log for "is inaccessible" and
@@ -1038,16 +1290,21 @@ def probe_promotions(base: str, head: str, paths: list[str]) -> list[str]:
                 # = = = = file needed it)"). = = ⇒ A build that did not
                 # = = = = succeed measures NOTHING, = = = = and it is said
                 # = = = = out loud.
+                # = = ⇒ AND THE FINDING NAMES THE OWNING TYPE. = = = =
+                # = = = = Two types can hold the same member name, = = = =
+                # = = = = and a finding that does not say which one is not
+                # = = = = actionable.
+                where = f"{owner}.{name}" if owner else name
                 if proc.returncode != 0 and not complained:
                     findings.append(
-                        f"{rel}: `{name}` was widened, = = and the build with it put "
+                        f"{rel}: `{where}` was widened, = = and the build with it put "
                         f"back to `private` FAILED (= = so the probe could not "
                         f"measure it, = = and this is not a verdict)"
                     )
                     continue
                 if not complained:
                     findings.append(
-                        f"{rel}: `{name}` was widened, = = and putting it back to `private` still builds"
+                        f"{rel}: `{where}` was widened, = = and putting it back to `private` still builds"
                         + (f" (= = so no file needed it)" if True else "")
                     )
         finally:
