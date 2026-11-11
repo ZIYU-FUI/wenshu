@@ -232,7 +232,221 @@ _TYPE_DECL = re.compile(
 # = = = = string literal, = = = = and the type stack goes wrong from the
 # = = = = first one. = = ⇒ So the scan reads the code with the literals
 # = = = = masked out.
-_STRING_LITERAL = re.compile(r'"(?:\\.|[^"\\\n])*"')
+
+# = = ⇒ ⇒ AND THE LITERAL HAS FOUR FORMS, = = = = and a REGEX reads one
+# = = = = of them. = = = = The plain one (`"…"`), = = = = the RAW one
+# = = = = (`#"…"#`), = = = = the multi-line one (`"""…"""`), = = = = and the
+# = = = = raw multi-line one (`#"""…"""#`). = = = = The old regex
+# = = = = (`"(?:\\.|[^"\\\n])*"`) matched the INNER quotes of a raw
+# = = = = string and blanked only that part, = = = = so the REST of the
+# = = = = literal leaked in as code, = = = = the type stack went off, = =
+# = = = = and a member was read at FILE scope (= = = = measured: = = = =
+# = = = = `LabelIconSweepTests.swift` read `totalSitesConsistent` at file
+# = = = = scope instead of inside its type). = = ⇒ So the mask is a
+# = = = = SCANNER, = = = = and it reads the comments and the literals in
+# = = = = ONE pass (= = = = a quote inside a comment is not a literal, = =
+# = = = = and a `//` inside a literal is not a comment).
+
+
+def _blank(text: str) -> str:
+    """The text blanked with spaces, = = = = the LINE COUNT kept."""
+    return "".join(c if c == "\n" else " " for c in text)
+
+
+def _block_comment_end(text: str, index: int) -> int:
+    """The index just past the `*/` that closes the block comment at `index`.
+
+    = = ⇒ AND THE COMMENTS NEST, = = = = because Swift's block comments do.
+
+    = = ⇒ ⇒ AND `index` POINTS AT THE `/*`. = = = = = = = = = = The depth
+    # = = = # = = = # = = counts it, = = = = = = = = = = so a nested one
+    # = = = # = = = # = = closes with its own `*/`.
+    """
+    size = len(text)
+    depth = 0
+    cursor = index
+    while cursor < size:
+        if text.startswith("/*", cursor):
+            depth += 1
+            cursor += 2
+            continue
+        if text.startswith("*/", cursor):
+            depth -= 1
+            cursor += 2
+            if depth == 0:
+                return cursor
+            continue
+        cursor += 1
+    return size
+
+
+def _interpolation_end(text: str, index: int) -> int:
+    """The index just past the `)` that closes the interpolation at `index`.
+
+    = = ⇒ AND THE INTERPOLATION IS CODE, = = = = so the scan reads THROUGH
+    # = = = = it: = = = = a literal in it is a literal, = = = = = = and a
+    # = = = # = = = # = comment in it is a comment, = = = = = = and a paren
+    # = = = # = = = # = in it is a paren. = = ⇒ Without this the scan
+    # = = = # = = = # = stopped at the FIRST quote inside the interpolation,
+    # = = = # = = = # = and the literal's own text leaked in as code (= =
+    # = = # = = = # = = a brace in it moved the type stack).
+    """
+    size = len(text)
+    depth = 1
+    cursor = index + 1
+    while cursor < size:
+        char = text[cursor]
+        if char == "(":
+            depth += 1
+            cursor += 1
+            continue
+        if char == ")":
+            depth -= 1
+            cursor += 1
+            if depth == 0:
+                return cursor
+            continue
+        if char == "#":
+            hashes = 0
+            while cursor + hashes < size and text[cursor + hashes] == "#":
+                hashes += 1
+            if cursor + hashes < size and text[cursor + hashes] == '"':
+                cursor = _literal_end(text, cursor + hashes, hashes)
+                continue
+            cursor += hashes
+            continue
+        if char == '"':
+            cursor = _literal_end(text, cursor, 0)
+            continue
+        if char == "/" and text.startswith("//", cursor):
+            stop = text.find("\n", cursor)
+            cursor = size if stop < 0 else stop
+            continue
+        if char == "/" and text.startswith("/*", cursor):
+            cursor = _block_comment_end(text, cursor)
+            continue
+        cursor += 1
+    return size
+
+
+def _literal_end(text: str, start: int, hashes: int) -> int:
+    """The index just past the literal that opens at `start`.
+
+    = = ⇒ AND `start` POINTS AT THE FIRST QUOTE, = = = = and `hashes` is
+    # = = = = the number of `#` that open it (= = = = 0 for a plain one).
+
+    = = ⇒ ⇒ AND THE INTERPOLATION IS CODE, = = = = = = so the scan reads
+    # = = = # = = = # = through it (= = = = = = = = = = a `\\(` in a plain
+    # = = = # = = = # = literal, = = = = = = = = = = and a `\\#(` in a raw
+    # = = = # = = = # = one), = = = = = = = = = and the literal's own end is
+    # = = = # = = = # = the one AFTER it.
+    """
+    size = len(text)
+    if text.startswith('"""', start):
+        cursor = start + 3
+        while cursor < size:
+            char = text[cursor]
+            if char == "\\":
+                if hashes == 0:
+                    if text[cursor + 1:cursor + 2] == "(":
+                        cursor = _interpolation_end(text, cursor + 1)
+                        continue
+                    cursor += 2
+                    continue
+                if (text[cursor + 1:cursor + 1 + hashes] == "#" * hashes
+                        and text[cursor + 1 + hashes:cursor + 2 + hashes] == "("):
+                    cursor = _interpolation_end(text, cursor + 1 + hashes)
+                    continue
+                cursor += 1
+                continue
+            if text.startswith('"""', cursor) and text[cursor + 3:cursor + 3 + hashes] == "#" * hashes:
+                return cursor + 3 + hashes
+            cursor += 1
+        return size
+    cursor = start + 1
+    while cursor < size:
+        char = text[cursor]
+        if char == "\\":
+            if hashes == 0:
+                if text[cursor + 1:cursor + 2] == "(":
+                    cursor = _interpolation_end(text, cursor + 1)
+                    continue
+                cursor += 2
+                continue
+            if (text[cursor + 1:cursor + 1 + hashes] == "#" * hashes
+                    and text[cursor + 1 + hashes:cursor + 2 + hashes] == "("):
+                cursor = _interpolation_end(text, cursor + 1 + hashes)
+                continue
+            cursor += 1
+            continue
+        if char == '"':
+            after = cursor + 1
+            if text[after:after + hashes] == "#" * hashes:
+                return after + hashes
+            cursor += 1
+            continue
+        if char == "\n":
+            break
+        cursor += 1
+    return min(cursor, size)
+
+
+def literal_spans(text: str) -> list[tuple[int, int]]:
+    """The span of every literal, = = = = = = the opening delimiter through
+    the closing one.
+
+    = = ⇒ THIS IS THE SCANNER'S OWN READ, = = = = and a caller that builds
+    # = = = = a variant of the file (= = = = = = = = = = the measurement
+    # = = = = = = does) uses THE SAME boundaries the mask uses, = = = = = =
+    # = = = = = = otherwise the variant straddles a literal and the
+    # = = = = = = measurement reads the probe's error.
+
+    = = ⇒ ⇒ AND IT IS COMMENT-AWARE, = = = = because the mask is: = = = =
+    # = = = = = = a quote inside a comment is not a literal, = = = = = = =
+    # = = = = = = and a span that opened there would swallow real code.
+    """
+    spans: list[tuple[int, int]] = []
+    index = 0
+    size = len(text)
+    while index < size:
+        char = text[index]
+        if char == "/" and text.startswith("//", index):
+            end = text.find("\n", index)
+            index = size if end < 0 else end
+            continue
+        if char == "/" and text.startswith("/*", index):
+            depth = 0
+            cursor = index
+            while cursor < size:
+                if text.startswith("/*", cursor):
+                    depth += 1
+                    cursor += 2
+                    continue
+                if text.startswith("*/", cursor):
+                    depth -= 1
+                    cursor += 2
+                    if depth == 0:
+                        break
+                    continue
+                cursor += 1
+            index = cursor
+            continue
+        if char == "#":
+            hashes = 0
+            while index + hashes < size and text[index + hashes] == "#":
+                hashes += 1
+            if index + hashes < size and text[index + hashes] == '"':
+                end = _literal_end(text, index + hashes, hashes)
+                spans.append((index, end))
+                index = end
+                continue
+        if char == '"':
+            end = _literal_end(text, index, 0)
+            spans.append((index, end))
+            index = end
+            continue
+        index += 1
+    return spans
 
 
 def mask_code(text: str) -> str:
@@ -244,36 +458,68 @@ def mask_code(text: str) -> str:
     # = = = = so a mask that DROPPED the comment lines (= = = = the
     # = = = = tool's own `strip_comments` does) would count them out.
 
-    = = ⇒ AND THE STRINGS ARE MASKED FIRST. = = = = A `//` inside a
-    # = = = = string literal is not a comment, = = = = and a `http://` in
-    # = = = = a literal would otherwise cut the line in half.
+    = = ⇒ ⇒ AND THIS IS ONE PASS. = = = = A `//` inside a string literal is
+    # = = = = not a comment, = = = = and a `//` inside a comment is not the
+    # = = = = start of a string, = = = = so the two cannot be masked in two
+    # = = = = separate passes (= = = = a quote in a comment would open a
+    # = = = = literal that swallowed the real code after it).
+
+    = = ⇒ ⇒ AND THE DELIMITERS STAY. = = = = A declaration that HOLDS a
+    # = = = = literal is a member, = = = = so the literal's opening and
+    # = = = = closing delimiters are kept and only its INTERIOR is blanked.
     """
-    masked = _STRING_LITERAL.sub(lambda m: '"' + " " * (len(m.group(0)) - 2) + '"', text)
-    out = []
-    in_block = False
-    for line in masked.split("\n"):
-        stripped = line.strip()
-        if in_block:
-            out.append("")
-            if "*/" in stripped:
-                in_block = False
+    out: list[str] = []
+    index = 0
+    size = len(text)
+    while index < size:
+        char = text[index]
+        if char == "/" and text.startswith("//", index):
+            end = text.find("\n", index)
+            end = size if end < 0 else end
+            out.append(_blank(text[index:end]))
+            index = end
             continue
-        if stripped.startswith("/*"):
-            out.append("")
-            if "*/" not in stripped:
-                in_block = True
+        if char == "/" and text.startswith("/*", index):
+            depth = 0
+            cursor = index
+            while cursor < size:
+                if text.startswith("/*", cursor):
+                    depth += 1
+                    cursor += 2
+                    continue
+                if text.startswith("*/", cursor):
+                    depth -= 1
+                    cursor += 2
+                    if depth == 0:
+                        break
+                    continue
+                cursor += 1
+            out.append(_blank(text[index:cursor]))
+            index = cursor
             continue
-        if stripped.startswith("//"):
-            out.append("")
+        if char == "#":
+            hashes = 0
+            while index + hashes < size and text[index + hashes] == "#":
+                hashes += 1
+            if index + hashes < size and text[index + hashes] == '"':
+                quote_at = index + hashes
+                end = _literal_end(text, quote_at, hashes)
+                out.append(text[index:quote_at])
+                out.append('"')
+                out.append(_blank(text[quote_at + 1:end - 1 - hashes]))
+                out.append('"' + "#" * hashes)
+                index = end
+                continue
+        if char == '"':
+            end = _literal_end(text, index, 0)
+            out.append('"')
+            out.append(_blank(text[index + 1:end - 1]))
+            out.append('"')
+            index = end
             continue
-        # = = ⇒ A TRAILING comment is masked too, = = because a brace in
-        # = = = = it is not a brace.
-        cut = line.find("//")
-        if cut >= 0:
-            out.append(line[:cut])
-            continue
-        out.append(line)
-    return "\n".join(out)
+        out.append(char)
+        index += 1
+    return "".join(out)
 
 
 

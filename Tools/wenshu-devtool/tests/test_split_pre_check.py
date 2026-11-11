@@ -1971,6 +1971,316 @@ def case_the_rewrite_keeps_the_members_modifiers_on_a_real_file() -> None:
         )
 
 
+
+def case_the_mask_reads_every_literal_form_and_keeps_the_member_s_owner() -> None:
+    """THE MASKING: = = = = a literal's INTERIOR is DATA, = = = = and the
+    arm reads CODE, = = = = so a member's owner must not move when a
+    literal's text moves.
+
+    = = ⇒ AND THE LITERAL HAS FOUR FORMS. = = = = The plain one, = = = =
+    # = = = = the RAW one (= = = = a hash, a quote, the text, a quote, a
+    # = = = = hash), = = = = the multi-line one (= = = = three quotes on
+    # = = = = each side), = = = = and the raw multi-line one. = = ⇒ The old
+    # = = = = mask was a REGEX, = = = = and it matched the INNER quotes of a
+    # = = = = raw string, = = = = so
+    # = = = = the rest of the literal leaked in as code, = = = = = the type
+    # = = = = stack went off, = = = = and a member was read at FILE scope.
+
+    = = ⇒ ⇒ AND THIS IS MEASURED, = = = = not invented: = = = = the tree's
+    # = = = = own `LabelIconSweepTests.swift` holds a raw string whose
+    # = = = = content carries a brace, = = = = and with the old mask its
+    # = = = = `totalSitesConsistent` was read at file scope instead of
+    # = = = = inside `LabelIconSlotSweepTests`.
+
+    = = ⇒ ⇒ AND THE OWNER IS THE POINT. = = = = A member's identity is
+    # = = = = (OWNING TYPE, NAME), = = = = so a member read at the wrong
+    # = = = = owner is a DIFFERENT member, = = = = and the arm's pairing
+    # = = = = cannot pair it.
+    """
+    sys.path.insert(0, str(TOOL.parent))
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("spc_mask", TOOL)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    finally:
+        sys.path.pop(0)
+
+    # = = ⇒ THE FIXTURE, = = = = and it holds ONE literal of each form: = =
+    # = = = = the plain one, = = = = the raw one, = = = = = the multi-line
+    # = = = = one, = = = = and the raw multi-line one. = = ⇒ Every one of
+    # = = = = them carries a BRACE, = = = = because a brace in a literal is
+    # = = = = what moves the type stack.
+    plain = (
+        "public struct Plain {\n"
+        "    public let text = \"a brace { here\"\n"
+        "    public var other: Int = 0\n"
+        "}\n"
+    )
+    raw = (
+        "public struct Raw {\n"
+        "    public let text = #\"a brace { here\"#\n"
+        "    public var other: Int = 0\n"
+        "}\n"
+    )
+    multi = (
+        "public struct Multi {\n"
+        "    public let text = \"\"\"\n"
+        "    a brace { here\n"
+        "    \"\"\"\n"
+        "    public var other: Int = 0\n"
+        "}\n"
+    )
+    raw_multi = (
+        "public struct RawMulti {\n"
+        "    public let text = #\"\"\"\n"
+        "    a brace { here\n"
+        "    \"\"\"#\n"
+        "    public var other: Int = 0\n"
+        "}\n"
+    )
+    for label, source in (("the plain literal", plain), ("the raw literal", raw),
+                          ("the multi-line literal", multi),
+                          ("the raw multi-line literal", raw_multi)):
+        owner = source.split("struct ")[1].split(" ")[0]
+        members = {(o, n) for o, n, _p, _l in module.scoped_members(source)}
+        expect(
+            f"{label}: the member stays inside its own type",
+            (owner, "other") in members,
+            f"the members read: {sorted(members)}",
+        )
+        expect(
+            f"{label}: the literal's interior declares nothing",
+            not any(n == "here" for _o, n in members),
+            f"the members read: {sorted(members)}",
+        )
+
+    # = = ⇒ ⇒ AND THE RAW STRING IS THE SHARP ONE, = = = = because the old
+    # = = = = regex matched its INNER quotes. = = ⇒ So this is the case the
+    # = = = = review named: = = = = the member is read at FILE scope.
+    raw_source = (
+        "public struct Thing {\n"
+        "    public let doc: Int = 0\n"
+        "    public let pattern = #\"icon: \\{ Image\\(systemName:\\s*\"[^\"]+\"\\s*\\)\\}\"#\n"
+        "    public var other: Int = 0\n"
+        "}\n"
+    )
+    raw_members = {(o, n) for o, n, _p, _l in module.scoped_members(raw_source)}
+    expect(
+        "the raw string's member keeps its owner",
+        ("Thing", "other") in raw_members,
+        f"the members read: {sorted(raw_members)}",
+    )
+    expect(
+        "the raw string's member is not read at file scope",
+        ("", "other") not in raw_members,
+        f"the members read: {sorted(raw_members)}",
+    )
+
+
+def case_the_mask_keeps_the_line_count_and_the_delimiters() -> None:
+    """THE MASK'S OWN CONTRACT: = = = = the LINE COUNT and the DELIMITERS.
+
+    = = ⇒ AND THE LINE COUNT MATTERS. = = = = The arm says which LINE a
+    # = = = = declaration is on, = = = = and it rewrites that line, = = = =
+    # = = = so a mask that dropped a line would count it out.
+
+    = = ⇒ ⇒ AND THE DELIMITERS MATTER. = = = = A declaration that HOLDS a
+    # = = = = literal is a member, = = = = so the literal's opening and
+    # = = = = closing delimiters are kept.
+    """
+    sys.path.insert(0, str(TOOL.parent))
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("spc_mask2", TOOL)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    finally:
+        sys.path.pop(0)
+
+    source = (
+        "public struct Thing {\n"
+        "    public let pattern = #\"\"\"\n"
+        "    a { brace }\n"
+        "    \"\"\"#\n"
+        "    public var other: Int = 0\n"
+        "}\n"
+    )
+    masked = module.mask_code(source)
+    expect(
+        "the mask keeps the line count",
+        masked.count("\n") == source.count("\n"),
+        f"the source has {source.count(chr(10))} newlines, the mask has "
+        f"{masked.count(chr(10))}",
+    )
+    expect(
+        "the mask keeps the raw string's delimiters",
+        '#"' in masked and '"#' in masked,
+        f"the mask: {masked!r}",
+    )
+    expect(
+        "the mask blanks the literal's interior",
+        "a { brace }" not in masked,
+        f"the mask: {masked!r}",
+    )
+    members = {(o, n, line) for o, n, _p, line in module.scoped_members(source)}
+    expect(
+        "the member is still on its own line",
+        ("Thing", "other", 5) in members,
+        f"the members read: {sorted(members)}",
+    )
+
+def case_the_mask_reads_through_an_interpolation() -> None:
+    """THE INTERPOLATION IS CODE, = = = = and a literal inside it is a
+    literal, = = = = so the nested literal's text is DATA and must not
+    leak in as code.
+
+    = = ⇒ AND THE LEAK MOVES A MEMBER. = = = = The nested literal's text
+    # = = = # = = = # = carries a BRACE, = = = = and a brace in code moves
+    # = = = # = = = # = the type stack, = = = = so the member after the
+    # = = = # = = = # = literal is read in the wrong frame (= = = = = = = =
+    # = = = # = = = # = and it is not a member at all).
+
+    = = ⇒ ⇒ AND THE FIXTURE IS REAL SWIFT. = = = = The compiler reads it
+    # = = = # = = = # = (= = = = = = = = = `swiftc -frontend -dump-parse`
+    # = = = # = = = # = = = = = = = = exits 0, = = = = = = = = = and it
+    # = = = # = = = # = = reports the nested literal as its own literal),
+    # = = = # = = = # = so this is not a shape Swift rejects.
+
+    = = ⇒ ⇒ AND THE OLD SCANNER FAILS IT. = = = = The scan that stopped at
+    # = = = # = = = # = the FIRST quote inside the interpolation leaked the
+    # = = = # = = = # = nested text in as code, = = = = = = = = = and this
+    # = = = # = = = # = case is what says so (= = = = = = = = = and the
+    # = = = # = = = # = mutation that reverts the scan reds it).
+    """
+    sys.path.insert(0, str(TOOL.parent))
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("spc_interp", TOOL)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    finally:
+        sys.path.pop(0)
+
+    source = (
+        "public struct Thing {\n"
+        "    public let text = \"prefix \\(\"inner { brace\") suffix\"\n"
+        "    public var other: Int = 0\n"
+        "}\n"
+    )
+    members = {(o, n) for o, n, _p, _l in module.scoped_members(source)}
+    expect(
+        "the interpolation's nested literal: the member stays inside its "
+        "own type",
+        ("Thing", "other") in members,
+        f"the members read: {sorted(members)}",
+    )
+    expect(
+        "the interpolation's nested literal: the member is not read at "
+        "file scope",
+        ("", "other") not in members,
+        f"the members read: {sorted(members)}",
+    )
+    masked = module.mask_code(source)
+    expect(
+        "the interpolation's nested literal: its text is not read as code",
+        "inner { brace" not in masked,
+        f"the mask: {masked!r}",
+    )
+
+
+def case_the_measurement_s_own_reader_keeps_every_literal_a_literal() -> None:
+    """THE MEASUREMENT READS THE LITERALS ITSELF. = = = = And the reader
+    it uses is not the tool's, = = = = because the tool's scanner is the
+    thing under test.
+
+    = = ⇒ AND THE VARIANT MUST KEEP THE LITERAL A LITERAL. = = = = The
+    # = = = # = = = # = measurement replaces a literal's DATA with other
+    # = = = # = = = # = text of the same length, = = = = and if the
+    # = = = # = = = # = replacement DESTROYED the literal (= = = = = = = =
+    # = = = # = = = # = its quotes or its hashes), = = = = = = = = = then
+    # = = = # = = = # = the measurement would not be measuring the
+    # = = = # = = = # = experiment it names (= = = = = = = = = = and the
+    # = = = # = = = # = review measured exactly that on the raw forms).
+
+    = = ⇒ ⇒ AND THE REPLACEMENT IS THE DATA, = = = = not the whole
+    # = = = # = = = # = interior: = = = = = = = = = the interpolation's
+    # = = = # = = = # = EXPRESSION is code, = = = = = = = = = and it must
+    # = = = # = = = # = be byte for byte the original's.
+    """
+    sys.path.insert(0, str(TOOL.parent))
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "spc_meas", TOOL.parent / "tests" / "measure_literal_mask.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    finally:
+        sys.path.pop(0)
+
+    # = = ⇒ ⇒ AND THE DELIMITERS ARE WHAT IS KEPT. = = = = The literal's
+    # = = = = TEXT is what moves, = = = = and the hashes and the quotes
+    # = = = = around it are what says "this is a literal" (= = = = = = = =
+    # = = = = = = = = = and the review measured a variant that LOST them,
+    # = = = = = = = = = so the raw forms were no longer literals at all).
+    forms = {
+        "the plain one": ("\"a { brace }\"", "\"", "\""),
+        "the raw one": ("#\"a { brace }\"#", "#\"", "\"#"),
+        "the multi-line one": ("\"\"\"\na { brace }\n\"\"\"", "\"\"\"",
+                               "\"\"\""),
+        "the raw multi-line one": ("#\"\"\"\na { brace }\n\"\"\"#",
+                                   "#\"\"\"", "\"\"\"#"),
+    }
+    for label, (body, opens, closes) in forms.items():
+        source = f"public struct Thing {{\n    public let text = {body}\n}}\n"
+        spans, data = module.read_literals(source)
+        other = module.variant(source, data)
+        expect(
+            f"{label}: the variant keeps the literal's length",
+            len(other) == len(source),
+            f"the source is {len(source)} characters, the variant is "
+            f"{len(other)}",
+        )
+        expect(
+            f"{label}: the variant keeps the literal's delimiters",
+            opens in other and closes in other,
+            f"the literal opens with {opens!r} and closes with {closes!r}\n"
+            f"the variant: {other!r}",
+        )
+        expect(
+            f"{label}: the variant keeps the literal a literal",
+            len(module.read_literals(other)[0]) == len(spans),
+            f"the source has {len(spans)} literal(s), the variant has "
+            f"{len(module.read_literals(other)[0])}",
+        )
+        expect(
+            f"{label}: the variant moved the literal's text",
+            other != source,
+            f"the variant: {other!r}",
+        )
+
+    # = = ⇒ ⇒ AND THE INTERPOLATION'S EXPRESSION IS CODE, = = = = so it is
+    # = = = = byte for byte the original's in the variant.
+    source = (
+        "public struct Thing {\n"
+        "    public let text = \"prefix \\(\"inner { brace\") suffix\"\n"
+        "    public var other: Int = 0\n"
+        "}\n"
+    )
+    _spans, data = module.read_literals(source)
+    other = module.variant(source, data)
+    expect(
+        "the interpolation's structure is byte for byte the original's",
+        "\\(\"yyyyyyyyyyyyy\")" in other,
+        f"the variant: {other!r}",
+    )
+    expect(
+        "the interpolation's nested literal's text is data, and it moved",
+        'yyyyyyy\\("yyyyyyyyyyyyy")yyyyyyy' in other,
+        f"the variant: {other!r}",
+    )
+
+
 def case_the_injection_hook_does_not_delete_a_tree_the_caller_owns() -> None:
     """THE REVIEW'S BLOCKING 2, IN ITS HARDER FORM: = = the caller's
     directory ALREADY holds a REGISTERED worktree.
@@ -2578,6 +2888,10 @@ def main() -> int:
         case_a_renamed_type_still_pairs_with_its_member,
         case_an_ambiguous_name_says_nothing,
         case_a_new_member_of_another_type_is_not_a_widening,
+        case_the_mask_reads_every_literal_form_and_keeps_the_member_s_owner,
+        case_the_mask_keeps_the_line_count_and_the_delimiters,
+        case_the_mask_reads_through_an_interpolation,
+        case_the_measurement_s_own_reader_keeps_every_literal_a_literal,
     ):
         print(f"--- {case.__name__}")
         case()
