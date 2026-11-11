@@ -35,10 +35,18 @@ is the commit on `main` that carries the requirement. The proof column is an
 ANCESTRY fact, not a tip: the carrier commit IS the sha the approved card
 ruled on, so the ruling covers the carrier by construction.
 
-| # | Requirement (business language) | Carrier on `main` | Author | Approved card | Reviewed sha | Proof |
+| # | Requirement (business language) | Carrier on `main` | Author in the tree | Approved card | Reviewed sha | Proof |
 |---|---|---|---|---|---|---|
 | 1 | A split's promotions arm must name a member by its own type, so a member cannot be widened by a same-named member of another type | `225366259b` | `probe` | `t_7ab46c73` | `225366259b` | the carrier IS the reviewed sha |
 | 2 | The mask must read EVERY literal form, so a member's owner never moves with a literal's text | `7851ccb3fc` | `probe` | `t_3d6a9bc2` | `7851ccb3fc` | the carrier IS the reviewed sha |
+
+**The author column is a fact about the CHECKOUT, = = not about the session.**
+A checkout carries one configured identity, = = so the string `probe` in the
+tree says which identity wrote the commit, = = and it does NOT on its own say
+which session's work the commit is. The OWNERSHIP claim in this record comes
+from this session's own record of what it wrote (= = the two carriers above,
+= = and the two rejections below, = = each fixed in this session's own
+worktree under this session's own card).
 
 **Commits in this scope that are NOT mine.** None. `225366259b` and
 `7851ccb3fc` are the only commits this scope landed, and both were written by
@@ -54,8 +62,8 @@ committed:
 
 | the group | the commits | the tree's author | what it is |
 |---|---|---|---|
-| a SIBLING session's work | `3c1b07a6bb`, `ae3d505020`, `7f2da5f64a`, `25af52a82c` | `pocock <pocock@localhost>` | the devtool lane's own earlier rounds, = = a different author from this scope's `probe`, = = so the two groups are separable with `git log --format=%an` |
-| the PREVIOUS scope's record | `e4961b2348` | `probe` | the code-block scope's closeout document, = = the same agent identity, = = but a DIFFERENT scope's work |
+| a SIBLING session's work | `3c1b07a6bb`, `ae3d505020`, `7f2da5f64a`, `25af52a82c` | `pocock <pocock@localhost>` | the devtool lane's own earlier rounds, = = a different checkout's configured identity from this scope's `probe`, = = so the two groups are separable with `git log --format=%an` (= = though the identity is a fact about the checkout, = = not the ownership: = = the OWNERSHIP is the wave, = = and these are the devtool lane's earlier rounds, = = not this scope's two requirements) |
+| the PREVIOUS scope's record | `e4961b2348` | `probe` | the code-block scope's closeout document, = = the same checkout's identity, = = but a DIFFERENT scope's work = = so the identity does NOT make it this scope's |
 
 Neither group is this scope's work and neither is claimed here; = = they were
 on `main` before this closeout committed, = = and pushing them was maintenance
