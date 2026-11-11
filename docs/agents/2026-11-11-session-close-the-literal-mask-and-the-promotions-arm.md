@@ -201,6 +201,29 @@ fails only in the full concurrent run. So the honest claim is about the three
 deterministic sites, and **failures on the merged tree that are not on the
 base: 0**.
 
+**The commands that produced those numbers, so a reader can re-run them:**
+
+```bash
+# the full run (= = the merged tree)
+swift build --build-tests
+swift test --skip CSSearchableIndexSearchTests
+
+# the BASE comparison (= = = a throwaway DETACHED worktree, = = = never a branch)
+git worktree add --detach /tmp/base-check 225366259bbaaf86ad44895bf9fafb3fe3eaa644
+cd /tmp/base-check
+swift test --filter 'ChatViewHistoryShortcutTests|EditorTabTitleTests|AsyncDelegationRegistryTests|EditorPersistenceTests'
+# = = = the 4th site ALONE on each tree (= = = a filtered run that contains it
+# = = = does not tell you whether it passes alone)
+swift test --filter 'EditorPersistenceTests'
+```
+
+The base's filtered run reported **"Test run with 34 tests in 4 suites failed
+after 3.052 seconds with 3 issues"** (= = the three deterministic sites, with
+the same assertions as the merged tree), and `EditorPersistenceTests` alone
+reported **"Test run with 11 tests in 1 suite passed after 3.072 seconds"** at
+the base (= = and the same 11 passed on the merged tree). The worktree is a
+throwaway: = = remove it with `git worktree remove --force` afterwards.
+
 **Both frameworks are covered**, because they report differently and a report
 that reads only one of them quotes half the suite:
 
@@ -252,7 +275,13 @@ card either. The gate's rule is "a card that writes code owes a verdict", = =
 and a closeout's record is not a card that writes code.
 
 Both remotes read the sha (= = `git ls-remote` per remote, = = because a push
-that reported success on one remote says nothing about the other).
+that reported success on one remote says nothing about the other). The
+durable fact a reader checks is the ANCESTRY, = = not the tip:
+
+```bash
+git merge-base --is-ancestor 7851ccb3fc9c6449a9275634c928f942e6ada0ae origin/main
+git merge-base --is-ancestor 7851ccb3fc9c6449a9275634c928f942e6ada0ae old-origin/main
+```
 
 **The scope's own branches and worktrees are gone.** The branch
 `fix/split-pre-check-literal-mask-r2` was fast-forwarded into `main` and then
