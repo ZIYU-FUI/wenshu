@@ -67,6 +67,17 @@ Test Case '-[WenshuAppTests.SomeOtherTests testSomething]' passed (0.10 seconds)
 \t Executed 18 tests, with 0 failures (0.011) seconds
 """
 
+# The REAL shape a `swift test` run prints: = ONE failing test tallied at
+# THREE levels (= the suite, = the `.xctest` bundle, = and `All tests`),
+# = each line carrying the SAME count. = ⇒ The lines are AGGREGATES at
+# different levels, = not independent counts.
+XCTEST_REAL_LOG = """Test run with 2 tests in 1 suite failed after 0.055 seconds with 1 issue.
+Test Case '-[XctlogTests.XctlogTests testFails]' failed (0.055 seconds).
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.055 (0.055) seconds
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.055 (0.055) seconds
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.055 (0.056) seconds
+"""
+
 
 def run_tool(base: str, tip: str) -> tuple[int, str]:
     """Run the tool on two log bodies (= written to temp files)."""
@@ -150,10 +161,40 @@ def main() -> int:
 
     # 5. ONE XCTest failure is counted ONCE (= the case line names it, =
     #    and the tally is the fallback, = so a double count miscounts).
+    #    ⇒ AND THE ASSERTION IS THE SET'S CARDINALITY, = not the number
+    #    of times a NAME appears: = the old assertion counted a name's
+    #    occurrences, = so a phantom key (= which does not carry the name)
+    #    slipped past it. = ⇒ MEASURED by the review: with the fixture
+    #    changed to the real multi-level shape the suite stayed green
+    #    while the tool reported TWO failures for ONE failing test.
     code, out = run_tool(XCTEST_LOG, XCTEST_LOG)
     body = out.split("=== tip:")[0]
     count = body.count("ImportAgentRefusalLadderTests")
     check("one XCTest failure is counted once", count == 1, f"counted {count} times")
+
+    # 5b. The REAL shape: = ONE failing test tallied at THREE levels must
+    #     read as ONE failure (= the tally lines are AGGREGATES, = not
+    #     independent counts, = so summing them invents a second failure).
+    code, out = run_tool(XCTEST_REAL_LOG, XCTEST_REAL_LOG)
+    check(
+        "one failing test on the real three-level shape reads as ONE failure",
+        "1 failure(s)" in out and "unnamed failure" not in out,
+        out[:400],
+    )
+
+    # 5c. The verdict does NOT move with the capture's tally LEVELS: =
+    #     the same failing test, = once tallied at one level and once at
+    #     three, = is the same failure set.
+    one_level = """Test run with 2 tests in 1 suite failed after 0.055 seconds with 1 issue.
+Test Case '-[XctlogTests.XctlogTests testFails]' failed (0.055 seconds).
+\t Executed 2 tests, with 1 failure (0 unexpected) in 0.055 (0.055) seconds
+"""
+    code, out = run_tool(one_level, XCTEST_REAL_LOG)
+    check(
+        "the verdict does not move with the capture's tally levels",
+        code == 0,
+        f"exit={code}",
+    )
 
     # 6. A non-zero tally with no case line is still reported.
     tally_only = """Test run with 10 tests in 2 suites failed after 1.0 seconds with 1 issue.

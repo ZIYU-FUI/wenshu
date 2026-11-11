@@ -82,6 +82,16 @@ def _xctest_failures(text: str) -> set[str]:
     failing suites and the tip at one read as "the tip introduced 1 NEW
     failure", = which is the exact failure mode this tool exists to
     avoid.
+
+    ⇒ ⇒ AND THE RESIDUAL THE COUNT-FREE KEY LEAVES, = named so the next
+    reader knows it is a decision: = because the key is a CONSTANT, = the
+    tool cannot distinguish ONE unnamed failure from TWO, = so a tip that
+    adds a second unnamed failure on top of a base that already had one
+    is NOT reported. = ⇒ That is the price of a key that does not move
+    with the count, = and it is the trade this tool makes on purpose (= a
+    key that moves with the count turns every lost failure into a
+    reported one, = which is a FALSE BLOCKER, = and a gate's exit code is
+    its deliverable).
     """
     cases = {f"XCTest {suite}.{test}" for suite, test in _XCTEST_CASE.findall(text)}
     failures = set(cases)
@@ -89,7 +99,22 @@ def _xctest_failures(text: str) -> set[str]:
     # The tally's failures that no case line named: = those are the
     # unnamed ones, = and they are reported with a COUNT-FREE key (= so
     # the key is the same whatever the count is).
-    tallied_failures = sum(int(failed) for _, failed in _XCTEST_TALLY.findall(text))
+    #
+    # ⇒ ⇒ AND THE TALLY IS MAXED, = NOT SUMMED. = ⇒ WHY: the real log
+    # tallies ONE failing test at THREE levels (= the suite, = the
+    # `.xctest` bundle, = and `All tests`), = each line carrying the same
+    # count. = ⇒ So the lines are AGGREGATES at different levels, = not
+    # independent counts, = and summing them counts one failure three
+    # times. = ⇒ MEASURED: with the sum, = one failing test on the real
+    # shape read as TWO failures (= the named one and an invented
+    # "unnamed" one), = and the verdict MOVED with the capture: = a base
+    # carrying one tally level and a tip carrying three read as "the tip
+    # introduced a NEW failure" for a failure present in both.
+    #
+    # ⇒ ⇒ The MAX is the most aggregated level's count, = which is the
+    # number of DISTINCT failures, = and it does not move with how many
+    # tally lines the capture carries.
+    tallied_failures = max([int(failed) for _, failed in _XCTEST_TALLY.findall(text)] or [0])
     if tallied_failures > len(cases):
         failures.add("XCTest tally: an unnamed failure (no case line parsed)")
 
