@@ -7,19 +7,26 @@ that carry them. This closeout covers that scope only. Neither requirement
 touches a Swift file: the whole diff is three files under
 `Tools/wenshu-devtool/`.
 
-Landed state (= = the state this record measured, = = and `main` may have
-moved on since):
+The tree this record measured (= = and `main` may have moved on since):
 
-- `main` = `7851ccb3fc9c6449a9275634c928f942e6ada0ae`
-- `origin/main` (gitcode) = the same sha, read back with `git ls-remote`
-- `old-origin/main` (github) = the same sha, read back with `git ls-remote`
+- the measured tree = `7851ccb3fc9c6449a9275634c928f942e6ada0ae` (= = the
+  carrier of requirement 2, = = the tip `main`, `origin/main` and
+  `old-origin/main` all pointed at when the numbers below were taken, = =
+  read back per remote with `git ls-remote`)
 - the base the change landed on = `225366259bbaaf86ad44895bf9fafb3fe3eaa644`
 
-= = ⇒ These three shas are the SNAPSHOT this record was measured on, = =
+= = ⇒ The shas above are the SNAPSHOT the numbers below were measured on, = =
 and they are still the tree's own history (= = `7851ccb3fc` is on `main`),
-= = but `main` itself may point further along. = = ⇒ So a reader who wants
-TODAY's `main` reads it from the repository (= = `git rev-parse main`), = =
-and this record's shas say WHICH tree the numbers below were measured on.
+= = but `main` itself points further along, = = because this closeout's own
+record commit sits directly ON TOP of it (= = one commit, = = and the
+remotes point at THAT, = = because the record is the last thing this scope
+pushes). = = ⇒ A record cannot contain its own sha (= = writing it in would
+change the sha it names), = = so the reader gets the tip from the repository:
+`git rev-parse main` for the local tip, `git ls-remote origin main` and
+`git ls-remote old-origin main` for the two remotes. = = ⇒ And the invariant
+that matters is an ANCESTRY one, = = not a tip one: the carrier
+`7851ccb3fc` is an ancestor of both remotes' `main`, = = so the code landed
+wherever `main` points now.
 
 ## 1. The requirement, row by row
 
@@ -30,20 +37,30 @@ ruled on, so the ruling covers the carrier by construction.
 
 | # | Requirement (business language) | Carrier on `main` | Author | Approved card | Reviewed sha | Proof |
 |---|---|---|---|---|---|---|
-| 1 | A split's promotions arm must name a member by its own type, so a member cannot be widened by a same-named member of another type | `225366259b` | Hermes Agent | `t_7ab46c73` | `225366259b` | the carrier IS the reviewed sha |
-| 2 | The mask must read EVERY literal form, so a member's owner never moves with a literal's text | `7851ccb3fc` | Hermes Agent | `t_3d6a9bc2` | `7851ccb3fc` | the carrier IS the reviewed sha |
+| 1 | A split's promotions arm must name a member by its own type, so a member cannot be widened by a same-named member of another type | `225366259b` | `probe` | `t_7ab46c73` | `225366259b` | the carrier IS the reviewed sha |
+| 2 | The mask must read EVERY literal form, so a member's owner never moves with a literal's text | `7851ccb3fc` | `probe` | `t_3d6a9bc2` | `7851ccb3fc` | the carrier IS the reviewed sha |
 
 **Commits in this scope that are NOT mine.** None. `225366259b` and
 `7851ccb3fc` are the only commits this scope landed, and both were written by
-this session (`pocock`, in the tree as `Hermes Agent`). The four review cards
-are the `wenshu-review` profile's, = = and they carry no commits, = = only
-verdicts.
+this session (= = the tree records them under the author `probe`, = = the
+author this session commits under, = = the same author the code-block scope's
+carrier `d21bc040b0` carries). The four review cards are the `wenshu-review`
+profile's, = = and they carry no commits, = = only verdicts.
 
-**Commits this closeout's PUSH carried that are a sibling's.** The push that
-carried this scope's carriers to the remotes also carried commits a sibling
-session had already merged into `main` (= = the devtool lane's own earlier
-rounds, `3c1b07a6bb`, `ae3d505020`, `7f2da5f64a`, `25af52a82c`, and the
-closeout record `e4961b2348` below). They are not this scope's work and are
+**Commits this closeout's PUSH carried that are NOT this scope's work.** The
+push that carried this scope's carriers to the remotes also carried two
+groups of commits that were already on `main` before this closeout
+committed:
+
+| the group | the commits | the tree's author | what it is |
+|---|---|---|---|
+| a SIBLING session's work | `3c1b07a6bb`, `ae3d505020`, `7f2da5f64a`, `25af52a82c` | `pocock <pocock@localhost>` | the devtool lane's own earlier rounds, = = a different author from this scope's `probe`, = = so the two groups are separable with `git log --format=%an` |
+| the PREVIOUS scope's record | `e4961b2348` | `probe` | the code-block scope's closeout document, = = the same agent identity, = = but a DIFFERENT scope's work |
+
+Neither group is this scope's work and neither is claimed here; = = they were
+on `main` before this closeout committed, = = and pushing them was maintenance
+of the shared server state, = = not authorship. The commits this closeout's
+OWN push added (= = this doc's commit and its registry row) are this scope's. They are not this scope's work and are
 not claimed here; = = they were on `main` before this closeout committed, = =
 and pushing them was maintenance of the shared server state, = = not
 authorship. The commits this closeout's OWN push added (= = this doc's commit
