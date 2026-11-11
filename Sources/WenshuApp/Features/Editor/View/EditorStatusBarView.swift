@@ -108,7 +108,8 @@ struct EditorStatusBarView: View {
     // word count which is O(n) over the draft = microseconds for
     // any realistic chapter document).
 
-    /// Word count label (= "256" / "1" / "0" / the unit "字").
+    /// Word count label (= "256" / "1" / "0" / the CJK character unit
+    /// the label shows, = = which the locale's own string carries).
     /// RATIONALE: the number is the only part that
     /// changes per render (= the unit "words"
     /// is constant
