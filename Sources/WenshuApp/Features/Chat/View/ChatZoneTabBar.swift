@@ -37,6 +37,22 @@ struct ChatZoneTabBar: View {
     /// Fired when the user picks a different page.
     let onSelect: (ChatScope) -> Void
 
+    /// The width the bar was given (= the chat column's current width).
+    @State private var columnWidth: CGFloat = 0
+
+    /// The width each page's segment takes.
+    ///
+    /// The pages divide the width the bar was given (= the rule the
+    /// editor's document strip follows), = so the bar fills its column
+    /// instead of hugging its left edge, = and the overflow goes to the
+    /// scroll container when the pages outgrow the column.
+    private var segmentWidth: CGFloat {
+        PaneTabStripWidth.segmentWidth(
+            columnWidth: columnWidth,
+            segmentCount: pages.count
+        )
+    }
+
     var body: some View {
         content
     }
@@ -52,6 +68,12 @@ struct ChatZoneTabBar: View {
                 labels: pages.map(\.scope),
                 displayStrings: pages.map(\.title),
                 iconStyle: .paneTab,
+                // Each page takes one share of the measured column width,
+                // so the bar spans the column instead of hugging its
+                // left edge. A zero width means the column has not been
+                // measured yet, so the bar takes its own fitting width
+                // until the first measurement lands.
+                fixedSegmentWidth: segmentWidth,
                 role: .valueSelection
             )
         }
@@ -60,6 +82,15 @@ struct ChatZoneTabBar: View {
         // a page name. Only the drawing goes: the container still scrolls
         // and still clips.
         .scrollIndicators(.hidden, axes: .horizontal)
+        // The bar fills the width it is given, and measures it. The
+        // measurement feeds the segment widths above, so the bar tracks
+        // the column when the writer resizes it.
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.width
+        } action: { newWidth in
+            columnWidth = newWidth
+        }
         .frame(height: DesignTokens.paneTabHotArea)
     }
 }

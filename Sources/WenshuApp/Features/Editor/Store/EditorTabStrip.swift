@@ -61,15 +61,20 @@ struct EditorTabStrip: View {
     /// longer be told apart from its neighbours. Past that floor the
     /// overflow is handed to the scroll container instead.
     private var segmentWidth: CGFloat {
-        guard columnWidth > 0, !tabs.isEmpty else { return 0 }
-        return max(columnWidth / CGFloat(tabs.count), Self.minimumSegmentWidth)
+        PaneTabStripWidth.segmentWidth(
+            columnWidth: columnWidth,
+            segmentCount: tabs.count
+        )
     }
 
     /// Narrowest segment that still shows a document name.
     ///
     /// Measured against the control's own fitting width: a short title
     /// needs roughly a third more than this before the text runs out.
-    static let minimumSegmentWidth: CGFloat = 88
+    ///
+    /// The value belongs to `PaneTabStripWidth`, because the chat
+    /// zone's session bar asks the same question of the same control.
+    static let minimumSegmentWidth: CGFloat = PaneTabStripWidth.minimumSegmentWidth
 
     /// Stable value standing for "no tab is active". It never matches a
     /// tab id, and it does not change between reads.
