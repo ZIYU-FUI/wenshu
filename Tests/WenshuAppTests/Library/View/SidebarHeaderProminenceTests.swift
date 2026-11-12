@@ -113,8 +113,8 @@ struct SidebarHeaderProminenceTests {
     }
 
     /// The left column's top band: the switcher is the content of the
-    /// shared chrome band, the header above it drops its trailing inset
-    /// (= the band starts at the divider), and the band carries the
+    /// shared chrome band, the band is the column's FIRST row (= the
+    /// column carries no title row above it), and the band carries the
     /// tree's 10 PT inset so the switcher lines up with the tree rows.
     ///
     /// The three facts are one shape, so they are one test.
@@ -138,10 +138,15 @@ struct SidebarHeaderProminenceTests {
             strippedSrc.contains("LabelSegmentedControl("),
             "The sidebar's switcher must stay the LabelSegmentedControl"
         )
-        // The band starts at the header's divider.
+        // The band is the column's first row: the column carries no
+        // title row above it (= no section header, = no title string).
         #expect(
-            strippedSrc.contains("trailingInset: false"),
-            "The sidebar's section header must pass trailingInset: false (= the band follows the divider)"
+            !strippedSrc.contains("SectionHeader"),
+            "The sidebar's column must not render a section header above its chrome band"
+        )
+        #expect(
+            !strippedSrc.contains("sidebar.column.title"),
+            "The sidebar's column must not render a column title above its chrome band"
         )
         // The band's inset is the tree's 10 PT, not the shared 8 PT.
         #expect(

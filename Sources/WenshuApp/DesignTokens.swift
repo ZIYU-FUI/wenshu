@@ -65,7 +65,7 @@ enum DesignTokens {
     static let spacingCaption: CGFloat = 2
 
     /// Apple HIG icon-to-label gap (= 4 PT). The canonical tight inset: the
-    /// ChapterFocusLockBadge row gap and the SectionHeader internal gap.
+    /// ChapterFocusLockBadge row gap and the chat tool-part row gap.
     static let spacingIconic: CGFloat = 4
 
     /// Relaxed stack spacing (= 10 PT, the Apple HIG `.relaxed` stack spacing).
@@ -94,20 +94,6 @@ enum DesignTokens {
     /// Apple HIG section white-space maximum (= 24 PT). The Touch Bar large gap
     /// and the EmptyStateView icon-to-text gap.
     static let spacingSection: CGFloat = 24
-
-    /// Baseline offset for a column-top section title (= -3 PT).
-    ///
-    /// MEASURED, not guessed: on a 2x capture of the running app the
-    /// editor's document tab label painted its ink at 67.5 .. 78.5 PT
-    /// while the column titles painted theirs at 70.5 .. 82.0 PT. The
-    /// column titles therefore sat 3.00 PT BELOW the tab label beside
-    /// them, and the window's top row read as a sagging line of labels
-    /// instead of one run.
-    ///
-    /// The offset lifts the title TEXT only. It does not move the
-    /// divider under the title, so the row below the column top keeps
-    /// its place.
-    static let sectionTitleBaselineOffset: CGFloat = -3
 
     // MARK: - Tab metrics
 

@@ -1684,23 +1684,6 @@
         }
       }
     },
-    "inspector.column.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inspector"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "右栏"
-          }
-        }
-      }
-    },
     "inspector.page.status": {
       "extractionState": "manual",
       "localizations": {
@@ -2513,23 +2496,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "文枢会把你的书架、聊天记录、看板、任务、资产都保存在这个仓库里。"
-          }
-        }
-      }
-    },
-    "preview.column.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cards"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "素材"
           }
         }
       }
@@ -3499,23 +3465,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "待配置"
-          }
-        }
-      }
-    },
-    "sidebar.column.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Library"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "书架"
           }
         }
       }

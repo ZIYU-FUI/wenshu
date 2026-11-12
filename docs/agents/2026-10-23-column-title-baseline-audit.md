@@ -214,3 +214,21 @@ wrong window. The AX census's window identity (a 1280 x 984 workspace
 with a split group, the radio buttons of the tab strip and the column
 titles' static texts) was checked against the capture before the pixels
 were read.
+
+## 8. AMENDMENT — the title row is gone (2026-11-12)
+
+The three column titles this document measured (= the sidebar's, the
+materials column's and the inspector's) were removed on 2026-11-12,
+together with the hairline that sat under each of them. The shared
+`SectionHeader` component and the test that measured its baseline were
+deleted with them, so the numbers above describe a row the app no
+longer paints.
+
+Each of the three columns now starts with its own chrome (= the
+sidebar's switcher band, the materials column's search band, the
+inspector's page band or format page), which is the Apple HIG column-top
+shape: a Mail or Notes sidebar carries no title row above its first
+band.
+
+The measurement above stays as the record of what the title row was,
+and of why the offset was applied to it.

@@ -185,17 +185,8 @@ struct AppleSidebarView: View {
             // binding this used to make was never read.
             if service != nil {
                 VStack(spacing: 0) {
-                    // ', 10 PT /
-                    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                    // Mail / Notes / Finder section-header idiom).
-                    // The chrome band below carries its own row height, so the
-                    // header's trailing inset would leave a gap between the
-                    // divider and the band (= the assets column's header
-                    // passes the same `trailingInset: false`).
-                    SectionHeader(
-                        title: String(localized: "sidebar.column.title"),
-                        trailingInset: false
-                    )
+                    // The column's top row is the switcher band: the column
+                    // carries no title row above it.
                     // The three parts of the sidebar (= the shelves, the
                     // reference library, and the reserved ebooks part).
                     // The band is the column's chrome row: the same height

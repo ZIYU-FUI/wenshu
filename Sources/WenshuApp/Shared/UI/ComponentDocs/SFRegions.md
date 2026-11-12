@@ -36,7 +36,6 @@ size）。我按本表找到对应包装器，改 1 处 → 全区域 N 个调�
 | single icon（通用图标） | `SFIcon` | `Image(systemName:)` 配 IconStyle | 110 处（v3.0 sweep 全量） |
 | empty state | `EmptyStateView` | `VStack { icon + title + body }`（自建 = Apple HIG `ContentUnavailableView` 模式） | 12 个 specialized tool tabs + editor + PreviewPane |
 | pane tab bar | `PaneTabBar` | 自建 = NSToolbar item pattern | pane tab 系统 |
-| section header | `SectionHeader` | 自建 = Apple HIG section header pattern | 多处 |
 | memory entry row | `MemoryEntryRow` | 自建 = Apple Mail message-list pattern | memory retrieval panel |
 | segmented control | `LabelSegmentedControl` | `NSSegmentedControl`（NSViewRepresentable wrapper） | 设置面板 |
 | chip（状态徽章） | `RuntimeCWDDisplayChip` | 自建 = Apple Notes tag chip pattern | runtime cwd display |

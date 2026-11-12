@@ -47,16 +47,8 @@ struct InspectorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // The column's header names the COLUMN (= the way the
-            // left column's header says Library and not the name of
-            // the selected section). The header's trailing inset is
-            // off, because the chrome band below carries its own row
-            // height (= the assets column's header passes the same
-            // `trailingInset: false`).
-            SectionHeader(
-                title: String(localized: "inspector.column.title"),
-                trailingInset: false
-            )
+            // The column's top row is its own chrome (= the page band, or
+            // the format page): the column carries no title row above it.
             switch workspaceUI.inspectorSection {
             case .dynamic:
                 // The dynamic section keeps the three tabs it has always

@@ -128,44 +128,28 @@ struct PreviewPane: View {
         // The search and the toolbar sit in one top bar (see OOB.md
         // #2026-09-07).
         VStack(spacing: 0) {
-            // Per Apple HIG / platform-default style: the section-header block (=
-            // the 'Assets' title plus the Pages hairline) and the search bar
-            // stick to the TOP of the cards column.
-            SectionHeader(
-                title: String(localized: "preview.column.title"),
-                // The assets column renders `ChromeTopBar` (= the chrome
-                // band wrapping the search field) directly below the
-                // title's divider. The chrome band already carries its
-                // own 28 PT row height + 8 PT horizontal padding, so the
-                // section header's trailing 10 PT inset would create a
-                // redundant vertical gap between the divider and the
-                // search chrome. Suppress the trailing inset here; the
-                // default `true` still applies to sidebar + inspector,
-                // which render a list with internal padding right below
-                // the section header.
-                trailingInset: false
-            )
+            // The column's top row is the search band: the column carries
+            // no title row above it.
             // Per Apple HIG / platform-default style: remove the custom top inset
             // (= `chromePaddingSectionTop` = 18 PT) and the custom bottom inset
             // (= 4 PT). The center column is the content column of a
             // NavigationSplitView; = Apple HIG macOS 27 default content column
-            // rhythm places the section header at the natural List ScrollView top
-            // margin (= NO custom padding required; = the Apple API default). Per
-            // the verbatim port discipline, the previous search-field
-            // `.padding(.top, 4)` (= 4 PT gap to the Divider) and the cards
+            // rhythm places the column's first row at the natural List ScrollView
+            // top margin (= NO custom padding required; = the Apple API default).
+            // Per the verbatim port discipline, the previous search-field
+            // `.padding(.top, 4)` (= 4 PT gap above the field) and the cards
             // column layout are preserved (= no unrelated changes). Custom
-            // leading search field below the title and divider, above the first
-            // card': render the custom leading-aligned search field HERE (= below
-            // the 'Assets' title + Divider; above the first card grid) = the
-            // Apple HIG "sticky header + inline search field below" pattern (=
-            // the canonical Mail / Notes / Pages section-header-then-search
-            // layout). The previous attempt (commit 71daf8311) put the search
-            // field in a wrapper HStack ABOVE PreviewPane (= visually wrong = the
-            // search field rendered above the title and the immediate ask was to
-            // move it). The fix = move the search field into the PreviewPane
-            // body, between the title block and the scope body, so it sits
-            // exactly where requested (= below the divider, above the first
-            // card). Only render the custom field when the caller passed one (=
+            // leading search field above the first card': render the custom
+            // leading-aligned search field HERE (= at the TOP of the cards
+            // column; above the first card grid) = the Apple HIG "inline search
+            // field at the column top" pattern (= the canonical Mail / Notes
+            // column search pattern). The previous attempt (commit 71daf8311)
+            // put the search field in a wrapper HStack ABOVE PreviewPane (=
+            // visually wrong = the search field rendered above the column's own
+            // first row and the immediate ask was to move it). The fix = move
+            // the search field into the PreviewPane body, so it sits exactly
+            // where requested (= at the column's top, above the first card).
+            // Only render the custom field when the caller passed one (=
             // `customLeadingSearch != nil`). Default = nil = no field (= legacy
             // callers / tests still work).
             if let customSearch = customLeadingSearch {
