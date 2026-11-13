@@ -253,6 +253,26 @@ private struct OnboardingAwareToolbar: ViewModifier {
             // / behind the strip, so the strip carries the window's depth
             // / instead of a painted band).
             .toolbarBackground(.ultraThinMaterial, for: .windowToolbar)
+            // The window's titlebar strip closes with the SHARED hairline,
+            // = so the strip reads as chrome above the columns and not as
+            // the top of one undifferentiated plane.
+            //
+            // The hairline rides the CONTENT (= the view that starts
+            // where the toolbar strip ends), = so its top edge IS the
+            // strip's lower edge, = and the welcome page (= which has no
+            // toolbar) carries no line at its top edge.
+            //
+            // The hairline is the APP'S OWN (= Apple's own parameter for
+            // this edge, `NSWindow.titlebarSeparatorStyle`, = MEASURED on
+            // this window: the property sets and reads back as `.line`,
+            // = and PAINTS NOTHING, = because the window paints its
+            // toolbar background itself, = so the system edge is not drawn
+            // there. = Apple's HIG names the other candidate, = the scroll
+            // edge effect, = and its precondition (= a scroll view behind
+            // floating interface elements) is not met here, = because the
+            // content starts BELOW the toolbar strip. = The mark is the
+            // same `Divider()` every other edge in the app uses.)
+            .windowToolbarBottomHairline()
         }
     }
 }

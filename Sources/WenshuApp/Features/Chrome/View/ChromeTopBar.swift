@@ -114,8 +114,10 @@ struct ChromeTopBar<Content: View>: View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, horizontalPadding)
-            .overlay(alignment: .bottom) {
-                Divider()
-            }
+            // The band's hairline is the SHARED one (= `ChromeHairline`),
+            // because the editor zone's document strip and the chat zone's
+            // session bar close their bands with the same mark, = and a rule
+            // that lives in each door separately is a rule that drifts.
+            .bandBottomHairline()
     }
 }

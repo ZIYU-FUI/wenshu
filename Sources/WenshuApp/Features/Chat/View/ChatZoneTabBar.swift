@@ -123,6 +123,17 @@ struct ChatZoneTabBar: View {
             columnWidth = newWidth
         }
         .frame(height: DesignTokens.paneTabHotArea)
+        // The bar closes its band with the SHARED hairline (= the same mark
+        // the sidebar's, the assets column's, the inspector column's and the
+        // editor zone's bands close theirs with), = so the bar reads as a
+        // chrome band above the chat body and not as the top of one
+        // undifferentiated plane.
+        //
+        // The hairline rides the band's HEIGHT frame, = so it lands on the
+        // band's bottom edge (= the same edge the other columns' hairlines
+        // land on), = and it is an OVERLAY (= not a row of its own), = so it
+        // costs the band no height and the capsule's own line does not move.
+        .bandBottomHairline()
     }
 }
 

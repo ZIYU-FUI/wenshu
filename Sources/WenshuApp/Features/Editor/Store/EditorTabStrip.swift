@@ -208,6 +208,17 @@ struct EditorTabStrip: View {
         // strip's drawn capsule (= the `.small` control above) takes its
         // height from the same segmented control those columns use.
         .frame(height: DesignTokens.paneTabHotArea)
+        // The strip closes its band with the SHARED hairline (= the same
+        // mark the sidebar's, the assets column's and the inspector column's
+        // bands close theirs with), = so the strip reads as a chrome band
+        // above the editor body and not as the top of one undifferentiated
+        // plane.
+        //
+        // The hairline rides the band's HEIGHT frame, = so it lands on the
+        // band's bottom edge (= the same edge the other columns' hairlines
+        // land on), = and it is an OVERLAY (= not a row of its own), = so it
+        // costs the band no height and the capsule's own line does not move.
+        .bandBottomHairline()
         .onChange(of: tabs.map(\.id), initial: true) { _, incomingIds in
             // Sync is a no-op if the id list already matches the
             // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
