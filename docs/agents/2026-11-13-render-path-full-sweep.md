@@ -93,6 +93,7 @@ Two runs, four minutes apart, on a machine with no compile running:
 | D2 the `Hasher` alone | 0.196 us | **0.041 / 0.083 us** |
 | D2 the real 12-tag set's id cost | 1,517.841 us | **116.292 / 119.000 us** |
 | D3 the full shelves walk | 2,894.455 us | **755.000 / 781.334 us** |
+| D4 one WHOLE sidebar reload (= = D1's ten counts + D3's shelves walk, = = measured together) | not measured | **1,589.667 / 1,642.375 us** |
 | F1 `BookDocumentIndex.scan` (one book) | 729.160 us | **188.833 / 193.792 us** |
 
 The probe file is `probe4-contention-robust.swift` (= every row above
@@ -102,10 +103,10 @@ harness changed).
 **⇒ ⇒  TWO OF THE REPORT'S CONCLUSIONS FLIP.** = = A1+A2 no longer
 crosses Apple's 500 us line (= 276 us, not 675), so the per-keystroke
 class drops OUT of the "above threshold" set. = = And the sidebar's
-per-reload total is **760 us**, not 14.9 ms (= it was a sum of three
+per-reload total is **1,590 us**, not 14.9 ms (= it was a sum of three
 inflated numbers), so the sidebar is no longer 22x the editor's
-per-keystroke cost (= it is about 2.7x). = = The sidebar is still the
-largest single number in the tree, but it is 760 us, not 14.9 ms.
+per-keystroke cost (= it is about 5.8x). = = The sidebar is still the
+largest single number in the tree, but it is 1,590 us, not 14.9 ms.
 
 ---
 
@@ -120,10 +121,10 @@ each other by raw microseconds hides the one the user feels.
 | Per keystroke | Runs on every character typed in the editor | **276.042 us** (two walks of the same document) — BELOW Apple's 500 us line |
 | Per frame while streaming | Runs on every coalesced frame of an AI reply | the trailing row is rebuilt 60x/s (a COUNT, not a microsecond figure) |
 | Per body pass | Runs whenever the view's body is evaluated | 542 card bodies + 490 markdown parses per board pass; 4 stat syscalls at the root |
-| Per sidebar reload | Runs on every selection change (NOT per frame) | **759.958 us** |
+| Per sidebar reload | Runs on every selection change (NOT per frame) | **1,589.667 us** (= = D1's ten folder counts + D3's shelves walk, = = MEASURED together; = = the earlier 759.958 us was D1 alone) |
 | Per launch | Runs once per process | every reference-library row's identity changes |
 
-The sidebar's reload cost (760 us) is about 2.7x the editor's
+The sidebar's reload cost (1,590 us) is about 5.8x the editor's
 per-keystroke cost (276 us), and it is the one the user feels as
 "clicking the sidebar is laggy". The per-keystroke one is smaller and
 still the one to fix first for the typing surface, because it repeats
@@ -190,9 +191,9 @@ user sees it).
 
 | # | Where | The code | Cost | Apple |
 | --- | --- | --- | --- | --- |
-| D1 | `Features/Library/View/AppleSidebarView.swift:270-298` | `loadFolderDocCount: { [bookStore] bookId, folderName in`<br>`    ... FileManager.default.contentsOfDirectory(at: shelvesRoot, ...)`<br>`    for shelfDir in shelfDirs { ... FileManager.default.contentsOfDirectory(at: folderDir, ...)` | Per folder row the code **re-lists every shelf directory** and then re-lists the target folder to count its `.md` files. Called from `SidebarService.folderChildren(for:)` (`SidebarService.swift:311`) once per (book x user-facing folder). **MEASURED 66.209 us min / 69.375 us median per single `loadFolderDocCount` call**; the real reload's books x 5 user-facing folders = 2 x 5 = 10 calls, measured as ONE bench = **759.958 us min / 788.208 us median per sidebar reload** (= the reload is a separate bench row, = = NOT the single-call figure times ten: = = the two walk different early-exit paths). The walk is O(shelves) per call, so O(shelves x books x folders). | *"Move business logic and other non-UI work out of views to model types because SwiftUI recreates views, and recalculates view bodies, frequently."* — https://developer.apple.com/documentation/xcode/understanding-and-improving-swiftui-performance (no Apple sentence covers "don't re-list a directory you just listed"; the nearest is the model-boundary pattern Apple names) |
+| D1 | `Features/Library/View/AppleSidebarView.swift:270-298` | `loadFolderDocCount: { [bookStore] bookId, folderName in`<br>`    ... FileManager.default.contentsOfDirectory(at: shelvesRoot, ...)`<br>`    for shelfDir in shelfDirs { ... FileManager.default.contentsOfDirectory(at: folderDir, ...)` | Per folder row the code **re-lists every shelf directory** and then re-lists the target folder to count its `.md` files. Called from `SidebarService.folderChildren(for:)` (`SidebarService.swift:311`) once per (book x user-facing folder). **MEASURED 66.209 us min / 69.375 us median per single `loadFolderDocCount` call**; the real reload's books x 5 user-facing folders = 2 x 5 = 10 calls, measured as ONE bench = **759.958 us min / 788.208 us median per sidebar reload** (= the reload is a separate bench row, = = NOT the single-call figure times ten: = = the two walk different early-exit paths). = = ⇒ ⇒ AND IT COMPOSES WITH D3: = = the same `reload()` also runs the cover reconciler's shelves walk (= = 755.000 us), = = so one reload is **1,589.667 us min** measured together. The walk is O(shelves) per call, so O(shelves x books x folders). | *"Move business logic and other non-UI work out of views to model types because SwiftUI recreates views, and recalculates view bodies, frequently."* — https://developer.apple.com/documentation/xcode/understanding-and-improving-swiftui-performance (no Apple sentence covers "don't re-list a directory you just listed"; the nearest is the model-boundary pattern Apple names) |
 | D2 | `Features/Library/View/SidebarService+ReferenceLibrary.swift:269-285` and `:244-260` (same shape at `SidebarService.swift:327-347`) | `var hasher = Hasher(); hasher.combine(raw); let hash = hasher.finalize()`<br>`let u = uuidBytes.map { String(format: "%02x", $0) }.joined()` | Each tag row and each category row builds a UUID from a **`Hasher()` seeded per process**, and formats it with **16 separate `String(format:)` calls**. **MEASURED 9.333 us min per UUID**, of which **8.042 us is the 16 x `String(format: "%02x")`** and the `Hasher` itself is **0.041 us**. The real library's **12 distinct tags** = **116.292 us min / 119.000 us median per reload**. (= The first version quoted 18 ids; the 12 tags are read out of `entities.json`, and the category rows are a classifier output, so the row count is 12 + the buckets the 12 tags vote into.) | *"any heap allocation, such as for a class-bound type, can add up"* and *"string interpolation can often be expensive, so make sure to cache any strings you might need to frequently use"* — WWDC23 *Demystify SwiftUI performance*, https://developer.apple.com/videos/play/wwdc2023/10160/ (`String(format:)` is the class-bound form; `FormatStyle` is the cheap form) |
-| D3 | `Features/Library/View/SidebarService.swift:106-235` (`reload()`) | `CoverReconciler.live().sweep(liveReferenceIds: ..., shelvesRoot: ...)` at `:120` | `reload()` walks the whole shelves tree (every book x every folder x every file) to reconcile covers. **MEASURED 755.000 us min / 781.334 us median per full shelves walk** on the real library (2 books). On this corpus the sweep early-exits on `guard !coverKeys.isEmpty` when no covers are stored, so the number is the upper bound, paid only when covers exist. | same sentence as D1 |
+| D3 | `Features/Library/View/SidebarService.swift:106-235` (`reload()`) | `CoverReconciler.live().sweep(liveReferenceIds: ..., shelvesRoot: ...)` at `:120` | `reload()` walks the whole shelves tree (every book x every folder x every file) to reconcile covers. **MEASURED 755.000 us min / 781.334 us median per full shelves walk** on the real library (2 books). **IT RUNS ON THIS CORPUS:** the guard is `guard !coverKeys.isEmpty else { return 0 }` (`CoverReconciler.swift:136`), and this library holds **26 cover folders** (= = 20 `bookDoc-` + 6 `reference-`), = = so `storedKeys()` is non-empty, = = the guard does NOT fire, = = and the walk happens. = = The number is the cost of a real reload, = = not an upper bound paid only when covers exist. = = ⇒ ⇒ The walk reaches the disk through `CoverReconciler.bookDocIds(shelvesRoot:)` (`CoverReconciler.swift:58-103`), = = which lists the shelves, = = then each book's folders, = = then each folder's files. = = ⇒ ⇒ AND IT COMPOSES WITH D1: = = the same `reload()` runs D1's ten folder counts (= = 759.958 us) = = AND this walk (= = 755.000 us), = = and measured together they are **1,589.667 us min**, = = so the reload class is about twice what the class table first quoted. | same sentence as D1 |
 
 ### E. Per launch
 
@@ -350,7 +351,7 @@ whether it verified.
 | --- | --- |
 | CHECK 2 FAIL: every MEASURED number is inflated 2-3x by concurrent compiles; the old harness averaged | **Re-measured with a min/median/p95 harness** (= the minimum is the load-independent floor). The comparison table at the top lists every number, old and new. The probe file is `probe4-contention-robust.swift`. |
 | "A1+A2 no longer crosses the 500 us threshold" | **Confirmed and adopted.** A1+A2 is 276.042 us min. The class table, the "22x" comparison, and rule 1's sentence are all re-derived. The per-keystroke class drops OUT of the "above threshold" set. |
-| "The class table's 14,860 us is a sum of inflated numbers" | **Confirmed and corrected to 759.958 us** (= D1's own measurement). The ratio to the per-keystroke cost becomes about 2.7x, not 22x. |
+| "The class table's 14,860 us is a sum of inflated numbers" | **Confirmed, and then corrected AGAIN**: the class table's reload figure was D1's ten counts ALONE (759.958 us), = = but one reload also runs D3's shelves walk (755.000 us), = = and measured together they are **1,589.667 us min**. = = The ratio to the per-keystroke cost becomes about 5.8x. |
 | "D2's 18-id arithmetic is internally inconsistent by 2.007x" | **Confirmed and corrected.** The row count is **12 distinct tags** (read out of `entities.json`, which is a 6-item LIST; the first probe cast it to a dict and found 0 tags). The category rows are a classifier output, not a stored field. The 12-tag id cost is **116.292 us min**. |
 | CHECK 4 FAIL: C2's two sentences are absent from the cited page | **Confirmed and fixed.** The two sentences ("only work that is required for the current state should happen for the current frame" and "The winning pattern is precomputation at the model boundary") are NOT on the WWDC23 10160 page (0 hits in the de-tagged text, 0 in the raw HTML, while 5 other quotes from the same page hit). They are replaced by the sentence the transcript DOES carry: *"Another source is work done in body. Make sure to check for expensive string interpolation or operations like data filtering and other work inside of body. It's important that body itself is as cheap as possible."* |
 | "8 statuses" | **Corrected to 7** (the store's own distinct `ZSTATUS` values), and the 8 *columns* the board renders are now named as a different number. |
@@ -371,7 +372,7 @@ whether it verified.
 
 1. **Classify the path before ranking.** A per-launch cost, a per-reload
    cost, a per-keystroke cost and a per-frame cost are four different
-   classes. Ranking them by raw microseconds lets a 760 us one-shot
+   classes. Ranking them by raw microseconds lets a 1,590 us one-shot
    hide behind a 276 us per-keystroke number, and hides the one the user
    feels most often.
 2. **Measure the FLOOR, not the mean.** A mean is the statistic that
