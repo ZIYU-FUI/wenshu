@@ -6,7 +6,8 @@
 // a single shared `ChromeBottomFooter` component and use it from BOTH call sites. The
 // shared component is the canonical Apple HIG sidebar-bottom-accessory surface recipe
 // (= `VStack(spacing: 0) { Divider; content; .frame(maxWidth: .infinity, alignment:
-// .leading); .padding(.vertical, 8); .padding(.horizontal, 8) } .background(.bar)`).
+// .leading); .padding(.vertical, 8); .padding(.horizontal, 8) } .background(the
+// opaque control surface)`).
 // Chat `tokenCountFooter` AND editor `EditorStatusBarView` both render their content
 // slot inside this same shell. Single source of truth for the bottom-chrome shape; =
 // no visual drift between the two call sites; = Apple-default 1:1.
@@ -19,7 +20,7 @@ import SwiftUI
 /// ANY column-bottom accessory row (= footer text, status
 /// indicator, secondary action button, etc.) so all column
 /// bottoms in wenshu have the same surface recipe: `Divider`
-/// above + content + `.bar` material + 8 PT all-around
+/// above + content + the opaque control surface + 8 PT all-around
 /// padding (= the canonical Apple HIG sidebar-bottom-
 /// accessory height of ~38 PT).
 ///
@@ -62,7 +63,26 @@ struct ChromeBottomFooter<Content: View>: View {
                 .padding(.vertical, DesignTokens.spacingStandard)
                 .padding(.horizontal, DesignTokens.spacingStandard)
         }
-        .background(.bar)
+        // The bar's surface is the system's OWN OPAQUE control
+        // background (= `NSColor.controlBackgroundColor`), not a
+        // material.
+        //
+        // WHY: a material is TRANSLUCENT (= it paints whatever is
+        // BEHIND it), = and this window is translucent (= one
+        // behind-window material at the root), = so each column's bar
+        // sampled a DIFFERENT patch of the desktop and every bar came
+        // out a different grey. = An opaque system colour resolves to
+        // the same value in every column of one appearance (= the
+        // desktop can no longer reach it), = so the window's bottom
+        // edge reads as ONE line, = and the light and dark
+        // appearances each resolve to their own value (= the bar
+        // follows the theme).
+        //
+        // `Color(nsColor:)` is an AppKit SEMANTIC colour (= not a raw
+        // `Color.X.opacity(N)` literal), = the same primitive the
+        // sidebar's row-icon tile wears (= `IconStyles.swift`), = so
+        // the v3.0 colour rule holds.
+        .background(Color(nsColor: .controlBackgroundColor))
         .help(help ?? "")
     }
 

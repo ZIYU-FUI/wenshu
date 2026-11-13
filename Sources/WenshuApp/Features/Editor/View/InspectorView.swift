@@ -91,6 +91,34 @@ struct InspectorView: View {
                 InspectorFormatPageView()
             }
         }
+        // The column fills its own height, = so the bottom bar below it
+        // sits at the WINDOW's bottom edge (= the same line every other
+        // column's bottom bar sits on).
+        .frame(maxHeight: .infinity)
+        // The column's bottom bar.
+        //
+        // WHY IT EXISTS: this column was the ONE column whose bottom
+        // edge had no bar at all (= its ground ran straight to the
+        // window's bottom edge, = while the other three columns ended
+        // on a bar), = so the window's bottom edge read as one broken
+        // line instead of one clean one.
+        //
+        // The bar is the SHARED chrome (= `ChromeBottomFooter` = the
+        // same component every other column's bottom bar renders
+        // through, = the same height token, = the same hairline, = the
+        // same opaque surface), = and its content slot is EMPTY on
+        // purpose: = the bar is the row's shape, = not a placeholder
+        // for a feature.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            ChromeBottomFooter {
+                // The slot keeps the row's height (= the shared footer's
+                // content row is a FIXED height, = so an empty slot
+                // still paints the canonical bar). = A `Color.clear`
+                // fills it without drawing anything (= `EmptyView`
+                // collapses to nothing and the bar loses its row).
+                Color.clear
+            }
+        }
         .toolbar {
             // ONE control for the column (= the section switch alone).
             //
