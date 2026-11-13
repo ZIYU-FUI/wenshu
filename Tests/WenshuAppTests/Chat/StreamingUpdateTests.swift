@@ -104,4 +104,38 @@ struct StreamingUpdateTests {
         #expect(published.joined() == (0..<500).map { "t\($0) " }.joined(),
                 "no chunk may be lost by the coalescing")
     }
+
+    @Test("the trailing part keeps its identity while the reply grows")
+    func trailingPartKeepsItsIdentity() {
+        let accumulator = StreamingAccumulator()
+
+        accumulator.appendText("First ")
+        let firstID = accumulator.snapshotParts().last?.id
+        accumulator.appendText("Second ")
+
+        let parts = accumulator.snapshotParts()
+        #expect(parts.count == 1,
+                "the two chunks belong to one part")
+        #expect(parts.last?.id == firstID,
+                "the trailing part must keep its id, or SwiftUI reads it as a different row and rebuilds it on every chunk")
+        #expect(parts.last?.kind == .text("First Second "),
+                "the text must still be the whole reply")
+    }
+
+    @Test("the trailing reasoning part keeps its identity while the reply grows")
+    func trailingReasoningPartKeepsItsIdentity() {
+        let accumulator = StreamingAccumulator()
+
+        accumulator.appendReasoning("think ")
+        let firstID = accumulator.snapshotParts().last?.id
+        accumulator.appendReasoning("more ")
+
+        let parts = accumulator.snapshotParts()
+        #expect(parts.count == 1,
+                "the two chunks belong to one part")
+        #expect(parts.last?.id == firstID,
+                "the trailing reasoning part must keep its id, or SwiftUI rebuilds it on every chunk")
+        #expect(parts.last?.kind == .reasoning("think more "),
+                "the reasoning must still be the whole thought")
+    }
 }

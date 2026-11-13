@@ -52,12 +52,37 @@ import WenshuData
 /// + `React.memo` boundary).
 struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
     let id: UUID
-    let kind: Kind
+    /// Mutable so a streaming chunk can extend the part in place.
+    ///
+    /// The id is what SwiftUI keys the row on, so a part that is
+    /// REPLACED rather than extended reads as a different row and the
+    /// row is torn down and built again (= WWDC23 "Demystify SwiftUI
+    /// performance": "A change to the identity means the view changed.").
+    /// Mutating the kind keeps the id, so the row updates.
+    var kind: Kind
     /// Unix seconds when this part began (= hermes TimelinePartMetadata.timestamp).
     let timestamp: TimeInterval?
     /// Unix seconds when this part stopped streaming (= hermes
     /// TimelinePartMetadata.completedAt). nil while still streaming.
     let completedAt: TimeInterval?
+
+    /// Extend this part's own text with a streamed chunk.
+    ///
+    /// Keeps the id, the timestamp and the completion stamp, so the row
+    /// SwiftUI built for this part is updated instead of rebuilt. A part
+    /// that carries no text (= a tool call, = a tool result) is left
+    /// alone: those never coalesce.
+    mutating func appending(_ chunk: String) {
+        guard !chunk.isEmpty else { return }
+        switch kind {
+        case let .text(existing):
+            kind = .text(existing + chunk)
+        case let .reasoning(existing):
+            kind = .reasoning(existing + chunk)
+        default:
+            break
+        }
+    }
 
     enum Kind: Equatable, Hashable, Sendable {
         /// Plain text fragment (= multiple per message when the agent

@@ -36,11 +36,17 @@ final class StreamingAccumulator: @unchecked Sendable {
     /// The streaming path used to rebuild the whole parts array per chunk,
     /// which copied every part written so far on every chunk. Appending in
     /// place keeps the cost proportional to the new text.
+    ///
+    /// The trailing part is EXTENDED, not replaced. Replacing it would
+    /// mint a fresh id (= the `.text(_:)` factory builds one), and the id
+    /// is what SwiftUI keys the row on, so the row would be torn down and
+    /// built again on every chunk (= once per frame, = = 60 times a
+    /// second while a reply streams).
     func appendText(_ chunk: String) {
         guard !chunk.isEmpty else { return }
         lock.lock(); defer { lock.unlock() }
-        if case let .text(last)? = _parts.last?.kind {
-            _parts[_parts.count - 1] = .text(last + chunk)
+        if case .text = _parts.last?.kind {
+            _parts[_parts.count - 1].appending(chunk)
         } else {
             _parts.append(.text(chunk))
         }
@@ -105,8 +111,8 @@ final class StreamingAccumulator: @unchecked Sendable {
     func appendReasoning(_ chunk: String) {
         guard !chunk.isEmpty else { return }
         lock.lock(); defer { lock.unlock() }
-        if case let .reasoning(last)? = _parts.last?.kind {
-            _parts[_parts.count - 1] = .reasoning(last + chunk)
+        if case .reasoning = _parts.last?.kind {
+            _parts[_parts.count - 1].appending(chunk)
         } else {
             _parts.append(.reasoning(chunk))
         }
