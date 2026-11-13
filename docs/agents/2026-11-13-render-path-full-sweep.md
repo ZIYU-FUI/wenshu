@@ -219,7 +219,7 @@ IT ADDS ONE THAT IS NOT A PERFORMANCE FINDING AT ALL.**
 | --- | --- | --- |
 | *Motion* — https://developer.apple.com/design/human-interface-guidelines/motion | *"In apps, generally avoid adding motion to UI interactions that occur frequently."* | **C5** (= the detail column animates on `globalSearchQuery`, = = the search field's interaction). Every keystroke in the settings search animates the whole column. |
 | *Motion* — same article | *"Avoid showing objects that oscillate in a sustained way. In particular, you want to avoid showing an oscillation that has a frequency of around 0.2 Hz because people can be very sensitive to this frequency."* | **C8** (= the forever-repeating `symbolEffect`). HIG names the frequency sensitivity that a generic performance page does not. |
-| *Motion* — same article | *"Aim for brevity and precision in feedback animations."* and *"Let people cancel motion. As much as possible, don’t make people wait for an animation to complete before they can do anything."* | **C12** (= an animation per progress tick, = = and a determinate progress bar that never lets the person look away). |
+| *Motion* — same article | *"Aim for brevity and precision in feedback animations."* and *"Let people cancel motion. As much as possible, don’t make people wait for an animation to complete before they can do anything, especially if they have to experience the animation more than once."* | **C12** (= an animation per progress tick, = = and a determinate progress bar that never lets the person look away). |
 | *Scroll views* — https://developer.apple.com/design/human-interface-guidelines/scroll-views | *"In all cases, automatically scroll the content only as much as necessary to help people retain context."* | **B8** (= `proxy.scrollTo` on every frame, = = scrolling far more than necessary). |
 | *Scroll views* — same article | *"Avoid putting a scroll view inside another scroll view with the same orientation."* | **CHECKED, NOT A FINDING.** The board's `ScrollView` (`:132`) has no inner vertical `ScrollView` (= `KanbanView` has exactly one `ScrollView`), and the grid's `ScrollView` sits in a different column. = = The board's problem is the MISSING lazy container, not a nested one. |
 | *Lists and tables* — https://developer.apple.com/design/human-interface-guidelines/lists-and-tables | *"Provide appropriate feedback when people select a list item. … a table that helps people navigate through a hierarchy persistently highlights the selected row to clarify the path people are taking."* | **CHECKED, NOT A FINDING.** The sidebar's `List` is a lazy container and the selected row does highlight. No defect found. |
@@ -298,6 +298,16 @@ against the page it cites, by opening the page and searching its
 de-tagged text (a positive control was used each time, = = a quote
 known to be on that page, = = to prove the page had loaded).
 
+**HOW TO READ THE TABLE.** = = A row's quote is the string that was
+searched for on the page it names. = = A row that carries an
+ellipsis (= = "A … B") is an ELISION, = = and it is certified
+by its TWO HALVES: = = each half is a contiguous string on the
+page, = = and the page's own wording runs on between them. = =
+So a verifier searches each half separately, = = and a row is HIT
+when both hit. = = A row that names ONE quote = = carries the
+whole of it, = = not an abbreviation (= = an abbreviation once
+hid a dropped word).
+
 | Row | Quote (abbreviated) | Page | Verified |
 | --- | --- | --- | --- |
 | B1, E1 | "Identity helps SwiftUI manage view lifetime… A change to the identity means the view changed." | WWDC23 10160 transcript | **HIT** |
@@ -313,9 +323,14 @@ known to be on that page, = = to prove the page had loaded).
 | C4 | "calculate the smallest region that needs updating … so the system only updates the changed region." | Xcode rendering-efficiency page | **HIT** |
 | C1 | "The stack is “lazy,” in that the stack view doesn’t create items until it needs to render them onscreen." | `LazyVStack` overview | **HIT** (= the page carries CURLY quotes and a CURLY apostrophe, = = so a straight-quote match misses it) |
 | C5, C8, C12 | "In apps, generally avoid adding motion to UI interactions that occur frequently." | HIG *Motion* | **HIT** (= read from the local HIG corpus) |
+| Motion, 2 | “Aim for brevity and precision in feedback animations.” | HIG *Motion* | **HIT** |
+| Scroll views, 2 | “Avoid putting a scroll view inside another scroll view with the same orientation.” | HIG *Scroll views* | **HIT** |
+| Lists and tables | “Provide appropriate feedback when people select a list item. … a table that helps people navigate through a hierarchy persistently highlights the selected row to clarify the path people are taking.” | HIG *Lists and tables* | **HIT** |
+| Loading, 2 | “Show something as soon as possible. … consider showing placeholder text, graphics, or animations as content loads, replacing these elements as content becomes available.” and “Let people do other things in your app or game while they wait for content to load.” | HIG *Loading* | **HIT** |
+| Sidebars | “In general, show no more than two levels of hierarchy in a sidebar.” | HIG *Sidebars* | **HIT** |
 | C8 | "Avoid showing objects that oscillate in a sustained way. In particular, you want to avoid showing an oscillation that has a frequency of around 0.2 Hz because people can be very sensitive to this frequency." | HIG *Motion* | **HIT** (= the WHOLE sentence is certified, = = because an abbreviation once hid a dropped word in it) |
 | C12 | "All progress indicators are transient, appearing only while an operation is ongoing and disappearing after it completes." | HIG *Progress indicators* | **HIT** |
-| C12 (Motion) | "In apps, generally avoid adding motion to UI interactions that occur frequently." and "Let people cancel motion. As much as possible, don’t make people wait for an animation to complete before they can do anything." | HIG *Motion* | **HIT** (= the page carries a CURLY apostrophe in "don’t", = = so a straight-quote match misses it) |
+| C12 (Motion) | "In apps, generally avoid adding motion to UI interactions that occur frequently." and "Let people cancel motion. As much as possible, don’t make people wait for an animation to complete before they can do anything, especially if they have to experience the animation more than once." | HIG *Motion* | **HIT** (= the page carries a CURLY apostrophe in "don’t", = = and the sentence runs on past "anything" (= = "...anything, especially if they have to experience the animation more than once."), = = so the quote above is the page's WHOLE sentence, = = not an elision of it) |
 | B8 | "automatically scroll the content only as much as necessary to help people retain context." | HIG *Scroll views* | **HIT** |
 
 **THE TWO QUOTES THE REVIEW FOUND ABSENT ARE GONE, AND SO IS A THIRD
@@ -326,6 +341,7 @@ nowhere in the 21,763-character transcript). It was the same third-party
 attribution, in a row the reviewer's three sampled rows did not happen to
 include. So the document now carries a table of EVERY Apple quote and
 whether it verified.
+
 ---
 
 ## The corrections this revision makes (= the review's list, answered)
@@ -356,7 +372,7 @@ whether it verified.
 1. **Classify the path before ranking.** A per-launch cost, a per-reload
    cost, a per-keystroke cost and a per-frame cost are four different
    classes. Ranking them by raw microseconds lets a 760 us one-shot
-   hide behind a 276 us per-frame number, and hides the one the user
+   hide behind a 276 us per-keystroke number, and hides the one the user
    feels most often.
 2. **Measure the FLOOR, not the mean.** A mean is the statistic that
    background load inflates. The minimum over many reps is the
