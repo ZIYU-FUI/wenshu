@@ -15,6 +15,13 @@
 #  2-3x higher (= they were means taken while three subagents were
 #  compiling), = = and the reviewer's re-run caught it.
 #
+#  THE PROBES ARE IN THE REPO, = = so every number below can be
+#  re-measured: = = `Tools/wenshu-devtool/probes/render_path_contention_robust.swift`
+#  (= = every row of the sweep's measurement table) = = and
+#  `Tools/wenshu-devtool/probes/render_path_reload_total.swift` (= = the
+#  whole-reload figure). = = Both are READ-ONLY, = = and both print the
+#  commit they measured against.
+#
 #
 #
 #
