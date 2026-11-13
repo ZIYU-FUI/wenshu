@@ -21,6 +21,8 @@ card's commit does not touch the app source.
 | `editor_chat_arrangement.py` | The editor and chat zone's arrangement (= which pane is where), read from the running app's accessibility tree as native coordinates: the chat's composer and the editor's body (= the editor column's leading edge). It names the arrangement from those coordinates and checks the production fragments it reproduces before it reports a number. | `composer_x`, `composer_y`, `editor_body_x`, `editor_body_y`, `arrangement`, plus `requested_mode` and `agreement` | `fdc4b6760a36` |
 | `toolbar_preference_change.py` | The main window's toolbar after the app's preferences changed: the app's own Settings scene is driven through the accessibility tree, its group rows are switched N times (= N app-preference changes), and the process is watched for the abort AppKit raises when a window asks for more "Update Constraints in Window" passes than it has views. | `switches_landed`, `survived`, `pane_after`, `unresolvable_symbol_faults`, `max_update_constraints_count`, `layout_loop_warnings`, `new_crash_reports`, `other_crash_reports`, plus `bundle`, `bundle_id`, `executable`, `pid`, `instance_owned` and `source_commit` | `37e941c604` |
 | `toolbar_preference_change.swift` | RETIRED AS A GUI DRIVER (2026-10-29: the AX press takes the operator's mouse and foreground; the GUI drive goes through the CUA tool). The accessibility driver the toolbar probe runs: it opens the app's own Settings scene, selects its group rows through the accessibility tree, and verifies every switch against the persisted group key, so a driver that silently did nothing cannot report a pass. It drives the PID it is given and never re-derives one from a path, because every build of the app ships the same bundle id and a path does not name an instance. It checks that the running instance claims the bundle id it was given, because the preferences it reads live in the domain of that id. | `group_rows`, `strategy`, `switches_landed`, plus the group and pane of each round | `37e941c604` |
+| `render_path_contention_robust.swift` | The render path's measured costs, re-measured with a contention-ROBUST harness: the editor's per-keystroke character walk (= = A1 and A2 = = the same walk done twice), the sidebar's per-reload folder doc count (= = D1), and the reference-library row id (= = D2 = = the Hasher plus sixteen `String(format:)` calls). The harness reports the MINIMUM over many reps (= = the load-independent floor), because a mean is exactly the statistic that background CPU load inflates. = = READ-ONLY: it reads the user's library and writes no file. | `a1_walk_us`, `a1_a2_pair_us`, `d1_one_call_us`, `d1_whole_reload_us`, `d2_one_id_us`, `d2_formatting_only_us`, `d2_hasher_only_us`, `d2_twelve_tag_set_us`, plus `distinct_tags` | `292f49670903` |
+| `render_path_reload_total.swift` | The whole sidebar reload measured as ONE call (= = the ten folder doc counts of D1 and the cover reconciler's shelves walk of D3 in a single bench), = = which is the figure the sweep's path-class table quotes for the reload class. It is the same production shapes as `render_path_contention_robust.swift`, = = plus one bench that runs both walks together. = = READ-ONLY: it reads the user's library and writes no file. | `d4_one_whole_reload_us`, plus `d1_one_call_us`, `d1_whole_reload_us` and `d3_full_shelves_walk_us` for the two components it composes | `292f49670903` |
 
 ## Recorded measurement
 
@@ -287,6 +289,24 @@ path still names one build, that an instance of the same bundle id at
 another path is reported as another copy rather than as ours, that a
 crash report of another process is not this run's crash, and that a PID
 the system handed to another process is not the probe's to stop.
+
+### `render_path_reload_total.swift`
+
+Taken against commit `292f49670903`, on the user's own library.
+
+```
+probe: render_path_reload_total  source_commit: 292f49670903
+  D1 one loadFolderDocCount call                             min    69.667 us | median    76.417 us | p95   285.375 us
+  D1 the whole reload (books x 5 user-facing folders)        min   789.958 us | median   817.000 us | p95  2773.167 us
+  D3 the full shelves walk                                   min   790.667 us | median   888.208 us | p95  4722.334 us
+  D4 one reload = D1's ten counts + D3's shelves walk        min  1615.209 us | median  1740.959 us | p95  7947.792 us
+```
+
+The p95 is far above the minimum in this run: = = the machine was busy
+(= = other probes were running), = = which is exactly the condition the
+minimum is there for. = = ⇒ ⇒ The sweep's figure is the MINIMUM
+(= = 1,589.667 us on a quiet machine), = = and this run's higher
+minimum (= = 1,615.209 us) is the same floor measured on a busier one.
 
 ## The index's own test
 
