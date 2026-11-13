@@ -96,9 +96,12 @@ Two runs, four minutes apart, on a machine with no compile running:
 | D4 one WHOLE sidebar reload (= = D1's ten counts + D3's shelves walk, = = measured together) | not measured | **1,589.667 / 1,642.375 us** |
 | F1 `BookDocumentIndex.scan` (one book) | 729.160 us | **188.833 / 193.792 us** |
 
-The probe file is `probe4-contention-robust.swift` (= every row above
-is the SAME production shape as the first version's replica; only the
-harness changed).
+The rows above are from `Tools/wenshu-devtool/probes/render_path_contention_robust.swift` (= = every one of
+them is the SAME production shape as the first version's replica; = = only
+the harness changed). = = The **D4** row is from
+`Tools/wenshu-devtool/probes/render_path_reload_total.swift` (= = the same production shapes, = = plus one
+bench that runs both walks in one call, = = so it has no first-version
+counterpart).
 
 **⇒ ⇒  TWO OF THE REPORT'S CONCLUSIONS FLIP.** = = A1+A2 no longer
 crosses Apple's 500 us line (= 276 us, not 675), so the per-keystroke
@@ -349,7 +352,7 @@ whether it verified.
 
 | The review said | What this revision does |
 | --- | --- |
-| CHECK 2 FAIL: every MEASURED number is inflated 2-3x by concurrent compiles; the old harness averaged | **Re-measured with a min/median/p95 harness** (= the minimum is the load-independent floor). The comparison table at the top lists every number, old and new. The probe file is `probe4-contention-robust.swift`. |
+| CHECK 2 FAIL: every MEASURED number is inflated 2-3x by concurrent compiles; the old harness averaged | **Re-measured with a min/median/p95 harness** (= the minimum is the load-independent floor). The comparison table at the top lists every number, old and new. The probe files are `Tools/wenshu-devtool/probes/render_path_contention_robust.swift` (= = every row above) and `Tools/wenshu-devtool/probes/render_path_reload_total.swift` (= = the D4 row, = = which has no first-version counterpart). |
 | "A1+A2 no longer crosses the 500 us threshold" | **Confirmed and adopted.** A1+A2 is 276.042 us min. The class table, the "22x" comparison, and rule 1's sentence are all re-derived. The per-keystroke class drops OUT of the "above threshold" set. |
 | "The class table's 14,860 us is a sum of inflated numbers" | **Confirmed, and then corrected AGAIN**: the class table's reload figure was D1's ten counts ALONE (759.958 us), = = but one reload also runs D3's shelves walk (755.000 us), = = and measured together they are **1,589.667 us min**. = = The ratio to the per-keystroke cost becomes about 5.8x. |
 | "D2's 18-id arithmetic is internally inconsistent by 2.007x" | **Confirmed and corrected.** The row count is **12 distinct tags** (read out of `entities.json`, which is a 6-item LIST; the first probe cast it to a dict and found 0 tags). The category rows are a classifier output, not a stored field. The 12-tag id cost is **116.292 us min**. |
