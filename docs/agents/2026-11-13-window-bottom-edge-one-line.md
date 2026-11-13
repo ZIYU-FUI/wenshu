@@ -170,10 +170,10 @@ corrected while it sat BLOCKED (= not running), = = so no reviewer read a
 body that then changed underneath it, = = and the sha never moved (= = so
 the same card still matches its branch by sha).
 
-⇒ ⇒ **⇒ AND THIS DOC'S OWN REVIEW FOUND TWO ERRORS IN THIS DOC, = = AND
-BOTH ARE NOW CORRECTED.
+⇒ ⇒ **⇒ AND THIS DOC'S OWN REVIEW FOUND FOUR ERRORS IN THIS DOC, = = AND
+ALL FOUR ARE NOW CORRECTED.**
 
-The card that reviews this doc (`t_bb63dc45`) returned CHANGES REQUESTED
+The first card that reviews this doc (`t_bb63dc45`) returned CHANGES REQUESTED
 with two findings, = = and BOTH were about this doc's own numbers.
 
 (1) THE LIGHT BOTTOM ROW'S STRING DID NOT RE-DERIVE.
@@ -193,13 +193,28 @@ and `:366` quotes the DIFFERENT literal `.font(.system(size:weight:))`; = =
 and the "about 20 hits" figure was not reproducible (= = each prose string
 now carries its own command and its own count).
 
-= = => => => => BOTH WERE INHERITED FROM THE FIRST VERSION OF THIS DOC, = =
-AND NEITHER WAS IN THE LANDED CODE (= = `a41cd9fe45a13a8cf86e36f04d8ad6a8753a3aa8`,
+= = => => => => BOTH OF THOSE WERE INHERITED FROM THE FIRST VERSION OF THIS
+DOC, = = AND NEITHER WAS IN THE LANDED CODE (= = `a41cd9fe45a13a8cf86e36f04d8ad6a8753a3aa8`,
 = = which the review of `t_cfd431b0` approved with all thirteen claims
 checked).
 
-⇒ ⇒ **⇒ ⇒ ⇒ AND THE TWO ERRORS WERE IN
-THE DOC, = = NOT IN THE LANDED CODE, = = AND THEY ARE NOW CORRECTED.**
+(3) THE NEXT ROUND FOUND THE DOC'S THIRD ERROR, = = AND IT WAS THE SAME
+KIND: = = A UNIVERSAL CLAIM OVER A MEASUREMENT THAT DID NOT SUPPORT IT.
+= = The card that reviewed the corrected doc (`t_7c41cc66`) returned CHANGES
+REQUESTED with ONE finding: = = §4 said "the whole tree has hits that are
+all PRE-EXISTING PROSE", = = and the reviewer's own count over `Sources`
+gave **102** hits = = **32** in comments + **70** in REAL CODE, = = so the
+tree is NOT all prose. = = ⇒ ⇒ ⇒ The doc also refuted ITSELF thirteen lines
+later (= = it says `.imageScale(.small)` has one hit in real code at
+`ChatToolUsePartView.swift:58`), = = and even the narrowest scope the doc
+names (= = the four greps over `Sources/WenshuApp`) = = **18** = = **17** in
+comments + **1** in code. = = ⇒ ⇒ ⇒ ⇒ **⇒ AND THE FIX IS ONE SENTENCE: = =
+name the scope and drop the universal.** = = §4 now says the tree's hits
+cover real code as well as prose, = = and it gives the counts (= = 102 = = 32
++ 70 over `Sources`; = = 308 = = 112 + 196 over `Sources` and `Tests`;
+= = 18 = = 17 + 1 over the four greps' own scope), = = with the unit named
+(= = the matching LINE, = = which is what `grep -rn` prints) = = and the
+counting command for each pattern, = = so every number re-derives.
 
 (4) THE NEXT ROUND FOUND THE DOC'S FOURTH ERROR, = = AND IT WAS THE SAME
 CLASS AGAIN: = = A NUMBER IN THE DOC'S PROSE THAT DID NOT RE-DERIVE. = = The
@@ -220,23 +235,8 @@ table that produces it: = = over `Sources` + `Tests`, = = `Image(systemName:`
 `.frame(...:N` 1 = = 1 + 0; = = `.imageScale(` 19 = = 16 + 3; = =
 `SFIcon(` 149 = = 27 + 122; = = **308 = = 112 + 196**.
 
-(3) THE NEXT ROUND FOUND THE DOC'S THIRD ERROR, = = AND IT WAS THE SAME
-KIND: = = A UNIVERSAL CLAIM OVER A MEASUREMENT THAT DID NOT SUPPORT IT.
-= = The card that reviewed the corrected doc (`t_7c41cc66`) returned CHANGES
-REQUESTED with ONE finding: = = §4 said "the whole tree has hits that are
-all PRE-EXISTING PROSE", = = and the reviewer's own count over `Sources`
-gave **102** hits = = **32** in comments + **70** in REAL CODE, = = so the
-tree is NOT all prose. = = ⇒ ⇒ ⇒ The doc also refuted ITSELF thirteen lines
-later (= = it says `.imageScale(.small)` has one hit in real code at
-`ChatToolUsePartView.swift:58`), = = and even the narrowest scope the doc
-names (= = the four greps over `Sources/WenshuApp`) = = **18** = = **17** in
-comments + **1** in code. = = ⇒ ⇒ ⇒ ⇒ **⇒ AND THE FIX IS ONE SENTENCE: = =
-name the scope and drop the universal.** = = §4 now says the tree's hits
-cover real code as well as prose, = = and it gives the counts (= = 102 = = 32
-+ 70 over `Sources`; = = 308 = = 112 + 196 over `Sources` and `Tests`;
-= = 18 = = 17 + 1 over the four greps' own scope), = = with the unit named
-(= = the matching LINE, = = which is what `grep -rn` prints) = = and the
-counting command for each pattern, = = so every number re-derives.
+⇒ ⇒ **⇒ ⇒ ⇒ AND ALL FOUR WERE IN THE DOC, = = NOT IN THE LANDED CODE, = =
+AND THEY ARE NOW CORRECTED.**
 
 ## 7. THE LANDING
 
