@@ -47,6 +47,7 @@ func sourceCommit() -> String {
     let out = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
     return out.isEmpty ? "unknown" : out
 }
+
 print("probe: \(name)  source_commit: \(sourceCommit())")
 
 let LIB = FileManager.default.homeDirectoryForCurrentUser
@@ -86,6 +87,7 @@ for s in shelfDirs {
         bookDirs.append(booksRoot.appendingPathComponent(b))
     }
 }
+
 let bookFolders = ["world", "characters", "outlines", "chapters", "drafts", "ideas", "sessions"]
 print("corpus: shelves=\(shelfDirs.count) books=\(bookDirs.count) bookFolders=\(bookFolders.count)")
 
@@ -100,9 +102,12 @@ print("    document: \(docPath.lastPathComponent) chars=\(s.count)")
 /// The EXACT production shape (= WordCounter.charactersNoSpaces).
 func charactersNoSpaces(_ content: String) -> Int {
     var count = 0
-    for character in content where character != " " && character != "\n" && character != "\t" { count += 1 }
+    for character in content where character != " " && character != "\n" && character != "\t" {
+        count += 1
+    }
     return count
 }
+
 bench("A1/A2 one walk of the 4,731-char document", 300) { charactersNoSpaces(s) }
 bench("A1+A2 the same walk TWICE (= the editor + the status bar)", 300) {
     charactersNoSpaces(s) + charactersNoSpaces(s)
@@ -117,7 +122,8 @@ print("\n[D1] the sidebar's folder doc count")
 func loadFolderDocCount(bookId: String, folderName: String) -> Int {
     guard FileManager.default.fileExists(atPath: shelvesRoot.path),
           let shelfDirs = try? FileManager.default.contentsOfDirectory(
-            at: shelvesRoot, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
+              at: shelvesRoot, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]
+          )
     else { return 0 }
     for shelfDir in shelfDirs {
         let folderDir = shelfDir
@@ -126,15 +132,19 @@ func loadFolderDocCount(bookId: String, folderName: String) -> Int {
             .appendingPathComponent(folderName)
         if FileManager.default.fileExists(atPath: folderDir.path),
            let contents = try? FileManager.default.contentsOfDirectory(
-            at: folderDir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) {
+               at: folderDir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]
+           )
+        {
             return contents.filter { $0.pathExtension == "md" }.count
         }
     }
     return 0
 }
+
 bench("D1 one loadFolderDocCount call", 200) {
     loadFolderDocCount(bookId: bookDirs[0].lastPathComponent, folderName: "world")
 }
+
 bench("D1 the whole reload (books x 5 user-facing folders)", 100) {
     var total = 0
     for b in bookDirs {
@@ -161,19 +171,23 @@ let entitiesJSON = entitiesDir.appendingPathComponent("entities.json")
 var tags = Set<String>()
 var jsonCount = 0
 if let data = try? Data(contentsOf: entitiesJSON),
-   let list = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+   let list = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+{
     jsonCount = list.count
     for item in list {
-        for t in (item["tags"] as? [String] ?? []) { tags.insert(t) }
+        for t in item["tags"] as? [String] ?? [] {
+            tags.insert(t)
+        }
     }
 }
+
 print("    entities.json=\(jsonCount) items, distinct tags=\(tags.count)")
 
-// A REAL corpus tag, read from the library (= = not a literal, = = so the
-// probe carries no non-ASCII text and the hashed string is the shape
-// production hashes). = = The tag's CONTENT does not affect the cost
-// (= = the Hasher hashes any string of that length), = = but its LENGTH
-// does, = = so a corpus tag is the faithful input.
+/// A REAL corpus tag, read from the library (= = not a literal, = = so the
+/// probe carries no non-ASCII text and the hashed string is the shape
+/// production hashes). = = The tag's CONTENT does not affect the cost
+/// (= = the Hasher hashes any string of that length), = = but its LENGTH
+/// does, = = so a corpus tag is the faithful input.
 let sampleTag = tags.sorted().first ?? "tag"
 
 // ============================================================
@@ -189,7 +203,9 @@ func stableTagId(_ tag: String) -> UUID {
     let hash = hasher.finalize()
     let bytes = withUnsafeBytes(of: hash.bigEndian) { Array($0) }
     var uuidBytes = Array(bytes)
-    while uuidBytes.count < 16 { uuidBytes.append(0) }
+    while uuidBytes.count < 16 {
+        uuidBytes.append(0)
+    }
     uuidBytes = Array(uuidBytes.prefix(16))
     uuidBytes[6] = (uuidBytes[6] & 0x0F) | 0x40
     uuidBytes[8] = (uuidBytes[8] & 0x3F) | 0x80
@@ -197,22 +213,29 @@ func stableTagId(_ tag: String) -> UUID {
     let formatted = "\(u.prefix(8))-\(u.dropFirst(8).prefix(4))-\(u.dropFirst(12).prefix(4))-\(u.dropFirst(16).prefix(4))-\(u.dropFirst(20).prefix(12))"
     return UUID(uuidString: formatted) ?? UUID()
 }
+
 bench("D2 one id (Hasher + 16 x String(format:))", 2000) { stableTagId(sampleTag).uuidString.count }
 bench("D2 the 16 x String(format:) alone", 2000) {
     (0 ..< 16).reduce(0) { acc, i in acc + String(format: "%02x", UInt8(i)).count }
 }
+
 bench("D2 the Hasher alone", 5000) {
-    var h = Hasher(); h.combine("wenshu.sidebar.reftag.\(sampleTag)"); return Int(h.finalize() & 0xff)
+    var h = Hasher(); h.combine("wenshu.sidebar.reftag.\(sampleTag)"); return Int(h.finalize() & 0xFF)
 }
 
 bench("D2 the real 12-tag set's id cost", 500) {
     var n = 0
-    for t in tags { n += stableTagId(t).uuidString.count }
+    for t in tags {
+        n += stableTagId(t).uuidString.count
+    }
     return n
 }
+
 bench("D2 one id x 12 (the multiplier the doc quotes)", 500) {
     var n = 0
-    for _ in 0 ..< 12 { n += stableTagId(sampleTag).uuidString.count }
+    for _ in 0 ..< 12 {
+        n += stableTagId(sampleTag).uuidString.count
+    }
     return n
 }
 
@@ -242,6 +265,7 @@ func bookDocIds(shelvesRoot: URL) -> Int {
     }
     return ids
 }
+
 bench("D3 the full shelves walk", 100) { bookDocIds(shelvesRoot: shelvesRoot) }
 
 // ============================================================
@@ -259,9 +283,11 @@ func scanBook(_ root: URL) -> Int {
     }
     return found
 }
+
 for b in bookDirs {
     bench("F1 scanBook(\(b.lastPathComponent.prefix(8)))", 200) { scanBook(b) }
 }
+
 bench("F1 scanBook with a NIL directory (= today's production path)", 200) {
     let nilDirectory: URL? = nil
     let docs = nilDirectory.map { _ in [1] } ?? []
@@ -295,7 +321,7 @@ bench("OPEN-1 the 22 Notification.Name allocations", 5000) {
         Notification.Name("com.wenshu.editor.findQuery"),
         Notification.Name("com.wenshu.editor.findResults"),
         Notification.Name("com.wenshu.editor.replaceCurrent"),
-        Notification.Name("com.wenshu.editor.replaceAll")
+        Notification.Name("com.wenshu.editor.replaceAll"),
     ]
     return names.count
 }
