@@ -117,10 +117,13 @@ SCOPE IS NOT ALL PROSE** (= = the four greps over `Sources/WenshuApp` are
 **18** matching lines = = **17** in comments + **1** in code). = = ⇒ ⇒ ⇒ ⇒
 ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **⇒ AND THE TREE SCOPE IS COUNTED TOO: THE NINE GREPS OVER
 `Sources` GIVE 102 MATCHING LINES = = 32 IN COMMENTS + 70 IN REAL CODE, = =
-AND OVER `Sources` AND `Tests` TOGETHER 308 = = 108 + 200** (= = the unit
+AND OVER `Sources` AND `Tests` TOGETHER 308 = = 112 + 196** (= = the unit
 is the matching LINE, = = which is what `grep -rn` prints; = = each
 pattern's own share is its own
-`grep -rnE "<pattern>" <scope> --include="*.swift" | wc -l`). = = ⇒ ⇒ ⇒ ⇒
+`grep -rnE "<pattern>" <scope> --include="*.swift" | wc -l`; = = and a row
+is PROSE when its line, after the leading whitespace, starts with `//`,
+= = which is the split `grep -rnE … | grep -cE '^[^:]+:[0-9]+:[[:space:]]*//'`
+prints). = = ⇒ ⇒ ⇒ ⇒
 ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **⇒ ⇒ AND THOSE HITS ARE PRE-EXISTING (= = the base
 `b33605b82` gives the same 102 = = 32 + 70 over `Sources`), = = BUT THEY ARE
 NOT ALL PROSE, = = AND NOT ONE OF THEM IS IN A FILE THIS CHANGE TOUCHES
@@ -198,6 +201,25 @@ checked).
 ⇒ ⇒ **⇒ ⇒ ⇒ AND THE TWO ERRORS WERE IN
 THE DOC, = = NOT IN THE LANDED CODE, = = AND THEY ARE NOW CORRECTED.**
 
+(4) THE NEXT ROUND FOUND THE DOC'S FOURTH ERROR, = = AND IT WAS THE SAME
+CLASS AGAIN: = = A NUMBER IN THE DOC'S PROSE THAT DID NOT RE-DERIVE. = = The
+card that reviewed the scoped doc (`t_d17ed027`) returned CHANGES REQUESTED
+with ONE finding: = = §4 printed the tree scope as **308 = = 108 + 200**, = =
+and the split under the doc's OWN named command is **308 = = 112 + 196**. = =
+⇒ ⇒ ⇒ ⇒ The total 308 was right and the `Sources` half (= = 102 = = 32 + 70)
+was right; = = only the tree half's PARTITION was wrong, = = because it had
+been split on a DIFFERENT basis (= = the four prose rows the doc's own
+`Sources/WenshuApp` scope drops, = = charged to "real code"). = = ⇒ ⇒ ⇒ ⇒
+**⇒ AND THE FIX IS ONE NUMBER PAIR: = = 308 = = 112 + 196** (= = and the
+rule that produces it is now NAMED: = = a row is PROSE when its line, after
+the leading whitespace, starts with `//`). = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ The per-pattern
+table that produces it: = = over `Sources` + `Tests`, = = `Image(systemName:`
+89 rows = = 41 + 48; = = `.(padding|spacing|inset)(N` 6 = = 4 + 2; = =
+`.cornerRadius(` 8 = = 4 + 4; = = `.shadow(` 17 = = 10 + 7; = =
+`.system(size:` 19 = = 9 + 10; = = `Color(...opacity` 0; = =
+`.frame(...:N` 1 = = 1 + 0; = = `.imageScale(` 19 = = 16 + 3; = =
+`SFIcon(` 149 = = 27 + 122; = = **308 = = 112 + 196**.
+
 (3) THE NEXT ROUND FOUND THE DOC'S THIRD ERROR, = = AND IT WAS THE SAME
 KIND: = = A UNIVERSAL CLAIM OVER A MEASUREMENT THAT DID NOT SUPPORT IT.
 = = The card that reviewed the corrected doc (`t_7c41cc66`) returned CHANGES
@@ -211,7 +233,7 @@ names (= = the four greps over `Sources/WenshuApp`) = = **18** = = **17** in
 comments + **1** in code. = = ⇒ ⇒ ⇒ ⇒ **⇒ AND THE FIX IS ONE SENTENCE: = =
 name the scope and drop the universal.** = = §4 now says the tree's hits
 cover real code as well as prose, = = and it gives the counts (= = 102 = = 32
-+ 70 over `Sources`; = = 308 = = 108 + 200 over `Sources` and `Tests`;
++ 70 over `Sources`; = = 308 = = 112 + 196 over `Sources` and `Tests`;
 = = 18 = = 17 + 1 over the four greps' own scope), = = with the unit named
 (= = the matching LINE, = = which is what `grep -rn` prints) = = and the
 counting command for each pattern, = = so every number re-derives.
