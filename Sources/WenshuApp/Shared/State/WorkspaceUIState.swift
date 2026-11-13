@@ -292,7 +292,14 @@ enum SidebarPart: String, CaseIterable, Codable, Hashable, Sendable, Identifiabl
     var displayNameKey: String {
         switch self {
         case .shelves: return "sidebar.part.shelves.title"
-        case .library: return "sidebar.part.library.title"
+        // The reference library's name is the catalog's ONE name for it
+        // (= `sidebar.reference_library.title`), = the same name the tree
+        // row and the chat zone's page already show. The switcher used to
+        // carry a second name for the same thing, = so the switcher and
+        // the tree row below it disagreed about what the middle part is
+        // called. One key for one concept is how that disagreement stays
+        // fixed.
+        case .library: return "sidebar.reference_library.title"
         case .referenceBooks: return "sidebar.part.reference_books.title"
         }
     }

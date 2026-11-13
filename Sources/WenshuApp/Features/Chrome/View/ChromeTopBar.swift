@@ -91,12 +91,31 @@ struct ChromeTopBar<Content: View>: View {
 
     /// The band's shape (= the content row + its hairline). The chrome
     /// material is a separate, per-call-site decision: see `usesMaterial`.
+    ///
+    /// The hairline is an OVERLAY on the band's bottom edge, = not a row
+    /// of its own. = the band's content row then spans the band's FULL
+    /// height (= `paneTabHotArea`), = so the content in it is centred in
+    /// the same 28 PT row every other column's content is centred in.
+    ///
+    /// Why (= 2026-11-12): the boss ruled that every column's top bar
+    /// lines up (= "all the columns' top bars need one alignment pass"),
+    /// and the editor zone's teb strip is the baseline. = the teb strip's
+    /// drawn capsule sits centred in its 28 PT band (= MEASURED: the
+    /// pill's own frame is 86..106 in a band of 82..110), = and the side
+    /// columns' switcher used to sit 2 PT lower (= 88..108), = because
+    /// the divider took a row of the band and the switcher was centred in
+    /// what was left. = the pill's own line is now the same line in every
+    /// column.
+    ///
+    /// The overlay draws the hairline at the band's bottom edge (= the
+    /// same 109..110 row the divider row drew it in), = so the band
+    /// still ends exactly where the column's body starts.
     private var band: some View {
-        VStack(spacing: 0) {
-            content
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, horizontalPadding)
-            Divider()
-        }
+        content
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, horizontalPadding)
+            .overlay(alignment: .bottom) {
+                Divider()
+            }
     }
 }

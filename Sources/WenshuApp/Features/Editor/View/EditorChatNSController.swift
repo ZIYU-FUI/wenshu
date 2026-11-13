@@ -132,10 +132,9 @@ final class EditorChatNSController: NSSplitViewController {
     /// The narrowest the EDITOR pane's own chrome can be: the tab
     /// strip row (= the tab strip + the row's trailing close control).
     ///
-    /// 116 PT = the tab strip's own narrowest segment that still shows a
-    /// document name (88 PT = `EditorTabStrip.minimumSegmentWidth`, =
-    /// the strip's measured floor) + the trailing close control's hot
-    /// area (28 PT = `DesignTokens.paneTabHotArea`).
+    /// 116 PT = the tab strip's own narrowest segment (88 PT) + the
+    /// trailing close control's hot area (28 PT =
+    /// `DesignTokens.paneTabHotArea`).
     ///
     /// Why the number CHANGED (2026-11-04): this number used to be
     /// 448 PT, which was the format toolbar's own width (= 12 buttons of
@@ -147,6 +146,15 @@ final class EditorChatNSController: NSSplitViewController {
     /// is the strip's own floor plus the close control. A number that
     /// still described a band the column no longer draws would be a
     /// fiction the rule tests against.
+    ///
+    /// Why the floor is NOT the strip's share (2026-11-12): the tab
+    /// strip no longer holds a per-segment floor (= the boss ruled that
+    /// a tab may show not one character, = so the strip divides the
+    /// column it was given). = 88 PT is what ONE tab needs to show a
+    /// document name, = and that is still what this floor measures: = the
+    /// pane must be wide enough for one readable tab beside the close
+    /// control. = the number is a pane floor, = not a rule about how the
+    /// strip divides a column that is wider than the floor.
     ///
     /// Why a SECOND number beside the pane floors: the floors above
     /// are what a pane must hold when the two panes SHARE the width

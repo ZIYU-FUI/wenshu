@@ -7227,23 +7227,6 @@
         }
       }
     },
-    "sidebar.part.library.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Library"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "图书馆"
-          }
-        }
-      }
-    },
     "sidebar.part.reference_books.title": {
       "extractionState": "manual",
       "localizations": {

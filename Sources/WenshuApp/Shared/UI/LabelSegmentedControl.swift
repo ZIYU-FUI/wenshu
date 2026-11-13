@@ -138,31 +138,29 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     let displayStrings: [String]
     /// Per-segment symbol provider.
     let icon: ((Selection) -> NSImage?)?
-    /// per-segment
-    /// fixed-width
-    /// override
-    /// (= the
-    /// parent
-    /// `EditorTabStrip`
-    /// passes a
-    /// non-zero
-    /// value when
-    /// the tabs
-    /// overflow
-    /// the column;
-    /// = the
-    /// control
-    /// uses
-    /// `segmentDistribution = .fit`
-    /// + `setWidth(fixedSegmentWidth, forSegment: i)`
-    /// so the
-    /// per-segment
-    /// width
-    /// stays
-    /// at the
-    /// given
-    /// value).
-    var fixedSegmentWidth: CGFloat = 0
+    /// The width the control's frame is PINNED to (= the region the
+    /// caller was given; = zero = the control keeps its own fitting
+    /// width, = which is what the toolbar picker and the inspector body
+    /// tabs want).
+    ///
+    /// The pin is what makes the division work, and it is NOT a SwiftUI
+    /// `.frame(width:)` modifier: that modifier does NOT set an
+    /// `NSViewRepresentable`'s frame (= MEASURED: a 160 PT `.frame`
+    /// left the control at its own fitting width of 240 PT, = and at
+    /// 1056 PT for 16 tabs). The frame is pinned by `sizeThatFits`
+    /// below, = the public API for the size a representable is given.
+    ///
+    /// With the frame pinned, `NSSegmentDistributionFillEqually` divides
+    /// it exactly (= AppKit's own header: the segments "will be sized
+    /// to fill the available space, and kept the same size as each
+    /// other"). MEASURED on the real control in a real app: 16 tabs in a
+    /// 200 PT region step by 12.5 PT (= 200 / 16), 30 tabs in a 120 PT
+    /// region step by 4.0 PT (= 120 / 30), 16 tabs in a 40 PT region
+    /// step by 2.5 PT (= 40 / 16). The division is unbounded, = and a
+    /// tab label below its own fitting width is simply not drawn
+    /// (= which the boss's rule allows: "a tab may end up showing not
+    /// one character").
+    var regionWidth: CGFloat = 0
     /// The AppKit control size (= the segment's own height and hit
     /// area; = `NSControl.ControlSize`).
     ///
@@ -206,7 +204,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         iconStyle: IconStyle = .paneTab,
         icon: ((Selection) -> NSImage?)? = nil,
         onDoubleClickSegment: ((Int) -> Void)? = nil,
-        fixedSegmentWidth: CGFloat = 0,
+        regionWidth: CGFloat = 0,
         role: NSSegmentedControl.Role = .valueSelection,
         controlSize: NSControl.ControlSize = .large
     ) {
@@ -216,7 +214,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         self.iconStyle = iconStyle
         self.icon = icon
         self.onDoubleClickSegment = onDoubleClickSegment
-        self.fixedSegmentWidth = fixedSegmentWidth
+        self.regionWidth = regionWidth
         self.role = role
         self.controlSize = controlSize
     }
@@ -257,6 +255,32 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
 
     func updateNSView(_ control: NSSegmentedControl, context: Context) {
         configure(control, coordinator: context.coordinator)
+    }
+
+    /// The size the control is GIVEN (= the frame it is pinned to).
+    ///
+    /// A SwiftUI `.frame(width:)` modifier does NOT set an
+    /// `NSViewRepresentable`'s frame (= MEASURED: a 160 PT `.frame`
+    /// left the control at its own fitting width of 240 PT, = and at
+    /// 1056 PT for 16 tabs, = so the strip overflowed its column).
+    /// `sizeThatFits` is the public API for the size a representable is
+    /// given, = and it is what pins the frame.
+    ///
+    /// The width is the caller's REGION (= the column the strip was
+    /// given), not the proposal's: the proposal is unbounded inside the
+    /// strip's horizontal scroll container (= a horizontal scroll view
+    /// proposes no width), = so the proposal could never pin the frame.
+    ///
+    /// A zero region means the strip has not been measured yet, = and the
+    /// control keeps its own fitting width until the first measurement
+    /// lands.
+    func sizeThatFits(
+        _: ProposedViewSize,
+        nsView: NSSegmentedControl,
+        context _: Context
+    ) -> CGSize? {
+        guard regionWidth > 0 else { return nil }
+        return CGSize(width: regionWidth, height: nsView.fittingSize.height)
     }
 
     /// Configure the control to fill its container with
@@ -348,20 +372,67 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // behavior; = matches SwiftUI Picker(.segmented)).
         control.trackingMode = .selectOne
 
-        // Segment width: an explicit per-segment width when the caller
-        // supplied one, otherwise an equal share of the whole track.
+        // Segment width: an equal share of the region the caller was
+        // given, = or the control's own fitting width when no region was
+        // given (= the toolbar picker and the inspector body tabs, = which
+        // are sized by their content).
         //
-        // `NSSegmentDistributionFit` honours `setWidth(_:forSegment:)`
-        // per segment; `NSSegmentDistributionFill` divides the track
-        // equally and ignores it. A strip that carries its own widths
-        // therefore has to be told which mode it is in.
-        if fixedSegmentWidth > 0 {
-            control.segmentDistribution = .fit
-            for index in 0..<control.segmentCount {
-                control.setWidth(fixedSegmentWidth, forSegment: index)
+        // `NSSegmentDistributionFillEqually` divides the control's OWN
+        // frame equally, = so the frame is what the segments share. The
+        // frame is pinned to the region by `sizeThatFits` below, = so the
+        // strip fills its column exactly, at any tab count, with no
+        // per-cell minimum.
+        //
+        // The distribution stays `.fillEqually`: = it is AppKit's own
+        // rule that the segments share the control's frame equally.
+        control.segmentDistribution = .fillEqually
+
+        // The segment WIDTHS (= the region's share, = one per segment).
+        //
+        // AppKit's own `.fillEqually` divides the control's frame among
+        // the segments, = but it will NOT divide a segment narrower than
+        // its own LABEL's width: = the cell then keeps the label's width
+        // and the strip overflows the region it was given.
+        // MEASURED on the real control in a real app: = 3 tabs in a
+        // 200 PT region (= a 66.67 PT share) with 60 PT labels came out
+        // 80.5 PT per cell, = so the drawn track was 239 PT wide in a
+        // 200 PT column (= 39 PT over the region).
+        //
+        // So the widths are set EXPLICITLY: = `setWidth(_:forSegment:)`
+        // is the public API for one segment's width, = and with every
+        // segment set to its share the cells divide the region exactly
+        // and the label is clipped to its cell (= which is the boss's
+        // rule: = a tab may end up showing not one character).
+        //
+        // The width is set ONLY when the share is above AppKit's own
+        // minimum segment width (= MEASURED: 20.5 PT at the `.small`
+        // control size, = and `setWidth` below it is silently raised to
+        // that floor, = which would make the strip overflow again).
+        // Below the floor the distribution alone divides the region
+        // exactly (= MEASURED: 12 tabs in a 200 PT region came out
+        // 16.5 PT and 17 PT per cell, = and 30 tabs came out 6.5 PT and
+        // 7 PT per cell, = so the division is unbounded).
+        if regionWidth > 0, !labels.isEmpty {
+            // The share comes from the ONE owner (`PaneTabStripWidth`),
+            // because both pane tab strips ask this question of this
+            // control (= the editor's document strip and the chat zone's
+            // session bar), = and a rule that lives in each door
+            // separately is a rule that drifts.
+            let share = PaneTabStripWidth.segmentWidth(
+                columnWidth: regionWidth,
+                segmentCount: labels.count
+            )
+            if share >= PaneTabStripWidth.minimumExplicitSegmentWidth {
+                for index in labels.indices {
+                    control.setWidth(share, forSegment: index)
+                }
+            } else {
+                // Clear any width a previous (= wider) region set, = so
+                // the distribution alone divides the region.
+                for index in labels.indices {
+                    control.setWidth(0, forSegment: index)
+                }
             }
-        } else {
-            control.segmentDistribution = .fillEqually
         }
         // The control size (= the segment's own height, hit area and
         // label font) is the per-call-site knob; = the shared default

@@ -40,19 +40,6 @@ struct ChatZoneTabBar: View {
     /// The width the bar was given (= the chat column's current width).
     @State private var columnWidth: CGFloat = 0
 
-    /// The width each page's segment takes.
-    ///
-    /// The pages divide the width the bar was given (= the rule the
-    /// editor's document strip follows), = so the bar fills its column
-    /// instead of hugging its left edge, = and the overflow goes to the
-    /// scroll container when the pages outgrow the column.
-    private var segmentWidth: CGFloat {
-        PaneTabStripWidth.segmentWidth(
-            columnWidth: columnWidth,
-            segmentCount: pages.count
-        )
-    }
-
     var body: some View {
         content
     }
@@ -68,14 +55,32 @@ struct ChatZoneTabBar: View {
                 labels: pages.map(\.scope),
                 displayStrings: pages.map(\.title),
                 iconStyle: .paneTab,
-                // Each page takes one share of the measured column width,
-                // so the bar spans the column instead of hugging its
-                // left edge. A zero width means the column has not been
-                // measured yet, so the bar takes its own fitting width
-                // until the first measurement lands.
-                fixedSegmentWidth: segmentWidth,
-                role: .valueSelection
+                // The bar divides the column it was given: every page
+                // takes one equal share of the measured column width, so
+                // the bar's total width tracks the column the writer
+                // dragged instead of the number of open pages.
+                //
+                // The region is what the control's frame is PINNED to
+                // (= `LabelSegmentedControl.sizeThatFits`), = and
+                // AppKit's `.fillEqually` then divides that frame
+                // exactly, at any page count, with no per-cell minimum.
+                // A zero width means the column has not been measured
+                // yet, so the bar takes its own fitting width until the
+                // first measurement lands.
+                regionWidth: columnWidth,
+                role: .valueSelection,
+                // The bar's drawn capsule takes its height from the
+                // segmented control the left and right columns already
+                // use (= `.small`), = so all four columns' top bands
+                // draw the same capsule height.
+                controlSize: .small
             )
+            // The control keeps its own height (= the `.small` capsule's
+            // 20 PT), = the same way the sidebar's and the inspector's
+            // switchers keep theirs: AppKit draws the capsule to fill the
+            // control's height, = so a control stretched to the band row's
+            // height would draw a full-height pill with no air.
+            .fixedSize(horizontal: false, vertical: true)
         }
         // Apple's own tab bars scroll the overflow without an indicator,
         // and a floating scroll bar is the one part of this bar that is not

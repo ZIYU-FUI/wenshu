@@ -2,9 +2,12 @@
 //  EditorTabStripOverflowTests.swift - Wenshu
 //
 //  The editor column's width belongs to the writer, and the document tab
-//  strip lives inside whatever width the writer chose. When the open
-//  documents do not all fit, the strip scrolls sideways inside the column
-//  instead of painting across the neighbouring tools panel.
+//  strip lives inside whatever width the writer chose.
+//
+//  The boss's rule (= 2026-11-12) is the browser's mechanism: the
+//  region is divided into as many equal shares as there are tabs, the
+//  strip never exceeds the region, and a tab label has NO minimum width
+//  (= a tab may end up showing not one character, = and that is fine).
 //
 //  These tests measure LAYOUT, not a property. The defect was a rendering
 //  behaviour: the strip claimed a width of its own that exceeded the column
@@ -16,12 +19,20 @@
 //  `NSSegmentedControl` and to the container that clips it. Two numbers
 //  decide this ticket:
 //
-//    - the control's `intrinsicContentSize`: the width the strip claims for
-//      itself, independent of what the column offers it. A claim that grows
-//      with the tab count while the column shrinks is the defect.
-//    - the clipping ancestor: what bounds what the writer can actually see.
-//      With no clipping ancestor the strip paints straight over whatever
-//      sits to the right of the column.
+//    - the control's FRAME: the width the strip was given, = which the
+//      frame pin (`LabelSegmentedControl.sizeThatFits`) makes equal to
+//      the column at any tab count.
+//    - the DRAWN TRACK: the width AppKit laid the segments out in. = the
+//      control's own frame is the width SwiftUI gave it; = the track is
+//      where the cells actually sit, = and the two differ when AppKit
+//      keeps a cell at its label's own width. = the track is what says
+//      whether the strip stayed inside its column.
+//
+//  The drawn track is measured from the control's layer tree: the cells
+//  are the 1 PT hairline layers AppKit draws between them, = and those
+//  positions are real pixels, = not an Accessibility frame (= the
+//  Accessibility radio-button frame clamps to 24 PT whatever the real
+//  width is, = so it cannot answer this question).
 //
 
 import AppKit
@@ -31,22 +42,95 @@ import Testing
 @testable import WenshuApp
 
 @MainActor
-@Suite("Editor tab strip - the strip never claims more width than its column")
+@Suite("Editor tab strip - the strip divides the column it was given")
 struct EditorTabStripOverflowTests {
-
-    /// What the strip claims for itself, and what bounds it on screen.
+    /// What the strip claimed for itself, and where its cells landed.
     private struct Layout {
         var columnWidth: CGFloat
-        /// The width the strip asks for on its own (= the number that made
-        /// the tab strip reach past the window edge).
-        var claimedWidth: CGFloat
-        /// The width the strip can actually paint in (= the column, or the
-        /// clipping container the scroll view put around the strip).
-        var visibleWidth: CGFloat
+        /// The width the control's frame was given (= the column).
+        var frameWidth: CGFloat
+        /// The width the strip's DRAWN cells occupy.
+        var drawnTrackWidth: CGFloat
+        /// The drawn cell boundaries (= the 1 PT dividers AppKit draws
+        /// between two cells).
+        var dividers: [CGFloat]
+        /// The drawn CELLS (= one label layer per cell) and the STEP from
+        /// one cell to the next (= the width one cell takes).
+        ///
+        /// The step is measured from the label layers rather than from
+        /// the hairline dividers, = because AppKit draws a divider only
+        /// between two cells wide enough to hold one (= MEASURED: 3 cells
+        /// in a 200 PT region drew ONE divider for THREE cells), = so a
+        /// divider count would answer a different question than the one
+        /// asked here.
+        var drawnCellCount: Int
+        var drawnCellSteps: [CGFloat]
         /// The first container that clips the strip, if there is one.
         var clipWidth: CGFloat?
-        var segmentWidth: CGFloat
-        var isClipped: Bool { clipWidth != nil }
+        var isClipped: Bool {
+            clipWidth != nil
+        }
+
+        /// The width one cell takes (= the region's share).
+        var share: CGFloat {
+            columnWidth / CGFloat(max(dividers.count + 1, 1))
+        }
+    }
+
+    /// The drawn geometry of a segmented control.
+    ///
+    /// AppKit draws one layer per cell's LABEL (= the `CGDrawingLayer`
+    /// that paints the text) and one hairline between two cells. = the
+    /// label layers' positions are the cells' positions, = so the step
+    /// between two of them is the width one cell takes. = the track is
+    /// the layer the cells sit on.
+    ///
+    /// Everything is read from the layer tree, = so it is real pixels, =
+    /// not an Accessibility frame (= the Accessibility radio-button frame
+    /// clamps to 24 PT whatever the real width is, = so it cannot answer
+    /// this question).
+    private static func drawnGeometry(
+        of control: NSSegmentedControl
+    ) -> (track: (CGFloat, CGFloat)?, labels: [CGFloat], dividers: [CGFloat]) {
+        var track: (CGFloat, CGFloat)?
+        var labelPositions: [CGFloat] = []
+        var rawDividers: [CGFloat] = []
+
+        func scan(_ layer: CALayer) {
+            let frame = layer.frame
+            let name = String(describing: type(of: layer))
+            if name == "CGDrawingLayer" {
+                // A cell's label. = its x is the cell's x.
+                labelPositions.append(frame.origin.x)
+            } else if name == "CALayer" {
+                // A divider = the hairline between two cells.
+                if frame.width == 1, frame.height > 6, frame.height < 18 {
+                    rawDividers.append(frame.origin.x)
+                }
+                // The track = the layer the cells sit on.
+                if frame.width > 4, frame.height > 14, frame.height < 22 {
+                    if track == nil || frame.width > track!.1 {
+                        track = (frame.origin.x, frame.width)
+                    }
+                }
+            }
+            for sub in layer.sublayers ?? [] {
+                scan(sub)
+            }
+        }
+        if let layer = control.layer {
+            scan(layer)
+        }
+
+        // Each divider is drawn once per appearance, so the distinct
+        // positions are the cell boundaries.
+        var dividers: [CGFloat] = []
+        for position in rawDividers.sorted()
+            where dividers.last.map({ abs($0 - position) > 0.5 }) ?? true
+        {
+            dividers.append(position)
+        }
+        return (track, labelPositions.sorted(), dividers)
     }
 
     /// Host the real strip at `columnWidth` and measure it.
@@ -65,36 +149,54 @@ struct EditorTabStripOverflowTests {
         host.frame = NSRect(x: 0, y: 0, width: columnWidth, height: 68)
         // An offscreen window gives AppKit the display context it needs to
         // resolve a control's fitting size. It sits far outside the screen
-        // so the measurement never shows on the writer's desktop.
+        // so the measurement never shows on the writer's desktop. The
+        // window is ordered FRONT (= offscreen, = so nothing shows on the
+        // writer's desktop) because AppKit lays a segmented control's CELLS
+        // out during a display pass: = a window that is never ordered front
+        // keeps the cells at the width they had when the control was first
+        // measured (= the control's own fitting width), = and the strip
+        // then measures as if it overflowed. = the real app orders its
+        // window front, = so the measurement must too.
         let window = NSWindow(
             contentRect: host.frame,
             styleMask: [.titled],
             backing: .buffered,
             defer: false
         )
-        window.setFrameOrigin(NSPoint(x: -20_000, y: -20_000))
+        window.setFrameOrigin(NSPoint(x: -20000, y: -20000))
         window.contentView = host
+        window.orderFront(nil)
         settle(window: window, host: host)
+        window.display()
 
         guard let control = Self.findSegmentedControl(in: host) else {
             Issue.record("The tab strip did not host an NSSegmentedControl.")
             window.orderOut(nil)
             return Layout(
                 columnWidth: columnWidth,
-                claimedWidth: 0,
-                visibleWidth: columnWidth,
-                clipWidth: nil,
-                segmentWidth: 0
+                frameWidth: 0,
+                drawnTrackWidth: 0,
+                dividers: [],
+                drawnCellCount: 0,
+                drawnCellSteps: [],
+                clipWidth: nil
             )
         }
 
+        let geometry = Self.drawnGeometry(of: control)
         let clipWidth = Self.scrollViewport(of: control).map { Self.width(of: $0) }
+        // The step from one cell to the next, = measured from the drawn
+        // label layers (= one per cell).
+        let cellXs = geometry.labels
+        let steps = (0 ..< max(cellXs.count - 1, 0)).map { cellXs[$0 + 1] - cellXs[$0] }
         let layout = Layout(
             columnWidth: columnWidth,
-            claimedWidth: control.intrinsicContentSize.width,
-            visibleWidth: min(clipWidth ?? columnWidth, columnWidth),
-            clipWidth: clipWidth,
-            segmentWidth: control.width(forSegment: 0)
+            frameWidth: control.frame.width,
+            drawnTrackWidth: geometry.track.map { $0.1 } ?? 0,
+            dividers: geometry.dividers,
+            drawnCellCount: cellXs.count,
+            drawnCellSteps: steps,
+            clipWidth: clipWidth
         )
         window.orderOut(nil)
         return layout
@@ -103,21 +205,15 @@ struct EditorTabStripOverflowTests {
     /// Run the run loop so SwiftUI's deferred layout pass completes, then
     /// flush the AppKit side.
     private func settle(window: NSWindow, host: NSView) {
-        for _ in 0..<3 {
+        for _ in 0 ..< 12 {
             RunLoop.current.run(until: Date().addingTimeInterval(0.03))
         }
         host.layoutSubtreeIfNeeded()
         window.displayIfNeeded()
     }
 
-    /// Narrowest segment that still shows a document name.
-    ///
-    /// Spelled out here rather than read back from the view, so the
-    /// expectation is independent of the value the strip happens to use.
-    private static let readableSegmentFloor: CGFloat = 88
-
     private func makeTabs(count: Int) -> [EditorTab] {
-        (0..<count).map { index in
+        (0 ..< count).map { index in
             EditorTab(
                 id: UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", index))!,
                 documentPath: "/library/book-\(index)/chapter-\(index).md",
@@ -130,9 +226,13 @@ struct EditorTabStripOverflowTests {
     }
 
     private static func findSegmentedControl(in view: NSView) -> NSSegmentedControl? {
-        if let control = view as? NSSegmentedControl { return control }
+        if let control = view as? NSSegmentedControl {
+            return control
+        }
         for subview in view.subviews {
-            if let found = findSegmentedControl(in: subview) { return found }
+            if let found = findSegmentedControl(in: subview) {
+                return found
+            }
         }
         return nil
     }
@@ -150,7 +250,8 @@ struct EditorTabStripOverflowTests {
         var ancestor = view.superview
         while let current = ancestor {
             if current is NSClipView
-                || NSStringFromClass(type(of: current)).contains("ClipView") {
+                || NSStringFromClass(type(of: current)).contains("ClipView")
+            {
                 return current
             }
             ancestor = current.superview
@@ -162,192 +263,217 @@ struct EditorTabStripOverflowTests {
         view.convert(view.bounds, to: nil).width
     }
 
-    // MARK: - The strip stays inside the column
+    // MARK: - The strip divides the column it was given
 
     @Test(
-        "The strip is clipped to its column, at any tab count",
-        arguments: [1, 3, 5, 9, 12, 20]
+        "The strip's frame is the column it was given",
+        arguments: [1, 3, 5, 9, 12, 20, 30]
     )
-    func stripIsClippedToItsColumn(tabCount: Int) {
+    func theFramesTheColumn(tabCount: Int) {
+        // The defect scaled with the tab count while the column did not:
+        // the strip's own width grew one segment at a time no matter where
+        // the writer dragged the divider.
+        //
+        // The boss's rule (= 2026-11-12) is the browser's mechanism: the
+        // region is divided into as many equal shares as there are tabs,
+        // the strip never exceeds the region, and a tab label has no
+        // minimum width (= a tab may end up showing not one character).
+        //
+        // So the strip's frame IS the column, = at any tab count.
+        let columnWidth: CGFloat = 454.5
+        let layout = measure(tabCount: tabCount, columnWidth: columnWidth)
+        #expect(
+            abs(layout.frameWidth - columnWidth) < 1,
+            """
+            A \(tabCount)-tab strip's frame is \(layout.frameWidth) PT in a \
+            \(columnWidth) PT column. = The strip's frame is pinned to the \
+            column, = so the tabs divide exactly that width, = and the strip \
+            never exceeds the region.
+            """
+        )
+    }
+
+    @Test(
+        "The tabs divide the column equally",
+        arguments: [3, 5, 9, 12, 20]
+    )
+    func theTabsDivideTheColumn(tabCount: Int) {
+        // The equal division, = measured from the drawn cells (= the
+        // label layers AppKit paints one per cell). = each cell takes one
+        // share of the region, = and no cell is wider than the share, = so
+        // the strip cannot overflow.
+        //
+        // The boundary is measured from the drawn cells rather than from
+        // the hairline dividers: = AppKit draws a divider only between two
+        // cells that are wide enough to hold one (= MEASURED: 3 cells in a
+        // 200 PT region drew ONE divider for THREE cells), = so a divider
+        // count would answer a different question than the one asked here.
+        let columnWidth: CGFloat = 454.5
+        let layout = measure(tabCount: tabCount, columnWidth: columnWidth)
+        let share = columnWidth / CGFloat(tabCount)
+
+        #expect(
+            layout.drawnCellCount == tabCount,
+            """
+            A \(tabCount)-tab strip drew \(layout.drawnCellCount) cells. = \
+            Every tab must be present, = squeezed to its share, = not \
+            hidden.
+            """
+        )
+
+        for (index, step) in layout.drawnCellSteps.enumerated() {
+            #expect(
+                abs(step - share) < 2,
+                """
+                The step from cell \(index + 1) to cell \(index + 2) is \
+                \(step) PT; = it must be the region's share \
+                (= \(columnWidth) / \(tabCount) = \(share) PT), = so every \
+                cell takes one equal share.
+                """
+            )
+        }
+    }
+
+    @Test(
+        "A narrow column squeezes the tabs instead of hiding them",
+        arguments: [5, 9, 12]
+    )
+    func aNarrowColumnSqueezesTheTabs(tabCount: Int) {
+        // The boss's rule (= 2026-11-12): the strip divides the column it
+        // was given, = and NO tab label has a minimum width. = a tab
+        // narrower than its own title shows less of it, = and a tab
+        // narrower than one character shows none, = and that is fine.
+        //
+        // So the floor the strip used to hold (= 88 PT per tab, = which
+        // made the strip claim more than its column) is gone, = and the
+        // strip's frame is PINNED to the column's width, = so the
+        // division is exact at any tab count.
+        let columnWidth: CGFloat = 200
+        let layout = measure(tabCount: tabCount, columnWidth: columnWidth)
+
+        #expect(
+            abs(layout.frameWidth - columnWidth) < 1,
+            """
+            A \(tabCount)-tab strip's frame is \(layout.frameWidth) PT in a \
+            \(Int(columnWidth)) PT column. = The strip's frame is pinned to \
+            the column, = so the tabs divide exactly that width.
+            """
+        )
+        #expect(
+            layout.drawnCellCount == tabCount,
+            """
+            A \(tabCount)-tab strip in a \(Int(columnWidth)) PT column drew \
+            \(layout.drawnCellCount) cells; = it must draw \(tabCount), = so \
+            every tab is present and squeezed, = not hidden.
+            """
+        )
+    }
+
+    @Test("The strip's drawn cells stay inside its column")
+    func theDrawnCellsStayInside() {
+        // The drawn track = where the cells actually sit. = it must not
+        // be wider than the column, = or the strip paints over the panel
+        // next door.
+        //
+        // This is the assertion that caught the real defect: = AppKit's
+        // own `.fillEqually` distribution does NOT divide a cell narrower
+        // than that cell's own label, = and a 3-tab strip in a 200 PT
+        // column came out 239 PT wide (= 39 PT over the column) because of
+        // it. = the strip sets each cell's width EXPLICITLY, = so the
+        // cells divide the region and the label is clipped to its cell.
+        for tabCount in [3, 5, 9, 12] {
+            for columnWidth in [CGFloat(200), 454.5] {
+                let layout = measure(tabCount: tabCount, columnWidth: columnWidth)
+                #expect(
+                    layout.drawnTrackWidth <= columnWidth + 1,
+                    """
+                    \(tabCount) tabs in a \(columnWidth) PT column drew a \
+                    \(layout.drawnTrackWidth) PT track. = The strip's cells \
+                    must stay inside the column they were given.
+                    """
+                )
+            }
+        }
+    }
+
+    @Test("The strip is clipped to its column, at any tab count")
+    func stripIsClippedToItsColumn() {
         for columnWidth in [CGFloat(289.5), 454.5, 689.5, 1000] {
-            let layout = measure(tabCount: tabCount, columnWidth: columnWidth)
+            let layout = measure(tabCount: 9, columnWidth: columnWidth)
             #expect(
                 layout.isClipped,
                 """
-                \(tabCount) tabs in a \(columnWidth) PT column have no \
-                clipping container (the strip claims \(layout.claimedWidth) PT). \
-                Without one the strip draws over the panel beside the column.
+                A 9-tab strip in a \(columnWidth) PT column has no clipping \
+                container. = Without one the strip draws over the panel \
+                beside the column.
                 """
             )
         }
-    }
-
-    @Test("The strip's claimed width stops at the readable floor per tab")
-    func claimedWidthStopsAtTheReadableFloor() {
-        // The defect scaled with the tab count while the column did not: the
-        // strip's own width grew one segment at a time no matter where the
-        // writer dragged the divider. The claim is now the readable floor
-        // per segment, which the scroll container absorbs.
-        let tabCount = 20
-        let columnWidth: CGFloat = 454.5
-        let layout = measure(tabCount: tabCount, columnWidth: columnWidth)
-        let floor = Self.readableSegmentFloor * CGFloat(tabCount)
-        #expect(
-            layout.claimedWidth <= floor + 1,
-            """
-            A \(tabCount)-tab strip claims \(layout.claimedWidth) PT, past the \
-            \(floor) PT its readable segments need. The claim must come from \
-            the tab count's readable floor, never from an equal share of the \
-            whole track.
-            """
-        )
-    }
-
-    @Test("A narrow column bounds what the strip paints")
-    func narrowColumnBoundsPaintedWidth() {
-        for tabCount in [5, 9, 12] {
-            let layout = measure(tabCount: tabCount, columnWidth: 200)
-            #expect(
-                layout.visibleWidth <= 200.5,
-                """
-                \(tabCount) tabs in a 200 PT column can paint \
-                \(layout.visibleWidth) PT. Narrowing the column must narrow \
-                what the writer sees.
-                """
-            )
-        }
-    }
-
-    // MARK: - The overflow scrolls instead of being cut off
-
-    @Test("A strip wider than its column scrolls rather than being cut off")
-    func overflowingStripScrolls() {
-        let columnWidth: CGFloat = 454.5
-        let layout = measure(tabCount: 12, columnWidth: columnWidth)
-        #expect(
-            layout.isClipped,
-            """
-            A 12-tab strip in a \(columnWidth) PT column must sit in a \
-            clipping container, otherwise its tail tabs are simply unreachable.
-            """
-        )
-        #expect(
-            layout.claimedWidth > columnWidth,
-            """
-            The scroll container is only doing work if the strip's content is \
-            wider than the column (it claims \(layout.claimedWidth) PT, the \
-            column is \(columnWidth) PT).
-            """
-        )
-    }
-
-    // MARK: - A document title stays readable
-
-    @Test("A document title is never truncated to nothing")
-    func titleStaysReadable() {
-        // The control's own per-segment width is the width the title is
-        // drawn in. Narrower than a few characters and the tab can no
-        // longer be told apart from its neighbours.
-        let layout = measure(tabCount: 12, columnWidth: 454.5)
-        #expect(
-            layout.segmentWidth >= Self.readableSegmentFloor - 0.5,
-            """
-            Each tab segment is \(layout.segmentWidth) PT, narrower than the \
-            \(Self.readableSegmentFloor) PT floor that keeps a \
-            document name readable. The strip must hold the floor and scroll \
-            the overflow, not squeeze the tabs.
-            """
-        )
     }
 
     @Test("Few tabs still fill the column they are given")
     func fewTabsFillTheColumn() {
-        // The overflow fix must not cost the fill behaviour: with room to
-        // spare the tabs divide the whole column rather than huddling at
-        // the left edge at their minimum width.
+        // The fix must not cost the fill behaviour: with room to spare the
+        // tabs divide the whole column rather than huddling at the left
+        // edge at their minimum width.
         let columnWidth: CGFloat = 900
         let layout = measure(tabCount: 3, columnWidth: columnWidth)
         #expect(
-            abs(layout.segmentWidth - columnWidth / 3) < 1,
+            abs(layout.frameWidth - columnWidth) < 1,
             """
-            Three tabs in a \(columnWidth) PT column took \
-            \(layout.segmentWidth) PT each; they should divide the column \
-            (=\(columnWidth / 3) PT each) when it fits.
+            Three tabs in a \(Int(columnWidth)) PT column took a \
+            \(layout.frameWidth) PT frame; they should take the column \
+            (=\(Int(columnWidth)) PT).
+            """
+        )
+        #expect(
+            layout.drawnCellCount == 3,
+            """
+            Three tabs in a \(Int(columnWidth)) PT column drew \
+            \(layout.drawnCellCount) cells; = there must be three.
             """
         )
     }
 
-    // MARK: - The sibling page strip is untouched
+    // MARK: - The width rule is shared
 
-    @Test("A control with no fixed segment width still divides its track equally")
-    func defaultDistributionIsUnchanged() {
-        // The inspector's page strip passes no fixed width, so the control
-        // must stay on the equal-share distribution. Measured through where
-        // the segments actually land on screen: four segments across a
-        // 400 PT track must each occupy about a quarter of it.
-        let control = NSSegmentedControl()
-        control.segmentCount = 4
-        control.setLabel("First", forSegment: 0)
-        control.setLabel("Second", forSegment: 1)
-        control.setLabel("Third", forSegment: 2)
-        control.setLabel("Fourth", forSegment: 3)
-        control.segmentDistribution = .fillEqually
-        control.trackingMode = .selectOne
-
-        let trackWidth: CGFloat = 400
-        let host = NSView(frame: NSRect(x: 0, y: 0, width: trackWidth, height: 30))
-        host.wantsLayer = true
-        host.addSubview(control)
-        control.frame = host.bounds
-        host.layoutSubtreeIfNeeded()
-        control.layoutSubtreeIfNeeded()
-
-        // The segments share the control's own frame under this
-        // distribution, so the frame IS the measurement.
-        let share = control.frame.width / CGFloat(control.segmentCount)
-        #expect(
-            abs(control.frame.width - trackWidth) < 1,
-            """
-            The control must fill the \(Int(trackWidth)) PT track it was \
-            given under the equal-share distribution; it took \
-            \(control.frame.width) PT.
-            """
-        )
-        #expect(
-            abs(share - 100) < 1,
-            """
-            Four equal segments in a \(Int(trackWidth)) PT track must each \
-            take about 100 PT; they took \(share) PT.
-            """
-        )
-    }
-
-    @Test("An explicit per-segment width wins over the equal share")
-    func explicitSegmentWidthWins() {
-        // The mirror of the test above: with a width set on every segment
-        // the control stops dividing the track and takes the given width,
-        // which is what lets the tab strip choose its own segment size.
-        let control = NSSegmentedControl()
-        control.segmentCount = 4
-        for index in 0..<4 {
-            control.setLabel("Page \(index)", forSegment: index)
-            control.setWidth(120, forSegment: index)
+    @Test("The share is the region's width over the tab count, with no floor")
+    func theShareHasNoFloor() {
+        // The rule itself, = measured as a pure function: = the share is
+        // the region's width divided by the tab count, = and it is NEVER
+        // floored. = a tab count that would push the share under the old
+        // 88 PT floor still returns the plain share.
+        for tabCount in [1, 5, 12, 20, 30] {
+            let share = PaneTabStripWidth.segmentWidth(
+                columnWidth: 454.5,
+                segmentCount: tabCount
+            )
+            #expect(
+                abs(share - 454.5 / CGFloat(tabCount)) < 0.001,
+                """
+                \(tabCount) tabs in a 454.5 PT column took \(share) PT each; \
+                the share must be 454.5 / \(tabCount) PT, = with no floor.
+                """
+            )
         }
-        control.segmentDistribution = .fit
-        control.trackingMode = .selectOne
-
-        let host = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 30))
-        host.addSubview(control)
-        control.frame = host.bounds
-        host.layoutSubtreeIfNeeded()
-        control.layoutSubtreeIfNeeded()
-
+        // The floor that used to live here (= 88 PT) is gone: = 30 tabs
+        // in a 454.5 PT column take 15.15 PT each, = which is far below
+        // the old floor and is exactly what the boss asked for.
         #expect(
-            abs(control.intrinsicContentSize.width - 480) < 1,
+            PaneTabStripWidth.segmentWidth(columnWidth: 454.5, segmentCount: 30) < 88,
             """
-            Four segments at 120 PT must claim 480 PT, not the 400 PT track; \
-            the control claimed \(control.intrinsicContentSize.width) PT.
+            The share must not be floored: = the boss's rule is that a tab \
+            may end up showing not one character.
             """
         )
+    }
+
+    @Test("An unmeasured column yields no share")
+    func anUnmeasuredColumnYieldsNoShare() {
+        // A zero column width (= the strip has not been measured yet) and
+        // a zero tab count both yield zero, = which leaves the control on
+        // its own fitting width until the first measurement lands.
+        #expect(PaneTabStripWidth.segmentWidth(columnWidth: 0, segmentCount: 5) == 0)
+        #expect(PaneTabStripWidth.segmentWidth(columnWidth: 454.5, segmentCount: 0) == 0)
     }
 }
