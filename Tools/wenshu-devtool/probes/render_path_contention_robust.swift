@@ -219,8 +219,13 @@ bench("D2 the 16 x String(format:) alone", 2000) {
     (0 ..< 16).reduce(0) { acc, i in acc + String(format: "%02x", UInt8(i)).count }
 }
 
+/// The raw string is built ONCE, OUTSIDE the timed body. = = The
+/// original probe hashed a compile-time constant, = = and an
+/// interpolation inside the timed closure would add the
+/// interpolation's own cost to the measurement.
+let sampleRaw = "wenshu.sidebar.reftag.\(sampleTag)"
 bench("D2 the Hasher alone", 5000) {
-    var h = Hasher(); h.combine("wenshu.sidebar.reftag.\(sampleTag)"); return Int(h.finalize() & 0xFF)
+    var h = Hasher(); h.combine(sampleRaw); return Int(h.finalize() & 0xFF)
 }
 
 bench("D2 the real 12-tag set's id cost", 500) {

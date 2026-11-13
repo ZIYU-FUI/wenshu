@@ -17,10 +17,11 @@
 #
 #  THE PROBES ARE IN THE REPO, = = so every number below can be
 #  re-measured: = = `Tools/wenshu-devtool/probes/render_path_contention_robust.swift`
-#  (= = every row of the sweep's measurement table) = = and
-#  `Tools/wenshu-devtool/probes/render_path_reload_total.swift` (= = the
-#  whole-reload figure). = = Both are READ-ONLY, = = and both print the
-#  commit they measured against.
+#  (= = every row of the sweep's measurement table EXCEPT the D4 row) = =
+#  and `Tools/wenshu-devtool/probes/render_path_reload_total.swift` (= =
+#  the D4 row = = the whole-reload figure, = = and the two components it
+#  composes). = = Both are READ-ONLY, = = and both print the commit they
+#  measured against.
 #
 #
 #
