@@ -9,7 +9,7 @@
 #  THE SYMPTOM. = The window's bottom edge was made of several different
 #  greys. MEASURED on the base build's own capture, the bottom row read
 #  27 / 28 / 28 / 28 / 28 / 26 / 26 across the width in the dark appearance,
-#  and 254 / 194 / 210 / 210 / 210 / 250 / 250 in the light one. = The right
+#  and 254 / 210 / 210 / 210 / 210 / 250 / 250 in the light one. = The right
 #  column read 26 while the bars beside it read 28, = = because it was the
 #  ONE column whose bottom edge had no bar at all.
 #
@@ -45,7 +45,7 @@ own hook.
 | the bar row's modal colour's coverage of the window's WIDTH (= dark) | **66%** | **100%** |
 | the right column's own pixels at that row (= x 2198-2737) | (26, 26, 26) | (28, 28, 28) |
 | the dark bottom row, across the width | 27 / 28 / 28 / 28 / 28 / 26 / 26 | 28 everywhere |
-| the light bottom row, across the width | 254 / 194 / 210 / 210 / 210 / 250 / 250 | 255 everywhere |
+| the light bottom row, across the width | 254 / 210 / 210 / 210 / 210 / 250 / 250 | 255 everywhere |
 | the inspector's own column (= the corner crop) | (26, 26, 26) at EVERY row | (26, 26, 26) down to y 147, = = a white separator at y 148-151, = = then (28, 28, 28) |
 
 ⇒ ⇒ **⇒ THE BAR ROW'S COVERAGE IS THE ONE-LINE PROOF: = = 66% of the
@@ -97,13 +97,24 @@ pollution` = = "the change adds no forbidden vocabulary"; = =
 = = the nine greps = = **0 each** over the changed file set.
 
 ⇒ ⇒ **⇒ AND THE NINE GREPS ARE 0 OVER THE CHANGED FILES, = = while the whole
-tree has ≈ 20 hits that are all PRE-EXISTING COMMENT lines** (= =
-`IconStyles.swift:349` and `:366` quote `.font(.system(size:))` in prose,
-= = `WindowOpenButton.swift:11` and `:21` quote `Image(systemName:)` in
-prose, = = `EditorPaperCanvas.swift:41`, `:118` and `:139` quote
-`.padding(72)` in prose). = = ⇒ ⇒ That is the house reference's own lesson
-(= "a sweep that counts by text also counts your text"), = = and it is a
-property of the tree, = = not of this change.
+tree has hits that are all PRE-EXISTING PROSE** (= = the house
+reference's own lesson, = = "a sweep that counts by text also counts your
+text"). = = ⇒ ⇒ ⇒ ⇒ MEASURED, = = and each count is its own
+command's answer: = = `grep -rnE "\.font\(\.system\(size:\)\)" Sources/WenshuApp
+--include="*.swift"` -> **1** (= `IconStyles.swift:349`, = = and it is a
+COMMENT; = = `IconStyles.swift:366` quotes the DIFFERENT literal
+`.font(.system(size:weight:))`, = = so the same grep returns 1 line, = = not
+2); = = ⇒ ⇒ ⇒ ⇒ `grep -rnE "Image\(systemName:\)" Sources/WenshuApp
+--include="*.swift"` -> **12**, = = and **all 12 are in comments**; = = ⇒ ⇒ ⇒ ⇒
+`grep -rnE "\.padding\(72\)" Sources/WenshuApp --include="*.swift"` ->
+**3**, = = and **all 3 are in comments** (= = `EditorPaperCanvas.swift:41`,
+`:118`, `:139`); = = ⇒ ⇒ ⇒ ⇒ and
+`grep -rnE "\.imageScale\(\.small\)" Sources/WenshuApp --include="*.swift"`
+-> **2**, = = of which **1 is in a comment** (= = the other is real code
+at `ChatToolUsePartView.swift:58`). = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So the prose in
+those files is where a text-counting sweep meets the tree's own
+explanation of itself, = = and it is a property of the tree, = = not of
+this change.
 
 ## 5. THE FULL-SUITE COMPARISON (= and what is NOT this change's)
 
@@ -144,6 +155,37 @@ matches it; = = the changed file set is 0). = = ⇒ ⇒ ⇒ The card's body was
 corrected while it sat BLOCKED (= not running), = = so no reviewer read a
 body that then changed underneath it, = = and the sha never moved (= = so
 the same card still matches its branch by sha).
+
+⇒ ⇒ **⇒ AND THIS DOC'S OWN REVIEW FOUND TWO ERRORS IN THIS DOC, = = AND
+BOTH ARE NOW CORRECTED.
+
+The card that reviews this doc (`t_bb63dc45`) returned CHANGES REQUESTED
+with two findings, = = and BOTH were about this doc's own numbers.
+
+(1) THE LIGHT BOTTOM ROW'S STRING DID NOT RE-DERIVE.
+= = This doc printed "254 / 194 / 210 / 210 / 210 / 250 / 250", = = and the
+reviewer read 254 / 210 / 210 / 210 / 210 / 250 / 250 at the seven sample
+points that reproduce the dark row exactly (= = x = 0, 456, 912, 1368,
+1825, 2281, 2737), = = and showed that the 194 is a ONE-PIXEL COLUMN-DIVIDER
+SEAM (= = at x = 400 and x = 2197 only).
+= = => => => => THE STRING HAD BEEN SAMPLED ON A DIFFERENT GRID, = = AND THE
+GRID IS NOW NAMED (= = the seven points above), = = so the string is
+re-derivable; = = and this doc's own tip cells (= = "28 everywhere", = =
+"255 everywhere") already excluded those seams.
+
+(2) SECTION 4's ATTRIBUTION WAS WRONG.
+= = `.font(.system(size:))` occurs ONCE, = = at `IconStyles.swift:349`, = =
+and `:366` quotes the DIFFERENT literal `.font(.system(size:weight:))`; = =
+and the "about 20 hits" figure was not reproducible (= = each prose string
+now carries its own command and its own count).
+
+= = => => => => BOTH WERE INHERITED FROM THE FIRST VERSION OF THIS DOC, = =
+AND NEITHER WAS IN THE LANDED CODE (= = `a41cd9fe45a13a8cf86e36f04d8ad6a8753a3aa8`,
+= = which the review of `t_cfd431b0` approved with all thirteen claims
+checked).
+
+⇒ ⇒ **⇒ ⇒ ⇒ AND THE TWO ERRORS WERE IN
+THE DOC, = = NOT IN THE LANDED CODE, = = AND THEY ARE NOW CORRECTED.**
 
 ## 7. THE LANDING
 
