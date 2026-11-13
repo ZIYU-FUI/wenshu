@@ -302,12 +302,53 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         if control.segmentCount != labels.count {
             control.segmentCount = labels.count
         }
+        // The width ONE segment takes (= the region's share).
+        //
+        // The strip divides the region it was given (= `PaneTabStripWidth`
+        // is the owner of that rule), = so the share is the region's
+        // width over the segment count. = A zero region means the strip
+        // has not been measured yet, = and then the control is on its
+        // own fitting width (= every title fits), = so the title stays
+        // whole.
+        let share = PaneTabStripWidth.segmentWidth(
+            columnWidth: regionWidth,
+            segmentCount: labels.count
+        )
+        // The font the control draws its label with.
+        //
+        // MEASURED: the label font is the system font at 13 PT at both
+        // control sizes (= the control size changes the cell's height
+        // and the drawn capsule, = not the label's type), = and the
+        // control knows it before its first layout pass, = so the width
+        // the app measures is the width AppKit draws.
+        let labelFont = control.font ?? NSFont.systemFont(ofSize: 13)
         for (index, label) in labels.enumerated() {
             // Use the per-page tab's display string (= the per-tab String
             // label; = matches the existing SwiftUI Picker(.segmented)
             // label washing).
             let display = index < displayStrings.count ? displayStrings[index] : String(describing: label)
-            control.setLabel(display, forSegment: index)
+            // The title the segment DRAWS.
+            //
+            // AppKit truncates a title that does not fit (= it keeps
+            // the start of it and adds an ellipsis, = and when even the
+            // ellipsis does not fit it draws the lone ellipsis, = which
+            // the boss ruled out: = "缩到一定程度，那个...就没有意义
+            // 了，不如只能显示...的时候，连...都不显示"). = So the app
+            // decides the title itself, = and `PaneTabStripTitle` is
+            // the one place that decision is made (= one door per
+            // question = the editor's strip and the chat zone's bar
+            // cannot drift).
+            //
+            // The TOOLTIP keeps the WHOLE title (= the canonical Apple
+            // HIG inspector tab tooltip, = which is what a narrow tab
+            // needs: = the drawn title is short, = and the hover still
+            // names the document).
+            let drawn = PaneTabStripTitle.fitted(
+                display,
+                share: share,
+                font: labelFont
+            )
+            control.setLabel(drawn, forSegment: index)
             if let iconProvider = icon,
                let image = iconProvider(label) {
                 control.setImage(

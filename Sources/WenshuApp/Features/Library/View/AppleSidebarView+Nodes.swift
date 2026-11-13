@@ -63,6 +63,13 @@ extension AppleSidebarView {
                 if node.kind == .tag, node.title == tag {
                     return node
                 }
+            case .allLibrary:
+                // The HIDDEN "全部分段" row has NO node: = the tree does
+                // not draw it (= the boss's rule: "这个全部分段不在 UI
+                // 上显示，但会在文枢聊天 teb 被选中时命中"). = ⇒ So the
+                // selection names a row the tree cannot show, = and the
+                // tree highlights nothing.
+                return nil
             }
             if let child = findNode(for: selection, in: node.children ?? []) {
                 return child

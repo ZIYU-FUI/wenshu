@@ -122,6 +122,11 @@ extension ChatScope {
             return scope(forBookID: bookID)
         case .referenceLibraryRoot:
             return .library
+        case .allLibrary:
+            // The HIDDEN "全部分段" row (= the whole 文枢库). = The chat's
+            // 文枢 page is the conversation that is not about one book, =
+            // and this row is the tree's name for the same thing.
+            return .repository
         case .shelf, .referenceCategory, .referenceUnclassified, .tag, nil:
             return .repository
         }
@@ -138,22 +143,51 @@ extension ChatScope {
     ///
     /// The inverse of `scope(for:)`: the bar's page names the row the tree
     /// highlights. The two fixed scopes name their fixed rows (= the
-    /// reference-library root for the library, = no row for the repository
-    /// conversation), and a book scope names its book row.
+    /// reference-library root for the library, = the HIDDEN "全部分段" row
+    /// for the repository conversation), and a book scope names its book
+    /// row.
     ///
-    /// The repository scope names NO row: it is the conversation that is not
-    /// about any one row, so selecting it clears the tree selection (= the
-    /// tree returns to "nothing selected"). That is the same state the tree
-    /// was in before the user picked anything, so the write-back is a no-op
-    /// in the common case.
+    /// The repository scope names the HIDDEN "全部分段" row: it is the
+    /// conversation that is not about any one visible row, = so it names
+    /// the row that IS the whole library (= and the tree does not draw
+    /// that row, = so the user sees no stray highlight).
+    ///
+    /// The boss's rule (= 2026-11-12): "如果选文枢，没有对应的目录树要
+    /// 对应跳转，能否跳转到隐藏的全部分段，这个全部分段不在 UI 上显示，
+    /// 但会在文枢聊天 teb 被选中时命中" (= the 文枢 chat page hits the
+    /// hidden 全部分段, = and the hidden row is not drawn).
     var treeSelection: SidebarItem? {
         switch self {
         case .repository:
-            return nil
+            return .allLibrary
         case .library:
             return .referenceLibraryRoot
         case let .book(bookID):
             return .book(UUID(uuidString: bookID.rawValue) ?? ChatScope.helpBookID)
+        }
+    }
+
+    /// The sidebar PART this scope's row lives in (= the teb the tree
+    /// sits under).
+    ///
+    /// The boss's rule (= 2026-11-12): "切换聊天栏 TEB，没有对应跳转目录
+    /// 树的 teb。比如聊天区选资料库，目录树的 teb 没有自动切换到资料库"
+    /// (= picking a chat page must move the sidebar's teb to the part
+    /// that holds the row the page names).
+    ///
+    /// - The library scope's row (= the reference library root) lives in
+    ///   the 资料库 part.
+    /// - A book's row lives in the 书房 part (= every book is a child of
+    ///   a shelf there; = the 参考书 part is reserved and shows no tree).
+    /// - The repository scope's row (= the hidden 全部分段) lives in the
+    ///   书房 part (= it is the whole library's row, = and the books are
+    ///   there).
+    var sidebarPart: SidebarPart {
+        switch self {
+        case .repository, .book:
+            return .shelves
+        case .library:
+            return .library
         }
     }
 }

@@ -43,7 +43,9 @@ struct ChatZoneView: View {
     @Environment(WenshuLibrary.self) private var library
     @Environment(BookStore.self) private var bookStore
 
-    private var appState: AppState { envAppState }
+    private var appState: AppState {
+        envAppState
+    }
 
     private var currentModel: String {
         get { appState.llmModel }
@@ -51,21 +53,21 @@ struct ChatZoneView: View {
     }
 
     @State private var vm: ChatViewModel
-    // / Reactive counter incremented every time
-    // / `Notification.Name.wenshuProviderKeychainChanged` fires.
-    // / The empty-state gate below (= `if !ProviderKeychain
-    // / .listProvidersWithKeys().isEmpty`) reads the keychain
-    // / on every body evaluation; = bumping this counter via
-    // / `.onReceive` makes SwiftUI re-evaluate the body and
-    // / re-pick up the freshly-configured key (= the
-    // / `ChatHelpTextOverlay` disappears the moment a key is
-    // / configured; = the chat input row becomes interactive).
-    // The previous commit (= 342098394) gated the history load;
-    // / the commit right after this one (= fffd74af5) gated
-    // / `ChatView` re-render. This gate (= on `ChatZoneView`)
-    // / was still missing; = the empty-state overlay kept
-    // / floating above the now-loaded transcript until the user
-    // / manually forced a body invalidation.
+    /// / Reactive counter incremented every time
+    /// / `Notification.Name.wenshuProviderKeychainChanged` fires.
+    /// / The empty-state gate below (= `if !ProviderKeychain
+    /// / .listProvidersWithKeys().isEmpty`) reads the keychain
+    /// / on every body evaluation; = bumping this counter via
+    /// / `.onReceive` makes SwiftUI re-evaluate the body and
+    /// / re-pick up the freshly-configured key (= the
+    /// / `ChatHelpTextOverlay` disappears the moment a key is
+    /// / configured; = the chat input row becomes interactive).
+    /// The previous commit (= 342098394) gated the history load;
+    /// / the commit right after this one (= fffd74af5) gated
+    /// / `ChatView` re-render. This gate (= on `ChatZoneView`)
+    /// / was still missing; = the empty-state overlay kept
+    /// / floating above the now-loaded transcript until the user
+    /// / manually forced a body invalidation.
     @State private var keychainRevision: Int = 0
 
     init(conductor: WenshuConductor? = nil) {
@@ -125,11 +127,16 @@ struct ChatZoneView: View {
             // The pages come from the library's CURRENT books, so a
             // new book gets a page at once (= the page list follows the
             // collection) and a deleted book leaves none behind.
-            ChatZoneTabBar(
+            //
+            // ⇒ ⇒ ⇒ IT IS BUILT BY `sessionBar`, = the one named door
+            // the guard drives: = so the wiring from the bar's pick to
+            // the tree's write is the wiring the guard holds.
+            ChatZoneTabBar.sessionBar(
                 pages: scopePages,
                 selectedScope: currentScope,
-                onSelect: { scope in selectScope(scope) }
-            )
+                in: workspaceUI,
+                applyScope: applyScope
+            ).bar
             ZStack {
                 ChatView(conductor: conductor, vm: vm)
                 // Switch the empty
@@ -167,7 +174,7 @@ struct ChatZoneView: View {
                     EmptyView()
                 } else {
                     ChatHelpTextOverlay {
-                        // 
+                        //
                         // Move the UserDefaults write into the business
                         // layer (= `ChatSessionViewModel.openSettingsToProviderApi`)
                         // so the UI only triggers the side-effect (= opens
@@ -325,31 +332,6 @@ struct ChatZoneView: View {
             repositoryTitle: String(localized: "chat.tab.repository_title"),
             libraryTitle: String(localized: "sidebar.reference_library.title")
         )
-    }
-
-    /// Switch the chat to a scope, and the tree to the row that scope
-    /// names.
-    ///
-    /// The write to the tree selection is the ONLY place the bar pushes
-    /// into the tree. The tree's own selection change reads the same
-    /// field back, so the two directions share one value and one of them
-    /// is always the consequence of the other.
-    ///
-    /// The bar's write is followed by the tree's own change handler
-    /// (= SwiftUI delivers it on the next render pass), and that handler
-    /// maps the new tree selection back onto a scope. The two scopes are
-    /// the SAME scope (= every scope's tree round-trip is the identity:
-    /// = a book scope names its book row, = the library scope names the
-    /// library root, = the repository scope names no row), so the second
-    /// application is a no-op: `ChatViewModel.setScope` does nothing when
-    /// the scope is unchanged. That is what keeps the two from
-    /// ping-ponging, and it is why this method applies the scope itself
-    /// instead of waiting for the tree to echo it back.
-    private func selectScope(_ scope: ChatScope) {
-        workspaceUI.sidebarSelection = scope.treeSelection
-        // The chat's own scope follows the tree's selection, so the
-        // session and the history are re-read against the new scope.
-        applyScope(scope)
     }
 
     /// Point the chat at a scope (= its session id, = and its history).

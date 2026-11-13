@@ -340,6 +340,11 @@ struct PreviewPane: View {
                 .task(id: shelfId) {
                     await loadShelfBooksAsync(shelfId: shelfId)
                 }
+        case .allLibraryScope:
+            // The whole library's documents come from the ONE door
+            // (= `loadAllLibraryDocs`), = and the scope view cannot
+            // make its own (= `AllLibraryDocs`' maker is fileprivate).
+            allLibraryScopeView(allDocs: PreviewPaneOps.loadAllLibraryDocs(bookStore: bookStore))
         case .empty:
             emptyScopeView()
         }

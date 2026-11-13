@@ -14,8 +14,8 @@
 //     the same SidebarItem without importing the sidebar view
 //     (= clean module boundary).
 //   - ShellState.sidebarSelection (= the Codable property in
-    //     State/ShellState.swift) persists the selection via the Codable
-    //     conformance here.
+//     State/ShellState.swift) persists the selection via the Codable
+//     conformance here.
 //   - Tests (= WorkspaceViewPreviewScopeTests + future tests)
 //     can target the enum independently of any view code.
 
@@ -27,12 +27,12 @@ import Foundation
 /// both selection kinds into one Hashable enum.
 enum SidebarItem: Hashable, Codable {
     case book(UUID)
-    // (see OOB.md #2026-08-31) (sidebar feedback bundle #1+2): shelf
-    // (= first tree level) is now a clickable tree row, not just a
-    // SwiftUI Section header. Tagging it with .shelf(UUID) lets
-    // the user select a shelf directly (= will eventually scope preview
-    // pane to the shelf; for now it just keeps the shelf row
-    // highlighted when selected).
+    /// (see OOB.md #2026-08-31) (sidebar feedback bundle #1+2): shelf
+    /// (= first tree level) is now a clickable tree row, not just a
+    /// SwiftUI Section header. Tagging it with .shelf(UUID) lets
+    /// the user select a shelf directly (= will eventually scope preview
+    /// pane to the shelf; for now it just keeps the shelf row
+    /// highlighted when selected).
     case shelf(UUID)
     // (see OOB.md #2026-08-31) (sidebar feedback bundle #3): folder row
     // (= third tree level, e.g. Worldview / Characters / Chapter Outline / Novel Body /
@@ -40,20 +40,34 @@ enum SidebarItem: Hashable, Codable {
     // the user select a folder directly; preview pane will scope to
     // that folder's content (= shows the .md files inside).
     case folder(bookId: UUID, folderName: String)
-    case referenceCategory(String)  // = EntityCategory.directoryName
+    case referenceCategory(String) // = EntityCategory.directoryName
 
-    // The catch-all category row (= the row that collects the references
-    // no category claims). It has no category behind it, so it cannot use
-    // the category route (= that route carries a directory name that
-    // resolves back to a category). Its own case value keeps it
-    // distinguishable from a real category, and the preview pane
-    // resolves it to the same "no category" scope the root row uses.
+    /// The catch-all category row (= the row that collects the references
+    /// no category claims). It has no category behind it, so it cannot use
+    /// the category route (= that route carries a directory name that
+    /// resolves back to a category). Its own case value keeps it
+    /// distinguishable from a real category, and the preview pane
+    /// resolves it to the same "no category" scope the root row uses.
     case referenceUnclassified
 
-    // tag selection. Selecting a tag filters the
-    // preview pane / card grid to references carrying that tag.
-    // Cross-cutting (= orthogonal to category + entityType).
+    /// tag selection. Selecting a tag filters the
+    /// preview pane / card grid to references carrying that tag.
+    /// Cross-cutting (= orthogonal to category + entityType).
     case tag(String)
+
+    /// The HIDDEN "全部分段" row (= every section of the whole 文枢库).
+    ///
+    /// The boss's rule (= 2026-11-12): "如果选文枢，没有对应的目录树要
+    /// 对应跳转，能否跳转到隐藏的全部分段，这个全部分段不在 UI 上显示，
+    /// 但会在文枢聊天 teb 被选中时命中" (= the 文枢 chat page names no
+    /// visible tree row, = so it names THIS one, = which the tree does
+    /// not draw).
+    ///
+    /// ⇒ ⇒ ⇒ SO IT IS A ROW WITHOUT A NODE: = the tree never renders
+    /// it (= so the user sees no row to click), = but the selection can
+    /// name it (= so the chat's 文枢 page and the tree agree on "the
+    /// whole library").
+    case allLibrary
 
     static let referenceLibraryRoot = SidebarItem.referenceCategory("__root__")
 
@@ -69,104 +83,12 @@ enum SidebarItem: Hashable, Codable {
     /// it, the session's board).
     var bookId: UUID? {
         switch self {
-        case .book(let id):
+        case let .book(id):
             return id
-        case .folder(let bookId, _):
+        case let .folder(bookId, _):
             return bookId
-        case .shelf, .referenceCategory, .referenceUnclassified, .tag:
+        case .shelf, .referenceCategory, .referenceUnclassified, .tag, .allLibrary:
             return nil
         }
     }
-
-    // MARK: - v0.30 (see OOB.md #2026-08-31): Codable for AppStorage persistence
-    //
-    // Custom JSON encode/decode for @AppStorage (= AppStorage uses
-    // String, so we round-trip via JSONEncoder/JSONDecoder). Flat
-    // shape (= 'kind' discriminator + per-case keys) keeps the
-    // JSON human-readable in `defaults read`.
-    //
-    // JSON shapes:
-    //   {"kind": "book", "book": "<UUID>"}
-        //   {"kind": "shelf", "shelf": "<UUID>"}
-        //   {"kind": "folder", "book": "<UUID>", "folder": "world"}
-        //   {"kind": "referenceCategory", "referenceCategory": "Literature"}
-        //   {"kind": "tag", "tag": "<tag-string>"}
-        private enum CodingKeys: String, CodingKey {
-            case kind, book, shelf, folder, referenceCategory, referenceUnclassified, tag
-        }
-        private enum Kind: String, Codable {
-            case book, shelf, folder, referenceCategory, referenceUnclassified, tag
-        }
-
-        func encode(to encoder: Encoder) throws {
-            var c = encoder.container(keyedBy: CodingKeys.self)
-            switch self {
-            case .book(let id):
-                try c.encode(Kind.book, forKey: .kind)
-                try c.encode(id.uuidString, forKey: .book)
-            case .shelf(let id):
-                try c.encode(Kind.shelf, forKey: .kind)
-                try c.encode(id.uuidString, forKey: .shelf)
-            case .folder(let bookId, let folderName):
-                try c.encode(Kind.folder, forKey: .kind)
-                try c.encode(bookId.uuidString, forKey: .book)
-                try c.encode(folderName, forKey: .folder)
-            case .referenceCategory(let dirName):
-                try c.encode(Kind.referenceCategory, forKey: .kind)
-                try c.encode(dirName, forKey: .referenceCategory)
-            case .referenceUnclassified:
-                try c.encode(Kind.referenceUnclassified, forKey: .kind)
-            case .tag(let tagString):
-                try c.encode(Kind.tag, forKey: .kind)
-                try c.encode(tagString, forKey: .tag)
-            }
-        }
-
-        init(from decoder: Decoder) throws {
-            let c = try decoder.container(keyedBy: CodingKeys.self)
-            let kind = try c.decode(Kind.self, forKey: .kind)
-            //
-            // replaced the previous `UUID(uuidString: s) ?? UUID()` silent
-            // swap (= the audit called this a data-corruption symptom that
-            // invisibly re-points a restored sidebar selection to a
-            // non-existent book) with explicit `try UUID(uuidString: s)`.
-            // A malformed UUID string now propagates a `DecodingError`
-            // (= visible to the caller = caller can decide to drop the
-            // corrupt entry vs silently re-pointing to a random fresh UUID).
-            switch kind {
-            case .book:
-                let s = try c.decode(String.self, forKey: .book)
-                self = .book(try Self.parseUUID(s))
-            case .shelf:
-                let s = try c.decode(String.self, forKey: .shelf)
-                self = .shelf(try Self.parseUUID(s))
-            case .folder:
-                let s = try c.decode(String.self, forKey: .book)
-                let f = try c.decode(String.self, forKey: .folder)
-                self = .folder(bookId: try Self.parseUUID(s), folderName: f)
-            case .referenceCategory:
-                let d = try c.decode(String.self, forKey: .referenceCategory)
-                self = .referenceCategory(d)
-            case .referenceUnclassified:
-                self = .referenceUnclassified
-            case .tag:
-                let t = try c.decode(String.self, forKey: .tag)
-                self = .tag(t)
-            }
-        }
-
-        ///
-        /// (= replaces the previous `UUID(uuidString:) ?? UUID()` silent swap).
-        /// Throws `DecodingError.dataCorrupted` if the string is not a valid
-        /// UUID (= visible to the caller = caller can decide to drop the
-        /// corrupt entry vs silently re-pointing to a random fresh UUID).
-        private static func parseUUID(_ s: String) throws -> UUID {
-                if let uuid = UUID(uuidString: s) {
-                    return uuid
-                }
-                throw DecodingError.dataCorrupted(.init(
-                    codingPath: [],
-                    debugDescription: "SidebarItem: invalid UUID string '\(s)'"
-                ))
-            }
-        }
+}

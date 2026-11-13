@@ -65,6 +65,21 @@ struct EditorTabStripOverflowTests {
         /// asked here.
         var drawnCellCount: Int
         var drawnCellSteps: [CGFloat]
+        /// The number of CELLS the control has (= AppKit's own count,
+        /// = `NSSegmentedControl.segmentCount`).
+        ///
+        /// MEASURED WHY THIS EXISTS: a cell whose label is the
+        /// NOTHING MARKER draws no text at all, = and a cell with no
+        /// text has no label layer, = so the number of PAINTED label
+        /// layers is no longer the number of cells. = And a cell that
+        /// paints nothing is the boss's rule, = not a missing tab:
+        /// "缩到一定程度，那个...就没有意义了，不如只能显示...的时候，连...都不显示"
+        /// (= once it shrinks so far that only the '…' would show, = that
+        /// '…' has no meaning, = so show nothing at all). = ⇒ So "is
+        /// the tab present" is asked of AppKit's own cell count, = and
+        /// "did the cells divide the region" is asked of the drawn
+        /// track and the drawn steps.
+        var cellCount: Int
         /// The first container that clips the strip, if there is one.
         var clipWidth: CGFloat?
         var isClipped: Bool {
@@ -179,6 +194,7 @@ struct EditorTabStripOverflowTests {
                 dividers: [],
                 drawnCellCount: 0,
                 drawnCellSteps: [],
+                cellCount: 0,
                 clipWidth: nil
             )
         }
@@ -196,6 +212,7 @@ struct EditorTabStripOverflowTests {
             dividers: geometry.dividers,
             drawnCellCount: cellXs.count,
             drawnCellSteps: steps,
+            cellCount: control.segmentCount,
             clipWidth: clipWidth
         )
         window.orderOut(nil)
@@ -359,12 +376,27 @@ struct EditorTabStripOverflowTests {
             the column, = so the tabs divide exactly that width.
             """
         )
+        // The tab's PRESENCE is AppKit's own cell count, = and not the
+        // number of painted label layers: = a cell that is squeezed
+        // past the width of one character paints NOTHING (= the boss's
+        // rule), = and a cell with no text has no label layer to
+        // count. = So the painted count would answer a different
+        // question than the one asked here.
         #expect(
-            layout.drawnCellCount == tabCount,
+            layout.cellCount == tabCount,
             """
-            A \(tabCount)-tab strip in a \(Int(columnWidth)) PT column drew \
-            \(layout.drawnCellCount) cells; = it must draw \(tabCount), = so \
+            A \(tabCount)-tab strip in a \(Int(columnWidth)) PT column has \
+            \(layout.cellCount) cells; = it must have \(tabCount), = so \
             every tab is present and squeezed, = not hidden.
+            """
+        )
+        // And the cells stay inside the column they were given.
+        #expect(
+            layout.drawnTrackWidth <= columnWidth + 1,
+            """
+            A \(tabCount)-tab strip in a \(Int(columnWidth)) PT column drew a \
+            \(layout.drawnTrackWidth) PT track. = The strip's cells must stay \
+            inside the column they were given.
             """
         )
     }

@@ -117,6 +117,18 @@ struct EditorWordCountPathTests {
     /// 4,731 characters): = the full count 1,992.58us, = the fast path
     /// 137.63us (= 14.5x). = ⇒ The bar is 5x, = so the assertion holds
     /// with room for a busier machine.
+    /// ⇒ ⇒ ⇒ **⇒ AND THE MEASUREMENT TAKES THE LEAST DISTURBED
+    /// SAMPLE OF EACH PATH.** = ⇒ The two paths were measured ONCE
+    /// each, = and a scheduler hiccup that lands on one of them moves
+    /// the ratio. = ⇒ ⇒ ⇒ MEASURED (= the whole suite on this tree):
+    /// the ratio came out at 4.23 (= just under the bar) = in a run
+    /// that carried the suite's full parallel load, = and the same
+    /// test passes alone every time. = ⇒ ⇒ ⇒ So each path now runs
+    /// five rounds, = and the FASTEST round of each is the one taken
+    /// (= the least disturbed sample = = the one that measures the
+    /// code rather than the scheduler). = ⇒ ⇒ ⇒ And the bar itself is
+    /// unchanged (= 5x, = against a measured 14.5x on the user's real
+    /// library).
     @Test("the fast path is materially cheaper than the full count")
     func theFastPathIsCheaper() {
         let paragraph = "林黛玉进贾府，= the quick brown fox jumps over the lazy dog.\n"
@@ -126,17 +138,27 @@ struct EditorWordCountPathTests {
         _ = WordCounter.count(document)
         _ = WordCounter.charactersNoSpaces(document)
 
-        let fullStart = DispatchTime.now().uptimeNanoseconds
-        for _ in 0 ..< 20 {
-            _ = WordCounter.count(document)
-        }
-        let fullCost = Double(DispatchTime.now().uptimeNanoseconds - fullStart) / 20.0
+        var fullCost = Double.greatestFiniteMagnitude
+        var fastCost = Double.greatestFiniteMagnitude
+        for _ in 0 ..< 5 {
+            let fullStart = DispatchTime.now().uptimeNanoseconds
+            for _ in 0 ..< 20 {
+                _ = WordCounter.count(document)
+            }
+            fullCost = min(
+                fullCost,
+                Double(DispatchTime.now().uptimeNanoseconds - fullStart) / 20.0
+            )
 
-        let fastStart = DispatchTime.now().uptimeNanoseconds
-        for _ in 0 ..< 20 {
-            _ = WordCounter.charactersNoSpaces(document)
+            let fastStart = DispatchTime.now().uptimeNanoseconds
+            for _ in 0 ..< 20 {
+                _ = WordCounter.charactersNoSpaces(document)
+            }
+            fastCost = min(
+                fastCost,
+                Double(DispatchTime.now().uptimeNanoseconds - fastStart) / 20.0
+            )
         }
-        let fastCost = Double(DispatchTime.now().uptimeNanoseconds - fastStart) / 20.0
 
         #expect(
             fullCost / max(fastCost, 1) >= 5,

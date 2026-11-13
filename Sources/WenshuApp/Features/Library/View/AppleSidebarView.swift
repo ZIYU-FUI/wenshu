@@ -545,7 +545,7 @@ struct AppleSidebarView: View {
             namesDeletedRow = bookID == deletedID
         case let .shelf(id):
             namesDeletedRow = id == deletedID
-        case .referenceCategory, .referenceUnclassified, .tag:
+        case .referenceCategory, .referenceUnclassified, .tag, .allLibrary:
             namesDeletedRow = false
         }
         if namesDeletedRow {

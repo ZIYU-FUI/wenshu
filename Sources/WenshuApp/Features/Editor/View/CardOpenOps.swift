@@ -222,7 +222,10 @@ enum CardOpenOps {
                 )
             }
             return CardTriad(path: nil, content: "", title: "book-doc")
-        case .shelfScope, .empty:
+        case .shelfScope, .allLibraryScope, .empty:
+            // The whole-library scope names no single document (= it is
+            // the union of every document), = so there is nothing for
+            // the scope itself to open.
             return CardTriad(path: nil, content: "", title: "")
         case .tagScope(let tag):
             // tagScope opens a reference entity (= the same triad shape as

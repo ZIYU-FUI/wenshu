@@ -158,7 +158,37 @@ struct ChatScopeTests {
 
         #expect(ChatScope.book(BookID(rawValue: bookID.uuidString)).treeSelection == .book(bookID))
         #expect(ChatScope.library.treeSelection == .referenceLibraryRoot)
-        #expect(ChatScope.repository.treeSelection == nil)
+        // The repository scope names the HIDDEN "全部分段" row (= the
+        // boss's rule: "如果选文枢，没有对应的目录树要对应跳转，能否跳转
+        // 到隐藏的全部分段，这个全部分段不在 UI 上显示，但会在文枢聊天
+        // teb 被选中时命中").
+        #expect(ChatScope.repository.treeSelection == .allLibrary)
+    }
+
+    @Test("The hidden 全部分段 row maps to the repository scope")
+    func hiddenAllLibraryRowMapsToTheRepositoryScope() {
+        #expect(ChatScope.scope(for: .allLibrary) == .repository)
+    }
+
+    @Test("Each scope names the sidebar part that holds its row")
+    func eachScopeNamesItsPart() throws {
+        let bookID = try #require(UUID(uuidString: "aaaaaaaa-0000-0000-0000-000000000000"))
+
+        // The library row lives in the 资料库 part (= the boss's rule:
+        // "比如聊天区选资料库，目录树的 teb 没有自动切换到资料库").
+        #expect(ChatScope.library.sidebarPart == .library)
+        // A book's row lives in the 书房 part.
+        #expect(ChatScope.book(BookID(rawValue: bookID.uuidString)).sidebarPart == .shelves)
+        // The hidden 全部分段 row lives in the 书房 part (= the whole
+        // library's row).
+        #expect(ChatScope.repository.sidebarPart == .shelves)
+    }
+
+    @Test("The hidden 全部分段 row survives the persistence round trip")
+    func hiddenAllLibraryRowSurvivesPersistence() throws {
+        let data = try JSONEncoder().encode(SidebarItem.allLibrary)
+        let decoded = try JSONDecoder().decode(SidebarItem.self, from: data)
+        #expect(decoded == .allLibrary)
     }
 
     @Test("A book row and its scope name each other (= the two directions agree)")

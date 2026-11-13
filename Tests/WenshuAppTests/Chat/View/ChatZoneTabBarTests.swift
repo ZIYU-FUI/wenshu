@@ -179,10 +179,9 @@ struct ChatZoneTabBarTests {
 
     /// Host the real bar at `columnWidth` and measure what it drew.
     private func measure(pages: [ChatScopePage], columnWidth: CGFloat) -> Bar {
-        let bar = ChatZoneTabBar(
+        let bar = ChatZoneTabBar.unwired(
             pages: pages,
-            selectedScope: pages.first?.scope ?? .repository,
-            onSelect: { _ in }
+            selectedScope: pages.first?.scope ?? .repository
         )
 
         let host = NSHostingView(

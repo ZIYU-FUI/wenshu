@@ -1,24 +1,25 @@
+import os.log
+
 // ShellMiddleColumn.swift · Wenshu
 // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // - ShellDetailColumn
 import SwiftUI
-import os.log
 
-// / Apple HIG content column (= 1 zone: the card grid).
-// … (= 22 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / too and the card zone owns the full column height.
+/// / Apple HIG content column (= 1 zone: the card grid).
+/// … (= 22 rationale lines collapsed; = A112 docblock collapse per §1.8)
+/// / too and the card zone owns the full column height.
 struct AssetsPane: View {
-    // The cards column did not re-render when the user clicked a
-    // … (= 20 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // observation tracking inside body.
+    /// The cards column did not re-render when the user clicked a
+    /// … (= 20 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// observation tracking inside body.
     @Bindable var envAppState: AppState
-    // previewSortOrder / sidebarSelection / activeTag live in
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // tracking on every body render).
+    /// previewSortOrder / sidebarSelection / activeTag live in
+    /// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// tracking on every body render).
     @Bindable var workspaceUI: WorkspaceUIState
-    // `openCardInEditor` needs `BookStore.referenceStore` to load
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // fallback in `openCardInEditor`).
+    /// `openCardInEditor` needs `BookStore.referenceStore` to load
+    /// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// fallback in `openCardInEditor`).
     @Environment(BookStore.self) private var envBookStore
 
     /// The cover services this pane shares.
@@ -31,7 +32,9 @@ struct AssetsPane: View {
     /// Whether a batch is running right now.
     @State private var isBatchRunning = false
 
-    private var bookStore: BookStore? { envBookStore }
+    private var bookStore: BookStore? {
+        envBookStore
+    }
 
     /// Starts the cover batch.
     ///
@@ -97,29 +100,49 @@ struct AssetsPane: View {
         await coverServices.autoTrigger.coverNewDocuments(coverCandidates())
     }
 
-    // `previewSortOrder` lives in `envAppState.previewSortOrder`
-    // … (= 16 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // column body (= body re-renders on every mutation).
+    /// `previewSortOrder` lives in `envAppState.previewSortOrder`
+    /// … (= 16 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// column body (= body re-renders on every mutation).
     private var searchText: String {
         get { envAppState.searchText }
         nonmutating set { envAppState.searchText = newValue }
     }
 
-    // / Tree selection → cards column. Selecting `.book(worldview)`
-    // … (= 35 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / correctly.
+    /// / Tree selection → cards column. Selecting `.book(worldview)`
+    /// … (= 35 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / correctly.
     private func previewScope() -> PreviewScope {
-        // Read from `envAppState` (= the @Environment-tracked
-        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // never re-rendered).
-        switch workspaceUI.sidebarSelection {
+        Self.previewScope(for: workspaceUI.sidebarSelection)
+    }
+
+    /// The tree's selection → the assets pane's scope.
+    ///
+    /// ⇒ ⇒ ⇒ THIS IS THE ROUTE'S ONE DOOR: = the mapping is PRIVATE
+    /// (= the house's own answer for a private mapping was the source
+    /// text, = and a source text holds a SPELLING). = ⇒ ⇒ ⇒ MEASURED
+    /// (= the review on this diff): = a decoy that broke the
+    /// `.allLibrary` route while keeping both literal strings left the
+    /// whole repository green, = so the boss's rule ("素材栏显示整个文枢库
+    /// 的所有文档") = could break with no suite saying so. = ⇒ ⇒ ⇒ So
+    /// the mapping is a function a test can CALL, = and the production
+    /// path calls the SAME one.
+    ///
+    /// - Parameter selection: The tree's current selection.
+    /// - Returns: The scope the assets pane shows for it.
+    static func previewScope(for selection: SidebarItem?) -> PreviewScope {
+        switch selection {
+        case .allLibrary:
+            // The HIDDEN "全部分段" row (= the whole 文枢库). = The boss's
+            // rule: "同时素材栏显示整个文枢库的所有文档" (= the assets
+            // pane shows every document of the whole library).
+            return .allLibraryScope
         case .referenceLibraryRoot:
             return .referenceScope(nil)
         case .referenceUnclassified:
             // The catch-all row (= the references no category claims). It
             // resolves to the same scope the library root row uses.
             return .referenceScope(nil)
-        case .referenceCategory(let dirName):
+        case let .referenceCategory(dirName):
             // SidebarItem.referenceCategory(directoryName) carries
             // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // overview.
@@ -131,13 +154,13 @@ struct AssetsPane: View {
                 return .referenceScope(raw)
             }
             return .referenceScope(nil)
-        case .book(let bookId):
+        case let .book(bookId):
             return .bookScope(bookId: bookId, folderName: nil)
-        case .shelf(let shelfId):
+        case let .shelf(shelfId):
             return .shelfScope(shelfId: shelfId)
-        case .folder(let bookId, let folderName):
+        case let .folder(bookId, folderName):
             return .bookScope(bookId: bookId, folderName: folderName)
-        case .tag(let tagString):
+        case let .tag(tagString):
             // tag is a dedicated PreviewScope
             // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // .referenceScope(nil) routing path elsewhere).
@@ -147,9 +170,9 @@ struct AssetsPane: View {
         }
     }
 
-    // The card double-click handler reads the actually-clicked
-    // … (= 77 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / throwaway).
+    /// The card double-click handler reads the actually-clicked
+    /// … (= 77 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / throwaway).
     private func openCardInEditor(source: CardSource?) {
         let scope = previewScope()
         // "多次双击"清明"，没有打开" — log (see OOB.md #2026-07-23)
@@ -165,10 +188,10 @@ struct AssetsPane: View {
             // - .bookDoc → .bookScope(bookId, folderName)
             let sourceScope: PreviewScope
             switch source {
-            case .reference(let ref):
+            case let .reference(ref):
                 let category: EntityCategory? = ref.category
                 sourceScope = .referenceScope(category)
-            case .bookDoc(let doc):
+            case let .bookDoc(doc):
                 sourceScope = .bookScope(
                     bookId: doc.bookId,
                     folderName: doc.folderName

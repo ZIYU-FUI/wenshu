@@ -114,6 +114,66 @@ extension PreviewPane {
         }
     }
 
+    /// The WHOLE 文枢库 scope: every document the library holds.
+    ///
+    /// The boss's rule (= 2026-11-12): "同时素材栏显示整个文枢库的所有
+    /// 文档" (= the assets pane shows all the documents of the whole
+    /// 文枢库). = It is the scope the HIDDEN "全部分段" row names, = so
+    /// picking the 文枢 chat page lands here.
+    ///
+    /// ⇒ ⇒ ⇒ SO THE SCOPE HOLDS BOTH KINDS OF DOCUMENT: = the reference
+    /// library's documents (= the 资料库's cards) AND every book's
+    /// documents (= the 书房's .md cards). = The whole library is both.
+    /// The whole 文枢库's scope (= the HIDDEN "全部分段" row's scope).
+    ///
+    /// ⇒ ⇒ ⇒ THE DOCUMENTS ARRIVE AS A VALUE THE VIEW CANNOT MAKE:
+    /// = `AllLibraryDocs`' initializer is `fileprivate`, = so the door
+    /// (`PreviewPaneOps.loadAllLibraryDocs`) = is the only thing that
+    /// can build one. = ⇒ ⇒ ⇒ So the shape "the view drops the
+    /// documents" = does not compile, = and the boss's rule ("素材栏显示
+    /// 整个文枢库的所有文档") = cannot be broken here. = ⇒ ⇒ ⇒ MEASURED
+    /// (= the review on this diff): = the documents used to be collected
+    /// inline in this very view, = and dropping them there left the
+    /// whole repository green.
+    @ViewBuilder
+    func allLibraryScopeView(allDocs: AllLibraryDocs) -> some View {
+        // The references (= the 资料库's documents). = The same loader
+        // the reference scope uses (= `loadAllEntities`), = and the same
+        // user-facing layer filter (= the raw layer is for ingestion,
+        // not for browsing).
+        let entities = PreviewPaneOps.loadAllEntities(bookStore: bookStore).entities
+            .filter { $0.layer == .layerEntities }
+        // Every book's documents (= the 书房's documents). = The SAME
+        // door the chrome count asks (= `loadAllLibraryDocs`), = so
+        // the drawn grid and the count can never disagree about what
+        // the whole library holds.
+        let docs = allDocs.docs
+        let searchedEntities = PreviewPaneOps.searchFilteredEntities(
+            entities,
+            query: resolvedSearchQuery
+        )
+        let searchedDocs = PreviewPaneOps.searchFilteredBookDocs(
+            docs,
+            query: resolvedSearchQuery
+        )
+        if entities.isEmpty && docs.isEmpty {
+            emptyState(
+                icon: "books.vertical",
+                titleKey: "preview.empty_state.shelf_empty",
+                bodyKey: "preview.empty.shelf_no_books"
+            )
+        } else {
+            VStack(spacing: 0) {
+                if !searchedEntities.isEmpty {
+                    overviewGrid(allEntities: searchedEntities)
+                }
+                if !searchedDocs.isEmpty {
+                    bookDocsGrid(docs: searchedDocs)
+                }
+            }
+        }
+    }
+
     /// Shelf scope: union of every book's docs under the shelf. The shelf row
     /// is a scope (= shows every .md card from every book under that shelf; =
     /// union of all `loadBookDocs(bookId:, folderName: nil)` results filtered

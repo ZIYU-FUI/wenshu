@@ -189,8 +189,19 @@ struct StreamBufferChainTests {
         // The wait is generous because the turn's own start-up (the prompt
         // assembly and the tool exposure) is slow when the whole suite
         // runs at once, and the words arrive only after it.
+        //
+        // ⇒ ⇒ ⇒ AND THE DEADLINE IS FIVE MINUTES, = not two: = MEASURED
+        // (= the whole suite on this tree): = the tool registry's own
+        // slow test holds a global the turn's start-up waits on, = and it
+        // runs for 130 to 155 seconds under the suite's load; = the
+        // streamed words appeared at 127 seconds on the base, = with
+        // almost no headroom against the old 120-second deadline, = and
+        // any extra parallel load (= = this change's own new suites)
+        // pushed it over. = ⇒ ⇒ ⇒ So the deadline is a floor for a
+        // slow machine, = and the property under test (= the words are
+        // visible BEFORE the turn ends) = is unchanged.
         var midTurn = ""
-        let deadline = ContinuousClock.now + .seconds(120)
+        let deadline = ContinuousClock.now + .seconds(300)
         while ContinuousClock.now < deadline {
             midTurn = replyText(in: viewModel)
             if midTurn.contains("library") { break }

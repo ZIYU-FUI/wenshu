@@ -163,6 +163,14 @@ enum PreviewScope: Hashable, Codable {
     /// drill into a book. (= the spec: shelves are a tree level, not
     /// a document scope.)
     case shelfScope(shelfId: UUID)
+    /// The WHOLE 文枢库 scope (= every document the library holds: = the
+    /// reference library's documents AND every book's documents).
+    ///
+    /// The boss's rule (= 2026-11-12): "同时素材栏显示整个文枢库的所有
+    /// 文档" (= the assets pane shows all the documents of the whole
+    /// 文枢库). = It is the scope the HIDDEN "全部分段" row names, = so
+    /// picking the 文枢 chat page lands here.
+    case allLibraryScope
     /// Nothing selected. Preview pane shows an empty state.
     case empty
 }

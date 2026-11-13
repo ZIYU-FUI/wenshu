@@ -23,7 +23,6 @@ import Foundation
 /// MVVM enum + static + Result types precedent.
 @MainActor
 enum PreviewPaneOps {
-
     // MARK: - Result types
 
     struct LoadEntitiesResult {
@@ -127,7 +126,7 @@ enum PreviewPaneOps {
                 at: dir,
                 includingPropertiesForKeys: [
                     URLResourceKey.contentModificationDateKey,
-                    URLResourceKey.creationDateKey
+                    URLResourceKey.creationDateKey,
                 ],
                 options: [.skipsHiddenFiles]
             ) else { continue }
@@ -147,7 +146,7 @@ enum PreviewPaneOps {
                 let tags: [String] = firstH1.map { [$0] } ?? []
                 let attrs = try? url.resourceValues(forKeys: [
                     URLResourceKey.contentModificationDateKey,
-                    URLResourceKey.creationDateKey
+                    URLResourceKey.creationDateKey,
                 ])
                 let modifiedAt = attrs?.contentModificationDate ?? Date.distantPast
                 let createdAt = attrs?.creationDate ?? Date.distantPast
@@ -305,7 +304,7 @@ enum PreviewPaneOps {
         searchQuery: String
     ) -> Int {
         switch scope {
-        case .referenceScope(let category):
+        case let .referenceScope(category):
             let entities = loadAllEntities(bookStore: bookStore).entities
                 .filter { entity in
                     entity.layer == .layerEntities
@@ -313,7 +312,7 @@ enum PreviewPaneOps {
                 }
             return searchFilteredEntities(entities, query: searchQuery).count
 
-        case .tagScope(let tag):
+        case let .tagScope(tag):
             // dedicated tag scope; = the chrome count = the same `loadAllEntities()`
             // prefilter + tag contains + search query (= 1:1 with
             // `referenceScopeView(category: nil, tagOverride: tag)`
@@ -324,7 +323,7 @@ enum PreviewPaneOps {
                 }
             return searchFilteredEntities(entities, query: searchQuery).count
 
-        case .bookScope(let bookId, let folderName):
+        case let .bookScope(bookId, folderName):
             let docs = loadBookDocs(
                 bookStore: bookStore,
                 bookId: bookId,
@@ -332,7 +331,7 @@ enum PreviewPaneOps {
             ).docs
             return searchFilteredBookDocs(docs, query: searchQuery).count
 
-        case .shelfScope(let shelfId):
+        case let .shelfScope(shelfId):
             // The shelf scope is the union of every book's .md docs under the shelf (=
             // 1:1 with `shelfScopeView`); = per-book loadBookDocs +
             // flatten + search filter.
@@ -348,11 +347,41 @@ enum PreviewPaneOps {
             }
             return searchFilteredBookDocs(allDocs, query: searchQuery).count
 
+        case .allLibraryScope:
+            // The whole 文枢库 (= every document it holds): = the
+            // reference library's documents + every book's documents.
+            guard let bookStore else { return 0 }
+            let entities = loadAllEntities(bookStore: bookStore).entities
+                .filter { $0.layer == .layerEntities }
+            let allDocs = loadAllLibraryDocs(bookStore: bookStore).docs
+            let searchedEntities = searchFilteredEntities(entities, query: searchQuery).count
+            let searchedDocs = searchFilteredBookDocs(allDocs, query: searchQuery).count
+            return searchedEntities + searchedDocs
+
         case .empty:
             // No sidebar selection (= the empty-state hint path in `PreviewPane`); = the
             // chrome count is 0 (= no cards visible).
             return 0
         }
+    }
+
+    /// The whole 文枢库's documents (= every book's documents, = over
+    /// every folder of every book).
+    ///
+    /// ⇒ ⇒ ⇒ ONE DOOR FOR ONE QUESTION: = "which documents does the
+    /// whole library hold?" = was answered TWICE (=# once for the
+    /// drawn grid, = and once for the chrome count), = and the two
+    /// answers could drift apart. = ⇒ ⇒ ⇒ MEASURED (= the review on
+    /// this diff): = dropping the books' documents behind the drawn
+    /// grid left the WHOLE repository green, = so the boss's rule
+    /// ("素材栏显示整个文枢库的所有文档") = could break with no suite
+    /// saying so. = ⇒ ⇒ ⇒ So the answer lives here, = and both
+    /// callers ask THIS one.
+    static func loadAllLibraryDocs(bookStore: BookStore) -> AllLibraryDocs {
+        let books = (try? bookStore.sidebarLoadAllBooks()) ?? []
+        return AllLibraryDocs(docs: books.flatMap { book in
+            loadBookDocs(bookStore: bookStore, bookId: book.id, folderName: nil).docs
+        })
     }
 
     /// Filter book docs by the current search query.
@@ -371,7 +400,8 @@ enum PreviewPaneOps {
         guard !trimmed.isEmpty else { return true }
         let lowered = trimmed.lowercased()
         if title.localizedCaseInsensitiveContains(trimmed)
-            || summary.localizedCaseInsensitiveContains(trimmed) {
+            || summary.localizedCaseInsensitiveContains(trimmed)
+        {
             return true
         }
         let pinyinKey = pinyinFirstLetters(title)
@@ -458,12 +488,12 @@ enum PreviewPaneOps {
             // Only the single-`#` H1 is treated as a chip. H2+ and Setext-style (=
             // underlined with `===`) headings are body content (= the
             // user's directive = strip the first H1 only).
-            if trimmed.hasPrefix("# ") && !trimmed.hasPrefix("## ") {
+            if trimmed.hasPrefix("# "), !trimmed.hasPrefix("## ") {
                 h1Text = String(trimmed.dropFirst(2))
                     .trimmingCharacters(in: .whitespaces)
                 h1Index = i
             }
-            break  // first non-blank line is the only candidate
+            break // first non-blank line is the only candidate
         }
         guard let i = h1Index, let text = h1Text else {
             return (nil, body)
@@ -475,7 +505,8 @@ enum PreviewPaneOps {
         dropped.remove(at: i)
         while !dropped.isEmpty,
               let next = dropped.first,
-              String(next).trimmingCharacters(in: .whitespaces).isEmpty {
+              String(next).trimmingCharacters(in: .whitespaces).isEmpty
+        {
             dropped.removeFirst()
         }
         return (text.isEmpty ? nil : text, dropped.joined(separator: "\n"))
@@ -493,5 +524,25 @@ enum PreviewPaneOps {
             return String(first).uppercased()
         }
         return "~"
+    }
+}
+
+/// The whole 文枢库's documents (= every book's documents).
+///
+/// ⇒ ⇒ ⇒ THE VALUE HAS NO PUBLIC MAKER: = its initializer is
+/// `fileprivate`, = so the ONLY thing that can build one is
+/// `PreviewPaneOps.loadAllLibraryDocs` (= the door). = ⇒ ⇒ ⇒ So the
+/// scope view CANNOT be handed an empty list of its own making, = and
+/// the shape "the view drops the documents" = does not compile. = ⇒ ⇒ ⇒
+/// MEASURED (= the review on this diff): = the documents were collected
+/// inline in the view, = and dropping them there left the whole
+/// repository green.
+struct AllLibraryDocs {
+    /// Every document the whole library holds.
+    let docs: [BookDoc]
+
+    /// PRIVATE TO THIS FILE: = the door is the only maker.
+    fileprivate init(docs: [BookDoc]) {
+        self.docs = docs
     }
 }
