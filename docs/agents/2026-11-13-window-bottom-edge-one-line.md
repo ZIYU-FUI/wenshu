@@ -96,10 +96,11 @@ pollution` = = "the change adds no forbidden vocabulary"; = =
 = = `design-sweep.sh` on the three changed files = = "design sweep clean";
 = = the nine greps = = **0 each** over the changed file set.
 
-⇒ ⇒ **⇒ AND THE NINE GREPS ARE 0 OVER THE CHANGED FILES, = = while the whole
-tree has hits that are all PRE-EXISTING PROSE** (= = the house
-reference's own lesson, = = "a sweep that counts by text also counts your
-text"). = = ⇒ ⇒ ⇒ ⇒ MEASURED, = = and each count is its own
+⇒ ⇒ **⇒ AND THE NINE GREPS ARE 0 OVER THE CHANGED FILES, = = AND OVER THE
+TREE THEY HIT REAL CODE AS WELL AS PROSE, = = SO THE CLAIM IS SCOPED AND
+COUNTED** (= = the house reference's own lesson, = = "a sweep that counts by
+text also counts your text"). = = ⇒ ⇒ ⇒ ⇒ MEASURED, = = and each count is
+its own
 command's answer: = = `grep -rnE "\.font\(\.system\(size:\)\)" Sources/WenshuApp
 --include="*.swift"` -> **1** (= `IconStyles.swift:349`, = = and it is a
 COMMENT; = = `IconStyles.swift:366` quotes the DIFFERENT literal
@@ -111,10 +112,19 @@ COMMENT; = = `IconStyles.swift:366` quotes the DIFFERENT literal
 `:118`, `:139`); = = ⇒ ⇒ ⇒ ⇒ and
 `grep -rnE "\.imageScale\(\.small\)" Sources/WenshuApp --include="*.swift"`
 -> **2**, = = of which **1 is in a comment** (= = the other is real code
-at `ChatToolUsePartView.swift:58`). = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So the prose in
-those files is where a text-counting sweep meets the tree's own
-explanation of itself, = = and it is a property of the tree, = = not of
-this change.
+at `ChatToolUsePartView.swift:58`). = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **⇒ SO EVEN THIS
+SCOPE IS NOT ALL PROSE** (= = the four greps over `Sources/WenshuApp` are
+**18** matching lines = = **17** in comments + **1** in code). = = ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **⇒ AND THE TREE SCOPE IS COUNTED TOO: THE NINE GREPS OVER
+`Sources` GIVE 102 MATCHING LINES = = 32 IN COMMENTS + 70 IN REAL CODE, = =
+AND OVER `Sources` AND `Tests` TOGETHER 308 = = 108 + 200** (= = the unit
+is the matching LINE, = = which is what `grep -rn` prints; = = each
+pattern's own share is its own
+`grep -rnE "<pattern>" <scope> --include="*.swift" | wc -l`). = = ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **⇒ ⇒ AND THOSE HITS ARE PRE-EXISTING (= = the base
+`b33605b82` gives the same 102 = = 32 + 70 over `Sources`), = = BUT THEY ARE
+NOT ALL PROSE, = = AND NOT ONE OF THEM IS IN A FILE THIS CHANGE TOUCHES
+(= = the changed file set is 0 each).**
 
 ## 5. THE FULL-SUITE COMPARISON (= and what is NOT this change's)
 
@@ -150,8 +160,9 @@ card, = = with their attachment ids, = = and the launch path is named);
 = = (b) claim 5's command was too narrow (= `grep -rln "ChromeBottomFooter("`
 returns 2 files, = = because three of the five call sites spell it
 `ChromeBottomFooter {`; = = the corrected command returns 5); = = (c) claim
-11's sweep was run over the whole tree (= = where a pre-existing COMMENT
-matches it; = = the changed file set is 0). = = ⇒ ⇒ ⇒ The card's body was
+11's sweep was run over the whole tree (= = where the hits §4 counts = =
+mostly pre-existing comments, = = and some real code; = = the changed file
+set is 0). = = ⇒ ⇒ ⇒ The card's body was
 corrected while it sat BLOCKED (= not running), = = so no reviewer read a
 body that then changed underneath it, = = and the sha never moved (= = so
 the same card still matches its branch by sha).
@@ -186,6 +197,24 @@ checked).
 
 ⇒ ⇒ **⇒ ⇒ ⇒ AND THE TWO ERRORS WERE IN
 THE DOC, = = NOT IN THE LANDED CODE, = = AND THEY ARE NOW CORRECTED.**
+
+(3) THE NEXT ROUND FOUND THE DOC'S THIRD ERROR, = = AND IT WAS THE SAME
+KIND: = = A UNIVERSAL CLAIM OVER A MEASUREMENT THAT DID NOT SUPPORT IT.
+= = The card that reviewed the corrected doc (`t_7c41cc66`) returned CHANGES
+REQUESTED with ONE finding: = = §4 said "the whole tree has hits that are
+all PRE-EXISTING PROSE", = = and the reviewer's own count over `Sources`
+gave **102** hits = = **32** in comments + **70** in REAL CODE, = = so the
+tree is NOT all prose. = = ⇒ ⇒ ⇒ The doc also refuted ITSELF thirteen lines
+later (= = it says `.imageScale(.small)` has one hit in real code at
+`ChatToolUsePartView.swift:58`), = = and even the narrowest scope the doc
+names (= = the four greps over `Sources/WenshuApp`) = = **18** = = **17** in
+comments + **1** in code. = = ⇒ ⇒ ⇒ ⇒ **⇒ AND THE FIX IS ONE SENTENCE: = =
+name the scope and drop the universal.** = = §4 now says the tree's hits
+cover real code as well as prose, = = and it gives the counts (= = 102 = = 32
++ 70 over `Sources`; = = 308 = = 108 + 200 over `Sources` and `Tests`;
+= = 18 = = 17 + 1 over the four greps' own scope), = = with the unit named
+(= = the matching LINE, = = which is what `grep -rn` prints) = = and the
+counting command for each pattern, = = so every number re-derives.
 
 ## 7. THE LANDING
 
