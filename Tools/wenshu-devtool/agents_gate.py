@@ -195,7 +195,7 @@ SKILL_NAME_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$")
 # slug was listed here and the mobile one was not, so a file naming the
 # mobile board in a tool column was reported as naming a skill that is
 # not installed (= a false error on a true reference).
-SKILL_PREFIXES = ("wenshu-", "pocock-", "universal-", "mattpocock", "q99-")
+SKILL_PREFIXES = ("wenshu-", "pocock-", "universal-", "mattpocock", "q99-", "apple-")
 
 # The project-mandated tokens. commit_filter.py allows these in ANY file
 # (= the mandate's own words), so a rule may use them anywhere.
@@ -476,6 +476,7 @@ def _installed_skills() -> set[str]:
         Path.home() / ".hermes/profiles/pocock/skills",
         Path.home() / ".hermes/skills",
         Path.home() / ".hermes/shared/wenshu-skills",
+        Path.home() / ".hermes/shared/local-skills",
     ]
     for root in roots:
         if not root.is_dir():
