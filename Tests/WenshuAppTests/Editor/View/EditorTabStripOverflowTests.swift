@@ -411,8 +411,9 @@ struct EditorTabStripOverflowTests {
         // own `.fillEqually` distribution does NOT divide a cell narrower
         // than that cell's own label, = and a 3-tab strip in a 200 PT
         // column came out 239 PT wide (= 39 PT over the column) because of
-        // it. = the strip sets each cell's width EXPLICITLY, = so the
-        // cells divide the region and the label is clipped to its cell.
+        // it. = The strip therefore fits every title to the cell's own
+        // budget (= `PaneTabStripTitle.fitted`), = and no cell asks for
+        // more than its share.
         for tabCount in [3, 5, 9, 12] {
             for columnWidth in [CGFloat(200), 454.5] {
                 let layout = measure(tabCount: tabCount, columnWidth: columnWidth)
@@ -425,6 +426,38 @@ struct EditorTabStripOverflowTests {
                     """
                 )
             }
+        }
+    }
+
+    @Test("The strip divides the column it was given where a cell is clamped")
+    func theDrawnCellsStayInsideInTheBand() {
+        // The band whose share sits just under the control's own minimum
+        // segment width: = MEASURED, the drawn cells stayed 20 PT wide
+        // there whatever the column was, = so a 12-tab strip in a 222 PT
+        // column drew a 240 PT track (= 18 PT over, = and the last cell
+        // clipped) and a 23-tab strip in a 454.5 PT column drew 460 PT.
+        //
+        // Every other geometry in this suite sits OUTSIDE the band (= a
+        // 200 PT column with 12 tabs is a 16.67 PT share, = and a 454.5 PT
+        // column with 9 tabs is 50.5 PT), = which is why the band survived
+        // them.
+        for (tabCount, columnWidth) in [
+            (23, CGFloat(454.5)),
+            (12, CGFloat(222)),
+            (10, CGFloat(190)),
+            (14, CGFloat(264)),
+            (12, CGFloat(216)),
+        ] {
+            let share = columnWidth / CGFloat(tabCount)
+            let layout = measure(tabCount: tabCount, columnWidth: columnWidth)
+            #expect(
+                abs(layout.drawnTrackWidth - columnWidth) < 1,
+                """
+                \(tabCount) tabs in a \(columnWidth) PT column (= a \(share) PT \
+                share) drew a \(layout.drawnTrackWidth) PT track. = The strip \
+                must divide the column it was given.
+                """
+            )
         }
     }
 

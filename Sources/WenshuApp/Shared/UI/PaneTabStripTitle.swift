@@ -62,10 +62,16 @@ enum PaneTabStripTitle {
     /// app therefore sets the title it wants drawn, = and the three
     /// answers are decided here, = in one place, = for both strips.
     ///
-    /// The ellipsis costs one CHARACTER of the cell (= 13.0 PT):
-    /// '十…' first fits in a 26 PT cell (= 13 for the character + 13
-    /// for the ellipsis), = and '十二…' first fits in a 39 PT cell
-    /// (= 26 + 13).
+    /// The ellipsis costs one CHARACTER of the room a cell gives its
+    /// title (= 13.0 PT), = so a truncation is one character plus the
+    /// ellipsis, = and two characters plus the ellipsis cost 26 PT.
+    ///
+    /// ⇒ ⇒ ⇒ THE ROOM IS NOT THE SHARE: = a cell gives its label
+    /// `share - PaneTabStripWidth.segmentLabelInset` (= 20.5 PT goes to
+    /// the segment's own inset), = so a truncated title first appears
+    /// when the room holds one character and the ellipsis (= a 26.0 PT
+    /// room, = a 46.5 PT share), = and a share just under that shows
+    /// NOTHING.
     static let ellipsisCost: CGFloat = 13
 
     /// The label a cell carries when it shows NOTHING.
@@ -93,7 +99,29 @@ enum PaneTabStripTitle {
     /// 132 PT). = A label that carries a CHARACTER is what lets
     /// AppKit divide the region exactly, = and a zero width space is
     /// a character that draws nothing.
-    static let nothingMarker = "\u{200B}"
+    /// ⇒ ⇒ ⇒ AND IT MUST BE WIDE ENOUGH THAT THE CONTROL TRUNCATES IT.
+    /// The control honours a label's own width while that width fits, =
+    /// so a NARROW marker keeps a cell wider than its share (= MEASURED
+    /// on the REAL strip, hosted, = its layer tree):
+    ///
+    /// | the marker | 12 tabs in a 222 PT column | 9 tabs in a 200 PT column |
+    /// | --- | --- | --- |
+    /// | `"\u{200B}"` (= read as EMPTY) | 240 PT (= 18 PT over) | 200 PT |
+    /// | `"\u{200B} "` (= 3.9 PT) | 222 PT | 216 PT (= 16 PT over) |
+    /// | `"\u{200B}"` + 8 spaces (= 30 PT) | 222 PT | 200 PT |
+    /// | `"\u{200B}"` + 20 spaces (= 74 PT) | 222 PT | 200 PT |
+    ///
+    /// ⇒ A label WIDER than its cell is truncated to the cell, = so the
+    /// cell is exactly the share. = The marker is therefore as WIDE as
+    /// the widest cell that can select it (= 46.5 PT is the first share
+    /// that shows text) plus the slack the control allows before it
+    /// truncates, = and twenty spaces are that width: = 14 measured
+    /// geometries (= the band 18.2 to 19.9 PT, = a 40 PT share, = a
+    /// 22 PT share, = a 6.67 PT share, = and the wide-cell case) divide
+    /// exactly, = and so does a 316-row sweep of the real strip over
+    /// (tab count, column width, title length). = Spaces paint nothing,
+    /// = so the boss's rule (= nothing shows) holds.
+    static let nothingMarker = "\u{200B}" + String(repeating: " ", count: 20)
 
     /// The title one segment draws at `share` points wide.
     ///
@@ -135,8 +163,17 @@ enum PaneTabStripTitle {
         // fits), = so the title is the whole title.
         guard share > 0 else { return title }
 
+        // The room the cell gives its label (= the share minus the
+        // segment's own inset). = A label as wide as the SHARE would
+        // make the cell `label + inset` wide and push the strip past
+        // the column it was given (= MEASURED: 3 tabs in a 200 PT
+        // region with 60 PT titles drew 239 PT of track), = so the
+        // budget is the room, = never the share.
+        let room = share - PaneTabStripWidth.segmentLabelInset
+        guard room > 0 else { return nothingMarker }
+
         // The whole title, when the cell has room for it.
-        if drawnWidth(of: title, font: font) <= share {
+        if drawnWidth(of: title, font: font) <= room {
             return title
         }
 
@@ -149,7 +186,7 @@ enum PaneTabStripTitle {
         for character in title {
             let candidate = kept + String(character)
             let width = drawnWidth(of: candidate, font: font)
-            guard width + ellipsisCost <= share else { break }
+            guard width + ellipsisCost <= room else { break }
             kept = candidate
         }
         guard !kept.isEmpty else { return nothingMarker }

@@ -54,8 +54,9 @@ struct PaneTabStripTitleTests {
     func wholeTitleWhenItFits() {
         let title = "十二地仙"
         let width = Self.width(of: title)
-        // The cell has room for the title and more.
-        let share = width + 20
+        // The cell has room for the title and more: = the title's own
+        // width plus the segment's inset, plus a point.
+        let share = width + PaneTabStripWidth.segmentLabelInset + 1
         #expect(PaneTabStripTitle.fitted(title, share: share, font: Self.labelFont()) == title)
     }
 
@@ -65,7 +66,8 @@ struct PaneTabStripTitleTests {
         let title = "十二地仙"
         // The cell fits two characters and the ellipsis.
         let share = PaneTabStripTitle.drawnWidth(of: "十二", font: Self.labelFont())
-            + PaneTabStripTitle.ellipsisCost + 1
+            + PaneTabStripTitle.ellipsisCost
+            + PaneTabStripWidth.segmentLabelInset + 1
         let fitted = PaneTabStripTitle.fitted(title, share: share, font: Self.labelFont())
         #expect(fitted == "十二…")
         // The truncation keeps the START (= the part that names the
@@ -77,16 +79,24 @@ struct PaneTabStripTitleTests {
     @MainActor
     func nothingWhenOnlyTheEllipsisWouldFit() {
         let title = "十二地仙"
-        // The cell fits the ellipsis and NOT one character beside it.
-        let share = PaneTabStripTitle.ellipsisCost + 1
+        // The cell fits the ellipsis and NOT one character beside it
+        // (= the room is the share minus the segment's own inset).
+        let share = PaneTabStripTitle.ellipsisCost
+            + PaneTabStripWidth.segmentLabelInset + 1
         let fitted = PaneTabStripTitle.fitted(title, share: share, font: Self.labelFont())
         #expect(fitted == PaneTabStripTitle.nothingMarker)
         // The lone ellipsis is the case the boss ruled out.
         #expect(!fitted.contains("…"))
-        // And the marker draws nothing: = it measures 0 PT wide.
+        // And the marker draws no GLYPH: = it is a zero width space and
+        // a space, = so the cell paints no ink (= the drawn pixels are
+        // asserted against a real control in `aNarrowCellPaintsNothing`).
+        // It is NOT zero PT wide: = MEASURED, a label of only a zero
+        // width space is treated as EMPTY by AppKit and the cell keeps
+        // its own minimum width, = so the marker carries a space to stay
+        // a label the control divides (= `nothingMarker`).
         #expect(
-            PaneTabStripTitle.drawnWidth(of: fitted, font: Self.labelFont()) < 0.5,
-            "the nothing marker must measure 0 PT wide"
+            fitted.allSatisfy { $0 == "\u{200B}" || $0.isWhitespace },
+            "the nothing marker must carry nothing but whitespace, = it carried '\(fitted)'"
         )
     }
 
@@ -142,7 +152,8 @@ struct PaneTabStripTitleTests {
                         PaneTabStripTitle.drawnWidth(of: String($0), font: Self.labelFont())
                     } ?? 0
                     #expect(
-                        characterWidth + PaneTabStripTitle.ellipsisCost > share,
+                        characterWidth + PaneTabStripTitle.ellipsisCost
+                            > share - PaneTabStripWidth.segmentLabelInset,
                         "nothing is only right when no character fits beside the ellipsis: title '\(title)' at \(share) PT"
                     )
                 }
@@ -266,7 +277,10 @@ struct PaneTabStripTitleTests {
         // The tier the boss ALLOWED: = the tab still shows text, = and
         // the text is the start of the title plus the ellipsis.
         let title = "十二地仙"
-        for share in [26.0, 30.0, 36.0, 40.0, 48.0] {
+        // The room is the share minus the segment's inset (= 20.5 PT),
+        // so one character plus the ellipsis first fits in a 46.5 PT
+        // share.
+        for share in [46.5, 52.0, 60.0, 64.0, 70.0] {
             let drawn = PaneTabStripTitle.fitted(
                 title,
                 share: share,
@@ -286,7 +300,9 @@ struct PaneTabStripTitleTests {
         let title = "十二地仙"
         let reference = Self.firstCellInk(title: title, share: 200, tabs: 8)
         #expect(reference > 0)
-        for share in [52.0, 60.0, 80.0] {
+        // The whole title is 51.6 PT drawn, = so it first fits in a
+        // 72.1 PT share (= 51.6 + the segment's 20.5 PT inset).
+        for share in [72.5, 80.0, 100.0] {
             let drawn = PaneTabStripTitle.fitted(
                 title,
                 share: share,

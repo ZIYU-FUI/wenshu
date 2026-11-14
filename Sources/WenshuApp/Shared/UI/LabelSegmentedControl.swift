@@ -428,53 +428,31 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // rule that the segments share the control's frame equally.
         control.segmentDistribution = .fillEqually
 
-        // The segment WIDTHS (= the region's share, = one per segment).
+        // The segment WIDTHS (= none is set: the distribution divides
+        // the frame).
         //
-        // AppKit's own `.fillEqually` divides the control's frame among
-        // the segments, = but it will NOT divide a segment narrower than
-        // its own LABEL's width: = the cell then keeps the label's width
-        // and the strip overflows the region it was given.
-        // MEASURED on the real control in a real app: = 3 tabs in a
-        // 200 PT region (= a 66.67 PT share) with 60 PT labels came out
-        // 80.5 PT per cell, = so the drawn track was 239 PT wide in a
-        // 200 PT column (= 39 PT over the region).
+        // `setWidth(_:forSegment:)` looks like the answer and is not:
+        // AppKit CLAMPS an explicit width to its own minimum (= MEASURED:
+        // 20.5 PT at the `.small` control size), = so a share below that
+        // floor comes back as 20.5 PT per cell, = and the strip then
+        // overflows the column it was given. = ⇒ ⇒ ⇒ SO NO SEGMENT WIDTH
+        // IS SET HERE, = and `.fillEqually` divides the frame instead.
         //
-        // So the widths are set EXPLICITLY: = `setWidth(_:forSegment:)`
-        // is the public API for one segment's width, = and with every
-        // segment set to its share the cells divide the region exactly
-        // and the label is clipped to its cell (= which is the boss's
-        // rule: = a tab may end up showing not one character).
+        // MEASURED on the REAL strip, hosted (= its layer tree): = with
+        // the widths set, = a share of 18.50 PT (12 tabs in a 222 PT
+        // column) drew a 240 PT track (= 18 PT over the column, = and the
+        // last cell clipped), = and a share of 19.76 PT (23 tabs in a
+        // 454.5 PT column) drew 460 PT (= 5.5 PT over). = ⇒ THE BAND
+        // 18.2 TO 19.9 PT IS EXACTLY WHERE THE CLAMP BITES.
         //
-        // The width is set ONLY when the share is above AppKit's own
-        // minimum segment width (= MEASURED: 20.5 PT at the `.small`
-        // control size, = and `setWidth` below it is silently raised to
-        // that floor, = which would make the strip overflow again).
-        // Below the floor the distribution alone divides the region
-        // exactly (= MEASURED: 12 tabs in a 200 PT region came out
-        // 16.5 PT and 17 PT per cell, = and 30 tabs came out 6.5 PT and
-        // 7 PT per cell, = so the division is unbounded).
-        if regionWidth > 0, !labels.isEmpty {
-            // The share comes from the ONE owner (`PaneTabStripWidth`),
-            // because both pane tab strips ask this question of this
-            // control (= the editor's document strip and the chat zone's
-            // session bar), = and a rule that lives in each door
-            // separately is a rule that drifts.
-            let share = PaneTabStripWidth.segmentWidth(
-                columnWidth: regionWidth,
-                segmentCount: labels.count
-            )
-            if share >= PaneTabStripWidth.minimumExplicitSegmentWidth {
-                for index in labels.indices {
-                    control.setWidth(share, forSegment: index)
-                }
-            } else {
-                // Clear any width a previous (= wider) region set, = so
-                // the distribution alone divides the region.
-                for index in labels.indices {
-                    control.setWidth(0, forSegment: index)
-                }
-            }
-        }
+        // ⇒ ⇒ ⇒ AND `.fillEqually` ALONE IS EXACT THERE (= MEASURED:
+        // 454.50, 222.00 and 190.00 PT of track for those geometries, =
+        // and exact at every other tab count too), = BUT ONLY WHILE NO
+        // LABEL IS WIDER THAN ITS CELL: = a label the control cannot fit
+        // makes the cell `label + 20.5 PT` wide (= MEASURED: 3 tabs in a
+        // 200 PT region with 60 PT labels drew 239 PT of track), = which
+        // is why the title budget is the share MINUS that inset
+        // (`PaneTabStripTitle.fitted`).
         // The control size (= the segment's own height, hit area and
         // label font) is the per-call-site knob; = the shared default
         // is `.large` (= the macOS 27 Tahoe inspector-body tab pill

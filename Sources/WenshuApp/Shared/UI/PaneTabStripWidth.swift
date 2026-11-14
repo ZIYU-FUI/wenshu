@@ -13,19 +13,22 @@ import CoreGraphics
 
 /// The width rule for a pane tab strip.
 enum PaneTabStripWidth {
-    /// The smallest segment width AppKit honours when a width is set
-    /// explicitly (`NSSegmentedControl.setWidth(_:forSegment:)`).
+    /// The room a segment spends on itself (= its side insets and the
+    /// gap between its label and its edge), which its LABEL may not use.
     ///
-    /// MEASURED on the real control: a 16.67 PT share (= 12 tabs in a
-    /// 200 PT region) came out 20.5 PT per cell, = and a 20.5 PT share
-    /// came out 20.5 PT per cell, = so the floor is 20.5 PT at the
-    /// `.small` control size.
+    /// MEASURED on the control: a cell is the wider of its share and its
+    /// label plus this inset. = 3 tabs in a 200 PT region (= a 66.67 PT
+    /// share) with 60 PT titles drew 80.5 PT cells (= 239 PT of track in
+    /// a 200 PT column, = so the strip overflowed by 39 PT), = and with
+    /// 43.19 PT titles the same region drew exactly 200 PT. = The
+    /// boundary sits between those two widths, = so a label is inside its
+    /// cell only when `label + 20.5 <= share`.
     ///
-    /// Below the floor a strip must NOT set widths, = and AppKit's own
-    /// `.fillEqually` distribution divides the region exactly (= MEASURED:
-    /// 16.5 PT and 17 PT per cell for 12 tabs in a 200 PT region, = and
-    /// 6.5 PT and 7 PT per cell for 30 tabs in the same region).
-    static let minimumExplicitSegmentWidth: CGFloat = 20.5
+    /// ⇒ ⇒ ⇒ SO THE TITLE BUDGET IS `share - 20.5`, = not `share`
+    /// (`PaneTabStripTitle.fitted`), = and the two numbers are the SAME
+    /// constant: = the cell's own floor and its own inset are one
+    /// measurement of one edge.
+    static let segmentLabelInset: CGFloat = 20.5
 
     /// The width one segment takes when the strip divides the width it
     /// was given.
