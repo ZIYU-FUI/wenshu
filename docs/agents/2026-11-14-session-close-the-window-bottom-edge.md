@@ -118,7 +118,7 @@ merge):
 | --- | --- |
 | `swift build` | exit 0 (= = "Build complete!") |
 | `swift test --filter "ChromeBottomFooterSurfaceTests\|ChromeBottomFooterHeightTests"` | **11 tests in 2 suites passed** (= = 4.9 s) |
-| `design-sweep.sh` on the three changed view files | "design sweep clean" |
+| `design-sweep.sh` on the two changed view files | "design sweep clean" |
 | `verify-dead.py` | 127 ALIVE, 4 PARTIAL, **0 DEAD** |
 | the CJK audit over this scope's six commits | **0** CJK added in each |
 | the closure doc itself | **0** CJK characters |
@@ -127,7 +127,7 @@ merge):
 | `ci_change_gate.py --check pollution` | "the change adds no forbidden vocabulary" |
 | `commit_filter.py --hook ci-scan` | exit 0 |
 
-## 8. THE REVIEW (SIX ROUNDS, ALL ON THE BOARD)
+## 8. THE REVIEW (SEVEN ROUNDS, ALL ON THE BOARD)
 
 **The production change** (= = card `t_cfd431b0`) = = **approved**, = = all
 thirteen claims checked. = = Its FIRST round blocked, = = and its three
@@ -152,6 +152,7 @@ of them found a REAL DEFECT IN THE DOC'S OWN WORDS:
 | `t_d17ed027` | the tree scope's partition read **308 = = 108 + 200**, = = and the split under the doc's OWN named command is **308 = = 112 + 196** (= = the two halves of one sentence had been split on two different bases, = = and four prose rows were charged to "real code") | the one number pair, = = and the rule that produces it (= = a row is PROSE when its line, after the leading whitespace, starts with `//`) |
 | `t_b64df6e4` | §6's lead-ins said "TWO ERRORS … BOTH ARE NOW CORRECTED" above FOUR numbered findings, = = and the numbering ran (1), (2), (4), (3) | move the (4) block below the (3) block, = = make the lead-ins say FOUR, = = and move the closing sentence after the last finding |
 | `t_81df67d5` | **approved** | = = |
+| `t_ff12d850` | this close-out doc's OWN first round found that §7's gate row said "the three changed **view** files", = = and the change has TWO view files and one TEST file | = = the one word: = = "two changed view files" |
 
 = = ⇒ ⇒ ⇒ **⇒ AND THE THREE DOC ROUNDS WERE ONE CLASS: = = A CLAIM IN THE
 DOC'S PROSE THAT DID NOT MATCH THE ARTIFACT IT DESCRIBED.** = = ⇒ ⇒ ⇒ ⇒ ⇒
@@ -171,6 +172,7 @@ real-code hit.**
 | 4 | the doc's partition, = = 112 + 196 | `6565850c13` | card `t_d17ed027` = = **changes requested**, = = its one finding closed |
 | 5 | the doc's review history, = = (1) (2) (3) (4) | `f283f18c8c` | card `t_b64df6e4` = = **changes requested**, = = its one finding closed |
 | 6 | the doc's history, = = read in order | `f283f18c8c` | card `t_81df67d5` = = **approved** |
+| 7 | this close-out doc, = = and its own first review round | = = this doc's own commit | card `t_ff12d850` = = **changes requested**, = = its one finding closed |
 
 **The commits the PUSH carried that are NOT this scope's** (= = pushed as
 maintenance of the shared server state, = = not authorship):
