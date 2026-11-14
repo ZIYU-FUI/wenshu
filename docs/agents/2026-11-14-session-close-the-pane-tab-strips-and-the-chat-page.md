@@ -210,8 +210,13 @@ stay theirs.
   buys"), and the scope's own ten suites are green (71 tests in 10
   suites) on the merged tree.
 - 7.4 the dual-axis audit (two read-only audits, = = the standards axis
-  and the spec axis): their findings are recorded in the commit that
-  follows this one.
+  and the spec axis): = **the SPEC axis found one real regression** (= =
+  in a narrow band of shares the drawn cells exceed the column, = = and
+  this change introduced it), = and it is handed off in
+  `docs/agents/2026-11-14-handoff-the-pane-tab-strip-band-regression.md`;
+  = **the STANDARDS axis did NOT complete** (= = its child ran out of
+  context after 4374 seconds, = = so it is re-dispatched with a bigger
+  window, = = and it is an open item, = = not a pass).
 
 ## THE DURABLE LESSONS (they live in the SKILLS, not here)
 
