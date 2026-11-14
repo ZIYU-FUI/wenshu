@@ -441,5 +441,6 @@ reference, LOC, and content tag.
 shell-init: error retrieving current directory: getcwd: cannot access parent directories: No such file or directory
 job-working-directory: error retrieving current directory: getcwd: cannot access parent directories: No such file or directory
 chdir: error retrieving current directory: getcwd: cannot access parent directories: No such file or directory | the session closeout of record for the pane tab strips and the chat page's reverse link: the symptom (a title that overflowed its cell, a page that did not move the tree, a whole library whose documents had two answers), the root causes, the fixes, the measured before and after, the twenty arms that hold it, the two expansions the whole suite required, and the open items left behind. |
+| `Sources/WenshuApp/Shared/UI/PaneTabStripTitle.swift` | `docs/agents/2026-11-14-handoff-the-pane-tab-strip-band-regression.md` | 183 | the hand-off for the next session: = the pane tab strip's band regression (= the drawn cells can exceed the column when the share is 18.2 to 19.9 PT), = the measurement that found it, = the mechanism behind it, = the partial fix that is NOT shippable as it stands, = = and the order of the work that finishes it. |
 <!-- Append new rows at the END of the table above. The key-level merge
      driver keeps both rows when two cards add one each. -->
