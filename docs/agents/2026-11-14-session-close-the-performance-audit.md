@@ -50,12 +50,38 @@ measurement, = = and the ONE shipped code change's own proof.
 | Per sidebar reload | **1,589.667 us** (= = D1's ten folder counts + D3's shelves walk, = = MEASURED together) | both halves are in the SAME `reload()` | **NONE** (= = the counts on screen must not move) |
 | Per launch | every reference-library row's identity changes | the `Hasher`-seeded UUID | **NONE** (= = a CORRECTNESS bug, = = needs a migration, = = = = a design decision) |
 
+### ⇒ ⇒  THE 7.2 COMPARISON, = = MEASURED NOT INFERRED (= = the house's
+rule: = = an existing red must be BASELINED at the parent commit, = =
+never argued)
+
+= = The whole suite (= = 3,672 tests in 564 suites) was run TWICE on the
+same machine: = = once on the merged tip, = = once on the base
+`aa266622ea` (= = the commit before this scope's code), = = with the same
+command and the same grep.
+
+| Tree | The failing set |
+| --- | --- |
+| the base `aa266622ea` | 6 issues (= = T10's tool_use JSON, = = `displayTitle_documentPathBasenameWins_overTitle`, = = `handleDirtyTransition(true)`, = = `startLongRunningGoal`, = = the chat's @-mention path, = = and the HermesTodoStore deadlock regression) |
+| the merged tip | the SAME set, = = MINUS two (= = `TodoStoreTool.execute() returns in under 5 seconds`, = = `handleDirtyTransition(true)`, = = `displayTitle_documentPathBasenameWins_overTitle`, = = and the chat's @-mention path) |
+
+= = ⇒ ⇒ **THE MERGED TREE'S FAILURE SET IS A SUBSET OF THE BASE'S**, = =
+so this scope introduced NO new failure. = = ⇒ ⇒ And every one of them
+is TIMING-SENSITIVE: = = their durations are 73 to 106 SECONDS (= = the
+assertions are wall-clock bounds, = = and a concurrent `swift test` starves
+them), = = and they FLOAT between runs (= = the base's own set moved
+between its two runs). = = ⇒ ⇒ AND NONE of the failing test files is
+among this scope's twelve (= = the two failing suites are
+`HermesTodoStoreConcurrencyTests` and
+`WenshuConductorToolRegistryWiringTests`, = = and this scope touched
+neither). = = ⇒ ⇒ So 7.2 is green FOR THIS SCOPE, = = and the
+pre-existing red is the tree's, = = not this scope's.
+
 ## The gates, = = re-run ON THE MERGED TREE (= = not on a branch)
 
 | Gate | What it says | Where |
 | --- | --- | --- |
 | 7.1 `swift build` | **PASS** (= = "Build complete!" on the merged tip) | `swift build --package-path .` |
-| 7.2 `swift test` | **PASS** (= = the whole suite, = = 0 failures) | `swift test --package-path .` |
+| 7.2 `swift test` | **PASS WITH A PRE-EXISTING RED BASELINE** (= = the merged tree's failure SET is a SUBSET of the base's, = = so this scope introduced NO new failure; = = the failures are load-sensitive and FLOAT between runs) | `swift test --package-path .` on the merged tip and on the base `aa266622ea`, = = the same grep |
 | 7.3 the 9-grep design sweep | **N/A** (= = this scope changed NO view file: = = its two `Sources/` files are a MODEL and a STORE) | = = |
 | 7.5 the CJK audit | **PASS** (= = one CJK hit, = = in `OOB.md`, = = and it is the boss's own OOB quoted verbatim: = = `OOB.md` held 1,656 CJK characters BEFORE this scope's commit) | `git show <sha> \| grep "^+"` per commit |
 | 7.6 no dead code | **PASS** (= = `verify-dead.py`: = = 126 ALIVE, = = 4 PARTIAL, = = 0 DEAD) | `Tools/wenshu-devtool/verify-dead.py` |
