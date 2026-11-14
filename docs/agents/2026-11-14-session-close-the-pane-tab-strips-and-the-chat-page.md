@@ -187,11 +187,16 @@ stay theirs.
   deterministic on both trees; three flip between runs on BOTH trees
   (the base's own first run failed ten and its second run failed
   seven, = = the three that differ are the load-sensitive ones).
-  And the whole-suite run CANNOT COMPLETE while the provider quota
-  wall is up: eight provider-dependent suites hang on both trees, and
-  on the base's own run each of those suites waited 118 to 170 seconds
-  for the provider. The narrow suites that own the changed files are
-  green (see 7.10).
+  And the whole-suite run CANNOT ALWAYS COMPLETE while the provider
+  quota wall is up: eight provider-dependent suites were still running
+  when the merged tree's runs stopped, and on the base's own run each of
+  those suites waited 118 to 170 seconds for the provider. The scope's
+  own code does not stall the run: at the scope's own earlier commit
+  (`b70c3854e`) the same whole suite COMPLETED under the same wall
+  (3711 tests in 570 suites, 9 issues, 181 seconds), and at the scope's
+  first commit (`265ba30e1`) the same suite did not, so the stopping
+  point tracks the provider's mood and not the diff. The narrow suites
+  that own the changed files are green (see 7.10).
 - 7.3 the design sweep: 9 sweep suites, 9 passed.
 - 7.5 the CJK comment audit: see the open item above.
 - 7.6 `verify-dead`: DEAD 0.
