@@ -116,6 +116,10 @@ python3 Tools/wenshu-devtool/probes/column_chrome_band.py <capture.png>
 
 # 12. Prove that gate has teeth (it must REJECT a short band whose centre agrees)
 python3 Tools/wenshu-devtool/probes/column_chrome_band.py --selftest
+
+# 13. Whether the native segmented control's cells paint an opaque fill, from
+#     rendered pixels (the control alone, over a saturated host layer)
+swift Tools/wenshu-devtool/probes/segmented_control_material.swift
 ```
 
 The index's own test proves the index and the probes directory agree in

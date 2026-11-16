@@ -87,47 +87,67 @@ component picks the material up by itself.
 
 ## MEASURED: the native control carries the material by itself
 
-MEASURED: = the control over a saturated green host layer
-(`NSColor(calibratedRed: 0, green: 0.55, blue: 0.25)`, = a `.small`
-control, = the `.valueSelection` role, = the segment selected), = read
-from a 2x `NSBitmapImageRep` in the window's own appearance. = EVERY
-number below names its appearance, = its region, = and the container it
-was read from; = the first row of each pair is the CONTROL'S OWN AREA
-(= the cell's surface and its glyph), = and the second is the HOST
-BACKDROP BESIDE IT (= the same layer, = untouched, = and therefore the
-colour the backdrop actually renders as):
+MEASURED: = the control ALONE over a saturated green host layer
+(= `NSColor(calibratedRed: 0, green: 0.55, blue: 0.25)`, = a `.small`
+control, = the `.valueSelection` role, = the `.roundRect` style, = the
+second segment selected), = read from a 2x `NSBitmapImageRep` in the
+window's own appearance.
 
-| Appearance | Container | The control's own area | The backdrop beside it |
-| --- | --- | --- | --- |
-| darkAqua | the control ALONE | `(18,150,88)`, 29 colours | `(0,143,76)`, 1 colour |
-| darkAqua | an `NSVisualEffectView` behind it | `(94,116,106)`, 108 colours | `(0,143,76)`, 1 colour |
-| darkAqua | an `NSGlassEffectView` around it | `(92,107,100)`, 113 colours | `(0,143,76)`, 1 colour |
-| aqua | the control ALONE | `(0,133,70)`, 26 colours | `(0,143,76)`, 1 colour |
-| aqua | an `NSVisualEffectView` behind it | `(139,161,151)`, 118 colours | `(0,143,76)`, 1 colour |
-| aqua | an `NSGlassEffectView` around it | `(154,169,162)`, 128 colours | `(0,143,76)`, 1 colour |
+⇒ ⇒ ⇒ AND THE MEASUREMENT IS A PROBE IN THE REPO, = not a number
+whose source is lost: = `Tools/wenshu-devtool/probes/segmented_control_material.swift`
+( = = registered in `Tools/wenshu-devtool/probe-index.md`). = ⇒ Run it:
 
-⇒ ⇒ ⇒ AND THE RENDERED BACKDROP IS `(0,143,76)`, = NOT the nominal
+```
+swift Tools/wenshu-devtool/probes/segmented_control_material.swift
+```
+
+⇒ ⇒ ⇒ IT PRINTS ITS OWN PARAMETERS WITH ITS NUMBERS, = because they
+decide the numbers: = the host size (260 x 40 PT), = the control's frame
+((10, 6, 240, 28) PT), = the control's size, = role and style, = the
+selected segment, = the host layer's colour, = and the two measured
+regions (= the control's own area = (40, 4, 24, 12) PT, = = = the lower
+half of the first segment, = = = which carries the label's ink; = and
+the backdrop beside it = (1, 1, 6, 6) PT, = = = the same host layer,
+= = = untouched). = The two regions are COLUMNS of one row, = and the
+regions are in POINTS over a 2x bitmap.
+
+| Appearance | The control's own area | The backdrop beside it |
+| --- | --- | --- |
+| darkAqua | `(18,150,88)`, 29 colours | `(0,143,76)`, 1 colour |
+| aqua | `(0,133,70)`, 26 colours | `(0,143,76)`, 1 colour |
+
+⇒ ⇒ ⇒ ⇒ THE RENDERED BACKDROP IS `(0,143,76)`, = NOT the nominal
 `(0,140,64)`: = the nominal colour is what the app asks for, = and the
 rendered one is what the layer's colour space produces. = (The first
 version of this document quoted the nominal value as if it were a
 measured pixel, = and the review caught it.)
 
-⇒ ⇒ ⇒ WHAT THE TABLE SAYS: = the control alone still shows the
-GREEN through its cells (= the cell's own area reads green-dominant, =
-`(18,150,88)` in darkAqua and `(0,133,70)` in aqua, = and the backdrop
-beside it reads the same green) = ⇒ the control does not paint an
-OPAQUE fill of its own. = And the two material containers REPLACE that
-green with a NEUTRAL tint (= `(94,116,106)` and `(92,107,100)` in
-darkAqua) = = which is what a material does: = it samples and tints what
-is behind it.
+⇒ ⇒ ⇒ ⇒ ⇒ AND THE CONTROL'S CELLS ARE NOT OPAQUE: = the cell's own
+area stays GREEN-DOMINANT (= `(18,150,88)` in darkAqua, = `(0,133,70)`
+in aqua) = = = while the backdrop beside it reads the same green, = =
+so the host layer's colour comes THROUGH the control's cells, = and
+the cells paint no opaque fill of their own. = ⇒ The control's own
+appearance is Apple's, = Apple's own line says a standard component
+picks the material up automatically, = and so the app asks for nothing
+and adds nothing: = a material container between the control and the
+backdrop would put a SECOND material there (= HIG's "do so sparingly"),
+= and a container's own reading is not this reading (= see below).
 
-⇒ ⇒ ⇒ ⇒ SO THE APP ASKS FOR NOTHING, = AND THE APP ADDS NOTHING:
-= the native control's own appearance is Apple's, = Apple's own line
-says a standard component picks the material up automatically, = and
-adding a glass container would put a SECOND material between the control
-and the backdrop (= HIG's "do so sparingly" = against it) = and = with
-no backdrop to sample (= an offscreen window, = and = the review's own
-measurement) = that glass renders near black.
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND WHAT THIS DOCUMENT DOES NOT CLAIM: = an earlier
+version of it carried four container readings (= `NSVisualEffectView`
+behind the control, = `NSGlassEffectView` around it, = one per
+appearance). = The review swept them (= eight `NSVisualEffectView`
+materials x two blending modes, = the glass view as a content view and
+as a subview, = both appearances, = one and three segments, = two
+widths, = two labels, = two rendering paths) and NONE of the four
+numbers reproduced, = the container readings swing by a factor of
+three, = and in the dark appearance the QUALITATIVE reading flips too
+(= a window-server capture renders a flat dark green, = = = not a
+desaturated grey-green). = ⇒ So those four triples are gone, = and so
+is the claim that a material container "replaces the green with a
+neutral tint": = that is a property of the container's parameters, =
+not of the control. = ⇒ What the table above supports is the claim the
+source comment makes, = and the comment now says only that.
 
 ⇒ ⇒ ⇒ AND THE CORRECTION: the tree's rationale said "the Liquid Glass
 material is applied to the window chrome, not to the segmented control
@@ -219,6 +239,17 @@ The three new assertions, one per layer:
   already uses.
 - **A new title ladder.**  Measured to be worse on the real strip (= the
   239 PT track), so the ladder stays.
+
+## The trace: every requirement, = the commit that carries it, = the verdict that cleared it, = and the proof
+
+| The requirement | The commit that carries it | The independent verdict | The proof |
+| --- | --- | --- | --- |
+| "REA it and see how Safari writes its tab, = and copy Safari exactly" | `e79a35bc6c` | `t_e13a5b93` (= `changes_requested` on the document, = "the CODE is sound") = and `t_12cf0941` (= `changes_requested` again, = = = "the CODE is untouched and sound") | The export table's 12 `SFUnifiedTabBar` lines, = = = all AX wrappers, = = = in a 4,590,963-line table; = Safari ships its OWN unified tab bar class stack, = = = not an `NSSegmentedControl`; = ⇒ the private implementation is NOT copyable (= the dyld shared cache is not a file REA can open), = = = and the doc says so |
+| "Include the material: = Safari uses Liquid Glass, = and the segmented control is Apple's own, = = = so it is Liquid Glass too" | `e79a35bc6c` (= the code), = `bbe2c3e230` (= the re-measured claim) | `t_12cf0941` (= numbers 1 and 2 VERIFY EXACTLY) | Apple's HIG `materials`: "Standard components from system frameworks pick up the appearance and behavior of this material automatically"; = and the probe's own output (`(18,150,88)`/29 darkAqua, = `(0,133,70)`/26 aqua, = backdrop `(0,143,76)`/1), = = = re-derivable with `swift Tools/wenshu-devtool/probes/segmented_control_material.swift` |
+| "Use the HIG skill and look it up" | `e79a35bc6c` | `t_e13a5b93` (= the HIG sentence, = = = with its U+2019 apostrophe, = = = and the SDK's APIs, = = = checked out) | The HIG `materials` page (= the material, = = = the functional layer, = = = "don't use it in the content layer", = = = "use it sparingly"), = the `segmented-controls` page, = the `tab-views` page |
+| "Useful front-end style code can be copied outright, = = = no need to understand, = = = translate, = = = then re-implement it" | `e79a35bc6c` | `t_e13a5b93` (= "the CODE is sound") | The material IS Apple's own component, = = = so there is nothing to translate: = = = the app adds no glass layer; = and the one place copying was TRIED = = = (letting AppKit truncate the title) = = = was MEASURED to overflow the real strip (= a 200 PT column painting a 239 PT track), = = = so the truncation ladder stays |
+| "At the narrowest, = show the first character of the title" | `e79a35bc6c` | `t_e13a5b93` (= the mutation check: = = = 6 issues in 3 tests) = and `t_12cf0941` (= the gates re-run green) | Three layers of test (= the rule, = = = the production write path, = = = the real strip), = = = 29 tests in 3 suites green, = = = and the band that decides it (= the share minus `segmentLabelInset` = 20.5) |
+| The band overflow and the blank title (= the work this session started from) | `deff19bac4` = and `6b73f25b51` | already APPROVED, = = = landed at `58dd224bb7` | The gates in that round's closeout |
 
 ## One open item for the boss
 
