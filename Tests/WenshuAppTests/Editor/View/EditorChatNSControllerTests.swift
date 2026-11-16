@@ -38,15 +38,14 @@
 //   8. Source: toggleChatZone uses animator().isCollapsed.toggle()
 //      (= canonical NSSplitView animated collapse)
 
-import Foundation
 import AppKit
+import Foundation
 import Testing
 @testable import WenshuApp
 
 @Suite("EditorChatNSController (= NSSplitViewController hosting editor + chat)")
 @MainActor
 struct EditorChatNSControllerTests {
-
     /// The controller's source, across the five files it lives in.
     ///
     /// The controller was ONE file (= 1509 LOC) and was split under
@@ -75,6 +74,7 @@ struct EditorChatNSControllerTests {
     }
 
     // MARK: - Static identifier stability
+
     //
     // AppKit autosaveName writes to UserDefaults keyed on these
     // strings; renaming any of them invalidates persisted divider
@@ -280,7 +280,7 @@ struct EditorChatNSControllerTests {
         // carries the panes' thickness, = the divider runs across).
         let stacked = [
             "0.000000, 0.000000, 600.000000, 270.000000, NO, NO",
-            "0.000000, 271.000000, 600.000000, 730.000000, NO, NO"
+            "0.000000, 271.000000, 600.000000, 730.000000, NO, NO",
         ]
         let share = EditorChatNSController.share(fromFrames: stacked)
         #expect(share != nil, "the stored frames must yield a share")
@@ -296,7 +296,7 @@ struct EditorChatNSControllerTests {
         // and the layout runs away).
         let spaced = [
             "0.000000, 0.000000, 600.000000, 270.000000, NO, NO",
-            "0.000000, 271.000000, 600.000000, 730.000000, NO, NO"
+            "0.000000, 271.000000, 600.000000, 730.000000, NO, NO",
         ]
         let share = EditorChatNSController.share(fromFrames: spaced)
         #expect(share != nil, "the spaced numbers must parse (= the payload is written with a space after every comma)")
@@ -319,7 +319,7 @@ struct EditorChatNSControllerTests {
         // (= the editor is above the chat).
         let editorLeads = [
             "0.000000, 0.000000, 600.000000, 270.000000, NO, NO",
-            "0.000000, 271.000000, 600.000000, 730.000000, NO, NO"
+            "0.000000, 271.000000, 600.000000, 730.000000, NO, NO",
         ]
         let editorShare = EditorChatNSController.share(fromFrames: editorLeads)
         #expect(abs((editorShare ?? 0) - 0.27) < 0.0001,
@@ -567,7 +567,7 @@ struct EditorChatNSControllerTests {
         // A ZOOM: the axis moves on every frame (= a layout pass per
         // frame), and AppKit scales the divider with the axis (= the
         // share holds through the animation).
-        for step in 1...20 {
+        for step in 1 ... 20 {
             let extent = 1000 + CGFloat(step) * 20
             let action = drive(&latch, axisExtent: extent, observedLeading: extent / 2, assertedShare: asserted)
             #expect(action == .none,
@@ -610,7 +610,7 @@ struct EditorChatNSControllerTests {
 
         // A narrowing: the trailing pane sinks to its floor (= the
         // leading pane takes 0.97 of the axis).
-        for step in 1...20 {
+        for step in 1 ... 20 {
             let extent = 1000 - CGFloat(step) * 20
             _ = drive(&latch, axisExtent: extent, observedLeading: extent * 0.97, assertedShare: asserted)
         }
@@ -636,7 +636,7 @@ struct EditorChatNSControllerTests {
         _ = drive(&latch, axisExtent: 1000, observedLeading: 500, assertedShare: asserted)
         _ = drive(&latch, axisExtent: 1000, observedLeading: 500, assertedShare: asserted)
 
-        for step in 1...20 {
+        for step in 1 ... 20 {
             let extent = 1000 + CGFloat(step) * 20
             let action = drive(&latch, axisExtent: extent, observedLeading: extent / 2, assertedShare: asserted)
             #expect(action == .none)
@@ -694,6 +694,9 @@ struct EditorChatNSControllerTests {
         #expect(!content.contains("insertSplitViewItem"),
                 "no item may be re-inserted (= the panes are added once and never moved)")
     }
+
+    // MARK: - The layout callback's reach (= what it may NOT touch)
+
     @Test("Source reads the stored frames in the panes' own order (= the editor leads, because it is above the chat)")
     func sourceReadsFramesInOrder() throws {
         let content = try Self.controllerSource()
@@ -729,7 +732,9 @@ struct EditorChatNSControllerTests {
             let nextCharacter: Swift.Character = next < source.endIndex ? source[next] : "\u{0}"
 
             if inLineComment {
-                if character == "\n" { inLineComment = false }
+                if character == "\n" {
+                    inLineComment = false
+                }
                 index = next
                 continue
             }
@@ -747,7 +752,9 @@ struct EditorChatNSControllerTests {
                     index = next < source.endIndex ? source.index(after: next) : next
                     continue
                 }
-                if character == "\"" { inString = false }
+                if character == "\"" {
+                    inString = false
+                }
                 index = next
                 continue
             }
@@ -767,12 +774,14 @@ struct EditorChatNSControllerTests {
             case "\"":
                 inString = true
             case "{":
-                if bodyStart == nil { bodyStart = index }
+                if bodyStart == nil {
+                    bodyStart = index
+                }
                 depth += 1
             case "}":
                 depth -= 1
                 if depth == 0, let bodyStart {
-                    return String(source[bodyStart...index])
+                    return String(source[bodyStart ... index])
                 }
             default:
                 break
@@ -802,7 +811,8 @@ struct EditorChatNSControllerTests {
         // unreachable.
         let layoutBody = try #require(
             Self.functionBody(named: "viewDidLayout", in: content),
-            "viewDidLayout must exist")
+            "viewDidLayout must exist"
+        )
         #expect(!layoutBody.contains("removeSplitViewItem"),
                 "viewDidLayout must not remove a split view item (= removing one invalidates the split's constraints while AppKit is laying out, and each invalidation re-arms the window's update-constraints pass)")
         #expect(!layoutBody.contains("insertSplitViewItem"),
@@ -823,7 +833,8 @@ struct EditorChatNSControllerTests {
 
         let boundsBody = try #require(
             Self.functionBody(named: "updateAutomaticThicknessBounds", in: content),
-            "updateAutomaticThicknessBounds must exist")
+            "updateAutomaticThicknessBounds must exist"
+        )
         #expect(boundsBody.contains("if item.minimumThickness != 0 {"),
                 "the minimum thickness is written only when it differs (= a write into the split during the layout pass re-arms the window's update-constraints pass)")
         #expect(boundsBody.contains("if item.maximumThickness != available {"),
@@ -831,7 +842,8 @@ struct EditorChatNSControllerTests {
 
         let shareBody = try #require(
             Self.functionBody(named: "applyStoredShare", in: content),
-            "applyStoredShare must exist")
+            "applyStoredShare must exist"
+        )
         #expect(shareBody.contains("if items[0].preferredThicknessFraction != leadingShare {"),
                 "the leading pane's preferred fraction is written only when it differs")
         #expect(shareBody.contains("if items[1].preferredThicknessFraction != 1 - leadingShare {"),
@@ -844,7 +856,8 @@ struct EditorChatNSControllerTests {
 
         let fitBody = try #require(
             Self.functionBody(named: "sizeThatFits", in: content),
-            "sizeThatFits must exist")
+            "sizeThatFits must exist"
+        )
         #expect(!fitBody.contains("hostedContentWidth"),
                 "sizeThatFits must not fall back to the inner split's own width (= the parent negotiates the detail column's width against what is reported here, so the inner split's own width is a second number in the same negotiation)")
         #expect(!fitBody.contains("splitView.bounds.width"),
