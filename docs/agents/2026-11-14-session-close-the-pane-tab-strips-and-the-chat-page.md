@@ -30,6 +30,17 @@ Board: wenshu-par
    whole-library row, which the tree never draws. The assets pane must
    show every document of the whole library.
 
+## THE COMMITS OF THIS SCOPE, AND THE VERDICT THAT CLEARED EACH
+
+| the commit | what it carries | the independent verdict | the server-side proof |
+| --- | --- | --- | --- |
+| `deff19bac4` | the band fix: = = no segment width is set, = = the title's budget is the share minus the segment's own inset, = = and the nothing marker is a zero width space plus twenty spaces | `t_a53ecc5a` = APPROVED by `wenshu-review` | both remotes read it; = = the merge gate read CLEAN; = = 23 tests in 3 suites and 72 in 10 on the merged tree |
+| `bc1ce72f95` | the first rework of the blank title, = = and the prose fixes (= = the inset's doc, = = the marker's test comment, = = the band's test name) | `t_85300052` = CHANGES REQUESTED (= = two blocking findings, = = both measured) | the two findings became the next commit's two rules |
+| `6b73f25b51` | the blank title's rule: = = a blank title is a CHARACTER (= = the zero width space), = = and the marker stays for a cell narrower than it | `t_8e0c9aa6` = APPROVED by `wenshu-review` | 27 tests in 3 suites and 76 in 10 on the merged tree; = = the design sweep 84 in 22; = = `DEAD 0`; = = both remotes read it |
+| `3c9a7d0ee3` | the closeout of this round: = = the gates on the merged tree, = = the whole suite's failing set, = = the crash that is not this scope's, = = the two audits and every finding's disposition, = = the review round, = = and the rule that replaced the first rework's | = = the closeout follows the change it describes | = = the document's own rows carry its count (= = 609) |
+| `887146c3b4` | the registry's rows: = = the five counts, = = the missing content tag, = = and the CJK titles out | = = the registry's own gate (`nfi-loc-check`) | the gate reads the rows = = and the counts match the files |
+| `02721fd93f` | the final tree's gates, = = and the registry's count for the closeout | = = the closeout's last commit | both remotes read `02721fd93f` |
+
 ## THE SYMPTOM, THE ROOT CAUSE, THE FIX, AND THE MEASUREMENT
 
 ### R3 (the equal division) - the shipped control overflowed the column
