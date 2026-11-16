@@ -195,6 +195,27 @@ above, = = and it is recorded there.
 
 ## The gates, = = re-run ON THE MERGED TREE (= = not on a branch)
 
+**⇒ ⇒  AND THEY WERE RE-RUN ON THE MERGED TREE'S OWN TIP, = = AND THAT
+TIP IS NAMED.** = = A gate measured on a branch is a gate measured on a
+different tree, = = and `main` moves under a scope while it runs, = = so a
+gate's result without the sha it ran on is not a measurement anyone can
+reproduce. = = ⇒ The gates below were re-run on the merged tip
+`2668a06c3` (= = the tip `main` held when this section was last
+corrected), = = and the Swift tree is unchanged from the landing at
+`fcbf84ca08` to that tip (= = `git diff --stat fcbf84ca08 2668a06c3 --
+Sources/ Tests/` is empty), = = so the 7.1 and 7.2 results carry
+forward on the same bytes. = = And the ISOLATION test (= = 7.2's judge)
+was re-run ON THAT TIP against the base `aa266622ea`: = = the same THREE
+sites fail alone on either side, = = with the same count on either side
+(= = 8/1 at `ChatViewHistoryShortcutTests.swift:35`, = = 10/1 at
+`EditorTabTitleTests.swift:60`, = = 5/1 at
+`AsyncDelegationRegistryTests.swift:104`), = = and the six other suites
+that ever failed a whole-suite run pass alone on either side (= = 5/5,
+11/11, 5/5, 5/5, 10/10, 3/3). = = The logs are at
+`~/.hermes/profiles/pocock/cache/evidence/72-final/` (= = the nine suite
+files are byte-identical between the base and that tip, = = so the
+comparison is over the same bytes on both sides).
+
 | Gate | What it says | Where |
 | --- | --- | --- |
 | 7.1 `swift build` | **PASS** (= = "Build complete!" on the merged tip) | `swift build --package-path .` |
@@ -203,7 +224,7 @@ above, = = and it is recorded there.
 | 7.5 the CJK audit | **PASS** (= = one CJK hit, = = in `OOB.md`, = = and it is the boss's own OOB quoted verbatim: = = `OOB.md` held 1,656 CJK characters BEFORE this scope's commit) | `git show <sha> \| grep "^+"` per commit |
 | 7.6 no dead code | **PASS** (= = `verify-dead.py`: = = 127 ALIVE, = = 4 PARTIAL, = = 0 DEAD) | `Tools/wenshu-devtool/verify-dead.py` |
 | 7.8 commit hygiene | **PASS on the type** (= = of the subjects this document names that RESOLVE in this tree (= = nineteen of the twenty-six names, = = the other seven are the scope's own branch commits, = = which are off `main` and are named in the review-history table below), = = eighteen carry a type in the CI's set; = = the one that does not is `befbf1e65d`, = = the scope's own `style(devtool):`, = = which the CI would refuse (= = see the self-found defect below)) | = = |
-| 7.9 the verdict field | **PASS** (= = twelve review cards, = = every one of them with a top-level `review_outcome`: = = 6 `approved`, = = 6 `changes_requested` after their findings landed; = = and a THIRTEENTH, = = this document's own card (`t_28eeebf4`), = = which carries a `changes_requested` of its own, = = and whose findings the section above answers) | `review_gate.py --card <id>` |
+| 7.9 the verdict field | **PASS** (= = fifteen review cards, = = every one of them with a top-level `review_outcome`: = = 7 `approved`, = = 8 `changes_requested` after their findings landed; = = the two newest are this document's own 7.2 rounds, = = `t_33f9c6b5` (= = `changes_requested` on `ae607530b5`, = = and whose findings the section above answers) and `t_af3eeb33` (= = `approved` on `c4cde06187`)) | `review_gate.py --card <id>` |
 | the pollution gate | **PASS** | `ci_change_gate.py --base main --check pollution` |
 | the formatting gate | **PASS** | `ci_change_gate.py --base main --check formatting` |
 | the NFI gate | **PASS** (= = `nfi-split.py --check` = = PASS; = = `nfi-loc-check.py` = = "the change adds no registry row; nothing to check", = = which is the gate's own wording for a row UPDATED in place, = = so the count this change wrote into the row is held by the rule and not by the gate) | = = |
@@ -240,6 +261,8 @@ defect)
 | `t_bedecdbe` | `947755609` | **APPROVED** | = = all four checks PASS, = = at the branch tip, = = after the tip moved mid-review |
 | `t_38d004f3` | `5516e98474` | CHANGES REQUESTED | a finding in the wrong group (= = D3), = = and a proof that named a file no branch ever carried |
 | `t_337577dd` | `5f5efddcd7` | **APPROVED** | = = all six checks PASS |
+| `t_33f9c6b5` | `ae607530b5` | CHANGES REQUESTED | the 7.2 section's own numbers were re-derived from the logs on disk and held; = = but three sentences in it did not agree with each other (= = the eight runs' tree count, = = the `FileToolsTests` row's frequency, = = and a claim stated twice) |
+| `t_af3eeb33` | `c4cde06187` | **APPROVED** | = = the three sentences above, = = re-checked by string and re-measured from the logs; = = and the two gate rows (= = the registry count and the 7.9 split) = = PASS |
 
 **⇒ ⇒  AND THE THREE APPROVED CARDS THAT OWN CODE** (= =
 `t_7ff7d29c` for the Apple-first rule, = = `t_e33cebdd` for the gate
@@ -307,6 +330,20 @@ its own): = = `wt/apple-official-first`, = = `wt/apple-gate-fix`, = =
 `wt/chat-part-identity`, = = `wt/perf-audit-2026-11-13`, = =
 `wt/perf-fix-order-2026-11-13`, = = `wt/session-closeout-2026-11-13`,
 = = and their six worktrees under `.worktrees/wt/`.
+
+**⇒ ⇒  AND THE 7.2 ROUNDS' OWN RESIDUE, = = REMOVED THE SAME WAY.** = =
+The two 7.2 review cards each ran in their own worktree, = = and both
+were removed once their branch had landed: = = `.worktrees/t_33f9c6b5`
+(= = the round that returned CHANGES REQUESTED) and
+`.worktrees/t_af3eeb33` (= = the round that returned APPROVED). = = The
+developer's own branch `wt/perf-closeout-72-2026-11-14` is KEPT, = =
+because it now points at the landed tip and its history is the 7.2
+rewrite's own chain. = = ⇒ And the measurement logs are KEPT, = = but in
+a DURABLE home (= = `~/.hermes/profiles/pocock/cache/evidence/`, = = under
+`72-reviewer/`, = = `72-compare/`, = = `72-recovery/` and `72-final/`), = =
+because `cache/scratch/` is pruned after twenty-four hours and = = = = a
+card that points at a pruned path is a card whose evidence no longer
+exists.
 
 **LEFT** (= = NOT this scope's, = = and a sibling's live assets are not
 to be deleted even when they look unused): = = `wt/applemode`, = =
