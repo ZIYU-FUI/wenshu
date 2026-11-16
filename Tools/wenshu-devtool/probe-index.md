@@ -121,6 +121,15 @@ format commands to the inspector column's format page), on the running
 app's own accessibility tree (= no screenshot; = the tree's coordinates
 are the measurement).
 
+**SUPERSEDED** (= the removal of the side-by-side arrangement changed
+the probe's own shape: = its fragments, = its mode request, = and its
+gate. = The run quoted below is the one against the tree BEFORE the
+removal, = and it is kept because it is the run this block used to
+cite. = The probe's run against the tree AFTER the removal is recorded
+in the commit that follows, = = because the probe prints the tree's own
+commit, = and the tree it was measured on only has a sha once that
+commit exists.)
+
 ```
 probe: editor_chat_arrangement
 source_commit: fdc4b6760a36
@@ -163,6 +172,14 @@ Two things in that run are worth reading together:
   window is wide enough for the panes to sit side by side, = so the
   probe reports the arrangement it found and whether it is the one that
   was asked for.
+
+**⇒ ⇒ ⇒ AND EVERY ONE OF THOSE FRAGMENTS IS GONE** (= the preference
+key, = the three modes, = the width rule's thresholds, = the autosave
+names), = = so the probe now reproduces 3 fragments and asks no mode:
+the app has ONE arrangement (= the editor above the chat), = = and the
+gate asks whether the panes are where the app puts them. The
+`requested_mode` line is gone from the probe's output for the same
+reason: = there is nothing to request.
 
 ### `toolbar_preference_change.py`
 

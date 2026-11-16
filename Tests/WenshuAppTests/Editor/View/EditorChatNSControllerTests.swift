@@ -151,15 +151,19 @@ struct EditorChatNSControllerTests {
         // hold their own chrome, and the editor above the chat
         // otherwise. It ran on every layout pass.
         //
-        // Why it could never select what it existed to select:
-        // side by side needed a detail column of 1190 PT (= 595 PT
-        // for the editor + 280 PT for the chat at an even split),
-        // and the detail column is the window's width minus 810 PT
-        // of outer columns (= 200 PT sidebar + 240 PT materials +
-        // 270 PT inspector), so it needed a window of 2001 PT. A
-        // 1920 PT display never reaches it. So on this machine the
-        // rule ran on every pass and never resolved to side by
-        // side.
+        // Why its reach moved with a quantity it never read: side
+        // by side needed a detail column of 1190 PT (= 595 PT for
+        // the editor + 280 PT for the chat at an even split), and the
+        // detail column is the window's width minus the outer
+        // columns. The outer columns are 710 PT at their minimum
+        // widths (= 200 PT sidebar + 240 PT materials + 270 PT
+        // inspector) and 810 PT at their ideal widths (= 240 + 300 +
+        // 270), so side by side needed a window of 1900 PT or 2000 PT
+        // depending on how wide they stood. On a 1920 PT display the
+        // rule therefore COULD reach side by side (= 1920 - 710 =
+        // 1210 PT of detail, and 1210 x 0.5 = 605 >= 595) and could
+        // NOT (= 1920 - 810 = 1110 PT, and 1110 x 0.5 = 555 < 595),
+        // with the same window and the same rule.
         //
         // Why the tab bars are the reason the arrangement is not
         // needed: the tab strip divides the column it was given and

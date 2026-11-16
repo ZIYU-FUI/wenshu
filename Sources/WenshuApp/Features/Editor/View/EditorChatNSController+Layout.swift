@@ -1,6 +1,12 @@
 // EditorChatNSController+Layout.swift · Wenshu
 //
-// The layout (= the arrangement, the transition, the chat zone).
+// The layout (= the thickness bounds, the 50:50 reset, the chat
+// zone).
+//
+// The arrangement and the transition that used to live here are
+// gone: the split holds ONE arrangement (= the editor above the
+// chat), so there is no arrangement to choose and no transition to
+// run.
 //
 // This file is one part of the editor's split container. The
 // controller's declaration, its constants and its state live in

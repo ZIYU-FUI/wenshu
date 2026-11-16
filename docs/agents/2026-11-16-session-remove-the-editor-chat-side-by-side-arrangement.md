@@ -17,7 +17,7 @@ The boss ruled: delete the automatic rule and the side-by-side
 arrangement, keep only the top-bottom arrangement. "It introduced a pile
 of bugs. Better off without it."
 
-## 2. Why the arrangement was measured to be unreachable on this machine
+## 2. Why the arrangement's reach depended on the wrong quantity
 
 The rule that chose the arrangement lived in
 `EditorChatNSController.arrangement(forCompetingWidth:editorShare:mode:)`:
@@ -25,13 +25,34 @@ it took the detail column's width and asked whether an even split of it
 gave both panes their floor (595 PT for the editor, 280 PT for the chat).
 Side by side therefore needed a detail column of 1190 PT.
 
-The detail column is the window's width minus the sidebar (200 PT), the
-materials column (240 PT), and the inspector (270 PT): 810 PT of outer
-columns. So side by side needed a window of 2001 PT, and on the boss's
-1920 PT display the rule could never resolve to side by side at all.
+The detail column is the window's width minus the OUTER COLUMNS, and the
+outer columns have a MINIMUM and an IDEAL width each:
 
-The rule was, on this machine, a rule that ran on every layout pass and
-could never resolve to the arrangement it existed to select.
+| Outer column | Minimum | Ideal | Source |
+| --- | --- | --- | --- |
+| the sidebar | 200 PT | 240 PT | `LibraryRootView.swift`'s `navigationSplitViewColumnWidth` |
+| the materials column | 240 PT | 300 PT | the same |
+| the inspector | 270 PT | 270 PT | macOS's own inspector column width (= the app sets no width of its own) |
+| **the sum** | **710 PT** | **810 PT** | 200 + 240 + 270 = 710; 240 + 300 + 270 = 810 |
+
+So side by side needed a window of 710 + 1190 = **1900 PT** when the outer
+columns stood at their minimum, and 810 + 1190 = **2000 PT** when they stood
+at their ideal.
+
+**⇒ ⇒ ⇒ SO ON THE BOSS'S 1920 PT DISPLAY THE RULE COULD REACH SIDE BY
+SIDE, OR NOT, DEPENDING ON HOW WIDE THE OUTER COLUMNS HAPPENED TO BE.**
+At their minimum widths the detail column is 1920 - 710 = 1210 PT, and
+`holdsChrome(1210, 0.5)` holds (= 1210 x 0.5 = 605 >= 595). At their ideal
+widths the detail column is 1920 - 810 = 1110 PT, and `holdsChrome(1110,
+0.5)` does NOT (= 555 < 595). The same window, the same rule, two different
+answers, = = and the answer depends on a quantity the rule never reads.
+
+That is the defect class the boss named: a rule that measures the wrong
+quantity, whose reach moves with something else. The arrangement was
+therefore NOT unreachable on this machine, = = it was reachable or
+unreachable according to a condition the rule did not own, = = and every
+crossing of that condition ran the structural change inside a layout
+callback.
 
 ## 3. What the removal changes
 
@@ -82,8 +103,10 @@ Update Constraints in Window pass more times than it has views (436
 passes against a limit of 430), and the process aborted. The report
 holds no application frame beyond `WenshuApp.$main()`.
 
-The window in that report was 1032 PT wide, which is far below the
-2001 PT that side by side needed: at the moment of the abort the
+The window in that report was 1032 PT wide. Its detail column was
+therefore 1032 - 710 = 322 PT (= the outer columns at their minimum),
+far below the 875 PT that side by side needs at its floor (= 595 PT for
+the editor + 280 PT for the chat). At the moment of the abort the
 arrangement was already the top-bottom one. So this removal is NOT
 measured to fix that crash, and the removal must not be reported as the
 fix for it.
