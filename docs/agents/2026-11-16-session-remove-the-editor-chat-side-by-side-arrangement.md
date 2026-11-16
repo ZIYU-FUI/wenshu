@@ -78,22 +78,41 @@ host from reporting the whole document's height.
 
 ## 4. What the removal is measured against
 
-The three defects are measured, not asserted:
+The boss named three defects, and this session measured ONE of them:
 
-1. The crash. Dragging the window's left edge down to its minimum width
-   must not produce a crash report that carries this build's binary UUID.
-2. The tab bars. During the same drag the editor's and the chat's top
-   bars must not move.
-3. The arrangement. The chat must sit below the editor at every width,
-   and the app must carry no code that selects between two
-   arrangements.
+1. The crash. **NOT measured by this session.** The drag arm was blocked
+   by macOS's consent (= the app's library root is
+   `LibraryRoot.ensureDefault()`, = a path under `~/Documents`, = and an
+   ad-hoc-signed trial bundle has no consent for that folder), so no drag
+   ran and the arm measured NOTHING. The crash keeps its own card.
+2. The tab bars. **NOT measured by a drag**, because no drag ran. What
+   the change does carry is the STRUCTURAL cause the bars moved under
+   (= the arrangement's re-order of the split's two items, = a
+   structural change inside a layout callback), and that cause is gone:
+   `viewDidLayout` reaches the split's structure nowhere, the split's
+   two items are added once in `viewDidLoad` and never moved, and
+   `git grep` finds no `removeSplitViewItem` / `insertSplitViewItem` /
+   `applyPaneOrder` in `Sources/`.
+3. The arrangement. **Measured.** The app carries no code that selects
+   between two arrangements (= the arrangement enum, the width rule, the
+   floors it compared, the second autosave name and the persisted key
+   are all gone), and the arrangement probe reads `3/3` against the
+   source.
 
 ## 5. The gates
 
 - The unit tests, with the arrangement rule's tests replaced by the
-  arrangement's absence.
-- The build, and the crash oracle over the left-edge drag.
+  arrangement's absence (= 67 tests in 2 suites), and the whole suite
+  (= 151 + 208 tests).
+- The build, the design sweep over the changed Swift files, the
+  pollution gate, the formatting gate, the dead-code gate over the five
+  changed `EditorChat*` files, the two NFI gates, the probe index's own
+  test, and the arrangement probe.
 - The reviewer reads the commit and runs the gates named in the card.
+- **There is NO crash oracle over the left-edge drag in this list**,
+  because that arm measured nothing. The full sequence of the blocked
+  runs, and the restore of the user's `~/Documents`, are in the card
+  comment on `t_f2ecfedf`.
 
 ## 6. What this session does NOT claim
 
