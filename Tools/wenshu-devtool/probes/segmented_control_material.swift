@@ -227,6 +227,7 @@ struct Measurement {
     var backdrop: Reading?
     var opaque: Reading?
     var cellRect: CGRect
+    var bitmapScale: Int
 }
 
 /// Render the control alone over the host layer, in one appearance.
@@ -312,7 +313,8 @@ func measure(appearance: NSAppearance.Name) -> Measurement? {
         cell: cell,
         backdrop: backdrop,
         opaque: opaque,
-        cellRect: measuredRect
+        cellRect: measuredRect,
+        bitmapScale: first.scale
     )
 }
 
@@ -372,9 +374,10 @@ for (name, appearance) in [("darkAqua", NSAppearance.Name.darkAqua), ("aqua", .a
     }
     let rect = measurement.cellRect
     let band = measurement.band
+    let scale = Double(measurement.bitmapScale)
     print("appearance: \(name)")
-    print("drawn_band_pt: (\(Int(hostSize.height - CGFloat(band.upperBound) / 2)), "
-        + "\(Int(hostSize.height - CGFloat(band.lowerBound) / 2)))")
+    print("drawn_band_pt: (\(Int(hostSize.height - CGFloat(band.upperBound) / scale)), "
+        + "\(Int(hostSize.height - CGFloat(band.lowerBound) / scale)))")
     print("cell_area_pt: (\(Int(rect.origin.x)), \(Int(rect.origin.y)), "
         + "\(Int(rect.width)), \(Int(rect.height)))")
     if let cell = measurement.cell {
