@@ -165,27 +165,6 @@ neutral tint": = that is a property of the container's parameters, =
 not of the control. = ⇒ What the table above supports is the claim the
 source comment makes, = and the comment now says only that.
 
-⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND WHAT THIS DOCUMENT DOES NOT CLAIM: = an earlier
-version of it carried four container readings (= `NSVisualEffectView`
-behind the control, = `NSGlassEffectView` around it, = one per
-appearance). = The review swept them (= eight `NSVisualEffectView`
-materials x two blending modes, = the glass view as a content view and
-as a subview, = both appearances, = one and three segments, = two
-widths, = two labels, = two rendering paths) and NONE of the four
-numbers reproduced, = the container readings swing by a factor of
-three, = and in the dark appearance the QUALITATIVE reading flips too
-(= a window-server capture renders a flat dark green, = = = not a
-desaturated grey-green). = ⇒ So those four triples are gone, = and so
-is the claim that a material container "replaces the green with a
-neutral tint": = that is a property of the container's parameters, =
-not of the control. = ⇒ What the table above supports is the claim the
-source comment makes, = and the comment now says only that.
-
-⇒ ⇒ ⇒ AND THE CORRECTION: the tree's rationale said "the Liquid Glass
-material is applied to the window chrome, not to the segmented control
-itself".  That is wrong, and the comment now cites Apple's line and the
-measurement above.
-
 ## MEASURED: `.tabs` role vs `.valueSelection` role
 
 `NSSegmentedControl.role` is a macOS 27 API (`NSSegmentedControlRole`).
@@ -277,7 +256,7 @@ The three new assertions, one per layer:
 | The requirement | The commit that carries it | The independent verdict | The proof |
 | --- | --- | --- | --- |
 | "REA it and see how Safari writes its tab, = and copy Safari exactly" | `e79a35bc6c` | `t_e13a5b93` (= `changes_requested` on the document, = "the CODE is sound") = and `t_12cf0941` (= `changes_requested` again, = = = "the CODE is untouched and sound") | The export table's 12 `SFUnifiedTabBar` lines, = = = all AX wrappers, = = = in a 4,590,963-line table; = Safari ships its OWN unified tab bar class stack, = = = not an `NSSegmentedControl`; = ⇒ the private implementation is NOT copyable (= the dyld shared cache is not a file REA can open), = = = and the doc says so |
-| "Include the material: = Safari uses Liquid Glass, = and the segmented control is Apple's own, = = = so it is Liquid Glass too" | `e79a35bc6c` (= the code), = `bbe2c3e230` (= the re-measured claim) | `t_12cf0941` (= numbers 1 and 2 VERIFY EXACTLY) | Apple's HIG `materials`: "Standard components from system frameworks pick up the appearance and behavior of this material automatically"; = and the probe's own output (`(18,150,88)`/29 darkAqua, = `(0,133,70)`/26 aqua, = backdrop `(0,143,76)`/1), = = = re-derivable with `swift Tools/wenshu-devtool/probes/segmented_control_material.swift` |
+| "Include the material: = Safari uses Liquid Glass, = and the segmented control is Apple's own, = = = so it is Liquid Glass too" | `e79a35bc6c` (= the code), = `bbe2c3e230` (= the re-measured claim) | `t_12cf0941` (= numbers 1 and 2 VERIFY EXACTLY) | Apple's HIG `materials`: "Standard components from system frameworks pick up the appearance and behavior of this material automatically"; = and the probe's own output (`(96,184,142)`/141 darkAqua, = `(0,95,50)`/116 aqua, = backdrop `(0,143,76)`/1, = and the same area under an opaque fill `(135,135,135)`/1), = = = re-derivable with `swift Tools/wenshu-devtool/probes/segmented_control_material.swift` |
 | "Use the HIG skill and look it up" | `e79a35bc6c` | `t_e13a5b93` (= the HIG sentence, = = = with its U+2019 apostrophe, = = = and the SDK's APIs, = = = checked out) | The HIG `materials` page (= the material, = = = the functional layer, = = = "don't use it in the content layer", = = = "use it sparingly"), = the `segmented-controls` page, = the `tab-views` page |
 | "Useful front-end style code can be copied outright, = = = no need to understand, = = = translate, = = = then re-implement it" | `e79a35bc6c` | `t_e13a5b93` (= "the CODE is sound") | The material IS Apple's own component, = = = so there is nothing to translate: = = = the app adds no glass layer; = and the one place copying was TRIED = = = (letting AppKit truncate the title) = = = was MEASURED to overflow the real strip (= a 200 PT column painting a 239 PT track), = = = so the truncation ladder stays |
 | "At the narrowest, = show the first character of the title" | `e79a35bc6c` | `t_e13a5b93` (= the mutation check: = = = 6 issues in 3 tests) = and `t_12cf0941` (= the gates re-run green) | Three layers of test (= the rule, = = = the production write path, = = = the real strip), = = = 29 tests in 3 suites green, = = = and the band that decides it (= the share minus `segmentLabelInset` = 20.5) |

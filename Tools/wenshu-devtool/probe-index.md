@@ -23,7 +23,7 @@ card's commit does not touch the app source.
 | `toolbar_preference_change.swift` | RETIRED AS A GUI DRIVER (2026-10-29: the AX press takes the operator's mouse and foreground; the GUI drive goes through the CUA tool). The accessibility driver the toolbar probe runs: it opens the app's own Settings scene, selects its group rows through the accessibility tree, and verifies every switch against the persisted group key, so a driver that silently did nothing cannot report a pass. It drives the PID it is given and never re-derives one from a path, because every build of the app ships the same bundle id and a path does not name an instance. It checks that the running instance claims the bundle id it was given, because the preferences it reads live in the domain of that id. | `group_rows`, `strategy`, `switches_landed`, plus the group and pane of each round | `37e941c604` |
 | `render_path_contention_robust.swift` | The render path's measured costs, re-measured with a contention-ROBUST harness: the editor's per-keystroke character walk (= = A1 and A2 = = the same walk done twice), the sidebar's per-reload folder doc count (= = D1), and the reference-library row id (= = D2 = = the Hasher plus sixteen `String(format:)` calls). The harness reports the MINIMUM over many reps (= = the load-independent floor), because a mean is exactly the statistic that background CPU load inflates. = = READ-ONLY: it reads the user's library and writes no file. | `a1_walk_us`, `a1_a2_pair_us`, `d1_one_call_us`, `d1_whole_reload_us`, `d2_one_id_us`, `d2_formatting_only_us`, `d2_hasher_only_us`, `d2_twelve_tag_set_us`, plus `distinct_tags` | `292f49670903` |
 | `render_path_reload_total.swift` | The whole sidebar reload measured as ONE call (= = the ten folder doc counts of D1 and the cover reconciler's shelves walk of D3 in a single bench), = = which is the figure the sweep's path-class table quotes for the reload class. It is the same production shapes as `render_path_contention_robust.swift`, = = plus one bench that runs both walks together. = = READ-ONLY: it reads the user's library and writes no file. | `d4_one_whole_reload_us`, plus `d1_one_call_us`, `d1_whole_reload_us` and `d3_full_shelves_walk_us` for the two components it composes | `292f49670903` |
-| `segmented_control_material.swift` | The native segmented control's own material: = whether its cells paint an opaque fill of their own, = or let the host layer behind them read through. = Rendered offscreen at 2x, = and read from two named regions (= the control's own area, = and the host layer beside it). | `ad08c1769` | `bbe2c3e23` |
+| `segmented_control_material.swift` | The native segmented control's own material: = whether its cells paint an opaque fill of their own, = or let the host layer behind them read through. = Rendered offscreen at 2x, = and read from three named regions (= the cell's own area, = the host layer beside it, = and the same area under an opaque fill). | `drawn_band_pt`, `cell_area_pt`, `cell_area_rgb`, `cell_area_colours`, `backdrop_rgb`, `backdrop_colours`, `opaque_area_rgb`, `opaque_area_colours`, = one set per appearance, = with the parameters that decide them printed alongside | `5b941c68f` |
 
 ## Recorded measurement
 
@@ -32,12 +32,12 @@ are the probes' own output.
 
 ### `segmented_control_material.swift`
 
-Taken against commit `ad08c1769`, = with the control alone over the
+Taken against commit `5b941c68f`, = with the control alone over the
 saturated host layer.
 
 ```
 probe: segmented_control_material
-source_commit: ad08c1769
+source_commit: 5b941c68f
 host_size_pt: 260 x 40
 control_frame_pt: (10, 6, 240, 28)
 control_size: small
