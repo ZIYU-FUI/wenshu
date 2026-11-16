@@ -190,6 +190,13 @@ authorship, = = not maintenance of the shared server state.
 = = not its branch, = = not its three commits. = = The two cards were
 MEASURED, and only the one whose blocker had cleared was closed.
 
+**⇒ ⇒ ⇒ AND THE SIBLING'S SCOPE THEN SPAWNED A WAVE OF ITS OWN** (= = seven
+cards of that scope, = = each blocked as "Superseded" between 00:06 and
+01:18, = = each naming a tip that has since moved, = = as its scope's tip
+moved under it). **⇒ ⇒ ⇒ THEY ARE MEASURED, NOT CLOSED** (= = that scope
+owns them, = = and its own churn supersedes them), = = and they are not in
+the table above because they did not exist at this closeout's sweep.
+
 ## 8. The two review rounds
 
 The first review (`t_f2ecfedf`, 50 min) returned **changes requested** on four
