@@ -33,9 +33,14 @@ within minutes):
 | 7 | `4627e9410` (= the probe's recorded run names the tree it measured) |
 | 8 | this scope's closure doc (= = its own commits, = = whose shas this doc cannot name, = = because a doc that names its own sha changes it) |
 
-**⇒ ⇒ ⇒ AND THE COUNT IS THE READER'S** (= = and it is read off the
-ancestry, = = not off this list): `git rev-list --count 58dd224bb..main`
-carries the scope's total, = = this doc's own commits included.
+**⇒ ⇒ ⇒ AND THE COUNT IS ANCHORED TO THE SCOPE, = = NOT TO `main`.** A
+range that ends at `main` carries every lane's commits (= = a sibling
+scope's, = = so its answer is a moving number and its authors are two), = =
+so the scope's own commits are counted at the scope's own sha:
+`git rev-list --count 58dd224bb..253734934` = = the eight commits the table
+above names. **⇒ ⇒ ⇒ AND THIS DOC'S OWN COMMITS ARE COUNTED BY PATH** (= =
+= = the only commits that are this doc's), = = so the scope's total is those
+two numbers added.
 
 ## 2. The trace table (= one row per line the boss gave)
 
@@ -77,11 +82,11 @@ there, not on the branch that was measured before the merge.
 | --- | --- |
 | `swift build` | PASS (= "Build complete!") |
 | `swift test --filter "EditorChatNSControllerTests\|UserDefaultsStoreTests"` | PASS (= 67 tests in 2 suites) |
-| `swift test` (= the whole suite) | PASS (= 151 tests in 34 suites, = = and 208 tests in 24 suites). The base's run of the same command is RED (= a timing-sensitive suite; = = and the reviewer's own base run measured the IDENTICAL failures at the base and at the tip), so 0 failures are attributable to this change |
+| `swift test` (= the whole suite) | PASS (= 151 tests in 34 suites, = = and 208 tests in 24 suites). The base's run of the same command is RED (= a timing-sensitive suite). The approving review (`t_15bfa0d1`) measured the attribution on this tree: **11 failing sites at the base, 7 at the tip, the tip a strict subset of the base, and 0 sites the tip fails that the base does not** (= = so 0 failures are attributable to this change). The word "identical" belongs to the FIRST review (`t_f2ecfedf`), which measured a different tip (= `6a494e2e2`) and a different failure set; = = and the whole suite's failing set FLOATS on the same tree, = = so no base/tip pair has a stable identical set |
 | the design sweep (= the greps over the changed Swift files) | PASS (= "design sweep clean"). NOTE: the sweep's DEFAULT file selection is the Mobile client's paths (`Mobile/Sources/**`), which this repository does not have, so the default invocation is VACUOUS (= "no changed Swift files") and the changed files must be named |
 | the pollution gate | PASS (= "the change adds no forbidden vocabulary") |
 | the formatting gate | PASS (= "the change adds no unformatted line (11 changed Swift file(s) checked)") |
-| `verify-dead.py --ui-components --verbose` over the five changed `EditorChat*` files | PASS (= "every component in scope is reachable"). The repo-wide run names ONE candidate (`WindowOpenButton`), = = and that candidate is PRE-EXISTING on `main` (= the same command on `main` reports it) |
+| `verify-dead.py --ui-components --verbose` over the five changed PRODUCTION `EditorChat*` files (the sixth changed `EditorChat*` file is a test file) | PASS (= "every component in scope is reachable"). The repo-wide run names ONE candidate (`WindowOpenButton`), = = and that candidate is PRE-EXISTING on `main` (= the same command on `main` reports it) |
 | the NFI gates (`nfi-split.py --check`, `nfi-loc-check.py`) | PASS |
 | the probe index's own test | PASS (= 5/5) |
 | the arrangement probe (`--source-only`) | PASS (= "source_commit: 253734934111", = = "source_fragments: 3/3 match") |
@@ -108,8 +113,9 @@ running build. **The four facts:**
 
 **⇒ ⇒ ⇒ AND THE LOOK WAS NOT TAKEN, AND THE REASON IS RECORDED RATHER THAN
 THE LOOK.** The bundle id `com.wenshu.app` is HELD by a live instance (= pid
-3574, = = started 13:19, = = running the pre-deletion build, = = whose bundle
-path no longer exists because the repository was deleted under it). A second
+3574, = = started 13:19, = = still executing the pre-deletion image, = = whose
+OWN executable was deleted when the repository was deleted under it, = = while
+the path now holds the REBUILT bundle (= = a different inode)). A second
 instance of the same bundle id restores the same saved window geometry, and
 AppKit's update-constraints guard then fires and BOTH processes abort (= the
 measured `open -n` failure mode), = = so launching this scope's build would
@@ -168,7 +174,7 @@ authorship, = = not maintenance of the shared server state.
 | `t_f2ecfedf` | done | this scope's first review (= changes requested on four prose findings) | this scope |
 | `t_15bfa0d1` | done | this scope's second review (= **approved**), = = the verdict that covers the branch | this scope |
 | `t_c82584bb` | **unblocked for one honest retry** (= was blocked) | the App Store editorial-card scope's closeout. Its three runs all ended `timed_out` at 5430 s, 5438 s and 5443 s = = each within 43 s of its 5400 s cap, = = so the blocker was a CLOCK, not the work. The cap was raised to 7200 s, the card was unblocked, and the dispatcher picked the retry up. Its work (= three commits on `wt/appstore-card-correct`) is NOT on `main` | the review lane, = = a sibling's scope, = = not closed here |
-| `t_79f3723d` | **done** | the App Store card's figures. Its own comment recorded it as SUPERSEDED, = = and the three cards that replaced it (`t_940ad123`, = = `t_51b7dddd`, = = `t_b997467d`) are done or running, = = so the reason it was blocked had cleared | a sibling's scope, = = closed on its own stated intent |
+| `t_79f3723d` | **done** | the App Store card's figures. Its own comment recorded it as SUPERSEDED, = = and the three cards that replaced it (`t_940ad123`, = = `t_51b7dddd`, = = `t_b997467d`) were done or running at this closeout, = = so the reason it was blocked had cleared | a sibling's scope, = = closed on its own stated intent |
 
 **⇒ ⇒ ⇒ AND NOTHING OF THE SIBLING'S WAS TOUCHED**: = = not its worktree,
 = = not its branch, = = not its three commits. = = The two cards were
@@ -225,6 +231,7 @@ in four steps, so each step was in the object store before the next began.
   checking nothing.
 - `Scripts/land_card.sh` pushes ONE remote. A scope that lands through it
   reaches github only when the closeout pushes the second remote.
-- The live instance that holds the bundle id (= pid 3574) runs the
-  pre-deletion build, whose bundle path no longer exists. It is left running
-  and named; the boss's look waits on it.
+- The live instance that holds the bundle id (= pid 3574) still executes the
+  pre-deletion image, whose own executable was deleted (= = the path now
+  holds the rebuilt bundle, = = a different inode). It is left running and
+  named; the boss's look waits on it.
