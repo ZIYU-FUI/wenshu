@@ -408,7 +408,7 @@ are unchanged) and the gate then read `approved`.
 
 ## THE DURABLE LESSONS (they live in the SKILLS, not here)
 
-- `wenshu-pocock-workflow/references/card-body-authoring.md`: the section
+- `wenshu-parallel-dev/references/card-body-authoring.md`: the section
   that names the sha must be titled `## WHAT TO BUILD` (= the gate reads
   ONLY that section, = = so a card whose section is called `## THE
   CHANGE` is invisible to the gate even with an approving verdict on its
@@ -417,7 +417,7 @@ are unchanged) and the gate then read `approved`.
   a provider quota wall is escaped by the card's own model override, and
   the credential pool's exhaustion state lives PER PROFILE (= the reset
   must run with `HERMES_HOME` pointed at the profile that owns the card).
-- `wenshu-parallel-dev/references/worker-profile-provisioning.md`: the
+- `wenshu-parallel-dev/references/wrap-up-and-residue.md`: the
   scratch directory prunes after 24 hours idle, and it takes a worktree
   and a probe with it (= a branch and its commit survive in the
   repository).
