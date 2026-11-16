@@ -41,8 +41,19 @@
 //    control visual; = matches the Apple HIG Pages / Numbers
 //    inspector tab style; = the macOS 10.10+ rounded-rect style
 //    is what Apple renders for the inspector tab strip even
-//    in macOS 27 = the Liquid Glass material is applied to the
-//    window chrome, not to the segmented control itself).
+//    in macOS 27).
+//
+//    THE MATERIAL: = the native control carries Apple's own Liquid
+//    Glass, = because Apple's own guidance says a standard component
+//    picks the material up automatically (= the HIG materials page: =
+//    "Standard components from system frameworks pick up the
+//    appearance and behavior of this material automatically"). = = So
+//    the app asks for nothing and gets the material: = there is no
+//    `NSGlassEffectView` around the control, = and no hand-drawn
+//    material either. = MEASURED: = the control's own pixels over a
+//    saturated background show the background through the unselected
+//    segments (= a translucent material), = and the selected segment
+//    is a raised lighter capsule.
 //  - `role = .tabs` (= explicitly mark the control as a tab
 //    switcher; = macOS 27 NEW API; = Accessibility reads it as
 //    "page N of M"; = VoiceOver announces the page count;

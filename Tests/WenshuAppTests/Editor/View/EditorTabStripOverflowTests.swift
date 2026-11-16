@@ -80,6 +80,9 @@ struct EditorTabStripOverflowTests {
         /// "did the cells divide the region" is asked of the drawn
         /// track and the drawn steps.
         var cellCount: Int
+        /// The titles the cells HOLD (= what the app wrote into the
+        /// control, = and what the control draws).
+        var drawnTitles: [String]
         /// The first container that clips the strip, if there is one.
         var clipWidth: CGFloat?
         var isClipped: Bool {
@@ -199,6 +202,7 @@ struct EditorTabStripOverflowTests {
                 drawnCellCount: 0,
                 drawnCellSteps: [],
                 cellCount: 0,
+                drawnTitles: [],
                 clipWidth: nil
             )
         }
@@ -217,6 +221,9 @@ struct EditorTabStripOverflowTests {
             drawnCellCount: cellXs.count,
             drawnCellSteps: steps,
             cellCount: control.segmentCount,
+            drawnTitles: (0 ..< control.segmentCount).compactMap {
+                control.label(forSegment: $0)
+            },
             clipWidth: clipWidth
         )
         window.orderOut(nil)
@@ -403,6 +410,63 @@ struct EditorTabStripOverflowTests {
             inside the column they were given.
             """
         )
+    }
+
+    @Test("The narrowest cells show the title's first character and stay inside the column")
+    func theNarrowestCellsShowTheFirstCharacter() {
+        // THE BOSS'S RULE (2026-11-16): = at the narrowest, = a tab
+        // shows the title's FIRST character.
+        //
+        // The share is the column's width over the tab count, = and the
+        // cell honours a label's own width plus the segment's own inset
+        // (= `PaneTabStripWidth.segmentLabelInset`), = so the first
+        // character answers only from the share that holds it. = = This
+        // test walks the shares across that boundary and asserts BOTH
+        // halves of the rule: = the cell holds the first character from
+        // that share on, = and the drawn track stays inside the column
+        // at EVERY share (= the band the fix closed).
+        let title = "十二地仙"
+        for tabCount in [3, 12] {
+            for columnWidth in [CGFloat(200), 432, 1200] {
+                let share = columnWidth / CGFloat(tabCount)
+                let layout = measure(
+                    tabCount: tabCount,
+                    columnWidth: columnWidth,
+                    title: title
+                )
+                #expect(
+                    layout.drawnTrackWidth <= columnWidth + 1,
+                    """
+                    \(tabCount) tabs in a \(columnWidth) PT column drew a \
+                    \(layout.drawnTrackWidth) PT track. = The strip's cells must \
+                    stay inside the column they were given.
+                    """
+                )
+                // The character the cell holds: = the title's first
+                // character ALONE when the room holds the character but
+                // NOT the character beside the ellipsis (= the narrowest
+                // band), = a prefix and the ellipsis when the room holds
+                // that, = and the whole title when the room holds it.
+                let room = share - PaneTabStripWidth.segmentLabelInset
+                let firstWidth = PaneTabStripTitle.drawnWidth(
+                    of: String(title.prefix(1)),
+                    font: NSFont.systemFont(ofSize: 13)
+                )
+                let firstAlone = room >= firstWidth
+                    && room < firstWidth + PaneTabStripTitle.ellipsisCost
+                if firstAlone {
+                    #expect(
+                        layout.drawnTitles.allSatisfy { $0 == "十" },
+                        """
+                        A \(tabCount)-tab strip in a \(columnWidth) PT column \
+                        holds \(layout.drawnTitles). Its cells must show the \
+                        title's first character ALONE: = the narrowest tab still \
+                        names the document, = and a lone '…' names nothing.
+                        """
+                    )
+                }
+            }
+        }
     }
 
     @Test("The strip's drawn cells stay inside its column")
