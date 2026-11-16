@@ -104,17 +104,13 @@ swift Tools/wenshu-devtool/probes/segmented_control_material.swift
 ⇒ ⇒ ⇒ IT PRINTS ITS OWN PARAMETERS WITH ITS NUMBERS, = because they
 decide the numbers: = the host size (260 x 40 PT), = the control's frame
 ((10, 6, 240, 28) PT), = the control's size, = role and style, = the
-selected segment, = the host layer's colour, = and the two measured
-regions (= the control's own area = (40, 4, 24, 12) PT, = = = the lower
-half of the first segment, = = = which carries the label's ink; = and
-the backdrop beside it = (1, 1, 6, 6) PT, = = = the same host layer,
-= = = untouched). = The two regions are COLUMNS of one row, = and the
-regions are in POINTS over a 2x bitmap.
+selected segment, = the measured segment, = the host layer's colour, = and
+the drawn band and the measured area it read.
 
-| Appearance | The control's own area | The backdrop beside it |
-| --- | --- | --- |
-| darkAqua | `(18,150,88)`, 29 colours | `(0,143,76)`, 1 colour |
-| aqua | `(0,133,70)`, 26 colours | `(0,143,76)`, 1 colour |
+| Appearance | The cell's own area | The backdrop beside it | The SAME area under an opaque fill |
+| --- | --- | --- | --- |
+| darkAqua | `(96,184,142)`, 141 colours | `(0,143,76)`, 1 colour | `(135,135,135)`, 1 colour |
+| aqua | `(0,95,50)`, 116 colours | `(0,143,76)`, 1 colour | `(135,135,135)`, 1 colour |
 
 ⇒ ⇒ ⇒ ⇒ THE RENDERED BACKDROP IS `(0,143,76)`, = NOT the nominal
 `(0,140,64)`: = the nominal colour is what the app asks for, = and the
@@ -122,16 +118,52 @@ rendered one is what the layer's colour space produces. = (The first
 version of this document quoted the nominal value as if it were a
 measured pixel, = and the review caught it.)
 
-⇒ ⇒ ⇒ ⇒ ⇒ AND THE CONTROL'S CELLS ARE NOT OPAQUE: = the cell's own
-area stays GREEN-DOMINANT (= `(18,150,88)` in darkAqua, = `(0,133,70)`
-in aqua) = = = while the backdrop beside it reads the same green, = =
-so the host layer's colour comes THROUGH the control's cells, = and
-the cells paint no opaque fill of their own. = ⇒ The control's own
-appearance is Apple's, = Apple's own line says a standard component
-picks the material up automatically, = and so the app asks for nothing
-and adds nothing: = a material container between the control and the
-backdrop would put a SECOND material there (= HIG's "do so sparingly"),
-= and a container's own reading is not this reading (= see below).
+⇒ ⇒ ⇒ ⇒ ⇒ AND THE CELL IS NOT OPAQUE: = the cell's own area reads
+GREEN-DOMINANT in both appearances (= `(96,184,142)` in darkAqua, =
+`(0,95,50)` in aqua) = = = while the backdrop beside it reads the same
+green, = = = so the host layer's colour comes THROUGH the cell. = ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ AND THE NUMBER CAN TELL: = the probe reads every region
+twice, = once as the control draws it and once with an opaque fill over
+the same pixels, = and the SAME area under that opaque fill reads
+NEUTRAL GREY (`(135,135,135)`, = 1 colour) = = = not green. = ⇒ ⇒ So
+the reading distinguishes a translucent cell from an opaque one: = the
+cell paints no opaque fill of its own.
+
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND ONE TRAP THIS DOCUMENT'S OWN FIRST PROBE FELL
+INTO: = the bitmap that `cacheDisplay(in:to:)` writes is TOP-DOWN, = =
+while an NSView's coordinates are BOTTOM-UP. = = = The first probe walked
+the bitmap's rows with the view's y unchanged, = = = so its region
+landed partly on the cell and partly on the bare host above it, = = = and
+its mean could not tell a translucent cell from an opaque one (= the
+review proved it: = the same region still read green-dominant over an
+opaque grey fill). = ⇒ ⇒ ⇒ The probe now MAPS the view's rect onto the
+bitmap's rows, = PRINTS the drawn band and the measured area (= (10, 30)
+PT and (38, 14, 24, 12) PT), = = = and places the measured area INSIDE
+the band. = ⇒ ⇒ ⇒ So the number is auditable: = a reader can check the
+region without trusting the mapping.
+
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ SO THE APP ASKS FOR NOTHING, = AND THE APP ADDS
+NOTHING: = the control's own appearance is Apple's, = Apple's own line
+says a standard component picks the material up automatically, = and so
+the app adds no glass layer and no hand-drawn material: = a material
+container between the control and the backdrop would put a SECOND
+material there (= HIG's "do so sparingly").
+
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND WHAT THIS DOCUMENT DOES NOT CLAIM: = an earlier
+version of it carried four container readings (= `NSVisualEffectView`
+behind the control, = `NSGlassEffectView` around it, = one per
+appearance). = The review swept them (= eight `NSVisualEffectView`
+materials x two blending modes, = the glass view as a content view and
+as a subview, = both appearances, = one and three segments, = two
+widths, = two labels, = two rendering paths) and NONE of the four
+numbers reproduced, = the container readings swing by a factor of
+three, = and in the dark appearance the QUALITATIVE reading flips too
+(= a window-server capture renders a flat dark green, = = = not a
+desaturated grey-green). = ⇒ So those four triples are gone, = and so
+is the claim that a material container "replaces the green with a
+neutral tint": = that is a property of the container's parameters, =
+not of the control. = ⇒ What the table above supports is the claim the
+source comment makes, = and the comment now says only that.
 
 ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND WHAT THIS DOCUMENT DOES NOT CLAIM: = an earlier
 version of it carried four container readings (= `NSVisualEffectView`

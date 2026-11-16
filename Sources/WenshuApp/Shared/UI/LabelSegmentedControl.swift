@@ -54,10 +54,11 @@
 //    layer, = in the window's own appearance, = by
 //    `Tools/wenshu-devtool/probes/segmented_control_material.swift`):
 //    the control's cells do not paint an opaque fill, = so the backdrop
-//    reads through them, = and the selected segment is a raised lighter
-//    capsule. = = A material container between the control and the
-//    backdrop would put a SECOND material there (= HIG's "do so
-//    sparingly"), = so the app adds none.
+//    reads through them (= the cell reads green-dominant, = = = while
+//    the same area under an opaque fill reads neutral grey). = = A
+//    material container between the control and the backdrop would put
+//    a SECOND material there (= HIG's "do so sparingly"), = so the app
+//    adds none.
 //  - `role = .tabs` (= explicitly mark the control as a tab
 //    switcher; = macOS 27 NEW API; = Accessibility reads it as
 //    "page N of M"; = VoiceOver announces the page count;
