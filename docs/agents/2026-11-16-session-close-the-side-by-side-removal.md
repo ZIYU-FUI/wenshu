@@ -109,9 +109,12 @@ arrangement is fixed), = = so the merge gate includes the boss looking at the
 running build. **The four facts:**
 
 1. **Which build**: `/Volumes/ANAN/Engineering/wenshu/build/Wenshu.app`,
-   rebuilt from `main` @ `253734934111ad3e8e6b6e49f55f101be918dd29`,
+   rebuilt from `main` @ `b0f58b393ff5d47bcbaf85b419c2e64938510666`,
    ad-hoc signed (= `Signature=adhoc`, `Identifier=com.wenshu.app`), binary
-   uuid `A5784ACC-AE7D-39C9-8E09-83599817AFD3`.
+   uuid `B3D9BAC5-5BEC-34E9-A94E-FE3C66EAF55A`.
+   **⇒ ⇒ ⇒ AND THE BUNDLE'S CODE IS THE TREE'S CODE** (= = every commit
+   since that build is this doc and its registry row, = = = = both docs-only,
+   = = = = so the binary at that path carries the tip's Swift sources).
 2. **The bundle's OWN BYTES carry the change** (= measured with `nm -a` on
    the bundle's binary): ABSENT = `EditorArrangement`, `applyLayoutMode`,
    `holdsChrome`, `sideAutosaveName`, `EditorLayoutMode` (= 0 hits each);
