@@ -442,6 +442,21 @@ the branch it came from:
 | 7.10 narrow band | the strip's 3 suites | 23 tests in 3 suites passed |
 | 7.10 the card's ten | the ten suites | 72 tests in 10 suites passed |
 
+And on the FINAL tree (= `887146c3b4`, = what both remotes read, = after the
+blank title's rework landed), = the same gates and the failing set:
+
+| gate | result |
+| --- | --- |
+| 7.1 build | exit 0 |
+| 7.3 design sweep | 84 tests in 22 suites passed (4.568 s) |
+| 7.5 pollution | clean |
+| 7.6 dead code | `DEAD 0` |
+| 7.8 formatting | clean |
+| 7.10 narrow band | 27 tests in 3 suites passed (= 23 before, = plus the four arms) |
+| 7.10 the card's ten | 76 tests in 10 suites passed (39.483 s) |
+| the three deterministic points | still red (23 tests in 3 suites, = 3 issues) |
+| the four load-sensitive suites | isolated: 24 tests in 4 suites passed (7.643 s) |
+
 The whole suite is red at baseline and no number from it is a verdict. Two
 runs produced four and seven failing suites, and the failing SET was: three
 deterministic points (`ChatViewHistoryShortcutTests.swift:35`,
