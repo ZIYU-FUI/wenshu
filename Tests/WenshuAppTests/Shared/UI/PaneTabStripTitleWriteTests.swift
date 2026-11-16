@@ -181,6 +181,36 @@ struct PaneTabStripTitleWriteTests {
         )
     }
 
+    @Test("A cell whose room holds the first character holds AND paints it")
+    @MainActor
+    func narrowCellHoldsTheFirstCharacter() {
+        // 12 cells in a 432 PT region (= a 36 PT share) = the share
+        // whose room (= the share minus the segment's own inset) holds
+        // the title's first character (= the boss's rule: = the
+        // narrowest tab names the document).
+        let control = configuredControl(regionWidth: 432, cellCount: 12)
+
+        let held = control.label(forSegment: 0) ?? ""
+        #expect(
+            held == "十",
+            """
+            The narrow cell holds '\(held)'. It must hold the title's FIRST \
+            character: = the boss's rule is that the narrowest tab still names \
+            the document, = and a lone '…' names nothing.
+            """
+        )
+        // And the cell PAINTS it: = the write is not a blank-out.
+        let measurement = drawnInk(of: control)
+        #expect(
+            measurement.pixelsAbove140 > 0,
+            """
+            The narrow cell painted \(measurement.pixelsAbove140) pixels above \
+            140 (max luminance \(measurement.maxLuminance)). It must paint the \
+            first character it holds.
+            """
+        )
+    }
+
     @Test("A wide cell holds and paints the WHOLE title (= the write is not a blank-out)")
     @MainActor
     func wideCellHoldsTheWholeTitle() {

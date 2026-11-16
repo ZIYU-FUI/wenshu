@@ -226,8 +226,36 @@ enum PaneTabStripTitle {
             guard width + ellipsisCost <= room else { break }
             kept = candidate
         }
-        guard !kept.isEmpty else { return nothingMarker }
+        guard !kept.isEmpty else { return firstCharacter(of: title, font: font, room: room) }
         return kept + "…"
+    }
+
+    /// The title's FIRST character, = for a cell that has room for one
+    /// character but not for one beside the ellipsis.
+    ///
+    /// THE BOSS'S RULE (2026-11-16): = at the narrowest, = the tab
+    /// shows the title's first character. = = The cell is too narrow
+    /// for the first character beside the ellipsis, = and a lone
+    /// ellipsis has no meaning, = = so the first character stands
+    /// alone: = = it still names the document.
+    ///
+    /// ⇒ ⇒ ⇒ AND IT MUST FIT THE CELL: = the cell honours a label's
+    /// own width plus the segment's own inset, = so a label wider than
+    /// the share makes the cell wider than its share (= the band the
+    /// fix closed). = ⇒ So the first character answers only when the
+    /// room holds it, = = and the cell with no room at all keeps the
+    /// nothing marker.
+    private static func firstCharacter(
+        of title: String,
+        font: NSFont,
+        room: CGFloat
+    ) -> String {
+        guard let first = title.first else { return nothingMarker }
+        let character = String(first)
+        guard drawnWidth(of: character, font: font) <= room else {
+            return nothingMarker
+        }
+        return character
     }
 
     /// The width a string takes AS DRAWN (= the measured width plus
