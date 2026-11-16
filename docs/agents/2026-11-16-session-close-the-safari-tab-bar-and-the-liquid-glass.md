@@ -266,11 +266,11 @@ The three new assertions, one per layer:
 
 | What | Where |
 | --- | --- |
-| The change | `e31f39dcd` = = = on `main` (= `399878365` = = = the tip this session landed) |
+| The change | `e31f39dcd` = = = on `main`, = = = landed as `399878365` (= = = the sha this session pushed) |
 | The branch | `wt/band-firstchar-2026-11-16` (= branched from `main` at `58dd224bb7`) |
 | The approving verdict | `t_dd2f3eac` = = = `review_outcome: approved`, = `reviewed_sha: 58d70abac` (= = = the sha before the landing rebase; = = = a rebase rewrites the sha and not the edit, = = = and `Scripts/merge-preflight.sh` reads the branch by that change) |
 | The gates at the landing | the build, = 29 tests in 3 suites, = `verify-dead.py` DEAD 0, = `nfi-loc-check.py` 2 rows, = `test_probe_index.py` 5 of 5, = the formatting gate, = and the probe printing its readings |
-| The remotes | `origin` (gitcode) = = = and `old-origin` (GitHub), = = = both read back at `399878365` |
+| The remotes | `origin` (gitcode) = = = and `old-origin` (GitHub), = = = both read back at `399878365`; = = = and this document's OWN commit (= = = the closeout that records the landing) = = = follows it, = = = so no row here names a tip that a later commit would falsify |
 
 ## One open item for the boss
 
