@@ -565,8 +565,21 @@ commits belongs in no document.
 of findings causes) = = gives it a NEW commit id, = = so a sha written into
 a card body goes stale the moment the author fixes anything. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
 And the independent-review gate reads the sha from the card's `## WHAT TO
-BUILD` and matches it against the branch's tip, = = and its length filter
-accepts a full commit id and not a ten-character prefix. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So
-the scope's numbers are converged FIRST, = = THEN the final amend is made,
-= = THEN the sha is read, = = THEN the card body is written with it, = = and
-the branch is not amended again until a verdict comes back.
+BUILD` and matches it against the branch's tip. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **AND THE
+GATE'S TWO REAL CONSTRAINTS ARE MEASURED, = = AND NEITHER IS THE LENGTH**
+(= = `Tools/wenshu-devtool/review_gate.py`, = = measured on this scope):
+(1) `reviewed_sha` takes the **FIRST** run of 7 to 40 hex characters in the
+**FIRST** paragraph of `## WHAT TO BUILD` (= = `re.search(r"[0-9a-f]{7,40}",
+claim)`), = = so the sha must BE that first token (= = a body that puts it
+in the second paragraph reads NO sha at all = = and the card matches
+nothing); and (2) that first token WINS over any later one (= = a card id
+ahead of the sha steals it: = = `t_a33a8ff8` reads as `a33a8ff8`). ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ AND THE LENGTH FILTER ACCEPTS **7 TO 40** CHARACTERS, = = AND THE
+MATCH IS PREFIX-TOLERANT IN BOTH DIRECTIONS (= = `sha.startswith(target)
+or target.startswith(sha)`), = = so **a ten-character body sha IS read and
+DOES match** the forty-character tip (= = a body that says `77321b4a18` is
+matchable, = = and the landed branch CAN be tied to its own verdict).
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So the scope's numbers are converged FIRST, = = THEN the
+final amend is made, = = THEN the sha is read, = = THEN the card body is
+written with it, = = and the branch is not amended again until a verdict
+comes back.
