@@ -360,10 +360,8 @@ struct EditorChatNSControllerTests {
         let content = try Self.controllerSource()
         #expect(content.contains("if assertedShare == nil {"),
                 "the share is captured once (= the payload is written by AppKit as the layout settles, so reading it after asserting into it moves the target every pass)")
-        #expect(content.contains("assertedShare = nil"),
-                "the share is released when the arrangement changes (= the other arrangement has its own position)")
-        #expect(content.contains("arrangement.isVertical ? splitView.bounds.width : splitView.bounds.height"),
-                "the axis is the arrangement's own (= the width when side by side, the height when stacked)")
+        #expect(content.contains("let axis = splitView.bounds.height"),
+                "the axis is the split's own (= the height, = the divider runs across)")
     }
 
     // MARK: - The divider's decision (= what a layout pass writes)
@@ -665,8 +663,8 @@ struct EditorChatNSControllerTests {
                 "the controller owns one latch (= the state that spans layout passes)")
         #expect(content.contains("dividerLatch.pass("),
                 "the layout's caller must drive the latch (= the latch's lifecycle is the defect's home)")
-        #expect(content.contains("dividerLatch.reset()"),
-                "an arrangement change resets the latch (= the divider is positioned again on the new axis)")
+        #expect(!content.contains("dividerLatch.reset()"),
+                "the latch is never reset (= one arrangement means one axis, = the divider is positioned once on it)")
     }
 
     @Test("Source: the thickness cap is written in quanta (= a write per frame re-arms the window's update-constraints pass)")

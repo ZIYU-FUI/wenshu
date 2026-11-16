@@ -76,17 +76,6 @@ extension EditorChatNSController {
         /// before the write, and adopting it would undo the write.
         private(set) var framesPending = 0
 
-        /// Start the latch over (= the arrangement changed: the axis
-        /// is a different one and the divider is positioned again on
-        /// it).
-        mutating func reset() {
-            seedPending = true
-            resizePending = false
-            settledPasses = 0
-            lastAxisExtent = nil
-            framesPending = 0
-        }
-
         /// What one layout pass does with the divider.
         ///
         /// The shares are the LEADING pane's share (= the share the
