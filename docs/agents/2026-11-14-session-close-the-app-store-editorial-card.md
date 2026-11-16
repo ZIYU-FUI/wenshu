@@ -8,7 +8,7 @@ disk, = = spent but NOT deleted, = = and this document does not claim
 otherwise), = = and `wt/appstore-card-correct` (this scope's correction
 branch, = = still on disk).
 Landing: `20d2d3182b` on `main`, on both remotes, = = and on top of it this
-scope's card-scoping correction `e0c06f55ed`.
+scope's card-scoping correction `9f8bab6f1`.
 
 ## 1. The questions, and the answers
 
@@ -61,7 +61,7 @@ bounds, = = the same size) held DIFFERENT cards: = = the djay card on
 TOP LEFT of one flat surface, = = with an illustration beside them, = = and
 with NO description band at the bottom. Both cards were measured with the
 same instrument, and what is SHARED is named below (= = the OUTER box, the
-corner, the text block's width, = = AND the eyebrow's band and the title's
+text block's width, = = AND the eyebrow's band and the title's
 first line's band, = = which land in the same place on both cards, = = to
 same START), while what DIFFERS is one card's: = = the panel, the
 artwork's share, the description's position, and the number of bands.
@@ -83,7 +83,7 @@ The djay card (2026-11-14):
 | the card | 2200 x 724 px = **3.039 : 1** (1100 x 362 PT) | both |
 | the text panel | 550 px = **25.0%** of the card (275 PT) | the djay card only |
 | the artwork | 1650 x 724 px = **75.0%** of the card, itself 2.279 : 1 | the djay card only |
-| the outer corner | a circle fitted to the sub-pixel edge: **24.2 px = 12.1 PT** (RMS 0.17 px) | both (= = the coral card fits at 24.22 px, RMS 0.17 px) |
+| the outer corner | the coral card's, = = **26 px = 13 PT**, = = measured FIT-FREE from the deposited file | the CORAL card (= = the djay card's = = 24.2 px = 12.1 PT = = is a RECORD, = = it was fitted with a base half a pixel inside the card's own edge, = = and it cannot be re-measured today, = = so the two cards' corners are NOT shown to be equal) |
 | the text tiers | eyebrow 13.4-16.6%, title 21.7-28.5%, title line 2 30.5-35.5%, description 90.2-93.4% down | the eyebrow's and the title's first line's bands START in the same place on both cards (= = to within 0.1%); = = title line 2 and the description's position are the djay card's |
 | the coral card's tiers | eyebrow 13.4-16.4%, title 21.7-28.5%, description 33.8-37.2% down, = = and NOTHING in the lower 63% | the coral card (= = its description is here, at 33.8%) |
 
@@ -107,7 +107,7 @@ value joins three comma-separated fields, and the class metadata carries
 | where the words live | a separate panel (25% of the width) = = ON THE DJAY CARD; = = the coral card's words sit on one flat surface | ON the image, bottom left |
 | the image's share | 75.0% (= = the djay card) | 100% (the picture IS the card) |
 | the card's ratio | 3.039 : 1 | 4 : 3 (`coverTileRatio`) |
-| the corner radius | 12 PT | 10 PT (`surfaceCornerRadiusWindow`) |
+| the corner radius | 13 PT (= 26 px, = = the coral card) | 10 PT (`surfaceCornerRadiusWindow`) |
 | the description | yes, pinned to the panel's bottom | **none** |
 | the eyebrow (the category) | yes | **none** |
 | the scrim over the words | none needed | a black wash, 0.18 -> 0.55 |
@@ -130,13 +130,18 @@ defects in it and one in the registry row it had added. Those were fixed
 before this document landed; the corrections are listed in §11.
 
 **Round one — `changes_requested` on `65e701f65a`** (card `t_d2f6a55c`).
+⇒ ⇒ ⇒ AND THAT SHA NO LONGER EXISTS IN THE REPOSITORY, = = because it was
+an AMENDED, = = never-pushed, = = intermediate version: = = a pushed sha is
+never rewritten, = = and an unpushed one is rewritten freely, = = so the
+object is gone and only the record of it survives. = = The same holds for
+round two's `4b74f8d587`.
 Both top-level questions were ruled TRUE. Six findings, all about
 measurements and receipts:
 
 | # | The finding | The fix |
 | --- | --- | --- |
 | 1 | the width was measured from the leftmost GLYPH (2146 px) and called the card's width | measured from the panel's BACKGROUND edge: 2200 px, 3.039:1 |
-| 2 | the corner was read off ONE row as 34 px = 17 PT | a circle fitted over 26 rows (= = 23.9 px then; = = re-fitted with a per-row colour model, = = 24.2 px = 12.1 PT, = = RMS 0.17 px, = = and the base must be the card's STRAIGHT edge, = = not the top row's already-rounded edge) |
+| 2 | the corner was read off ONE row as 34 px = 17 PT | a circle fitted over 26 rows (= = 23.9 px then; = = re-fitted with a per-row colour model, = = 24.2 px = 12.1 PT, = = RMS 0.17 px, = = and the base must be the card's STRAIGHT edge, = = not the top row's already-rounded edge); = = and that base was still half a pixel inside the card's own edge, = = so the figure was the fit's convention and not the shape's (= = see §11) |
 | 3 | two `.swiftinterface` spans did not contain the declaration; the source column was empty in all 7 rows | `DefaultGlassEffectShape` 3090 (was 3542), `glassEffectID` 22703 (was 22766), and the table names the one file every line is in |
 | 4 | the folder-badge exception does not exist | the sentence is gone; the preview zone draws no `displayName` at all (12 grep hits, none a card draw) |
 | 5 | the `ProductView` receipt greps `SwiftUI` | aimed at `_StoreKit_SwiftUI`, with each symbol's line, and both sweep scopes stated |
@@ -148,31 +153,42 @@ re-captured the card at 2200 x 724 px, confirmed the panel's edge at x=550 by
 a luminance step of 69 -> 187, verified all seven `.swiftinterface` line
 pairs one by one, and re-derived both top-level answers.
 
-**One correction survived the approval, and it is now CLOSED.** §2.4 of
+**One correction survived the approval, and it is now CLOSED = = AND THE
+FIGURE IT SETTLED WAS ITSELF A CONVENTION, = = NOT THE SHAPE.** §2.4 of
 the document read 24.8 px / 12.4 PT; the reviewer's three-threshold fit on
 both corners of both card classes gave 23.74 / 23.90 / 24.20 px (RMS 0.03),
 i.e. 12.0 PT. Re-fitting with a per-row colour model (= = each row's own
 card colour against the page background, = = because the djay panel is a
-gradient and one colour for it bends the edge) gives **24.2 px = 12.1 PT**
-at RMS 0.17 px, and the coral card fits at 24.22 px at RMS 0.17 px. So the
-radius is 12 PT, the two sections now agree, and the correction landed as
-the new commit `e0c06f55ed` (= = a new sha, = = and therefore a new
-verdict, = = as the rule requires).
+gradient and one colour for it bends the edge) gave **24.2 px = 12.1 PT**
+at RMS 0.17 px, and that correction landed as the new commit `9f8bab6f1`
+(= = a new sha, = = and therefore a new verdict, = = as the rule requires).
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ BUT the base that fit used was still HALF A PIXEL
+INSIDE the card's own straight edge (= = the first surface pixel's index,
+= = 632, = = where the edge actually lies between 631 and 632), = = and §11's
+residual had already said the estimator returns 0.87 - 0.92 x R, = = so
+24.2 px under that convention meant a TRUE radius of 26.3 - 27.8 px. = = The
+figure was reproducible and wrong, = = and it was the CONVENTION that was
+reproducible.
 
 ## 5. The gates, on the MERGED tree
 
 Run on the MERGED tree, = = not on the branch that was measured before
 the merge: = = first on `main` at `20d2d3182b`, = = and then again on this
-scope's correction tip (= = which sits on top of a sibling's Swift commit,
-= = `deff19bac4`, = = and of 7 sibling doc commits, = = so
-the rebase is part of the measurement = = and the numbers below are the
-post-rebase ones).
+scope's correction tip. ⇒ ⇒ ⇒ AND THE SIBLINGS ARE COUNTED AGAINST THIS
+SCOPE'S OWN BASE (= = `20d2d3182b..58dd224bb7`), = = NOT AGAINST A MOVING
+`main`: = = that range holds **10 sibling commits, = = 3 of them Swift**
+(= = `deff19bac4`, = = `bc1ce72f95`, = = `6b73f25b51`, = = all three
+`fix(tabs)`/`fix(ui)`) **and 7 of them docs**, = = and §6 lists exactly
+those ten. ⇒ ⇒ ⇒ ⇒ ⇒ AND `main` HAS SINCE ADVANCED PAST THAT BASE, = = but
+counting against the moving tip would be a treadmill that no reviewer can
+close, = = so the base is pinned here. ⇒ ⇒ So the rebase is part of the
+measurement = = and the numbers below are the post-rebase ones.
 
 | Gate | Result |
 | --- | --- |
-| Swift files in the scope's diff | 0 (so `swift build` / `swift test` have no surface = = the one Swift commit in the tree is the sibling's) |
+| Swift files in the scope's diff | 0 (= = measured against this scope's BASE `58dd224bb7`, = = not against a moving `main`; = = so `swift build` / `swift test` have no surface) = = and the base range's own Swift commits are the SIBLING scope's: = = three of them, = = `deff19bac4`, = = `bc1ce72f95` and `6b73f25b51` |
 | `verify-dead.py` | DEAD 0 (127 ALIVE, 4 PARTIAL) |
-| CJK on the change | 0 of 569 added lines |
+| CJK on the change | 0 of 723 added lines (= = measured against this scope's base `58dd224bb7`, = = not against a moving `main`; = = measured against `main` the same diff carries 4 CJK lines, = = all of them in the SIBLING scope's Swift, = = and none in this scope's three files) |
 | `tests/test_nfi_loc_check.py` | rc 0 |
 | `tests/test_nfi_registry.sh` | all tests passed |
 | `nfi-loc-check.py` | rc 0 (1 row: this scope's own row) |
@@ -182,22 +198,34 @@ post-rebase ones).
 
 ## 6. The commits, and which are not this scope's
 
-This scope owns THREE commits (= = and the branch
-`wt/appstore-editorial-card` is still on disk: = = its commit is already on
-`main` and on both remotes, = = so the branch is spent, = = but it was NOT
-deleted, = = and this document does not claim it was):
+This scope owns FOUR commits. ⇒ ⇒ ⇒ AND THE BRANCH THEY LIVE ON IS
+`wt/appstore-card-correct`, = = because §13's reconstruction REBUILT the
+scope after the shared checkout's gitdir was deleted: = = the earlier local
+branch `wt/appstore-editorial-card` died with that gitdir, = = and no ref
+carries it any more. = = Its commit is on `main` and on both remotes, = =
+and that is where the work is, = = so nothing is lost by the branch's
+absence.
 
 - `20d2d3182b` — the document (477 lines at that commit) plus its one
   registry row.
-- `e0c06f55ed` — the card-scoping correction (= = the document at 574 lines
-  plus its registry row, = = the row's LOC cell and content tag moving with
-  it).
-- the evidence correction (= = the document at 574 lines and this closeout
-  at 446, = = plus their two registry rows): = = every figure now names the
-  capture it rests on, = = and the one capture that was NOT deposited is
-  named as such.
+- `9f8bab6f1` — the card-scoping correction (= = the document at 574 lines
+  plus its registry row, = = and the row's LOC CELL moving with it (= = 477
+  to 574); = = the row's CONTENT TAG did not move here, = = and moved only at
+  the tip below).
+- `ed66f2ec5` — this closeout document (= = 446 lines at that commit), = =
+  and NO registry row (= = the row for this document arrived with the tip
+  below, = = not with this commit).
+- the evidence correction (= = the document at 586 lines and this closeout
+  at 572, = = and it ADDED the one registry row for this document, = = AND it
+  rewrote the research row's LOC cell (= = 574 to 586) and REPLACED that
+  row's content tag (= = the re-tag that scoped the split card to the djay
+  card)): = = every figure now names the capture it rests on, = = and the one
+  capture that was NOT deposited is named as such. ⇒ ⇒ ⇒ AND THIS LAST ONE IS THE ONE COMMIT
+  THAT CANNOT BE NAMED BY ITS SHA HERE, = = because this document IS that
+  commit's content: = = a closure record cannot name the sha that carries
+  it, = = and the board's verdict names it instead.
 
-⇒ ⇒ ⇒ AND THE LAST TWO ARE NEW COMMITS AND NOT AMENDS, = = because
+⇒ ⇒ ⇒ AND THE LAST THREE ARE NEW COMMITS AND NOT AMENDS, = = because
 `20d2d3182b` is already pushed: = = a pushed sha is never rewritten.
 
 The push of `main` carried 10 commits that are NOT this scope's
@@ -286,13 +314,23 @@ decision to widen the tile must not rest on them alone.
 
 ## 9. Open items
 
-1. **The corner figure is now settled**: re-fitted with a PER-ROW colour
-   model (each row's own card colour against the page background, because
-   the djay panel is a gradient and one colour for it bends the edge), the
-   radius is **24.2 px = 12.1 PT** with RMS 0.17 px, and the coral card
-   fits at 24.22 px with RMS 0.17 px. The earlier 24.8 px figure came from
-   a fit whose BASE was the top row's own edge (= already rounded), so it
-   measured the arc's span, not the radius. §2 and §3 now agree.
+1. **The corner figure is now settled = = AND THE MEASUREMENT BEHIND IT IS
+   A NEW ONE.** The coral card's radius is **26 px = 13 PT**, = = measured
+   FIT-FREE: = = a SwiftUI RoundedRectangle of a KNOWN radius, = = drawn with
+   the same card box and the same corner style on the same canvas, = = its
+   edge curve laid over the capture's edge curve row by row (= = the best
+   match at 12.9 PT = 25.8 px, RMS 0.125 px; = = 13.15 PT = 26.3 px, RMS
+   0.218 px; = = and the 12.1 PT = 24.2 px that was published misses by RMS
+   0.874 px and a maximum of 2.08 px). = = The estimator was calibrated first:
+   = = on two controls whose radius is known exactly (= = 24.2 px and 26.3
+   px), = = the base that recovers the truth is half a pixel inside the
+   first surface pixel in BOTH axes (= = the errors +0.090 px and +0.065 px,
+   = = RMS 0.051 px). = = The earlier 24.8 px came from a fit whose BASE was
+   the top row's own edge (= already rounded), = = and the 24.2 px that
+   replaced it came from a base half a pixel inside the card's own edge. = =
+   §2 and §3 now agree, = = and the corner is NO LONGER listed as a shared,
+   = = slot-level figure (= = the djay card's 12.1 PT is a record that cannot
+   = = be re-measured, = = so the two cards' corners are not shown equal).
 2. **Two cosmetic notes from the round-two reviewer**: the quote of the
    settled decision inserts an "and" the source line does not have, and
    `:4706` in the `SwiftUI` interface is the extension carrying
@@ -368,18 +406,26 @@ itself was still wrong. The first fit took the top row's own edge as the
 base (= = that row is already rounded), so it measured the arc's span
 rather than the radius; the second fit fixed the base and still used one
 colour for a gradient panel, which bends the edge. Fitted with a PER-ROW
-colour model, the radius is **24.2 px = 12.1 PT** at RMS 0.17 px, and the
-coral card fits at 24.22 px at RMS 0.17 px. So the research doc's §2.4 and
-§3 now agree, and §9's first open item is closed.
+colour model, it gave 24.2 px = 12.1 PT at RMS 0.17 px — = = and THAT figure
+was a third convention, = = because the base it used was half a pixel
+inside the card's own straight edge. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND
+THE SAME BASE ERROR REPEATED IN THE CLOSEOUT ITSELF, = = so the figure had to
+be REPLACED, = = not merely re-checked: = = the coral card's radius is
+**26 px = 13 PT** (= = §9's first open item, = = measured fit-free and
+calibrated), = = the djay card's 12.1 PT stays a record, = = and the corner
+leaves the shared list. = = So the research doc's §2.4 and §3 now agree, and
+§9's first open item is closed.
 
 ⇒ ⇒ AND THE LESSON THAT IS BIGGER THAN THE FIX: **THE SLOT'S CONTENT IS
 NOT A FIXTURE.** The scope measured one frame of a slot, and wrote the
 frame's composition as a property of "the card". A second capture of the
 SAME window, taken two days later, held a different card, and half of the
 document's figures moved with it. The figures that did NOT move (= = the
-box, the ratio, the corner) belong to the SLOT; the ones that did
+box, the ratio) belong to the SLOT; the ones that did
 (= = the panel, the artwork's share, the description's position) belong to
-the CARD. A reference app's changing content is a MEASUREMENT AXIS, and it
+the CARD — = = and the corner belongs to NEITHER, = = because its two
+measurements disagree (= = 12.1 PT on the djay card, = = 13 PT on the coral
+card) and the djay one cannot be re-measured. A reference app's changing content is a MEASUREMENT AXIS, and it
 belongs in the list of what was not measured, next to the scroll and the
 appearance.
 
@@ -427,16 +473,21 @@ bands' "to within 0.1%" is now said to be about the bands' START (= = the
 eyebrow's ends differ by 0.2pp), = = and the djay title band is `21.7% -
 28.5%` in BOTH documents (= = one of them said 28.6%).
 
-⇒ ⇒ ⇒ AND THE REVIEW ALSO LEFT A RESIDUAL, = = WHICH IS RECORDED HERE
-RATHER THAN FIXED, = = BECAUSE IT IS NOT A DEFECT OF THIS SCOPE'S FIGURES:
-the published radius is a property of the FIT'S CONVENTION, = = not of the
-shape. = = The same estimator on a synthetic true circular corner returns
-0.87 - 0.92 x R under this document's convention, = = and the coral corner
-is NOT a circular arc (= = its edge's inset never reaches a tangent point),
-= = so "the radius is 12 PT" is a statement about the recipe, = = and
-Apple's own corner radius cannot be independently confirmed from the
-capture. = = The figure itself reproduces (= = 24.233 px at RMS 0.159), = =
-so the round's check PASSED it.
+⇒ ⇒ ⇒ AND THE REVIEW ALSO LEFT A RESIDUAL, = = AND IT WAS NOT A CAVEAT TO
+KEEP, = = IT WAS A MEASUREMENT WAITING FOR ITS INSTRUMENT. The published
+radius was a property of the FIT'S CONVENTION, = = not of the shape: = = the
+same estimator on a synthetic true circular corner returns 0.87 - 0.92 x R
+under that convention, = = and the coral corner is NOT a circular arc (= = its
+edge's inset never reaches a tangent point). ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+SO THE FIGURE WAS READ BACK THROUGH ITS OWN BIAS: = = 24.2 px at 0.92 x R is
+26.3 px, = = and at 0.87 x R it is 27.8 px, = = and a FIT-FREE measurement
+(= = a RoundedRectangle of a known radius laid over the capture's edge curve)
+puts it at 25.8 - 26.3 px. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+The residual is CLOSED: = = the coral card's radius is published as **26 px =
+13 PT**, = = the estimator is calibrated against two controls of known
+radius (= = the errors +0.090 px and +0.065 px, = = RMS 0.051 px), = = and
+Apple's own corner radius IS now independently confirmed, = = because the
+confirmation no longer depends on the fit's convention.
 
 ⇒ ⇒ ⇒ ⇒ AND THE LESSON FROM THAT RESIDUAL: = = A FIT'S BASE AND A FIT'S
 DENOMINATOR ARE PART OF THE FIGURE, = = SO A DOCUMENT THAT QUOTES A FITTED
@@ -444,3 +495,78 @@ NUMBER MUST QUOTE THE RECIPE WITH IT. = = The coral card's interior is flat
 (= = rgb(254,143,127)), = = so the per-row colour model is a no-op there, = =
 and only the djay card (= = a gradient) exercises it (= = and its capture is
 gone).
+
+## 13. The repository's .git was deleted mid-review, = = and the scope was rebuilt from the files on disk
+
+At 18:32 on 2026-11-16 the shared checkout's gitdir was deleted while a
+review run was measuring the scope, and the card's worktree (= = whose
+`.git` points into it) lost its gitdir with it, = = so `git` stopped
+resolving there. = = The review's own measurements were taken while git was
+still live; = = the branch itself was not the thing lost.
+
+⇒ ⇒ ⇒ AND THE RECOVERY WAS FROM THE FILES, = = NOT FROM GIT. = = The scope's
+three commits were rebuilt with the same trees, = = the same messages and
+the same content, = = and so every SHA moved: = = the card-scoping
+correction is now `9f8bab6f1`, = = this document's own commit is
+`ed66f2ec5`, = = and the evidence correction (= = the branch tip, = = which by §7's own
+rule is NOT named by its sha here, = = because this document IS that
+commit's content). = = `20d2d3182b` is untouched, = = because it is already
+on `main` and on both remotes.
+
+⇒ ⇒ ⇒ ⇒ AND TWO MORE SHAS ARE GONE, = = AND §4 SAYS WHY. = = The two
+intermediate versions the first two review rounds were filed against
+(`65e701f65a` and `4b74f8d587`) were AMENDED and never pushed, = = and an
+unpushed sha is rewritten freely, = = so their objects do not exist in the
+repository and only the record of them does.
+
+⇒ ⇒ ⇒ ⇒ ⇒ AND A REBUILD IS A NEW TREE, = = SO IT NEEDS A NEW VERDICT. = =
+The verdicts on the old shas do not carry over: = = the rebuilt tree is
+reviewed again, = = and the branch is rebuilt at `wt/appstore-card-correct`
+in its own worktree for it.
+
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE LESSON: = = A WORKING TREE IS NOT A BACKUP OF A
+COMMIT. = = The three files were recoverable because they were ON DISK and
+the author had them in the working tree; = = the SHAs were not, = = because
+they were only in the object store. = = ⇒ ⇒ So a scope whose work is
+worth re-reviewing is worth its SHAs surviving, = = and the way to keep
+them surviving is to push the branch (= = a pushed sha is never rewritten,
+= = and an unpushed one can be), = = not to keep it local.
+
+## 14. The numbers are a fixed point, = = and the sha is the last one
+
+⇒ ⇒ ⇒ AND EVERY COUNT THIS DOCUMENT QUOTES MOVES WHEN THE DOCUMENT IS
+EDITED. = = The line counts, = = the CJK denominator, = = the registry's LOC
+cells and the per-commit counts in §6 all quote each other, = = so writing
+them is a fixed-point problem: = = the number changes the thing it
+measures. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And the fixed point has to be reached ON THE
+COMMITTED TREE, = = because the committed tree is what a reviewer reads
+(= = and the working tree's count is one commit ahead of it). ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+So: measure, = = write, = = commit, = = re-measure, = = until the measurement
+stops moving. = = The measure is the ONE the registry uses (= = `wc -l`, = =
+the newline count), = = and a count taken by splitting on newlines reads ONE
+MORE line for a file that ends with one.
+
+⇒ ⇒ ⇒ ⇒ AND THE DENOMINATOR IS COUNTED AGAINST A PINNED BASE, = = NOT
+AGAINST A MOVING `main`. = = `main` carries the shared server's commits, = =
+and it moves while this scope works, = = so a denominator measured against it
+moves for reasons that have nothing to do with this scope: = = the same diff
+reads 723 added lines against the pinned base (= = the figure §5 quotes), = = and a
+different one against `main` (= = a MOVING reading, = = and §5 names the moving
+one as moving). ⇒ ⇒
+and the scope's own Swift count is 0 against it (= = the scope touches only
+its three `.md` files). ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE MOVING `main` IS NOT
+QUOTED AS A NUMBER ANYWHERE, = = because it is not one: = = it carried 11
+Swift files on one day and 17 on another (= = every one of them in a sibling
+scope's own Swift), = = and a figure that moves with the shared server's
+commits belongs in no document.
+
+⇒ ⇒ ⇒ ⇒ ⇒ AND THE SHA A REVIEW CARD NAMES IS WRITTEN LAST, = = IN FULL. ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ Every amend of this scope's own commit (= = which every round
+of findings causes) = = gives it a NEW commit id, = = so a sha written into
+a card body goes stale the moment the author fixes anything. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+And the independent-review gate reads the sha from the card's `## WHAT TO
+BUILD` and matches it against the branch's tip, = = and its length filter
+accepts a full commit id and not a ten-character prefix. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So
+the scope's numbers are converged FIRST, = = THEN the final amend is made,
+= = THEN the sha is read, = = THEN the card body is written with it, = = and
+the branch is not amended again until a verdict comes back.
