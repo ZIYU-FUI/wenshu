@@ -23,7 +23,7 @@ card's commit does not touch the app source.
 | `toolbar_preference_change.swift` | RETIRED AS A GUI DRIVER (2026-10-29: the AX press takes the operator's mouse and foreground; the GUI drive goes through the CUA tool). The accessibility driver the toolbar probe runs: it opens the app's own Settings scene, selects its group rows through the accessibility tree, and verifies every switch against the persisted group key, so a driver that silently did nothing cannot report a pass. It drives the PID it is given and never re-derives one from a path, because every build of the app ships the same bundle id and a path does not name an instance. It checks that the running instance claims the bundle id it was given, because the preferences it reads live in the domain of that id. | `group_rows`, `strategy`, `switches_landed`, plus the group and pane of each round | `37e941c604` |
 | `render_path_contention_robust.swift` | The render path's measured costs, re-measured with a contention-ROBUST harness: the editor's per-keystroke character walk (= = A1 and A2 = = the same walk done twice), the sidebar's per-reload folder doc count (= = D1), and the reference-library row id (= = D2 = = the Hasher plus sixteen `String(format:)` calls). The harness reports the MINIMUM over many reps (= = the load-independent floor), because a mean is exactly the statistic that background CPU load inflates. = = READ-ONLY: it reads the user's library and writes no file. | `a1_walk_us`, `a1_a2_pair_us`, `d1_one_call_us`, `d1_whole_reload_us`, `d2_one_id_us`, `d2_formatting_only_us`, `d2_hasher_only_us`, `d2_twelve_tag_set_us`, plus `distinct_tags` | `292f49670903` |
 | `render_path_reload_total.swift` | The whole sidebar reload measured as ONE call (= = the ten folder doc counts of D1 and the cover reconciler's shelves walk of D3 in a single bench), = = which is the figure the sweep's path-class table quotes for the reload class. It is the same production shapes as `render_path_contention_robust.swift`, = = plus one bench that runs both walks together. = = READ-ONLY: it reads the user's library and writes no file. | `d4_one_whole_reload_us`, plus `d1_one_call_us`, `d1_whole_reload_us` and `d3_full_shelves_walk_us` for the two components it composes | `292f49670903` |
-| `segmented_control_material.swift` | The native segmented control's own material: = whether its cells paint an opaque fill of their own, = or let the host layer behind them read through. = Rendered offscreen at 2x, = and read from two named regions (= the control's own area, = and the host layer beside it). | `control_area_rgb`, `control_area_colours`, `backdrop_rgb`, `backdrop_colours`, = one pair per appearance, = with the parameters that decide them printed alongside | `bbe2c3e23` |
+| `segmented_control_material.swift` | The native segmented control's own material: = whether its cells paint an opaque fill of their own, = or let the host layer behind them read through. = Rendered offscreen at 2x, = and read from two named regions (= the control's own area, = and the host layer beside it). | `ad08c1769` | `bbe2c3e23` |
 
 ## Recorded measurement
 
@@ -32,45 +32,60 @@ are the probes' own output.
 
 ### `segmented_control_material.swift`
 
-Taken against commit `bbe2c3e23`, = with the control alone over the
+Taken against commit `ad08c1769`, = with the control alone over the
 saturated host layer.
 
 ```
 probe: segmented_control_material
-source_commit: bbe2c3e23
+source_commit: ad08c1769
 host_size_pt: 260 x 40
 control_frame_pt: (10, 6, 240, 28)
 control_size: small
 control_role: valueSelection
 control_style: roundRect
 selected_segment: 1
+measured_segment: 0
 host_layer_colour: calibrated (0.0, 0.55, 0.25)
-control_area_pt: (40, 4, 24, 12)
-backdrop_area_pt: (1, 1, 6, 6)
+opaque_control_colour: calibrated white (0.5)
 appearance: darkAqua
-control_area_rgb: (18, 150, 88)
-control_area_colours: 29
+drawn_band_pt: (10, 30)
+cell_area_pt: (38, 14, 24, 12)
+cell_area_rgb: (96, 184, 142)
+cell_area_colours: 141
 backdrop_rgb: (0, 143, 76)
 backdrop_colours: 1
+opaque_area_rgb: (135, 135, 135)
+opaque_area_colours: 1
 appearance: aqua
-control_area_rgb: (0, 133, 70)
-control_area_colours: 26
+drawn_band_pt: (10, 30)
+cell_area_pt: (38, 14, 24, 12)
+cell_area_rgb: (0, 95, 50)
+cell_area_colours: 116
 backdrop_rgb: (0, 143, 76)
 backdrop_colours: 1
+opaque_area_rgb: (135, 135, 135)
+opaque_area_colours: 1
 ```
 
-Three readings in that run are worth reading together:
+Four readings in that run are worth reading together:
 
 - The backdrop reads `(0,143,76)`, = not the nominal `(0,140,64)`. = The
   nominal colour is what the app asks for, = and the rendered one is what
   the layer's colour space produces.
-- The control's own area stays GREEN-DOMINANT in both appearances
-  (`(18,150,88)` and `(0,133,70)`) = = = while the backdrop beside it
-  reads the same green, = so the control's cells paint no opaque fill of
-  their own.
-- The two regions are COLUMNS of one row, = and the regions are in POINTS
-  over a 2x bitmap. = A different region, = a different host size, = or a
-  different rendering path is a different number.
+- The measured cell reads GREEN-DOMINANT in both appearances
+  (`(96,184,142)` with 141 colours, = and `(0,95,50)` with 116), = = =
+  so the host layer's colour comes THROUGH the cell.
+- The SAME area under an opaque fill reads `(135,135,135)` with 1 colour
+  = = = neutral grey, = = = not green. = ⇒ So the reading distinguishes
+  a translucent cell from an opaque one: = = = the cell paints no
+  opaque fill of its own. = ⇒ This is the probe's own proof that its
+  number has teeth.
+- The bitmap that `cacheDisplay(in:to:)` writes is TOP-DOWN, = while an
+  NSView's coordinates are BOTTOM-UP. = ⇒ The probe MAPS the view's
+  rect onto the bitmap's rows (= `(hostHeight - (y + height)) * scale`),
+  = prints the drawn band and the measured area, = and places the
+  measured area INSIDE the band. = ⇒ A reader can check the reading
+  without trusting the mapping.
 
 The probe measures the control ALONE on purpose: = a material container
 (= an `NSVisualEffectView` behind the control, = or an `NSGlassEffectView`
