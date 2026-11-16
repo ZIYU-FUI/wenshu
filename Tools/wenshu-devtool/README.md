@@ -522,6 +522,57 @@ turns the family's own cases red, = = putting a ticket id back turns the
 added-lines case red, = = and dropping a skip from the method turns the
 method's own case red.
 
+## Dead-code sweep measure
+
+A separate tool, because it measures the tree's own reachability with the
+lenses the tree's dead-code gate cannot see. = = The gate
+(= `verify-dead.py`) answers one question per DECLARATION; = this one
+answers it per FILE, = and it prints the Apple-API axis beside it.
+
+```
+python3 Tools/wenshu-devtool/dead-sweep-measure.py
+```
+
+= = Every section prints the method that produced its number, = = so a
+number can be reproduced and a disagreement is a disagreement about a
+FILTER (= the generic words, = the standard-library extension targets, =
+the comments, = the string contents), = = not about the tool.
+
+= = The sections: = = A1 the population (= every production Swift file over
+the five roots); = = A2 the tree's own gate at its DEFAULT scope; = = A3
+the same gate at the FULL scope; = = A3b the SAME gate at the 2026-11-02
+baseline (= the delta); = = A4 every unread declaration adjudicated
+(= the gate's OWN reachability first, = = then a code reference, = = a
+comment only, = = nothing, = = the framework reads); = = A5 the access-level
+split; = = A6 the design tokens nothing reads; = = A7 the files no
+production code can name (= the strict island); = = A8 the closed groups
+the record names (= each one verified here, = so a reader can edit a
+membership and see the claim fail); = = A9 the gate's OWN false negative
+(= one type's member counts for another); = = B the Apple-API axis (= every
+API read off the installed SDK on disk, = = with the tree's own users of
+each replaced shape); = = and C the numbers the record quotes.
+
+= = **The gate's own lens is IMPORTED, = = not re-implemented**: = = the
+script loads `verify-dead.py` and calls its `local_uses`, = = so the
+measurement and the gate can never disagree about what "alive" means.
+
+= = It is READ-ONLY: = = it reads the tree, = = it writes no file, = = and
+it never moves a branch.
+
+```
+python3 Tools/wenshu-devtool/tests/test_dead_sweep_measure.py
+```
+
+= = The suite runs on fixtures (= a temporary tree), = = so it stays valid
+when the real tree changes. = = Its cases are the things the lenses got
+wrong while they were being written: = = a string interpolation's CODE is
+code (= a name inside `\(...)` is a use, = = not string contents); = = a
+name in a comment or a string literal is not a use; = = a declaration with
+no modifier is a declaration; = = an extension of a standard-library type
+does not identify the file that holds it; = = a generic name proves
+nothing; = = the masked lens sees two owners of one name; = = and a test
+file is never counted as production.
+
 ## Card sha
 
 A separate tool, because it reads the GIT REPO and the card body. It
