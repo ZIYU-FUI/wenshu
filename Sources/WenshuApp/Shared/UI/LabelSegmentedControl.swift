@@ -51,12 +51,13 @@
 //    the app asks for nothing and gets the material: = there is no
 //    `NSGlassEffectView` around the control, = and no hand-drawn
 //    material either. = MEASURED (= the control over a saturated host
-//    layer, = in the window's own appearance): = the control's cells
-//    do not paint an opaque fill, = so the backdrop reads through them,
-//    = and the selected segment is a raised lighter capsule. = = A
-//    material container between the control and the backdrop would
-//    replace that colour with its own neutral tint, = so adding one
-//    would put a SECOND material there (= HIG's "do so sparingly").
+//    layer, = in the window's own appearance, = by
+//    `Tools/wenshu-devtool/probes/segmented_control_material.swift`):
+//    the control's cells do not paint an opaque fill, = so the backdrop
+//    reads through them, = and the selected segment is a raised lighter
+//    capsule. = = A material container between the control and the
+//    backdrop would put a SECOND material there (= HIG's "do so
+//    sparingly"), = so the app adds none.
 //  - `role = .tabs` (= explicitly mark the control as a tab
 //    switcher; = macOS 27 NEW API; = Accessibility reads it as
 //    "page N of M"; = VoiceOver announces the page count;
