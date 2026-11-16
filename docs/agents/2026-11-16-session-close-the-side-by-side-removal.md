@@ -38,9 +38,19 @@ range that ends at `main` carries every lane's commits (= = a sibling
 scope's, = = so its answer is a moving number and its authors are two), = =
 so the scope's own commits are counted at the scope's own sha:
 `git rev-list --count 58dd224bb..253734934` = = the eight commits the table
-above names. **⇒ ⇒ ⇒ AND THIS DOC'S OWN COMMITS ARE COUNTED BY PATH** (= =
-= = the only commits that are this doc's), = = so the scope's total is those
-two numbers added.
+above names. **⇒ ⇒ ⇒ AND THIS DOC'S OWN COMMITS ARE COUNTED BY PATH, = = AND THAT RANGE
+STARTS WHERE THE OTHER ONE ENDS** (= = the two addends must NOT overlap, = =
+and `253734934` is the scope's own last sha = = = = the commit that created
+this doc):
+
+```
+git rev-list --count 253734934..main -- docs/agents/2026-11-16-session-close-the-side-by-side-removal.md
+```
+
+= = the doc's own commits after the scope's own sha, = = so the scope's
+total is the two numbers ADDED. **⇒ ⇒ ⇒ AND THE BY-PATH NUMBER MOVES WITH
+THIS DOC'S OWN COMMITS, = = WHICH IS RIGHT** (= = they ARE the scope's), = =
+so no total is printed here (= = the reader's two numbers are the answer).
 
 ## 2. The trace table (= one row per line the boss gave)
 
