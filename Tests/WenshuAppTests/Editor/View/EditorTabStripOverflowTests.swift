@@ -149,8 +149,12 @@ struct EditorTabStripOverflowTests {
     }
 
     /// Host the real strip at `columnWidth` and measure it.
-    private func measure(tabCount: Int, columnWidth: CGFloat) -> Layout {
-        let tabs = makeTabs(count: tabCount)
+    private func measure(
+        tabCount: Int,
+        columnWidth: CGFloat,
+        title: String? = nil
+    ) -> Layout {
+        let tabs = makeTabs(count: tabCount, title: title)
         let strip = EditorTabStrip(
             tabs: tabs,
             selectedTabId: tabs.first?.id,
@@ -229,7 +233,7 @@ struct EditorTabStripOverflowTests {
         window.displayIfNeeded()
     }
 
-    private func makeTabs(count: Int) -> [EditorTab] {
+    private func makeTabs(count: Int, title: String? = nil) -> [EditorTab] {
         (0 ..< count).map { index in
             EditorTab(
                 id: UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", index))!,
@@ -237,7 +241,7 @@ struct EditorTabStripOverflowTests {
                 draft: "",
                 originalBody: "",
                 mode: .preview,
-                title: nil
+                title: title
             )
         }
     }
@@ -456,6 +460,56 @@ struct EditorTabStripOverflowTests {
                 \(tabCount) tabs in a \(columnWidth) PT column (= a \(share) PT \
                 share) drew a \(layout.drawnTrackWidth) PT track. = The strip \
                 must divide the column it was given.
+                """
+            )
+        }
+    }
+
+    @Test("A BLANK title's cells divide the column (= the title rule reaches the strip)")
+    @MainActor
+    func aBlankTitleStillDividesTheColumn() {
+        // MEASURED: a title that carries nothing is a CHARACTER (= a
+        // zero width space), = or the control reads it as EMPTY and then
+        // draws its own fitting width instead of the region it was given.
+        //
+        // ⇒ ⇒ ⇒ AND THE MARKER IS NOT THE ANSWER FOR A WIDE CELL: = the
+        // marker is 71.6 PT wide, = so a cell wider than that keeps it, =
+        // and the cell then takes the marker's width plus the segment's
+        // own inset (= 92.1 PT). = MEASURED on the real strip: = 6 tabs
+        // in a 462 PT region (= a 77 PT share) drew 552 PT of track, = 90
+        // PT past the region.
+        //
+        // ⇒ ⇒ ⇒ SO EVERY SHARE IS MEASURED HERE: = the narrow ones (= the
+        // marker answers there), = the band (= 18 to 20 PT), = and the
+        // wide ones (= where the marker overflows), = because a suite
+        // that only measured the narrow end would hold nothing.
+        for (tabCount, columnWidth) in [
+            (23, CGFloat(454.5)),
+            (12, CGFloat(222)),
+            (12, CGFloat(240)),
+            (10, CGFloat(190)),
+            (14, CGFloat(264)),
+            (12, CGFloat(400)),
+            (6, CGFloat(360)),
+            (6, CGFloat(462)),
+            (6, CGFloat(480)),
+            (4, CGFloat(296)),
+            (4, CGFloat(320)),
+            (3, CGFloat(240)),
+            (2, CGFloat(320)),
+        ] {
+            let share = columnWidth / CGFloat(tabCount)
+            let layout = measure(
+                tabCount: tabCount,
+                columnWidth: columnWidth,
+                title: "   "
+            )
+            #expect(
+                abs(layout.drawnTrackWidth - columnWidth) < 1,
+                """
+                \(tabCount) tabs in a \(columnWidth) PT column (= a \(share) PT \
+                share) with a blank title drew a \(layout.drawnTrackWidth) PT \
+                track. = The strip must divide the column it was given.
                 """
             )
         }

@@ -120,22 +120,43 @@ struct PaneTabStripTitleTests {
         #expect(PaneTabStripTitle.fitted(title, share: 0, font: Self.labelFont()) == title)
     }
 
-    @Test("A title with nothing in it is the marker (= or the cell keeps AppKit's own minimum)")
+    @Test("A title with nothing in it is the blank label (= a character that draws no ink)")
     @MainActor
-    func aBlankTitleIsTheMarker() {
+    func aBlankTitleIsTheBlankLabel() {
         // MEASURED: an EMPTY label breaks the division. = AppKit gives a
         // cell with no title its own minimum width (= about 21 PT), = so
         // 12 empty cells in a 200 PT region stepped by 21.0 / 21.5 PT and
         // drew their last divider at 205.5 PT (= 5.5 PT past the region).
-        // = ⇒ So a title that carries nothing is the marker, = which
-        // shows nothing and still takes its share.
+        // = ⇒ So a title that carries nothing is the blank label, = a
+        // zero width space: = a character (= so the control divides the
+        // region exactly) that draws no ink.
+        //
+        // ⇒ ⇒ ⇒ AND IT MUST NOT BE THE MARKER: = the marker is 71.6 PT
+        // wide, = so a cell wider than that keeps it, = and the cell
+        // then takes the marker's width plus the segment's own inset
+        // (= 92.1 PT, = MEASURED: = 6 tabs in a 462 PT region drew 552
+        // PT of track, = 90 PT past the region).
         for title in ["", " ", "\u{200B}", "  \u{200B} "] {
             let fitted = PaneTabStripTitle.fitted(title, share: 40, font: Self.labelFont())
             #expect(
-                fitted == PaneTabStripTitle.nothingMarker,
-                "a title with nothing in it must be the marker: title '\(title)' fitted to '\(fitted)'"
+                fitted == PaneTabStripTitle.blankLabel,
+                "a title with nothing in it must be the blank label: title '\(title)' fitted to '\(fitted)'"
             )
         }
+    }
+
+    @Test("A title with nothing in it is the marker in a cell with no room for a label")
+    @MainActor
+    func aBlankTitleIsTheMarkerInACellWithNoRoom() {
+        // A cell with no room at all (= a share under the segment's own
+        // inset) has no label to truncate, = so the marker is the label
+        // there: = it is wider than the cell, = and the control truncates
+        // it to the cell, = so the cell is exactly its share.
+        let fitted = PaneTabStripTitle.fitted("", share: 16, font: Self.labelFont())
+        #expect(
+            fitted == PaneTabStripTitle.nothingMarker,
+            "a cell with no room must hold the marker: fitted to '\(fitted)'"
+        )
     }
 
     @Test("The rule never returns the lone ellipsis, whatever the title")

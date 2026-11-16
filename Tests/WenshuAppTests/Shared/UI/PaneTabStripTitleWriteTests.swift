@@ -204,21 +204,29 @@ struct PaneTabStripTitleWriteTests {
         )
     }
 
-    @Test("An EMPTY title reaches the control as the marker (= the app's answer)")
+    @Test("An EMPTY title reaches the control as the blank label (= the app's answer)")
     @MainActor
-    func anEmptyTitleReachesTheControlAsTheMarker() {
+    func anEmptyTitleReachesTheControlAsTheBlankLabel() {
         // The write path is the only place the title is decided, = so
-        // the empty title must be turned into the marker THERE (= or the
-        // control reads it as EMPTY, = and a cell with no title keeps
+        // the empty title must be turned into the blank label THERE (= or
+        // the control reads it as EMPTY, = and a cell with no title keeps
         // AppKit's own minimum width, = and the strip overflows the
         // column it was given).
-        let control = configuredControl(regionWidth: 200, cellCount: 12, title: "")
+        //
+        // ⇒ ⇒ ⇒ AND THE GEOMETRY MUST CARRY THE CLAIM: = a 200 PT
+        // region with 12 cells is a 16.67 PT share, = so the cell has no
+        // room for a label (= the marker answers there, = and the parent
+        // commit answered the same way). = So this arm sits at a share
+        // with room (= 400 PT with 12 cells = a 33.33 PT share), = where
+        // the parent wrote the EMPTY title into the control.
+        let control = configuredControl(regionWidth: 400, cellCount: 12, title: "")
         #expect(
-            control.label(forSegment: 0) == PaneTabStripTitle.nothingMarker,
+            control.label(forSegment: 0) == PaneTabStripTitle.blankLabel,
             """
             The control holds '\(String(reflecting: control.label(forSegment: 0)))' \
-            for a title that is empty. = It must hold the marker, = the \
-            title that shows nothing and still takes its share.
+            for a title that is empty. = It must hold the blank label, = a \
+            character that draws no ink, = so the control divides the \
+            region it was given.
             """
         )
     }

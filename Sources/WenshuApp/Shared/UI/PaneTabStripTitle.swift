@@ -123,6 +123,19 @@ enum PaneTabStripTitle {
     /// = so the boss's rule (= nothing shows) holds.
     static let nothingMarker = "\u{200B}" + String(repeating: " ", count: 20)
 
+    /// The label a cell carries when its title has NOTHING in it and the
+    /// cell has room for a label.
+    ///
+    /// A ZERO WIDTH SPACE (= U+200B). = It measures 0 PT wide, = so it
+    /// draws no ink (= the cell shows nothing), = and it is narrower
+    /// than every cell, = so the control divides the region exactly.
+    ///
+    /// ⇒ ⇒ ⇒ MEASURED, = through the production write path on the real
+    /// strip: = a blank title's cells divide the column exactly at the
+    /// 13 geometries the blank-title arm measures (= the narrow ones
+    /// take the marker, = and the wide ones take this label).
+    static let blankLabel = "\u{200B}"
+
     /// The title one segment draws at `share` points wide.
     ///
     /// The boss's rule (= 2026-11-12), in two tiers:
@@ -173,16 +186,28 @@ enum PaneTabStripTitle {
         guard room > 0 else { return nothingMarker }
 
         // A title that carries NOTHING (= empty, = or only whitespace)
-        // is read as EMPTY by the control, = and a cell with no title
-        // keeps AppKit's own minimum (= MEASURED: = 12 empty cells in a
-        // 200 PT region stepped by 21.0 / 21.5 PT and drew their last
-        // divider at 205.5 PT, = 5.5 PT past the region). = ⇒ So a title
-        // with nothing in it is the marker, = which shows nothing and
-        // still takes its share.
+        // must still be a CHARACTER, = or the control reads it as EMPTY
+        // and then draws its OWN fitting width instead of the region it
+        // was given (= MEASURED: = 12 empty cells in a 200 PT region
+        // stepped by 21.0 / 21.5 PT and drew their last divider at
+        // 205.5 PT, = 5.5 PT past the region). = ⇒ So a title with
+        // nothing in it is the blank label, = a zero width space: = it
+        // draws no ink, = and it is narrower than every cell that has
+        // room for it, = so the cell is exactly its share.
+        //
+        // ⇒ ⇒ ⇒ AND NOT THE MARKER: = the marker is 71.5 PT wide, = so
+        // a cell wider than that keeps it, = and the cell then takes the
+        // marker's width plus the segment's own inset (= 92.0 PT, =
+        // MEASURED: = 6 tabs in a 462 PT region drew 552 PT of track, =
+        // 90 PT past the region). = The marker is the label for a cell
+        // NARROWER than it (= the control truncates it to the cell, = so
+        // the cell is exactly its share), = and the guard above (= a
+        // cell with no room at all) is that case. = ⇒ So the blank label
+        // is the label for every cell that has room for a label.
         let isBlank = title.allSatisfy {
             $0.isWhitespace || $0 == "\u{200B}"
         }
-        guard !isBlank else { return nothingMarker }
+        guard !isBlank else { return blankLabel }
 
         // The whole title, when the cell has room for it.
         if drawnWidth(of: title, font: font) <= room {
