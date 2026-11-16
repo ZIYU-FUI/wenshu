@@ -18,9 +18,9 @@ The boss ruled: delete the automatic rule and the side-by-side arrangement,
 keep only the top-bottom one. "It introduced a pile of bugs. Better off
 without it."
 
-**⇒ ⇒ ⇒ AND THE SCOPE'S COMMITS ARE EIGHT, = = AND EACH IS AN ANCESTOR OF
-`main` ON BOTH REMOTES** (= = the durable fact, = = not a tip, = = because a
-tip is stale within minutes):
+**⇒ ⇒ ⇒ AND EACH OF THE SCOPE'S COMMITS IS AN ANCESTOR OF `main` ON BOTH
+REMOTES** (= = the durable fact, = = not a tip, = = because a tip is stale
+within minutes):
 
 | # | The commit |
 | --- | --- |
@@ -31,7 +31,11 @@ tip is stale within minutes):
 | 5 | `6a494e2e2` (= the repo was deleted mid-session, = = and how it came back) |
 | 6 | `25e61e17e` (= the removal's own arithmetic adds up) |
 | 7 | `4627e9410` (= the probe's recorded run names the tree it measured) |
-| 8 | this scope's closure doc (= its own sha is not written here, = = because writing it would change it) |
+| 8 | this scope's closure doc (= = its own commits, = = whose shas this doc cannot name, = = because a doc that names its own sha changes it) |
+
+**⇒ ⇒ ⇒ AND THE COUNT IS THE READER'S** (= = and it is read off the
+ancestry, = = not off this list): `git rev-list --count 58dd224bb..main`
+carries the scope's total, = = this doc's own commits included.
 
 ## 2. The trace table (= one row per line the boss gave)
 
@@ -131,16 +135,30 @@ that must now hold):
 ## 6. The server-side proof, = = and what the push carried
 
 `Scripts/land_card.sh` pushes ONE remote (= `origin`), = = so the closeout
-pushed the other. The proof is the server's answer, per remote:
+pushed the other.
+
+**⇒ ⇒ ⇒ AND THE PROOF IS ANCESTRY, = = NOT A TIP** (= = a tip is stale
+within minutes, = = and this doc's own commits move it). Each of the scope's
+commits is an ancestor of `main` on BOTH remotes:
+
+```bash
+git merge-base --is-ancestor <sha> refs/remotes/origin/main
+git merge-base --is-ancestor <sha> refs/remotes/old-origin/main
+```
+
+**⇒ ⇒ ⇒ AND THE READ-BACK AT THIS CLOSEOUT'S MOMENT** (= = a snapshot, = =
+and the reader re-reads it, = = because the server's answer moves):
 
 | Where | The sha |
 | --- | --- |
-| local `main` | `253734934111ad3e8e6b6e49f55f101be918dd29` |
 | `git ls-remote origin main` (= gitcode) | `253734934111ad3e8e6b6e49f55f101be918dd29` |
 | `git ls-remote old-origin main` (= github) | `253734934111ad3e8e6b6e49f55f101be918dd29` |
 
-**⇒ ⇒ ⇒ AND THE PUSH CARRIED NO SIBLING'S COMMITS.** All eight commits in
-`58dd224bb..253734934` are this scope's (= section 1), = = so the push was
+(= = both remotes read the SAME sha, = = which is the fact the proof turns
+on; = = the sha itself is the snapshot.)
+
+**⇒ ⇒ ⇒ AND THE PUSH CARRIED NO SIBLING'S COMMITS.** Every commit in
+`58dd224bb..253734934` is this scope's (= section 1), = = so the push was
 authorship, = = not maintenance of the shared server state.
 
 ## 7. The board's open columns (= the sweep)
