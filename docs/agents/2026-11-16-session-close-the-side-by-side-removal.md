@@ -149,7 +149,7 @@ authorship, = = not maintenance of the shared server state.
 | --- | --- | --- | --- |
 | `t_f2ecfedf` | done | this scope's first review (= changes requested on four prose findings) | this scope |
 | `t_15bfa0d1` | done | this scope's second review (= **approved**), = = the verdict that covers the branch | this scope |
-| `t_c82584bb` | **ready** (= was blocked) | the App Store editorial-card scope's closeout. Its three runs all ended `timed_out` at 5430 s, 5438 s and 5443 s = = each within 43 s of its 5400 s cap, = = so the blocker was a CLOCK, not the work. The cap was raised to 7200 s and the card unblocked for one honest retry. Its work (= three commits on `wt/appstore-card-correct`) is NOT on `main` | the review lane, = = a sibling's scope, = = not closed here |
+| `t_c82584bb` | **unblocked for one honest retry** (= was blocked) | the App Store editorial-card scope's closeout. Its three runs all ended `timed_out` at 5430 s, 5438 s and 5443 s = = each within 43 s of its 5400 s cap, = = so the blocker was a CLOCK, not the work. The cap was raised to 7200 s, the card was unblocked, and the dispatcher picked the retry up. Its work (= three commits on `wt/appstore-card-correct`) is NOT on `main` | the review lane, = = a sibling's scope, = = not closed here |
 | `t_79f3723d` | **done** | the App Store card's figures. Its own comment recorded it as SUPERSEDED, = = and the three cards that replaced it (`t_940ad123`, = = `t_51b7dddd`, = = `t_b997467d`) are done or running, = = so the reason it was blocked had cleared | a sibling's scope, = = closed on its own stated intent |
 
 **⇒ ⇒ ⇒ AND NOTHING OF THE SIBLING'S WAS TOUCHED**: = = not its worktree,
