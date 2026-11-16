@@ -142,8 +142,7 @@ struct LibraryRootView: View {
                 )
             } detail: {
                 EditorChatSplitHost(
-                    conductor: WenshuAppDelegate.sharedConductor,
-                    layoutMode: workspaceUI.editorLayoutMode
+                    conductor: WenshuAppDelegate.sharedConductor
                 )
                 .environment(appState)
                 .inspector(isPresented: $inspectorVisible) {

@@ -249,89 +249,15 @@ extension EditorChatNSController {
     ///
     /// AppKit writes the frames as an array of strings under
     /// "NSSplitView Subview Frames <name>", each "x, y, width,
-    /// height, collapsed, ...". The arrangement's axis carries the
-    /// panes' thickness: the width when they stand side by side, the
-    /// height when they are stacked.
+    /// height, collapsed, ...". The split's axis carries the panes'
+    /// thickness: the editor is above the chat, so the axis is the
+    /// height.
     func storedShare(for name: String) -> CGFloat? {
         let key = "NSSplitView Subview Frames \(name)"
         guard let frames = UserDefaults.standard.object(forKey: key) as? [String] else {
             return nil
         }
-        return Self.share(
-            fromFrames: frames,
-            isVertical: arrangement.isVertical,
-            firstPaneLeads: arrangement == .stacked
-        )
-    }
-
-    /// The share stored for an arrangement, read in that
-    /// arrangement's own order and on that arrangement's own axis.
-    ///
-    /// The width rule asks about the side-by-side arrangement while
-    /// the split may be stacked, so the reader has to be told which
-    /// arrangement's payload and which axis to read (= the frames
-    /// follow the panes, and the chat leads when the panes stand
-    /// side by side).
-    func storedShare(forArrangement arrangement: EditorArrangement) -> CGFloat? {
-        let key = "NSSplitView Subview Frames \(Self.storedAutosaveName(for: arrangement))"
-        guard let frames = UserDefaults.standard.object(forKey: key) as? [String] else {
-            return nil
-        }
-        return Self.share(
-            fromFrames: frames,
-            isVertical: arrangement.isVertical,
-            firstPaneLeads: arrangement == .stacked
-        )
-    }
-
-    /// The editor's share the LAYOUT will assert for the side-by-side
-    /// arrangement (= the number the width rule must judge).
-    ///
-    /// Why the rule judges the LAYOUT's number and not its own: the
-    /// rule and the layout have to agree inside one layout pass, or
-    /// the rule chooses an arrangement on the strength of a share
-    /// the layout then does not give, and the editor's chrome is
-    /// clipped (measured: the rule assumed a 595 PT editor pane
-    /// while the layout gave 357 PT, = 238 PT under the floor the
-    /// rule itself declares).
-    ///
-    /// While the panes stand side by side, the layout asserts the
-    /// share it captured when the arrangement was entered, so the
-    /// rule judges that same number. Entering the arrangement, the
-    /// layout captures the stored side-by-side position next, so the
-    /// rule judges that.
-    func assertedSideBySideEditorShare() -> CGFloat {
-        if arrangement == .sideBySide, let assertedShare {
-            return assertedShare
-        }
-        return storedShare(forArrangement: .sideBySide) ?? 0.5
-    }
-
-    /// Whether an arrangement's stored divider position can be kept
-    /// when the arrangement is entered.
-    ///
-    /// A stored position that cannot host the panes' own chrome is
-    /// not a position the arrangement can use, so the 50:50 reset is
-    /// owed instead of the stored position.
-    ///
-    /// The test follows the arrangement's own axis. Side by side,
-    /// the stored position is a share of the WIDTH, so the panes'
-    /// thicknesses are the width times the shares. Stacked, the
-    /// stored position is a share of the HEIGHT and each pane has
-    /// the FULL width, so the chrome test is the width itself: the
-    /// height share cannot clip a horizontal chrome.
-    func keepsStoredPosition(for arrangement: EditorArrangement) -> Bool {
-        guard hasStoredPayload(for: Self.storedAutosaveName(for: arrangement)) else {
-            return false
-        }
-        guard let width = lastParentWidth, width > 0 else { return true }
-        switch arrangement {
-        case .stacked:
-            return Self.holdsStackedChrome(width: width)
-        case .sideBySide:
-            guard let stored = storedShare(forArrangement: .sideBySide) else { return true }
-            return Self.holdsChrome(width: width, editorShare: stored)
-        }
+        return Self.share(fromFrames: frames)
     }
 
     /// The share of the axis the divider holds, read from AppKit's
@@ -341,26 +267,16 @@ extension EditorChatNSController {
     /// against the running split), so the share is the first pane's
     /// thickness over the two panes' thickness together.
     ///
-    /// The frames are in the panes' own order, and the order
-    /// differs per arrangement (= the chat leads when the panes
-    /// stand side by side), so the caller passes which pane leads.
+    /// The frames are in the panes' own order (= the editor first,
+    /// because the editor is above the chat), and the axis is the
+    /// height (= the divider runs across).
     ///
     /// The numbers carry a space after every comma, so they have to
     /// be trimmed before they parse (= Swift's `Double(" 0.0")` is
     /// nil, and an untrimmed parse silently reads no share at all,
     /// which puts the divider back at the middle and reintroduces
     /// the runaway layout).
-    static func share(fromFrames frames: [String], isVertical: Bool) -> CGFloat? {
-        share(fromFrames: frames, isVertical: isVertical, firstPaneLeads: true)
-    }
-
-    /// The share of the axis the divider holds, read from AppKit's
-    /// stored frames, for an arrangement whose first pane leads.
-    static func share(
-        fromFrames frames: [String],
-        isVertical: Bool,
-        firstPaneLeads: Bool
-    ) -> CGFloat? {
+    static func share(fromFrames frames: [String]) -> CGFloat? {
         guard frames.count >= 2 else { return nil }
         func numbers(_ frame: String) -> [CGFloat] {
             frame.components(separatedBy: ",").compactMap {
@@ -370,15 +286,10 @@ extension EditorChatNSController {
         let first = numbers(frames[0])
         let second = numbers(frames[1])
         guard first.count >= 4, second.count >= 4 else { return nil }
-        let firstThickness = isVertical ? first[2] : first[3]
-        let secondThickness = isVertical ? second[2] : second[3]
+        let firstThickness = first[3]
+        let secondThickness = second[3]
         let total = firstThickness + secondThickness
         guard total > 0 else { return nil }
-        let leadingShare = firstThickness / total
-        // The share is named by the EDITOR's pane (= the one the
-        // user drags to size the editor), and the frames are in the
-        // panes' own order (= the chat leads when they stand side by
-        // side), so the editor's share is the other one.
-        return firstPaneLeads ? leadingShare : 1 - leadingShare
+        return firstThickness / total
     }
 }
