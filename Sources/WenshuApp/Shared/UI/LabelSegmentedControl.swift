@@ -50,10 +50,13 @@
 //    appearance and behavior of this material automatically"). = = So
 //    the app asks for nothing and gets the material: = there is no
 //    `NSGlassEffectView` around the control, = and no hand-drawn
-//    material either. = MEASURED: = the control's own pixels over a
-//    saturated background show the background through the unselected
-//    segments (= a translucent material), = and the selected segment
-//    is a raised lighter capsule.
+//    material either. = MEASURED (= the control over a saturated host
+//    layer, = in the window's own appearance): = the control's cells
+//    do not paint an opaque fill, = so the backdrop reads through them,
+//    = and the selected segment is a raised lighter capsule. = = A
+//    material container between the control and the backdrop would
+//    replace that colour with its own neutral tint, = so adding one
+//    would put a SECOND material there (= HIG's "do so sparingly").
 //  - `role = .tabs` (= explicitly mark the control as a tab
 //    switcher; = macOS 27 NEW API; = Accessibility reads it as
 //    "page N of M"; = VoiceOver announces the page count;

@@ -19,7 +19,10 @@ Apple's own code, do not understand it, translate it and implement it again.
 Safari's implementation is in the dyld shared cache, so it cannot be read by
 REA:
 
-- `/Applications/Safari.app/Contents/MacOS/Safari` = a 275,872 BYTE shim.
+- `/Applications/Safari.app/Contents/MacOS/Safari` = a 311,584 BYTE shim
+  (= MEASURED with `stat -f %z`; = the cryptex's copy is the same
+  size; = and the shim holds no slice of that size on its own = =
+  x86_64 74,016 / arm64e 98,592 / arm64e.x1 98,592).
 - The code lives in
   `/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/dyld_shared_cache_arm64e`
   (split into `.01` / `.02` / `.03` ...).
@@ -35,13 +38,30 @@ What IS readable is the cache's export table
 (`dyld_info -exports -all_dyld_cache` = 4,590,963 lines), and it names
 Safari's tab bar classes:
 
-| Symbol | What it is |
+| Symbol in the export table | What it is |
 | --- | --- |
-| `SFUnifiedTabBarItemView` | the item (= one tab) |
-| `SFUnifiedTabBarItemTitleContainerView` | the item's TITLE container |
-| `SFUnifiedTabBarSectionBackgroundView` | the section's background |
 | `SFUnifiedTabBarItemViewAccessibility` | the item's AX wrapper |
-| `TeaUI24FloatingTabBarControllerC17` | the floating tab bar's controller |
+| `SFUnifiedTabBarItemTitleContainerViewAccessibility` | the title container's AX wrapper |
+| `SFUnifiedTabBarSectionBackgroundViewAccessibility` | the section background's AX wrapper |
+
+⇒ ⇒ ⇒ AND THAT IS THE WHOLE OF IT: = the table holds exactly 12 lines
+that contain `SFUnifiedTabBar`, = and every one of them is one of those
+three AX wrappers (= its class, = its metaclass, = and their `_super`
+pairs). = ⇒ The PLAIN names (= `SFUnifiedTabBarItemView`, =
+`SFUnifiedTabBarItemTitleContainerView`, = `SFUnifiedTabBarSectionBackgroundView`)
+have ZERO whole-token hits in the table, = and that is the
+SUBSTRING trap: = each plain name is a PREFIX of an AX wrapper's name, =
+so a grep that does not anchor the token end reports them. = ⇒ So the
+plain names are NOT evidence from the export table; = they are names
+this session inferred from those prefixes, = and they are NOT claimed
+here as measured. = ⇒ ⇒ ⇒ What IS measured is that Safari's tab bar
+exposes AX wrappers for an ITEM, = a TITLE CONTAINER, = and a SECTION
+BACKGROUND, = = which is the shape of a unified tab bar (= an item, = a
+title inside it, = and a background behind the bar), = and that Safari
+has its own tab bar class stack rather than an `NSSegmentedControl`.
+
+The same table also carries `TeaUI24FloatingTabBarControllerC17` (= the
+floating tab bar's controller, = in the TeaUI framework).
 
 So Safari 26+ draws its tab bar with its OWN `SFUnifiedTabBar` view stack
 (= a title container per item, = and a section background behind the bar),
@@ -67,18 +87,47 @@ component picks the material up by itself.
 
 ## MEASURED: the native control carries the material by itself
 
-The control drawn over a saturated green background, and the mean colour of
-the control's own pixels (the background's mean is `(0,140,64)`):
+MEASURED: = the control over a saturated green host layer
+(`NSColor(calibratedRed: 0, green: 0.55, blue: 0.25)`, = a `.small`
+control, = the `.valueSelection` role, = the segment selected), = read
+from a 2x `NSBitmapImageRep` in the window's own appearance. = EVERY
+number below names its appearance, = its region, = and the container it
+was read from; = the first row of each pair is the CONTROL'S OWN AREA
+(= the cell's surface and its glyph), = and the second is the HOST
+BACKDROP BESIDE IT (= the same layer, = untouched, = and therefore the
+colour the backdrop actually renders as):
 
-| Container | Mean RGB | Distinct colours | Reading |
+| Appearance | Container | The control's own area | The backdrop beside it |
 | --- | --- | --- | --- |
-| the control ALONE | `(115,193,156)` | 117 | the background comes THROUGH the control, lifted and shifted, = a translucent material |
-| an `NSVisualEffectView` behind it | `(103,103,103)` | 56 | the material's own neutral tint |
-| an `NSGlassEffectView` around it | `(26,26,26)` | 1 | glass over a window with no backdrop = near black |
+| darkAqua | the control ALONE | `(18,150,88)`, 29 colours | `(0,143,76)`, 1 colour |
+| darkAqua | an `NSVisualEffectView` behind it | `(94,116,106)`, 108 colours | `(0,143,76)`, 1 colour |
+| darkAqua | an `NSGlassEffectView` around it | `(92,107,100)`, 113 colours | `(0,143,76)`, 1 colour |
+| aqua | the control ALONE | `(0,133,70)`, 26 colours | `(0,143,76)`, 1 colour |
+| aqua | an `NSVisualEffectView` behind it | `(139,161,151)`, 118 colours | `(0,143,76)`, 1 colour |
+| aqua | an `NSGlassEffectView` around it | `(154,169,162)`, 128 colours | `(0,143,76)`, 1 colour |
 
-⇒ The native control is the material.  Wrapping it in `NSGlassEffectView`
-would ADD a second material (= HIG's "do so sparingly" = against it), and the
-third row shows what that costs when there is nothing behind it.
+⇒ ⇒ ⇒ AND THE RENDERED BACKDROP IS `(0,143,76)`, = NOT the nominal
+`(0,140,64)`: = the nominal colour is what the app asks for, = and the
+rendered one is what the layer's colour space produces. = (The first
+version of this document quoted the nominal value as if it were a
+measured pixel, = and the review caught it.)
+
+⇒ ⇒ ⇒ WHAT THE TABLE SAYS: = the control alone still shows the
+GREEN through its cells (= the cell's own area reads green-dominant, =
+`(18,150,88)` in darkAqua and `(0,133,70)` in aqua, = and the backdrop
+beside it reads the same green) = ⇒ the control does not paint an
+OPAQUE fill of its own. = And the two material containers REPLACE that
+green with a NEUTRAL tint (= `(94,116,106)` and `(92,107,100)` in
+darkAqua) = = which is what a material does: = it samples and tints what
+is behind it.
+
+⇒ ⇒ ⇒ ⇒ SO THE APP ASKS FOR NOTHING, = AND THE APP ADDS NOTHING:
+= the native control's own appearance is Apple's, = Apple's own line
+says a standard component picks the material up automatically, = and
+adding a glass container would put a SECOND material between the control
+and the backdrop (= HIG's "do so sparingly" = against it) = and = with
+no backdrop to sample (= an offscreen window, = and = the review's own
+measurement) = that glass renders near black.
 
 ⇒ ⇒ ⇒ AND THE CORRECTION: the tree's rationale said "the Liquid Glass
 material is applied to the window chrome, not to the segmented control
