@@ -188,7 +188,7 @@ measurement = = and the numbers below are the post-rebase ones.
 | --- | --- |
 | Swift files in the scope's diff | 0 (= = measured against this scope's BASE `58dd224bb7`, = = not against a moving `main`; = = so `swift build` / `swift test` have no surface) = = and the base range's own Swift commits are the SIBLING scope's: = = three of them, = = `deff19bac4`, = = `bc1ce72f95` and `6b73f25b51` |
 | `verify-dead.py` | DEAD 0 (127 ALIVE, 4 PARTIAL) |
-| CJK on the change | 0 of 723 added lines (= = measured against this scope's base `58dd224bb7`, = = not against a moving `main`; = = measured against `main` the same diff carries 4 CJK lines, = = all of them in the SIBLING scope's Swift, = = and none in this scope's three files) |
+| CJK on the change | 0 of 747 added lines (= = measured against this scope's base `58dd224bb7`, = = not against a moving `main`; = = measured against `main` the same diff carries 4 CJK lines, = = all of them in the SIBLING scope's string catalog, = = and none in this scope's three files) |
 | `tests/test_nfi_loc_check.py` | rc 0 |
 | `tests/test_nfi_registry.sh` | all tests passed |
 | `nfi-loc-check.py` | rc 0 (1 row: this scope's own row) |
@@ -198,7 +198,7 @@ measurement = = and the numbers below are the post-rebase ones.
 
 ## 6. The commits, and which are not this scope's
 
-This scope owns FOUR commits. ⇒ ⇒ ⇒ AND THE BRANCH THEY LIVE ON IS
+This scope owns FIVE commits. ⇒ ⇒ ⇒ AND THE BRANCH THEY LIVE ON IS
 `wt/appstore-card-correct`, = = because §13's reconstruction REBUILT the
 scope after the shared checkout's gitdir was deleted: = = the earlier local
 branch `wt/appstore-editorial-card` died with that gitdir, = = and no ref
@@ -211,22 +211,31 @@ absence.
 - `9f8bab6f1` — the card-scoping correction (= = the document at 574 lines
   plus its registry row, = = and the row's LOC CELL moving with it (= = 477
   to 574); = = the row's CONTENT TAG did not move here, = = and moved only at
-  the tip below).
+  the evidence correction below).
 - `ed66f2ec5` — this closeout document (= = 446 lines at that commit), = =
-  and NO registry row (= = the row for this document arrived with the tip
-  below, = = not with this commit).
-- the evidence correction (= = the document at 586 lines and this closeout
-  at 572, = = and it ADDED the one registry row for this document, = = AND it
-  rewrote the research row's LOC cell (= = 574 to 586) and REPLACED that
-  row's content tag (= = the re-tag that scoped the split card to the djay
-  card)): = = every figure now names the capture it rests on, = = and the one
-  capture that was NOT deposited is named as such. ⇒ ⇒ ⇒ AND THIS LAST ONE IS THE ONE COMMIT
+  and NO registry row (= = the row for this document arrived with the
+  evidence correction below, = = not with this commit).
+- `080c16813` — the evidence correction (= = the document at 586 lines and
+  this closeout at 572, = = and it ADDED the one registry row for this
+  document, = = AND it rewrote the research row's LOC cell (= = 574 to 586)
+  and REPLACED that row's content tag (= = the re-tag that scoped the split
+  card to the djay card)): = = every figure now names the capture it rests
+  on, = = and the one capture that was NOT deposited is named as such.
+- the receipt and numbers' correction (= = the commit body now publishes the
+  figure the tree publishes, = = and the closeout's review-gate sentence now
+  states the two MEASURED constraints, = = and the house skill's reference
+  says the same): = = the figures themselves did not move, = = and the fix's
+  own footprint (= = this closeout's line count, = = the added-line
+  denominator, = = and this scope's own commit count) was re-converged on
+  the committed tree. ⇒ ⇒ ⇒ AND THIS LAST ONE IS THE ONE COMMIT
   THAT CANNOT BE NAMED BY ITS SHA HERE, = = because this document IS that
   commit's content: = = a closure record cannot name the sha that carries
   it, = = and the board's verdict names it instead.
 
-⇒ ⇒ ⇒ AND THE LAST THREE ARE NEW COMMITS AND NOT AMENDS, = = because
-`20d2d3182b` is already pushed: = = a pushed sha is never rewritten.
+⇒ ⇒ ⇒ AND NONE OF THE FOUR ABOVE IT REWRITES THE PUSHED ONE, = = because
+`20d2d3182b` is already pushed: = = a pushed sha is never rewritten, = = and
+the amends these commits went through (= = of UNPUSHED commits, = = which is
+not an amend of it) do not touch it.
 
 The push of `main` carried 10 commits that are NOT this scope's
 work. They were on `main` before this scope's last commit landed,
@@ -508,9 +517,11 @@ still live; = = the branch itself was not the thing lost.
 three commits were rebuilt with the same trees, = = the same messages and
 the same content, = = and so every SHA moved: = = the card-scoping
 correction is now `9f8bab6f1`, = = this document's own commit is
-`ed66f2ec5`, = = and the evidence correction (= = the branch tip, = = which by §7's own
-rule is NOT named by its sha here, = = because this document IS that
-commit's content). = = `20d2d3182b` is untouched, = = because it is already
+`ed66f2ec5`, = = and the evidence correction is `080c16813` (= = which IS
+named by its sha here, = = because it is no longer this document's
+content: = = the commit that IS this document's content is the tip, = =
+and by §6's own rule THAT one is not named by its sha here). = =
+`20d2d3182b` is untouched, = = because it is already
 on `main` and on both remotes.
 
 ⇒ ⇒ ⇒ ⇒ AND TWO MORE SHAS ARE GONE, = = AND §4 SAYS WHY. = = The two
@@ -550,7 +561,7 @@ MORE line for a file that ends with one.
 AGAINST A MOVING `main`. = = `main` carries the shared server's commits, = =
 and it moves while this scope works, = = so a denominator measured against it
 moves for reasons that have nothing to do with this scope: = = the same diff
-reads 723 added lines against the pinned base (= = the figure §5 quotes), = = and a
+reads 747 added lines against the pinned base (= = the figure §5 quotes), = = and a
 different one against `main` (= = a MOVING reading, = = and §5 names the moving
 one as moving). ⇒ ⇒
 and the scope's own Swift count is 0 against it (= = the scope touches only
@@ -565,8 +576,21 @@ commits belongs in no document.
 of findings causes) = = gives it a NEW commit id, = = so a sha written into
 a card body goes stale the moment the author fixes anything. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
 And the independent-review gate reads the sha from the card's `## WHAT TO
-BUILD` and matches it against the branch's tip, = = and its length filter
-accepts a full commit id and not a ten-character prefix. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So
-the scope's numbers are converged FIRST, = = THEN the final amend is made,
-= = THEN the sha is read, = = THEN the card body is written with it, = = and
-the branch is not amended again until a verdict comes back.
+BUILD` and matches it against the branch's tip. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **AND THE
+GATE'S TWO REAL CONSTRAINTS ARE MEASURED, = = AND NEITHER IS THE LENGTH**
+(= = `Tools/wenshu-devtool/review_gate.py`, = = measured on this scope):
+(1) `reviewed_sha` takes the **FIRST** run of 7 to 40 hex characters in the
+**FIRST** paragraph of `## WHAT TO BUILD` (= = `re.search(r"[0-9a-f]{7,40}",
+claim)`), = = so the sha must BE that first token (= = a body that puts it
+in the second paragraph reads NO sha at all = = and the card matches
+nothing); and (2) that first token WINS over any later one (= = a card id
+ahead of the sha steals it: = = `t_a33a8ff8` reads as `a33a8ff8`). ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ AND THE LENGTH FILTER ACCEPTS **7 TO 40** CHARACTERS, = = AND THE
+MATCH IS PREFIX-TOLERANT IN BOTH DIRECTIONS (= = `sha.startswith(target)
+or target.startswith(sha)`), = = so **a ten-character body sha IS read and
+DOES match** the forty-character tip (= = a body that says `77321b4a18` is
+matchable, = = and the landed branch CAN be tied to its own verdict).
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So the scope's numbers are converged FIRST, = = THEN the
+final amend is made, = = THEN the sha is read, = = THEN the card body is
+written with it, = = and the branch is not amended again until a verdict
+comes back.
