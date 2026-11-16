@@ -429,7 +429,7 @@ struct EditorTabStripOverflowTests {
         }
     }
 
-    @Test("The strip divides the column it was given where a cell is clamped")
+    @Test("The strip divides the column it was given at every share between 18 and 20 PT")
     func theDrawnCellsStayInsideInTheBand() {
         // The band whose share sits just under the control's own minimum
         // segment width: = MEASURED, the drawn cells stayed 20 PT wide

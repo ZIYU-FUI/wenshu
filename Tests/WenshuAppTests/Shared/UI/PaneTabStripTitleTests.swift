@@ -120,6 +120,24 @@ struct PaneTabStripTitleTests {
         #expect(PaneTabStripTitle.fitted(title, share: 0, font: Self.labelFont()) == title)
     }
 
+    @Test("A title with nothing in it is the marker (= or the cell keeps AppKit's own minimum)")
+    @MainActor
+    func aBlankTitleIsTheMarker() {
+        // MEASURED: an EMPTY label breaks the division. = AppKit gives a
+        // cell with no title its own minimum width (= about 21 PT), = so
+        // 12 empty cells in a 200 PT region stepped by 21.0 / 21.5 PT and
+        // drew their last divider at 205.5 PT (= 5.5 PT past the region).
+        // = ⇒ So a title that carries nothing is the marker, = which
+        // shows nothing and still takes its share.
+        for title in ["", " ", "\u{200B}", "  \u{200B} "] {
+            let fitted = PaneTabStripTitle.fitted(title, share: 40, font: Self.labelFont())
+            #expect(
+                fitted == PaneTabStripTitle.nothingMarker,
+                "a title with nothing in it must be the marker: title '\(title)' fitted to '\(fitted)'"
+            )
+        }
+    }
+
     @Test("The rule never returns the lone ellipsis, whatever the title")
     @MainActor
     func theLoneEllipsisIsNeverDrawn() {
@@ -397,9 +415,11 @@ struct PaneTabStripTitleTests {
         // last divider at 205.5 PT (= 5.5 PT OVER the region), = and
         // 24 of them drew it at 332 PT (= 132 PT over).
         //
-        // ⇒ ⇒ ⇒ SO THE MARKER IS A ZERO WIDTH SPACE: = it carries a
-        // character (= so AppKit divides the frame), = and it draws
-        // nothing (= so the cell shows nothing).
+        // ⇒ ⇒ ⇒ SO THE MARKER IS A ZERO WIDTH SPACE PLUS TWENTY SPACES:
+        // = it carries characters (= so AppKit divides the frame), = it
+        // draws nothing (= so the cell shows nothing), = and it is wider
+        // than its cell (= so the control truncates it to the cell, = and
+        // the cell is exactly its share).
         let tabs = 12
         let region: CGFloat = 200
         let share = region / CGFloat(tabs)

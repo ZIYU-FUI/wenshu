@@ -25,9 +25,10 @@ enum PaneTabStripWidth {
     /// cell only when `label + 20.5 <= share`.
     ///
     /// ⇒ ⇒ ⇒ SO THE TITLE BUDGET IS `share - 20.5`, = not `share`
-    /// (`PaneTabStripTitle.fitted`), = and the two numbers are the SAME
-    /// constant: = the cell's own floor and its own inset are one
-    /// measurement of one edge.
+    /// (`PaneTabStripTitle.fitted`), = and the number is ONE measurement
+    /// of ONE edge (= the segment's own inset, = which its label may
+    /// not use). = MEASURED at the `.small` control size (= the size
+    /// both strips use).
     static let segmentLabelInset: CGFloat = 20.5
 
     /// The width one segment takes when the strip divides the width it

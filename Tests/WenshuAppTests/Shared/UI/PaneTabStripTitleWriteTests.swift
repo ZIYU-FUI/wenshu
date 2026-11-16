@@ -204,6 +204,25 @@ struct PaneTabStripTitleWriteTests {
         )
     }
 
+    @Test("An EMPTY title reaches the control as the marker (= the app's answer)")
+    @MainActor
+    func anEmptyTitleReachesTheControlAsTheMarker() {
+        // The write path is the only place the title is decided, = so
+        // the empty title must be turned into the marker THERE (= or the
+        // control reads it as EMPTY, = and a cell with no title keeps
+        // AppKit's own minimum width, = and the strip overflows the
+        // column it was given).
+        let control = configuredControl(regionWidth: 200, cellCount: 12, title: "")
+        #expect(
+            control.label(forSegment: 0) == PaneTabStripTitle.nothingMarker,
+            """
+            The control holds '\(String(reflecting: control.label(forSegment: 0)))' \
+            for a title that is empty. = It must hold the marker, = the \
+            title that shows nothing and still takes its share.
+            """
+        )
+    }
+
     // MARK: - The write is the app's, = not the test's
 
     @Test("The title the control holds is the app's fitted title (= one door per question)")

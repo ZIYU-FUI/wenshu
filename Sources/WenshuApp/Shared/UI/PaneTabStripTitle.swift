@@ -172,6 +172,18 @@ enum PaneTabStripTitle {
         let room = share - PaneTabStripWidth.segmentLabelInset
         guard room > 0 else { return nothingMarker }
 
+        // A title that carries NOTHING (= empty, = or only whitespace)
+        // is read as EMPTY by the control, = and a cell with no title
+        // keeps AppKit's own minimum (= MEASURED: = 12 empty cells in a
+        // 200 PT region stepped by 21.0 / 21.5 PT and drew their last
+        // divider at 205.5 PT, = 5.5 PT past the region). = ⇒ So a title
+        // with nothing in it is the marker, = which shows nothing and
+        // still takes its share.
+        let isBlank = title.allSatisfy {
+            $0.isWhitespace || $0 == "\u{200B}"
+        }
+        guard !isBlank else { return nothingMarker }
+
         // The whole title, when the cell has room for it.
         if drawnWidth(of: title, font: font) <= room {
             return title
