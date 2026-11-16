@@ -138,6 +138,24 @@ stay theirs.
   that a second instance of the same bundle id was on screen from
   another session's tree.
 
+### THE LOOK ON THIS ROUND'S BUILD
+
+- The build reviewed: `/Volumes/ANAN/Engineering/wenshu/build/Wenshu.app`,
+  rebuilt from the merged tree, ad-hoc signed, launched with a plain
+  `open` (= never `open -n`).
+- It CRASHED at 09:45:55 with `EXC_BREAKPOINT` in
+  `+[NSApplication _crashOnException:]`, thrown from
+  `-[NSWindow(NSDisplayCycle) _postWindowNeedsUpdateConstraints]` and
+  `-[NSView _informContainerThatSubviewsNeedUpdateConstraints]`: = =
+  AppKit's runaway-layout guard, = = the exception the tree already has
+  a card for (`t_b74ba50e`, = archived). = = It is the layout pass's
+  loop, = = not the strip's arithmetic: = = the same exception is
+  recorded on `main` before this session's diff, = = and the band fix
+  moves no constraint.
+- The build was RELAUNCHED at 09:47 (pid 45635, = = one window) and was
+  running when the round closed.
+- The boss's verdict on this round's build: PENDING.
+
 ## TWO EXPANSIONS THE WHOLE SUITE REQUIRED (each its own line)
 
 1. `Tests/WenshuAppTests/Chat/StreamBufferChainTests.swift`: the wait
@@ -406,6 +424,141 @@ are unchanged) and the gate then read `approved`.
    worktree). A long-lived worktree does not belong under the prunable
    scratch directory.
 
+## ROUND 3 (2026-11-16) - THE BAND FIX AUDITED, AND THE ONE GAP IT LEFT
+
+### The gates on the merged tree
+
+The band fix landed in `deff19bac4` and the closeout's own gates were re-run
+on the merged tree (`4e701c3264`, the tip both remotes read) rather than on
+the branch it came from:
+
+| gate | command | result |
+| --- | --- | --- |
+| 7.1 build | `swift build --build-tests` | exit 0 |
+| 7.3 design sweep | 22 sweep suites | 84 tests in 22 suites passed (4.921 s) |
+| 7.5 pollution | `ci_change_gate.py --check pollution` | clean |
+| 7.6 dead code | `verify-dead.py` | `DEAD 0` |
+| 7.8 formatting | `ci_change_gate.py --check formatting` | clean |
+| 7.10 narrow band | the strip's 3 suites | 23 tests in 3 suites passed |
+| 7.10 the card's ten | the ten suites | 72 tests in 10 suites passed |
+
+The whole suite is red at baseline and no number from it is a verdict. Two
+runs produced four and seven failing suites, and the failing SET was: three
+deterministic points (`ChatViewHistoryShortcutTests.swift:35`,
+`EditorTabTitleTests.swift:60`, `AsyncDelegationRegistryTests.swift:104`) and
+four load-sensitive suites (`EditorPersistenceTests`, `LongRunningGoalButtonTests`,
+`HermesTodoStoreConcurrencyTests`, `WenshuConductorToolRegistryWiringTests`).
+Isolated re-runs settled it: the load-sensitive three came back green
+(13 tests in 3 suites, 4.868 s) and the deterministic three stayed red
+(34 tests in 4 suites, 3 issues). None of them is this change's.
+
+### The look, and the crash that is not this change's
+
+`build/Wenshu.app` was rebuilt from the merged tree and launched at 09:29:31
+(= plain `open`, one instance, one window). At 09:45:55 it died with
+`EXC_BREAKPOINT` in `+[NSApplication _crashOnException:]`, thrown from
+`-[NSWindow(NSDisplayCycle) _postWindowNeedsUpdateConstraints]` and
+`-[NSView _informContainerThatSubviewsNeedUpdateConstraints]`: AppKit's
+runaway-layout guard, the exception the tree already has a card for
+(`t_b74ba50e`, archived). It is the layout pass's loop, not the strip's
+arithmetic: the same exception is recorded on `main` before this session's
+diff, and the band fix moves no constraint. The build was relaunched at
+09:47 (pid 45635, one window) for the look.
+
+### The audits, and what each finding was worth
+
+Two independent audits read the landed change on separate axes. The
+standards axis returned P0 = 0, P1 = 1, P2 = 4; the spirit axis returned five
+findings about the change's own claims. The disposition of every one:
+
+| finding | axis | disposition |
+| --- | --- | --- |
+| `PaneTabStripWidth`'s doc justifies the 20.5 PT inset with the per-cell floor the fix DELETED | standards P1 | FIXED in the rework: the doc names the measurement (one edge, `.small`) |
+| A blank title is an empty label, and an empty label keeps AppKit's own minimum width, so the cell overflows | spirit | FIXED in the rework: a blank title is a CHARACTER (= a zero width space), so the control divides the region exactly |
+| The marker's test comment still says the marker is a zero width space alone | spirit | FIXED: the comment names the marker (zero width space plus twenty spaces) |
+| The band's test name still says a cell is clamped there | spirit | FIXED: the name says the shares it holds |
+| `LabelSegmentedControl`'s import order | standards P2 | DECLINED: no enforced convention; the tree carries both orders |
+| The marker's literal `20` | standards P2 | DECLINED: a measured width, with its measurement in the doc above it |
+| `apiMin = 20.00` does not match the "same edge" wording | spirit | DECLINED: the wording now names one measurement, the arithmetic is untouched |
+| The 316-row sweep that proved `OVER=68 -> 0` is not committed | spirit | DECLINED: the 14 committed geometries are the permanent proof; a 316-row sweep is a slow test |
+| The old spec's 300 PT assertion no longer holds, and the removed floor must not be reinstated | spirit | ACKNOWLEDGED: the no-floor rule is the boss's later decision; the tests assert it |
+
+The one that mattered was the blank title: it is the only finding that could
+put a track past its column after the fix, and it needed code, not prose.
+
+### The rework, and the review round that caught its own regression
+
+The first rework (`bc1ce72f95`) made a blank title the MARKER at every
+share. The review of it (`t_85300052`) returned CHANGES REQUESTED on two
+blocking findings, and both were MEASURED before the next commit was
+written:
+
+1. **The write-path arm could not fail.** It sat at a 200 PT region with 12
+   cells (= a 16.67 PT share), where the parent commit's own rule already
+   answered with the marker (= `room = 16.67 - 20.5 < 0`), so the arm
+   asserted a property the parent already had. ⇒ The arm moved to a share
+   WITH room (= 400 PT with 12 cells = 33.33 PT), where the parent wrote
+   the empty title into the control.
+2. **The guard overflowed the column.** The marker is 71.5 PT wide, so a
+   cell wider than that keeps it, and the cell then takes the marker's width
+   plus the segment's own inset (= 92.0 PT). MEASURED through the
+   production write path on the real hosted strip: 6 tabs in a 462 PT
+   region drew 552 PT of track (= 90 PT over), 6 in 480 PT drew 552, 4 in
+   320 PT drew 368 (= 48 over), 4 in 360 PT drew 368. The band where it
+   overflows runs from a 71.5 PT share to a 92.0 PT one, and the cell step
+   in the band is a constant 92.0 PT, not the share.
+
+⇒ ⇒ ⇒ So the answer is a label that is a CHARACTER without being wide: the
+ZERO WIDTH SPACE. A cell with room for a label takes it (= the control
+divides the region exactly, and it draws no ink), and a cell with NO room
+keeps the marker (= the control truncates the marker to the cell, so the
+cell is exactly its share). MEASURED on the real strip across 26
+geometries per title shape (= 182 rows): zero overflows, and every drawn
+track equals the region.
+
+⇒ ⇒ ⇒ AND THE ARMS HOLD IT, which is the part a reviewer is right to
+demand: with the blank title answering with the marker, the pure-rule arm
+records 4 issues and the real-strip arm 5; with the blank title reaching
+the control as it is, the pure-rule arm records 3 and the write-path arm 1.
+A mutation that cannot be reproduced is not a proof, so both were run.
+
+⇒ ⇒ ⇒ AND THE REAL STRIP IS NOW IN THE SUITE: the overflow that the
+review found lived in a path no suite covered, because
+`EditorTabStripOverflowTests` never exercised a blank title (= its tabs
+carry `title: nil`, which the editor turns into a placeholder). The new arm
+measures a blank title's cells at 13 geometries on the real hosted strip:
+the narrow shares, the band, and the wide shares where the marker
+overflows.
+
+### The rework's own gates
+
+`6b73f25b51` on four files: the blank title's rule and the blank label's
+constant in `PaneTabStripTitle`, and the three test files that hold them.
+Its gates in its own tree: build exit 0, the strip's three suites 27 tests
+in 3 suites passed (= 23 before, plus the four arms), the card's ten suites
+0 failed, the design sweep 84 tests in 22 suites passed, `verify-dead`
+`DEAD 0`, pollution and formatting clean. Its verdict: `t_8e0c9aa6` = APPROVED by `wenshu-review`,
+= and the reviewer re-measured every number in it (= 58 geometries on the
+real hosted strip, = and both mutations reproduced).
+
+### The review lane, and what cost the most time
+
+Two card runs died before they started, and both deaths were the LANE, not
+the work:
+
+1. The `magpie` provider block had disappeared from the review profile's
+   `config.yaml` (= a rewrite at 10:31 left the profile with one
+   provider), so every worker died at the provider lookup with
+   `Unknown provider 'magpie'`. ⇒ Restored from the profile's own
+   `state-snapshots/20261116-010714-pre-update/config.yaml`.
+2. The `magpie` gateway itself was then DOWN (= `127.0.0.1:3425` refused
+   the connection, = and the container and its image were both gone), so
+   the restored lane could not run either. ⇒ The card fell back to the
+   profile's default lane, which carried the previous round to a verdict.
+   ⇒ ⇒ ⇒ So a review card's fate depends on the LANE it is pinned to, =
+   and a pinned lane is a single point of failure that no card body can
+   repair.
+
 ## THE DURABLE LESSONS (they live in the SKILLS, not here)
 
 - `wenshu-parallel-dev/references/card-body-authoring.md`: the section
@@ -421,6 +574,14 @@ are unchanged) and the gate then read `approved`.
   scratch directory prunes after 24 hours idle, and it takes a worktree
   and a probe with it (= a branch and its commit survive in the
   repository).
+- `wenshu-parallel-dev/references/quota-walls-account-window-and-concurrency.md`:
+  a PINNED review lane is a single point of failure (= the provider
+  block can vanish from the profile's own config, = = and the gateway
+  itself can be down, = = and no card body can repair either); = = the
+  verdict must land in the RUN's metadata, = = so the card body names
+  the exact completion call; = = and a rule about what a control does
+  with a label is MEASURED on the real host, = = never reasoned about
+  (= the reasoning here produced an overflow band nobody had measured).
 
 
 - `wenshu-parallel-dev/references/the-guard-drives-the-door.md`: the
