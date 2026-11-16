@@ -61,20 +61,6 @@ import SwiftUI
 import WenshuAgent
 
 
-/// The physical arrangement of the editor + chat split.
-/// Stacked = the editor above the chat zone; side by side = the
-/// editor left of the chat zone.
-enum EditorArrangement: Equatable, Sendable {
-    case stacked
-    case sideBySide
-
-    /// The NSSplitView orientation that draws this arrangement.
-    /// Apple HIG (developer.apple.com/documentation/appkit/nssplitview):
-    /// 'If false, the split view is oriented horizontally (= items
-    /// are arranged top to bottom).'
-    var isVertical: Bool { self == .sideBySide }
-}
-
 /// Native AppKit split container (= editor on top, chat zone on bottom).
 /// Hosts SwiftUI views via `NSHostingController`.
 @MainActor
@@ -92,94 +78,6 @@ final class EditorChatNSController: NSSplitViewController {
     /// 'When you set this property, the system automatically
     /// preserves the user's split-view configuration.'
     static let autosaveName = "wenshu.editor.split.autosave"
-
-    /// The autosave name that holds the side-by-side
-    /// arrangement's divider position. One name per arrangement
-    /// (= each arrangement keeps its own dragged position; = the
-    /// stacked name above is the historical one).
-    static let sideAutosaveName = "wenshu.editor.split.autosave.side"
-
-    /// The narrowest the EDITOR pane may be while the panes stand
-    /// side by side.
-    ///
-    /// The number is the editor's own comfortable prose measure
-    /// (= 595-680 PT; = the paper-canvas notes). It is above the
-    /// editor's chrome width (= 116 PT: the tab strip row's own floor
-    /// + its trailing close control), so the chrome always fits
-    /// inside a pane the rule accepts.
-    ///
-    /// Why the prose measure and not the chrome width: the
-    /// 2026-10-26 capture handed the editor 460 PT, which is more
-    /// than the chrome needs and less than the design's prose
-    /// measure, and the result was an editor column that could not
-    /// hold its own top chrome. A rule that hands the editor a
-    /// width the design rejects picks an arrangement the design
-    /// refuses, however legal it is by the rule (= the 460 PT
-    /// editor column in that capture is the measured example).
-    static let editorPaneMinimumWidth: CGFloat = 595
-
-    /// The narrowest the CHAT pane may be while the panes stand side
-    /// by side.
-    ///
-    /// Measured 2026-10-26 from a running capture: the chat column
-    /// was 282 PT wide and read well (the transcript and the
-    /// composer both fit), so 280 PT is the floor. It is above the
-    /// composer's own minimum (= 5 buttons of 36 PT, 5 gaps of 10 PT
-    /// and the 12 PT horizontal padding = 254 PT), so the chat's
-    /// chrome fits inside a pane the rule accepts.
-    static let chatPaneMinimumWidth: CGFloat = 280
-
-    /// The narrowest the EDITOR pane's own chrome can be: the tab
-    /// strip row (= the tab strip + the row's trailing close control).
-    ///
-    /// 116 PT = the tab strip's own narrowest segment (88 PT) + the
-    /// trailing close control's hot area (28 PT =
-    /// `DesignTokens.paneTabHotArea`).
-    ///
-    /// Why the number CHANGED (2026-11-04): this number used to be
-    /// 448 PT, which was the format toolbar's own width (= 12 buttons of
-    /// 28 PT, the trailing close button, the two chunk separators, the
-    /// intra-/inter-chunk spacing and ChromeTopBar's horizontal
-    /// padding). The format toolbar is GONE (= the format commands moved
-    /// to the inspector column's format page), so the editor column's
-    /// chrome is the tab strip row alone, and the width that row needs
-    /// is the strip's own floor plus the close control. A number that
-    /// still described a band the column no longer draws would be a
-    /// fiction the rule tests against.
-    ///
-    /// Why the floor is NOT the strip's share (2026-11-12): the tab
-    /// strip no longer holds a per-segment floor (= the boss ruled that
-    /// a tab may show not one character, = so the strip divides the
-    /// column it was given). = 88 PT is what ONE tab needs to show a
-    /// document name, = and that is still what this floor measures: = the
-    /// pane must be wide enough for one readable tab beside the close
-    /// control. = the number is a pane floor, = not a rule about how the
-    /// strip divides a column that is wider than the floor.
-    ///
-    /// Why a SECOND number beside the pane floors: the floors above
-    /// are what a pane must hold when the two panes SHARE the width
-    /// (= the editor's prose measure). The chrome width is what a
-    /// pane must hold when it has the width to ITSELF (= the stacked
-    /// arrangement), where the document's measure is the canvas's
-    /// business and the pane only has to carry its chrome.
-    static let editorChromeMinimumWidth: CGFloat = 116
-
-    /// The narrowest the CHAT pane's own chrome can be: the icon
-    /// row + the composer.
-    ///
-    /// 254 PT = the composer's 5 buttons of 36 PT, 5 gaps of 10 PT
-    /// and the 12 PT horizontal padding.
-    static let chatChromeMinimumWidth: CGFloat = 254
-
-    /// The width at which an EVEN split (= 50:50) can host both
-    /// panes' chrome.
-    ///
-    /// The editor's floor is the binding one (= the chat's floor is
-    /// much lower), so an even split needs twice the editor's floor
-    /// (= 2 x 595 = 1190 PT). A share that is not even needs a
-    /// different width, which is why the rule is asked about the
-    /// share and not about a single number.
-    static let sideBySideMinimumWidth: CGFloat = editorPaneMinimumWidth * 2
 
     /// Previously used a one-shot UserDefaults flag
     /// (= wenshu.editor.split.didSetFirstLaunchPosition) to force
@@ -200,26 +98,8 @@ final class EditorChatNSController: NSSplitViewController {
     /// on it (= the canonical Apple Keynote speaker-notes API).
     var chatItem: NSSplitViewItem?
 
-    /// The arrangement the split is drawn in right now.
-    var arrangement: EditorArrangement = .stacked
-
-    /// The mode the SwiftUI side last asked for (= automatic, or
-    /// one of the two pinned arrangements).
-    var layoutMode: EditorLayoutMode = .automatic
-
-    /// Whether a deferred structural change is queued for the next
-    /// runloop turn.
-    var arrangementApplyScheduled = false
-
-    /// The arrangement whose 50:50 reset is owed on the next
-    /// layout pass. Set when an arrangement change finds no stored
-    /// payload for the arrangement being entered; nil when the
-    /// entered arrangement keeps a position of its own.
-    var pendingResetArrangement: EditorArrangement?
-
     /// The share of the axis the divider holds (= the user's own
-    /// position). The number the layout asserts and the number the
-    /// width rule judges.
+    /// position). The number the layout asserts.
     ///
     /// Why it is read out of the LAYOUT and not from the stored
     /// payload: the payload is written by AppKit as the layout
