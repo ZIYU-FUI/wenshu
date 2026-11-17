@@ -86,6 +86,37 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
     /// needed).
     var routingKey: String?
 
+    /// The row's stable key for the tree's expansion state.
+    ///
+    /// The expansion state is remembered across a relaunch, = so the
+    /// key names the row by its business identity (= the shelf's id, =
+    /// the book's id, = the category's routing key), = NOT by the row's
+    /// `id`: = the folder rows' ids are hashed per process (= they
+    /// change on every launch), = so an id-keyed expansion state would
+    /// lose the folder rows on every relaunch.
+    ///
+    /// Nil for a leaf (= a row without children is never open).
+    var expansionKey: SidebarItem? {
+        guard let children, !children.isEmpty else { return nil }
+        switch kind {
+        case .shelf:
+            return .shelf(id)
+        case .book:
+            // A book row and a folder row share the `.book` kind, = but
+            // only a book row has children (= the folder rows are
+            // leaves), = so the kind tells the two apart here.
+            return .book(id)
+        case .reference:
+            // The reference library's root row (= the synthetic root
+            // the category rows hang under).
+            return .referenceLibraryRoot
+        case .referenceCategory:
+            return .referenceCategory(routingKey ?? title)
+        case .tag, .divider:
+            return nil
+        }
+    }
+
     enum Kind: Hashable, Sendable {
         case shelf
         case book

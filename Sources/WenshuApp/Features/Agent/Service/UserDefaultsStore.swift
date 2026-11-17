@@ -69,6 +69,7 @@ public enum WenshuDefaultsKey: String, CaseIterable, Sendable {
     case sidebarSelection    = "wenshu.sidebarSelection"
     case sidebarPart         = "wenshu.sidebar.part"
     case sidebarSelections   = "wenshu.sidebar.selections"
+    case sidebarExpandedRows = "wenshu.sidebar.expandedRows"
     case cwdOverride         = "wenshu.runtimeCWD"
     case creditsMonthly      = "wenshu.credits.monthly"
 }

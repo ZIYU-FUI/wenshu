@@ -70,7 +70,7 @@ struct SidebarRowView: View {
         // PT to sidebar right edge − 10 PT (= full visible width minus the
         // standard inset, NOT flush to the column edge; = the user's ''
         // requirement).
-        rowContent
+        Self.rowContent(for: node)
             .listRowInsets(node.kind == .divider
                             ? EdgeInsets(top: DesignTokens.spacingIconic, leading: 0, bottom: DesignTokens.spacingIconic, trailing: 0)
                             : EdgeInsets())
@@ -101,10 +101,7 @@ struct SidebarRowView: View {
             // click right-click; = the list- level forSelectionType still
             // fires for multi-select batch delete (= Apple canonical macOS
             // 14+ sidebar pattern).
-            .modifier(PerRowContextMenu(
-                node: node,
-                callbacks: callbacks
-            ))
+            .modifier(PerRowContextMenu(node: node, callbacks: callbacks))
     }
 
     /// Applies `.tag(node)` to non-divider rows only
@@ -136,7 +133,12 @@ struct SidebarRowView: View {
     /// the row's `node` directly (= the right-
     /// click hit target IS the row that hosts the
     /// menu).
-    private struct PerRowContextMenu: ViewModifier {
+    /// The per-row context menu.
+    ///
+    /// It is not `private` (= the tree's own rows draw their menu
+    /// through it too, = and a parent row's menu must be the parent
+    /// row's menu).
+    struct PerRowContextMenu: ViewModifier {
         let node: SidebarNode
         let callbacks: SidebarRowCallbacks?
         func body(content: Content) -> some View {
@@ -256,8 +258,14 @@ struct SidebarRowView: View {
     /// in `body` (= uniform regardless of node kind; = the
     /// divider row is still selectable on id so the OutlineGroup
     /// selection bridge stays consistent).
+    /// The row's content (= the icon + the title + the subtitle).
+    ///
+    /// It is a static function (= not a computed property) so the
+    /// tree's own rows can draw the SAME content (= a disclosure
+    /// group's label is a row too, = and the two must be one row's
+    /// worth of pixels).
     @ViewBuilder
-    private var rowContent: some View {
+    static func rowContent(for node: SidebarNode) -> some View {
         // The `.divider` kind renders as a pure horizontal line (= no icon, no title, no
         // subtitle; = just a Divider + small vertical breathing room). Apple
         // HIG section separator idiom. the divider has
