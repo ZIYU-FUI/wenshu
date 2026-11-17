@@ -289,7 +289,7 @@ enum LibraryDocumentLoader {
     static let headByteCount = 8 * 1024
 
     /// What a head read found.
-    private enum HeadRead {
+    enum HeadRead {
         /// The whole file (= = the file is shorter than the head).
         case whole(String)
         /// The head of a longer file (= = and whether it holds the H1 the
@@ -302,16 +302,27 @@ enum LibraryDocumentLoader {
 
     /// Read a file's head.
     ///
+    /// = = INTERNAL (= = not private) = = so the test can pin the READ
+    /// itself (= = the card's content is the same whether the head read
+    /// works or falls back, = = so only the read's own result can tell
+    /// the two apart).
+    ///
     /// = = The read stops at the head's byte count, = = and a head that
-    /// ends mid-character is reported as undecodable (= = so the caller
-    /// reads the whole file and the card shows exactly what it showed
-    /// before).
-    private static func readHead(of url: URL) -> HeadRead {
+    /// ends mid-character keeps its COMPLETE characters (= = the trailing
+    /// incomplete one is dropped) = = so a CJK document's head is still a
+    /// head (= = dropping the whole read would make the head read a
+    /// whole-body read for every CJK file, = = because the cut lands
+    /// inside a character in almost every one of them).
+    ///
+    /// = = A head that cannot be decoded AT ALL is reported as
+    /// undecodable (= = so the caller reads the whole file and the card
+    /// shows exactly what it showed before).
+    static func readHead(of url: URL) -> HeadRead {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return .undecodable }
         defer { try? handle.close() }
         guard let data = try? handle.read(upToCount: headByteCount) else { return .undecodable }
         let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
-        guard let text = String(data: data, encoding: .utf8) else { return .undecodable }
+        guard let text = Self.decodePrefix(data) else { return .undecodable }
         if size <= headByteCount {
             return .whole(text)
         }
@@ -319,6 +330,27 @@ enum LibraryDocumentLoader {
         // and the card's summary (= = the first 200 characters after the
         // H1) is complete only if the head holds the H1.
         return .head(text, holdsH1: PreviewPaneOps.splitFirstH1(text).0 != nil)
+    }
+
+    /// Decode a byte block, = = dropping a trailing incomplete character.
+    ///
+    /// = = A UTF-8 character is at most four bytes, = = so a block that
+    /// ends mid-character is repaired by dropping up to three trailing
+    /// bytes (= = and the longest decodable prefix is what the caller
+    /// gets).
+    private static func decodePrefix(_ data: Data) -> String? {
+        if let text = String(data: data, encoding: .utf8) {
+            return text
+        }
+        var trimmed = data
+        for _ in 0 ..< 3 {
+            guard !trimmed.isEmpty else { return nil }
+            trimmed = trimmed.dropLast()
+            if let text = String(data: trimmed, encoding: .utf8) {
+                return text
+            }
+        }
+        return nil
     }
 }
 

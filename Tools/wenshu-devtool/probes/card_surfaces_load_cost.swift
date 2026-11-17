@@ -76,6 +76,12 @@ let FRAGMENTS: [(file: String, needle: String)] = [
         "Features/Editor/View/PreviewPaneLibraryList.swift",
         "static let headByteCount = 8 * 1024"
     ),
+    // The head keeps its complete characters (= = the cut inside a
+    // multi-byte character does not discard the whole read).
+    (
+        "Features/Editor/View/PreviewPaneLibraryList.swift",
+        "private static func decodePrefix(_ data: Data) -> String?"
+    ),
     // The list is walked ONCE per library change (= = not per body pass).
     (
         "Features/Editor/View/PreviewPaneLibraryList.swift",

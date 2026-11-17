@@ -230,6 +230,74 @@ struct LibraryDocumentListTests {
         }
     }
 
+    @Test("A CJK document longer than the head, = = whose cut lands inside a character, = = is STILL a head read")
+    func theHeadKeepsItsCompleteCharactersWhenTheCutLandsInsideOne() throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+
+        // A CJK document whose byte 8192 lands INSIDE a character (= = the
+        // common case for a Chinese book, = = because a UTF-8 character is
+        // three bytes and the head's count is not a multiple of three).
+        //
+        // = = ⇒ The head read MUST keep its complete characters (= = it
+        // MUST NOT discard the whole read, = = which would make the head
+        // read a whole-body read for every CJK document).
+        let bookId = UUID()
+        let shelfId = UUID()
+        let folderDir = fixture.bookStore.stores.shelvesRoot
+            .appendingPathComponent(shelfId.uuidString, isDirectory: true)
+            .appendingPathComponent("books", isDirectory: true)
+            .appendingPathComponent(bookId.uuidString, isDirectory: true)
+            .appendingPathComponent(BookFolder.outlines.directoryName, isDirectory: true)
+        try FileManager.default.createDirectory(at: folderDir, withIntermediateDirectories: true)
+        let book = Book(id: bookId, title: "长文书", author: "wenshu", shelfId: shelfId)
+        try JSONEncoder().encode(book).write(to: folderDir.deletingLastPathComponent().appendingPathComponent("book.json"))
+
+        let body = String(repeating: "文枢的正文内容。", count: 1200)
+        let text = "# 长文第一章\n\n\(body)\n"
+        let fileName = "长文第一章.md"
+        let url = folderDir.appendingPathComponent(fileName)
+        try text.write(to: url, atomically: true, encoding: .utf8)
+        let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
+        #expect(size > 8192, "the fixture's document MUST be longer than the head (= \(size) bytes)")
+
+        // The head read itself (= = the card's content is the same whether
+        // the read works or falls back, = = so only the read's own result
+        // can tell the two apart).
+        switch LibraryDocumentLoader.readHead(of: url) {
+        case .undecodable:
+            Issue.record("the head read MUST NOT be discarded (= = the cut landed inside a CJK character, = = and the read threw the whole block away)")
+        case let .head(head, _):
+            #expect(
+                head.utf8.count <= 8192,
+                "the head MUST hold no more than the head's byte count (= \(head.utf8.count))"
+            )
+            #expect(
+                head.utf8.count > 8000,
+                "the head MUST hold its complete characters (= \(head.utf8.count) bytes = = a discarded read would hold 0)"
+            )
+        case let .whole(whole):
+            Issue.record("a document longer than the head MUST NOT be read whole (= \(whole.utf8.count) bytes)")
+        }
+
+        // And the card still shows what the whole-body read shows.
+        let list = LibraryDocumentLoader.load(
+            bookStore: fixture.bookStore,
+            sortOrder: .pinyinFirstLetter
+        )
+        let document = list.documents.first { $0.title == "长文第一章" }
+        #expect(document != nil, "the list MUST hold the long document")
+        #expect(
+            document?.tags == ["长文第一章"],
+            "the long document's CHIP TAG MUST be its first H1 (= \(document?.tags ?? []))"
+        )
+        let wholeSummary = String(body.prefix(200))
+        #expect(
+            document?.summary == wholeSummary,
+            "the long document's SUMMARY MUST be the whole-body read's summary (= \(document.map { $0.summary.count } ?? -1) characters vs \(wholeSummary.count))"
+        )
+    }
+
     @Test("The list's documents keep their stable ids (= = the grid's ForEach identity)")
     func theListsDocumentsKeepTheirStableIds() throws {
         let fixture = try makeFixture()
