@@ -133,44 +133,68 @@ extension PreviewPane {
     /// documents" = does not compile, = and the boss's rule ("素材栏显示
     /// 整个文枢库的所有文档") = cannot be broken here. = ⇒ ⇒ ⇒ MEASURED
     /// (= the review on this diff): = the documents used to be collected
-    /// inline in this very view, = and dropping them there left the
-    /// whole repository green.
+    /// The whole-library scope: the library's documents as ONE list.
+    ///
+    /// = = The boss's rule (2026-11-17): = = ONE list (= the 资料库's
+    /// documents first, = = then 书 1, = = then 书 2), = = not the two
+    /// stacked grids this scope used to draw.
+    ///
+    /// = = The list arrives ALREADY BUILT (= = `LibraryDocumentStore`
+    /// walks the library once, = = when the library changes, = = not once
+    /// per body pass), = = and already SORTED (= = the pinyin first
+    /// letter by default, = = the order the boss named).
     @ViewBuilder
-    func allLibraryScopeView(allDocs: AllLibraryDocs) -> some View {
-        // The references (= the 资料库's documents). = The same loader
-        // the reference scope uses (= `loadAllEntities`), = and the same
-        // user-facing layer filter (= the raw layer is for ingestion,
-        // not for browsing).
-        let entities = PreviewPaneOps.loadAllEntities(bookStore: bookStore).entities
-            .filter { $0.layer == .layerEntities }
-        // Every book's documents (= the 书房's documents). = The SAME
-        // door the chrome count asks (= `loadAllLibraryDocs`), = so
-        // the drawn grid and the count can never disagree about what
-        // the whole library holds.
-        let docs = allDocs.docs
-        let searchedEntities = PreviewPaneOps.searchFilteredEntities(
-            entities,
-            query: resolvedSearchQuery
-        )
-        let searchedDocs = PreviewPaneOps.searchFilteredBookDocs(
-            docs,
-            query: resolvedSearchQuery
-        )
-        if entities.isEmpty && docs.isEmpty {
+    func allLibraryScopeView(documents: [LibraryDocument], isLoaded: Bool) -> some View {
+        if !isLoaded {
+            // The list has not landed yet (= = the walk is still running).
+            // ⇒ ⇒ ⇒ This is NOT the empty state: = = the library is not
+            // empty, = = the list is not here yet. = = Showing the empty
+            // state here would tell the user the library holds nothing
+            // (= = and it does).
+            ProgressView()
+                .controlSize(.small)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if documents.isEmpty {
             emptyState(
                 icon: "books.vertical",
                 titleKey: "preview.empty_state.shelf_empty",
                 bodyKey: "preview.empty.shelf_no_books"
             )
         } else {
-            VStack(spacing: 0) {
-                if !searchedEntities.isEmpty {
-                    overviewGrid(allEntities: searchedEntities)
+            libraryDocumentGrid(documents: documents)
+        }
+    }
+
+    /// The whole library's ONE grid of cards.
+    ///
+    /// = = ONE `LazyVGrid` in ONE `ScrollView` (= = the two grids this
+    /// scope used to draw were two scroll views stacked, = = which is the
+    /// "上下结构" the boss's rule removes), = = and the cards flow in the
+    /// list's order (= = the 资料库's documents, = = then each book's).
+    func libraryDocumentGrid(documents: [LibraryDocument]) -> some View {
+        GeometryReader { geometry in
+            ScrollView {
+                LazyVGrid(
+                    columns: adaptiveColumns(width: geometry.size.width),
+                    spacing: 16
+                ) {
+                    ForEach(documents) { document in
+                        card(for: document)
+                            // per-card transition (= see the scope grids'
+                            // rationale).
+                            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    }
                 }
-                if !searchedDocs.isEmpty {
-                    bookDocsGrid(docs: searchedDocs)
-                }
+                // per-card animation trigger (= search filter add/remove
+                // within the list).
+                .animation(.smooth(duration: 0.18), value: documents.map(\.id))
+                .padding(.vertical, DesignTokens.spacingStandard)
+                // 2026-10-12 [archived-round] — see the `categoryGridContent` LazyVGrid for the
+                // doc on the `.contentMargins(.bottom, 33, for:
+                // .scrollContent)` chrome-footer gap-absorber.
+                .contentMargins(.bottom, 33, for: .scrollContent)
             }
+            .scrollIndicators(.hidden, axes: .vertical)
         }
     }
 
@@ -215,11 +239,74 @@ extension PreviewPane {
             // Non-empty: reuse the canonical bookDocsGrid (= same LazyVGrid +
             // adaptiveColumns(width:) + sort + Card styling as
             // bookScopeView). Avoids the draft duplicate LazyVGrid (=
-            // different .padding(24) vs .padding(.vertical,
-            // DesignTokens.spacingStandard); = the user's "width is wrong"
+            // a hard-coded padding vs the token-driven vertical
+            // padding; = the user's "width is wrong"
             // complaint was the duplicate-render path bypassing the
             // existing chromePaddingVertical / card chrome contract).
             bookDocsGrid(docs: filteredDocs)
         }
+    }
+
+    /// The card for one document of the whole library's ONE list.
+    ///
+    /// = = The card is the SAME card the two scope grids draw (= = the
+    /// card knows only `CardSource`), = = so the whole-library list draws
+    /// the same cards the 资料库 and the 书房 draw.
+    ///
+    /// = = The rename and the delete callbacks switch on the source
+    /// (= = a reference renames as a reference, = = a book document as a
+    /// book document), = = because the two kinds have two different
+    /// flows (= = `beginReferenceRename` vs `beginBookDocRename`).
+    func card(for document: LibraryDocument) -> Card {
+        let source = document.source
+        let target: CardCoverTarget
+        switch source {
+        case let .reference(entity):
+            target = coverTarget(forReference: entity.id)
+        case let .bookDoc(doc):
+            target = coverTarget(forBookDoc: doc.id)
+        }
+        let cover = coverEntry(for: target)
+        return Card(
+            source: source,
+            onDoubleClick: { source in
+                onDoubleClick(source)
+            },
+            onRename: {
+                switch source {
+                case let .reference(entity): beginReferenceRename(entity)
+                case let .bookDoc(doc): beginBookDocRename(doc)
+                }
+            },
+            onDelete: {
+                switch source {
+                case let .reference(entity): beginReferenceDelete(entity)
+                case let .bookDoc(doc): beginBookDocDelete(doc)
+                }
+            },
+            coverImageURL: cover.imageURL,
+            coverVideoURL: cover.videoURL,
+            onGenerateCover: {
+                generateCover(
+                    for: target,
+                    title: document.title,
+                    summary: document.summary
+                )
+            },
+            onMakeDynamicCover: {
+                makeVideo(for: target)
+
+            },
+
+            onRemoveCover: {
+                removeCover(for: target)
+
+            },
+            hasCover: cover.hasCover,
+            isGeneratingCover: coverGenerationService.isGenerating(target),
+            coverErrorMessage: cover.record?.lastError,
+            coverClipErrorMessage: cover.record?.clipError,
+            isMakingVideo: coverVideoService.isMakingVideo(target)
+        )
     }
 }
