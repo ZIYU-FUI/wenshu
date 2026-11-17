@@ -52,6 +52,20 @@ So the claim "the row that was cut off by the panel's title area is now
 fully drawn" rests on the transcript's own geometry, not on a capture of
 the panel's title area.
 
+**The whole-suite claim rests on the SAME counts on the base tree, = = not on
+a green run alone.** Measured on the tree at `84c3a6386` (= this scope's
+base): the same two swift-testing summaries (= 151 tests in 34 suites, = =
+208 tests in 24 suites) and the same XCTest totals (= = 494 with 1 skipped,
+= = 0 failures). ⇒ ⇒ ⇒ AND THE TWO SUITES THAT FAILED IN ONE RUN ARE
+ORDER-SENSITIVE, = = NOT CAUSED BY THIS CHANGE: = = they PASSED when run
+ALONE on this tree (= = "HermesTodoStore concurrency" and "WenshuConductor
+↔ ToolRegistry wiring", = = 10 tests in 2 suites, = = PASS), = = and the
+run that failed them was competing with two other full-suite runs for the
+CPU. = = The house already records that the whole-suite failing SET floats
+on the same tree (= = `docs/agents/2026-11-14-session-close-the-performance-audit.md`
+§7.2), = = so the comparison is the one the house makes: = = the same
+suites, alone, on both trees.
+
 **The HIG sentence is about SCROLLING, not about pinning.** The quoted
 sentence rules out an automatic jump the user did not ask for (= = the
 newest-user-row trigger). It does NOT say anything about a held row, and
@@ -71,7 +85,7 @@ probe over the real stack, not a screenshot of the running app.
 |---|---|
 | `swift build --build-tests` | exit 0 |
 | the focused suites (`ChatTranscriptFlatFlowTests`, `ChatUserBubbleReadabilityTests`, `ChatUserBubbleShapeTests`, `ChatSurfaceGeometryTests`, `ChatTranscriptScrollTests`, `RenderPathPerformanceTests`, `StreamingUpdateTests`) | 38 tests in 7 suites, PASS |
-| the whole suite | see §5 |
+| the whole suite (`swift test`, = = every target) | PASS (= = "Test run with 151 tests in 34 suites passed", = = "Test run with 208 tests in 24 suites passed", = = and the XCTest targets' "Executed 494 tests, with 1 test skipped and 0 failures" + the smaller bundles, = = all with 0 failures) |
 | `ci_change_gate.py --check formatting` | "the change adds no unformatted line (4 changed Swift file(s) checked)", exit 0 |
 | `ci_change_gate.py --check pollution` | "the change adds no forbidden vocabulary", exit 0 |
 | `nfi-loc-check.py --base 84c3a6386` | "every rewritten file's row carries its own count (1 row(s) checked)", exit 0 |
