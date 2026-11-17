@@ -38,15 +38,14 @@
 //   8. Source: toggleChatZone uses animator().isCollapsed.toggle()
 //      (= canonical NSSplitView animated collapse)
 
-import Foundation
 import AppKit
+import Foundation
 import Testing
 @testable import WenshuApp
 
 @Suite("EditorChatNSController (= NSSplitViewController hosting editor + chat)")
 @MainActor
 struct EditorChatNSControllerTests {
-
     /// The controller's source, across the five files it lives in.
     ///
     /// The controller was ONE file (= 1509 LOC) and was split under
@@ -75,6 +74,7 @@ struct EditorChatNSControllerTests {
     }
 
     // MARK: - Static identifier stability
+
     //
     // AppKit autosaveName writes to UserDefaults keyed on these
     // strings; renaming any of them invalidates persisted divider
@@ -142,221 +142,92 @@ struct EditorChatNSControllerTests {
                 "toggleChatZone must use animator().isCollapsed.toggle() (= canonical NSSplitView animated collapse)")
     }
 
-    // MARK: - The width rule (= pure; = no window and no split view)
+    // MARK: - The arrangement (= the editor above the chat, always)
 
-    @Test("The width rule: side by side only when BOTH panes can hold their own chrome, and every width resolves")
-    func widthRule() throws {
-        // The three measured numbers.
+    @Test("The app carries NO rule that chooses between two arrangements (= the editor is above the chat at every width)")
+    func noArrangementRule() throws {
+        // The rule that used to be here: the editor beside the chat
+        // once the detail column was wide enough for both panes to
+        // hold their own chrome, and the editor above the chat
+        // otherwise. It ran on every layout pass.
         //
-        // 595 PT = the editor's own comfortable prose measure (the
-        // paper-canvas notes: 595-680 PT). It is ABOVE the editor's
-        // chrome width (116 PT = the tab strip row's floor + its
-        // trailing close control), so a pane the rule accepts always
-        // holds its chrome.
+        // Why its reach moved with a quantity it never read: side
+        // by side needed a detail column of 1190 PT (= 595 PT for
+        // the editor + 280 PT for the chat at an even split), and the
+        // detail column is the window's width minus the outer
+        // columns. The outer columns are 710 PT at their minimum
+        // widths (= 200 PT sidebar + 240 PT materials + 270 PT
+        // inspector) and 810 PT at their ideal widths (= 240 + 300 +
+        // 270), so side by side needed a window of 1900 PT or 2000 PT
+        // depending on how wide they stood. On a 1920 PT display the
+        // rule therefore COULD reach side by side (= 1920 - 710 =
+        // 1210 PT of detail, and 1210 x 0.5 = 605 >= 595) and could
+        // NOT (= 1920 - 810 = 1110 PT, and 1110 x 0.5 = 555 < 595),
+        // with the same window and the same rule.
         //
-        // 280 PT = the chat's floor, measured 2026-10-26 from a
-        // running capture (the chat column was 282 PT and read well).
+        // Why the tab bars are the reason the arrangement is not
+        // needed: the tab strip divides the column it was given and
+        // has no minimum width of its own, so a column with no
+        // minimum width does not need the window to be wide, and the
+        // tab strip is not the reason for the window's width.
         //
-        // 1190 PT = an EVEN split of the available width that gives
-        // both panes their floor (= 2 x 595; the editor's floor binds).
-        #expect(EditorChatNSController.editorPaneMinimumWidth == 595)
-        #expect(EditorChatNSController.chatPaneMinimumWidth == 280)
-        #expect(EditorChatNSController.sideBySideMinimumWidth == 1190)
-
-        // Side by side when an even split of the available width
-        // gives both panes their floor.
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1190, editorShare: 0.5, mode: .automatic) == .sideBySide)
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1600, editorShare: 0.5, mode: .automatic) == .sideBySide)
-
-        // Stacked when the width cannot hold two columns: the
-        // screenshot's own width (= 742 PT: the editor+chat region
-        // measured 855..2338 px at 2x) hands each column 371 PT,
-        // which is below the editor's own floor.
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 742, editorShare: 0.5, mode: .automatic) == .stacked)
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1189, editorShare: 0.5, mode: .automatic) == .stacked)
-
-        // The OLD band (920..1000 PT) kept the current arrangement.
-        // A band that keeps the current value is a band that never
-        // resolves: the window could be dragged narrower and
-        // narrower and the arrangement stayed whatever it had been.
-        // Every width now resolves to a DEFINITE arrangement.
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 950, editorShare: 0.5, mode: .automatic) == .stacked)
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1000, editorShare: 0.5, mode: .automatic) == .stacked)
-
-        // The decision does NOT depend on the incoming arrangement
-        // any more (= the band is gone). The rule takes no `current`
-        // at all, so the only way to pin that is to show the answer
-        // is a function of the width and the share ALONE: the same
-        // width and the same share must give the same arrangement
-        // for every arrangement the split could be in. The old band
-        // (920..1000 PT) is the case that breaks this: there the
-        // answer depended on the incoming arrangement, so the same
-        // width gave a different answer depending on where it came
-        // from.
-        //
-        // The widths below are the ones the OLD band covered, plus
-        // the widths on either side of it. Each is asserted against
-        // the arrangement the chrome arithmetic gives, and the
-        // arithmetic is spelled out in the comment: at an even split
-        // the editor needs 595 PT and the chat 280 PT, so the width
-        // must be at least 1190 PT (= 2 x 595) for both to fit.
-        //
-        // 950 PT: an even split gives each 475 PT, which is under
-        // the editor's 595 PT floor => stacked. The OLD rule said
-        // "keep the current arrangement" here, so a 950 PT window
-        // kept whatever it had been.
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 950, editorShare: 0.5, mode: .automatic) == .stacked)
-        // 1000 PT: an even split gives each 500 PT, still under the
-        // editor's floor => stacked. The OLD rule said "keep the
-        // current arrangement" here too (= the band was 920..1000).
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1000, editorShare: 0.5, mode: .automatic) == .stacked)
-        // Just below the even-split width: 1189 PT gives each
-        // 594.5 PT, one half-point under the editor's 595 PT floor.
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1189, editorShare: 0.5, mode: .automatic) == .stacked)
-        // At it: 1190 PT gives each 595 PT => both floors met.
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1190, editorShare: 0.5, mode: .automatic) == .sideBySide)
-
-        // The rule takes no `current` parameter at all (= the band
-        // is gone by construction, not by a branch that happens to
-        // be unreachable). This is a source-level assertion because
-        // it is a property of the SIGNATURE: a pure call cannot
-        // depend on an argument it was never given.
+        // This is a source-level assertion because the ABSENCE of a
+        // rule is a property of the source, not of a runtime value.
         let content = try Self.controllerSource()
-        let ruleBody = try #require(
-            Self.functionBody(named: "arrangement", in: content),
-            "the width rule must exist")
-        #expect(!ruleBody.contains("current"),
-                "the width rule must not take the incoming arrangement (= a rule that keeps the current arrangement is a rule that never resolves)")
-        #expect(!content.contains("return current"),
-                "no branch of the width rule may keep the current arrangement (= that was the band)")
-
-        // The two manual cases win over the width rule, at every
-        // width (= a manual choice still wins, and it survives a
-        // relaunch).
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1600, editorShare: 0.5, mode: .stacked) == .stacked)
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 742, editorShare: 0.5, mode: .stacked) == .stacked)
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1600, editorShare: 0.5, mode: .sideBySide) == .sideBySide)
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 742, editorShare: 0.5, mode: .sideBySide) == .sideBySide)
+        #expect(!content.contains("forCompetingWidth"),
+                "the width rule must not exist (= the editor is above the chat at every width)")
+        #expect(!content.contains("holdsChrome"),
+                "the chrome test that chose the arrangement must not exist")
+        #expect(!content.contains("sideBySide"),
+                "the side-by-side arrangement must not exist")
+        #expect(!content.contains("EditorArrangement"),
+                "the arrangement enum must not exist (= one arrangement needs no enum)")
+        #expect(!content.contains("EditorLayoutMode"),
+                "the layout mode must not exist (= one arrangement needs no setting)")
     }
 
-    @Test("The rule judges the share the LAYOUT asserts (= a stored share that cannot host the chrome must not end up side by side with that share)")
-    func ruleJudgesTheAssertedShare() {
-        // The defect this pins: the rule used to substitute an even
-        // 0.5 for a stored share that could not host the chrome, so
-        // the rule chose side by side on the strength of a 595 PT
-        // editor pane, while the layout went on asserting the
-        // STORED share (= 0.30) and gave the editor 357 PT at a
-        // 1190 PT width (= 238 PT under the floor the rule itself
-        // declares). The chrome was clipped, which is the card's own
-        // bug class.
+    @Test("The split's two items are added once and never moved (= no arrangement change removes and re-inserts them)")
+    func noStructuralChangeRemovesTheItems() throws {
+        // The defect this pins: the width rule's answer removed the
+        // editor's split view item and re-inserted it at the other
+        // index. That invalidates the split's constraints, and doing
+        // it while AppKit is laying out re-arms the window's "Update
+        // Constraints in Window" pass (= the pass AppKit's
+        // runaway-layout guard counts). The guard aborted the app
+        // when the count passed the window's view count.
         //
-        // The rule now judges the share the layout asserts, so the
-        // two cannot disagree inside one layout pass.
-        // 1190 PT at an even split: both panes meet their floors.
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1190, editorShare: 0.5, mode: .automatic) == .sideBySide)
-        // The SAME width with the user's own 0.30 share: the editor
-        // gets 357 PT, which cannot hold its chrome, so side by side
-        // is NOT viable at that share and the rule resolves to
-        // stacked. This is the case the substitution broke.
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1190, editorShare: 0.30, mode: .automatic) == .stacked)
-        // 1400 PT with the same 0.30 share: the editor gets 420 PT,
-        // still under its 595 PT floor => stacked.
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1400, editorShare: 0.30, mode: .automatic) == .stacked)
-        // The share that WOULD be viable: at 1400 PT the editor
-        // needs 0.425 of the width to reach 595 PT.
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1400, editorShare: 0.5, mode: .automatic) == .sideBySide)
-        #expect(!EditorChatNSController.holdsChrome(width: 1400, editorShare: 0.30),
-                "0.30 of 1400 PT gives the editor 420 PT, which cannot hold its own chrome")
-        #expect(EditorChatNSController.holdsChrome(width: 1400, editorShare: 0.5),
-                "an even split of 1400 PT gives the editor 700 PT (= its prose measure) and the chat 700 PT (= above its 280 PT floor)")
-    }
-
-    @Test("The stacked chrome test is the FULL width (= the stored share is a HEIGHT share and cannot clip a horizontal chrome)")
-    func stackedChromeTest() {
-        // Stacked, the divider runs ACROSS the split: the height
-        // carries the arrangement and each pane is as wide as the
-        // whole split. So the chrome test is the width itself.
-        //
-        // The editor's chrome is 116 PT (the tab strip row's own
-        // floor of 88 PT for a segment that still shows a document
-        // name + the trailing close control's 28 PT hot area) and the
-        // chat's is 254 PT (the composer's 5 buttons of 36 PT, 5
-        // gaps of 10 PT and the 12 PT horizontal padding).
-        #expect(EditorChatNSController.editorChromeMinimumWidth == 116)
-        #expect(EditorChatNSController.chatChromeMinimumWidth == 254)
-
-        // The screenshot's own width (= 742 PT) and the detail
-        // column with the inspector counted (= 1012 PT) both hold
-        // both panes' chrome when stacked.
-        #expect(EditorChatNSController.holdsStackedChrome(width: 742))
-        #expect(EditorChatNSController.holdsStackedChrome(width: 1012))
-        // Below the chat's chrome width, stacked cannot host the
-        // chrome either (= the chat's floor binds first, = the
-        // editor's own floor is the lower of the two).
-        #expect(!EditorChatNSController.holdsStackedChrome(width: 253))
-
-        // The bug this pins: the stacked case used to feed a HEIGHT
-        // share into the WIDTH-share test, which asked whether
-        // `width x heightShare` held the chrome. At 742 PT that is
-        // false for EVERY share (it needs h >= 0.802 for the editor
-        // and h <= 0.623 for the chat at the same time), so the
-        // 50:50 reset was owed on every entry into stacked and an
-        // extra setPosition write landed in the layout pass.
-        #expect(EditorChatNSController.holdsStackedChrome(width: 742),
-                "the stacked chrome test is the full width, so it does not depend on the height share at all")
-    }
-
-    @Test("The chrome test: a pane's negotiated thickness must hold that pane's own chrome")
-    func chromeTest() {
-        // The share is the divider's position (= the editor's share
-        // of the available width), and the panes' negotiated
-        // thicknesses are the width times the shares.
-        //
-        // 1209 PT with the editor on half: the editor gets 604 PT
-        // (= its prose measure) and the chat 605 PT (= above its
-        // 280 PT floor). Viable.
-        #expect(EditorChatNSController.holdsChrome(width: 1209, editorShare: 0.5))
-        // The same width with the editor on a tenth: the editor gets
-        // 120 PT, which cannot hold its chrome, so the arrangement is
-        // NOT viable however wide the split is.
-        #expect(!EditorChatNSController.holdsChrome(width: 1209, editorShare: 0.1))
-        // The screenshot's own case: 742 PT at half = 371 PT each,
-        // which is below the editor's 595 PT floor.
-        #expect(!EditorChatNSController.holdsChrome(width: 742, editorShare: 0.5))
-        // The chat's own floor binds when the editor is given nearly
-        // everything: 1000 PT with the editor on 0.75 leaves the chat
-        // 250 PT, which is below its 280 PT floor.
-        #expect(!EditorChatNSController.holdsChrome(width: 1000, editorShare: 0.75))
-    }
-
-    @Test("The layout mode has exactly the three cases the View menu offers")
-    func threeModes() {
-        #expect(EditorLayoutMode.allCases.count == 3)
-        #expect(EditorLayoutMode.allCases == [.automatic, .stacked, .sideBySide])
-        #expect(EditorLayoutMode(rawValue: "sideBySide") == .sideBySide)
-        #expect(EditorLayoutMode(rawValue: "nonsense") == nil)
-    }
-
-    // MARK: - Source-level assertions for the arrangement switch
-
-    @Test("Source keeps one autosave name per arrangement")
-    func sourceTwoAutosaveNames() throws {
+        // With one arrangement the panes are added once and never
+        // moved, so the layout callback cannot reach the split's
+        // structure at all.
         let content = try Self.controllerSource()
-        #expect(content.contains("\"wenshu.editor.split.autosave.side\""),
-                "the side-by-side arrangement needs its own autosave name (= each arrangement keeps its own dragged position)")
-        // The access modifier is not asserted (= the split promoted the
-        // constant, because another file reads it), so what is asserted
-        // is the shape: it is a named constant, not a literal at the use
-        // site.
-        #expect(content.contains("static let sideAutosaveName"),
-                "the side-by-side autosave name must be a named constant (= the two names travel together)")
+        #expect(!content.contains("removeSplitViewItem"),
+                "no code may remove a split view item (= removing it invalidates the split's constraints while AppKit is laying out)")
+        #expect(!content.contains("insertSplitViewItem"),
+                "no code may re-insert a split view item (= the panes are added once and never moved)")
+        #expect(!content.contains("applyPaneOrder"),
+                "the pane-order swap must not exist (= one arrangement has one order)")
+        #expect(!content.contains("applyAutomaticArrangement"),
+                "the per-pass width rule must not exist (= the layout pass does not choose an arrangement)")
     }
 
-    @Test("Source clamps the thickness on the arrangement's own axis")
+    @Test("Source keeps ONE autosave name (= one arrangement keeps one dragged position)")
+    func sourceOneAutosaveName() throws {
+        let content = try Self.controllerSource()
+        #expect(content.contains("\"wenshu.editor.split.autosave\""),
+                "the split's divider position persists under one autosave name")
+        #expect(!content.contains("wenshu.editor.split.autosave.side"),
+                "the side-by-side autosave name must not exist (= the side-by-side arrangement is gone)")
+        #expect(!content.contains("sideAutosaveName"),
+                "there is no second arrangement, so there is no second autosave name")
+    }
+
+    @Test("Source clamps the thickness on the split's own axis (= the height, = the divider runs across)")
     func sourceAxisAwareClamp() throws {
         let content = try Self.controllerSource()
-        #expect(content.contains("arrangement.isVertical ? splitView.bounds.width : splitView.bounds.height"),
-                "updateAutomaticThicknessBounds must clamp the width when side by side and the height when stacked")
+        #expect(content.contains("let extent = splitView.bounds.height"),
+                "updateAutomaticThicknessBounds must clamp the height (= the height carries the split)")
+        #expect(!content.contains("arrangement.isVertical"),
+                "no code may choose an axis (= the split has one axis, = the height)")
     }
 
     @Test("Source reads the stored payload with object(forKey:) (= data(forKey:) is always nil for AppKit's array)")
@@ -368,67 +239,57 @@ struct EditorChatNSControllerTests {
                 "data(forKey:) is always nil for AppKit's array (= the 50:50 reset re-applied on every layout pass and wiped the dragged position)")
     }
 
-    @Test("Source resets 50:50 on the arrangement's own axis and only when the entered arrangement has no stored payload")
+    @Test("Source resets 50:50 on the split's own axis (= the height), with no arrangement to enter")
     func sourceArrangementAwareReset() throws {
         let content = try Self.controllerSource()
-        #expect(content.contains("let dividerX = splitView.bounds.width / 2"),
-                "the side-by-side 50:50 reset must divide the width (= the width carries the split side by side)")
-        #expect(content.contains("splitView.setPosition(dividerX, ofDividerAt: 0)"),
-                "the side-by-side 50:50 reset must set the divider position")
-        #expect(content.contains("pendingResetArrangement = keepsOwnPosition ? nil : target"),
-                "the 50:50 reset is owed only when the arrangement being entered has no stored payload of its own")
-        #expect(content.contains("func applyLayoutMode(_ mode: EditorLayoutMode)"),
-                "the SwiftUI side needs an entry point that applies the chosen mode")
+        #expect(content.contains("let dividerY = splitView.bounds.height / 2"),
+                "the 50:50 reset must divide the height (= the height carries the split)")
+        #expect(content.contains("splitView.setPosition(dividerY, ofDividerAt: 0)"),
+                "the 50:50 reset must set the divider position")
+        #expect(!content.contains("pendingResetArrangement"),
+                "no reset is owed by an arrangement change (= there is no arrangement change)")
+        #expect(!content.contains("func applyLayoutMode"),
+                "the SwiftUI side has no mode to apply (= one arrangement needs no entry point)")
     }
 
-    @Test("Source binds the View menu to the three layout modes")
+    @Test("Source: the View menu offers NO editor-layout choice (= one arrangement is not a choice)")
     func sourceViewMenuBinding() throws {
         let scene = SourceLocator.url("Sources/WenshuApp/App/AppRootScene.swift")
         let sceneContent = try String(contentsOf: scene, encoding: .utf8)
-        #expect(sceneContent.contains("workspaceUI.editorLayoutMode"),
-                "the View menu must bind to the layout mode")
-        #expect(sceneContent.contains(".pickerStyle(.radioGroup)"),
-                "the three choices must render as a radio group (= the checkmark follows the choice)")
-        #expect(sceneContent.contains("menu.view.editor_layout"),
-                "the View menu needs the layout group's title")
+        #expect(!sceneContent.contains("workspaceUI.editorLayoutMode"),
+                "the View menu must not bind to a layout mode (= there is no mode)")
+        #expect(!sceneContent.contains("menu.view.editor_layout"),
+                "the View menu must not carry a layout group's title (= there is no choice to make)")
+        #expect(!sceneContent.contains("EditorLayoutMode.allCases"),
+                "the View menu must not enumerate layout modes")
 
         let state = SourceLocator.url("Sources/WenshuApp/Shared/State/WorkspaceUIState.swift")
         let stateContent = try String(contentsOf: state, encoding: .utf8)
-        #expect(stateContent.contains("enum EditorLayoutMode"),
-                "the layout mode type lives with the other workspace UI state")
-        #expect(stateContent.contains("case automatic")
-                && stateContent.contains("case stacked")
-                && stateContent.contains("case sideBySide"),
-                "the mode must carry the three cases the menu offers")
-        #expect(stateContent.contains("forKey: .editorLayoutMode"),
-                "the mode must persist through UserDefaultsStore")
+        #expect(!stateContent.contains("enum EditorLayoutMode"),
+                "the layout mode type must not exist (= one arrangement needs no setting)")
+        #expect(!stateContent.contains("forKey: .editorLayoutMode"),
+                "the layout mode must not persist (= there is nothing to persist)")
+
+        let store = SourceLocator.url("Sources/WenshuApp/Features/Agent/Service/UserDefaultsStore.swift")
+        let storeContent = try String(contentsOf: store, encoding: .utf8)
+        #expect(!storeContent.contains("editorLayoutMode"),
+                "the persisted key must not exist (= there is nothing to persist)")
     }
 
     // MARK: - The divider's share (= the user's dragged position)
 
     @Test("The share of the axis: pane 0's thickness over the two panes' thickness together")
     func shareFromFrames() {
-        // The frames AppKit writes for a side-by-side split (= the
-        // width carries the panes' thickness).
-        let sideBySide = [
-            "0.000000, 0.000000, 270.000000, 600.000000, NO, NO",
-            "271.000000, 0.000000, 730.000000, 600.000000, NO, NO"
+        // The frames AppKit writes for the split (= the height
+        // carries the panes' thickness, = the divider runs across).
+        let stacked = [
+            "0.000000, 0.000000, 600.000000, 270.000000, NO, NO",
+            "0.000000, 271.000000, 600.000000, 730.000000, NO, NO",
         ]
-        let share = EditorChatNSController.share(fromFrames: sideBySide, isVertical: true)
+        let share = EditorChatNSController.share(fromFrames: stacked)
         #expect(share != nil, "the stored frames must yield a share")
         #expect(abs((share ?? 0) - 270.0 / 1000.0) < 0.0001,
                 "the share is pane 0's thickness over the two panes' thickness together")
-
-        // The same frames read as a stacked split (= the height
-        // carries the panes' thickness) give the even split, because
-        // both panes are the same height there.
-        let stacked = [
-            "0.000000, 0.000000, 600.000000, 270.000000, NO, NO",
-            "0.000000, 271.000000, 600.000000, 730.000000, NO, NO"
-        ]
-        let stackedShare = EditorChatNSController.share(fromFrames: stacked, isVertical: false)
-        #expect(abs((stackedShare ?? 0) - 270.0 / 1000.0) < 0.0001,
-                "the stacked arrangement reads the panes' heights")
     }
 
     @Test("The share survives the spaces AppKit writes after every comma (= an untrimmed parse reads no share at all)")
@@ -438,10 +299,10 @@ struct EditorChatNSControllerTests {
         // returns no share (= the divider falls back to the middle
         // and the layout runs away).
         let spaced = [
-            "0.000000, 0.000000, 270.000000, 600.000000, NO, NO",
-            "271.000000, 0.000000, 730.000000, 600.000000, NO, NO"
+            "0.000000, 0.000000, 600.000000, 270.000000, NO, NO",
+            "0.000000, 271.000000, 600.000000, 730.000000, NO, NO",
         ]
-        let share = EditorChatNSController.share(fromFrames: spaced, isVertical: true)
+        let share = EditorChatNSController.share(fromFrames: spaced)
         #expect(share != nil, "the spaced numbers must parse (= the payload is written with a space after every comma)")
         #expect(abs((share ?? 0) - 0.27) < 0.0001,
                 "the share must be the user's own position, not the middle")
@@ -449,33 +310,24 @@ struct EditorChatNSControllerTests {
 
     @Test("The share of a payload that cannot be read is nil (= the caller falls back to the middle)")
     func shareOfUnreadablePayload() {
-        #expect(EditorChatNSController.share(fromFrames: [], isVertical: true) == nil)
-        #expect(EditorChatNSController.share(fromFrames: ["0.0, 0.0, 10.0, 10.0, NO, NO"], isVertical: true) == nil,
+        #expect(EditorChatNSController.share(fromFrames: []) == nil)
+        #expect(EditorChatNSController.share(fromFrames: ["0.0, 0.0, 10.0, 10.0, NO, NO"]) == nil,
                 "one frame is not a split")
-        #expect(EditorChatNSController.share(fromFrames: ["nonsense", "nonsense"], isVertical: true) == nil,
+        #expect(EditorChatNSController.share(fromFrames: ["nonsense", "nonsense"]) == nil,
                 "unparseable numbers are not a share")
     }
 
-    @Test("The share names the editor's pane (= the chat leads when the panes stand side by side)")
+    @Test("The share names the editor's pane (= the editor leads, because it is above the chat)")
     func shareNamesTheEditorsPane() {
-        // The frames of a side-by-side split whose FIRST frame is
-        // 270 PT wide (= the chat, because the chat is on the left).
-        let chatLeads = [
-            "0.000000, 0.000000, 270.000000, 600.000000, NO, NO",
-            "271.000000, 0.000000, 730.000000, 600.000000, NO, NO"
+        // The frames of the split whose FIRST frame is the editor's
+        // (= the editor is above the chat).
+        let editorLeads = [
+            "0.000000, 0.000000, 600.000000, 270.000000, NO, NO",
+            "0.000000, 271.000000, 600.000000, 730.000000, NO, NO",
         ]
-        // The chat leads: the EDITOR's share is the second frame's.
-        let editorShare = EditorChatNSController.share(
-            fromFrames: chatLeads, isVertical: true, firstPaneLeads: false)
-        #expect(abs((editorShare ?? 0) - 0.73) < 0.0001,
-                "the editor's share is the pane that is not the leading one")
-
-        // The same frames with the editor leading: the editor's
-        // share is the first frame's.
-        let editorLeads = EditorChatNSController.share(
-            fromFrames: chatLeads, isVertical: true, firstPaneLeads: true)
-        #expect(abs((editorLeads ?? 0) - 0.27) < 0.0001,
-                "the editor's share is the leading frame's")
+        let editorShare = EditorChatNSController.share(fromFrames: editorLeads)
+        #expect(abs((editorShare ?? 0) - 0.27) < 0.0001,
+                "the editor's share is the leading frame's (= the editor is above the chat)")
     }
 
     // MARK: - The divider's position (= what keeps the layout convergent)
@@ -512,10 +364,8 @@ struct EditorChatNSControllerTests {
         let content = try Self.controllerSource()
         #expect(content.contains("if assertedShare == nil {"),
                 "the share is captured once (= the payload is written by AppKit as the layout settles, so reading it after asserting into it moves the target every pass)")
-        #expect(content.contains("assertedShare = nil"),
-                "the share is released when the arrangement changes (= the other arrangement has its own position)")
-        #expect(content.contains("arrangement.isVertical ? splitView.bounds.width : splitView.bounds.height"),
-                "the axis is the arrangement's own (= the width when side by side, the height when stacked)")
+        #expect(content.contains("let axis = splitView.bounds.height"),
+                "the axis is the split's own (= the height, = the divider runs across)")
     }
 
     // MARK: - The divider's decision (= what a layout pass writes)
@@ -721,7 +571,7 @@ struct EditorChatNSControllerTests {
         // A ZOOM: the axis moves on every frame (= a layout pass per
         // frame), and AppKit scales the divider with the axis (= the
         // share holds through the animation).
-        for step in 1...20 {
+        for step in 1 ... 20 {
             let extent = 1000 + CGFloat(step) * 20
             let action = drive(&latch, axisExtent: extent, observedLeading: extent / 2, assertedShare: asserted)
             #expect(action == .none,
@@ -764,7 +614,7 @@ struct EditorChatNSControllerTests {
 
         // A narrowing: the trailing pane sinks to its floor (= the
         // leading pane takes 0.97 of the axis).
-        for step in 1...20 {
+        for step in 1 ... 20 {
             let extent = 1000 - CGFloat(step) * 20
             _ = drive(&latch, axisExtent: extent, observedLeading: extent * 0.97, assertedShare: asserted)
         }
@@ -790,7 +640,7 @@ struct EditorChatNSControllerTests {
         _ = drive(&latch, axisExtent: 1000, observedLeading: 500, assertedShare: asserted)
         _ = drive(&latch, axisExtent: 1000, observedLeading: 500, assertedShare: asserted)
 
-        for step in 1...20 {
+        for step in 1 ... 20 {
             let extent = 1000 + CGFloat(step) * 20
             let action = drive(&latch, axisExtent: extent, observedLeading: extent / 2, assertedShare: asserted)
             #expect(action == .none)
@@ -817,8 +667,8 @@ struct EditorChatNSControllerTests {
                 "the controller owns one latch (= the state that spans layout passes)")
         #expect(content.contains("dividerLatch.pass("),
                 "the layout's caller must drive the latch (= the latch's lifecycle is the defect's home)")
-        #expect(content.contains("dividerLatch.reset()"),
-                "an arrangement change resets the latch (= the divider is positioned again on the new axis)")
+        #expect(!content.contains("dividerLatch.reset()"),
+                "the latch is never reset (= one arrangement means one axis, = the divider is positioned once on it)")
     }
 
     @Test("Source: the thickness cap is written in quanta (= a write per frame re-arms the window's update-constraints pass)")
@@ -836,25 +686,27 @@ struct EditorChatNSControllerTests {
 
     // MARK: - The panes' order (= the chat on the left, the editor on the right)
 
-    @Test("Source puts the panes in the arrangement's own order (= the chat on the left, the editor on the right)")
+    @Test("Source adds the panes once and never moves them (= the editor above the chat)")
     func sourcePaneOrder() throws {
         let content = try Self.controllerSource()
-        #expect(content.contains("applyPaneOrder(for: target)"),
-                "entering an arrangement must put the panes in that arrangement's order")
-        #expect(content.contains("let editorShouldLead = target == .stacked"),
-                "the editor leads when the panes are stacked (= the editor on top) and the chat leads when they stand side by side (= the chat on the left)")
-        #expect(content.contains("insertSplitViewItem(editorItem, at: editorShouldLead ? 0 : 1)"),
-                "the editor's item is moved to the arrangement's own index")
-        #expect(content.contains("removeSplitViewItem(editorItem)"),
-                "an item cannot be moved without being removed first")
+        #expect(content.contains("addSplitViewItem(editorItem)"),
+                "the editor's item is added to the split")
+        #expect(content.contains("addSplitViewItem(chatItemLocal)"),
+                "the chat's item is added to the split")
+        #expect(!content.contains("removeSplitViewItem"),
+                "no item may be removed (= removing it invalidates the split's constraints while AppKit is laying out)")
+        #expect(!content.contains("insertSplitViewItem"),
+                "no item may be re-inserted (= the panes are added once and never moved)")
     }
 
-    @Test("Source reads the stored frames in the arrangement's own order (= the frames follow the panes)")
+    // MARK: - The layout callback's reach (= what it may NOT touch)
+
+    @Test("Source reads the stored frames in the panes' own order (= the editor leads, because it is above the chat)")
     func sourceReadsFramesInOrder() throws {
         let content = try Self.controllerSource()
-        #expect(content.contains("firstPaneLeads: arrangement == .stacked"),
-                "the frames are in the panes' own order (= the chat leads when the panes stand side by side), so the reader must be told which pane leads")
-        #expect(content.contains("let leadingShare = editorLeads ? share : 1 - share"),
+        #expect(content.contains("return Self.share(fromFrames: frames)"),
+                "the frames are in the panes' own order (= the editor first), so the reader reads the leading frame's share")
+        #expect(content.contains("let leadingShare = share"),
                 "the assertion puts the divider at the LEADING pane's share (= the fraction AppKit lays out for)")
     }
 
@@ -884,7 +736,9 @@ struct EditorChatNSControllerTests {
             let nextCharacter: Swift.Character = next < source.endIndex ? source[next] : "\u{0}"
 
             if inLineComment {
-                if character == "\n" { inLineComment = false }
+                if character == "\n" {
+                    inLineComment = false
+                }
                 index = next
                 continue
             }
@@ -902,7 +756,9 @@ struct EditorChatNSControllerTests {
                     index = next < source.endIndex ? source.index(after: next) : next
                     continue
                 }
-                if character == "\"" { inString = false }
+                if character == "\"" {
+                    inString = false
+                }
                 index = next
                 continue
             }
@@ -922,12 +778,14 @@ struct EditorChatNSControllerTests {
             case "\"":
                 inString = true
             case "{":
-                if bodyStart == nil { bodyStart = index }
+                if bodyStart == nil {
+                    bodyStart = index
+                }
                 depth += 1
             case "}":
                 depth -= 1
                 if depth == 0, let bodyStart {
-                    return String(source[bodyStart...index])
+                    return String(source[bodyStart ... index])
                 }
             default:
                 break
@@ -937,45 +795,40 @@ struct EditorChatNSControllerTests {
         return nil
     }
 
-    @Test("Source: the layout callback does NOT reach the arrangement's structural change (= the change is deferred to the next runloop turn)")
+    @Test("Source: the layout callback does NOT reach the split's structure (= the panes are added once and never moved)")
     func sourceStructuralChangeIsNotReachableFromLayoutCallback() throws {
         let content = try Self.controllerSource()
 
-        // Name the method that does the structural change, and prove
-        // it IS the structural change (= it moves an item).
-        let structuralBody = try #require(
-            Self.functionBody(named: "applyPaneOrder", in: content),
-            "applyPaneOrder must exist (= the method that does the structural change)")
-        #expect(structuralBody.contains("removeSplitViewItem(editorItem)"),
-                "applyPaneOrder removes the editor's item (= the structural change)")
-        #expect(structuralBody.contains("insertSplitViewItem(editorItem, at: editorShouldLead ? 0 : 1)"),
-                "applyPaneOrder re-inserts the editor's item (= the structural change)")
-
-        // The layout callback must not call it, and must not call
-        // the method that calls it either.
+        // The layout callback must not touch the split's structure.
+        //
+        // It used to: the width rule asked for an arrangement from
+        // here, and answering it removed the editor's split view item
+        // and re-inserted it at the other index. That invalidates the
+        // split's constraints, and doing it while AppKit is laying out
+        // re-arms the window's "Update Constraints in Window" pass
+        // (= the pass AppKit's runaway-layout guard counts). The
+        // guard aborted the app when the count passed the window's
+        // view count (= measured: 436 passes against a limit of 430).
+        //
+        // With one arrangement there is no structural change to
+        // defer, so the whole mechanism is gone rather than merely
+        // unreachable.
         let layoutBody = try #require(
             Self.functionBody(named: "viewDidLayout", in: content),
-            "viewDidLayout must exist")
+            "viewDidLayout must exist"
+        )
+        #expect(!layoutBody.contains("removeSplitViewItem"),
+                "viewDidLayout must not remove a split view item (= removing one invalidates the split's constraints while AppKit is laying out, and each invalidation re-arms the window's update-constraints pass)")
+        #expect(!layoutBody.contains("insertSplitViewItem"),
+                "viewDidLayout must not re-insert a split view item (= the panes are added once and never moved)")
         #expect(!layoutBody.contains("applyPaneOrder"),
-                "viewDidLayout must not move a split view item (= removing one invalidates the split's constraints while AppKit is laying out, and each invalidation re-arms the window's update-constraints pass)")
-        #expect(!layoutBody.contains("transition(to:"),
-                "viewDidLayout must not run the arrangement change (= it reaches the split's structure)")
-
-        // The width rule only REQUESTS the arrangement, and the
-        // request is deferred.
-        let ruleBody = try #require(
-            Self.functionBody(named: "applyAutomaticArrangement", in: content),
-            "applyAutomaticArrangement must exist")
-        #expect(ruleBody.contains("requestArrangement("),
-                "the width rule requests the arrangement (= it does not move the panes itself)")
-        #expect(!ruleBody.contains("transition(to:"),
-                "the width rule must not move the panes itself")
-
-        let requestBody = try #require(
-            Self.functionBody(named: "requestArrangement", in: content),
-            "requestArrangement must exist")
-        #expect(requestBody.contains("Task { @MainActor"),
-                "the structural change is deferred to the next runloop turn (= the layout pass finishes before the panes move)")
+                "viewDidLayout must not move a split view item")
+        #expect(!content.contains("applyPaneOrder"),
+                "no code may move a split view item (= one arrangement has one order)")
+        #expect(!content.contains("requestArrangement"),
+                "no code may request an arrangement (= there is one arrangement)")
+        #expect(!content.contains("applyAutomaticArrangement"),
+                "no code may choose an arrangement per pass")
     }
 
     @Test("Source: the thickness bounds and the preferred fractions are written only when the value differs")
@@ -984,7 +837,8 @@ struct EditorChatNSControllerTests {
 
         let boundsBody = try #require(
             Self.functionBody(named: "updateAutomaticThicknessBounds", in: content),
-            "updateAutomaticThicknessBounds must exist")
+            "updateAutomaticThicknessBounds must exist"
+        )
         #expect(boundsBody.contains("if item.minimumThickness != 0 {"),
                 "the minimum thickness is written only when it differs (= a write into the split during the layout pass re-arms the window's update-constraints pass)")
         #expect(boundsBody.contains("if item.maximumThickness != available {"),
@@ -992,7 +846,8 @@ struct EditorChatNSControllerTests {
 
         let shareBody = try #require(
             Self.functionBody(named: "applyStoredShare", in: content),
-            "applyStoredShare must exist")
+            "applyStoredShare must exist"
+        )
         #expect(shareBody.contains("if items[0].preferredThicknessFraction != leadingShare {"),
                 "the leading pane's preferred fraction is written only when it differs")
         #expect(shareBody.contains("if items[1].preferredThicknessFraction != 1 - leadingShare {"),
@@ -1005,7 +860,8 @@ struct EditorChatNSControllerTests {
 
         let fitBody = try #require(
             Self.functionBody(named: "sizeThatFits", in: content),
-            "sizeThatFits must exist")
+            "sizeThatFits must exist"
+        )
         #expect(!fitBody.contains("hostedContentWidth"),
                 "sizeThatFits must not fall back to the inner split's own width (= the parent negotiates the detail column's width against what is reported here, so the inner split's own width is a second number in the same negotiation)")
         #expect(!fitBody.contains("splitView.bounds.width"),
@@ -1053,7 +909,7 @@ struct EditorChatNSControllerTests {
                 "even a small allocation is a real allocation")
     }
 
-    @Test("The width rule reads a real allocation: the degenerate passes do not make every width viable")
+    @Test("The parent allocation: the degenerate passes do not survive as an allocation")
     func widthRuleDoesNotReadADegenerateProposal() {
         // The defect this pins: the recorder used to merge EVERY
         // proposal (= the last non-nil one), so the unbounded pass
@@ -1082,8 +938,7 @@ struct EditorChatNSControllerTests {
         #expect(recorded == 740,
                 "the recorded allocation must be the parent's real number (= 740 PT), not the infinity of the unbounded pass")
 
-        // And the rule, fed that allocation, resolves.
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: recorded ?? 0, editorShare: 0.5, mode: .automatic) == .stacked,
-                "the screenshot's own width (= 740 PT) cannot hold two columns, so it resolves to stacked (= the chrome is never hidden to make room)")
+        #expect(EditorChatNSController.allocatedDimension(.infinity) == nil,
+                "infinity is not an allocation (= every comparison against it passes)")
     }
 }

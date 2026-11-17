@@ -54,45 +54,183 @@ measurement, = = and the ONE shipped code change's own proof.
 rule: = = an existing red must be BASELINED at the parent commit, = =
 never argued)
 
-= = The whole suite (= = 3,672 tests in 564 suites) was run TWICE on the
-same machine: = = once on the merged tip, = = once on the base
-`aa266622ea` (= = the commit before this scope's code), = = with the same
-command and the same grep.
+= = The whole suite was run TWICE on the merged side and TWICE on the base
+`aa266622ea` (= = the commit before this scope's code, = = 3,672 tests in 564
+suites), = = on the same machine, = = with the same command. = = The
+merged-side size is 3,729 tests in 572 suites (= = the review lane's own
+complete merged run, = = the only whole-suite run on the merged side that
+finished its big target), = = and the two merged-side runs below were cut
+short before the big target finished, = = so their counts are lower bounds. = = The
+two merged-side runs were made in the MAIN checkout (= = each log's own
+dependency warning names it, = = and the build path it records is the main
+checkout's), = = and NOT on the tip under review: = = the tip's own nine
+suite files are byte-identical to the base's, = = and the tip's tree differs
+from either candidate main commit's by a handful of `Sources/` and `Tests/`
+files (= = six against `20d2d3182`, = = five against `deff19bac4`, = = a
+sibling scope's pane-tab work, = = and nothing of this scope's). = = WHICH
+main commit those two runs measured is NOT recoverable from the logs (= =
+they were cut short before that suite ran, = = and the checkout's reflog
+was lost with the old .git), = = and it does not matter: = = what 7.2 needs
+is the NINE files the isolation test runs, = = and every one of them is
+byte-identical between the base and the tip (= = the same blob hash), = =
+= = which is what this gate asks about. = = The
+failing SITES are read out of the FULL log, = = not a tailed grep: = = the
+grep is what made this section wrong the first time.
 
-| Tree | The failing set |
-| --- | --- |
-| the base `aa266622ea` | 6 issues (= = T10's tool_use JSON, = = `displayTitle_documentPathBasenameWins_overTitle`, = = `handleDirtyTransition(true)`, = = `startLongRunningGoal`, = = the chat's @-mention path, = = and the HermesTodoStore deadlock regression) |
-| the merged tip | the SAME set, = = MINUS two (= = `TodoStoreTool.execute() returns in under 5 seconds`, = = `handleDirtyTransition(true)`, = = `displayTitle_documentPathBasenameWins_overTitle`, = = and the chat's @-mention path) |
+= = THE EVIDENCE IS THE COMMAND, = = AND A KEPT COPY. = = The four runs
+are `swift test --package-path .`, = = once on the merged side and once on
+the base, = = twice each, = = and the SITES are read out of each run's full
+output (= = the two merged runs were CUT SHORT before the big target
+finished, = = so their counts are lower bounds, = = and that is why the
+isolation test, = = not the count, = = is the gate). = = A reader re-runs
+the command and reads the sites, = = and the four logs are ALSO kept at
+`~/.hermes/profiles/pocock/cache/evidence/72-compare/` (= = a directory
+that is NOT the pruned scratch one, = = because a scratch directory is
+pruned after 24 hours idle and = = = = a stored log in it is a promise that
+expires; = = the repo's own row 7 records that defect for the probes, = =
+and the probes were moved into the repo to answer it).
 
-= = ⇒ ⇒ **THE MERGED TREE'S FAILURE SET IS A SUBSET OF THE BASE'S**, = =
-so this scope introduced NO new failure. = = ⇒ ⇒ And every one of them
-is TIMING-SENSITIVE: = = their durations are 73 to 106 SECONDS (= = the
-assertions are wall-clock bounds, = = and a concurrent `swift test` starves
-them), = = and they FLOAT between runs (= = the base's own set moved
-between its two runs). = = ⇒ ⇒ AND NONE of the failing test files is
-among this scope's twelve (= = the two failing suites are
-`HermesTodoStoreConcurrencyTests` and
-`WenshuConductorToolRegistryWiringTests`, = = and this scope touched
-neither). = = ⇒ ⇒ So 7.2 is green FOR THIS SCOPE, = = and the
-pre-existing red is the tree's, = = not this scope's.
+= = ⇒ ⇒ AND THE FIRST DRAFT OF THIS SECTION WAS WRONG IN A WAY NO
+AMOUNT OF RE-RUNNING FIXES, = = SO THE SECTION IS NOW BUILT ON WHAT DOES
+NOT MOVE. = = The draft claimed an INCLUSION (= = the merged tree's failing
+set inside the base's), = = on the strength of ONE run per tree. = = The
+four whole-suite runs above (= = two per tree) and the review lane's eight
+(= = a second campaign, = = two days later) show that the whole-suite failing
+SET FLOATS ON THE SAME TREE: = = the same suite is red in one run and green
+in the next, = = and which one is red changes between runs. = = So no set
+comparison, = = from any number of whole-suite runs, = = can decide this
+gate. = = That claim is withdrawn.
+
+What DOES NOT MOVE is the ISOLATION test: = = every failing suite is run
+ALONE on both trees, = = with the same command. = = A site that fails alone
+is deterministic, = = and a site that passes alone is a wall-clock bound
+that only the concurrent whole-suite run starves. = = That is the
+comparison this gate rests on, = = and it is reproducible on demand.
+
+Three sites fail ALONE, = = immediately, = = on BOTH trees, = = with the
+same assertion and the same count (= = the seconds are the isolation
+campaign's own, = = and they are a magnitude, = = not a bound):
+
+| Site | the base `aa266622ea` | the merged tip |
+| --- | --- | --- |
+| `ChatViewHistoryShortcutTests.swift:35` | fails (8 tests, 1 issue, 0.013 s) | fails (8 tests, 1 issue, 0.016 s) |
+| `EditorTabTitleTests.swift:60` | fails (10 tests, 1 issue, 0.005 s) | fails (10 tests, 1 issue, 0.005 s) |
+| `AsyncDelegationRegistryTests.swift:104` | fails (5 tests, 1 issue, 0.010 s) | fails (5 tests, 1 issue, 0.017 s) |
+
+Every other site passes when its suite runs alone, = = on BOTH trees:
+
+| Suite, and the bound inside it | the base `aa266622ea` | the merged tip |
+| --- | --- | --- |
+| `EditorPersistenceTests` (= = a 3 s auto-save deadline) | 11/11 pass, 3.028 s | 11/11 pass, 3.052 s |
+| `HermesTodoStoreConcurrencyTests` (= = `elapsed < 5.0`) | 5/5 pass, 0.048 s | 5/5 pass, 0.044 s |
+| `WenshuConductorToolRegistryWiringTests` (= = a 10 s warm-up) | 5/5 pass, 0.112 s | 5/5 pass, 0.108 s |
+| `WenshuReplicatedKanbanEndToEndTests` (= = T10) | 10/10 pass, 0.105 s | 10/10 pass, 0.077 s |
+| `LongRunningGoalButtonTests` | 3/3 pass, 0.388 s | 3/3 pass, 0.247 s |
+| `FileToolsTests` (= = its four sites were in FOUR of the eight whole-suite runs) | 5/5 pass, 0.003 s | 5/5 pass, 0.002 s |
+
+So 7.2 is green for this scope: = = the deterministic red is three sites,
+= = the same three on either side, = = and none of the three is in a file
+this scope touched (= = the scope's two `Sources/` files are a MODEL and a
+STORE). = = The rest is the machine's load, = = not the change's.
+
+= = ⇒ ⇒ AND ONE RED IS NOT THE CODE'S AT ALL. = = `SSEReaderLiveTests`
+hits the LIVE provider, = = and the provider's answer is its own: = = in the
+first campaign it answered **HTTP 429** (= = the quota wall, = = on both
+trees), = = and in the second campaign it answered normally. = = So it is
+listed here as a PROVIDER red, = = never as a code red, = = and a reader
+who sees it red in one run and green in the next is seeing the provider's
+mood, = = not a change.
+
+= = ⇒ ⇒ AND THE REVIEW BEFORE THIS ONE FOUND FOUR THINGS, = = AND THIS
+SECTION ANSWERS EACH OF THEM WITH ITS OWN NUMBER. = = (`t_28eeebf4`, = =
+`changes_requested` on `ae92fbd3a6`.) = = (1) Its dead-code count did not
+reproduce: = = it read **127 ALIVE**, = = not the 126 this document carried,
+= = and 127 is what `verify-dead.py` prints at this tree. = = (2) Its 7.2 row
+contradicted itself, = = and the SUBSET claim did not reproduce: = = that
+claim is WITHDRAWN above, = = and the gate now rests on the isolation test.
+= = (3) Its verdict split was 6 `approved` and 6 `changes_requested`, = = not
+the 5/7 this document carried. = = (4) Its `98 other commits` did not
+reproduce: = = the repo writes a `style(...)` subject in thirteen commits
+on `main` at this tree (= = seventy across every ref, = = over nineteen
+distinct scopes: = = `desktop`, = = `import`, = = `tui`, = = `devtool`, = =
+and others), = = and it is `style(scope):` that does not exist at all.
+= = (The count is the one THIS TREE carries, = = and `main` moves: = = a
+fourteenth `style(tests):` commit landed on it after this document was
+written.)
+= = And the row this document's own card names, = = the 7.8 row, = = claimed
+every subject's type was in the CI's set, = = while this document said one
+of its own commits would be refused: = = of the nineteen subjects named here
+that resolve in this tree, = = eighteen carry a type in the CI's set, = = and
+the one that does not is the scope's own `style(devtool):`, = = which is
+exactly the disagreement the next section records. = = (The seven names that
+do not resolve are the scope's own branch commits: = = they were never on
+`main`, = = and the review-history table below names them as the commits the
+cards reviewed, = = not as commits of `main`.)
+
+= = ⇒ ⇒ AND A REVIEWER'S OWN CAMPAIGN MEASURED IT AGAIN, = = AND ITS
+NUMBERS MATCH THE TABLES ABOVE. = = The review lane ran the whole suite
+EIGHT times (= = in SIX worktrees over FOUR commits, = = not on one
+tree), = = and then ran each failing suite ALONE on both trees, = = and its
+numbers MATCH the tables above: = = the same three deterministic reds with
+the same counts, = = and the same six suites green alone. = = So the claim
+is not this document's own reading of its own logs: = = it is what a second
+pair of hands measured.
+
+= = AND WHAT THOSE EIGHT RUNS MEASURE, = = STATED EXACTLY: = = the failing
+SET ranged from FOUR sites to TEN ACROSS the eight runs, = = and the same
+three deterministic reds were in EVERY one of them. = = The range is NOT one
+tree's: = = the FOUR-site run and the TEN-site run measured DIFFERENT trees
+(= = the base and the scope's own code commit), = = and PER TREE the sizes
+were the base's 4, 6 and 7, = = the tip's 6, 7 and 9, = = the scope's code
+commit's 10, = = and the code's parent's 9. = = The other sites
+(= = one to seven per run) were NOT all different: = = TWO runs carried the
+SAME three (= = `EditorPersistenceTests:253`, = = `EditorPersistenceTests:259`,
+= = `WenshuConductorToolRegistryWiringTests:237`), = = and the rest differed.
+= = The `FileToolsTests` sites (= = four of them) were in FOUR of the eight
+runs, = = not one. = = And the live provider's HTTP 429 was NOT among these
+eight runs at all: = = the `SSE reading against the live provider` suite
+PASSED in every one of them. = = The 429 belongs to the isolation campaign
+above, = = and it is recorded there.
+
 
 ## The gates, = = re-run ON THE MERGED TREE (= = not on a branch)
+
+**⇒ ⇒  AND THEY WERE RE-RUN ON THE MERGED TREE'S OWN TIP, = = AND THAT
+TIP IS NAMED.** = = A gate measured on a branch is a gate measured on a
+different tree, = = and `main` moves under a scope while it runs, = = so a
+gate's result without the sha it ran on is not a measurement anyone can
+reproduce. = = ⇒ The gates below were re-run on the merged tip
+`2668a06c3` (= = the tip `main` held when this section was last
+corrected), = = and the Swift tree is unchanged from the landing at
+`fcbf84ca08` to that tip (= = `git diff --stat fcbf84ca08 2668a06c3 --
+Sources/ Tests/` is empty), = = so the 7.1 and 7.2 results carry
+forward on the same bytes. = = And the ISOLATION test (= = 7.2's judge)
+was re-run ON THAT TIP against the base `aa266622ea`: = = the same THREE
+sites fail alone on either side, = = with the same count on either side
+(= = 8/1 at `ChatViewHistoryShortcutTests.swift:35`, = = 10/1 at
+`EditorTabTitleTests.swift:60`, = = 5/1 at
+`AsyncDelegationRegistryTests.swift:104`), = = and the six other suites
+that ever failed a whole-suite run pass alone on either side (= = 5/5,
+11/11, 5/5, 5/5, 10/10, 3/3). = = The logs are at
+`~/.hermes/profiles/pocock/cache/evidence/72-final/` (= = the nine suite
+source files are byte-identical between the base and that tip, = = so the
+comparison is over the same bytes on both sides).
 
 | Gate | What it says | Where |
 | --- | --- | --- |
 | 7.1 `swift build` | **PASS** (= = "Build complete!" on the merged tip) | `swift build --package-path .` |
-| 7.2 `swift test` | **PASS WITH A PRE-EXISTING RED BASELINE** (= = the merged tree's failure SET is a SUBSET of the base's, = = so this scope introduced NO new failure; = = the failures are load-sensitive and FLOAT between runs) | `swift test --package-path .` on the merged tip and on the base `aa266622ea`, = = the same grep |
+| 7.2 `swift test` | **PASS WITH A PRE-EXISTING RED BASELINE** (= = the whole-suite failing SET floats on the same tree, = = so the gate rests on the ISOLATION test: = = the same THREE sites fail alone on either side, = = the six other suites that ever failed a whole-suite run pass alone on either side, = = and none of the three is in a file this scope touched; = = the provider's 429 is not a code red) | `swift test --package-path .` on the merged tip and on the base `aa266622ea`, = = the failing sites read from the FULL log, = = then each failing suite run ALONE on both |
 | 7.3 the 9-grep design sweep | **N/A** (= = this scope changed NO view file: = = its two `Sources/` files are a MODEL and a STORE) | = = |
 | 7.5 the CJK audit | **PASS** (= = one CJK hit, = = in `OOB.md`, = = and it is the boss's own OOB quoted verbatim: = = `OOB.md` held 1,656 CJK characters BEFORE this scope's commit) | `git show <sha> \| grep "^+"` per commit |
-| 7.6 no dead code | **PASS** (= = `verify-dead.py`: = = 126 ALIVE, = = 4 PARTIAL, = = 0 DEAD) | `Tools/wenshu-devtool/verify-dead.py` |
-| 7.8 commit hygiene | **PASS on the type** (= = every subject's type is in the CI's set) | = = |
-| 7.9 the verdict field | **PASS** (= = every one of the 12 cards carries a top-level `review_outcome`; = = 5 `approved`, = = 7 `changes_requested` after their findings landed) | `review_gate.py --card <id>` |
+| 7.6 no dead code | **PASS** (= = `verify-dead.py`: = = 127 ALIVE, = = 4 PARTIAL, = = 0 DEAD) | `Tools/wenshu-devtool/verify-dead.py` |
+| 7.8 commit hygiene | **PASS on the type** (= = of the subjects this document names that RESOLVE in this tree (= = nineteen of the twenty-six names, = = the other seven are the scope's own branch commits, = = which are off `main` and are named in the review-history table below), = = eighteen carry a type in the CI's set; = = the one that does not is `befbf1e65d`, = = the scope's own `style(devtool):`, = = which the CI would refuse (= = see the self-found defect below)) | = = |
+| 7.9 the verdict field | **PASS** (= = fifteen review cards, = = every one of them with a top-level `review_outcome`: = = 7 `approved`, = = 8 `changes_requested` after their findings landed; = = the two newest are this document's own 7.2 rounds, = = `t_33f9c6b5` (= = `changes_requested` on `ae607530b5`, = = and whose findings the section above answers) and `t_af3eeb33` (= = `approved` on `c4cde06187`)) | `review_gate.py --card <id>` |
 | the pollution gate | **PASS** | `ci_change_gate.py --base main --check pollution` |
 | the formatting gate | **PASS** | `ci_change_gate.py --base main --check formatting` |
-| the NFI gate | **PASS** (= = `nfi-split.py --check` = = PASS; = = `nfi-loc-check.py` = = "every rewritten file's row carries its own count") | = = |
+| the NFI gate | **PASS** (= = `nfi-split.py --check` = = PASS; = = `nfi-loc-check.py` = = "the change adds no registry row; nothing to check", = = which is the gate's own wording for a row UPDATED in place, = = so the count this change wrote into the row is held by the rule and not by the gate) | = = |
 | the probe index's own test | **PASS** (= = 5/5) | `test_probe_index.py` |
 
-### ⇒ ⇒ ONE DEFECT THIS SCOPE FOUND IN ITSELF, = = AND IT IS NOT
+### ⇒ ⇒ THE ONE DEFECT THIS SCOPE FOUND IN ITSELF, = = AND IT IS NOT
 MINE TO FIX ALONE
 
 `befbf1e65d`'s subject is `style(devtool): ...`. = = The CI's
@@ -100,15 +238,16 @@ MINE TO FIX ALONE
 `test`, `refactor`, `chore`, `perf`, `build`, `ci` (= = the job's own
 comment says the types outside that set are accepted only WITHOUT a
 scope). = = So `style(devtool):` would be REFUSED by that job, = = and
-the repo writes `style(scope):` in 98 other commits, = = so this is a
-PRE-EXISTING disagreement between the CI's rule and the house's
-practice, = = not a defect this scope introduced. = = ⇒ ⇒ It is
+the repo writes a `style(...)` subject in 13 commits on `main` (= = 70
+across every ref), = = so this is a PRE-EXISTING disagreement between the
+CI's rule and the house's practice, = = not a defect this scope
+introduced. = = ⇒ ⇒ It is
 recorded here as its own row (= = not folded into any requirement's
 verdict), = = and it is the boss's call whether the CI's rule or the
 house's practice is the one to change. = = The commit is PUSHED, = = and
 a pushed sha is never rewritten (= = the correction is a NEW commit).
 
-## The review history (= = five rounds, = = each of which found a real
+## The review history (= = the rounds, = = each of which found a real
 defect)
 
 | Card | The sha | The verdict | What it found |
@@ -122,8 +261,10 @@ defect)
 | `t_bedecdbe` | `947755609` | **APPROVED** | = = all four checks PASS, = = at the branch tip, = = after the tip moved mid-review |
 | `t_38d004f3` | `5516e98474` | CHANGES REQUESTED | a finding in the wrong group (= = D3), = = and a proof that named a file no branch ever carried |
 | `t_337577dd` | `5f5efddcd7` | **APPROVED** | = = all six checks PASS |
+| `t_33f9c6b5` | `ae607530b5` | CHANGES REQUESTED | the 7.2 section's own numbers were re-derived from the logs on disk and held; = = but three sentences in it did not agree with each other (= = the eight runs' tree count, = = the `FileToolsTests` row's frequency, = = and a claim stated twice) |
+| `t_af3eeb33` | `c4cde06187` | **APPROVED** | = = the three sentences above, = = re-checked by string and re-measured from the logs; = = and the two gate rows (= = the registry count and the 7.9 split) = = PASS |
 
-**⇒ ⇒  AND THE TWO APPROVED CARDS THAT OWN CODE** (= =
+**⇒ ⇒  AND THE THREE APPROVED CARDS THAT OWN CODE** (= =
 `t_7ff7d29c` for the Apple-first rule, = = `t_e33cebdd` for the gate
 fix, = = `t_99e1c1e8` for the identity fix) = = each with its own
 mutation or gate proof.
@@ -144,8 +285,8 @@ that fix must cache the scan.
 
 **NOT MEASURED.** = = (1) NO Instruments trace exists, = = and no stall
 was reproduced (= = the boss directed the work to the code, = = and the
-corpus is too small to produce one anyway: = = 29 files, = = 5 books, = =
-56 assets). = = (2) The per-frame class has NO microsecond figure, = =
+corpus is too small to produce one anyway: = = 2 shelves, = = 2 books, = =
+7 book folders, = = 6 reference entities, = = and 26 cover stills). = = (2) The per-frame class has NO microsecond figure, = =
 because the cost is a subtree rebuild (= = SwiftUI discards the row and
 builds a new one), = = and a subtree rebuild's cost is the work inside
 that subtree, = = not a timer on the row's construction. = = (3) The
@@ -163,7 +304,7 @@ not timed.
 | 2 | E1's cross-launch identity instability | **NOT STARTED** (= = a CORRECTNESS bug, = = not a speedup: = = the fix changes the id VALUES, = = so it needs a migration or a fallback that resolves an old id) | a design decision first, = = then a ticket |
 | 3 | the editor's per-keystroke double walk (= = 276.042 us) | **NOT STARTED** (= = below Apple's finding line, = = and the scalar form reads a DIFFERENT unit, = = so it cannot be swapped in) | a ticket, = = if the boss wants it |
 | 4 | the reload class's 1,589.667 us | **NOT STARTED** (= = one listing instead of ten, = = but the counts on screen must not move) | a ticket, = = with the boss's eye on the numbers |
-| 5 | the CI's `lint-commits` rule vs the house's `style(scope):` practice (= = 98 commits) | **REPORTED, NOT FIXED** (= = a PRE-EXISTING disagreement, = = and a pushed sha is never rewritten) | the boss's call |
+| 5 | the CI's `lint-commits` rule vs the house's `style(...)` practice (= = thirteen commits on `main` at this tree, = = seventy across every ref) | **REPORTED, NOT FIXED** (= = a PRE-EXISTING disagreement, = = and a pushed sha is never rewritten) | the boss's call |
 | 6 | the `WenshuEditorServicesFactory`'s latent 188.833 us scan | **NOT STARTED** (= = it fires only when the book directory is wired, = = so the fix that wires it must cache the scan) | whoever wires the book directory |
 
 ## The skills this scope built (= = = = = the part that outlives the
@@ -189,6 +330,20 @@ its own): = = `wt/apple-official-first`, = = `wt/apple-gate-fix`, = =
 `wt/chat-part-identity`, = = `wt/perf-audit-2026-11-13`, = =
 `wt/perf-fix-order-2026-11-13`, = = `wt/session-closeout-2026-11-13`,
 = = and their six worktrees under `.worktrees/wt/`.
+
+**⇒ ⇒  AND THE 7.2 ROUNDS' OWN RESIDUE, = = REMOVED THE SAME WAY.** = =
+The two 7.2 review cards each ran in their own worktree, = = and both
+were removed once their branch had landed: = = `.worktrees/t_33f9c6b5`
+(= = the round that returned CHANGES REQUESTED) and
+`.worktrees/t_af3eeb33` (= = the round that returned APPROVED). = = The
+developer's own branch `wt/perf-closeout-72-2026-11-14` is KEPT, = =
+because it now points at the landed tip and its history is the 7.2
+rewrite's own chain. = = ⇒ And the measurement logs are KEPT, = = but in
+a DURABLE home (= = `~/.hermes/profiles/pocock/cache/evidence/`, = = under
+`72-reviewer/`, = = `72-compare/`, = = `72-recovery/` and `72-final/`), = =
+because `cache/scratch/` is pruned after twenty-four hours and = = = = a
+card that points at a pruned path is a card whose evidence no longer
+exists.
 
 **LEFT** (= = NOT this scope's, = = and a sibling's live assets are not
 to be deleted even when they look unused): = = `wt/applemode`, = =

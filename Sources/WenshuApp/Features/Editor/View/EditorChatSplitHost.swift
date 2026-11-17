@@ -15,10 +15,6 @@ import WenshuAgent
 /// into NSHostingController via `.environment(...)` if/when needed).
 struct EditorChatSplitHost: NSViewControllerRepresentable {
     let conductor: WenshuConductor?
-    /// The arrangement the user asked for in the View menu. The
-    /// controller applies it (= automatic follows the window
-    /// width; = the two manual cases pin the arrangement).
-    let layoutMode: EditorLayoutMode
     // The SwiftUI environment does not cross into the
     // `NSHostingController`s this wrapper creates, so the three
     // objects the hosted views read are resolved HERE (= the
@@ -42,11 +38,21 @@ struct EditorChatSplitHost: NSViewControllerRepresentable {
         )
     }
 
+    /// The protocol requires this method; there is nothing to update.
+    ///
+    /// Why nothing: the SwiftUI side used to own one thing here (= the
+    /// layout mode the View menu carried), and it handed it to the
+    /// controller so the controller could move the split's two items
+    /// when the arrangement changed. The arrangement is gone (= the
+    /// editor is above the chat at every width), so there is nothing
+    /// left for this method to push across the boundary.
+    ///
+    /// The split's own layout is driven by the controller's own
+    /// lifecycle (= `viewDidLoad` adds the two items once, =
+    /// `viewDidLayout` holds the divider at the user's share), not
+    /// by the SwiftUI side.
     func updateNSViewController(_ nsViewController: EditorChatNSController, context _: Context) {
-        // The layout mode is the one thing the SwiftUI side owns
-        // (= the View menu writes it; = the editor + chat content
-        // itself is static).
-        nsViewController.applyLayoutMode(layoutMode)
+        _ = nsViewController
     }
 
     /// Report a size that does NOT depend on the inner split's own layout.

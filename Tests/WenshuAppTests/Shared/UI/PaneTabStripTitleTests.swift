@@ -75,28 +75,35 @@ struct PaneTabStripTitleTests {
         #expect(fitted.hasPrefix("十二"))
     }
 
-    @Test("A cell that can hold only the ellipsis holds nothing")
+    @Test("A cell too narrow for the ellipsis holds the title's first character")
     @MainActor
-    func nothingWhenOnlyTheEllipsisWouldFit() {
+    func firstCharacterWhenOnlyTheEllipsisWouldFit() {
         let title = "十二地仙"
-        // The cell fits the ellipsis and NOT one character beside it
-        // (= the room is the share minus the segment's own inset).
+        // The cell fits the ellipsis and NOT one character BESIDE it
+        // (= the room is the share minus the segment's own inset), = so
+        // the app's ladder has no prefix to keep.
+        //
+        // THE BOSS'S RULE (2026-11-16): = the narrowest tab shows the
+        // title's FIRST character, = because a lone ellipsis names
+        // nothing (= "连...都不显示") = and the first character still
+        // names the document.
         let share = PaneTabStripTitle.ellipsisCost
             + PaneTabStripWidth.segmentLabelInset + 1
         let fitted = PaneTabStripTitle.fitted(title, share: share, font: Self.labelFont())
-        #expect(fitted == PaneTabStripTitle.nothingMarker)
+        #expect(fitted == "十")
         // The lone ellipsis is the case the boss ruled out.
         #expect(!fitted.contains("…"))
-        // And the marker draws no GLYPH: = it is a zero width space and
-        // a space, = so the cell paints no ink (= the drawn pixels are
-        // asserted against a real control in `aNarrowCellPaintsNothing`).
-        // It is NOT zero PT wide: = MEASURED, a label of only a zero
-        // width space is treated as EMPTY by AppKit and the cell keeps
-        // its own minimum width, = so the marker carries a space to stay
-        // a label the control divides (= `nothingMarker`).
+        // And the character is the title's own first character, = not a
+        // character from anywhere else.
+        #expect(fitted.hasPrefix(String(title.prefix(1))))
+        // The character must FIT the cell: = the cell honours a label's
+        // own width plus the segment's own inset, = so a label wider
+        // than the share makes the cell wider than its share (= the
+        // band the fix closed).
         #expect(
-            fitted.allSatisfy { $0 == "\u{200B}" || $0.isWhitespace },
-            "the nothing marker must carry nothing but whitespace, = it carried '\(fitted)'"
+            PaneTabStripTitle.drawnWidth(of: fitted, font: Self.labelFont())
+                <= share - PaneTabStripWidth.segmentLabelInset,
+            "the first character must fit the cell, = it did not"
         )
     }
 

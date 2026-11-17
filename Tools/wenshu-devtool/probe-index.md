@@ -18,16 +18,80 @@ card's commit does not touch the app source.
 | --- | --- | --- | --- |
 | `chat_bubble_metrics.swift` | The user's own chat bubble (the outgoing message surface in the chat column), painted width and corner radius read from rendered pixels at a stated host width. | `painted_width_pt`, `painted_height_pt`, `corner_radius_pt`, `shape_rule_radius_pt`, `subject_ink_width_pt`, `host_width_pt`, `calibration_radius_pt`, `calibration_measured_pt` | `3ee82bf48b18` |
 | `column_chrome_band.py` | The column-top chrome band of two neighbouring columns of the running app (= the materials column's search band and the editor column's format-toolbar band), read from a 2x capture: the content ink band, the MATERIAL surface the band paints, and the closing hairline. RETIRED AS A BAND-PAIRING MEASUREMENT (2026-11-04: the editor column's format-toolbar band is gone with the format commands' move to the inspector column's format page, = so the pair this probe measured no longer exists, = and a probe that measured one column's band against a band the tree no longer draws would report a number for a subject that is not there). | `content_centre_delta_pt`, `band_surface_top_delta_pt`, `band_surface_bottom_delta_pt`, plus each column's content centre and band surface top/bottom | `ab0de05659` |
-| `editor_chat_arrangement.py` | The editor and chat zone's arrangement (= which pane is where), read from the running app's accessibility tree as native coordinates: the chat's composer and the editor's body (= the editor column's leading edge). It names the arrangement from those coordinates and checks the production fragments it reproduces before it reports a number. | `composer_x`, `composer_y`, `editor_body_x`, `editor_body_y`, `arrangement`, plus `requested_mode` and `agreement` | `fdc4b6760a36` |
+| `editor_chat_arrangement.py` | The editor and chat zone's arrangement (= which pane is where), read from the running app's accessibility tree as native coordinates: the chat's composer and the editor's body (= the editor column's leading edge). It names the arrangement from those coordinates and checks the production fragments it reproduces before it reports a number. The app has ONE arrangement (= the editor above the chat), so the probe's gate asks whether the panes are where the app puts them. | `composer_x`, `composer_y`, `editor_body_x`, `editor_body_y`, `arrangement`, plus `agreement` | `25e61e17e4ce` |
 | `toolbar_preference_change.py` | The main window's toolbar after the app's preferences changed: the app's own Settings scene is driven through the accessibility tree, its group rows are switched N times (= N app-preference changes), and the process is watched for the abort AppKit raises when a window asks for more "Update Constraints in Window" passes than it has views. | `switches_landed`, `survived`, `pane_after`, `unresolvable_symbol_faults`, `max_update_constraints_count`, `layout_loop_warnings`, `new_crash_reports`, `other_crash_reports`, plus `bundle`, `bundle_id`, `executable`, `pid`, `instance_owned` and `source_commit` | `37e941c604` |
 | `toolbar_preference_change.swift` | RETIRED AS A GUI DRIVER (2026-10-29: the AX press takes the operator's mouse and foreground; the GUI drive goes through the CUA tool). The accessibility driver the toolbar probe runs: it opens the app's own Settings scene, selects its group rows through the accessibility tree, and verifies every switch against the persisted group key, so a driver that silently did nothing cannot report a pass. It drives the PID it is given and never re-derives one from a path, because every build of the app ships the same bundle id and a path does not name an instance. It checks that the running instance claims the bundle id it was given, because the preferences it reads live in the domain of that id. | `group_rows`, `strategy`, `switches_landed`, plus the group and pane of each round | `37e941c604` |
 | `render_path_contention_robust.swift` | The render path's measured costs, re-measured with a contention-ROBUST harness: the editor's per-keystroke character walk (= = A1 and A2 = = the same walk done twice), the sidebar's per-reload folder doc count (= = D1), and the reference-library row id (= = D2 = = the Hasher plus sixteen `String(format:)` calls). The harness reports the MINIMUM over many reps (= = the load-independent floor), because a mean is exactly the statistic that background CPU load inflates. = = READ-ONLY: it reads the user's library and writes no file. | `a1_walk_us`, `a1_a2_pair_us`, `d1_one_call_us`, `d1_whole_reload_us`, `d2_one_id_us`, `d2_formatting_only_us`, `d2_hasher_only_us`, `d2_twelve_tag_set_us`, plus `distinct_tags` | `292f49670903` |
 | `render_path_reload_total.swift` | The whole sidebar reload measured as ONE call (= = the ten folder doc counts of D1 and the cover reconciler's shelves walk of D3 in a single bench), = = which is the figure the sweep's path-class table quotes for the reload class. It is the same production shapes as `render_path_contention_robust.swift`, = = plus one bench that runs both walks together. = = READ-ONLY: it reads the user's library and writes no file. | `d4_one_whole_reload_us`, plus `d1_one_call_us`, `d1_whole_reload_us` and `d3_full_shelves_walk_us` for the two components it composes | `292f49670903` |
+| `segmented_control_material.swift` | The native segmented control's own material: = whether its cells paint an opaque fill of their own, = or let the host layer behind them read through. = Rendered offscreen at 2x, = and read from three named regions (= the cell's own area, = the host layer beside it, = and the same area under an opaque fill). | `drawn_band_pt`, `cell_area_pt`, `cell_area_rgb`, `cell_area_colours`, `backdrop_rgb`, `backdrop_colours`, `opaque_area_rgb`, `opaque_area_colours`, = one set per appearance, = with the parameters that decide them printed alongside | `5b941c68f` |
 
 ## Recorded measurement
 
 The runs below are the proof that the rows above carry real numbers. They
 are the probes' own output.
+
+### `segmented_control_material.swift`
+
+Taken against commit `5b941c68f`, = with the control alone over the
+saturated host layer.
+
+```
+probe: segmented_control_material
+source_commit: 5b941c68f
+host_size_pt: 260 x 40
+control_frame_pt: (10, 6, 240, 28)
+control_size: small
+control_role: valueSelection
+control_style: roundRect
+selected_segment: 1
+measured_segment: 0
+host_layer_colour: calibrated (0.0, 0.55, 0.25)
+opaque_control_colour: calibrated white (0.5)
+appearance: darkAqua
+drawn_band_pt: (10, 30)
+cell_area_pt: (38, 14, 24, 12)
+cell_area_rgb: (96, 184, 142)
+cell_area_colours: 141
+backdrop_rgb: (0, 143, 76)
+backdrop_colours: 1
+opaque_area_rgb: (135, 135, 135)
+opaque_area_colours: 1
+appearance: aqua
+drawn_band_pt: (10, 30)
+cell_area_pt: (38, 14, 24, 12)
+cell_area_rgb: (0, 95, 50)
+cell_area_colours: 116
+backdrop_rgb: (0, 143, 76)
+backdrop_colours: 1
+opaque_area_rgb: (135, 135, 135)
+opaque_area_colours: 1
+```
+
+Four readings in that run are worth reading together:
+
+- The backdrop reads `(0,143,76)`, = not the nominal `(0,140,64)`. = The
+  nominal colour is what the app asks for, = and the rendered one is what
+  the layer's colour space produces.
+- The measured cell reads GREEN-DOMINANT in both appearances
+  (`(96,184,142)` with 141 colours, = and `(0,95,50)` with 116), = = =
+  so the host layer's colour comes THROUGH the cell.
+- The SAME area under an opaque fill reads `(135,135,135)` with 1 colour
+  = = = neutral grey, = = = not green. = ⇒ So the reading distinguishes
+  a translucent cell from an opaque one: = = = the cell paints no
+  opaque fill of its own. = ⇒ This is the probe's own proof that its
+  number has teeth.
+- The bitmap that `cacheDisplay(in:to:)` writes is TOP-DOWN, = while an
+  NSView's coordinates are BOTTOM-UP. = ⇒ The probe MAPS the view's
+  rect onto the bitmap's rows (= `(hostHeight - (y + height)) * scale`),
+  = prints the drawn band and the measured area, = and places the
+  measured area INSIDE the band. = ⇒ A reader can check the reading
+  without trusting the mapping.
+
+The probe measures the control ALONE on purpose: = a material container
+(= an `NSVisualEffectView` behind the control, = or an `NSGlassEffectView`
+around it) changes the reading by a factor of three, = and in the dark
+appearance it changes the qualitative reading too. = So a container's
+number would answer a different question.
 
 ### `chat_bubble_metrics.swift`
 
@@ -121,6 +185,21 @@ format commands to the inspector column's format page), on the running
 app's own accessibility tree (= no screenshot; = the tree's coordinates
 are the measurement).
 
+**The run against the tree AFTER the removal of the side-by-side
+arrangement** (= the probe's own shape changed with the removal: = its
+fragments, = its mode request, = and its gate; = the run it replaces is
+quoted after it):
+
+```
+probe: editor_chat_arrangement
+source_commit: 25e61e17e4ce
+source_fragments: 3/3 match
+```
+
+**The run this replaces** (= against the tree before the removal; = the
+probe printed a mode it asked for, = and the automatic mode's answer
+followed the window's width):
+
 ```
 probe: editor_chat_arrangement
 source_commit: fdc4b6760a36
@@ -163,6 +242,14 @@ Two things in that run are worth reading together:
   window is wide enough for the panes to sit side by side, = so the
   probe reports the arrangement it found and whether it is the one that
   was asked for.
+
+**⇒ ⇒ ⇒ AND EVERY ONE OF THOSE FRAGMENTS IS GONE** (= the preference
+key, = the three modes, = the width rule's thresholds, = the autosave
+names), = = so the probe now reproduces 3 fragments and asks no mode:
+the app has ONE arrangement (= the editor above the chat), = = and the
+gate asks whether the panes are where the app puts them. The
+`requested_mode` line is gone from the probe's output for the same
+reason: = there is nothing to request.
 
 ### `toolbar_preference_change.py`
 

@@ -144,7 +144,7 @@ extension EditorChatNSController {
     override func viewDidAppear() {
         super.viewDidAppear()
         let defaults = UserDefaults.standard
-        let hasAutosave = hasStoredPayload(for: Self.storedAutosaveName(for: arrangement))
+        let hasAutosave = hasStoredPayload(for: Self.autosaveName)
         // First-launch path: no autosave value exists + flag not
         // set for this run. Apply the 50:50 reset (= the canonical
         // first-launch layout; = writes to autosave via setPosition).
@@ -166,19 +166,17 @@ extension EditorChatNSController {
     /// splitView now has its final height here.
     override func viewDidLayout() {
         super.viewDidLayout()
-        // This callback reaches the split's structure only through the
-        // width rule (= a request). Removing and re-inserting a split
-        // view item here invalidates the split's constraints while
-        // AppKit is laying out, and each invalidation re-arms the
-        // window's "Update Constraints in Window" pass (= the pass
-        // AppKit's runaway-layout guard counts).
+        // This callback no longer reaches the split's structure at
+        // all. It used to: the width rule asked for an arrangement
+        // from here, and answering it removed and re-inserted a
+        // split view item, which invalidates the split's constraints
+        // while AppKit is laying out, and each invalidation re-arms
+        // the window's "Update Constraints in Window" pass (= the
+        // pass AppKit's runaway-layout guard counts). The split's
+        // two items are now added once and never moved.
         updateAutomaticThicknessBounds()
-        if layoutMode == .automatic {
-            applyAutomaticArrangement()
-        }
-        runPendingReset()
         let defaults = UserDefaults.standard
-        let hasAutosave = hasStoredPayload(for: Self.storedAutosaveName(for: arrangement))
+        let hasAutosave = hasStoredPayload(for: Self.autosaveName)
         if !hasAutosave, defaults.bool(forKey: Self.firstLaunchSetKey) {
             // We already tried to set 50:50 in viewDidAppear (=
             // the flag is set) but it didn't take (= bounds were
@@ -236,17 +234,16 @@ extension EditorChatNSController {
     /// together.
     private func applyStoredShare() {
         if assertedShare == nil {
-            assertedShare = storedShare(for: Self.storedAutosaveName(for: arrangement)) ?? 0.5
+            assertedShare = storedShare(for: Self.autosaveName) ?? 0.5
         }
         guard let share = assertedShare else { return }
 
         let items = splitViewItems
         guard items.count == 2 else { return }
         // The editor's share, expressed as the LEADING pane's share
-        // (= the frames are in the panes' own order, and the chat
-        // leads when they stand side by side).
-        let editorLeads = arrangement == .stacked
-        let leadingShare = editorLeads ? share : 1 - share
+        // (= the frames are in the panes' own order, = the editor is
+        // the leading pane because it is above the chat).
+        let leadingShare = share
         // Write only when the value differs: a write into the split
         // during the layout pass re-arms the window's
         // update-constraints pass.
@@ -257,15 +254,13 @@ extension EditorChatNSController {
             items[1].preferredThicknessFraction = 1 - leadingShare
         }
 
-        let axis = arrangement.isVertical ? splitView.bounds.width : splitView.bounds.height
+        let axis = splitView.bounds.height
         guard axis > 0 else { return }
 
         // The LEADING pane's thickness in the frames the layout hands
         // out (= the previous pass's frames). The latch reads it
         // against the extent those frames were laid out for.
-        let observedLeading = arrangement.isVertical
-            ? items[0].viewController.view.frame.width
-            : items[0].viewController.view.frame.height
+        let observedLeading = items[0].viewController.view.frame.height
 
         // The latch owns the state that spans passes (= the axis
         // extent, the settle count, the pending resize, the pending
@@ -284,7 +279,7 @@ extension EditorChatNSController {
             // position and it is adopted as the asserted share, so the
             // fractions follow it (= a write here is what eats the
             // drag).
-            assertedShare = editorLeads ? share : 1 - share
+            assertedShare = share
         case let .assertAt(share):
             splitView.setPosition(axis * share, ofDividerAt: 0)
         }

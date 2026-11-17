@@ -11,8 +11,13 @@ WHAT IT MEASURES
       which is the editor column's leading edge.
   From those it names the arrangement (= the chat's composer is LEFT of
   the editor's body = side by side; = the editor's body is ABOVE the
-  chat's composer = stacked) and says whether the arrangement on screen
-  is the one the layout mode asked for.
+  chat's composer = stacked).
+
+  THE APP HAS ONE ARRANGEMENT (= the editor above the chat), so the
+  probe's question is now a CONSTANT: it reads where the panes are and
+  says whether the chat is BELOW the editor (= the one arrangement) or
+  not. There is no requested mode to compare against any more (= the
+  View menu carried no layout choice; = the width carried no rule).
 
   WHY THE LANDMARK IS THE EDITOR'S BODY AND NOT A BUTTON
   2026-11-04: the probe used to find the editor's TOOLBAR by the
@@ -43,10 +48,10 @@ THE TRAPS THIS SCRIPT AVOIDS
      crash. They are different subjects.
   3. A PROBE THAT MEASURES A SHAPE THE APP NO LONGER DRAWS MUST REFUSE
      TO REPORT A NUMBER. So every production fragment this probe
-     reproduces is checked against the live source FIRST (= the
-     preference key, the three modes, the width rule's two thresholds,
-     the two autosave names). If a fragment disagrees, this prints NO
-     number and says which fragment disagreed.
+     reproduces is checked against the live source FIRST (= the one
+     autosave name and the one split it measures). If a fragment
+     disagrees, this prints NO number and says which fragment
+     disagreed.
 
 USAGE
   python3 Tools/wenshu-devtool/probes/editor_chat_arrangement.py --pid <pid>
@@ -54,8 +59,9 @@ USAGE
   python3 Tools/wenshu-devtool/probes/editor_chat_arrangement.py --source-only
 
 EXIT CODE
-  0 = the arrangement was read (and agrees with the requested mode),
-  1 = the arrangement was read and DISAGREES with the requested mode,
+  0 = the arrangement was read and IS the app's one arrangement
+      (= the editor above the chat),
+  1 = the arrangement was read and is NOT the app's one arrangement,
   2 = no number was reported (= the source moved, or there is no tree).
 """
 
@@ -74,28 +80,21 @@ import sys
 # There is NO button label here any more: the editor's landmark is its
 # body (the AXTextArea), not a button (= see the header).
 COMPOSER_LABELS = ("\u8f93\u5165\u6d88\u606f...", "Input a message...")
-LAYOUT_MODE_KEY = "wenshu.editor.layoutMode"
 
 # --- the production fragments this probe reproduces ----------------------
 # Each one is a (file, needle) pair, checked against the live source
 # before any number is printed.
+# 2026-11-16: the layout mode, the width rule's thresholds and the
+# side-by-side autosave name are GONE (= the editor is above the chat at
+# every width). The fragments are what the app now HAS: one autosave
+# name, and the one split the probe measures.
 FRAGMENTS = (
-    ("Features/Agent/Service/UserDefaultsStore.swift",
-     'case editorLayoutMode    = "%s"' % LAYOUT_MODE_KEY),
-    ("Shared/State/WorkspaceUIState.swift",
-     "case automatic"),
-    ("Shared/State/WorkspaceUIState.swift",
-     "case stacked"),
-    ("Shared/State/WorkspaceUIState.swift",
-     "case sideBySide"),
-    ("Features/Editor/View/EditorChatNSController.swift",
-     "static let sideBySideMinimumWidth: CGFloat = editorPaneMinimumWidth * 2"),
-    ("Features/Editor/View/EditorChatNSController.swift",
-     "static let editorChromeMinimumWidth: CGFloat = 116"),
     ("Features/Editor/View/EditorChatNSController.swift",
      'static let autosaveName = "wenshu.editor.split.autosave"'),
     ("Features/Editor/View/EditorChatNSController.swift",
-     'static let sideAutosaveName = "wenshu.editor.split.autosave.side"'),
+     "static let chatItemIdentifier"),
+    ("Features/Editor/View/EditorChatSplitHost.swift",
+     "struct EditorChatSplitHost: NSViewControllerRepresentable"),
 )
 
 UTF8 = 0x08000100
@@ -263,14 +262,6 @@ def bundle_id_of(pid):
     return info.get("CFBundleIdentifier"), command
 
 
-def requested_mode(bundle_id):
-    if not bundle_id:
-        return None
-    out = subprocess.run(["defaults", "read", bundle_id, LAYOUT_MODE_KEY],
-                         capture_output=True, text=True)
-    return out.stdout.strip() or None
-
-
 # ---------------------------------------------------------------- the tree --
 
 def walk(ax, element, depth=0, max_depth=14):
@@ -354,10 +345,8 @@ def main():
         print("pid: NOT FOUND (= the app is not running; = nothing to measure)")
         return 2
     bundle_id, command = bundle_id_of(pid)
-    mode = requested_mode(bundle_id)
     print("pid: %s" % pid)
     print("bundle_id: %s" % (bundle_id or "(unknown)"))
-    print("requested_mode: %s" % (mode or "(unset)"))
 
     ax = AX()
     window, window_id = find_window(ax, pid)
@@ -392,15 +381,15 @@ def main():
         arrangement = "unknown"
     print("arrangement: %s" % arrangement)
 
-    agree = None
-    if mode and mode != "automatic":
-        agree = (arrangement == mode)
-        print("agreement: %s (asked %s, on screen %s)" % ("yes" if agree else "NO", mode, arrangement))
-    elif mode:
-        print("agreement: the automatic mode follows the width (= no fixed arrangement)")
+    # The app has ONE arrangement (= the editor above the chat), so
+    # the question the probe answers is whether the panes are where
+    # the app puts them (= the chat below the editor).
+    agree = (arrangement == "stacked")
+    print("agreement: %s (the app's one arrangement = stacked, on screen %s)"
+          % ("yes" if agree else "NO", arrangement))
 
-    print("GATE: %s" % ("PASSED" if agree in (True, None) else "FAILED"))
-    return 0 if agree in (True, None) else 1
+    print("GATE: %s" % ("PASSED" if agree else "FAILED"))
+    return 0 if agree else 1
 
 
 if __name__ == "__main__":
