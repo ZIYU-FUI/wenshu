@@ -24,6 +24,7 @@ card's commit does not touch the app source.
 | `render_path_contention_robust.swift` | The render path's measured costs, re-measured with a contention-ROBUST harness: the editor's per-keystroke character walk (= = A1 and A2 = = the same walk done twice), the sidebar's per-reload folder doc count (= = D1), and the reference-library row id (= = D2 = = the Hasher plus sixteen `String(format:)` calls). The harness reports the MINIMUM over many reps (= = the load-independent floor), because a mean is exactly the statistic that background CPU load inflates. = = READ-ONLY: it reads the user's library and writes no file. | `a1_walk_us`, `a1_a2_pair_us`, `d1_one_call_us`, `d1_whole_reload_us`, `d2_one_id_us`, `d2_formatting_only_us`, `d2_hasher_only_us`, `d2_twelve_tag_set_us`, plus `distinct_tags` | `292f49670903` |
 | `render_path_reload_total.swift` | The whole sidebar reload measured as ONE call (= = the ten folder doc counts of D1 and the cover reconciler's shelves walk of D3 in a single bench), = = which is the figure the sweep's path-class table quotes for the reload class. It is the same production shapes as `render_path_contention_robust.swift`, = = plus one bench that runs both walks together. = = READ-ONLY: it reads the user's library and writes no file. | `d4_one_whole_reload_us`, plus `d1_one_call_us`, `d1_whole_reload_us` and `d3_full_shelves_walk_us` for the two components it composes | `292f49670903` |
 | `segmented_control_material.swift` | The native segmented control's own material: = whether its cells paint an opaque fill of their own, = or let the host layer behind them read through. = Rendered offscreen at 2x, = and read from three named regions (= the cell's own area, = the host layer beside it, = and the same area under an opaque fill). | `drawn_band_pt`, `cell_area_pt`, `cell_area_rgb`, `cell_area_colours`, `backdrop_rgb`, `backdrop_colours`, `opaque_area_rgb`, `opaque_area_colours`, = one set per appearance, = with the parameters that decide them printed alongside | `5b941c68f` |
+| `segmented_control_selected_fill.swift` | What fills the SELECTED segment of a segmented control in a KEY window: = the SYSTEM ACCENT (= the theme colour) or a material. = The sibling probe above measures an UNSELECTED cell in a window that is never the key window, = = = which cannot answer this question, = = = and the two questions have different answers. = The control carries the app's production parameters (= role .valueSelection, = size .small, = style .roundRect, = border shape .capsule, = segment distribution .fillEqually), = and the same area is read in a key window and in a non-key window (= the only variable changed), = beside an unselected segment of the same key window, = and with the accent painted over it. = The claim is scoped to THAT control and THAT state: = a differently configured control, = or the same control in a different macOS appearance, = is not covered by these numbers. | `panel_is_key`, `probe_took_foreground`, `key_window_selected_strip_rgb`, `key_window_selected_strip_colours`, `key_window_contrast_strip_rgb`, `distance_to_system_accent`, `distance_to_host_layer`, `fill_is_accent_dominant`, `teeth_accent_overlay_rgb`, `non_key_window_is_key`, `non_key_window_selected_strip_rgb`, = one set per appearance and cell shape, = with the parameters that decide them printed alongside | `34117be19` |
 
 ## Recorded measurement
 
@@ -92,6 +93,117 @@ The probe measures the control ALONE on purpose: = a material container
 around it) changes the reading by a factor of three, = and in the dark
 appearance it changes the qualitative reading too. = So a container's
 number would answer a different question.
+
+### `segmented_control_selected_fill.swift`
+
+Taken against commit `34117be19`, = with the control alone over the
+saturated host layer, = in a window that IS the key window.
+
+```
+probe: segmented_control_selected_fill
+source_commit: 34117be19
+host_size_pt: 260 x 40
+control_frame_pt: (10, 6, 240, 28)
+control_size: small
+control_role: valueSelection
+control_style: roundRect
+border_shape: capsule
+segment_distribution: fillEqually
+selected_segment: 1
+contrast_segment: 2
+segment_count: 3
+labels: Tag1 / Tag2 / Tag3
+host_layer_colour: calibrated (0.0, 0.55, 0.25)
+system_accent_rgb: (0, 122, 255)
+host_layer_rgb: (0, 154, 80)
+selected_strip_pt: (94, 10, 8, 20)
+contrast_strip_pt: (174, 10, 8, 20)
+offscreen_origin_pt: (-20000, -20000)
+
+appearance: darkAqua
+cell_shape: stock
+panel_is_key: true
+frontmost_before: com.nousresearch.hermes
+frontmost_after: com.nousresearch.hermes
+probe_took_foreground: false
+key_window_selected_strip_rgb: (6, 118, 242)
+key_window_selected_strip_colours: 20
+key_window_selected_strip_white_ink: 0
+key_window_selected_strip_dark_ink: 0
+key_window_selected_strip_pixels: 640
+key_window_contrast_strip_rgb: (20, 151, 89)
+key_window_contrast_strip_colours: 1
+key_window_contrast_strip_white_ink: 0
+key_window_contrast_strip_dark_ink: 0
+key_window_contrast_strip_pixels: 640
+distance_to_system_accent: 14.9
+distance_to_host_layer: 166.1
+fill_is_accent_dominant: true
+teeth_accent_overlay_rgb: (0, 114, 249)
+teeth_accent_overlay_colours: 1
+teeth_accent_overlay_white_ink: 0
+teeth_accent_overlay_dark_ink: 0
+teeth_accent_overlay_pixels: 640
+non_key_window_is_key: false
+non_key_window_selected_strip_rgb: (48, 163, 108)
+non_key_window_selected_strip_colours: 15
+non_key_window_selected_strip_white_ink: 0
+non_key_window_selected_strip_dark_ink: 0
+non_key_window_selected_strip_pixels: 640
+
+appearance: aqua
+cell_shape: stock
+panel_is_key: true
+frontmost_before: com.nousresearch.hermes
+frontmost_after: com.nousresearch.hermes
+probe_took_foreground: false
+key_window_selected_strip_rgb: (0, 111, 234)
+key_window_selected_strip_colours: 21
+key_window_selected_strip_white_ink: 0
+key_window_selected_strip_dark_ink: 0
+key_window_selected_strip_pixels: 640
+key_window_contrast_strip_rgb: (0, 132, 70)
+key_window_contrast_strip_colours: 1
+key_window_contrast_strip_white_ink: 0
+key_window_contrast_strip_dark_ink: 0
+key_window_contrast_strip_pixels: 640
+distance_to_system_accent: 23.7
+distance_to_host_layer: 159.9
+fill_is_accent_dominant: true
+teeth_accent_overlay_rgb: (0, 114, 249)
+teeth_accent_overlay_colours: 1
+teeth_accent_overlay_white_ink: 0
+teeth_accent_overlay_dark_ink: 0
+teeth_accent_overlay_pixels: 640
+non_key_window_is_key: false
+non_key_window_selected_strip_rgb: (0, 115, 61)
+non_key_window_selected_strip_colours: 14
+non_key_window_selected_strip_white_ink: 0
+non_key_window_selected_strip_dark_ink: 618
+non_key_window_selected_strip_pixels: 640
+```
+
+The `custom-super` cell shape (= a cell that overrides `drawSegment` and
+calls super) reads the SAME as the stock cell in every appearance, so the
+control's own selection painting survives a strip that draws its own
+glyphs.
+
+What the numbers say, = and only that: = the SELECTED segment of THIS
+control, = in a KEY window, = reads the SYSTEM ACCENT (= 14.9 away from
+the accent in the dark appearance, = 23.7 in the light one, = against 166.1
+and 159.9 away from the host layer's green). = ⇒ It is theme-coloured,
+not a material. = The same area in a NON-KEY window reads the host layer
+through (= `(48, 163, 108)` and `(0, 115, 61)`), = and an UNSELECTED
+segment of the SAME key window reads the host layer through (= `(20, 151,
+89)` and `(0, 132, 70)`), = so the accent belongs to the selection, = and
+not to the whole control. = The strip carries no label ink
+(= `white_ink` and `dark_ink` are 0 in the key-window arms), = because it
+sits at the segment's leading edge, = where the centred label cannot
+reach.
+
+The claim is scoped to that control and that state. = A differently
+configured control, = or another macOS appearance, = is not covered by
+these numbers.
 
 ### `chat_bubble_metrics.swift`
 
@@ -352,6 +464,7 @@ python3 Tools/wenshu-devtool/probes/column_chrome_band.py <capture.png>
 python3 Tools/wenshu-devtool/probes/column_chrome_band.py --selftest
 python3 Tools/wenshu-devtool/probes/toolbar_preference_change.py --selftest
 python3 Tools/wenshu-devtool/probes/toolbar_preference_change.py <app-bundle> [rounds]
+swift Tools/wenshu-devtool/probes/segmented_control_selected_fill.swift
 ```
 
 The bubble probe exits 0 when the measurement is sound, 2 when the
@@ -376,6 +489,11 @@ path still names one build, that an instance of the same bundle id at
 another path is reported as another copy rather than as ours, that a
 crash report of another process is not this run's crash, and that a PID
 the system handed to another process is not the probe's to stop.
+
+The selected-fill probe exits 0 when every arm reached its key state and
+read its region, and 3 when a key state was not reached, a region could
+not be read, or the probe's own process took the foreground (= a run that
+measured the wrong state says so instead of reporting a number).
 
 ### `render_path_reload_total.swift`
 
