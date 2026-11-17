@@ -213,7 +213,7 @@ sites fail alone on either side, = = with the same count on either side
 that ever failed a whole-suite run pass alone on either side (= = 5/5,
 11/11, 5/5, 5/5, 10/10, 3/3). = = The logs are at
 `~/.hermes/profiles/pocock/cache/evidence/72-final/` (= = the nine suite
-files are byte-identical between the base and that tip, = = so the
+source files are byte-identical between the base and that tip, = = so the
 comparison is over the same bytes on both sides).
 
 | Gate | What it says | Where |
