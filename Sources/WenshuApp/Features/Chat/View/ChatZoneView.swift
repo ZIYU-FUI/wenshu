@@ -217,6 +217,17 @@ struct ChatZoneView: View {
             }
         )
         .task {
+            // ⇒ ⇒ ⇒ THE SCOPE IS APPLIED WHEN THE ZONE APPEARS, = = not
+            // only when the selection changes. = The selection is
+            // RESTORED at launch (= in `WorkspaceUIState.init()`, = =
+            // before this view exists), = and `onChange` never fires for
+            // the value a view is born with. = ⇒ ⇒ ⇒ So the chat stayed
+            // on its own default session (= the repository's) and the
+            // conversation the tree named never loaded. = ⇒ ⇒ ⇒ And
+            // `setScope` is a no-op when the scope is unchanged, = so
+            // this costs nothing when the launch's scope is the default
+            // one.
+            applyScope(currentScope)
             Self.publishScope(vm: vm, into: envAppState)
             await wireBookScopeGuardIfPossible()
         }
