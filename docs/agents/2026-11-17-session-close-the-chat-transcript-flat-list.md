@@ -27,14 +27,15 @@ that removed them are the same hunk):
 | # | The commit |
 | --- | --- |
 | 1 | `9ada19911` (= the transcript is one flat list of messages, = = the pin and its grouping type are gone) |
+| 2 | `9ebe8c30a` (= the guards now measure the production path, = = after round 1 found that the control did not control and the identity claims measured a copy) |
 
 ## 2. The trace table (= one row per line the boss gave)
 
 | # | The requirement | The commit that carries it | The independent verdict | The proof |
 | --- | --- | --- | --- | --- |
-| 1 | 排查 (= diagnose): the user's own message stays pinned at the top of the chat column | `9ada19911` | `t_343b2d1f` (= PENDING) | the RED: the same suite, run against the tree at `84c3a6386` (= this scope's base), FAILS with `Expectation failed: heldRows.isEmpty` (= = the user's card was painted in the viewport's TOP band) |
-| 2 | 取消用户发消息置顶的机制 (= cancel the pinning mechanism) | `9ada19911` | `t_343b2d1f` (= PENDING) | `ChatView.swift`'s transcript is a `LazyVStack` with NO `pinnedViews:` argument, and the `onChange` that scrolled the newest user row to `anchor: .top` is gone (= = the two holds, both read off the file). The GREEN: the same suite PASSES against `9ada19911` |
-| 3 | 删除相关代码 (= delete the related code) | `9ada19911` | `t_343b2d1f` (= PENDING) | `ChatTurn.swift` (= the grouping type that existed to carry the pin) and `ChatPinnedHeaderBandTests.swift` (= the suite that measured the band it left) are DELETED, and `isLatestUser` (= the per-turn backward scan of `vm.messages`) has no reader left in the tree (= = measured: a repo-wide grep for all three names returns only the documentation rows that RECORD the removal) |
+| 1 | 排查 (= diagnose): the user's own message stays pinned at the top of the chat column | `9ada19911` | `t_343b2d1f` (= CHANGES REQUESTED, round 1) and the round-2 card | the RED: the same suite, run against the tree at `84c3a6386` (= this scope's base), FAILS with `Expectation failed: heldRows.isEmpty` (= = the user's card was painted in the viewport's TOP band) |
+| 2 | 取消用户发消息置顶的机制 (= cancel the pinning mechanism) | `9ada19911` | `t_343b2d1f` (= CHANGES REQUESTED, round 1) and the round-2 card | `ChatView.swift`'s transcript is a `LazyVStack` with NO `pinnedViews:` argument, and the `onChange` that scrolled the newest user row to `anchor: .top` is gone (= = the two holds, both read off the file). The GREEN: the same suite PASSES against `9ada19911` |
+| 3 | 删除相关代码 (= delete the related code) | `9ada19911` | `t_343b2d1f` (= CHANGES REQUESTED, round 1) and the round-2 card | `ChatTurn.swift` (= the grouping type that existed to carry the pin) and `ChatPinnedHeaderBandTests.swift` (= the suite that measured the band it left) are DELETED, and `isLatestUser` (= the per-turn backward scan of `vm.messages`) has no reader left in the tree (= = measured: a repo-wide grep for all three names returns only the documentation rows that RECORD the removal) |
 
 ## 3. What was NOT measured, and the claim that does not rest on it
 
@@ -108,6 +109,75 @@ probe over the real stack, not a screenshot of the running app.
 | `nfi-split.py --check` | PASS |
 | `design-sweep.sh` (= the four files this change writes) | "design sweep clean" |
 | `verify-dead.py` (= the two files this change writes) | 2 files, 2 ALIVE, 0 PARTIAL, 0 DEAD |
+
+## 4a. The review round (= what round 1 found, and what this scope did about it)
+
+**Round 1's verdict** (`t_343b2d1f`, on `095cf85be`): **CHANGES
+REQUESTED**. The production change was confirmed correct (= the hold is
+really gone, the bottom anchor and the scroll-to-bottom trigger are
+intact, `ChatTurn` / `isLatestUser` / the deleted suite are fully
+removed, the registry rows are honest, every gate is green at the tip).
+**But the two suites that were supposed to HOLD it did not**, and both
+defects were reproduced by mutating the tree, not by reading it.
+
+**F1 (= BLOCKING): the control case did not control.** The flat-flow
+suite's control scanned the whole bitmap for the card's colour. The
+composer's own bar wears that colour on the LEADING side (= 295 pixels,
+measured, and present with an EMPTY conversation), so the control was
+satisfied by the chrome. Worse, in that fixture the user's bubble was
+**not on screen at all** (the user's message was first, and the
+transcript rests at the bottom, so the row had scrolled away): the
+suite's own probe measured 0 card pixels in the trailing region. ⇒ ⇒ ⇒
+**AND THE MEASURED GEOMETRY THAT SETTLES IT** (the probe's own numbers,
+= = the same probe on both trees):
+
+| the measurement | this tree | the base tree (`84c3a6386`) |
+|---|---|---|
+| the user's message FIRST, at rest | trailing card pixels = **0** (= the row has scrolled away) | trailing card pixels = **28605**, at bitmap rows **16–87** (= the viewport's TOP band = = the pin, caught) |
+| the user's message LAST, at rest | trailing card pixels = 28605, at rows 744–815 | the same |
+| an EMPTY conversation | leading = **295** (= the composer's chrome), trailing = **0** | the same |
+
+⇒ ⇒ ⇒ SO THE FIXED INSTRUMENT READS THE **TRAILING** REGION (= the
+composer's chrome never reaches there), and the control is POSITIONAL
+(= the user's card must paint the trailing region of the transcript's
+visible rows, = = a transcript that never rendered the user's row paints
+nothing there and cannot pass). The two fixtures are separate on
+purpose: the claim needs the conversation scrolled PAST the user's row,
+and the control needs that row ON SCREEN.
+
+**F2 (= BLOCKING): the identity claims measured a copy.** The rewritten
+identity assertions called a test-local helper (`rows(from:)`) that
+returned its input unchanged, so the assertions compared an array with
+itself and `ChatMessage.id` with `ChatMessage.id`. The production rule
+lived only in the production file, and the test measured a copy of it.
+⇒ ⇒ ⇒ **⇒ ⇒ AND MEASURED: THE APPKIT VIEW TREE IS NOT A VALID PROXY**
+(= = the first fix I tried = = counting the row views' object
+identities across a body pass = = was measured to be **blind** to the
+mutation on the production tree): the row views are torn down and
+rebuilt by SwiftUI before AppKit sees them, so the count of surviving
+`NSView`s does not move.
+
+⇒ ⇒ ⇒ **SO THE FIXED ASSERTION MEASURES THE PRODUCTION PATH TWICE
+OVER**:
+(1) the WIRING is read from the production source through the house's
+`SourceLocator` (= the repo-root reader, = = the view's whole group),
+so a broken production identity breaks the test; and
+(2) the BEHAVIOUR that rule produces is measured on the REAL hosted
+`ChatView`: the row views' object identities across a body pass (= the
+model's newest message changes, = = the streaming reply's own path).
+**Measured: with the rule in place every row view survives and none is
+replaced (= 13 kept, 0 new); with the identity broken (= a fresh id per
+render) eleven new row views appear.**
+
+**⇒ ⇒ ⇒ AND THE THREE VERIFICATIONS, ON THE FIXED SUITES** (= = the
+reviewer's own two mutations, plus the base tree):
+
+| the tree | the result |
+|---|---|
+| this tree | **GREEN** (= = 14 tests in 2 suites) |
+| the base tree `84c3a6386` (= = the old pinned code) | **RED** (= = 4 assertions, = = including `Expectation failed: heldRows.isEmpty`) |
+| the user's row NEVER rendered (= = the reviewer's mutation) | **RED** (= = 3 assertions) |
+| every row given a FRESH identity per render (= = the reviewer's mutation) | **RED** (= = 3 assertions, = = including the behavioural `replaced == 0`) |
 
 ## 5. The registry's rows, and the merge they had to survive
 
