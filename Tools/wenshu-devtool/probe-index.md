@@ -96,12 +96,12 @@ number would answer a different question.
 
 ### `segmented_control_selected_fill.swift`
 
-Taken against commit `34117be19`, = with the control alone over the
+Taken against commit `b1dbc47fc`, = with the control alone over the
 saturated host layer, = in a window that IS the key window.
 
 ```
 probe: segmented_control_selected_fill
-source_commit: 34117be19
+source_commit: b1dbc47fc
 host_size_pt: 260 x 40
 control_frame_pt: (10, 6, 240, 28)
 control_size: small
@@ -123,8 +123,39 @@ offscreen_origin_pt: (-20000, -20000)
 appearance: darkAqua
 cell_shape: stock
 panel_is_key: true
-frontmost_before: com.nousresearch.hermes
-frontmost_after: com.nousresearch.hermes
+frontmost_before: com.wenshu.app
+frontmost_after: com.wenshu.app
+probe_took_foreground: false
+key_window_selected_strip_rgb: (6, 118, 242)
+key_window_selected_strip_colours: 20
+key_window_selected_strip_white_ink: 0
+key_window_selected_strip_dark_ink: 0
+key_window_selected_strip_pixels: 640
+key_window_contrast_strip_rgb: (20, 151, 89)
+key_window_contrast_strip_colours: 1
+key_window_contrast_strip_white_ink: 0
+key_window_contrast_strip_dark_ink: 0
+key_window_contrast_strip_pixels: 640
+distance_to_system_accent: 14.9
+distance_to_host_layer: 166.1
+fill_is_accent_dominant: true
+teeth_accent_overlay_rgb: (0, 114, 249)
+teeth_accent_overlay_colours: 1
+teeth_accent_overlay_white_ink: 0
+teeth_accent_overlay_dark_ink: 0
+teeth_accent_overlay_pixels: 640
+non_key_window_is_key: false
+non_key_window_selected_strip_rgb: (48, 163, 108)
+non_key_window_selected_strip_colours: 15
+non_key_window_selected_strip_white_ink: 0
+non_key_window_selected_strip_dark_ink: 0
+non_key_window_selected_strip_pixels: 640
+
+appearance: darkAqua
+cell_shape: custom-super
+panel_is_key: true
+frontmost_before: com.wenshu.app
+frontmost_after: com.wenshu.app
 probe_took_foreground: false
 key_window_selected_strip_rgb: (6, 118, 242)
 key_window_selected_strip_colours: 20
@@ -154,8 +185,39 @@ non_key_window_selected_strip_pixels: 640
 appearance: aqua
 cell_shape: stock
 panel_is_key: true
-frontmost_before: com.nousresearch.hermes
-frontmost_after: com.nousresearch.hermes
+frontmost_before: com.wenshu.app
+frontmost_after: com.wenshu.app
+probe_took_foreground: false
+key_window_selected_strip_rgb: (0, 111, 234)
+key_window_selected_strip_colours: 21
+key_window_selected_strip_white_ink: 0
+key_window_selected_strip_dark_ink: 0
+key_window_selected_strip_pixels: 640
+key_window_contrast_strip_rgb: (0, 132, 70)
+key_window_contrast_strip_colours: 1
+key_window_contrast_strip_white_ink: 0
+key_window_contrast_strip_dark_ink: 0
+key_window_contrast_strip_pixels: 640
+distance_to_system_accent: 23.7
+distance_to_host_layer: 159.9
+fill_is_accent_dominant: true
+teeth_accent_overlay_rgb: (0, 114, 249)
+teeth_accent_overlay_colours: 1
+teeth_accent_overlay_white_ink: 0
+teeth_accent_overlay_dark_ink: 0
+teeth_accent_overlay_pixels: 640
+non_key_window_is_key: false
+non_key_window_selected_strip_rgb: (0, 115, 61)
+non_key_window_selected_strip_colours: 14
+non_key_window_selected_strip_white_ink: 0
+non_key_window_selected_strip_dark_ink: 618
+non_key_window_selected_strip_pixels: 640
+
+appearance: aqua
+cell_shape: custom-super
+panel_is_key: true
+frontmost_before: com.wenshu.app
+frontmost_after: com.wenshu.app
 probe_took_foreground: false
 key_window_selected_strip_rgb: (0, 111, 234)
 key_window_selected_strip_colours: 21
@@ -184,9 +246,13 @@ non_key_window_selected_strip_pixels: 640
 ```
 
 The `custom-super` cell shape (= a cell that overrides `drawSegment` and
-calls super) reads the SAME as the stock cell in every appearance, so the
-control's own selection painting survives a strip that draws its own
-glyphs.
+calls super) reads the SAME as the stock cell in every appearance
+(= the dark arms both read `(6, 118, 242)`, = the light arms both read
+`(0, 111, 234)`, = the contrast arms both read `(20, 151, 89)` and
+`(0, 132, 70)`, = and the non-key arms both read `(48, 163, 108)` and
+`(0, 115, 61)`), = so the control's own selection painting survives a
+strip that draws its own glyphs. = ⇒ The four arms are in the block
+above, = so a reader can check that claim from the record itself.
 
 What the numbers say, = and only that: = the SELECTED segment of THIS
 control, = in a KEY window, = reads the SYSTEM ACCENT (= 14.9 away from
