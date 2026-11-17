@@ -36,8 +36,9 @@
 //    The same control, = over the same host layer, = in the same
 //    appearance, = with the same cell shape, = is read twice: = once in
 //    a window that IS the key window, = and once in a window that is
-//    NOT. = ⇒ The two readings differ ONLY by the window's key state, =
-//    so the difference between them is what the key state does. = = =
+//    NOT. = ⇒ Both windows are the SAME class (= an `NSPanel`), = so
+//    the arms differ in the window's KEY STATE and in nothing else, =
+//    and the difference between them is what the key state does. = = =
 //    And within the key window the probe reads TWO segments: = the
 //    selected one, = and an unselected one (= the contrast: = = = so the
 //    reading says WHICH surface carries the accent, = = = and not that
@@ -46,11 +47,9 @@
 //  THE TRAP IT AVOIDS
 //    A CLI `swift` process cannot own a key window in an ordinary
 //    `NSWindow`: = measured, `app_active=false` and `window_key=false`,
-//    and the accent fill does NOT appear. = ⇒ A probe that reads
-//    "no accent" from such a window has measured the wrong state and
-//    reports it as the truth. = ⇒ THIS PROBE PRINTS ITS OWN KEY-WINDOW
-//    STATE (= `panel_is_key`), = so a run that did not reach the key
-//    state is visibly not a measurement of the selected fill.
+//    and the accent fill does NOT appear. = ⇒ THIS PROBE PRINTS ITS OWN
+//    KEY-WINDOW STATE (= `panel_is_key`), = so a run that did not reach
+//    the key state is visibly not a measurement of the selected fill.
 //
 //  AND THE PROBE PROVES ITS OWN NUMBER HAS TEETH
 //    The key-window reading is only evidence of an accent fill if the
@@ -79,22 +78,12 @@
 //
 //  THE PARAMETERS THAT DECIDE THE NUMBERS
 //    They are printed with the numbers, = because changing one changes
-//    the reading:
-//
-//      host_size_pt             260 x 40
-//      control_frame_pt         (10, 6, 240, 28)
-//      control_size             .small
-//      control_role             .valueSelection
-//      control_style            .roundRect
-//      border_shape             .capsule
-//      segment_distribution     .fillEqually
-//      selected_segment         1
-//      contrast_segment         2
-//      segment_count            3
-//      labels                   Tag1 / Tag2 / Tag3
-//      host_layer_colour        calibrated (0, 0.55, 0.25)
-//      strip_width_pt           8
-//      strip_inset_pt           4
+//    the reading: = = = the probe PRINTS every parameter that decides
+//    them with its numbers (= the host layer's colour, = the control's
+//    frame, = its size, = role, = style, = border shape, = segment
+//    distribution, = the selected and contrast segments, = the segment
+//    count, = the labels, = and the strip's width and inset), = so a
+//    reader never has to trust a list in a comment.
 //
 //  Read-only: the probe renders into memory and prints to stdout. = It
 //  creates, moves and deletes no file.
@@ -102,8 +91,10 @@
 //  Usage:
 //      swift Tools/wenshu-devtool/probes/segmented_control_selected_fill.swift
 //
-//  Exit: 0 = the measurement is sound (every arm read its key state),
-//  = 3 = a key state was not reached or a region could not be read
+//  Exit: 0 = the measurement is sound (= every arm reached its key
+//  state, = every reading it printed was readable, = and the non-key
+//  arm was NOT key), = 3 = a key state was not reached, a reading could
+//  not be read, or the probe's own process took the foreground
 //  (= the run measured the wrong state).
 //
 
@@ -347,6 +338,23 @@ struct Arm {
     /// the probe's doing; = = = the probe taking the foreground is. = ⇒
     /// This compares PROCESS IDs, = not bundle identifiers.
     var probeTookForeground: Bool
+
+    /// Is this arm a measurement? = ⇒ EVERY reading it prints must be
+    /// readable, = and the non-key arm must have reached its NON-key
+    /// state. = ⇒ A run that printed a number it could not read, = or a
+    /// non-key arm that turned out to be key, = is not a measurement, =
+    /// and the run exits 3 instead of reporting numbers nobody can
+    /// trust. = The sibling probe does the same for each reading it
+    /// prints.
+    var isSound: Bool {
+        keyIsKey
+            && !probeTookForeground
+            && selected != nil
+            && contrast != nil
+            && overlay != nil
+            && nonKey != nil
+            && !nonKeyIsKey
+    }
 }
 
 /// Read the two segments in a window that IS the key window.
@@ -421,11 +429,15 @@ func measureKeyWindow(appearance: NSAppearance.Name, shape: CellShape) -> Arm {
 
 /// Read the SAME area in a window that is NOT the key window: = = =
 /// the state the sibling probe measured, = so the two readings can be
-/// compared directly.
+/// compared directly. = ⇒ The window is the SAME class as the key
+/// arm's (= an `NSPanel`), = so the arms differ in the window's KEY
+/// STATE and in nothing else. = ⇒ The difference between the two
+/// readings is what the key state does, = and nothing else can be
+/// holding it up.
 func measureNonKeyWindow(appearance: NSAppearance.Name, shape: CellShape) -> (isKey: Bool, reading: Reading?) {
-    let window = NSWindow(
+    let window = NSPanel(
         contentRect: NSRect(origin: .zero, size: hostSize),
-        styleMask: [.titled],
+        styleMask: [.titled, .nonactivatingPanel],
         backing: .buffered,
         defer: false
     )
@@ -552,6 +564,15 @@ for (appearanceName, appearance) in [("darkAqua", NSAppearance.Name.darkAqua), (
         printRegion("key_window_selected_strip", arm.selected)
         printRegion("key_window_contrast_strip", arm.contrast)
 
+        // EVERY reading this arm prints must be readable, = and the
+        // non-key arm must have reached its NON-key state. = ⇒ A run
+        // that printed a number it could not read, = or a non-key arm
+        // that turned out to be key, = is not a measurement, = and the
+        // run exits 3 instead of reporting numbers nobody can trust.
+        if !arm.isSound {
+            sound = false
+        }
+
         guard arm.keyIsKey, let selected = arm.selected, !arm.probeTookForeground else {
             print("distance_to_system_accent: 0.0")
             print("distance_to_host_layer: 0.0")
@@ -559,7 +580,6 @@ for (appearanceName, appearance) in [("darkAqua", NSAppearance.Name.darkAqua), (
             printRegion("teeth_accent_overlay", nil)
             print("non_key_window_is_key: \(arm.nonKeyIsKey)")
             printRegion("non_key_window_selected_strip", nil)
-            sound = false
             continue
         }
 
