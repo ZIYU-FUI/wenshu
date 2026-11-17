@@ -94,7 +94,11 @@ struct InspectorTodoPageView: View {
             // rest, = and the cards would melt into one sheet while
             // the column sits still).
             GlassEffectContainer(spacing: DesignTokens.spacingTight) {
-                VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                // A LAZY stack (= Apple's own container for a long
+                // list in a scroll view), = so a body pass builds the
+                // cards that are on screen and not every card in the
+                // plan.
+                LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                     ForEach(model.todos) { todo in
                         InspectorTodoCard(todo: todo)
                     }

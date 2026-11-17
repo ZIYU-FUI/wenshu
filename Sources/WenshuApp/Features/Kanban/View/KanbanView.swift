@@ -56,10 +56,15 @@ struct KanbanView: View {
     /// answers to one question.
     let focusedBookID: BookID?
 
-    /// The board's tasks (= the focused book's tasks, = read from the
+    /// The board's cards (= the focused book's tasks, = read from the
     /// app's task store on appear + whenever the focused session's
     /// book changes).
-    @State private var tasks: [KanbanTask] = []
+    ///
+    /// The cards are bucketed by status HERE (= at the load), = so a
+    /// body pass does not re-filter the whole board, = and each card
+    /// carries its body ALREADY PARSED (= the markdown is parsed once
+    /// per task, = at the load, = not once per card per body pass).
+    @State private var cardsByStatus: [KanbanStatus: [KanbanCardContent]] = [:]
     @State private var loadError: String? = nil
 
     /// kanban-detail-sheet 2026-09-28: nil means no sheet is open.
@@ -118,7 +123,7 @@ struct KanbanView: View {
 
     @ViewBuilder
     private var content: some View {
-        if tasks.isEmpty {
+        if cardCount == 0 {
             EmptyStateView(
                 icon: "rectangle.split.3x1",
                 title: String(localized: "kanban.empty.title"),
@@ -138,19 +143,19 @@ struct KanbanView: View {
                 // still).
                 GlassEffectContainer(spacing: DesignTokens.spacingTight) {
                     VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
-                    ForEach(KanbanStatus.boardOrder, id: \.self) { status in
-                        KanbanGroup(
-                            status: status,
-                            tasks: visibleTasks(in: status),
-                            onDelete: { task in
-                                deleteTask(task)
-                            },
-                            // kanban-detail-sheet 2026-09-28:
-                            // open request bubbles up to KanbanView
-                            // (= the View owns the sheetTask state).
-                            onOpen: { task in onOpenSheet(task) }
-                        )
-                    }
+                        ForEach(KanbanStatus.boardOrder, id: \.self) { status in
+                            KanbanGroup(
+                                status: status,
+                                cards: cardsByStatus[status] ?? [],
+                                onDelete: { task in
+                                    deleteTask(task)
+                                },
+                                // kanban-detail-sheet 2026-09-28:
+                                // open request bubbles up to KanbanView
+                                // (= the View owns the sheetTask state).
+                                onOpen: { task in onOpenSheet(task) }
+                            )
+                        }
                     }
                     .padding(.vertical, DesignTokens.spacingIconic)
                 }
@@ -160,9 +165,9 @@ struct KanbanView: View {
 
     // MARK: - Derived
 
-    /// The cards a group shows.
-    private func visibleTasks(in status: KanbanStatus) -> [KanbanTask] {
-        tasks.filter { $0.status == status }
+    /// How many cards the board holds (= every group's cards).
+    private var cardCount: Int {
+        cardsByStatus.values.reduce(0) { $0 + $1.count }
     }
 
     // MARK: - Mutations
@@ -177,9 +182,13 @@ struct KanbanView: View {
     }
 
     /// Re-read the board from the task store.
+    ///
+    /// The read is where the board's per-task work happens (= ONCE per
+    /// task, = not once per body pass): the body's markdown is parsed
+    /// here, = so a body pass draws the parsed text and parses nothing.
     private func reloadFromStore() {
         do {
-            tasks = try store.list(bookID: focusedBookID?.rawValue).map { model in
+            let tasks = try store.list(bookID: focusedBookID?.rawValue).map { model in
                 KanbanTask(
                     id: model.id,
                     title: model.title,
@@ -194,6 +203,31 @@ struct KanbanView: View {
                     body: model.body
                 )
             }
+            // The cards are bucketed by status at the load (= a body
+            // pass reads the buckets, = and does not re-filter the
+            // whole board).
+            //
+            // The body's markdown is parsed HERE (= once per task, = at
+            // the load), = so a body pass draws the parsed text and
+            // parses nothing.
+            var buckets: [KanbanStatus: [KanbanCardContent]] = [:]
+            for task in tasks {
+                let parsedBody: AttributedString?
+                if let body = task.body, !body.isEmpty {
+                    // Per iron-rule I-4 (= wenshu-comment-policy): the
+                    // body goes through the same inline-markdown parser
+                    // chat uses (= ChatTextPartView.parseMarkdown), =
+                    // so wenshu keeps ONE markdown pipeline across the
+                    // app (= no per-surface parser).
+                    parsedBody = ChatTextPartView.parseMarkdown(body)
+                } else {
+                    parsedBody = nil
+                }
+                buckets[task.status, default: []].append(
+                    KanbanCardContent(task: task, parsedBody: parsedBody)
+                )
+            }
+            cardsByStatus = buckets
             loadError = nil
         } catch {
             loadError = String(describing: error)
@@ -226,7 +260,9 @@ struct KanbanView: View {
 /// "nothing here" without a placeholder line).
 private struct KanbanGroup: View {
     let status: KanbanStatus
-    let tasks: [KanbanTask]
+    /// The group's cards (= already parsed, = so the group draws text
+    /// and parses nothing).
+    let cards: [KanbanCardContent]
     let onDelete: (KanbanTask) -> Void
     // kanban-detail-sheet 2026-09-28: group forwards the open
     // request upward (KanbanView owns the sheet state).
@@ -246,14 +282,17 @@ private struct KanbanGroup: View {
         // A group with no cards shows its header and nothing else, so
         // an empty group takes no room.
         DisclosureGroup(isExpanded: $isExpanded) {
-            VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                ForEach(tasks) { task in
+            // A LAZY stack (= Apple's own container for a long list in
+            // a scroll view), = so a body pass builds the cards that
+            // are on screen and not every card in the group.
+            LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                ForEach(cards) { card in
                     KanbanCard(
-                        task: task,
-                        onDelete: { onDelete(task) },
+                        card: card,
+                        onDelete: { onDelete(card.task) },
                         // kanban-detail-sheet 2026-09-28:
                         // tapping a card surfaces the body sheet.
-                        onOpen: { onOpen(task) }
+                        onOpen: { onOpen(card.task) }
                     )
                 }
             }
@@ -268,7 +307,7 @@ private struct KanbanGroup: View {
                     )
                 Text(status.boardLabel)
                     .font(.subheadline.weight(.semibold))
-                Text(String(tasks.count))
+                Text(String(cards.count))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
@@ -299,7 +338,8 @@ private struct KanbanGroup: View {
 /// The card carries NO status control (= the user does not schedule:
 /// the status is the scheduler's).
 private struct KanbanCard: View {
-    let task: KanbanTask
+    /// The card's content (= its task and its already-parsed body).
+    let card: KanbanCardContent
     let onDelete: () -> Void
     let onOpen: () -> Void
 
@@ -314,23 +354,21 @@ private struct KanbanCard: View {
         InspectorCard(
             marker: AnyView(EmptyView()),
             hasStatusEdge: true,
-            statusEdgeColor: task.status.boardTone
+            statusEdgeColor: card.task.status.boardTone
         ) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                 // The title comes FIRST: it is what the user scans the
                 // board for. The body is the preview under it.
-                Text(task.title)
+                Text(card.task.title)
                     .font(.body.weight(.medium))
                     .lineLimit(3)
                     .textSelection(.enabled)
-                // Per iron-rule I-4 (= wenshu-comment-policy): task.body renders
-                // when present, going through the same inline-markdown parser
-                // chat uses (= ChatTextPartView.parseMarkdown). Mirrors
-                // hermes 0.21.5 commit 63f5bc0999: the kanban drawer
-                // reuses MessageTextContent. wenshu's reuse keeps ONE
-                // markdown pipeline across the app — no per-surface parser.
-                if let body = task.body, !body.isEmpty {
-                    Text(ChatTextPartView.parseMarkdown(body))
+                // The body's markdown arrives PARSED (= the board's
+                // load parsed it, = so the card draws text and parses
+                // nothing). The rendered text is the shared parser's
+                // output (= unchanged).
+                if let parsedBody = card.parsedBody {
+                    Text(parsedBody)
                         .font(.callout)
                         .foregroundStyle(DesignTokens.statusForeground)
                         .lineLimit(3)
