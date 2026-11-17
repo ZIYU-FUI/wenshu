@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """The CI's change gate: measure the CHANGE, not the history.
 
-Two checks, both about the lines a change ADDS:
+Three checks, two about the lines a change ADDS and one about the bytes
+a change leaves behind:
 
 * ``pollution``: the added lines carry no forbidden vocabulary. The
   vocabulary and the path allowlist come from ``commit_filter.py``, which is
@@ -9,6 +10,17 @@ Two checks, both about the lines a change ADDS:
   copy of either).
 * ``formatting``: the added lines are not the ones SwiftFormat wants to
   change.
+* ``markdown-newline``: every changed ``.md`` file still ends with a
+  newline. = = The byte is unguarded elsewhere, = = and it is not
+  cosmetic: = = ``docs/agents/nfi.md`` carries the house's key-level merge
+  driver, = = whose ``split_rows()`` puts everything after the last table
+  row into a TAIL, = = and ``text.split("\n")`` on a newline-terminated
+  file leaves a final empty string while a file without the newline does
+  not (= = so the tail differs, = = and the driver reports ``conflicted
+  keys: <the file's tail>`` against the next card that appends a row).
+  = = MEASURED (= = 2026-11-17, = = twice): = = a scope that dropped the
+  byte cost a review round to find, = = and the same byte broke the merge
+  driver against a sibling card's registry row.
 
 WHY THIS EXISTS. The CI used to run ``git log --all -p | grep <vocabulary>``
 for the pollution check (= 4788 hits on the repository's own history, = the
@@ -23,6 +35,7 @@ USAGE::
 
     python3 Tools/wenshu-devtool/ci_change_gate.py --base <sha> --check pollution
     python3 Tools/wenshu-devtool/ci_change_gate.py --base <sha> --check formatting
+    python3 Tools/wenshu-devtool/ci_change_gate.py --base <sha> --check markdown-newline
 
 ``--base`` is the commit the change is measured against (= the CI resolves
 it per trigger, because ``origin/main`` is the wrong base for a push to
@@ -51,6 +64,7 @@ VIOLATION = re.compile(
 )
 
 SWIFT_SUFFIX = ".swift"
+MD_SUFFIX = ".md"
 
 
 def parse_diff(diff_text: str) -> tuple[dict[str, list[tuple[int, int]]], dict[str, dict[int, str]]]:
@@ -282,12 +296,38 @@ def swiftformat_report(paths: list[str], cwd: Path) -> str:
     return output
 
 
+def markdown_newline_offenders(paths: list[str], cwd: Path) -> list[str]:
+    """The changed ``.md`` files that do NOT end with a newline.
+
+    A file's last byte is the one the house's merge driver compares (= =
+    the registry's tail = = ``text.split("\n")``'s final empty string),
+    so a changed ``.md`` that drops it breaks the NEXT card that appends
+    a row to the same file.
+
+    = = An empty file is not an offender (= = there is nothing to drop),
+    = = and a file that cannot be read is not an offender either (= = the
+    gate reports what it can see, = = and a missing file is the change's
+    own business, = = not this check's).
+    """
+    offenders: list[str] = []
+    for path in paths:
+        if not path.endswith(MD_SUFFIX):
+            continue
+        try:
+            data = (cwd / path).read_bytes()
+        except OSError:
+            continue
+        if data and not data.endswith(b"\n"):
+            offenders.append(path)
+    return offenders
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="The CI's change gate")
     parser.add_argument("--base", required=True, help="the commit the change is measured against")
     parser.add_argument(
         "--check",
-        choices=["pollution", "formatting"],
+        choices=["pollution", "formatting", "markdown-newline"],
         required=True,
         help="which check to run",
     )
@@ -306,6 +346,22 @@ def main(argv: list[str] | None = None) -> int:
         print(f"pollution: {len(offenders)} forbidden vocabulary line(s) in this change")
         for path, line, token, context in offenders:
             print(f"  {path}:{line}: forbidden vocabulary '{token}' | {context}")
+        return 1
+
+    if args.check == "markdown-newline":
+        md_paths = [p for p in changed_paths(args.base, cwd) if p.endswith(MD_SUFFIX)]
+        offenders = markdown_newline_offenders(md_paths, cwd)
+        if not offenders:
+            print(
+                f"markdown-newline: every changed .md keeps its trailing newline "
+                f"({len(md_paths)} changed .md file(s) checked)"
+            )
+            return 0
+        print(
+            f"markdown-newline: {len(offenders)} changed .md file(s) dropped their trailing newline"
+        )
+        for path in offenders:
+            print(f"  {path}: the file does not end with a newline (= = the byte the merge driver compares)")
         return 1
 
     swift_paths = [p for p in changed_paths(args.base, cwd) if p.endswith(SWIFT_SUFFIX)]

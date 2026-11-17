@@ -23,7 +23,10 @@ against the two gates' own claims:
      SwiftFormat abort the whole run and report nothing = a false green).
  10. a SwiftFormat run that could not COMPLETE (= exit 70) is a failure, not
      a clean file.
- 11. this file itself carries no forbidden vocabulary.
+ 11. a changed .md that dropped its trailing newline is reported (= the byte
+     the house's merge driver compares).
+ 12. a changed .md that keeps its trailing newline is NOT reported.
+ 13. this file itself carries no forbidden vocabulary.
 
 Run:  python3 Tools/wenshu-devtool/tests/test_ci_change_gate.py
 Exit: 0 = every case passed, 1 = at least one case failed.
@@ -369,6 +372,43 @@ def main() -> int:
     results.append(case_swiftformat_failure_is_not_a_clean_file())
 
     own_text = Path(__file__).read_text(encoding="utf-8")
+    # The trailing-newline check (= = the byte the house's merge driver
+    # compares, = = and the byte that broke it twice).
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        kept = root / "docs" / "kept.md"
+        kept.parent.mkdir(parents=True)
+        kept.write_text("# kept\n\nbody.\n", encoding="utf-8")
+        dropped = root / "docs" / "dropped.md"
+        dropped.write_text("# dropped\n\nbody.", encoding="utf-8")
+        empty = root / "docs" / "empty.md"
+        empty.write_bytes(b"")
+        offenders = gate.markdown_newline_offenders(
+            ["docs/kept.md", "docs/dropped.md", "docs/empty.md"], root
+        )
+        results.append(
+            case(
+                "a changed .md that dropped its trailing newline is reported",
+                offenders == ["docs/dropped.md"],
+                f"offenders={offenders}",
+            )
+        )
+        results.append(
+            case(
+                "a changed .md that keeps its trailing newline is NOT reported",
+                gate.markdown_newline_offenders(["docs/kept.md"], root) == [],
+                f"offenders={gate.markdown_newline_offenders(['docs/kept.md'], root)}",
+            )
+        )
+        results.append(
+            case(
+                "the trailing-newline check ignores a file the change did not touch",
+                gate.markdown_newline_offenders(["docs/kept.md"], root) == []
+                and gate.markdown_newline_offenders(["docs/absent.md"], root) == [],
+                "only the changed paths are read",
+            )
+        )
+
     results.append(
         case(
             "this file itself carries no forbidden vocabulary",

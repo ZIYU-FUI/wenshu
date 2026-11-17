@@ -132,6 +132,16 @@ jobs:
           fi
           python3 Tools/wenshu-devtool/ci_change_gate.py --base "$BASE" --check pollution
 
+      # The registries' trailing newline (= = the byte the house's key-level
+      # merge driver compares, = = and the byte that broke it twice).
+      - name: Markdown trailing-newline gate
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="origin/main"
+          fi
+          python3 Tools/wenshu-devtool/ci_change_gate.py --base "$BASE" --check markdown-newline
+
       # Source-code lint gate (batch 1 issue 08)
       # Runs SwiftLint + SwiftFormat lint on every push + PR.
       # Both tools are pinned via the Brewfile (= batch 1 issue 01) but
