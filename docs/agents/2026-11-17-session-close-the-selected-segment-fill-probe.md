@@ -79,7 +79,28 @@ the probe's own stdout at the commit the row names, = and the file at
 | `nfi-loc-check.py --base 8ea2727be` | every rewritten file's row carries its own count (= 1 row checked) |
 | `ci_change_gate.py --base 8ea2727be --check pollution` | no forbidden vocabulary |
 | `ci_change_gate.py --base 8ea2727be --check formatting` | no unformatted line |
+| `swift build` | exit 0 (= the card writes no app source, = and the build was warm) |
+| the CJK audit (= over the 894 lines this scope added) | zero lines carry CJK, = and zero commit subjects carry CJK |
+| `verify-dead.py` on the new probe | PARTIAL (= 44 of 97 declarations read dead), = and the two sibling probes read PARTIAL under the same tool (= 21 of 65, = and 15 of 40), = so the reading is how the tool treats a top-level script, = not dead code this scope introduced |
 | the probe, on the merged main | exit 0, = `source_commit: 321197105`, = four arms with `panel_is_key: true` and `probe_took_foreground: false` |
+
+⇒ ⇒ ⇒ ⇒ THE GATES THIS SCOPE DID NOT RE-RUN, = AND WHY: = = =
+`swift test` (= 7.2), = the 9-grep design sweep (= 7.3), = the
+dual-axis audit (= 7.4), = and the boss's own look (= 7.7) = = = do not
+apply to this scope, = and saying so is what makes the table honest:
+= the scope writes NO app source (= only a devtool probe, = an index row,
+= a README line, = a registry row, = and this document), = = = so the
+app's build, = its view files, = its suites and = its running UI = are
+not what this scope touched. = ⇒ The scope's own gates are the ones the
+table names, = and the reviewer ran them twice on the tip.
+
+⇒ ⇒ ⇒ ⇒ AND THE PUSH CARRIED NO COMMIT THAT IS NOT MINE: = = = the
+push that brought this scope's five commits carried them and nothing
+else (= `git log 8ea2727be..321197105` = = = five commits, = = = all of
+them this scope's), = and the push that brought the closure document
+carried that one commit (= `git log 321197105..b1b6f4c25` = = = one
+commit, = = = this scope's). = ⇒ So no sibling's work rode along, = =
+and nothing here needs the reader to guess who owns a row.
 
 ## THE TWO THINGS THIS SESSION DID NOT DO
 
