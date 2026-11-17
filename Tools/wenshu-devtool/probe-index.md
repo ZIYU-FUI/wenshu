@@ -25,6 +25,7 @@ card's commit does not touch the app source.
 | `render_path_reload_total.swift` | The whole sidebar reload measured as ONE call (= = the ten folder doc counts of D1 and the cover reconciler's shelves walk of D3 in a single bench), = = which is the figure the sweep's path-class table quotes for the reload class. It is the same production shapes as `render_path_contention_robust.swift`, = = plus one bench that runs both walks together. = = READ-ONLY: it reads the user's library and writes no file. | `d4_one_whole_reload_us`, plus `d1_one_call_us`, `d1_whole_reload_us` and `d3_full_shelves_walk_us` for the two components it composes | `292f49670903` |
 | `segmented_control_material.swift` | The native segmented control's own material: = whether its cells paint an opaque fill of their own, = or let the host layer behind them read through. = Rendered offscreen at 2x, = and read from three named regions (= the cell's own area, = the host layer beside it, = and the same area under an opaque fill). | `drawn_band_pt`, `cell_area_pt`, `cell_area_rgb`, `cell_area_colours`, `backdrop_rgb`, `backdrop_colours`, `opaque_area_rgb`, `opaque_area_colours`, = one set per appearance, = with the parameters that decide them printed alongside | `5b941c68f` |
 | `segmented_control_selected_fill.swift` | What fills the SELECTED segment of a segmented control in a KEY window: = the SYSTEM ACCENT (= the theme colour) or a material. = The sibling probe above measures an UNSELECTED cell in a window that is never the key window, = = = which cannot answer this question, = = = and the two questions have different answers. = The control carries the app's production parameters (= role .valueSelection, = size .small, = style .roundRect, = border shape .capsule, = segment distribution .fillEqually), = and the same area is read in a key window and in a non-key window (= the only variable changed), = beside an unselected segment of the same key window, = and with the accent painted over it. = The claim is scoped to THAT control and THAT state: = a differently configured control, = or the same control in a different macOS appearance, = is not covered by these numbers. | `panel_is_key`, `probe_took_foreground`, `key_window_selected_strip_rgb`, `key_window_selected_strip_colours`, `key_window_contrast_strip_rgb`, `distance_to_system_accent`, `distance_to_host_layer`, `fill_is_accent_dominant`, `teeth_accent_overlay_rgb`, `non_key_window_is_key`, `non_key_window_selected_strip_rgb`, = one set per appearance and cell shape, = with the parameters that decide them printed alongside | `fb8eeea67` |
+| `inspector_card_load_cost.swift` | The trailing inspector column's three card pages (= the status page, the todo page and the board), measured on the user's own library (= /Users/anbaiqiang/Documents/anbaiqiang.ws): the board's markdown parse over the real task-body corpus, the board's card bodies built per body pass (= the eager card column against the lazy one, = over the real per-status groups), and the status page's card rebuilds per clock tick (= the page-level clock against the label-scoped one). The corpus is read from the live SwiftData store with the sqlite3 CLI in -readonly mode, = and every body is decoded with an EXPLICIT utf-8 decode. It CHECKS THE PRODUCTION FRAGMENTS IT REPRODUCES against the live source before it reports a number (= the house rule: = a number that cannot be tied to the source is worse than no number), = = so a tree that has moved any of the eight fragments reports NO NUMBER and exits 2. READ-ONLY: it writes no file. | `parse_corpus_us`, `parses_per_body_pass`, `card_bodies_per_body_pass_eager`, `card_bodies_per_body_pass_lazy`, `status_card_rebuilds_per_tick_page_clock`, `status_card_rebuilds_per_tick_label_clock`, plus `tasks`, `bodies_with_text` and `groups` | `9776b4dc7c6c37156b6432d489ccfebc79d2f179` |
 
 ## Recorded measurement
 
@@ -578,6 +579,70 @@ The p95 is far above the minimum in this run: = = the machine was busy
 minimum is there for. = = ⇒ ⇒ The sweep's figure is the MINIMUM
 (= = 1,589.667 us on a quiet machine), = = and this run's higher
 minimum (= = 1,615.209 us) is the same floor measured on a busier one.
+
+### `inspector_card_load_cost.swift`
+
+Taken against commit `9776b4dc7c6c37156b6432d489ccfebc79d2f179`, on the user's own library.
+
+```
+probe: inspector_card_load_cost  source_commit: 9776b4dc7c6c
+source_fragments: 8/8 match
+corpus: library=/Users/anbaiqiang/Documents/anbaiqiang.ws
+        store=/Users/anbaiqiang/Documents/anbaiqiang.ws/WenshuStore.store
+        tasks=563  bodies_with_text=511
+        body_column_types=[null x 52, text x 511]
+        groups=blocked:73 done:124 failed:73 new:73 ready:73 running:74 triage:73
+
+[A] the board's markdown parse
+  the corpus parsed once (= the load's one-shot cost)        min  2601.459 us | median  2681.500 us | p95  2973.708 us
+  parses per body pass: BEFORE 511 (= one per card) | AFTER 0 (= parsed at the load)
+
+[B] the board's card bodies built per body pass (= the real board shape)
+  BEFORE: eager card column (every card on the board)        min       563    | median       563    | p95       563
+  AFTER: lazy card column (only the cards on screen)         min        21    | median        21    | p95        21
+
+[C] the status page's card rebuilds over ten clock ticks (= 8 cards on the page)
+      (= the elapsed label's own bodies over the same ten ticks: 0)
+      (= the elapsed label's own bodies over the same ten ticks: 0)
+      (= the elapsed label's own bodies over the same ten ticks: 0)
+      (= the elapsed label's own bodies over the same ten ticks: 0)
+      (= the elapsed label's own bodies over the same ten ticks: 0)
+  BEFORE: the page-level 1 Hz clock (every card rebuilds)    min        80    | median        80    | p95        80
+      (= the elapsed label's own bodies over the same ten ticks: 80)
+      (= the elapsed label's own bodies over the same ten ticks: 80)
+      (= the elapsed label's own bodies over the same ten ticks: 80)
+      (= the elapsed label's own bodies over the same ten ticks: 80)
+      (= the elapsed label's own bodies over the same ten ticks: 80)
+  AFTER: the clock on the elapsed label alone                min         0    | median         0    | p95         0
+
+path classes:
+  [A] the markdown parse = PER BODY PASS (before) / ONCE PER LOAD (after)
+  [B] the card bodies built = PER BODY PASS
+  [C] the status page's rebuilds = PER SECOND
+```
+
+The three counts are the shape's own numbers, not a timing: = = 563 is
+every card on the user's board, = = 21 is what a 320x600 column builds
+on screen, = = and 80 is the eight cards on the status page rebuilt
+once a second (= = 8 x 10 ticks). = = ⇒ The AFTER column is 0 for the
+parse and for the status page's rebuilds because the parse moved to the
+load and the clock moved into the label.
+
+⇒ ⇒ ⇒ AND THE RUN IS RECORDED WHOLE, = = NOT AS AN EXCERPT: = = the ten
+lines that carry the elapsed label's OWN body count are in it. ⇒ ⇒ ⇒ AND
+READ THEM IN THE ORDER THE PROBE PRINTS THEM: = = each sample prints its
+own label count BEFORE its shape's summary line, = = so the five lines
+that read 0 belong to the BEFORE shape (= = that shape's card carries NO
+label at all: = = the page's clock reached the card's own text) = = and
+the five lines that read 80 belong to the AFTER shape (= = that shape's
+card carries one label, = = and eight cards x ten ticks = = 80 label
+bodies). ⇒ ⇒ ⇒ PRODUCTION DIFFERS FROM THE PROBE'S MODEL HERE, = = AND
+THE INDEX SAYS SO: = = `InspectorStatusElapsedLabel.swift` ticks only in
+the `.running` case (= = `.pending` is `EmptyView` and the finished
+states are frozen text), = = so the real residual cost is ONE ticking
+label per running card, = = not eight. ⇒ ⇒ ⇒ The number the card
+publishes is a CARD-rebuild count (= = 80 → 0), = = and that one is
+faithful to production.
 
 ## The index's own test
 
