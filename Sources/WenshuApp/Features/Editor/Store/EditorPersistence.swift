@@ -201,6 +201,24 @@ enum EditorPersistence {
             if !written {
                 return nil
             }
+            // ⇒ THE WRITE LANDED: = = so the library changed, = = and the
+            // library says so. = = The house's own contract (= =
+            // `LibraryContentFingerprint`'s docblock): = = "The library
+            // announces its own changes: = = `LibraryChangeNotifier` posts
+            // `.wenshuLibraryDidChange` after every write that the app
+            // makes ... = = A write path that does not announce is a
+            // defect HERE, = = not a missing optimisation elsewhere."
+            //
+            // ⇒ ⇒ AND THE PRECEDENT IS DIRECT: = = the agent's book-doc
+            // write already announces (= = `WriteBookDocTool`), = = and a
+            // chapter body write is the same kind of write.
+            //
+            // ⇒ ⇒ AND WHAT IT BUYS: = = the material zone's ONE list is
+            // keyed on this announcement (= = the scope, = = the tick and
+            // the sort order), = = so without it an edited chapter's card
+            // would keep its pre-edit summary and chip tag until the user
+            // changed scope or sort order (= = the review's finding).
+            announceLibraryChange(path: path, bookStore: bookStore)
             // 2026-10-14: doc-truth-git ticket. When the
             // path points inside the library's
             // `references/` directory (= a reference-
@@ -265,6 +283,10 @@ enum EditorPersistence {
                 )
                 try DraftPersistence.persist(text: tab.draft, to: proposed)
                 tab.documentPath = proposed.path
+                // ⇒ The write landed INSIDE the library (= = a book's
+                // chapter), = = so the library says it changed (= = the
+                // same announcement the overwrite path above makes).
+                announceLibraryChange(path: proposed.path, bookStore: bookStore)
                 return proposed.path
             } catch {
                 // Fall through to /tmp fallback.
@@ -276,6 +298,36 @@ enum EditorPersistence {
         let url = URL(fileURLWithPath: "/tmp/wenshu-preview-sample.md")
         let written = (try? tab.draft.write(to: url, atomically: true, encoding: .utf8)) != nil
         return written ? url.path : nil
+    }
+
+    /// Announce that the library changed (= = after a write that landed
+    /// inside it).
+    ///
+    /// = = THE HOUSE'S OWN CONTRACT (= = `LibraryContentFingerprint`'s
+    /// docblock): = = "The library announces its own changes: = =
+    /// `LibraryChangeNotifier` posts `.wenshuLibraryDidChange` after every
+    /// write that the app makes ... = = A write path that does not
+    /// announce is a defect HERE, = = not a missing optimisation
+    /// elsewhere."
+    ///
+    /// = = ⇒ AND A WRITE OUTSIDE THE LIBRARY IS NOT A LIBRARY CHANGE:
+    /// = = the editor's `/tmp` fallback (= the dev inner loop's sample
+    /// file) = = and a preview document outside every library root = =
+    /// announce nothing (= = so the sidebar's tree is not reloaded for a
+    /// write the library never saw).
+    ///
+    /// - Parameters:
+    ///   - path: = = the path the write landed on.
+    ///   - bookStore: = = the library the path may belong to (= = nil =
+    ///     there is no library, = = so nothing is announced).
+    private static func announceLibraryChange(path: String, bookStore: BookStore?) {
+        guard let bookStore else { return }
+        let roots = [
+            bookStore.stores.shelvesRoot.path,
+            bookStore.stores.referenceLibraryRoot.path,
+        ]
+        guard roots.contains(where: { path.hasPrefix($0) }) else { return }
+        LibraryChangeNotifier.notifyLibraryChanged()
     }
 
     /// Read the on-disk file at `tab.documentPath`. If the tab

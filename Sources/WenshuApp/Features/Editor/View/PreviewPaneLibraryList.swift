@@ -246,15 +246,19 @@ enum LibraryDocumentLoader {
         switch readHead(of: url) {
         case let .whole(text):
             rawBody = text
-        case .head(let text, holdsH1: false):
-            // The head held no H1, = = and the file is longer than the
-            // head: = = the file's first H1 may still be further down,
-            // = = so the whole file is read (= = the rare case).
+        case let .head(text, holdsTheCard: false):
+            // The head does NOT hold everything the card needs (= = its
+            // H1 was cut by the head's boundary, = = or the body after
+            // that H1 is shorter than the summary's window), = = so the
+            // whole file is read (= = and the card shows exactly what it
+            // showed before).
             rawBody = (try? String(contentsOf: url, encoding: .utf8)) ?? text
-        case .head(let text, holdsH1: true):
-            // The head holds the H1, = = so the summary's first 200
-            // characters are in it, = = and the card shows exactly what it
-            // showed before.
+        case let .head(text, holdsTheCard: true):
+            // The head holds the H1 line COMPLETE = = and the summary's
+            // whole 200-character window after it, = = so the card shows
+            // exactly what it showed before (= = the review's finding: = =
+            // "holdsH1 only proves the head CONTAINS an H1" = = and that
+            // inference was false near the boundary).
             rawBody = text
         case .undecodable:
             rawBody = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
@@ -292,9 +296,10 @@ enum LibraryDocumentLoader {
     enum HeadRead {
         /// The whole file (= = the file is shorter than the head).
         case whole(String)
-        /// The head of a longer file (= = and whether it holds the H1 the
-        /// card's chip row and summary come from).
-        case head(String, holdsH1: Bool)
+        /// The head of a longer file (= = and whether it holds EVERYTHING
+        /// the card needs: = = the H1 line complete = = and the summary's
+        /// whole window after it).
+        case head(String, holdsTheCard: Bool)
         /// The head could not be decoded (= = the caller must read the
         /// whole file).
         case undecodable
@@ -327,9 +332,48 @@ enum LibraryDocumentLoader {
             return .whole(text)
         }
         // The file is longer than the head: = = the head is a prefix, = =
-        // and the card's summary (= = the first 200 characters after the
-        // H1) is complete only if the head holds the H1.
-        return .head(text, holdsH1: PreviewPaneOps.splitFirstH1(text).0 != nil)
+        // and the card can be built from it ONLY when the head holds
+        // everything the card needs (= = see `headHoldsTheCard`).
+        return .head(text, holdsTheCard: headHoldsTheCard(text))
+    }
+
+    /// Whether the head holds everything the card needs.
+    ///
+    /// = = The card needs TWO things from the body: = = the chip tag (= =
+    /// the H1's text) = = and the summary (= = the first 200 characters of
+    /// the body after that H1).
+    ///
+    /// = = ⇒ The head is sufficient when it holds the H1 line COMPLETE
+    /// (= = not cut by the head's boundary, = = or the chip tag is a
+    /// truncated title) = = AND at least 200 characters of the body after
+    /// it (= = or the summary is shorter than the whole-body read's).
+    ///
+    /// = = ⇒ AND the head's LAST line may be cut (= = the head's boundary
+    /// can land in the middle of a line), = = so the check runs on the
+    /// head's COMPLETE lines only (= = the lines before that cut).
+    ///
+    /// = = ⇒ MEASURED, = = at the review that asked for it: = = "holdsH1
+    /// only proves the head CONTAINS an H1" = = and that inference was
+    /// false near the boundary (= = a chapter whose H1 line ends near the
+    /// boundary gave an 88-character summary against the whole-body
+    /// read's 200, = = and a 2740-character CJK title gave a TRUNCATED
+    /// chip tag).
+    static func headHoldsTheCard(_ text: String) -> Bool {
+        let (h1, body) = PreviewPaneOps.splitFirstH1(Self.completeLines(of: text))
+        guard h1 != nil else { return false }
+        return body.count >= 200
+    }
+
+    /// The text's COMPLETE lines (= = minus a last line that a read's
+    /// boundary may have cut).
+    ///
+    /// = = A head that ends with a line break holds whole lines (= = and
+    /// nothing is cut); = = a head that ends mid-line holds a partial
+    /// last line (= = and that line is dropped).
+    private static func completeLines(of text: String) -> String {
+        guard !text.hasSuffix("\n") else { return text }
+        guard let lastNewline = text.lastIndex(of: "\n") else { return "" }
+        return String(text[...lastNewline])
     }
 
     /// Decode a byte block, = = dropping a trailing incomplete character.
@@ -381,37 +425,14 @@ final class LibraryDocumentStore {
     /// view invalidate itself mid-update.
     @ObservationIgnored private var loadedKey: String?
 
-    /// The task doing the current load (= = so a newer request replaces an
-    /// older one).
-    @ObservationIgnored private var loadTask: Task<Void, Never>?
-
-    /// Ask for the list (= = the body's door, = = and the walk runs OFF
-    /// the body pass).
-    ///
-    /// = = The key says WHAT the list should hold (= = the scope, = = the
-    /// library-change tick, = = and the sort order). = = A request whose
-    /// key is unchanged does nothing (= = so the library is not walked
-    /// again), = = and a request whose key changed starts the one walk.
-    func requestLoad(
-        key: String,
-        bookStore: BookStore?,
-        sortOrder: EntitySortOrder
-    ) {
-        guard loadedKey != key else { return }
-        loadedKey = key
-        loadTask?.cancel()
-        loadTask = Task { [weak self] in
-            await self?.loadNow(key: key, bookStore: bookStore, sortOrder: sortOrder)
-        }
-    }
-
     /// Walk the library and land the list (= = the one walk).
     ///
-    /// = = The walk is disk IO, = = and it runs ONCE per key (= = not once
-    /// per body pass, = = which was the cost this change removes). = = The
-    /// call yields first (= = the house's own discipline in
-    /// `loadShelfBooksAsync`), = = so the pane can finish rendering the
-    /// frame it is on before the walk starts.
+    /// = = This is the store's ONLY door (= = the pane's `.task(id:)` and
+    /// a test both come here): = = the walk is disk IO, = = and it runs
+    /// ONCE per key (= = not once per body pass, = = which was the cost
+    /// this change removes). = = The call yields first (= = the house's
+    /// own discipline in `loadShelfBooksAsync`), = = so the pane can
+    /// finish rendering the frame it is on before the walk starts.
     ///
     /// = = ⇒ AND THE KEY IS THE GUARD: = = a caller whose key is already
     /// loaded does not walk again (= = so the pane's task and a test's own

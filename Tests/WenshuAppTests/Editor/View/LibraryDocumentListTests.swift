@@ -298,6 +298,76 @@ struct LibraryDocumentListTests {
         )
     }
 
+    @Test("A chapter whose H1 line ends near the head's boundary, = = shows the whole-body read's card")
+    func aChapterWhoseH1EndsNearTheBoundaryShowsTheWholeBodyReadsCard() throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+
+        // The review's shape: = = a chapter whose H1 LINE ends near the
+        // head's boundary (= = 8192 bytes), = = with a body after it.
+        //
+        // = = ⇒ The head does NOT hold the H1 line complete (= = and the
+        // summary's window is not in the head either), = = so the whole
+        // file is read (= = and the card shows exactly what the
+        // whole-body read showed).
+        let bookId = UUID()
+        let shelfId = UUID()
+        let folderDir = fixture.bookStore.stores.shelvesRoot
+            .appendingPathComponent(shelfId.uuidString, isDirectory: true)
+            .appendingPathComponent("books", isDirectory: true)
+            .appendingPathComponent(bookId.uuidString, isDirectory: true)
+            .appendingPathComponent(BookFolder.outlines.directoryName, isDirectory: true)
+        try FileManager.default.createDirectory(at: folderDir, withIntermediateDirectories: true)
+        let book = Book(id: bookId, title: "边界书", author: "wenshu", shelfId: shelfId)
+        try JSONEncoder().encode(book).write(to: folderDir.deletingLastPathComponent().appendingPathComponent("book.json"))
+
+        // The H1 line runs to the head's boundary (= = 8100 ASCII
+        // characters = = 8102 bytes with the "# "), = = and the body
+        // follows it.
+        //
+        // = = ⇒ THE BODY IS ASCII ON PURPOSE: = = a CJK body would make
+        // the head's cut land INSIDE a character, = = and the pre-fix
+        // read discarded the whole head for that reason (= = so the test
+        // would pass on the broken code for the wrong reason). = = With
+        // an ASCII body the head decodes, = = so the pre-fix read takes
+        // the "the head holds an H1" path and gives a TRUNCATED summary.
+        let longTitle = String(repeating: "T", count: 8100)
+        let body = String(repeating: "the body of the chapter. ", count: 40)
+        let text = "# \(longTitle)\n\n\(body)\n"
+        let fileName = "边界章.md"
+        let url = folderDir.appendingPathComponent(fileName)
+        try text.write(to: url, atomically: true, encoding: .utf8)
+        let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
+        #expect(size > 8192, "the fixture's chapter MUST be longer than the head (= \(size) bytes)")
+
+        // The head read itself: = = it MUST NOT claim to hold the card.
+        if case let .head(_, holdsTheCard) = LibraryDocumentLoader.readHead(of: url) {
+            #expect(
+                !holdsTheCard,
+                "the head MUST NOT claim to hold the card (= = its H1 line is cut by the boundary)"
+            )
+        }
+
+        // And the card shows what the whole-body read shows.
+        let list = LibraryDocumentLoader.load(
+            bookStore: fixture.bookStore,
+            sortOrder: .pinyinFirstLetter
+        )
+        let document = list.documents.first { $0.title == "边界章" }
+        #expect(document != nil, "the list MUST hold the boundary chapter")
+        let wholeBodies = PreviewPaneOps.loadAllLibraryDocs(bookStore: fixture.bookStore).docs
+        let whole = wholeBodies.first { $0.title == "边界章" }
+        #expect(whole != nil, "the whole-body read MUST hold the boundary chapter")
+        #expect(
+            document?.tags == whole?.tags,
+            "the boundary chapter's CHIP TAG MUST be the whole-body read's (= \(document?.tags ?? []) vs \(whole?.tags ?? []))"
+        )
+        #expect(
+            document?.summary == whole?.summary,
+            "the boundary chapter's SUMMARY MUST be the whole-body read's (= \(document.map { $0.summary.count } ?? -1) characters vs \(whole.map { $0.summary.count } ?? -1))"
+        )
+    }
+
     @Test("The list's documents keep their stable ids (= = the grid's ForEach identity)")
     func theListsDocumentsKeepTheirStableIds() throws {
         let fixture = try makeFixture()

@@ -82,6 +82,12 @@ let FRAGMENTS: [(file: String, needle: String)] = [
         "Features/Editor/View/PreviewPaneLibraryList.swift",
         "private static func decodePrefix(_ data: Data) -> String?"
     ),
+    // The head holds the card only when it holds the H1 line COMPLETE
+    // (= = and the summary's whole window after it).
+    (
+        "Features/Editor/View/PreviewPaneLibraryList.swift",
+        "static func headHoldsTheCard(_ text: String) -> Bool"
+    ),
     // The list is walked ONCE per library change (= = not per body pass).
     (
         "Features/Editor/View/PreviewPaneLibraryList.swift",
