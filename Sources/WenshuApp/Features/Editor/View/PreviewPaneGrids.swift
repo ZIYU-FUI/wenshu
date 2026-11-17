@@ -75,7 +75,7 @@ extension PreviewPane {
     /// answers (= the picture, the clip and the record). One entry
     /// answers all three, so the card is read once rather than three
     /// times.
-    private func coverEntry(for target: CardCoverTarget) -> CoverEntry {
+    func coverEntry(for target: CardCoverTarget) -> CoverEntry {
         CardCoverService().entry(forKey: target.coverKey)
     }
 
@@ -85,17 +85,17 @@ extension PreviewPane {
     /// two clicks on the same card make one call. It is held by the
     /// PARENT view (= PreviewPane) rather than here, because an
     /// extension cannot hold a stored property.
-    private var coverGenerationService: CoverGenerationService {
+    var coverGenerationService: CoverGenerationService {
         coverServicesHolder.generation
     }
 
     /// The service that makes a card's cover move.
-    private var coverVideoService: CoverVideoService {
+    var coverVideoService: CoverVideoService {
         coverVideoServiceHolder
     }
 
     /// Starts a clip for a card.
-    private func makeVideo(for target: CardCoverTarget) {
+    func makeVideo(for target: CardCoverTarget) {
         let service = coverVideoService
         Task { @MainActor in
             try? await service.makeVideo(for: target)
@@ -103,12 +103,12 @@ extension PreviewPane {
     }
 
     /// The cover target for a reference card.
-    private func coverTarget(forReference id: UUID) -> CardCoverTarget {
+    func coverTarget(forReference id: UUID) -> CardCoverTarget {
         .reference(id)
     }
 
     /// The cover target for a book-doc card.
-    private func coverTarget(forBookDoc id: UUID) -> CardCoverTarget {
+    func coverTarget(forBookDoc id: UUID) -> CardCoverTarget {
         .bookDoc(id)
     }
 
@@ -117,7 +117,7 @@ extension PreviewPane {
     /// The card's own title and summary go to the service, which
     /// reduces them to the picture's motifs (= the objects it is made
     /// of) before anything is drawn.
-    private func generateCover(for target: CardCoverTarget, title: String, summary: String) {
+    func generateCover(for target: CardCoverTarget, title: String, summary: String) {
         let service = coverGenerationService
         Task { @MainActor in
             await service.generateCover(for: target, title: title, summary: summary)
@@ -125,7 +125,7 @@ extension PreviewPane {
     }
 
     /// Removes a card's cover.
-    private func removeCover(for target: CardCoverTarget) {
+    func removeCover(for target: CardCoverTarget) {
         coverGenerationService.removeCover(for: target)
     }
 

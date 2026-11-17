@@ -184,37 +184,56 @@ struct WholeLibraryAssetsTests {
 
     // MARK: - The drawn pane
 
-    @Test("The drawn pane SHOWS the whole library (= both kinds of card, = not a shell)")
-    func theDrawnPaneShowsTheLibrarysDocuments() throws {
+    @Test("The drawn pane SHOWS the whole library (= ONE list, = not a shell)")
+    func theDrawnPaneShowsTheLibrarysDocuments() async throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }
 
-        // The documents the door holds (= the grid must have something
+        // The documents the list holds (= the grid must have something
         // to draw, = so the pane cannot be showing its empty state).
         let docs = PreviewPaneOps.loadAllLibraryDocs(bookStore: fixture.bookStore).docs
         #expect(!docs.isEmpty, "the fixture MUST hold documents (= the test would prove nothing)")
 
-        let (host, window) = try hostPane(bookStore: fixture.bookStore)
+        let store = LibraryDocumentStore()
+        // ⇒ ⇒ ⇒ THE TEST CALLS THE STORE'S OWN DOOR: = = the pane's own
+        // load is a `.task` (= = SwiftUI's appearance lifecycle), = = and
+        // an OFFSCREEN host never appears (= = MEASURED: = the task does
+        // not run there). = = So the test walks the list through the same
+        // door the task calls, = = and then reads the tree the pane drew
+        // from it.
+        await store.loadNow(
+            key: "allLibraryScope|0|修改时间",
+            bookStore: fixture.bookStore,
+            sortOrder: .modifiedAt
+        )
+        let (host, window) = try hostPane(bookStore: fixture.bookStore, libraryDocuments: store)
         defer { window.orderOut(nil) }
 
-        // ⇒ ⇒ ⇒ AND THE OBSERVABLE IS THE NUMBER OF GRIDS, = and the
-        // COUNT is what makes it a count: = the whole library's pane
-        // draws TWO grids (= the 资料库's cards, = and the 书房's .md
-        // documents), = and each is a scroll area. = ⇒ ⇒ ⇒ MEASURED (=
-        // the review's own probe on this diff): = asking only "does a
-        // scroll area exist" = stayed GREEN under two mutations that
-        // emptied one of the two grids (= the 资料库's cards dropped, =
-        // and the grid drawing no card at all), = while the library's
-        // half was gone. = ⇒ ⇒ ⇒ So the guard asks for BOTH.
+        // ⇒ ⇒ ⇒ THE OBSERVABLE IS THE NUMBER OF GRIDS, = and the COUNT
+        // is what makes it a count: = the whole library's pane draws ONE
+        // grid (= = the ONE list the boss's rule asks for), = = and the
+        // old shape drew TWO (= = the 资料库's cards above and the 书房's
+        // .md documents below, = = which is the "上下结构" the rule
+        // removes).
         //
-        // ⇒ ⇒ ⇒ AND THE TEXT IS NOT THE OBSERVABLE: = a hosted grid
-        // publishes no cell's title here (= MEASURED), = so the grid
-        // COUNT is what the tree can actually see.
+        // ⇒ ⇒ ⇒ AND THE LIST IS LOADED, = = so the pane draws the grid
+        // only after the walk lands: = = the test waits for the load (= =
+        // the store says so), = = and then reads the tree. = ⇒ ⇒ ⇒
+        // MEASURED (= the review on this diff): = asking only "does a
+        // scroll area exist" = stayed GREEN under mutations that emptied
+        // the list, = = so the guard asks for the count AND for the list
+        // to be non-empty (= = the tree cannot show one grid with no
+        // cards in it).
+        #expect(store.isLoaded, "the list MUST have landed (= the pane draws the grid after it)")
+        #expect(
+            !store.documents.documents.isEmpty,
+            "the list MUST hold the library's documents (= else the pane draws an empty grid)"
+        )
         let elements = InspectorAXTree.elements(of: host)
         let grids = elements.filter { $0.role == "AXScrollArea" }
         #expect(
-            grids.count == 2,
-            "the whole-library pane MUST draw BOTH grids (= the 资料库's cards + the 书房's .md docs) = measured \(grids.count)"
+            grids.count == 1,
+            "the whole-library pane MUST draw ONE grid (= the ONE list) = measured \(grids.count)"
         )
     }
 
@@ -222,22 +241,26 @@ struct WholeLibraryAssetsTests {
     ///
     /// ⇒ ⇒ ⇒ AND THE WINDOW SITS FAR OFFSCREEN: = the hosted pane must
     /// reach the screen's AppKit context (= or the grid never resolves
-    /// its own size), = and it must never show on the writer's desktop.
-    private func hostPane(bookStore: BookStore) throws -> (NSHostingView<AnyView>, NSWindow) {
+    /// its own size), = = and it must never show on the writer's desktop.
+    private func hostPane(
+        bookStore: BookStore,
+        libraryDocuments: LibraryDocumentStore
+    ) throws -> (NSHostingView<AnyView>, NSWindow) {
         let pane = PreviewPane(
             scope: .allLibraryScope,
             onDoubleClick: { _ in },
             previewSortOrder: .constant(.modifiedAt),
             searchQuery: .constant(nil),
-            activeTag: .constant(nil)
+            activeTag: .constant(nil),
+            libraryDocuments: libraryDocuments
         )
         .environment(bookStore)
 
         // ⇒ ⇒ ⇒ AND THE WINDOW IS TALL: = a hosted grid materialises
-        // only the cells it can show, = so a short window would leave
-        // the second grid (= the books' documents) unmade, = and its
-        // titles would never be published (= and the guard would be
-        // measuring the window, = not the pane).
+        // only the cells it can show, = = so a short window would leave
+        // the cards unmade, = = and their titles would never be published
+        // (= and the guard would be measuring the window, = = not the
+        // pane).
         let host = NSHostingView(rootView: AnyView(pane.frame(width: 1200, height: 1800)))
         host.frame = NSRect(x: 0, y: 0, width: 1200, height: 1800)
         let window = NSWindow(
@@ -249,6 +272,9 @@ struct WholeLibraryAssetsTests {
         window.setFrameOrigin(NSPoint(x: -20000, y: -20000))
         window.contentView = host
         window.orderFront(nil)
+        // The list is already loaded (= = the test walked it through the
+        // store's door), = = so the host only needs the turns that make
+        // the grid materialise its cells.
         for _ in 0 ..< 40 {
             RunLoop.current.run(until: Date().addingTimeInterval(0.05))
         }
