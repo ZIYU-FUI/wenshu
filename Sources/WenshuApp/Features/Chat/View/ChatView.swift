@@ -120,88 +120,28 @@ struct ChatView: View {
         )
     }
 
-    /// The transcript's turns. Each turn pairs the user message with the agent's
-    /// reply, so the view can tell which question the AI is replying to.
-    private var turns: [ChatTurn] {
-        var result: [ChatTurn] = []
-        for msg in vm.messages {
-            if msg.source == .user {
-                result.append(ChatTurn(userMessage: msg, replies: []))
-            } else {
-                if result.isEmpty {
-                    result.append(ChatTurn(userMessage: nil, replies: [msg]))
-                } else {
-                    result[result.count - 1].replies.append(msg)
-                }
-            }
-        }
-        return result
-    }
-
-    /// Renders the turn's section header (= the user bubble, or nothing when the
-    /// turn has no user message = the opening greeting).
+    /// One row of the transcript.
+    ///
+    /// The transcript is ONE flat list of messages: the user's own message
+    /// is a row among the others, and every row scrolls with the content.
+    ///
+    /// The user's row carries the standard vertical band, so the bubble
+    /// sits the same distance from its neighbours as every other row's
+    /// text does.
     @ViewBuilder
-    private func turnHeader(for turn: ChatTurn) -> some View {
-        if let userMsg = turn.userMessage {
-            ChatMessageView(
-                message: userMsg,
-                isLatestUser: vm.messages.last(where: { $0.source == .user })?.id == userMsg.id,
-                onApprovePlan: { plan in
-                    vm.inputText = plan.query
-                    Task { await vm.send() }
-                }
-            )
-            .id(userMsg.id)
-            // The section header carries the same vertical band as every
-            // other transcript row (= the standard spacing token), so the
-            // user's turn sits the same distance from its neighbours as the
-            // assistant's turn does. A taller band on the first turn made
-            // it read as detached from the conversation.
-            .padding(.vertical, DesignTokens.spacingStandard)
-            // The section header is a pinned view (= the transcript's
-            // sticky band), so the replies scroll behind it.
-            //
-            // The header paints NO surface of its own. It used to paint a
-            // material here, and that material was a SECOND material layer:
-            // the window's root already carries the one behind-window
-            // material (= the chat column is transparent, = so that single
-            // layer shows through it), so a material inside the column
-            // composited over it and read as a brighter strip laid across
-            // the whole row (= the reported defect: the user's bubble
-            // carried an extra background block the width of the column).
-            //
-            // The rule this follows is the one the rest of the app
-            // already follows: ONE material at the window's root, and
-            // nothing inside the window painting a surface of its own
-            // (= the same rule the chrome top bar's band follows). The
-            // user's own bubble keeps its own surface (= the rounded
-            // card the words sit on), so the bubble is unchanged; only
-            // the extra full-width band is gone.
-            //
-            // What the band bought (= the replies do not read through the
-            // pinned row) is not free: the band is a SECOND material layer
-            // over the window root's one behind-window material, so its
-            // tone differs from the column's own surface (= the strip the
-            // report is about). Measured on the real ChatView over the
-            // real root material: the band's tone sat 55 luma steps from
-            // the column's, and with no band the row's tone matches the
-            // column's exactly (0 steps).
-            //
-            // The alternatives that keep the mask were measured and none
-            // of them removes the strip: the scroll view's own top edge
-            // effect does not cover a pinned section header (the reply
-            // text reads through it exactly as it does with no effect at
-            // all), and an AppKit behind-window material samples a
-            // different source than the column's surface, so it does not
-            // match either. The user asked for the band to go and named
-            // transparency as the fallback, so the row paints nothing of
-            // its own.
-            //
-            // Background applied AFTER padding (so a surface here would
-            // extend into the padding zone above + below the bubble
-            // glyph, = the canonical Apple shape). With no surface of its
-            // own, the padding zone shows the column's own surface, = the
-            // same surface the rest of the column shows.
+    private func transcriptRow(_ message: ChatMessage) -> some View {
+        let row = ChatMessageView(
+            message: message,
+            onApprovePlan: { plan in
+                vm.inputText = plan.query
+                Task { await vm.send() }
+            }
+        )
+        .id(message.id)
+        if message.source == .user {
+            row.padding(.vertical, DesignTokens.spacingStandard)
+        } else {
+            row
         }
     }
 
@@ -225,12 +165,10 @@ struct ChatView: View {
             // default is around 60-75 characters per line; 720 PT × ~10 PT char ≈
             // 72 chars per line, in the right band. The 10 PT top padding
             // applies to the ScrollView chain below (= the ScrollView's content area;
-            // = the sticky user
-            // message bubble (= the first item in `LazyVStack(pinnedViews:
-            // [.sectionHeaders])`) is pushed down 10 PT inside the scroll
-            // viewport; = 10 PT visible gap between the editor zone's bottom
-            // status bar above and the first user message bubble). 10 PT is the
-            // user's verbatim spec.
+            // = the transcript's first message is pushed down 10 PT inside the
+            // scroll viewport; = 10 PT visible gap between the editor zone's
+            // bottom status bar above and the first message bubble). 10 PT is
+            // the user's verbatim spec.
             ScrollViewReader { proxy in
                 // The inner ScrollView content lives in the `transcript` computed
                 // property, so the view body stays readable (= the chat
@@ -251,25 +189,13 @@ struct ChatView: View {
                             proxy.scrollTo(last.id, anchor: .bottom)
                         }
                     }
-                    // `scrollTo(anchor: .bottom)` above is the DEFAULT
-                    // scroll-to-bottom for new content (= the assistant's
-                    // streaming reply). The sticky behavior for the LATEST USER
-                    // message is a separate trigger: when a new user message
-                    // arrives (= `latestUserID` changes), the scroll viewport
-                    // pins the latest user row to the TOP edge. The two
-                    // `onChange` paths live inside the `ScrollViewReader` scope
-                    // (= the proxy is captured there).
-                    .onChange(of: vm.messages.last(where: { $0.source == .user })?.id) { _, newLatestID in
-                        if let newLatestID {
-                            // Anchor:.top pins the new latest user row to the
-                            // scroll viewport top edge. The 80 PT top padding in
-                            // ChatMessageView (= the zIndex 40 row's padding)
-                            // sits ABOVE the row itself (= visually: the row
-                            // lands below the titlebar-safe zone, not flush
-                            // against the titlebar).
-                            proxy.scrollTo(newLatestID, anchor: .top)
-                        }
-                    }
+                // The transcript follows the newest content: when the
+                // last message's content changes (= the assistant's
+                // streaming reply), the viewport scrolls to that
+                // message's bottom. There is no second trigger that
+                // jumps the viewport to the newest user row: the
+                // conversation is one list, so every message scrolls
+                // with the rest of it.
             }
             // Chat input bar (= the top layer of the 3-layer UI split per the
             // spec) floats over this ScrollView via.safeAreaInset(edge:.bottom);
@@ -376,37 +302,20 @@ struct ChatView: View {
     // `ChatViewMarkdownIO.swift` (= see that file).
 
     // The transcript viewport (= the inner ScrollView { LazyVStack { ForEach
-    // turns { Section { ... } } } } block).
+    // messages { ... } } } block).
 
     private var transcript: some View {
         ScrollView {
-            // 'the user's message bubble, like hermes AI ' (= implement
-            // sticky-top for the user bubble like hermes; = so the user can see
-            // which question the AI is replying to when they scroll). Use
-            // `LazyVStack(pinnedViews: [.sectionHeaders])` (= the macOS 27
-            // SwiftUI equivalent of CSS `position: sticky; top: 0`; = continuous
-            // sticky, scrolls WITH content = no jarring yank). Group messages
-            // into "turns" (= user message + its following assistant reply + any
-            // placeholders). Each turn's user bubble is the Section.header (=
-            // pinned to the scroll viewport top). When user scrolls down, the
-            // most recent user bubble pins at top (= the desired "let me see
-            // which question AI is replying to" affordance). When user scrolls
-            // up, older user bubbles pass through (= CSS sticky semantics).
-            LazyVStack(alignment: .leading, spacing: DesignTokens.spacingStandard, pinnedViews: [.sectionHeaders]) {
-                ForEach(turns) { turn in
-                    Section(header: turnHeader(for: turn)) {
-                        ForEach(turn.replies) { reply in
-                            ChatMessageView(
-                                message: reply,
-                                isLatestUser: false,
-                                onApprovePlan: { plan in
-                                    vm.inputText = plan.query
-                                    Task { await vm.send() }
-                                }
-                            )
-                            .id(reply.id)
-                        }
-                    }
+            // The transcript is ONE flat list of messages.
+            //
+            // Every message is a row among the others: the user's own
+            // message scrolls with the conversation like every other row,
+            // and the newest content is what the panel shows. Nothing is
+            // held at the viewport's top edge, so no row is ever cut off
+            // by the panel's own top area.
+            LazyVStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
+                ForEach(vm.messages) { message in
+                    transcriptRow(message)
                 }
             }
             // The transcript's padding, minus the bottom: the bottom padding puts

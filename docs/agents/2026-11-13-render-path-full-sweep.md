@@ -396,3 +396,23 @@ whether it verified.
    per-body-pass directory scan the moment that bug is fixed. = = The
    cost of a call that is currently disabled must be measured BEFORE
    the bug that disables it is fixed.
+
+## The findings this change retired (2026-11-17)
+
+On 2026-11-17 the chat's transcript stopped grouping its rows into turns
+and stopped holding the user's own row at the viewport's top edge. That
+removes the two findings above that named that code, and the rows that
+measured it now read as a record of what the code was:
+
+| Finding | What happened to the code it named |
+|---|---|
+| B4 | `ChatView.swift:148` computed `isLatestUser:` by scanning `vm.messages` backward once per turn, so the transcript's per-body-pass cost was O(turns x messages) = O(n^2). The transcript is ONE flat list of messages now, so there is no per-turn scan and no `isLatestUser` argument to compute. |
+| B5 | `ChatView.swift:125-139` built the whole `turns` array (= one `ChatTurn` struct per turn) on every body pass. The grouping type is gone with the row it carried (`ChatTurn.swift` was deleted), so the per-body-pass allocation is gone with it. |
+
+**What this does NOT change.** The sweep's numbers, its method and its
+other findings stand (= = they measured the tree at the time, = = and
+B4's and B5's own words were already "today's cost is about 0"). The
+identity rule the sweep paid for stands too: the transcript's rows keep
+the SAME identity when the transcript is rebuilt (= = a row's identity is
+its own message's id), which is what `RenderPathPerformanceTests` pins
+today.

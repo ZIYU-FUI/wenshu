@@ -10,24 +10,26 @@
 //       is computed ONCE per item (= decorate, sort, undecorate) instead
 //       of once per comparison. The ORDER must be identical to the
 //       comparator form.
-//    2. ChatTurn.id: the turn's identity comes from the turn's own first
-//       message, so rebuilding the turns array hands SwiftUI the SAME
-//       identity for the same turn (= the transcript stops rebuilding
+//    2. ChatMessage.id: the transcript's row identity comes from the row's
+//       own message, so rebuilding the transcript's rows hands SwiftUI the
+//       SAME identity for the same row (= the transcript stops rebuilding
 //       every row on every body pass).
 //    3. ChatMessageFooter: the tooltip formatters are built once, so the
 //       footer allocates no formatter per render. The OUTPUT must be
 //       byte-identical to the per-call construction it replaced.
 //
-//  Coverage (= 9 tests):
+//  Coverage (= 11 tests):
 //    1.  sortBookDocs orders by pinyin key
 //    2.  sortBookDocs breaks a pinyin tie by file name
 //    3.  sortEntities orders by pinyin key
 //    4.  sortEntities breaks a pinyin tie by id
-//    5.  a rebuilt turns array gives every turn the SAME identity
-//    6.  a turn's identity is its user message's id
-//    7.  a turn with no user message takes the first reply's id
-//    8.  the token tooltip keeps the comma grouping
-//    9.  the timestamp tooltip keeps the POSIX shape
+//    5.  the book pinyin sort key is computed ONCE per item
+//    6.  the entity pinyin sort key is computed ONCE per entity
+//    7.  rebuilding the transcript's rows gives every row the SAME identity
+//    8.  a row's identity is its own message's id
+//    9.  every message is a row of its own (= the opening greeting is one too)
+//    10. the token tooltip keeps the comma grouping
+//    11. the timestamp tooltip keeps the POSIX shape
 //
 
 import Foundation
@@ -138,7 +140,7 @@ struct RenderPathPerformanceTests {
         #expect(keyCalls == entities.count, "the key must be computed once per entity, not once per comparison")
     }
 
-    // MARK: - A turn keeps its identity across a rebuild
+    // MARK: - A row keeps its identity across a rebuild
 
     private func userMessage(_ content: String) -> ChatMessage {
         ChatMessage(role: .user, source: .user, content: content)
@@ -148,49 +150,49 @@ struct RenderPathPerformanceTests {
         ChatMessage(role: .agent, source: .wenshu, content: content)
     }
 
-    /// The same grouping the chat view's `turns` computed property does.
-    private func turns(from messages: [ChatMessage]) -> [ChatTurn] {
-        var result: [ChatTurn] = []
-        for msg in messages {
-            if msg.source == .user {
-                result.append(ChatTurn(userMessage: msg, replies: []))
-            } else {
-                if result.isEmpty {
-                    result.append(ChatTurn(userMessage: nil, replies: [msg]))
-                } else {
-                    result[result.count - 1].replies.append(msg)
-                }
-            }
-        }
-        return result
+    /// The rows the chat view renders, in the order it renders them.
+    ///
+    /// The transcript is ONE flat list of messages (= no turn grouping),
+    /// so the rows are the messages themselves and each row is identified
+    /// by its own message's id.
+    private func rows(from messages: [ChatMessage]) -> [ChatMessage] {
+        messages
     }
 
-    @Test("rebuilding the turns array gives every turn the SAME identity")
-    func rebuiltTurnsKeepTheirIdentity() {
+    @Test("rebuilding the transcript's rows gives every row the SAME identity")
+    func rebuiltRowsKeepTheirIdentity() {
         let messages = [
             userMessage("first question"),
             agentMessage("first answer"),
             userMessage("second question"),
             agentMessage("second answer"),
         ]
-        let first = turns(from: messages)
-        let second = turns(from: messages)
-        #expect(first.count == 2)
+        let first = rows(from: messages)
+        let second = rows(from: messages)
+        #expect(first.count == 4)
         #expect(first.map(\.id) == second.map(\.id))
     }
 
-    @Test("a turn's identity is its user message's id")
-    func turnIdentityIsTheUserMessageId() {
+    @Test("a row's identity is its own message's id")
+    func rowIdentityIsItsOwnMessageId() {
         let question = userMessage("a question")
-        let turn = ChatTurn(userMessage: question, replies: [agentMessage("an answer")])
-        #expect(turn.id == question.id)
+        let answer = agentMessage("an answer")
+        let rows = rows(from: [question, answer])
+        #expect(rows[0].id == question.id)
+        #expect(rows[1].id == answer.id)
     }
 
-    @Test("a turn with no user message takes the first reply's id")
-    func turnIdentityIsTheFirstReplyIdWhenThereIsNoUserMessage() {
-        let reply = agentMessage("an opening greeting")
-        let turn = ChatTurn(userMessage: nil, replies: [reply])
-        #expect(turn.id == reply.id)
+    @Test("every message is a row of its own (= the opening greeting is one too)")
+    func everyMessageIsARowOfItsOwn() {
+        // The greeting arrives before any user message, so it used to open
+        // a turn with no user message in it. It is a row like any other.
+        let greeting = agentMessage("an opening greeting")
+        let question = userMessage("a question")
+        let rows = rows(from: [greeting, question])
+        #expect(rows.count == 2)
+        #expect(rows[0].id == greeting.id)
+        #expect(rows[1].id == question.id)
+        #expect(rows[0].id != rows[1].id)
     }
 
     // MARK: - The tooltip formatters are built once, and the output is unchanged
