@@ -13,23 +13,34 @@
 //    2. ChatMessage.id: the transcript's row identity comes from the row's
 //       own message, so rebuilding the transcript's rows hands SwiftUI the
 //       SAME identity for the same row (= the transcript stops rebuilding
-//       every row on every body pass).
+//       every row on every body pass). The WIRING that carries the rule
+//       is read here from the production source; the BEHAVIOUR it
+//       produces (= the row views survive a body pass) is measured on the
+//       real view in `ChatTranscriptFlatFlowTests`.
 //    3. ChatMessageFooter: the tooltip formatters are built once, so the
 //       footer allocates no formatter per render. The OUTPUT must be
 //       byte-identical to the per-call construction it replaced.
 //
-//  Coverage (= 11 tests):
+//  WHY THE TRANSCRIPT'S CLAIMS ARE READ FROM THE PRODUCTION SOURCE
+//  ================================================================
+//  The audit's finding was that the transcript's identity claims were
+//  measured on a COPY the test built beside the production code (= a
+//  helper that returned its input unchanged), so the copy still passed
+//  when the production row's identity was broken. A copy is a second
+//  rule, and the test then measures the copy. So the claim is read from
+//  the production source itself, through the house's `SourceLocator`.
+//
+//  Coverage (= 10 tests):
 //    1.  sortBookDocs orders by pinyin key
 //    2.  sortBookDocs breaks a pinyin tie by file name
 //    3.  sortEntities orders by pinyin key
 //    4.  sortEntities breaks a pinyin tie by id
 //    5.  the book pinyin sort key is computed ONCE per item
 //    6.  the entity pinyin sort key is computed ONCE per entity
-//    7.  rebuilding the transcript's rows gives every row the SAME identity
+//    7.  the transcript renders one flat list of the model's messages
 //    8.  a row's identity is its own message's id
-//    9.  every message is a row of its own (= the opening greeting is one too)
-//    10. the token tooltip keeps the comma grouping
-//    11. the timestamp tooltip keeps the POSIX shape
+//    9.  the token tooltip keeps the comma grouping
+//    10. the timestamp tooltip keeps the POSIX shape
 //
 
 import Foundation
@@ -150,49 +161,55 @@ struct RenderPathPerformanceTests {
         ChatMessage(role: .agent, source: .wenshu, content: content)
     }
 
-    /// The rows the chat view renders, in the order it renders them.
+    /// The transcript renders one flat list of the model's messages.
     ///
-    /// The transcript is ONE flat list of messages (= no turn grouping),
-    /// so the rows are the messages themselves and each row is identified
-    /// by its own message's id.
-    private func rows(from messages: [ChatMessage]) -> [ChatMessage] {
-        messages
+    /// The claim is about the transcript's WIRING (= which rows it renders
+    /// and how each is identified), so it is read from the production
+    /// source through the house's `SourceLocator` (= the reader that
+    /// resolves the repo root by looking for `Package.swift`, so the test
+    /// does not depend on its own directory depth, and that reads the WHOLE
+    /// view group, so a split view is read whole).
+    ///
+    /// It is not read from a copy the test builds beside it: a copy would
+    /// still pass if the production wiring were broken (= and the audit's
+    /// finding was that the copy was all that was left).
+    @Test("the transcript renders one flat list of the model's messages")
+    func theTranscriptRendersOneFlatList() throws {
+        let source = try SourceLocator.readGroup(prefixed: "ChatView")
+        #expect(
+            source.contains("ForEach(vm.messages)"),
+            "the transcript must render a ForEach over the model's messages (= every message is a row of its own)"
+        )
+        #expect(
+            !source.contains("ChatTurn"),
+            "the transcript must not group the messages into turns (= the grouping type went with the pinned row it carried)"
+        )
     }
 
-    @Test("rebuilding the transcript's rows gives every row the SAME identity")
-    func rebuiltRowsKeepTheirIdentity() {
-        let messages = [
-            userMessage("first question"),
-            agentMessage("first answer"),
-            userMessage("second question"),
-            agentMessage("second answer"),
-        ]
-        let first = rows(from: messages)
-        let second = rows(from: messages)
-        #expect(first.count == 4)
-        #expect(first.map(\.id) == second.map(\.id))
-    }
-
+    /// The transcript's rows are identified by their own message's id.
+    ///
+    /// The claim is the transcript's IDENTITY rule, and it is read from the
+    /// production row builder: a row carries its own message's id, so a
+    /// body pass hands SwiftUI the same identity for the same row. A fresh
+    /// identity per render would tear every row down and rebuild it.
+    ///
+    /// The BEHAVIOUR this rule produces is measured on the real view in
+    /// `ChatTranscriptFlatFlowTests` (= the row views survive a body pass);
+    /// this is the wiring that carries it.
     @Test("a row's identity is its own message's id")
-    func rowIdentityIsItsOwnMessageId() {
-        let question = userMessage("a question")
-        let answer = agentMessage("an answer")
-        let rows = rows(from: [question, answer])
-        #expect(rows[0].id == question.id)
-        #expect(rows[1].id == answer.id)
-    }
-
-    @Test("every message is a row of its own (= the opening greeting is one too)")
-    func everyMessageIsARowOfItsOwn() {
-        // The greeting arrives before any user message, so it used to open
-        // a turn with no user message in it. It is a row like any other.
-        let greeting = agentMessage("an opening greeting")
-        let question = userMessage("a question")
-        let rows = rows(from: [greeting, question])
-        #expect(rows.count == 2)
-        #expect(rows[0].id == greeting.id)
-        #expect(rows[1].id == question.id)
-        #expect(rows[0].id != rows[1].id)
+    func rowIdentityIsItsOwnMessageId() throws {
+        let source = try SourceLocator.readGroup(prefixed: "ChatView")
+        #expect(
+            source.contains(".id(message.id)"),
+            """
+            a row must be identified by its own message's id (= the \
+            transcript stops rebuilding every row on every body pass)
+            """
+        )
+        #expect(
+            !source.contains(".id(UUID())"),
+            "no row may be given a fresh identity per render (= the rows would be rebuilt on every body pass)"
+        )
     }
 
     // MARK: - The tooltip formatters are built once, and the output is unchanged
