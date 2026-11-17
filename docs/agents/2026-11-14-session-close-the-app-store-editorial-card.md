@@ -24,15 +24,20 @@ names commands a reader can re-run.
 | --- | --- | --- | --- |
 | **Q1: is the Liquid Glass effect an iOS-only control?** (= = NO: = = four platforms carry it, = = visionOS is excluded per-declaration, = = and the signature and the `@available` pair are byte-identical in all eleven `SwiftUICore.swiftinterface` files across the five installed 27.2 SDKs) | `20d2d3182b` (= = the research document, = = and it landed on `main` and on both remotes) | `t_363ca9a3` = APPROVED by `wenshu-review` (= = round two, = = after the round-one six findings were fixed) | the SDK sweep re-run against the five SDKs reads the same `@available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *)` + `@available(visionOS, unavailable)` pair in every file; = = `git merge-base --is-ancestor 20d2d3182b main` reads YES; = = both remotes read the merged `main`; = = the gates on the merged tree are in §5 |
 | **Q2: is the App Store's full-image content-recommendation card an iOS-only control?** (= = NO: = = the macOS App Store is a NATIVE AppKit app (= = 0 `iOSSupport` links, = = 2 `AppKit` links), = = and the card is not a PUBLIC control on any platform (= = the whole-SDK sweep finds it only in `PrivateFrameworks/`, = = and `StoreKit.framework/Headers/` holds no card) | `20d2d3182b` (= = §1 and §2 of the research document, = = with the binary, = = the SDK and the symbol-table evidence) | `t_363ca9a3` = APPROVED by `wenshu-review` (= = the same verdict, = = and it covered this question too) | `otool -L "/System/Applications/App Store.app/Contents/MacOS/App Store"` shows no `iOSSupport`; = = the public-frameworks sweep for `AppStoreCard`, `StoreCard` and `CardStyle` returns nothing; = = both remotes read the merged `main` |
-| **the measured gap against our own material card** (= = the slot is 2200 x 724 px = = 3.039 : 1, = = and the djay card splits it 25% text / 75% artwork, = = while our card is a full-bleed 4 : 3 picture with a 10 PT corner and a scrim of 0.18 -> 0.55; = = and the corner is NOT shared: = = the coral card's is 26 px = = 13 PT, = = measured fit-free from the deposited capture) | `080c16813` (= = the evidence correction: = = every figure names the capture it rests on, = = and the one capture that was NOT deposited is named as such) | `t_cd64934a` = APPROVED by `wenshu-review` (= = the round that closed the last finding, = = and it re-verified this row's own fact on the tree) | the deposited coral capture is re-measured in the research document's own terms (= = the card box, = = the 443 px = = 20.1% text block, = = the corner at 26 px); = = `verify_scope.py` re-reads the committed tree and prints 0 FAIL of 26; = = the scope's own diff is 791 added lines with CJK 0 |
-| **the scope's own bookkeeping** (= = the registry's two rows carry their files' own counts (= = 586 and 631), = = the counts are a fixed point on the committed tree, = = and the closeout is a committed document rather than a claim) | `404bc8c0a` (= = the last amend: = = the body measures its baseline against the parent, = = and the tree did not move, = = so no number moved) | `t_cd64934a` = APPROVED by `wenshu-review` (= = the same verdict) | `nfi-loc-check.py --base 58dd224bb7` and `--base main` both read PASS on the merged tree; = = `verify-dead.py` reads DEAD 0; = = `nfi-split.py --check` reads PASS; = = `pandoc -f gfm -t html` reads rc 0 on all three documents; = = both remotes read the merged `main` |
+| **the measured gap against our own material card** (= = the slot is 2200 x 724 px = = 3.039 : 1, = = and the djay card splits it 25% text / 75% artwork, = = while our card is a full-bleed 4 : 3 picture with a 10 PT corner and a scrim of 0.18 -> 0.55; = = and the corner is NOT shared: = = the coral card's is 26 px = = 13 PT, = = measured fit-free from the deposited capture) | `080c16813` (= = the evidence correction: = = every figure names the capture it rests on, = = and the one capture that was NOT deposited is named as such) | `t_cd64934a` = APPROVED by `wenshu-review` (= = the round that closed the last finding, = = and it re-verified this row's own fact on the tree) | the deposited coral capture is re-measured in the research document's own terms (= = the card box, = = the 443 px = = 20.1% text block, = = the corner at 26 px); = = the scope's own diff (= = this scope's three files, = = against the pinned base `58dd224bb7`) is 800 added lines with CJK 0; = = and `verify_scope.py` re-reads the committed tree and prints 0 FAIL of 37 at this tip (= = the tip it is calibrated to, = = = 800 added lines and a 640-line cell), = = and it REJECTS the three shas whose defects this scope's rounds fixed (= = `e129f8215` = = = 12 FAIL, = = `ad57d5641` = = = 10 FAIL, = = `1f29137e1` = = = 7 FAIL) |
+| **the scope's own bookkeeping** (= = the registry's two rows carry their files' own counts (= = 586 and 640), = = the counts are a fixed point on the committed tree, = = and the closeout is a committed document rather than a claim) | `404bc8c0a` (= = the last amend: = = the body measures its baseline against the parent, = = and the tree did not move, = = so no number moved) | `t_cd64934a` = APPROVED by `wenshu-review` (= = the same verdict) | `nfi-loc-check.py --base 58dd224bb7` and `--base main` both read PASS on the merged tree; = = `verify-dead.py` reads DEAD 0; = = `nfi-split.py --check` reads PASS; = = `pandoc -f gfm -t html` reads rc 0 on all three documents; = = both remotes read the merged `main` |
 
 ⇒ ⇒ ⇒ AND THE COMMITS THAT ARE NOT THIS SCOPE'S: = = this scope's push
 carried NONE, = = because `main` already held the sibling scopes' 29
 commits before the merge (= = `84c3a6386` was already on both remotes), = =
-and the range this push moved (= = `84c3a6386` to `41b82a8fa`) holds only
-this scope's four commits and the merge commit itself. = = §6 names the ten
-that were on `main` before this scope's last commit landed.
+and the range this push moved (= = `84c3a6386` to `41b82a8fa`) holds SIX
+commits, = = and every one of them is this scope's own: = = its FOUR
+(`9f8bab6f1`, = = `ed66f2ec5`, = = `080c16813`, = = `404bc8c0a`), = = plus
+the merge that brought `main` into the scope's branch (`c7b924bc9`), = =
+plus the merge of that onto `main` (`41b82a8fa`). = = ⇒ AND THE SCOPE'S
+FIFTH COMMIT IS `20d2d3182b`, = = WHICH WAS ALREADY ON `main` AND ON BOTH
+REMOTES BEFORE THIS PUSH. = = §6 names the ten commits that were on `main`
+before this scope's last commit landed.
 
 ## The landing
 
@@ -41,7 +46,7 @@ that were on `main` before this scope's last commit landed.
 | The change | `404bc8c0a` = = = on `main`, = = = landed as `41b82a8fa` (= = = the sha this scope pushed) |
 | The branch | `wt/appstore-card-correct` (= branched from `main` at `58dd224bb7`) |
 | The approving verdict | `t_cd64934a` = = = `review_outcome: approved`, = `reviewed_sha: 404bc8c0a8c7278a2d3fd2db9572a6e3718478f6` (= = = the scope's last amend; = = = the earlier rounds' verdicts were on the shas they reviewed, = = = and §4 names them) |
-| The merged tree's gates | `nfi-loc-check.py --base 58dd224bb7` and `--base main` both PASS; = = `verify-dead.py` DEAD 0; = = `nfi-split.py --check` PASS; = = `pandoc -f gfm -t html` rc 0 on all three documents; = = the scope's own diff is 791 added lines with CJK 0 |
+| The merged tree's gates | `nfi-loc-check.py --base 58dd224bb7` and `--base main` both PASS; = = `verify-dead.py` DEAD 0; = = `nfi-split.py --check` PASS; = = `pandoc -f gfm -t html` rc 0 on all three documents; = = the scope's own diff is 800 added lines with CJK 0 |
 | The remotes | `origin` (gitcode) = = = and `old-origin` (GitHub), = = = both read back at `41b82a8fa8748fd0e8b760bcb5574db5e338ff94`; = = = and this document's OWN commit (= = = the closeout that records the landing) = = = follows it, = = = so no row here names a tip that a later commit would falsify |
 | The scope's commits | FIVE: = = `20d2d3182b`, = = `9f8bab6f1`, = = `ed66f2ec5`, = = `080c16813`, = = `404bc8c0a` (= = every one of them is an ancestor of `main`) |
 
@@ -223,10 +228,10 @@ measurement = = and the numbers below are the post-rebase ones.
 | --- | --- |
 | Swift files in the scope's diff | 0 (= = measured against this scope's BASE `58dd224bb7`, = = not against a moving `main`; = = so `swift build` / `swift test` have no surface) = = and the base range's own Swift commits are the SIBLING scope's: = = three of them, = = `deff19bac4`, = = `bc1ce72f95` and `6b73f25b51` |
 | `verify-dead.py` | DEAD 0 (127 ALIVE, 4 PARTIAL) |
-| CJK on the change | 0 of 791 added lines (= = measured against this scope's base `58dd224bb7`, = = not against a moving `main`; = = and measured against the PRE-MERGE `main` (= = `84c3a6386`) the whole-tree diff carries 4 CJK lines, = = all of them in the SIBLING scope's string catalog, = = and none in this scope's three files; = = and measured against the MERGED `main` (= = `41b82a8fa`) the same diff carries 0, = = because the merge brought the sibling's catalog with it) |
+| CJK on the change | 0 of 800 added lines (= = measured against this scope's base `58dd224bb7`, = = not against a moving `main`; = = and this scope's own diff is its THREE files, = = so the count is 0 both before and after the merge); = = ⇒ AND THE WHOLE-TREE COUNT DEPENDS ON BOTH ENDS, = = SO IT IS NOT PUBLISHED HERE: = = measured against the PRE-MERGE `main` (= = `84c3a6386`) the whole-tree diff carries 4 CJK lines (= = all of them in the SIBLING scope's string catalog) when its endpoint is the scope's own tip `404bc8c0a`, = = and 0 when its endpoint is this document's own commit, = = because the merge brought the sibling's catalog with it; = = and against this row's own base (`58dd224bb7`) the same two endpoints read 0 and 16, = = = so the pair above is true ONLY against `84c3a6386` |
 | `tests/test_nfi_loc_check.py` | rc 0 |
 | `tests/test_nfi_registry.sh` | all tests passed |
-| `nfi-loc-check.py` | rc 0 (1 row: this scope's own row) |
+| `nfi-loc-check.py` | rc 0 (7 row(s) checked: = = the registry's rows this change **ADDS** (= = a key the base's registry does not carry and the tip's does), = = so this scope's own **one** row is among them (= = the closeout's), = = and the research row was **rewritten** (= = 477 to 586), = = and a rewrite does not bring its row into scope; = = and the other six are the sibling scope's rows) |
 | `nfi-split.py --check` | PASS |
 | `pandoc -f gfm -t html` | rc 0 (both documents and the registry) |
 | the registry row renders as a TABLE row | = = and the rendered HTML was checked to carry it inside a `<td>` (= = it did not before the fix) |
@@ -262,10 +267,14 @@ absence.
   says the same): = = the figures themselves did not move, = = and the fix's
   own footprint (= = this closeout's line count, = = the added-line
   denominator, = = and this scope's own commit count) was re-converged on
-  the committed tree. ⇒ ⇒ ⇒ AND THIS LAST ONE IS THE ONE COMMIT
-  THAT CANNOT BE NAMED BY ITS SHA HERE, = = because this document IS that
-  commit's content: = = a closure record cannot name the sha that carries
-  it, = = and the board's verdict names it instead.
+  the committed tree. ⇒ ⇒ ⇒ AND THIS LAST ONE WAS THE ONE COMMIT THAT COULD NOT BE NAMED BY ITS
+  SHA HERE, = = because this document WAS that commit's content: = = a closure
+  record cannot name the sha that carries it, = = and the board's verdict
+  named it instead. ⇒ ⇒ ⇒ AND THAT IS NO LONGER TRUE, = = BECAUSE A LATER
+  COMMIT CARRIES THIS DOCUMENT: = = the receipt-and-numbers commit
+  `404bc8c0a` is NOT this document's content any more (= = this document is
+  the paperwork commit's content), = = so its sha CAN be named here, = = and
+  §"The requirements" and "The landing" (which are ABOVE this section) name it.
 
 ⇒ ⇒ ⇒ AND NONE OF THE FOUR ABOVE IT REWRITES THE PUSHED ONE, = = because
 `20d2d3182b` is already pushed: = = a pushed sha is never rewritten, = = and
@@ -596,7 +605,7 @@ MORE line for a file that ends with one.
 AGAINST A MOVING `main`. = = `main` carries the shared server's commits, = =
 and it moves while this scope works, = = so a denominator measured against it
 moves for reasons that have nothing to do with this scope: = = the same diff
-reads 791 added lines against the pinned base (= = the figure §5 quotes), = = and a
+reads 800 added lines against the pinned base (= = the figure §5 quotes), = = and a
 different one against `main` (= = a MOVING reading, = = and §5 names the moving
 one as moving). ⇒ ⇒
 and the scope's own Swift count is 0 against it (= = the scope touches only
