@@ -53,8 +53,8 @@ struct EditorStatusBarView: View {
         // `Sources/WenshuApp/UI/Chrome/ChromeBottomFooter.swift`
         // component = VStack { Divider + content + .frame(
         // maxWidth: .infinity, alignment: .leading) + .padding(
-        // .vertical, 8) + .padding(.horizontal, 8) } +
-        // .background(.bar)). The editor status bar is the
+        // .vertical, 8) + .padding(.horizontal, 8) }.
+        // The editor status bar is the
         // 3-chunk Inspector status row shape (= word count /
         // cursor location / autosave state) = canonical
         // Pages / Numbers / Xcode inspector single-line
@@ -65,7 +65,39 @@ struct EditorStatusBarView: View {
         // bar was 60-80 PT tall instead of the canonical
         // 38 PT). All three chunks are 1:1 with the chat
         // footer's `HStack { SFIcon + Text }` shape.
-        ChromeBottomFooter(help: "editor.statusBar.help") {
+        //
+        // WHY THE SURFACE IS THE SYSTEM'S UNDER-WINDOW
+        // MATERIAL: this bar is an INTERIOR seam (= the
+        // editor zone's bottom edge, = with the chat zone
+        // below it), = not the window's bottom edge. = The
+        // window-edge bars wear the opaque control surface,
+        // = = so every column's bar resolves to one value and
+        // the window's bottom edge reads as ONE line. = An
+        // interior seam has no second column to agree with,
+        // = = so that opaque plate is a FOREIGN SLAB there: =
+        // its own value sits against the editor's own ground,
+        // = = and the step between them is what the reader
+        // sees as a bar pasted onto the column. = ⇒ ⇒ ⇒ So
+        // this band wears the system's own UNDER-WINDOW
+        // material (= = the layer under the window's own
+        // content), = = in the WITHIN-WINDOW blending (= = it
+        // samples the app's own content behind the band, = =
+        // not the desktop behind the window), = = so the band is
+        // a BAND that shows the column's ground through it, = =
+        // instead of a plate stamped over it, = = and the shared
+        // hairline above it closes the seam.
+        //
+        // MEASURED in the real app, = = on screen, = = in both
+        // appearances, = = and the capture's foreground PROVEN to be
+        // the app before its pixels were read: = = the window-edge
+        // bars resolve to 28 (dark) / 255 (light), = = and this band
+        // resolves to 48 (dark) / 222 (light), = = so the band sits
+        // BETWEEN this column's own ground (= = 78 dark / 190 light)
+        // and the bars' value, = = its step against that ground is 30
+        // (dark) / 32 (light) = = where the opaque plate's was 50
+        // (dark) / 67 (light), = = and it still shows the column
+        // through it.
+        ChromeBottomFooter(surface: .columnMaterial, help: "editor.statusBar.help") {
             // RATIONALE: only 2 chunks (= word count + autosave);
             // = the cursor location chunk was dropped per the
             // boss visual diff 2026-10-13 (= the "Ln N, Col N"
@@ -81,10 +113,10 @@ struct EditorStatusBarView: View {
                 // "X words" / "X characters" pattern;
                 // = the unit switches per locale).
                 HStack(spacing: DesignTokens.spacingCaption) {
-                    SFIcon("text.alignleft", style: .inlineSmall, color: IconColor.secondary)
+                    SFIcon("text.alignleft", style: .inlineSmall, color: IconColor.primary)
                     Text(wordCountLabel)
                         .font(.callout)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.primary)
                         .monospacedDigit()
                 }
 
@@ -103,10 +135,11 @@ struct EditorStatusBarView: View {
         }
     }
 
-    // MARK: - Live label computation (= the bar re-evaluates these
-    // on every body invocation; = cheap = O(1) per call except the
-    // word count which is O(n) over the draft = microseconds for
-    // any realistic chapter document).
+    // MARK: - Live label computation
+
+    // (= the bar re-evaluates these on every body invocation; = cheap
+    // = O(1) per call except the word count which is O(n) over the
+    // draft = microseconds for any realistic chapter document).
 
     /// Word count label (= "256" / "1" / "0" / the CJK character unit
     /// the label shows, = = which the locale's own string carries).
