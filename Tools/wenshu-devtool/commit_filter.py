@@ -105,6 +105,26 @@ def scan(text, source):
             yield f"ERROR: forbidden vocabulary '{token}' in {source}:{line_no} | {context}"
 
 
+def added_lines(diff):
+    """The ADDED lines of a diff (= the lines the change introduces).
+
+    WHY ONLY THE ADDED LINES: = = a diff carries three kinds of line, = =
+    the added ones (= `+`), = = the removed ones (= `-`), = = and the
+    CONTEXT (= = the unchanged neighbours).  ⇒ The context is the file
+    as it was, = = so a forbidden token sitting in it is the FILE's
+    token, = = not this change's.  ⇒ Scanning the context blocked any
+    commit that merely touched a file near one, = = and the tree's own
+    commits had to bypass the hook for it.
+    """
+    added = []
+    for line in diff.splitlines():
+        if line.startswith("+++"):
+            continue
+        if line.startswith("+"):
+            added.append(line[1:])
+    return "\n".join(added)
+
+
 def _exact_match(path, entry):
     """Match 1: path == entry exactly."""
     return path == entry
@@ -328,7 +348,8 @@ def scan_unpushed_commits(remote=None, remote_url=None):
         for path in commit_files(sha):
             if is_allowed(path):
                 continue
-            for error in scan(commit_diff(sha, path), f"{path} in {sha[:12]}"):
+            for error in scan(added_lines(commit_diff(sha, path)),
+                              f"{path} in {sha[:12]}"):
                 errors.append(error)
     return errors
 
@@ -357,7 +378,7 @@ def main(hook=None, commit_msg_path=None, remote=None, remote_url=None):
             if is_allowed(path):
                 continue
             diff = get_staged_diff(path)
-            for error in scan(diff, path):
+            for error in scan(added_lines(diff), path):
                 errors.append(error)
 
         # Also scan commit message if available (= for the pre-commit invocation where

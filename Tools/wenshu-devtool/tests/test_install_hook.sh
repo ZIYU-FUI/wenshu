@@ -146,3 +146,24 @@ case "$PUSH2_OUT" in
         ;;
 esac
 echo "PASS: the pre-push hook scans the remote's refs, not the local tracking ref"
+
+# 7) A diff's CONTEXT is not this change's text.
+#
+#    WHY THIS CASE: a diff carries the added lines, = = the removed
+#    ones, = = and the CONTEXT (= = the unchanged neighbours).  ⇒ The
+#    context is the file as it was, = = so a forbidden token sitting in
+#    it is the FILE's token, = = not this change's.  ⇒ Scanning the
+#    context blocked any commit that merely touched a file near one.
+#
+#    ⇒ This case adds a CLEAN line to a file whose neighbour holds the
+#    token: = = it must go through.
+printf 'let a = 1\n// 修真因 x\nlet b = 2\n' > ctx.swift
+git add ctx.swift
+git commit --no-verify -m "baseline with a token nearby" -q
+printf 'let a = 1\n// 修真因 x\nlet b = 2\nlet c = 3\n' > ctx.swift
+git add ctx.swift
+if ! git commit -m "feat: add a clean line beside a token" > /dev/null 2>&1; then
+    echo "FAIL: the pre-commit hook blocked a commit that added no forbidden token"
+    exit 1
+fi
+echo "PASS: a diff's context is not this change's text"
