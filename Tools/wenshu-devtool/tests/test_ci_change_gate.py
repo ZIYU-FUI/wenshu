@@ -28,9 +28,11 @@ against the two gates' own claims:
      (= = not by the helper), = = so a mutation that breaks the scoping
      cannot pass.
  12. a .md that ALREADY lacked the byte (= the tree's drift) is NOT the
-     change's business (= = the gate's DELTA rule, = = not a state check).
+     change's business (= = the gate's DELTA rule, = = not a state check)
+     = = and the drifted path is not among the reported paths.
  13. a NEW .md that never had the byte is reported.
- 14. this file itself carries no forbidden vocabulary.
+ 14. a RENAME of a byte-less .md drops nothing (= = and is green).
+ 15. this file itself carries no forbidden vocabulary.
 
 Run:  python3 Tools/wenshu-devtool/tests/test_ci_change_gate.py
 Exit: 0 = every case passed, 1 = at least one case failed.
@@ -439,7 +441,11 @@ def main() -> int:
         # (b) a change that EDITS a .md that already lacked the byte = = the
         # tree's drift = = and NOT this change's business (= = the delta
         # rule, = = not a state check).
-        (repo / "docs" / "drifted.md").write_text("# drifted\n\nbody. edited.\n", encoding="utf-8")
+        # ⇒ THE EDIT KEEPS THE DRIFT (= = no trailing newline): = = an edit
+        # that ADDED the byte would make the state rule and the delta rule
+        # agree (= = the case would pass against a gate that had no delta
+        # rule at all = = and it would pin nothing).
+        (repo / "docs" / "drifted.md").write_text("# drifted\n\nbody. edited.", encoding="utf-8")
         _commit(repo, "edit a file that never had the newline")
         exit_code = gate.main(
             ["--base", base, "--check", "markdown-newline", "--repo", str(repo)]
@@ -486,6 +492,38 @@ def main() -> int:
                 "a NEW .md that never had the byte is reported",
                 exit_code == 1,
                 f"gate_exit={exit_code} (= 1 = the new file was caught)",
+            )
+        )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, base = _scratch_repo_with_markdown(tmp)
+
+        # (e) a RENAME of a byte-less .md = = GREEN: = = the content moved,
+        # = = so the byte moved with it (= = the tree's drift moved), = = and
+        # a rename drops nothing. = = ⇒ The merge-base blob is ABSENT for
+        # the new path, = = so a gate that reads the new path's base blob
+        # would call it NEW (= = the false red the review measured on the
+        # house's own ADR renames).
+        (repo / "docs" / "renamed.md").write_text("# renamed\n\nbody.", encoding="utf-8")
+        _commit(repo, "add the file to be renamed")
+        rename_base = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True, check=True
+        ).stdout.strip()
+        subprocess.run(
+            ["git", "mv", "docs/renamed.md", "docs/renamed-elsewhere.md"],
+            cwd=str(repo),
+            check=True,
+            capture_output=True,
+        )
+        _commit(repo, "rename a file that never had the newline")
+        exit_code = gate.main(
+            ["--base", rename_base, "--check", "markdown-newline", "--repo", str(repo)]
+        )
+        results.append(
+            case(
+                "a RENAME of a byte-less .md drops nothing (= = and is green)",
+                exit_code == 0,
+                f"gate_exit={exit_code} (= 0 = the rename moved the drift, = = it dropped nothing)",
             )
         )
 

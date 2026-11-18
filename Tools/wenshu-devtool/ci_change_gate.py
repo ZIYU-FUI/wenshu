@@ -26,8 +26,8 @@ a change leaves behind:
   reports only what THIS change did (= = a file that already lacked the
   byte is the tree's drift, = = and it is not this change's business = =
   the same rule the other two checks follow). = = MEASURED: = = a state
-  check went RED on 13 of the last 300 ``.md``-touching commits, = = and 11
-  of those 13 were FALSE (= = the commit never touched the byte).
+  check went RED on 13 of main's last 300 COMMITS, = = and 11 of those 13
+  were FALSE (= = the commit never touched the byte).
 
 WHY THIS EXISTS. The CI used to run ``git log --all -p | grep <vocabulary>``
 for the pollution check (= 4788 hits on the repository's own history, = the
@@ -321,6 +321,22 @@ def _blob_bytes(rev: str, path: str, cwd: Path) -> bytes | None:
     return result.stdout
 
 
+def _rename_sources(base: str, cwd: Path) -> dict[str, str]:
+    """The changed paths that are RENAMES (= = the new path -> the old path).
+
+    = = A rename is why the merge-base blob can be ABSENT for a path that
+    is not new: = = the content moved, = = so the byte it carries is the
+    SOURCE's byte (= = and a rename drops nothing).
+    """
+    output = _git(["diff", "--find-renames", "--name-status", f"{base}...HEAD"], cwd)
+    sources: dict[str, str] = {}
+    for line in output.splitlines():
+        parts = line.split("\t")
+        if len(parts) == 3 and parts[0].startswith("R"):
+            sources[parts[2]] = parts[1]
+    return sources
+
+
 def markdown_newline_offenders(
     base: str, paths: list[str], cwd: Path
 ) -> list[tuple[str, str]]:
@@ -334,15 +350,18 @@ def markdown_newline_offenders(
     rule the other two checks in this gate follow (= = "measure the
     CHANGE, = = not the history").
 
-    = = MEASURED (= = the review that asked for it): = = a state check
-    (= = "does the file on disk end with a newline?") went RED on 13 of the
-    last 300 ``.md``-touching commits, = = and 11 of those 13 were FALSE
-    (= = the commit never touched the byte, = = and the tree already had
-    28 files without it). = = ⇒ The delta rule goes RED on 2, = = and those
-    2 are the real defect (= = the two commits that dropped the byte from
-    the two registries).
+    = = MEASURED (= = the review that asked for it): = = over main's last
+    300 COMMITS, = = a state check (= = "does the file on disk end with a
+    newline?") goes RED on 13, = = and 11 of those 13 are FALSE (= = the
+    commit never touched the byte, = = and the tree already has 28 files
+    without it). = = ⇒ The delta rule goes RED on 2, = = and those 2 are
+    the real defect (= = the two commits that dropped the byte from the
+    two registries). = = ⇒ AND OVER THE LAST 300 ``.md``-TOUCHING COMMITS
+    (= = a different, = = larger window): = = DELTA REDs 3 (= = all three
+    genuine drops) = = and STATE REDs 20 (= = 17 of them false).
     """
     merge_base = _git(["merge-base", base, "HEAD"], cwd).strip()
+    renames = _rename_sources(base, cwd)
     offenders: list[tuple[str, str]] = []
     for path in paths:
         if not path.endswith(MD_SUFFIX):
@@ -355,6 +374,19 @@ def markdown_newline_offenders(
         if not after or after.endswith(b"\n"):
             # It ends with the byte (= = or it is empty = = and there is
             # nothing to drop).
+            continue
+        source = renames.get(path)
+        if source is not None:
+            # = = A RENAME: = = the content moved, = = so the byte the file
+            # carries is the SOURCE's byte. = = ⇒ A rename drops nothing,
+            # and a source that already lacked the byte moved its drift
+            # with the file (= = the tree's drift, = = not this change's).
+            before = _blob_bytes(merge_base, source, cwd)
+            if before is None or not before.endswith(b"\n"):
+                continue
+            offenders.append(
+                (path, "the change DROPPED the trailing newline (= = the byte the merge driver compares)")
+            )
             continue
         before = _blob_bytes(merge_base, path, cwd)
         if before is None:
