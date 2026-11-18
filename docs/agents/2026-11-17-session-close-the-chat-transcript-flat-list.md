@@ -54,22 +54,27 @@ fully drawn" rests on the transcript's own geometry, not on a capture of
 the panel's title area.
 
 **The whole-suite claim rests on the SAME failing set on the base tree, = =
-not on a green run alone.** One run of the whole suite on this tree failed
-FOUR sites: `AsyncDelegationRegistryTests.swift:104`, = =
+not on a green run alone.** One run of the whole suite on THIS tree
+(= `37a645b9d`) failed SIX sites: `ChatViewHistoryShortcutTests.swift:35`,
+= = `EditorTabTitleTests.swift:60`, = =
+`AsyncDelegationRegistryTests.swift:104`, = =
 `WenshuConductorToolRegistryWiringTests.swift:237`, = =
 `HermesTodoStoreConcurrencyTests.swift:268` and = =
-`EditorPersistenceTests.swift:253`. ⇒ ⇒ ⇒ AND THAT RUN WAS COMPETING WITH
-TWO OTHER FULL-SUITE RUNS FOR THE CPU (= = three `swift test` processes at
-once), = = and the house has already measured three of these four as
-LOAD-SENSITIVE: = = the wiring test has a 10-SECOND warm-up deadline (= = a
-loaded machine reads an empty dict), = = the todo-store test asserts
-`judged.elapsed < 5.0`, = = and the editor test waits 3 s. ⇒ ⇒ ⇒ SO THE
-COMPARISON IS THE HOUSE'S OWN: = = the four candidate sites, run ALONE, on
-BOTH trees, = = read out of the log's own file:line. **Measured, = = and
-the two runs are IDENTICAL**:
+`EditorPersistenceTests.swift:253`. ⇒ ⇒ ⇒ AND A WHOLE-SUITE RUN'S FAILING
+SET IS LOAD-DEPENDENT (= = the run above ran on a machine that was not
+quiet, = = so the three LOAD-SENSITIVE sites appear in it), = = and the
+house has already measured those three: = = the wiring test has a
+10-SECOND warm-up deadline (= = a loaded machine reads an empty dict), = =
+the todo-store test asserts `judged.elapsed < 5.0`, = = and the editor test
+waits 3 s. ⇒ ⇒ ⇒ SO THE COMPARISON IS THE HOUSE'S OWN: = = the six
+candidate sites, run ALONE, on BOTH trees, = = read out of the log's own
+file:line. **Measured, = = and the two runs are IDENTICAL** (= = three
+failures each, = = the same three sites):
 
-| the site | this tree (`69f8a81d1`) | the base tree (`84c3a6386`) |
+| the site | this tree (`37a645b9d`) | the base tree (`84c3a6386`) |
 |---|---|---|
+| `ChatViewHistoryShortcutTests.swift:35` | **FAIL** (= = the assertion that the history's metadata block names the token count) | **FAIL** (= = the same assertion, the same line) |
+| `EditorTabTitleTests.swift:60` | **FAIL** (= = the assertion that a real document's name wins over the tab's title) | **FAIL** (= = the same assertion, the same line) |
 | `AsyncDelegationRegistryTests.swift:104` | **FAIL** (= = "Expectation failed: mentionsReported") | **FAIL** (= = the same assertion, the same line) |
 | `WenshuConductorToolRegistryWiringTests.swift:237` | PASS | PASS |
 | `HermesTodoStoreConcurrencyTests.swift:268` | PASS (= = 0.100 s) | PASS (= = 0.064 s) |
@@ -102,7 +107,7 @@ probe over the real stack, not a screenshot of the running app.
 |---|---|
 | `swift build --build-tests` | exit 0 |
 | the focused suites (`ChatTranscriptFlatFlowTests`, `ChatUserBubbleReadabilityTests`, `ChatUserBubbleShapeTests`, `ChatSurfaceGeometryTests`, `ChatTranscriptScrollTests`, `RenderPathPerformanceTests`, `StreamingUpdateTests`) | 39 tests in 7 suites, PASS |
-| the whole suite (`swift test`, = = every target) | PASS WITH A PRE-EXISTING RED BASELINE (= = one deterministic site fails on BOTH trees, = = `AsyncDelegationRegistryTests.swift:104`; = = see §3) |
+| the whole suite (`swift test`, = = every target) | RED WITH A PRE-EXISTING BASELINE (= = this tree's run reds at SIX sites; = = the DETERMINISTIC ones among them (= = the three that fail on BOTH trees when run ALONE) are `ChatViewHistoryShortcutTests.swift:35`, = = `EditorTabTitleTests.swift:60` and = = `AsyncDelegationRegistryTests.swift:104`; = = the other three are LOAD-SENSITIVE; = = none of the six is this scope's; = = see §3) |
 | `ci_change_gate.py --check formatting` | "the change adds no unformatted line (4 changed Swift file(s) checked)", exit 0 |
 | `ci_change_gate.py --check pollution` | "the change adds no forbidden vocabulary", exit 0 |
 | `nfi-loc-check.py --base 84c3a6386` | "every rewritten file's row carries its own count (1 row(s) checked)", exit 0 |
