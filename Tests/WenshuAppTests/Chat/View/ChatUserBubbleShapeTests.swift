@@ -19,6 +19,9 @@
 //  `cacheDisplay`). The bubble's GEOMETRY is a layout question, and the
 //  layout is what the production view tree hands over exactly.
 //
+//  The layout is MainActor-isolated (= it reads the actor-isolated
+//  DesignTokens), so the suite runs on the main actor too.
+//
 
 import Foundation
 import Testing
@@ -26,8 +29,6 @@ import SwiftUI
 import AppKit
 @testable import WenshuApp
 
-// The layout is MainActor-isolated (= it reads the actor-isolated
-// DesignTokens), so the suite runs on the main actor too.
 @MainActor
 @Suite("Chat user bubble shape — the outgoing bubble hugs its words")
 struct ChatUserBubbleShapeTests {
@@ -41,8 +42,12 @@ struct ChatUserBubbleShapeTests {
     private struct Frame {
         let origin: CGPoint
         let size: CGSize
-        var right: CGFloat { origin.x + size.width }
-        var height: CGFloat { size.height }
+        var right: CGFloat {
+            origin.x + size.width
+        }
+        var height: CGFloat {
+            size.height
+        }
     }
 
     /// Lay the REAL outgoing message view out inside a chat column and

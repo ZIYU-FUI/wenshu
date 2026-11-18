@@ -80,7 +80,7 @@ struct ChatUserBubbleReadabilityTests {
     /// The INSPECTOR's output words must not render as text on a field
     /// of the same tone (= the defect: dark text on a dark bubble in the
     /// dark appearance, so the output read as missing).
-    @Test func inspector_output_text_is_readable_against_its_own_surface() throws {
+    @Test func inspector_output_text_is_readable_against_its_own_surface() {
         for (name, appearance) in appearances {
             let surface = resolve(ChatUserBubblePalette.inspectorOutputSurface, appearance)
             // The body tier of the ladder (= .primary) resolves to the
@@ -100,7 +100,7 @@ struct ChatUserBubbleReadabilityTests {
     /// The inspector's surface must separate from the chat panel
     /// background in both appearances (= the bubble stays a distinct
     /// surface, not a hole in the panel).
-    @Test func inspector_output_surface_separates_from_the_chat_panel_background() throws {
+    @Test func inspector_output_surface_separates_from_the_chat_panel_background() {
         for (name, appearance) in appearances {
             let surface = resolve(ChatUserBubblePalette.inspectorOutputSurface, appearance)
             let panel = panelBackground(appearance)
@@ -115,9 +115,12 @@ struct ChatUserBubbleReadabilityTests {
     /// value in the light and the dark appearance), so the fix cannot be
     /// a constant that happens to work in one appearance only.
     @Test func inspector_output_surface_differs_between_appearances() throws {
-        let light = resolve(ChatUserBubblePalette.inspectorOutputSurface, NSAppearance(named: .aqua)!)
-        let dark = resolve(ChatUserBubblePalette.inspectorOutputSurface, NSAppearance(named: .darkAqua)!)
-        #expect(light != dark)
+        let light = try #require(NSAppearance(named: .aqua))
+        let dark = try #require(NSAppearance(named: .darkAqua))
+        #expect(
+            resolve(ChatUserBubblePalette.inspectorOutputSurface, light)
+                != resolve(ChatUserBubblePalette.inspectorOutputSurface, dark)
+        )
     }
 
     /// The role distinction survives the material change: the user's
