@@ -117,11 +117,11 @@ change the build, = = the inventory and the test set.
 
 | the gate | the merged tree | the scope's own diff |
 | --- | --- | --- |
-| 7.1 the build | `swift build` exit 0 | exit 0 |
+| 7.1 the build | `swift build` exit 0 (= = a cold build in its own worktree, = = 291 s) | exit 0 |
 | 7.2 the suite | = = the base's own failing set, = = no new site | 3766 tests in 576 suites, = = 5 issues (= = the base's 5) |
-| 7.3 the design sweep | = = the sweep suites pass on the changed view files | = = 51 tests in 6 suites |
+| 7.3 the design sweep | 25 tests in 8 suites passed (= = the sweep suites of the tree's own changed view files) | = = 51 tests in 6 suites |
 | 7.5 the CJK audit | = = 0 new CJK in the scope's added lines | = = **0 of 3641** (the tree) and = = **0 of 56** (the chat) |
-| 7.6 the dead code | DEAD 0 (= = the base reads DEAD 0 too) | DEAD 0 |
+| 7.6 the dead code | ALIVE 130, = = PARTIAL 4, = = **DEAD 0** (= = the base reads DEAD 0 too) | DEAD 0 |
 | 7.8 the commit hygiene | = = a conventional prefix, = = an English subject, = = a body that says why | = = both carriers |
 | 7.9 the verdict field | = = `review_outcome` = `approved` on both cards | = = both carriers |
 
