@@ -257,11 +257,11 @@ a commit's diff") is reading the FILE's token as this CHANGE's, = = = and
 the tree's own test fixture (= = = the file that PROVES the guard bites,
 = = = and therefore has to NAME the family) is not on the allowlist.
 
-= = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THE OWNER ALREADY HAS THE FIX IN FLIGHT: = = = the
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THE OWNER'S FIX IS ON THE SERVERS: = = = the
 commit `f9a53497e` (= = = "a diff's context is not this change's text",
 = = = in the worktree `.worktrees/t_hook-installer`) makes BOTH modes scan
 the ADDED lines only, = = = and its own message records the same
-diagnosis. = = = ⇒ ⇒ ⇒ ⇒ ⇒ It is NOT on either remote's `main` yet (= = =
+diagnosis.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ It is NOT on either remote's `main` yet (= = =
 measured), = = = and the worktree sha `f9a53497e` is on ZERO refs of
 either server (= = = measured over every ref of both): = = = that branch was
 REWRITTEN at 21:41:03, = = = so the sha a card's body named is not the sha
@@ -273,8 +273,13 @@ for the same subject, `79e993859` (= = = patch-id `286b2a720547`, = = =
 measured), = = = so the same fix now exists under THREE different
 patch-ids: = = = `878a3097f22e` (= = = the worktree sha), = = =
 `010fd00dc4eb` (= = = the branch's published sha), = = = and `286b2a720547`
-(= = = `main`'s published sha).  = = = ⇒ ⇒ ⇒ ⇒ ⇒ And it belongs to another
-session's lane, = = = so this session did not touch it. = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND NO PUBLISHED VARIANT CARRIES A VERDICT AT ALL:
+(= = = `main`'s published sha).  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ MEASURED CONSEQUENCE: = = =
+the installed hook runs the tree's own `Tools/wenshu-devtool/commit_filter.py`
+(= = = `.git/hooks/pre-push` execs it by path), = = = and that file's
+pre-push mode now scans the ADDED lines only (= = = its own docstring says
+"ONLY THE ADDED LINES ARE SCANNED"), = = = so the guard no longer refuses a
+push because of a sibling's CONTEXT.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And it belongs to
+another session's lane, = = = so this session did not touch it. = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND NO PUBLISHED VARIANT CARRIES A VERDICT AT ALL:
 = = = the lane's newest verdict (`t_0f70a702`, = = = `changes_requested`)
 is attached to the patch-id `878a3097f22e`, = = = so by this document's own
 rule (= = = a verdict is matched by PATCH-ID) = = = it does NOT carry to
@@ -285,13 +290,16 @@ EITHER published sha.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ That is a DIFFERENT statement f
 carrier `043372cd4` IS on both remotes' `main` (= = = section 6), = = = and
 this document's own commits ride on the review cards' OWN branch ref on BOTH
 remotes (= = = the house's card mechanism, = = = and each server's own hook
-passed that push): = = = the tree's own guard refuses a push of `main` (= = =
-it holds a sibling's commit whose diff's CONTEXT carries a pre-existing
-token), = = = and a guard that can be walked past is not a guard.  = = = ⇒ ⇒ ⇒
-⇒ ⇒ Whether any remote's `main` ALSO carries these commits is a MOVING
-fact (= = = §6 measures it as a named snapshot), = = = and it is not what the
-scope's server-side proof rests on: = = = that proof is the carrier's own
-sha, = = = read back from the servers.
+passed that push): = = = the tree's own guard REFUSED a push of `main` while
+it held a sibling's commit whose diff's CONTEXT carried a pre-existing token
+(= = = the measured fact above), = = = and a guard that can be walked past is
+not a guard.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ That refusal has since LAPSED (= = = the
+owner's fix landed, = = = §5.4's `79e993859`), = = = so the commits ride the
+branch ref by the house's card mechanism, = = = not because the guard forbids
+`main` any more.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ Whether any remote's `main` ALSO
+carries these commits is a MOVING fact (= = = §6 measures it as a named
+snapshot), = = = and it is not what the scope's server-side proof rests on:
+= = = that proof is the carrier's own sha, = = = read back from the servers.
 
 ## 6. The commits this session pushed that are NOT this session's
 
