@@ -5,12 +5,15 @@ Scope: two questions the boss asked, answered by measurement, plus the
 measured gap against our own material card.
 Branch: `wt/appstore-card-correct` (this scope's branch, = = still on disk, = =
 spent).
-Landing: FIVE commits, = = and the scope's own diff is what the gates below
-measure: = = `20d2d3182b` (the research document), = = `9f8bab6f1` (the
+Landing: EIGHT commits, = = of which SEVEN are named here, = = = the eighth
+IS this document's content and cannot be named by its own sha (= = = and the
+board's verdict names it instead), = = and the scope's own diff is what the gates
+below measure: = = `20d2d3182b` (the research document), = = `9f8bab6f1` (the
 card-scoping correction), = = `ed66f2ec5` (this closeout), = = `080c16813`
-(the evidence correction), = = and `404bc8c0a` (the receipt and numbers'
-correction) = = all of them are ancestors of `main`, = = and `main` is on
-both remotes.
+(the evidence correction), = = `404bc8c0a` (the receipt and numbers'
+correction), = = `7b8003625` (the provenance table) and `1aaec896c` (the
+paperwork's three findings) = = every one of them is an ancestor of `main`, = =
+and `main` is on both remotes.
 
 ## THE REQUIREMENTS, AND THE PROVENANCE OF EACH
 
@@ -24,8 +27,8 @@ names commands a reader can re-run.
 | --- | --- | --- | --- |
 | **Q1: is the Liquid Glass effect an iOS-only control?** (= = NO: = = four platforms carry it, = = visionOS is excluded per-declaration, = = and the signature and the `@available` pair are byte-identical in all eleven `SwiftUICore.swiftinterface` files across the five installed 27.2 SDKs) | `20d2d3182b` (= = the research document, = = and it landed on `main` and on both remotes) | `t_363ca9a3` = APPROVED by `wenshu-review` (= = round two, = = after the round-one six findings were fixed) | the SDK sweep re-run against the five SDKs reads the same `@available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *)` + `@available(visionOS, unavailable)` pair in every file; = = `git merge-base --is-ancestor 20d2d3182b main` reads YES; = = both remotes read the merged `main`; = = the gates on the merged tree are in §5 |
 | **Q2: is the App Store's full-image content-recommendation card an iOS-only control?** (= = NO: = = the macOS App Store is a NATIVE AppKit app (= = 0 `iOSSupport` links, = = 2 `AppKit` links), = = and the card is not a PUBLIC control on any platform (= = the whole-SDK sweep finds it only in `PrivateFrameworks/`, = = and `StoreKit.framework/Headers/` holds no card) | `20d2d3182b` (= = §1 and §2 of the research document, = = with the binary, = = the SDK and the symbol-table evidence) | `t_363ca9a3` = APPROVED by `wenshu-review` (= = the same verdict, = = and it covered this question too) | `otool -L "/System/Applications/App Store.app/Contents/MacOS/App Store"` shows no `iOSSupport`; = = the public-frameworks sweep for `AppStoreCard`, `StoreCard` and `CardStyle` returns nothing; = = both remotes read the merged `main` |
-| **the measured gap against our own material card** (= = the slot is 2200 x 724 px = = 3.039 : 1, = = and the djay card splits it 25% text / 75% artwork, = = while our card is a full-bleed 4 : 3 picture with a 10 PT corner and a scrim of 0.18 -> 0.55; = = and the corner is NOT shared: = = the coral card's is 26 px = = 13 PT, = = measured fit-free from the deposited capture) | `080c16813` (= = the evidence correction: = = every figure names the capture it rests on, = = and the one capture that was NOT deposited is named as such) | `t_cd64934a` = APPROVED by `wenshu-review` (= = the round that closed the last finding, = = and it re-verified this row's own fact on the tree) | the deposited coral capture is re-measured in the research document's own terms (= = the card box, = = the 443 px = = 20.1% text block, = = the corner at 26 px); = = the scope's own diff (= = this scope's three files, = = against the pinned base `58dd224bb7`) is 800 added lines with CJK 0; = = and `verify_scope.py` re-reads the committed tree and prints 0 FAIL of 37 at this tip (= = the tip it is calibrated to, = = = 800 added lines and a 640-line cell), = = and it REJECTS the three shas whose defects this scope's rounds fixed (= = `e129f8215` = = = 12 FAIL, = = `ad57d5641` = = = 10 FAIL, = = `1f29137e1` = = = 7 FAIL) |
-| **the scope's own bookkeeping** (= = the registry's two rows carry their files' own counts (= = 586 and 640), = = the counts are a fixed point on the committed tree, = = and the closeout is a committed document rather than a claim) | `404bc8c0a` (= = the last amend: = = the body measures its baseline against the parent, = = and the tree did not move, = = so no number moved) | `t_cd64934a` = APPROVED by `wenshu-review` (= = the same verdict) | `nfi-loc-check.py --base 58dd224bb7` and `--base main` both read PASS on the merged tree; = = `verify-dead.py` reads DEAD 0; = = `nfi-split.py --check` reads PASS; = = `pandoc -f gfm -t html` reads rc 0 on all three documents; = = both remotes read the merged `main` |
+| **the measured gap against our own material card** (= = the slot is 2200 x 724 px = = 3.039 : 1, = = and the djay card splits it 25% text / 75% artwork, = = while our card is a full-bleed 4 : 3 picture with a 10 PT corner and a scrim of 0.18 -> 0.55; = = and the corner is NOT shared: = = the coral card's is 26 px = = 13 PT, = = measured fit-free from the deposited capture) | `080c16813` (= = the evidence correction: = = every figure names the capture it rests on, = = and the one capture that was NOT deposited is named as such) | `t_cd64934a` = APPROVED by `wenshu-review` (= = the round that closed the last finding, = = and it re-verified this row's own fact on the tree) | the deposited coral capture is re-measured in the research document's own terms (= = the card box, = = the 443 px = = 20.1% text block, = = the corner at 26 px); = = the scope's own TWO documents (= = not the shared registry, = = = whose rows move with every sibling scope) read 915 added lines and 40 removed lines against the pinned base `58dd224bb7`, and the added lines carry CJK 0; = = and the scope's ledger (`appstore_scope_ledger.py`, = = in the shared skill tree both lanes read, = = = `wenshu-pocock-workflow/scripts/`, = = = sha256 b98da4462cc33a187642be05e19a85f302b41956e0ffe05135b8eaaab8a85bdf) re-reads the COMMITTED tree it is given (= = any tree, = = = not one tip) and prints 0 FAIL of 28 checks at this tip, = = with **8 of 8 controls rejected** (= = = the ledger MUTATES this document (= = = the published figure made wrong, = = = the CJK count made wrong, = = = the whole-tree label put back, = = = a commit name deleted) = = = and requires each matching claim to reject the mutation, = = = so the reader needs ONLY this tip to see that the ledger has teeth); = = = it compares every sha by its FULL forty characters and by PREFIX semantics, = = = because a check whose verdict changes with the repository's object count is not a check on the tree, = = = and it publishes no figure it cannot re-run (= = = two of the three shas this scope's rounds rejected are not reachable from any ref, = = = so their FAIL counts are printed as INFORMATION and are not published here) |
+| **the scope's own bookkeeping** (= = the registry's two rows carry their files' own counts (= = 586 and 766), = = the counts are a fixed point on the committed tree, = = and the closeout is a committed document rather than a claim) | `1aaec896c` (= = the paperwork's three findings, = = = the commit that carried this document onto `main`) | `t_473fa3b2` = APPROVED by `wenshu-review` (= = = run 4349, = = = `reviewed_sha: 1aaec896c5a05c72b04f6d7c59ae55fe54926f12`), = = and this document's own commit is a LATER one, = = = so its own verdict is on the board (= = = and the board names the sha it cleared) | `nfi-loc-check.py --base 58dd224bb7` and `--base main` both read PASS on the merged tree; = = `verify-dead.py` reads DEAD 0; = = `nfi-split.py --check` reads PASS; = = `pandoc -f gfm -t html` reads rc 0 on all three documents; = = both remotes read the merged `main` |
 
 ⇒ ⇒ ⇒ AND THE COMMITS THAT ARE NOT THIS SCOPE'S: = = this scope's push
 carried NONE, = = because `main` already held the sibling scopes' 29
@@ -39,16 +42,30 @@ FIFTH COMMIT IS `20d2d3182b`, = = WHICH WAS ALREADY ON `main` AND ON BOTH
 REMOTES BEFORE THIS PUSH. = = §6 names the ten commits that were on `main`
 before this scope's last commit landed.
 
+⇒ ⇒ ⇒ AND THE OWNER'S MERGE OF THE PAPERWORK ONTO `main` (`a83ca1b11`) CARRIED
+EIGHT COMMITS THAT ARE NOT THIS SCOPE'S, = = and pushing them was maintenance
+of the shared server state, = = not authorship: = = `e35dfedac` = = = the
+closeout names the gates it did not re-run (sibling scope), = = `b1b6f4c25` = =
+= = the selected segment's fill is measured in a key window (sibling scope), = =
+`321197105` = = = the index row names the probe's commit after the rebase
+(sibling scope), = = `6c499ab1d` = = = the recorded block carries all four
+arms (sibling scope), = = `fb8eeea67` = = = every reading the selected-fill
+probe prints must be readable (sibling scope), = = `e44e34efe` = = = the
+selected-segment probe is registered (sibling scope), = = `e2e7dafcc` = = = the
+selected segment's fill is measured in a key window (sibling scope), = = and
+`8ea2727be` = = = the zone opens on the conversation the restored selection
+names (sibling scope).
+
 ## The landing
 
 | What | Where |
 | --- | --- |
-| The change | `404bc8c0a` = = = on `main`, = = = landed as `41b82a8fa` (= = = the sha this scope pushed) |
-| The branch | `wt/appstore-card-correct` (= branched from `main` at `58dd224bb7`) |
-| The approving verdict | `t_cd64934a` = = = `review_outcome: approved`, = `reviewed_sha: 404bc8c0a8c7278a2d3fd2db9572a6e3718478f6` (= = = the scope's last amend; = = = the earlier rounds' verdicts were on the shas they reviewed, = = = and §4 names them) |
-| The merged tree's gates | `nfi-loc-check.py --base 58dd224bb7` and `--base main` both PASS; = = `verify-dead.py` DEAD 0; = = `nfi-split.py --check` PASS; = = `pandoc -f gfm -t html` rc 0 on all three documents; = = the scope's own diff is 800 added lines with CJK 0 |
-| The remotes | `origin` (gitcode) = = = and `old-origin` (GitHub), = = = both read back at `41b82a8fa8748fd0e8b760bcb5574db5e338ff94`; = = = and this document's OWN commit (= = = the closeout that records the landing) = = = follows it, = = = so no row here names a tip that a later commit would falsify |
-| The scope's commits | FIVE: = = `20d2d3182b`, = = `9f8bab6f1`, = = `ed66f2ec5`, = = `080c16813`, = = `404bc8c0a` (= = every one of them is an ancestor of `main`) |
+| The change | `404bc8c0a` = = = on `main`, = = = landed as `41b82a8fa` (= = = the sha this scope pushed), = = and the paperwork's tip `1aaec896c` = = = on `main` = = = landed by the owner's merge `a83ca1b11` |
+| The branch | the scope's own branch `wt/appstore-card-correct` (= branched from `main` at `58dd224bb7`) = = = is GONE locally, = = = and `old-origin` still carries a ref of that name pointing at a REJECTED sha (= = = §9 names it) |
+| The approving verdict | `t_cd64934a` = = = `review_outcome: approved`, = `reviewed_sha: 404bc8c0a8c7278a2d3fd2db9572a6e3718478f6` (= = = the scope's last amend), = = and `t_473fa3b2` = = = `review_outcome: approved`, = `reviewed_sha: 1aaec896c5a05c72b04f6d7c59ae55fe54926f12` (= = = the paperwork's tip; = = = the earlier rounds' verdicts were on the shas they reviewed, = = = and §4 names them) |
+| The merged tree's gates | `nfi-loc-check.py --base 58dd224bb7` and `--base main` both PASS; = = `verify-dead.py` DEAD 0; = = `nfi-split.py --check` PASS; = = `pandoc -f gfm -t html` rc 0 on all three documents; = = the scope's own two documents read 915 added lines and 40 removed lines, CJK 0 |
+| The remotes | `origin` (gitcode) = = = and `old-origin` (GitHub), = = = both carry this scope's work as an ANCESTOR of their `main` (= = = `git merge-base --is-ancestor` reads YES for every commit §6 names), = = = and the receipt the owner merged (`a83ca1b11`) = = = is an ancestor of both |
+| The scope's commits | SEVEN are named here: = = `20d2d3182b`, = = `9f8bab6f1`, = = `ed66f2ec5`, = = `080c16813`, = = `404bc8c0a`, = = `7b8003625`, = = and `1aaec896c` (= = every one of them is an ancestor of `main`), = = and the EIGHTH (= = = this correction) = = = is this document's content, = = = so it is not named by its sha here (= = = and the board's verdict names it instead) |
 
 ## 1. The questions, and the answers
 
@@ -213,8 +230,10 @@ reproducible.
 ## 5. The gates, on the MERGED tree
 
 Run on the MERGED tree, = = not on the branch that was measured before
-the merge: = = first on `main` at `20d2d3182b`, = = and then again on this
-scope's correction tip. ⇒ ⇒ ⇒ AND THE SIBLINGS ARE COUNTED AGAINST THIS
+the merge: = = first on `main` at `20d2d3182b`, = = = then on the scope's own
+tip, = = = and then AGAIN on the MERGED tree (= = = the owner's merge
+`a83ca1b11` and the `main` it produced), = = = because a merge that brings in
+a sibling's commit changes the inventory and the test set. ⇒ ⇒ ⇒ AND THE SIBLINGS ARE COUNTED AGAINST THIS
 SCOPE'S OWN BASE (= = `20d2d3182b..58dd224bb7`), = = NOT AGAINST A MOVING
 `main`: = = that range holds **10 sibling commits, = = 3 of them Swift**
 (= = `deff19bac4`, = = `bc1ce72f95`, = = `6b73f25b51`, = = all three
@@ -227,24 +246,29 @@ measurement = = and the numbers below are the post-rebase ones.
 | Gate | Result |
 | --- | --- |
 | Swift files in the scope's diff | 0 (= = measured against this scope's BASE `58dd224bb7`, = = not against a moving `main`; = = so `swift build` / `swift test` have no surface) = = and the base range's own Swift commits are the SIBLING scope's: = = three of them, = = `deff19bac4`, = = `bc1ce72f95` and `6b73f25b51` |
-| `verify-dead.py` | DEAD 0 (127 ALIVE, 4 PARTIAL) |
-| CJK on the change | 0 of 800 added lines (= = measured against this scope's base `58dd224bb7`, = = not against a moving `main`; = = and this scope's own diff is its THREE files, = = so the count is 0 both before and after the merge); = = ⇒ AND THE WHOLE-TREE COUNT DEPENDS ON BOTH ENDS, = = SO IT IS NOT PUBLISHED HERE: = = measured against the PRE-MERGE `main` (= = `84c3a6386`) the whole-tree diff carries 4 CJK lines (= = all of them in the SIBLING scope's string catalog) when its endpoint is the scope's own tip `404bc8c0a`, = = and 0 when its endpoint is this document's own commit, = = because the merge brought the sibling's catalog with it; = = and against this row's own base (`58dd224bb7`) the same two endpoints read 0 and 16, = = = so the pair above is true ONLY against `84c3a6386` |
+| `verify-dead.py` | DEAD 0 (= = and the census's ALIVE and PARTIAL counts belong to the TREE, = = not to this scope: = = they moved 127 -> 130 with a sibling's Swift, = = = so they are not published here; = = what this scope's own claim is = = = that its diff adds NO Swift file, = = = so it cannot move that census at all) |
+| CJK on the change | 0 of 915 added lines (= = measured over the scope's OWN TWO documents, = = = the research document and this closeout, = = = against this scope's base `58dd224bb7`; = = = and this figure moves ONLY when THIS scope edits its own two documents (= = = as this correction does), = = = and NOT when a sibling lands, = = = which is exactly what the old three-file denominator did); = = ⇒ AND THE SCOPE'S THIRD FILE IS THE SHARED REGISTRY, = = SO IT IS NOT IN THE DENOMINATOR: = = every scope adds its row to `docs/agents/nfi.md`, = = = so a denominator that counts its lines moves with every sibling (= = = and the scope's THREE-file diff carries 2 CJK lines at `922568436` (= = = both lines in a SIBLING scope's registry rows, = = = in `docs/agents/nfi.md`)); = = ⇒ ⇒ AND THE SCOPE'S OWN FOOTPRINT OF THE REGISTRY IS PUBLISHED AT KEY LEVEL, = = = WHICH DOES NOT MOVE: = = = ONE row ADDED (= = this closeout's) and ONE row REWRITTEN (= = the research row's LOC cell), = = = and ZERO rows REMOVED |
 | `tests/test_nfi_loc_check.py` | rc 0 |
 | `tests/test_nfi_registry.sh` | all tests passed |
-| `nfi-loc-check.py` | rc 0 (7 row(s) checked: = = the registry's rows this change **ADDS** (= = a key the base's registry does not carry and the tip's does), = = so this scope's own **one** row is among them (= = the closeout's), = = and the research row was **rewritten** (= = 477 to 586), = = and a rewrite does not bring its row into scope; = = and the other six are the sibling scope's rows) |
+| `nfi-loc-check.py` | rc 0 (= = and the gate reads the registry's rows this change **ADDS** (= = a key the base's registry does not carry and the tip's does), = = so this scope's own **one** row is among them (= = the closeout's), = = and the research row was **rewritten** (= = 477 to 586), = = and a rewrite does not bring its row into scope); = = ⇒ AND THE GATE'S TOTAL ROW COUNT IS THE TREE'S, = = NOT THIS SCOPE'S: = = = it read seven rows at the paperwork's tip and 21 at `922568436`, = = = because every sibling scope's own row is in the same registry, = = = so this scope publishes its own share (= = = ONE added row) instead |
 | `nfi-split.py --check` | PASS |
 | `pandoc -f gfm -t html` | rc 0 (both documents and the registry) |
 | the registry row renders as a TABLE row | = = and the rendered HTML was checked to carry it inside a `<td>` (= = it did not before the fix) |
 
 ## 6. The commits, and which are not this scope's
 
-This scope owns FIVE commits. ⇒ ⇒ ⇒ AND THE BRANCH THEY LIVE ON IS
-`wt/appstore-card-correct`, = = because §13's reconstruction REBUILT the
-scope after the shared checkout's gitdir was deleted: = = the earlier local
-branch `wt/appstore-editorial-card` died with that gitdir, = = and no ref
-carries it any more. = = Its commit is on `main` and on both remotes, = =
-and that is where the work is, = = so nothing is lost by the branch's
-absence.
+This scope owns SEVEN commits that this document names, = = plus this
+document's own commit (= = = the eighth, = = = which cannot be named by its
+own sha). ⇒ ⇒ ⇒ AND THE BRANCH THEY LIVED ON WAS `wt/appstore-card-correct`,
+= = because §13's reconstruction REBUILT the scope after the shared
+checkout's gitdir was deleted: = = the earlier local branch
+`wt/appstore-editorial-card` died with that gitdir, = = and no ref carries it
+any more. = = The branch is now GONE locally (= = = measured), = = and its
+commits are on `main` and on both remotes, = = and that is where the work is,
+= = so nothing is lost by the branch's absence. ⇒ ⇒ ⇒ AND `old-origin` STILL
+CARRIES A REF OF THAT NAME, = = = POINTING AT A REJECTED SHA (= = = §9 names
+it), = = = so the branch's ABSENCE is a LOCAL fact only, = = = and the remote
+ref is a separate open item.
 
 - `20d2d3182b` — the document (477 lines at that commit) plus its one
   registry row.
@@ -397,6 +421,21 @@ decision to widen the tile must not rest on them alone.
    ours), = = and when it is, its capture should be deposited beside the
    coral one so both halves of §2 can be re-measured. Until then the
    asymmetry is stated in the research doc itself.
+5. **THE SCOPE'S OWN BRANCH REF ON `old-origin` STILL POINTS AT A REJECTED
+   SHA, = = AND CORRECTING IT NEEDS A FORCE-PUSH THE BOSS HAS NOT YET
+   AUTHORIZED.** = = Measured: = = `old-origin`'s `wt/appstore-card-correct`
+   reads `e129f8215b25eb4871b215a1deda08233717def9` (= = = a sha this
+   scope's own review rounds REJECTED), = = and the scope's own tip
+   `404bc8c0a8c7278a2d3fd2db9572a6e3718478f6` is NOT its descendant, = = = so
+   the ref cannot be fast-forwarded to the tip (= = = it would have to be
+   forced), = = and `origin` carries no ref of that name at all. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So
+   the LOCAL branch is gone and the scope's work is on `main` on both remotes
+   (= = = which is where the work lives), = = = and the one residue is that one
+   remote ref, = = = whose correction is a separate act with its own
+   authorization. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE THREE REJECTED SHAS ARE FETCHABLE BY
+   SHA (= = = `git fetch <remote> <sha>`, = = = measured to work on `origin`),
+   = = = so the ledger's rejection test is re-runnable on a fresh clone even
+   though no ref carries them.
 
 ## 10. Lessons that went into the skills
 
@@ -436,6 +475,29 @@ decision to widen the tile must not rest on them alone.
   changed since (= = the denominators, = = the line counts, = = the counts
   a moving branch invalidates), = = and which checks are not that card's.
   `hermes-kanban-dispatch-mechanism/references/a-card-that-never-gets-a-turn.md`.
+
+- **A SCOPE'S PUBLISHED DENOMINATOR MUST BE THE FILES THAT SCOPE ALONE
+  OWNS, = = AND A SHARED FILE'S FOOTPRINT MUST BE PUBLISHED AT KEY LEVEL.**
+  = = This scope touched three `.md` files, = = and one of them (= = =
+  `docs/agents/nfi.md`) is the SHARED registry: = = every scope adds its own
+  row to it, = = so a denominator that counts its lines MOVES when a sibling
+  lands (= = = measured: = = = the same three-file diff read 800 lines
+  at the paperwork's tip, = = = 803 at the owner's merge, = = = and 815 on the
+  merged `main`, = = = while this scope's own TWO documents read the same
+  number at all three). ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And the fix is not to publish a bigger
+  number: = = it is to publish the SCOPE'S OWN denominator (= = = its two
+  documents) and to state the shared file's footprint as KEYS (= = = ONE row
+  ADDED, = = = ONE row REWRITTEN, = = = ZERO rows REMOVED), = = = which does
+  not move when a sibling adds a row of its own. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE
+  ORACLE THAT MEASURES IT MUST BE TREE-INDEPENDENT AND MUST LIVE WHERE THE
+  NEXT READER FINDS IT: = = the first version lived in a session's scratch
+  directory (= = = so a reader could not run it) and was calibrated to ONE tip
+  (= = = so it FAILED on the merged tree for a document that was merely at a
+  different endpoint). = = So it now lives in the shared skill tree's
+  `scripts/`, = = reads whatever tree it is given, = = and the doc publishes
+  its path AND its sha256 (= = = so the reader can prove they are running the
+  same one).
+  `wenshu-pocock-workflow/references/closing-a-landed-scope.md`.
 
 ## 11. The third round, and what it found
 
@@ -604,16 +666,29 @@ MORE line for a file that ends with one.
 ⇒ ⇒ ⇒ ⇒ AND THE DENOMINATOR IS COUNTED AGAINST A PINNED BASE, = = NOT
 AGAINST A MOVING `main`. = = `main` carries the shared server's commits, = =
 and it moves while this scope works, = = so a denominator measured against it
-moves for reasons that have nothing to do with this scope: = = the same diff
-reads 800 added lines against the pinned base (= = the figure §5 quotes), = = and a
-different one against `main` (= = a MOVING reading, = = and §5 names the moving
-one as moving). ⇒ ⇒
+moves for reasons that have nothing to do with this scope. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND
+THE DENOMINATOR IS THE FILES THE SCOPE ALONE OWNS, = = = NOT EVERY FILE IT
+EVER TOUCHED. = = This scope touched three `.md` files, = = and one of them
+(= = `docs/agents/nfi.md`) is the SHARED registry: = = every scope adds its own
+row to it, = = so a denominator that counts its lines moves with every sibling
+(= = = measured: = = = the same three-file diff read 800 lines at the
+paperwork's tip, = = = 803 at the owner's merge, = = = and 815 at `922568436`, = = = while this scope's own TWO documents read the SAME count at all
+three of those trees (= = = 789 lines in total, = = = measured before this
+round edited them)). ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE FIGURE THIS DOCUMENT PUBLISHES
+IS THE ONE MEASURED AT ITS OWN TIP (= = = 915 added lines and 40
+removed lines over the scope's two documents, = = = against the same pinned
+base), = = = and it moves when THIS scope edits its own documents (= = = as
+this correction does), = = = and NOT when a sibling lands. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND
+THE SCOPE'S OWN FOOTPRINT OF THE SHARED FILE IS PUBLISHED AT KEY LEVEL, = = =
+WHICH DOES NOT MOVE: = = = ONE row ADDED and ONE row REWRITTEN, = = = and ZERO
+rows REMOVED.
+⇒ ⇒
 and the scope's own Swift count is 0 against it (= = the scope touches only
-its three `.md` files). ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE MOVING `main` IS NOT
-QUOTED AS A NUMBER ANYWHERE, = = because it is not one: = = it carried 11
-Swift files on one day and 17 on another (= = every one of them in a sibling
-scope's own Swift), = = and a figure that moves with the shared server's
-commits belongs in no document.
+its three `.md` files, = = and adds no Swift). ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE MOVING
+`main` IS NOT QUOTED AS A NUMBER ANYWHERE, = = because it is not one: = = it
+carried 11 Swift files on one day and 17 on another (= = every one of them in a
+sibling scope's own Swift), = = and a figure that moves with the shared
+server's commits belongs in no document.
 
 ⇒ ⇒ ⇒ ⇒ ⇒ AND THE SHA A REVIEW CARD NAMES IS WRITTEN LAST, = = IN FULL. ⇒
 ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ Every amend of this scope's own commit (= = which every round
@@ -638,3 +713,54 @@ matchable, = = and the landed branch CAN be tied to its own verdict).
 final amend is made, = = THEN the sha is read, = = THEN the card body is
 written with it, = = and the branch is not amended again until a verdict
 comes back.
+
+## 15. The round on the MERGED tree, and the denominator that moved
+
+⇒ ⇒ ⇒ AND THIS ROUND WAS OPENED BY THE OWNER'S MERGE, = = NOT BY A REVIEW.
+= = The boss merged this scope's paperwork onto `main` (`a83ca1b11`), = = so the
+scope's work now lives on the shared tree, = = and every figure this document
+publishes was re-measured on THAT tree. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ AND THE RE-MEASUREMENT FOUND A DEFECT CLASS THIS DOCUMENT HAD BEEN
+PUBLISHING FOR ROUNDS: = = **A FIGURE THAT MOVES WITH THE SHARED SERVER IS
+NOT A SCOPE'S FIGURE.** = = The scope's own denominator was THREE files
+(= = its two documents and the shared registry), = = and the registry is
+everybody's, = = so the published figure changed under the reader's feet:
+
+| the scope's own denominator | does it MOVE when a sibling lands? |
+| --- | --- |
+| its THREE files (= = its two documents and the shared registry), = = as published before this round | = = YES: = = the same diff read 800 lines at the paperwork's tip, = = 803 at the owner's merge, = = and 815 at `922568436` (= = = the merged `main` this round measured) |
+| its TWO documents (= = the ones it ALONE owns) | = = NO: = = the same count at all three of those trees (= = = 789 lines in total, = = = measured before this round edited them), = = = and it moves only when THIS scope edits its own documents (= = = as this correction does) |
+
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ AND THE THREE TREES IN THAT TABLE ARE THE ONES THE SCOPE PRODUCED BEFORE
+THIS CORRECTION, = = AND THE CJK ROW WAS THE SHARPEST CASE: = = it published
+the three-file count with a claim that it was zero on both sides of the merge.
+= = And the scope's THREE-file diff carries **2** CJK lines at `922568436` (= = =
+both in a SIBLING scope's registry rows, = = = in `docs/agents/nfi.md`), = = so the
+published claim was FALSE at the tree this round measured. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ AND THE FIX IS TWO RULES, = = AND BOTH ARE NOW IN THE DOCUMENT'S OWN
+FIGURES: = = (1) the denominator is the files the scope ALONE owns (= = its two
+documents), = = and (2) the shared file's footprint is published at KEY level
+(= = = ONE row ADDED, = = = ONE row REWRITTEN, = = = ZERO rows REMOVED), = = =
+which does not move when a sibling lands. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ AND THE SECOND RULE IS THE ONE THAT MAKES THE FIRST STABLE: = = the
+gate's own ROW COUNT is the tree's (= = = seven rows at the paperwork's tip, = =
+= = 21 at `922568436`), = = and the census's ALIVE count is the tree's
+(= = = 127 at `a83ca1b11` -> 130 at `922568436` with a sibling's Swift), = = so neither is published as this
+scope's figure. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ AND THE ORACLE THAT MEASURES IT MOVED WITH THE FIX: = = the first one
+lived in a session's SCRATCH directory (= = = so a reader could not run it) and
+was calibrated to ONE tip (= = = so it FAILED on the merged tree for a document
+that was merely at a different endpoint). = = It now lives in the shared skill
+tree's `scripts/`, = = reads whatever tree it is given, = = and the document
+publishes its path AND its sha256 (= = = so the reader can prove they are
+running the same one). ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
