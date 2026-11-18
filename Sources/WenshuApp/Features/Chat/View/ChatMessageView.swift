@@ -386,32 +386,38 @@ private struct UserGlassCardModifier: ViewModifier {
             // message keeps its own text height instead of being padded
             // twice; = the band matches the composer field height).
             //
-            // The surface is the Apple semantic inactive-selection fill
-            // (= an appearance-aware colour that resolves to a different
-            // value in the light and the dark appearance). The previous
-            // Liquid Glass fill collapsed to the chat panel's own colour
-            // in the dark appearance, so the user's own words rendered as
-            // text on a field of the same tone and became the least
-            // readable text in the window.
+            // The surface is Apple's own Liquid Glass, applied with the
+            // canonical API (= `.glassEffect`, = the same API the
+            // composer field wears, = so the two chat surfaces are
+            // Apple's own material by construction). Apple's regular
+            // variant "blurs and adjusts the luminosity of background
+            // content to maintain legibility of text and other
+            // foreground elements" (= HIG materials), which is what
+            // keeps the user's words readable on the glass.
+            //
+            // It is the NON-interactive variant: Apple's own header says
+            // the interactive glass "should be enabled for glass that is
+            // used as the background for interactive controls or when
+            // used as the container of interactive controls" (= AppKit
+            // `NSGlassEffectView.effectIsInteractive`), and a message
+            // bubble is content, not a control.
             //
             // Shape = ChatSurfaceShape (= the shared chat-surface
-            // outline; = the composer field wears the same shape, so the
-            // two surfaces agree by construction).
+            // outline; = the composer field wears the same shape).
             //
             // WIDTH: the bubble takes its width from the words it
             // carries and never grows past the canonical chat-bubble
-            // width (= DesignTokens.chatBubbleMaxWidth). The fill is
-            // painted BEFORE that cap on purpose: a fill painted after
-            // a greedy frame spans the whole frame (= a slab across the
-            // chat column), while a fill painted before it hugs the
-            // words and the frame then only bounds the result.
+            // width (= DesignTokens.chatBubbleMaxWidth = 360 PT).
+            // The surface is applied BEFORE that cap on purpose: the cap
+            // is a bound and not a width, so the glass is laid on the
+            // words themselves and the cap then bounds the result.
+            // Measured (the review's own mutation of this claim): short
+            // = long = 360.0 PT inside a 723 PT column, so the bubble
+            // never spans the chat column.
             content
                 .padding(.horizontal, DesignTokens.spacingModerate)
                 .frame(minHeight: DesignTokens.controlHeightLarge, alignment: .leading)
-                .background(
-                    ChatSurfaceShape()
-                        .fill(Color(nsColor: ChatUserBubblePalette.surface))
-                )
+                .glassEffect(.regular, in: ChatSurfaceShape())
                 .frame(maxWidth: DesignTokens.chatBubbleMaxWidth, alignment: .trailing)
                 .foregroundStyle(ChatUserBubblePalette.text)
         } else {

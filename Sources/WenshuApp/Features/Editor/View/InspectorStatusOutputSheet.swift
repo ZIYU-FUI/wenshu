@@ -54,7 +54,7 @@ struct InspectorStatusOutputSheet: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 ChatSurfaceShape()
-                    .fill(Color(nsColor: ChatUserBubblePalette.surface))
+                    .fill(Color(nsColor: ChatUserBubblePalette.inspectorOutputSurface))
             )
             .foregroundStyle(ChatUserBubblePalette.text)
             .textSelection(.enabled)

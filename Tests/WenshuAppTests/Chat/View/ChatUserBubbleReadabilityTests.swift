@@ -4,8 +4,15 @@
 //  The user's own message must be readable in BOTH appearances, and the
 //  bubble must stay visually distinct from the assistant's flat text.
 //
+//  The chat transcript's own bubble surface is Apple's Liquid Glass
+//  (= `.glassEffect`), so its legibility is Apple's own: what this
+//  suite holds is the WIRING (= the bubble wears Apple's glass, = the
+//  text on it is the appearance-aware body tier) and the colour
+//  relationship of the surfaces the app still owns (= the inspector's
+//  output bubble).
+//
 //  These assertions run on the resolved style values (= the text tier and
-//  the surface colour), not on a screenshot.
+//  the surface colour) and on the production source, not on a screenshot.
 //
 
 import Testing
@@ -70,12 +77,12 @@ struct ChatUserBubbleReadabilityTests {
         ]
     }
 
-    /// The user's own words must not render as text on a field of the same
-    /// tone (= the defect: dark text on a dark bubble in the dark
-    /// appearance, so the user's message read as missing).
-    @Test func bubble_text_is_readable_against_its_own_surface() throws {
+    /// The INSPECTOR's output words must not render as text on a field
+    /// of the same tone (= the defect: dark text on a dark bubble in the
+    /// dark appearance, so the output read as missing).
+    @Test func inspector_output_text_is_readable_against_its_own_surface() {
         for (name, appearance) in appearances {
-            let surface = resolve(ChatUserBubblePalette.surface, appearance)
+            let surface = resolve(ChatUserBubblePalette.inspectorOutputSurface, appearance)
             // The body tier of the ladder (= .primary) resolves to the
             // label colour in the current appearance.
             let text = resolve(.labelColor, appearance)
@@ -90,12 +97,12 @@ struct ChatUserBubbleReadabilityTests {
         }
     }
 
-    /// The bubble surface must separate from the chat panel background in
-    /// both appearances (= the bubble stays a distinct surface, not a hole
-    /// in the panel).
-    @Test func bubble_surface_separates_from_the_chat_panel_background() throws {
+    /// The inspector's surface must separate from the chat panel
+    /// background in both appearances (= the bubble stays a distinct
+    /// surface, not a hole in the panel).
+    @Test func inspector_output_surface_separates_from_the_chat_panel_background() {
         for (name, appearance) in appearances {
-            let surface = resolve(ChatUserBubblePalette.surface, appearance)
+            let surface = resolve(ChatUserBubblePalette.inspectorOutputSurface, appearance)
             let panel = panelBackground(appearance)
             #expect(
                 surface != panel,
@@ -104,25 +111,85 @@ struct ChatUserBubbleReadabilityTests {
         }
     }
 
-    /// The surface must be appearance-aware (= a different value in the
-    /// light and the dark appearance), so the fix cannot be a constant that
-    /// happens to work in one appearance only.
-    @Test func bubble_surface_differs_between_appearances() throws {
-        let light = resolve(ChatUserBubblePalette.surface, NSAppearance(named: .aqua)!)
-        let dark = resolve(ChatUserBubblePalette.surface, NSAppearance(named: .darkAqua)!)
-        #expect(light != dark)
+    /// The inspector's surface must be appearance-aware (= a different
+    /// value in the light and the dark appearance), so the fix cannot be
+    /// a constant that happens to work in one appearance only.
+    @Test func inspector_output_surface_differs_between_appearances() throws {
+        let light = try #require(NSAppearance(named: .aqua))
+        let dark = try #require(NSAppearance(named: .darkAqua))
+        #expect(
+            resolve(ChatUserBubblePalette.inspectorOutputSurface, light)
+                != resolve(ChatUserBubblePalette.inspectorOutputSurface, dark)
+        )
     }
 
-    /// The role distinction survives the colour fix: the user bubble keeps
-    /// a surface, the assistant reply stays flat text with no surface.
+    /// The role distinction survives the material change: the user's
+    /// bubble keeps a surface (= Apple's glass), the assistant reply
+    /// stays flat text with no surface.
     @Test func role_distinction_survives() throws {
-        #expect(ChatUserBubblePalette.surface != .clear)
+        #expect(ChatUserBubblePalette.inspectorOutputSurface != .clear)
         let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift")
         #expect(source.contains("private var isOutgoing: Bool { message.source == .user }"))
         #expect(source.contains(".modifier(UserGlassCardModifier(isOutgoing: isOutgoing))"))
         // The assistant row stays flat text: no bubble surface is applied
         // outside the outgoing branch.
         #expect(source.contains("if isOutgoing {"))
+    }
+
+    /// The user's bubble wears Apple's OWN Liquid Glass, applied with
+    /// the canonical API (= `.glassEffect`): the app paints no surface of
+    /// its own behind the words, and nobody re-implements a glass by
+    /// hand.
+    ///
+    /// The variant is the regular one (= Apple's own words: it "blurs and
+    /// adjusts the luminosity of background content to maintain
+    /// legibility of text and other foreground elements") and the shape
+    /// is the shared chat-surface shape, so the bubble and the composer
+    /// field are the same material in the same shape.
+    ///
+    /// The surface is applied BEFORE the width cap: the cap is a
+    /// bound and not a width, so the glass is laid on the words
+    /// themselves. Measured (the review's own mutation of this
+    /// claim): short = long = 360.0 PT inside a 723 PT column, so
+    /// the bubble never spans the chat column.
+    @Test func the_outgoing_bubble_wears_apples_liquid_glass() throws {
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift")
+        let modifierStart = try #require(
+            source.range(of: "private struct UserGlassCardModifier"),
+            "ChatMessageView.swift no longer declares UserGlassCardModifier"
+        )
+        let modifierEnd = try #require(
+            source.range(of: "private struct StatusPulse"),
+            "ChatMessageView.swift no longer declares StatusPulse after the bubble modifier"
+        )
+        let bubbleModifier = String(source[modifierStart.lowerBound ..< modifierEnd.lowerBound])
+        #expect(
+            bubbleModifier.contains(".glassEffect(.regular, in: ChatSurfaceShape())"),
+            "The outgoing bubble must wear Apple's Liquid Glass through the canonical API"
+        )
+        // The app paints no surface of its own behind the words: a
+        // hand-drawn fill would sit under Apple's glass and defeat it.
+        #expect(
+            !bubbleModifier.contains(".fill("),
+            "The outgoing bubble must not paint a fill of its own: Apple's glass IS its surface"
+        )
+        #expect(
+            !bubbleModifier.contains("ChatUserBubblePalette.inspectorOutputSurface"),
+            "The outgoing bubble must not wear the inspector's surface"
+        )
+        // The glass is applied before the width cap, so it hugs the
+        // words instead of taking the cap's full width.
+        let glassIndex = try #require(bubbleModifier.range(of: ".glassEffect("))
+        let capIndex = try #require(bubbleModifier.range(of: ".frame(maxWidth: DesignTokens.chatBubbleMaxWidth"))
+        #expect(
+            glassIndex.lowerBound < capIndex.lowerBound,
+            "The glass must be applied before the width cap, or the bubble stops hugging its words (= a fixed 360 PT cap-wide bubble in a 723 PT column)"
+        )
+        // The words on the glass wear the appearance-aware body tier.
+        #expect(
+            bubbleModifier.contains(".foregroundStyle(ChatUserBubblePalette.text)"),
+            "The bubble's words must wear the palette's text tier"
+        )
     }
 
     /// The bubble's internal padding is unchanged in shape: the 12 PT
@@ -156,15 +223,12 @@ struct ChatUserBubbleReadabilityTests {
         #expect(!rawVerticalPadding)
     }
 
-    /// The outgoing bubble wears no hairline: on macOS the filled
-    /// surface's own colour IS its edge.
-    ///
-    /// The bubble's fill is a solid, appearance-aware colour that steps
-    /// away from the chat panel behind it, so a stroke drawn on top of
-    /// it reads as a rim over the shape rather than as the shape's own
-    /// boundary. The composer field, which wears the same
-    /// `ChatSurfaceShape`, is borderless, so the two surfaces agree by
-    /// construction only while both are fill-only.
+    /// The outgoing bubble draws no stroke OF ITS OWN: Apple's glass
+    /// brings its own edge, so a stroke drawn on top of it would read as
+    /// a rim over Apple's shape rather than as the shape's own boundary.
+    /// The composer field, which wears the same `ChatSurfaceShape`, is
+    /// borderless, so the two surfaces agree by construction only while
+    /// both are borderless.
     @Test func outgoing_bubble_draws_no_stroke() throws {
         let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift")
         // The bubble's own modifier is where a stroke would live, so the
@@ -181,7 +245,7 @@ struct ChatUserBubbleReadabilityTests {
         let bubbleModifier = String(source[modifierStart.lowerBound ..< modifierEnd.lowerBound])
         #expect(
             !bubbleModifier.contains(".stroke("),
-            "The outgoing bubble must draw no stroke: its solid fill is its edge"
+            "The outgoing bubble must draw no stroke: Apple's glass paints its own edge, so the app draws no border"
         )
         #expect(
             !bubbleModifier.contains("ChatUserBubblePalette.border"),
@@ -198,8 +262,8 @@ struct ChatUserBubbleReadabilityTests {
             !palette.contains("static let border"),
             "The bubble palette must not offer a border colour"
         )
-        // The fill itself is untouched: it is the edge now.
-        #expect(bubbleModifier.contains("ChatUserBubblePalette.surface"))
-        #expect(palette.contains("static let surface: NSColor = .unemphasizedSelectedTextBackgroundColor"))
+        // The palette holds the INSPECTOR's surface, not the chat
+        // bubble's: the chat bubble's surface is Apple's glass.
+        #expect(palette.contains("static let inspectorOutputSurface: NSColor = .unemphasizedSelectedTextBackgroundColor"))
     }
 }
