@@ -1,6 +1,23 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "editor.tab.context_menu.close": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭"
+          }
+        }
+      }
+    },
     "inspector.format.group.character": {
       "extractionState": "manual",
       "localizations": {
@@ -14,23 +31,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "字符"
-          }
-        }
-      }
-    },
-    "editor.tab.close.tooltip": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Close"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "关闭"
           }
         }
       }

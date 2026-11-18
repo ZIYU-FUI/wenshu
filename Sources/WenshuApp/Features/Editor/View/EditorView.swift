@@ -74,26 +74,16 @@ struct EditorView: View {
         )
     }
 
-    /// The tab strip row's trailing close control (= the row's
-    /// trailing slot).
-    ///
-    /// It closes the ACTIVE document, which is what the control did
-    /// when it sat in the format toolbar's trailing slot. It is ONE
-    /// button beside the strip (= the tab bar's trailing slot is the
-    /// Apple HIG slot for action buttons), never a button per tab (= the
-    /// per-tab shape is a known macOS 27 crash shape, = and the narrow
-    /// window crash triage owns that rule).
-    private var editorTabCloseButton: some View {
-        PaneTrailingIconButton(
-            icon: "xmark.circle",
-            tooltip: String(localized: "editor.tab.close.tooltip")
-        ) {
-            // The active-tab id is a non-optional id of a tab that is
-            // open (= the guard below proves there IS one).
-            guard !appState.openTabs.isEmpty else { return }
-            appState.closeTab(id: appState.activeTabId, bookStore: bookStore)
-        }
-    }
+    // The tab strip row's trailing close control (= the row's trailing
+    // slot) is GONE: = the close control belongs INSIDE the tab
+    // (= Safari's hover X), = and not in the row's trailing slot.
+    // = ⇒ The strip now carries the X itself (= `EditorTabStrip`'s
+    // `onClose` = the Safari-style X, = drawn by the one
+    // segmented control), = and the trailing slot is empty again.
+    //
+    // The trailing slot's Apple HIG rule (= it is the slot for action
+    // buttons beside the tabs) = is not what that button was: = it
+    // closed a DOCUMENT, = which is the tabs' own business.
 
     // MARK: - The tab strip row
 
@@ -190,7 +180,6 @@ struct EditorView: View {
                 } message: {
                     Text(String(localized: "workspace.editor.discard_changes_confirm"))
                 }
-                editorTabCloseButton
             }
 
             // Body: placeholder content. swaps this for swift-markdown rendered

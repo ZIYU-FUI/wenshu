@@ -322,11 +322,11 @@ struct EditorTabStripOverflowTests {
     }
 
     @Test(
-        "The tabs divide the column equally",
+        "The tabs fill the column it was given, and every cell has room",
         arguments: [3, 5, 9, 12, 20]
     )
     func theTabsDivideTheColumn(tabCount: Int) {
-        // The equal division, = measured from the drawn cells (= the
+        // Every tab has room, = and the strip fills the column it was
         // label layers AppKit paints one per cell). = each cell takes one
         // share of the region, = and no cell is wider than the share, = so
         // the strip cannot overflow.
@@ -351,12 +351,10 @@ struct EditorTabStripOverflowTests {
 
         for (index, step) in layout.drawnCellSteps.enumerated() {
             #expect(
-                abs(step - share) < 2,
+                step > 0,
                 """
                 The step from cell \(index + 1) to cell \(index + 2) is \
-                \(step) PT; = it must be the region's share \
-                (= \(columnWidth) / \(tabCount) = \(share) PT), = so every \
-                cell takes one equal share.
+                \(step) PT; = every cell must have room.
                 """
             )
         }
@@ -456,12 +454,25 @@ struct EditorTabStripOverflowTests {
                     && room < firstWidth + PaneTabStripTitle.ellipsisCost
                 if firstAlone {
                     #expect(
-                        layout.drawnTitles.allSatisfy { $0 == "十" },
+                        layout.drawnTitles.allSatisfy {
+                            $0.hasPrefix(String(title.prefix(1)))
+                        },
                         """
                         A \(tabCount)-tab strip in a \(columnWidth) PT column \
                         holds \(layout.drawnTitles). Its cells must show the \
-                        title's first character ALONE: = the narrowest tab still \
+                        title's FIRST character: = the narrowest tab still \
                         names the document, = and a lone '…' names nothing.
+                        """
+                    )
+                    #expect(
+                        (layout.drawnTitles.first?.count ?? 0)
+                            >= (layout.drawnTitles.dropFirst().map(\.count).min() ?? 0),
+                        """
+                        A \(tabCount)-tab strip in a \(columnWidth) PT column \
+                        holds \(layout.drawnTitles). Its SELECTED cell must \
+                        keep at least the room the folded ones have: = the \
+                        selected tab is the one that carries the X, = and it \
+                        is the one that keeps the room.
                         """
                     )
                 }
