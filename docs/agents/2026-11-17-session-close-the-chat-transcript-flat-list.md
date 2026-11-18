@@ -80,13 +80,16 @@ failures each, = = the same three sites):
 | `HermesTodoStoreConcurrencyTests.swift:268` | PASS (= = 0.100 s) | PASS (= = 0.064 s) |
 | `EditorPersistenceTests.swift:253` | PASS | PASS |
 
-= = 26 tests in 4 suites on each tree, = = ONE failure each, = = the same
-one. ⇒ ⇒ ⇒ AND THAT SITE IS NOT THIS SCOPE'S: = = it builds a
-`ChatViewModel` and calls `routeInput()` (= = the model's mention path, = =
-not the transcript's row structure), = = and it fails the same way with the
-chat transcript's OWN code reverted. = = The deterministic core of the
-suite is therefore the same set on both trees (= = the house's own §7.2
-contract, = = `docs/agents/2026-11-14-session-close-the-performance-audit.md`).
+= = 44 tests in 6 suites on each tree, = = THREE failures each, = = the same
+three (= = `ChatViewHistoryShortcutTests.swift:35`, = =
+`EditorTabTitleTests.swift:60` and = =
+`AsyncDelegationRegistryTests.swift:104`). ⇒ ⇒ ⇒ AND NONE OF THOSE THREE
+SITES IS THIS SCOPE'S: = = the branch touches none of the six suites'
+files, = = and the three fail the same way on the base tree (= = the table's
+own second column: = = the same assertion, = = the same line). = = The
+deterministic core of the suite is therefore the same set on both trees (= =
+the house's own §7.2 contract, = =
+`docs/agents/2026-11-14-session-close-the-performance-audit.md`).
 
 **The HIG sentence is about SCROLLING, not about pinning.** The quoted
 sentence rules out an automatic jump the user did not ask for (= = the
