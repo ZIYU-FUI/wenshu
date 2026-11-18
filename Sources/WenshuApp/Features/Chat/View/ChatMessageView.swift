@@ -25,27 +25,6 @@ import SwiftUI
 /// One chat-message view (Apple HIG ground truth)
 struct ChatMessageView: View {
     let message: ChatMessage
-    /// True when this row is the most recent
-    /// user (= .user source) message in the transcript. Hermes
-    /// (`user-message.tsx:30-55` `StickyHumanMessageContainer`)
-    /// pins the latest user bubble to the top of the scroll
-    /// viewport via `position: sticky; top: 0` (= the bubble
-    /// scrolls with the rest until it reaches the viewport top,
-    /// then it pins there). The SwiftUI equivalent is the
-    /// `.sticky(top:)` modifier; we apply it ONLY to the latest
-    /// user message (= the historical user messages scroll
-    /// normally, no overlap stack at the top).
-    ///
-    /// The `top: 80` offset (= the chat input row height) lets the
-    /// sticky bubble park ABOVE the floating input row instead of
-    /// underneath (= the same `sticky-human- top` reservation
-    /// hermes uses in list.tsx for the secondary window titlebar case;
-    /// wenshu uses 80 PT for the floating input instead). z-index
-    /// places the sticky bubble above the transcript content but below
-    /// the titlebar.
-    /// (see OOB.md #2026-09-21) — sticky behavior reverted; = the
-    /// parameter is accepted by the init (= API compatibility) but
-    /// no stored property is kept.
     /// T24-PLAN-APPROVE: callback invoked when the user clicks
     /// Approve & Run on a plan card. The closure is provided by the
     /// parent ChatView (= the closure submits the plan's original
@@ -62,16 +41,9 @@ struct ChatMessageView: View {
 
     init(
         message: ChatMessage,
-        isLatestUser: Bool = false,
         onApprovePlan: ((Plan) -> Void)? = nil
     ) {
         self.message = message
-        // (see OOB.md #2026-09-21) — isLatestUser is accepted for API
-        // compatibility (= the sticky-top attempt was
-        // reverted; = external callers still pass it; = accepting the
-        // value here keeps the public surface stable for the next
-        // ticket that may reintroduce sticky in a different form).
-        _ = isLatestUser
         self.onApprovePlan = onApprovePlan
     }
 
@@ -108,16 +80,6 @@ struct ChatMessageView: View {
         // identical to the MC1 layout; the only structural change in
         // MC2 is the OUTER wrapper that hosts the glass card for
         // outgoing (= user) messages.
-        //
-        // STICKY NOTE: hermes user-message.tsx:46 renders the latest user
-        // bubble sticky at the top of the scroll viewport. wenshu already
-        // has the floating chat input row claiming that scroll-viewport
-        // top zone (= floating-chat-input), so a sticky user bubble
-        // would overlap the input. MC2 deliberately drops the sticky
-        // behaviour. If a future ticket wants to re-introduce it, the
-        // right hook is a `.sticky()` modifier on the userCard wrapper
-        // below plus a `z-index` above the floating input but below the
-        // titlebar.
         messageContents
                     .modifier(UserGlassCardModifier(isOutgoing: isOutgoing))
                     // The row fills the chat column; the outgoing card
@@ -133,77 +95,6 @@ struct ChatMessageView: View {
                     // in UserGlassCardModifier is the SOLE source of
                     // user horizontal padding; = unchanged).
                     .padding(.horizontal, isOutgoing ? 0 : 10)
-                    // 
-                    //
-                    // Apple SwiftUI on macOS 27 does NOT expose CSS `position:
-                    // sticky` (= no `.sticky()` modifier). The closest
-                    // 1:1 implementation uses 3 SwiftUI public primitives:
-                    //
-                    //   1. `.padding(.top, 80)` on the latest user row
-                    //      (= reserves the floating-chat-input zone;
-                    //      = the row sits ABOVE the input instead of
-                    //      underneath).
-                    //   2. `.zIndex(40)` on the latest user row (= mirrors
-                    //      hermes `z-40`; = the row floats above
-                    //      assistant content that scrolls beneath it).
-                    //   3. ChatView's `ScrollViewReader` runs
-                    //      `proxy.scrollTo(latestUserID, anchor: .top)`
-                    //      whenever latestUserID changes (= a new user
-                    //      message arrives; = the scroll viewport pins the
-                    //      latest user row to the top edge; = CSS-like
-                    //      `position: sticky; top: 0` in effect).
-                    //
-                    // The remaining gap from hermes (= Apple API
-                    // limitation, documented per the directive 'Apple API 
-                    // '):
-                    //   -  hermes: `position: sticky; top: 0` is a
-                    //     continuous scroll-tracking behavior (= the row
-                    //     scrolls with the transcript and pins when it
-                    //     reaches the viewport top; = the user can scroll
-                    //     up and back without the sticky row "yanking"
-                    //     them).
-                    //   - wenshu 1:1 here: `scrollTo(anchor: .top)` is a
-                    //     DISCRETE scroll event. When the user scrolls up to
-                    //     read history and then a new message arrives, the
-                    //     scrollTo pins the new latest row at the top (= the
-                    //     user is yanked back). This is jarring but it's the
-                    //     closest the Apple public API gets without an
-                    //     NSScrollView bridge (= 1-2 week ticket; = future).
-                    //
-                    // historical user rows (= non-latest) get neither the
-                                        // 80 PT padding nor the zIndex (= they scroll normally
-                                        // without overlap with the floating input; = matches
-                                        // the MC1 flat-text self-start behavior).
-                                        //
-                                        // -cleanup E3: the latest user message card was padded 80 PT down
-                                        // inside the LazyVStack but did NOT actually stick
-                                        // to the top of the chat viewport (= the row
-                                        // scrolled out of view when the user scrolled back
-                                        // to read history; = the 80 PT padding was an empty
-                                        // visual gap below the floating chat input panel;
-                                        // = wrong). The real sticky-top behavior now lives
-                                        // in ChatView's `.safeAreaInset(edge: .top)` overlay
-                                        // (= the latest user row is mounted as a SwiftUI
-                                        // safeAreaInset overlay that floats above the scroll
-                                        // content; = does not scroll with the user; =
-                                        // matches hermes user-message.tsx:46 `sticky z-40`
-                                        // 1:1). The in-LazyVStack row for the latest user
-                                        // message id is now a 0-height placeholder
-                                        // (= scroll anchor target; = no visual contribution
-                                        // since the overlay renders the same id). The
-                                        // padding + zIndex modifiers below are no-ops for
-                                        // the latest-user case; = kept for backward
-                                        // compatibility with older wenshu chat views that
-                                        // don't have the safeAreaInset overlay (= if some
-                                        // other chat zone still uses ChatMessageView
-                                        // directly without the overlay, the 80 PT padding
-                                        // and zIndex 40 still rescue that older layout
-                                        // from floating-input overlap).
-                                        // legacy: used to apply `.padding(.top, 80) +
-                                        // .zIndex(40)` for the latest user row (= E3
-                                        // sticky-top attempt; = reverted). All user rows
-                                        // render normally inside the LazyVStack now (= no
-                                        // padding-top or zIndex override).
             }
 
     /// The row's content (= source label row + body row + footer +

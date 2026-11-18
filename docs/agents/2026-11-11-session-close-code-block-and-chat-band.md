@@ -134,11 +134,11 @@ app-side gates were MUTATION-PROVEN (= = so they are not vacuous):
 |---|---|---|
 | `CodeBlockFill` (= = the engine's package) | the default paints the highlighter's background (= = the upstream behaviour), `.none` paints none, and the inline code keeps its background | = = |
 | `EditorCodeBlockSurface` | the app's OWN editor configuration paints no slab | re-setting `fill = .highlighter` fails it on 2 expectations |
-| `ChatPinnedHeaderBand` | the pinned user row paints no surface of its own | re-adding `.background(.regularMaterial)` fails it on `banded.count <= 2` |
+| `ChatTranscriptFlatFlowTests` (= = the suite that REPLACED `ChatPinnedHeaderBand` on 2026-11-17) | the transcript paints no surface across the column, and the user's own bubble keeps its own card | re-adding a background to a transcript row fails it on `banded.count <= 2` |
 
 ```bash
 cd /Volumes/ANAN/Engineering/wenshu
-swift test --filter 'EditorCodeBlockSurface|ChatPinnedHeaderBand|ChatUserBubbleReadability'
+swift test --filter 'EditorCodeBlockSurface|ChatTranscriptFlatFlowTests|ChatUserBubbleReadability'
 cd Vendor/MarkdownEngine && swift test --filter 'CodeBlockFill'
 python3 Tools/wenshu-devtool/pre_review_gate.py --base dee3dbdb65 --card <the card body>
 ```
@@ -227,3 +227,32 @@ about the other).
    Round 2 rejected a change whose CODE was right because two of its NEW
    files did not carry the repository's formatting, = = and that was not a
    style opinion: = = it was the CI gate failing on the change's own diff.
+
+## 8. AMENDMENT — the pinned row is gone (2026-11-17)
+
+This document measured the chat's full-width band and the pinned user row
+that carried it. On 2026-11-17 the pinned row itself was removed: the
+transcript is now ONE flat list of messages, so no row is held at the
+viewport's top while the conversation scrolls under it.
+
+The measurements above stay as the record of what the band was, and of why
+the offset was applied to it. What changed is that the row no longer
+exists to carry anything, = = so `ChatPinnedHeaderBand` (= = the suite
+that held the band's guard) was deleted with it, and its guard moved
+forward into `ChatTranscriptFlatFlowTests`.
+
+**What that suite proves now.** `ChatTranscriptFlatFlowTests` hosts the
+REAL `ChatView` over a host background the app never paints and reads the
+PAINTED pixels: the trailing region of the viewport's TOP band carries no
+surface (= = no row is held there), while the trailing region of the
+BOTTOM band carries the user's card (= = the bubble keeps its own
+surface, = = so a transcript that rendered nothing cannot pass). Its
+second expectation is the guard this document's third gate row carried:
+no row of the transcript paints a surface across the column's leading
+edge, = = and the user's own bubble keeps its own card.
+
+**What the amendment does not change.** The band this document measured is
+still gone (the transcript's rows paint no surface of their own), the
+inline code's background and the fenced block's are still the engine's
+own behaviour, and the three gates in section 4 are still the gates
+(= = the third one now names the suite that replaced the deleted one).
