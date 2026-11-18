@@ -221,37 +221,47 @@ carries its own count (12 row(s) checked)", = = `nfi-split` = = 0.
 (= = and the run's EXIT CODE IS 0, = = because the XCTest half's exit code
 does not carry the swift-testing half's verdict). = = ⇒ ⇒ ⇒ So the exit
 code is not the verdict here, = = and the failures were measured against
-the tree BEFORE this session's work (= = the session's base, = = `41b82a8fa`,
-= = in its own detached worktree) ✓:
+the tree BEFORE this session's work (= = the session's base, `41b82a8fa`).
 
-| the failure | at the base | at the tip | what this session's diff does |
+⇒ ⇒ ⇒ ⇒ ⇒ **THE MEASUREMENT IS THREE ARMS, = = AND THE THIRD ARM IS THE
+ONE THAT DECIDES.** = = The six suites that ever failed were run ALONE
+(= = each arm = = the same six suites, = = the same filter) on three
+trees:
+
+| the arm | the tree | the worktree's path | the failures |
 | --- | --- | --- | --- |
-| `ChatViewHistoryShortcutTests.swift:35` (= = the log block carries `totalTokens`) | FAIL | FAIL | the chat's history path is NOT touched by the diff |
-| `EditorTabTitleTests.swift:60` (= = the tab's title) | FAIL | FAIL | `EditorTab` is NOT touched by the diff |
-| `AsyncDelegationRegistryTests.swift:104` (= = the @-mention registered) | FAIL | FAIL | the delegation path is NOT touched by the diff |
-| `EditorPersistenceTests.swift:253` (= = the 3-second auto-save) | pass | FAIL | the diff's only change to `EditorPersistence` is the announcement, = = and `announceLibraryChange` returns on a `nil` bookStore (= = the test passes `bookStore: nil`), = = so the path the test exercises is not changed; = = the test's own comment documents it as failing when the main actor's queue is long |
-| `LongRunningGoalButtonTests.swift:98` | pass | FAIL | the goal button's path is NOT touched by the diff |
-| `HermesTodoStoreConcurrencyTests.swift:268` (= = the call must finish in 5 s) | pass | FAIL | the todo store's path is NOT touched by the diff |
+| A | the base (`41b82a8fa`) | under `/.hermes/` | **3** (= = the three below) |
+| B | the tip (`main`) | under `/.hermes/` | **3** (= = the SAME three) |
+| C | the tip (`main`) | the shared checkout | **6** (= = the three, = = plus three more) |
 
-⇒ ⇒ ⇒ ⇒ ⇒ **⇒ THIS SESSION'S DIFF EXPLAINS NONE OF THE SIX.** = = Three
-are identical at the base (= = pre-existing); = = the fourth is on the
-editor's save path, = = where the session's only change returns early on a
-nil library; = = and the last two are in the agent/chat area, = = which the
-session's diff does not touch.
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **⇒ ⇒ ⇒ THE THREE THAT FAIL ON EVERY ARM:** = =
+`ChatViewHistoryShortcutTests.swift:35` (= = the log block carries
+`totalTokens`), = = `EditorTabTitleTests.swift:60` (= = the tab's title),
+= = `AsyncDelegationRegistryTests.swift:104` (= = the @-mention registered).
 
-⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE BASE MEASUREMENT IS ITS OWN ROW, = = NOT A CLEAN
-BILL: = = the base ran in ITS OWN worktree, = = and a worktree's path
-changes the failure set (= = the house's own rule, = = `FileTools.pathDenied`
-denies any path containing `/.hermes/`), = = so the base's run is not
-path-identical to the tip's run in the shared checkout. = = ⇒ The
-comparison above is therefore corroborated by the FILE evidence (= = the
-diff touches none of the six suites' areas, = = except the editor's save,
-= = where the change returns early) = = and not by the path alone.
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **⇒ ⇒ ⇒ AND THE THREE THAT FAIL ONLY IN ARM C:**
+= = `EditorPersistenceTests.swift:253` (= = the 3-second auto-save), = =
+`LongRunningGoalButtonTests.swift:98`, = = `HermesTodoStoreConcurrencyTests.swift:268`
+(= = the call must finish in 5 s).
 
-⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE PRE-EXISTING SET HAS NO OWNER HERE: = = the three
-failures that are identical at the base belong to no card of this session,
-= = and the house's rule for a defect found while closing out is a ROW in
-the report, = = not a new ticket.
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+SO THIS SESSION'S DIFF INTRODUCES NO FAILURE AT ALL.** = = Arm A and arm B
+are the same tree class with the same path class, = = and they differ ONLY
+by this session's commits, = = and they carry the SAME three failures. = =
+⇒ The three extras in arm C are the WORKTREE'S PATH (= = the house's own
+rule: = = a worktree's path changes the failure set), = = not the tip.
+
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+AND THE FILE EVIDENCE POINTS THE SAME WAY: = = this session's diff touches
+none of the six suites' areas, = = except the editor's save (= = and there
+the only change is the announcement, = = and `announceLibraryChange`
+returns on a `nil` bookStore, = = which is what the failing test passes).
+
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+AND THE THREE PRE-EXISTING FAILURES HAVE NO OWNER HERE: = = they are
+identical on the tree before this session's work, = = they belong to no
+card of this session, = = and the house's rule for a defect found while
+closing out is a ROW in the report, = = not a new ticket.
 
 ## §7.7 = = THE BOSS'S OWN LOOK
 
