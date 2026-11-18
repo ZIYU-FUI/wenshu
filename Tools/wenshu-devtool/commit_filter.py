@@ -357,10 +357,19 @@ def scan_unpushed_commits(remote=None, remote_url=None):
 def main(hook=None, commit_msg_path=None, remote=None, remote_url=None):
     """Pre-commit + commit-msg + pre-push hook entry point.
     Modes:
-      - default / pre-commit: scan staged file diffs for forbidden tokens.
+      - default / pre-commit: scan the ADDED lines of the staged file
+        diffs for forbidden tokens.
       - commit-msg: scan the commit message file (= first arg passed by git hooks).
-      - pre-push: scan unpushed commits' diffs + subjects + bodies for forbidden tokens.
+      - pre-push: scan the ADDED lines of the unpushed commits' diffs +
+        their subjects + their bodies for forbidden tokens.
       - working-tree / watchdog: scan the full working tree (= not just staged files).
+
+    ⇒ ONLY THE ADDED LINES ARE SCANNED: = = a diff carries the added
+    lines, = = the removed ones, = = and the CONTEXT (= = the unchanged
+    neighbours), = = and the context is the file as it was. ⇒ A forbidden
+    token in the context is the FILE's token, = = not this change's, = =
+    so scanning it blocked any commit that merely touched a file near
+    one.
     """
     errors = []
     if hook == "pre-push":

@@ -64,7 +64,7 @@ chmod +x "$HOOKS_DIR/commit-msg"
 #    `--no-verify` commit made, = = which the pre-commit hook never saw).
 #    git hands the hook the refs it is about to update on STDIN, = = and
 #    its first two ARGV are the remote's name and URL, = = which the
-#    filter does not take (= = so the hook passes none).
+#    filter takes (= = so the hook passes them).
 cat > "$HOOKS_DIR/pre-push" <<EOF
 #!/usr/bin/env bash
 # wenshu pre-push hook. installed by Tools/wenshu-devtool/install_hook.sh
