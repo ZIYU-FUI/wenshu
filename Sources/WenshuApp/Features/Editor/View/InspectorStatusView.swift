@@ -83,25 +83,27 @@ struct InspectorStatusView: View {
     }
 
     /// The task cards (= one per handle the registry holds for this scope).
+    ///
+    /// The page carries NO timer (= the clock lives in the one card
+    /// that shows a running time, = so a second passing no longer
+    /// rebuilds every card on the page).
     private var taskList: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            ScrollView {
-                // One glass container for the page's glass surfaces (=
-                // the system's own grouping for glass). The spacing
-                // EQUALS the card spacing (= a larger container spacing
-                // makes neighbouring glass blend at rest, = and the
-                // cards would melt into one sheet while the column
-                // sits still).
-                GlassEffectContainer(spacing: DesignTokens.spacingTight) {
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                        ForEach(model.tasks) { task in
-                            InspectorStatusTaskCard(task: task, now: context.date) {
-                                model.selection = InspectorStatusSelection(id: task.id)
-                            }
+        ScrollView {
+            // One glass container for the page's glass surfaces (=
+            // the system's own grouping for glass). The spacing
+            // EQUALS the card spacing (= a larger container spacing
+            // makes neighbouring glass blend at rest, = and the
+            // cards would melt into one sheet while the column
+            // sits still).
+            GlassEffectContainer(spacing: DesignTokens.spacingTight) {
+                LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                    ForEach(model.tasks) { task in
+                        InspectorStatusTaskCard(task: task) {
+                            model.selection = InspectorStatusSelection(id: task.id)
                         }
                     }
-                    .padding(DesignTokens.spacingStandard)
                 }
+                .padding(DesignTokens.spacingStandard)
             }
         }
     }
@@ -266,8 +268,6 @@ enum InspectorStatusElapsed {
 /// A card without output cannot be opened (= there is nothing to read).
 private struct InspectorStatusTaskCard: View {
     let task: InspectorStatusTask
-    /// The current time (= the clock the elapsed label reads).
-    let now: Date
     let onOpen: () -> Void
 
     var body: some View {
@@ -313,11 +313,7 @@ private struct InspectorStatusTaskCard: View {
                         .lineLimit(3)
                 }
             } trailing: {
-                if let elapsed = task.elapsedText(at: now) {
-                    Text(elapsed)
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(DesignTokens.statusForeground)
-                }
+                InspectorStatusElapsedLabel(task: task)
             }
         }
         .buttonStyle(.plain)

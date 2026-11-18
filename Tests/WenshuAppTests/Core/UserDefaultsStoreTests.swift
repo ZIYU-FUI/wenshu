@@ -163,18 +163,18 @@ struct UserDefaultsStoreTests {
 
     // MARK: - Key namespace coverage (= G-2 cluster key registry)
 
-    @Test("WenshuDefaultsKey.allCases covers 14 typed settings keys")
+    @Test("WenshuDefaultsKey.allCases covers 15 typed settings keys")
     func keyEnumCompleteness() {
         // Wenshu's G-2 cluster (= the keys written/read by @Observable
         // models) maps 1:1 to WenshuDefaultsKey cases. Adding a new
         // case here is the canonical way to onboard a new persisted
         // setting (= typo-proof).
         //
-        // The count is 14, not 15: the editor's layout mode key is
+        // The count is 15, not 16: the editor's layout mode key is
         // gone with the side-by-side arrangement (= the editor is
         // above the chat at every width, = there is nothing to
         // persist).
-        #expect(WenshuDefaultsKey.allCases.count == 14)
+        #expect(WenshuDefaultsKey.allCases.count == 15)
     }
 
     @Test("All WenshuDefaultsKey raw values use the wenshu. namespace prefix")

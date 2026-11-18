@@ -320,6 +320,49 @@ struct ChatZoneBodyTests {
         )
     }
 
+    @Test("The zone opens on the conversation the RESTORED selection names (= the launch's scope)")
+    @MainActor
+    func theZoneOpensOnTheRestoredScopesConversation() throws {
+        let defaults = try #require(UserDefaults(suiteName: "chat-zone-body-tests-launch"))
+        defaults.removePersistentDomain(forName: "chat-zone-body-tests-launch")
+        defer { defaults.removePersistentDomain(forName: "chat-zone-body-tests-launch") }
+        let root = try makeRoot()
+        let appState = AppState()
+
+        // ⇒ ⇒ ⇒ THE LAUNCH'S SHAPE: = the selection is PERSISTED, = and
+        // the state under test is a SECOND one built from the same
+        // defaults, = so its own `init` restores the selection (= = the
+        // value exists BEFORE the zone appears, = which is exactly what
+        // a relaunch does).
+        let bookID = UUID()
+        let writer = WorkspaceUIState(store: UserDefaultsStore(defaults: defaults))
+        writer.sidebarSelection = .book(bookID)
+        let state = WorkspaceUIState(store: UserDefaultsStore(defaults: defaults))
+        #expect(
+            state.sidebarSelection == .book(bookID),
+            "the launch's shape must restore the selection (= or the case under test is not the launch's)"
+        )
+
+        let (_, window, _) = try hostZone(workspaceUI: state, appState: appState, root: root)
+        defer { window.orderOut(nil) }
+
+        // ⇒ ⇒ ⇒ THE ZONE MUST OPEN ON THAT CONVERSATION: = the chat's
+        // own session is the scope's, = and the scope is the restored
+        // selection's. = ⇒ ⇒ ⇒ WITHOUT THE FIX the chat stayed on its
+        // own default session (= the repository's, = `default`), = and
+        // the book's conversation never loaded (= = the boss's own
+        // report, = in his words: = a relaunch whose last persisted
+        // selection was a book came back with the chat on the
+        // repository's conversation).
+        #expect(
+            chatSession(of: appState) == ChatScope.book(BookID(rawValue: bookID.uuidString)).sessionID,
+            """
+            the chat's own session is \(String(describing: chatSession(of: appState))) \
+            (= it must be the restored book's session: = the conversation the tree named).
+            """
+        )
+    }
+
     @Test("A book the user creates shows up in the zone's own bar (= the page list is the live collection)")
     @MainActor
     func aNewBookGetsAPageInTheBodiesOwnBar() throws {

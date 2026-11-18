@@ -1,15 +1,59 @@
 // ChromeBottomFooterSurfaceTests.swift · Wenshu
 //
-// Every column's bottom bar wears the SAME surface, and that surface is
-// the system's own OPAQUE colour.
+// The shared footer's surface, by the edge the bar sits on.
 //
-// WHY THE SURFACE MUST NOT BE A MATERIAL: the window is translucent
-// (= one behind-window material at the root), = so a MATERIAL paints
-// whatever is BEHIND the bar. = Each column's bar then sampled a
-// different patch of the desktop and every bar came out a different
-// grey, = and every one of those values moved when the desktop moved.
-// An OPAQUE system colour resolves to the same value in every column
-// of one appearance, = so the window's bottom edge reads as ONE line.
+// TWO SURFACES, = = and the difference is the bar's EDGE: = =
+// - a WINDOW-EDGE bar (= the window's bottom edge) wears the system's own
+//   OPAQUE control background, = = so one appearance gives every column's
+//   bar the SAME value (= the window's bottom edge reads as ONE line).
+// - an INTERIOR SEAM bar (= a zone's bottom edge, = with another zone
+//   below it) wears the system's own UNDER-WINDOW MATERIAL, = = so the
+//   band is TRANSLUCENT and reads as a row of its column instead of a
+//   plate pasted onto it.
+//
+// WHY THE WINDOW-EDGE SURFACE MUST NOT BE A MATERIAL: the window is
+// translucent (= one behind-window material at the root), = so a
+// MATERIAL paints whatever is BEHIND the bar. = Each column's bar then
+// sampled a different patch of the desktop and every bar came out a
+// different grey, = and every one of those values moved when the
+// desktop moved. = An OPAQUE system colour resolves to the same value
+// in every column of one appearance, = so the desktop can no longer
+// reach it, = so the window's bottom edge reads as ONE line, = and the
+// light and dark appearances each resolve to their own value (= the bar
+// follows the theme).
+//
+// WHY THE INTERIOR SEAM WEARS A MATERIAL ANYWAY: that reason is a
+// WINDOW-EDGE reason, = = and the ground behind an interior seam is the
+// app's OWN ground (= the same one the column's body shows), = = so
+// there is no desktop to keep out and no second column to agree with.
+// = An OPAQUE plate there reads as a FOREIGN SLAB (= its own value sits
+// against the column's ground, = = and the step between them is the
+// pasted bar the eye sees), = = and NO fill at all reads as no bar.
+// = The material is the system's own UNDER-WINDOW surface (= = the
+// layer under the window's content), = = in the WITHIN-WINDOW blending
+// (= = it samples the app's OWN content behind the band, = = not the
+// desktop behind the window), = = so the band is a BAND that shows the
+// column through it.
+//
+// MEASURED, over a KNOWN saturated ground (= = magenta) in a REAL
+// on-screen window, = = in ONE probe window whose rows each carry
+// their own marker strip (= = so a row's number cannot be read off
+// its neighbour): = = this material resolves to (79,33,79) (= = the
+// magenta coming through it), = = where an opaque control background
+// over the same ground resolves to (28,28,28) (= = no magenta at
+// all). = = So the band really does TRANSMIT the column behind it, and
+// it takes that column from INSIDE the window (= = so the desktop
+// never reaches it, = = the defect the 2026-11-14 session found when
+// the footer wore `.bar`, = = a behind-window material).
+//
+// AND IN THE REAL APP, = = on screen, = = in both appearances, = = and
+// each capture's foreground PROVEN to be the app before its pixels
+// were read: = = the window-edge bars resolve to 28 (dark) / 255
+// (light), = = and this band's material resolves to 48 (dark) / 222
+// (light), = = so the band sits BETWEEN this column's own ground (= =
+// 78 dark / 190 light) and the bars' value, = = its step against that
+// ground is 30 (dark) / 32 (light) = = where the opaque plate's was
+// 50 (dark) / 67 (light).
 //
 // WHICH FACTS ARE MEASURED AND WHICH ARE READ:
 //  - The surface itself is a SOURCE fact (= which layer paints what),
@@ -18,6 +62,8 @@
 //    recipe and would satisfy a naive whole-file search).
 //  - The bar's GEOMETRY and its THEME behaviour are RUNTIME facts, so
 //    they are measured on the rendered pixels.
+//  - WHICH edge each call site sits on is a SOURCE fact too (= the
+//    call site's own code names the surface it asks for).
 //
 // A NOTE ON WHAT THE RENDER CAN AND CANNOT SEE: an offscreen render
 // paints a MATERIAL as an opaque fallback (= the window has no real
@@ -40,9 +86,30 @@ struct ChromeBottomFooterSurfaceTests {
     /// The comments beside the surface describe the recipe, so a
     /// whole-file search would read the recipe and not the code.
     private func footerCode() throws -> String {
-        let raw = try SourceLocator.read(
-            "Sources/WenshuApp/Features/Chrome/View/ChromeBottomFooter.swift"
-        )
+        try code(of: "Sources/WenshuApp/Features/Chrome/View/ChromeBottomFooter.swift")
+    }
+
+    /// The window-edge branch's own code, without its prose.
+    ///
+    /// The footer's file carries BOTH surfaces, = = so a whole-file
+    /// search cannot tell which branch paints what. = This reads the
+    /// one branch that must not paint a material.
+    private func windowEdgeBranch() throws -> String {
+        let code = try footerCode()
+        guard let start = code.range(of: "case .windowEdge:") else {
+            return code
+        }
+        let rest = code[start.upperBound...]
+        guard let end = rest.range(of: "case .columnMaterial:") else {
+            return String(rest)
+        }
+        return String(rest[..<end.lowerBound])
+    }
+
+    /// A file's own code, without its prose (= the same rule the
+    /// footer's own code is read by).
+    private func code(of path: String) throws -> String {
+        let raw = try SourceLocator.read(path)
         return raw
             .split(separator: "\n")
             .map { line -> String in
@@ -168,9 +235,12 @@ struct ChromeBottomFooterSurfaceTests {
 
     /// The bar's surface, with no glyph in the row to read.
     @MainActor
-    private func barSurface(appearance: NSAppearance.Name) -> (r: Int, g: Int, b: Int)? {
+    private func barSurface(
+        appearance: NSAppearance.Name,
+        surface: ChromeBottomFooterSurface = .windowEdge
+    ) -> (r: Int, g: Int, b: Int)? {
         paintedSurface(
-            of: ChromeBottomFooter {
+            of: ChromeBottomFooter(surface: surface) {
                 Color.clear
             },
             appearance: appearance
@@ -185,8 +255,15 @@ struct ChromeBottomFooterSurfaceTests {
     /// surface reads the same, = so the desktop behind the window can
     /// never reach the bar.
     @MainActor
-    private func surfaceOver(ground: NSColor) throws -> (r: Int, g: Int, b: Int) {
-        let host = NSHostingView(rootView: ChromeBottomFooter { Color.clear })
+    private func surfaceOver(
+        ground: NSColor,
+        surface: ChromeBottomFooterSurface = .windowEdge
+    ) throws -> (r: Int, g: Int, b: Int) {
+        let host = NSHostingView(
+            rootView: ChromeBottomFooter(surface: surface) {
+                Color.clear
+            }
+        )
         host.frame = NSRect(x: 0, y: 0, width: 200, height: 100)
         let window = NSWindow(
             contentRect: host.frame,
@@ -230,31 +307,51 @@ struct ChromeBottomFooterSurfaceTests {
         return try #require(colors[modal])
     }
 
-    // MARK: - The surface
+    // MARK: - The surfaces
 
     /// The shared footer paints the system's own OPAQUE control
-    /// background, and no material.
+    /// background for a window-edge bar, and no material.
     ///
-    /// This is the fact the whole change rests on: a material paints
-    /// whatever is behind the bar, = and this window is translucent, =
-    /// so a material bar reads as a different grey in every column.
-    @Test("The shared footer paints an opaque system surface, not a material")
-    func theFooterPaintsAnOpaqueSystemSurface() throws {
+    /// This is the fact the whole window-edge contract rests on: a
+    /// material paints whatever is behind the bar, = and this window is
+    /// translucent, = so a material bar reads as a different grey in
+    /// every column.
+    @Test("The window-edge surface is the system's own opaque colour, not a material")
+    func theWindowEdgeSurfaceIsOpaqueAndNotAMaterial() throws {
         let code = try footerCode()
 
         #expect(
             code.contains("controlBackgroundColor"),
             """
-            The shared footer does not paint the system's own opaque control \
-            background (= `NSColor.controlBackgroundColor`), so its surface is not \
+            The shared footer's window-edge surface does not paint the system's own opaque \
+            control background (= `NSColor.controlBackgroundColor`), so its surface is not \
             the one every column can share.
             """
         )
+        let windowEdge = try windowEdgeBranch()
         #expect(
-            !code.contains("Material") && !code.contains("background(.bar"),
+            !windowEdge.contains("Material") && !windowEdge.contains("background(.bar"),
             """
-            The shared footer still paints a material: a material is translucent, so \
+            The window-edge branch still paints a material: a material is translucent, so \
             it paints whatever is behind the bar and the bars drift apart.
+            """
+        )
+    }
+
+    /// An interior seam's bar wears its column's ground.
+    ///
+    /// The two cases are the component's own, = and the source names
+    /// both of them, = so a reader sees the choice without reading the
+    /// whole file.
+    @Test("The footer offers both surfaces, one per edge")
+    func theFooterOffersBothSurfaces() throws {
+        let code = try footerCode()
+
+        #expect(
+            code.contains("case windowEdge") && code.contains("case columnMaterial"),
+            """
+            The shared footer does not carry both surfaces, = = so a bar cannot choose \
+            the one its edge asks for.
             """
         )
     }
@@ -270,7 +367,6 @@ struct ChromeBottomFooterSurfaceTests {
             "Sources/WenshuApp/Features/Library/View/AppleSidebarBottomNewButton.swift",
             "Sources/WenshuApp/Features/Editor/View/AssetsPane.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
-            "Sources/WenshuApp/Features/Editor/View/EditorStatusBarView.swift",
             "Sources/WenshuApp/Features/Editor/View/InspectorView.swift",
         ]
         for path in callSites {
@@ -282,14 +378,47 @@ struct ChromeBottomFooterSurfaceTests {
                 `ChromeBottomFooter`, so its surface is not the shared one.
                 """
             )
+            #expect(
+                !raw.contains("surface: .columnMaterial"),
+                """
+                \(path) renders a bar at the WINDOW's bottom edge, = = so it wears the \
+                window-edge surface (= the opaque one), = = and the window's bottom edge \
+                reads as one line.
+                """
+            )
         }
+    }
+
+    /// The editor's status bar is an interior seam, = = so it wears
+    /// the interior seam's material.
+    ///
+    /// The editor zone sits ABOVE the chat zone in the detail column,
+    /// = = so the editor zone's bottom edge is a seam between two
+    /// zones, = = and NOT the window's bottom edge. = = A bar there
+    /// that wears the window-edge's opaque surface reads as a plate
+    /// pasted onto the column, = = and its own value sits against the
+    /// column's own ground, = = and that step is what the eye reads as
+    /// a black bar pasted on. = = A bar with NO fill at all reads as no
+    /// bar, = = so the seam's surface is the system's own material.
+    @Test("The editor's status bar wears the interior seam's material")
+    func theEditorStatusBarWearsTheInteriorSeamsMaterial() throws {
+        let raw = try SourceLocator.read(
+            "Sources/WenshuApp/Features/Editor/View/EditorStatusBarView.swift"
+        )
+        #expect(
+            raw.contains("surface: .columnMaterial"),
+            """
+            The editor's status bar does not ask for the interior seam's surface, = = so \
+            it wears the window-edge's opaque surface, = = and it reads as a plate pasted \
+            onto the editor column instead of a translucent band.
+            """
+        )
     }
 
     /// The bar's surface follows the appearance.
     ///
     /// One appearance = one value, = and the light and dark appearances
-    /// each resolve to their own (= the bar follows the theme, = it does
-    /// not become one fixed grey in both).
+    /// each resolve to their own (= the bar follows the theme).
     @Test("The bar's surface follows the appearance")
     @MainActor
     func theBarSurfaceFollowsTheAppearance() throws {
@@ -305,15 +434,15 @@ struct ChromeBottomFooterSurfaceTests {
         )
     }
 
-    /// The bar's surface does not carry the ground behind it.
+    /// The window-edge bar's surface does not carry the ground behind it.
     ///
     /// Two different grounds, = two renders of the same bar. = A surface
     /// that carries the ground reads differently over each one; = an
     /// opaque surface reads the same, = so the desktop behind the
     /// window can never reach the bar.
-    @Test("The bar's surface does not carry the ground behind it")
+    @Test("The window-edge surface does not carry the ground behind it")
     @MainActor
-    func theBarSurfaceDoesNotCarryTheGround() throws {
+    func theWindowEdgeSurfaceDoesNotCarryTheGround() throws {
         let overSaturated = try surfaceOver(
             ground: NSColor(srgbRed: 0.9, green: 0.1, blue: 0.3, alpha: 1)
         )
@@ -324,6 +453,96 @@ struct ChromeBottomFooterSurfaceTests {
             """
             The bar reads \(overSaturated) over a saturated ground and \(overPale) over a \
             pale one: the surface carries what is behind it, so the desktop reaches the bar.
+            """
+        )
+    }
+
+    /// The interior seam's bar wears the system's chrome MATERIAL.
+    ///
+    /// ⇒ ⇒ ⇒ AND THIS IS THE MIRROR OF THE FACT ABOVE, = = and it is
+    /// what makes the two surfaces ONE decision instead of two: = = the
+    /// window-edge bar refuses the ground behind it (= so every column
+    /// agrees, = = so the bottom edge is one line), = = and the
+    /// interior seam's bar wears the system's own chrome material (= so
+    /// the band is translucent, = = and it is not a plate).
+    ///
+    /// WHY THIS IS A SOURCE FACT AND NOT A RENDERED ONE: = an
+    /// offscreen render paints a MATERIAL as an OPAQUE FALLBACK (= the
+    /// window has no real desktop behind it), = so the rendered pixels
+    /// read the SAME for a material and for an opaque fill. = ⇒ ⇒ ⇒ So
+    /// the material is asserted from the branch's own CODE (= the
+    /// comments stripped, = = because a comment beside the surface
+    /// quotes the recipe and would satisfy a naive whole-file search),
+    /// and the rendered measurements hold the geometry and the theme.
+    @Test("The interior seam's surface is the system's chrome material")
+    func theInteriorSeamSurfaceIsTheSystemsChromeMaterial() throws {
+        let code = try footerCode()
+        guard let start = code.range(of: "case .columnMaterial:") else {
+            Issue.record("The shared footer's interior-seam surface branch is gone.")
+            return
+        }
+        let branch = String(code[start.upperBound...])
+
+        #expect(
+            branch.contains("ChromeBottomFooterMaterial.contentArea"),
+            """
+            The interior seam's surface does not paint the system's own content-area \
+            material, so it is an opaque plate on the column instead of a translucent band.
+            """
+        )
+        #expect(
+            !branch.contains("controlBackgroundColor"),
+            """
+            The interior seam's surface paints the opaque control background, = = so the \
+            band is a solid plate pasted onto the column instead of a translucent band.
+            """
+        )
+        #expect(
+            !branch.contains("Color.clear\n"),
+            """
+            The interior seam's surface has no material under it, = = so the band paints \
+            nothing at all and the row reads as more of the column instead of a bar.
+            """
+        )
+    }
+
+    /// The interior seam's material is the CONTENT-AREA one, = = in the
+    /// WITHIN-WINDOW blending.
+    ///
+    /// ⇒ ⇒ ⇒ AND IT IS MEASURED, = = not asserted by name: = = the
+    /// material's own code names the AppKit material and the blending
+    /// mode (= = and the blending mode is the load-bearing half, = = for
+    /// the reason the 2026-11-14 session's window-edge rule cannot
+    /// apply here).
+    @Test("The interior seam's material samples the app, not the desktop")
+    func theInteriorSeamMaterialSamplesTheAppNotTheDesktop() throws {
+        let code = try footerCode()
+        guard let material = code.range(of: "view.material = ") else {
+            Issue.record("The interior seam's material no longer names its AppKit material.")
+            return
+        }
+        let materialLine = String(code[material.lowerBound...].prefix(60))
+        let blending = code.range(of: "view.blendingMode = ")
+
+        #expect(
+            materialLine.contains(".underWindowBackground"),
+            """
+            The interior seam's material is not the under-window material (= = the layer \
+            under the window's own content), so the band stops showing the column \
+            through it.
+            """
+        )
+        guard let blending else {
+            Issue.record("The interior seam's material no longer names its blending mode.")
+            return
+        }
+        let blendingLine = String(code[blending.lowerBound...].prefix(60))
+        #expect(
+            blendingLine.contains(".withinWindow"),
+            """
+            The interior seam's material blends BEHIND THE WINDOW (= = it samples the \
+            desktop), so the band changes value whenever the desktop changes = = and in \
+            the light appearance it paints a white slab across the editor's dark paper.
             """
         )
     }

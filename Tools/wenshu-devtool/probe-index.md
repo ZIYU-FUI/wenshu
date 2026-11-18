@@ -24,6 +24,9 @@ card's commit does not touch the app source.
 | `render_path_contention_robust.swift` | The render path's measured costs, re-measured with a contention-ROBUST harness: the editor's per-keystroke character walk (= = A1 and A2 = = the same walk done twice), the sidebar's per-reload folder doc count (= = D1), and the reference-library row id (= = D2 = = the Hasher plus sixteen `String(format:)` calls). The harness reports the MINIMUM over many reps (= = the load-independent floor), because a mean is exactly the statistic that background CPU load inflates. = = READ-ONLY: it reads the user's library and writes no file. | `a1_walk_us`, `a1_a2_pair_us`, `d1_one_call_us`, `d1_whole_reload_us`, `d2_one_id_us`, `d2_formatting_only_us`, `d2_hasher_only_us`, `d2_twelve_tag_set_us`, plus `distinct_tags` | `292f49670903` |
 | `render_path_reload_total.swift` | The whole sidebar reload measured as ONE call (= = the ten folder doc counts of D1 and the cover reconciler's shelves walk of D3 in a single bench), = = which is the figure the sweep's path-class table quotes for the reload class. It is the same production shapes as `render_path_contention_robust.swift`, = = plus one bench that runs both walks together. = = READ-ONLY: it reads the user's library and writes no file. | `d4_one_whole_reload_us`, plus `d1_one_call_us`, `d1_whole_reload_us` and `d3_full_shelves_walk_us` for the two components it composes | `292f49670903` |
 | `segmented_control_material.swift` | The native segmented control's own material: = whether its cells paint an opaque fill of their own, = or let the host layer behind them read through. = Rendered offscreen at 2x, = and read from three named regions (= the cell's own area, = the host layer beside it, = and the same area under an opaque fill). | `drawn_band_pt`, `cell_area_pt`, `cell_area_rgb`, `cell_area_colours`, `backdrop_rgb`, `backdrop_colours`, `opaque_area_rgb`, `opaque_area_colours`, = one set per appearance, = with the parameters that decide them printed alongside | `5b941c68f` |
+| `segmented_control_selected_fill.swift` | What fills the SELECTED segment of a segmented control in a KEY window: = the SYSTEM ACCENT (= the theme colour) or a material. = The sibling probe above measures an UNSELECTED cell in a window that is never the key window, = = = which cannot answer this question, = = = and the two questions have different answers. = The control carries the app's production parameters (= role .valueSelection, = size .small, = style .roundRect, = border shape .capsule, = segment distribution .fillEqually), = and the same area is read in a key window and in a non-key window (= the only variable changed), = beside an unselected segment of the same key window, = and with the accent painted over it. = The claim is scoped to THAT control and THAT state: = a differently configured control, = or the same control in a different macOS appearance, = is not covered by these numbers. | `panel_is_key`, `probe_took_foreground`, `key_window_selected_strip_rgb`, `key_window_selected_strip_colours`, `key_window_contrast_strip_rgb`, `distance_to_system_accent`, `distance_to_host_layer`, `fill_is_accent_dominant`, `teeth_accent_overlay_rgb`, `non_key_window_is_key`, `non_key_window_selected_strip_rgb`, = one set per appearance and cell shape, = with the parameters that decide them printed alongside | `fb8eeea67` |
+| `inspector_card_load_cost.swift` | The trailing inspector column's three card pages (= the status page, the todo page and the board), measured on the user's own library (= /Users/anbaiqiang/Documents/anbaiqiang.ws): the board's markdown parse over the real task-body corpus, the board's card bodies built per body pass (= the eager card column against the lazy one, = over the real per-status groups), and the status page's card rebuilds per clock tick (= the page-level clock against the label-scoped one). The corpus is read from the live SwiftData store with the sqlite3 CLI in -readonly mode, = and every body is decoded with an EXPLICIT utf-8 decode. It CHECKS THE PRODUCTION FRAGMENTS IT REPRODUCES against the live source before it reports a number (= the house rule: = a number that cannot be tied to the source is worse than no number), = = so a tree that has moved any of the eight fragments reports NO NUMBER and exits 2. READ-ONLY: it writes no file. | `parse_corpus_us`, `parses_per_body_pass`, `card_bodies_per_body_pass_eager`, `card_bodies_per_body_pass_lazy`, `status_card_rebuilds_per_tick_page_clock`, `status_card_rebuilds_per_tick_label_clock`, plus `tasks`, `bodies_with_text` and `groups` | `9776b4dc7c6c37156b6432d489ccfebc79d2f179` |
+| `card_surfaces_load_cost.swift` | The materials column's and the inspector's per-body-pass load, measured on the user's own library (= /Users/anbaiqiang/Documents/anbaiqiang.ws): = = the whole-library walk (= = the full-body door against the head-only door), = = the board's card construction (= = an eager column against a lazy one, = = over the real per-status groups), = = and the board's markdown parse count per body pass. It CHECKS THE PRODUCTION FRAGMENTS IT MEASURES against the live source before it reports a number (= the house rule: = a number that cannot be tied to the source is worse than no number), = = so a tree that has moved any of the four fragments reports NO NUMBER and exits 2. READ-ONLY: it reads the library and the app's own task store (= the .ws's WenshuStore.store) and prints numbers. | `parse_full_body_walk_us`, `parse_head_only_walk_us`, `card_bodies_per_body_pass_eager`, `card_bodies_per_body_pass_lazy`, `markdown_parses_per_body_pass`, plus `book_md_files`, `reference_md_files`, `book_md_bytes` and `groups` | `757cc688b509974a49464444159d43c580fea4a8` |
 
 ## Recorded measurement
 
@@ -92,6 +95,183 @@ The probe measures the control ALONE on purpose: = a material container
 around it) changes the reading by a factor of three, = and in the dark
 appearance it changes the qualitative reading too. = So a container's
 number would answer a different question.
+
+### `segmented_control_selected_fill.swift`
+
+Taken against commit `fb8eeea67`, = with the control alone over the
+saturated host layer, = in a window that IS the key window.
+
+```
+probe: segmented_control_selected_fill
+source_commit: fb8eeea67
+host_size_pt: 260 x 40
+control_frame_pt: (10, 6, 240, 28)
+control_size: small
+control_role: valueSelection
+control_style: roundRect
+border_shape: capsule
+segment_distribution: fillEqually
+selected_segment: 1
+contrast_segment: 2
+segment_count: 3
+labels: Tag1 / Tag2 / Tag3
+host_layer_colour: calibrated (0.0, 0.55, 0.25)
+system_accent_rgb: (0, 122, 255)
+host_layer_rgb: (0, 154, 80)
+selected_strip_pt: (94, 10, 8, 20)
+contrast_strip_pt: (174, 10, 8, 20)
+offscreen_origin_pt: (-20000, -20000)
+
+appearance: darkAqua
+cell_shape: stock
+panel_is_key: true
+frontmost_before: com.wenshu.app
+frontmost_after: com.wenshu.app
+probe_took_foreground: false
+key_window_selected_strip_rgb: (6, 118, 242)
+key_window_selected_strip_colours: 20
+key_window_selected_strip_white_ink: 0
+key_window_selected_strip_dark_ink: 0
+key_window_selected_strip_pixels: 640
+key_window_contrast_strip_rgb: (20, 151, 89)
+key_window_contrast_strip_colours: 1
+key_window_contrast_strip_white_ink: 0
+key_window_contrast_strip_dark_ink: 0
+key_window_contrast_strip_pixels: 640
+distance_to_system_accent: 14.9
+distance_to_host_layer: 166.1
+fill_is_accent_dominant: true
+teeth_accent_overlay_rgb: (0, 114, 249)
+teeth_accent_overlay_colours: 1
+teeth_accent_overlay_white_ink: 0
+teeth_accent_overlay_dark_ink: 0
+teeth_accent_overlay_pixels: 640
+non_key_window_is_key: false
+non_key_window_selected_strip_rgb: (48, 163, 108)
+non_key_window_selected_strip_colours: 15
+non_key_window_selected_strip_white_ink: 0
+non_key_window_selected_strip_dark_ink: 0
+non_key_window_selected_strip_pixels: 640
+
+appearance: darkAqua
+cell_shape: custom-super
+panel_is_key: true
+frontmost_before: com.wenshu.app
+frontmost_after: com.wenshu.app
+probe_took_foreground: false
+key_window_selected_strip_rgb: (6, 118, 242)
+key_window_selected_strip_colours: 20
+key_window_selected_strip_white_ink: 0
+key_window_selected_strip_dark_ink: 0
+key_window_selected_strip_pixels: 640
+key_window_contrast_strip_rgb: (20, 151, 89)
+key_window_contrast_strip_colours: 1
+key_window_contrast_strip_white_ink: 0
+key_window_contrast_strip_dark_ink: 0
+key_window_contrast_strip_pixels: 640
+distance_to_system_accent: 14.9
+distance_to_host_layer: 166.1
+fill_is_accent_dominant: true
+teeth_accent_overlay_rgb: (0, 114, 249)
+teeth_accent_overlay_colours: 1
+teeth_accent_overlay_white_ink: 0
+teeth_accent_overlay_dark_ink: 0
+teeth_accent_overlay_pixels: 640
+non_key_window_is_key: false
+non_key_window_selected_strip_rgb: (48, 163, 108)
+non_key_window_selected_strip_colours: 15
+non_key_window_selected_strip_white_ink: 0
+non_key_window_selected_strip_dark_ink: 0
+non_key_window_selected_strip_pixels: 640
+
+appearance: aqua
+cell_shape: stock
+panel_is_key: true
+frontmost_before: com.wenshu.app
+frontmost_after: com.wenshu.app
+probe_took_foreground: false
+key_window_selected_strip_rgb: (0, 111, 234)
+key_window_selected_strip_colours: 21
+key_window_selected_strip_white_ink: 0
+key_window_selected_strip_dark_ink: 0
+key_window_selected_strip_pixels: 640
+key_window_contrast_strip_rgb: (0, 132, 70)
+key_window_contrast_strip_colours: 1
+key_window_contrast_strip_white_ink: 0
+key_window_contrast_strip_dark_ink: 0
+key_window_contrast_strip_pixels: 640
+distance_to_system_accent: 23.7
+distance_to_host_layer: 159.9
+fill_is_accent_dominant: true
+teeth_accent_overlay_rgb: (0, 114, 249)
+teeth_accent_overlay_colours: 1
+teeth_accent_overlay_white_ink: 0
+teeth_accent_overlay_dark_ink: 0
+teeth_accent_overlay_pixels: 640
+non_key_window_is_key: false
+non_key_window_selected_strip_rgb: (0, 115, 61)
+non_key_window_selected_strip_colours: 14
+non_key_window_selected_strip_white_ink: 0
+non_key_window_selected_strip_dark_ink: 618
+non_key_window_selected_strip_pixels: 640
+
+appearance: aqua
+cell_shape: custom-super
+panel_is_key: true
+frontmost_before: com.wenshu.app
+frontmost_after: com.wenshu.app
+probe_took_foreground: false
+key_window_selected_strip_rgb: (0, 111, 234)
+key_window_selected_strip_colours: 21
+key_window_selected_strip_white_ink: 0
+key_window_selected_strip_dark_ink: 0
+key_window_selected_strip_pixels: 640
+key_window_contrast_strip_rgb: (0, 132, 70)
+key_window_contrast_strip_colours: 1
+key_window_contrast_strip_white_ink: 0
+key_window_contrast_strip_dark_ink: 0
+key_window_contrast_strip_pixels: 640
+distance_to_system_accent: 23.7
+distance_to_host_layer: 159.9
+fill_is_accent_dominant: true
+teeth_accent_overlay_rgb: (0, 114, 249)
+teeth_accent_overlay_colours: 1
+teeth_accent_overlay_white_ink: 0
+teeth_accent_overlay_dark_ink: 0
+teeth_accent_overlay_pixels: 640
+non_key_window_is_key: false
+non_key_window_selected_strip_rgb: (0, 115, 61)
+non_key_window_selected_strip_colours: 14
+non_key_window_selected_strip_white_ink: 0
+non_key_window_selected_strip_dark_ink: 618
+non_key_window_selected_strip_pixels: 640
+```
+
+The `custom-super` cell shape (= a cell that overrides `drawSegment` and
+calls super) reads the SAME as the stock cell in every appearance
+(= the dark arms both read `(6, 118, 242)`, = the light arms both read
+`(0, 111, 234)`, = the contrast arms both read `(20, 151, 89)` and
+`(0, 132, 70)`, = and the non-key arms both read `(48, 163, 108)` and
+`(0, 115, 61)`), = so the control's own selection painting survives a
+strip that draws its own glyphs. = ⇒ The four arms are in the block
+above, = so a reader can check that claim from the record itself.
+
+What the numbers say, = and only that: = the SELECTED segment of THIS
+control, = in a KEY window, = reads the SYSTEM ACCENT (= 14.9 away from
+the accent in the dark appearance, = 23.7 in the light one, = against 166.1
+and 159.9 away from the host layer's green). = ⇒ It is theme-coloured,
+not a material. = The same area in a NON-KEY window reads the host layer
+through (= `(48, 163, 108)` and `(0, 115, 61)`), = and an UNSELECTED
+segment of the SAME key window reads the host layer through (= `(20, 151,
+89)` and `(0, 132, 70)`), = so the accent belongs to the selection, = and
+not to the whole control. = The strip carries no label ink
+(= `white_ink` and `dark_ink` are 0 in the key-window arms), = because it
+sits at the segment's leading edge, = where the centred label cannot
+reach.
+
+The claim is scoped to that control and that state. = A differently
+configured control, = or another macOS appearance, = is not covered by
+these numbers.
 
 ### `chat_bubble_metrics.swift`
 
@@ -352,6 +532,7 @@ python3 Tools/wenshu-devtool/probes/column_chrome_band.py <capture.png>
 python3 Tools/wenshu-devtool/probes/column_chrome_band.py --selftest
 python3 Tools/wenshu-devtool/probes/toolbar_preference_change.py --selftest
 python3 Tools/wenshu-devtool/probes/toolbar_preference_change.py <app-bundle> [rounds]
+swift Tools/wenshu-devtool/probes/segmented_control_selected_fill.swift
 ```
 
 The bubble probe exits 0 when the measurement is sound, 2 when the
@@ -377,6 +558,11 @@ another path is reported as another copy rather than as ours, that a
 crash report of another process is not this run's crash, and that a PID
 the system handed to another process is not the probe's to stop.
 
+The selected-fill probe exits 0 when every arm reached its key state and
+read its region, and 3 when a key state was not reached, a region could
+not be read, or the probe's own process took the foreground (= a run that
+measured the wrong state says so instead of reporting a number).
+
 ### `render_path_reload_total.swift`
 
 Taken against commit `292f49670903`, on the user's own library.
@@ -395,6 +581,70 @@ minimum is there for. = = ⇒ ⇒ The sweep's figure is the MINIMUM
 (= = 1,589.667 us on a quiet machine), = = and this run's higher
 minimum (= = 1,615.209 us) is the same floor measured on a busier one.
 
+### `inspector_card_load_cost.swift`
+
+Taken against commit `9776b4dc7c6c37156b6432d489ccfebc79d2f179`, on the user's own library.
+
+```
+probe: inspector_card_load_cost  source_commit: 9776b4dc7c6c
+source_fragments: 8/8 match
+corpus: library=/Users/anbaiqiang/Documents/anbaiqiang.ws
+        store=/Users/anbaiqiang/Documents/anbaiqiang.ws/WenshuStore.store
+        tasks=563  bodies_with_text=511
+        body_column_types=[null x 52, text x 511]
+        groups=blocked:73 done:124 failed:73 new:73 ready:73 running:74 triage:73
+
+[A] the board's markdown parse
+  the corpus parsed once (= the load's one-shot cost)        min  2601.459 us | median  2681.500 us | p95  2973.708 us
+  parses per body pass: BEFORE 511 (= one per card) | AFTER 0 (= parsed at the load)
+
+[B] the board's card bodies built per body pass (= the real board shape)
+  BEFORE: eager card column (every card on the board)        min       563    | median       563    | p95       563
+  AFTER: lazy card column (only the cards on screen)         min        21    | median        21    | p95        21
+
+[C] the status page's card rebuilds over ten clock ticks (= 8 cards on the page)
+      (= the elapsed label's own bodies over the same ten ticks: 0)
+      (= the elapsed label's own bodies over the same ten ticks: 0)
+      (= the elapsed label's own bodies over the same ten ticks: 0)
+      (= the elapsed label's own bodies over the same ten ticks: 0)
+      (= the elapsed label's own bodies over the same ten ticks: 0)
+  BEFORE: the page-level 1 Hz clock (every card rebuilds)    min        80    | median        80    | p95        80
+      (= the elapsed label's own bodies over the same ten ticks: 80)
+      (= the elapsed label's own bodies over the same ten ticks: 80)
+      (= the elapsed label's own bodies over the same ten ticks: 80)
+      (= the elapsed label's own bodies over the same ten ticks: 80)
+      (= the elapsed label's own bodies over the same ten ticks: 80)
+  AFTER: the clock on the elapsed label alone                min         0    | median         0    | p95         0
+
+path classes:
+  [A] the markdown parse = PER BODY PASS (before) / ONCE PER LOAD (after)
+  [B] the card bodies built = PER BODY PASS
+  [C] the status page's rebuilds = PER SECOND
+```
+
+The three counts are the shape's own numbers, not a timing: = = 563 is
+every card on the user's board, = = 21 is what a 320x600 column builds
+on screen, = = and 80 is the eight cards on the status page rebuilt
+once a second (= = 8 x 10 ticks). = = ⇒ The AFTER column is 0 for the
+parse and for the status page's rebuilds because the parse moved to the
+load and the clock moved into the label.
+
+⇒ ⇒ ⇒ AND THE RUN IS RECORDED WHOLE, = = NOT AS AN EXCERPT: = = the ten
+lines that carry the elapsed label's OWN body count are in it. ⇒ ⇒ ⇒ AND
+READ THEM IN THE ORDER THE PROBE PRINTS THEM: = = each sample prints its
+own label count BEFORE its shape's summary line, = = so the five lines
+that read 0 belong to the BEFORE shape (= = that shape's card carries NO
+label at all: = = the page's clock reached the card's own text) = = and
+the five lines that read 80 belong to the AFTER shape (= = that shape's
+card carries one label, = = and eight cards x ten ticks = = 80 label
+bodies). ⇒ ⇒ ⇒ PRODUCTION DIFFERS FROM THE PROBE'S MODEL HERE, = = AND
+THE INDEX SAYS SO: = = `InspectorStatusElapsedLabel.swift` ticks only in
+the `.running` case (= = `.pending` is `EmptyView` and the finished
+states are frozen text), = = so the real residual cost is ONE ticking
+label per running card, = = not eight. ⇒ ⇒ ⇒ The number the card
+publishes is a CARD-rebuild count (= = 80 → 0), = = and that one is
+faithful to production.
+
 ## The index's own test
 
 ```
@@ -403,3 +653,159 @@ python3 Tools/wenshu-devtool/tests/test_probe_index.py
 
 The index and the probes directory must agree in both directions: a probe
 with no row, and a row with no probe behind it, are both reported.
+
+
+### `card_surfaces_load_cost.swift`
+
+Taken against commit `757cc688b509974a49464444159d43c580fea4a8` (= = the tree whose head holds the card only when it holds it completely, = = and whose editor's save announces the library change).
+
+```
+probe: card_surfaces_load_cost  source_commit: 757cc688b509
+source_fragments: 6/6 match
+fact: book .md files in the library = 20
+fact: reference .md files in the library = 6
+fact: book .md bytes on disk = 61927
+
+=== A. the materials column: the whole-library walk ===
+A1 full-body walk (= the OLD door)                   min=    441.2 us  median=    489.5 us  p95=    569.0 us
+A2 card-head-only walk (= the NEW door)              min=    227.1 us  median=    248.6 us  p95=    271.1 us
+fact: A walks per body pass: BEFORE = 2 (= the grid walked the library AND the chrome count walked it again)
+fact: A walks per body pass: AFTER = 0 (= the list is walked once per library change, = = and the chrome count reads that same list)
+fact: A bytes read per walk: BEFORE = 61927 (= every .md's FULL body)
+fact: A bytes read per walk: AFTER = 61927 (= each .md's HEAD, = = min(its size, 8 KB))
+fact: A the head read on THIS library = reads the same bytes (= the .md files are smaller than the 8 KB head) = = so the saving is NOT bytes
+fact: A per-body-pass saving = 2 whole-library walks per body pass (= = the whole library, = = every body pass)
+fact: library-level kanban tasks (= the board's cards) = 560
+fact: of those, the ones carrying a body = 497
+
+=== C. the inspector board: cards built per body pass ===
+fact: C cards a plain VStack builds per body pass = 560
+fact: C cards a LazyVStack builds per body pass = ~15 (= the visible window)
+fact: C multiplier removed = 560 card bodies -> ~15
+
+=== D. the inspector board: markdown parses per body pass ===
+D1 parse every task body (the current shape)         min=   2129.4 us  median=   2213.3 us  p95=   2910.2 us
+fact: D multiplier = 497 parses per body pass (= inside the card body)
+
+=== the totals a body pass costs today ===
+materials column (all-library scope):
+  = BEFORE: 2 whole-library walks per body pass (the grid + the chrome count)
+  = BEFORE: each walk reads every .md's FULL body
+  = AFTER: 0 whole-library walks per body pass (= the ONE list is walked
+           once per library change, = = and the chrome count reads it)
+  = AFTER: the walk reads each .md's HEAD (= = 8 KB), = = not its body
+  = AFTER: the scope draws ONE grid (= = the ONE list, = = not two)
+inspector board (= as main has it, = = this branch does not carry that fix):
+  = 1 store read (once, on appear) = = NOT the per-pass cost
+  = 560 card bodies + 497 markdown parses per body pass
+inspector status page (= as main has it):
+  = the whole ScrollView is inside TimelineView(.periodic(by: 1))
+  = so EVERY card's body re-runs every second (= the draw cost)
+inspector todo page (= as main has it):
+  = a plain VStack (= every card built per body pass) + the array is
+    reassigned every second (= every row's identity churns)
+
+probe done.
+```
+
+Taken against commit `b53dfcdbb749e87b4cabf19b0f3630280eba05a2` (= = the tree that keeps the head read's complete characters).
+
+```
+probe: card_surfaces_load_cost  source_commit: b53dfcdbb749
+source_fragments: 5/5 match
+fact: book .md files in the library = 20
+fact: reference .md files in the library = 6
+fact: book .md bytes on disk = 61927
+
+=== A. the materials column: the whole-library walk ===
+A1 full-body walk (= the OLD door)                   min=    439.8 us  median=    470.7 us  p95=    539.1 us
+A2 card-head-only walk (= the NEW door)              min=    244.9 us  median=    254.8 us  p95=    278.2 us
+fact: A walks per body pass: BEFORE = 2 (= the grid walked the library AND the chrome count walked it again)
+fact: A walks per body pass: AFTER = 0 (= the list is walked once per library change, = = and the chrome count reads that same list)
+fact: A bytes read per walk: BEFORE = 61927 (= every .md's FULL body)
+fact: A bytes read per walk: AFTER = 61927 (= each .md's HEAD, = = min(its size, 8 KB))
+fact: A the head read on THIS library = reads the same bytes (= the .md files are smaller than the 8 KB head) = = so the saving is NOT bytes
+fact: A per-body-pass saving = 2 whole-library walks per body pass (= = the whole library, = = every body pass)
+fact: library-level kanban tasks (= the board's cards) = 560
+fact: of those, the ones carrying a body = 497
+
+=== C. the inspector board: cards built per body pass ===
+fact: C cards a plain VStack builds per body pass = 560
+fact: C cards a LazyVStack builds per body pass = ~15 (= the visible window)
+fact: C multiplier removed = 560 card bodies -> ~15
+
+=== D. the inspector board: markdown parses per body pass ===
+D1 parse every task body (the current shape)         min=   2351.9 us  median=   2385.5 us  p95=   2558.2 us
+fact: D multiplier = 497 parses per body pass (= inside the card body)
+
+=== the totals a body pass costs today ===
+materials column (all-library scope):
+  = BEFORE: 2 whole-library walks per body pass (the grid + the chrome count)
+  = BEFORE: each walk reads every .md's FULL body
+  = AFTER: 0 whole-library walks per body pass (= the ONE list is walked
+           once per library change, = = and the chrome count reads it)
+  = AFTER: the walk reads each .md's HEAD (= = 8 KB), = = not its body
+  = AFTER: the scope draws ONE grid (= = the ONE list, = = not two)
+inspector board (= as main has it, = = this branch does not carry that fix):
+  = 1 store read (once, on appear) = = NOT the per-pass cost
+  = 560 card bodies + 497 markdown parses per body pass
+inspector status page (= as main has it):
+  = the whole ScrollView is inside TimelineView(.periodic(by: 1))
+  = so EVERY card's body re-runs every second (= the draw cost)
+inspector todo page (= as main has it):
+  = a plain VStack (= every card built per body pass) + the array is
+    reassigned every second (= every row's identity churns)
+
+probe done.
+```
+
+Taken against commit `9225b9941d098d4e0e235ae3b1092a366e60f6b5`, on the user's own library.
+
+```
+probe: card_surfaces_load_cost  source_commit: 9225b9941d09
+source_fragments: 4/4 match
+fact: book .md files in the library = 20
+fact: reference .md files in the library = 6
+fact: book .md bytes on disk = 61927
+
+=== A. the materials column: the whole-library walk ===
+A1 full-body walk (= the OLD door)                   min=    434.9 us  median=    479.1 us  p95=    537.2 us
+A2 card-head-only walk (= the NEW door)              min=    228.8 us  median=    248.0 us  p95=    259.5 us
+fact: A walks per body pass: BEFORE = 2 (= the grid walked the library AND the chrome count walked it again)
+fact: A walks per body pass: AFTER = 0 (= the list is walked once per library change, = = and the chrome count reads that same list)
+fact: A bytes read per walk: BEFORE = 61927 (= every .md's FULL body)
+fact: A bytes read per walk: AFTER = 61927 (= each .md's HEAD, = = min(its size, 8 KB))
+fact: A the head read on THIS library = reads the same bytes (= the .md files are smaller than the 8 KB head) = = so the saving is NOT bytes
+fact: A per-body-pass saving = 2 whole-library walks per body pass (= = the whole library, = = every body pass)
+fact: library-level kanban tasks (= the board's cards) = 560
+fact: of those, the ones carrying a body = 497
+
+=== C. the inspector board: cards built per body pass ===
+fact: C cards a plain VStack builds per body pass = 560
+fact: C cards a LazyVStack builds per body pass = ~15 (= the visible window)
+fact: C multiplier removed = 560 card bodies -> ~15
+
+=== D. the inspector board: markdown parses per body pass ===
+D1 parse every task body (the current shape)         min=   2307.3 us  median=   2331.6 us  p95=   2899.1 us
+fact: D multiplier = 497 parses per body pass (= inside the card body)
+
+=== the totals a body pass costs today ===
+materials column (all-library scope):
+  = BEFORE: 2 whole-library walks per body pass (the grid + the chrome count)
+  = BEFORE: each walk reads every .md's FULL body
+  = AFTER: 0 whole-library walks per body pass (= the ONE list is walked
+           once per library change, = = and the chrome count reads it)
+  = AFTER: the walk reads each .md's HEAD (= = 8 KB), = = not its body
+  = AFTER: the scope draws ONE grid (= = the ONE list, = = not two)
+inspector board (= as main has it, = = this branch does not carry that fix):
+  = 1 store read (once, on appear) = = NOT the per-pass cost
+  = 560 card bodies + 497 markdown parses per body pass
+inspector status page (= as main has it):
+  = the whole ScrollView is inside TimelineView(.periodic(by: 1))
+  = so EVERY card's body re-runs every second (= the draw cost)
+inspector todo page (= as main has it):
+  = a plain VStack (= every card built per body pass) + the array is
+    reassigned every second (= every row's identity churns)
+
+probe done.
+```

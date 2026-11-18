@@ -32,8 +32,39 @@ struct AssetsPane: View {
     /// Whether a batch is running right now.
     @State private var isBatchRunning = false
 
+    /// The whole library's ONE list of documents (= the 资料库's documents,
+    /// then each book's).
+    ///
+    /// = = The pane OWNS the store (= = so the chrome's card count reads
+    /// the SAME list the cards grid draws, = = and the library is walked
+    /// ONCE per library change instead of twice per body pass). = = It
+    /// lives here rather than in `PreviewPane` because the count is this
+    /// pane's (= = the count is in the chrome footer) and the grid is the
+    /// child's.
+    @State private var libraryDocuments = LibraryDocumentStore()
+
     private var bookStore: BookStore? {
         envBookStore
+    }
+
+    /// How many cards the chrome footer counts.
+    ///
+    /// = = The whole-library scope reads the ONE list the store holds
+    /// (= = the same list the cards grid draws), = = because the count used
+    /// to walk the whole library a SECOND time per body pass (= = and read
+    /// every .md's full body again). = = The other scopes keep their own
+    /// count (= = each one is a single book or a single shelf).
+    private var chromeCardCount: Int {
+        switch previewScope() {
+        case .allLibraryScope:
+            return libraryDocuments.documents.filtered(by: envAppState.searchText).count
+        default:
+            return PreviewPaneOps.countCardsInScope(
+                scope: previewScope(),
+                bookStore: bookStore,
+                searchQuery: envAppState.searchText
+            )
+        }
     }
 
     /// Starts the cover batch.
@@ -293,7 +324,8 @@ struct AssetsPane: View {
                 // menu and the batch hold ONE per-card lock between
                 // them (= a batch run and a manual click on the same
                 // card make one image call, not two).
-                coverServices: coverServices
+                coverServices: coverServices,
+                libraryDocuments: libraryDocuments
             )
             // 2026-10-12 boss directive "在素材栏也加一个底栏,
             // … (= 45 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -308,11 +340,7 @@ struct AssetsPane: View {
                         SFIcon("tray.full", style: .inlineSmall, color: IconColor.secondary)
                         Text(String.localizedStringWithFormat(
                             NSLocalizedString("assets.count.label", comment: ""),
-                            PreviewPaneOps.countCardsInScope(
-                                scope: previewScope(),
-                                bookStore: bookStore,
-                                searchQuery: envAppState.searchText
-                            )
+                            chromeCardCount
                         ))
                         .font(.callout)
                         .foregroundStyle(.secondary)

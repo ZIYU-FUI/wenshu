@@ -67,11 +67,6 @@ struct AVMediaTools: Tool, Sendable {
     }
 }
 
-#if canImport(AVFoundation)
-// default (Apple)
-private let AVSpeechUtteranceDefaultSpeechRate: Float = AVSpeechUtteranceDefaultSpeechRate
-#endif
-
 // MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
 
 extension AVMediaTools {

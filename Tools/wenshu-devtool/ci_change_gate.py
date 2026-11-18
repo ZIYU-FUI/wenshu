@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """The CI's change gate: measure the CHANGE, not the history.
 
-Two checks, both about the lines a change ADDS:
+Three checks, two about the lines a change ADDS and one about the bytes
+a change leaves behind:
 
 * ``pollution``: the added lines carry no forbidden vocabulary. The
   vocabulary and the path allowlist come from ``commit_filter.py``, which is
@@ -9,6 +10,24 @@ Two checks, both about the lines a change ADDS:
   copy of either).
 * ``formatting``: the added lines are not the ones SwiftFormat wants to
   change.
+* ``markdown-newline``: the change does not DROP a changed ``.md`` file's
+  trailing newline. = = The byte is unguarded elsewhere, = = and it is not
+  cosmetic: = = ``docs/agents/nfi.md`` carries the house's key-level merge
+  driver, = = whose ``split_rows()`` puts everything after the last table
+  row into a TAIL, = = and ``text.split("\n")`` on a newline-terminated
+  file leaves a final empty string while a file without the newline does
+  not (= = so the tail differs, = = and the driver reports ``conflicted
+  keys: <the file's tail>`` against the next card that appends a row).
+  = = MEASURED (= = 2026-11-17, = = twice): = = a scope that dropped the
+  byte cost a review round to find, = = and the same byte broke the merge
+  driver against a sibling card's registry row.
+  = = ⇒ AND IT IS A DELTA CHECK, = = NOT A STATE CHECK: = = it compares
+  the file's blob at the MERGE-BASE with its blob at HEAD, = = and it
+  reports only what THIS change did (= = a file that already lacked the
+  byte is the tree's drift, = = and it is not this change's business = =
+  the same rule the other two checks follow). = = MEASURED: = = a state
+  check went RED on 13 of main's last 300 COMMITS, = = and 11 of those 13
+  were FALSE (= = the commit never touched the byte).
 
 WHY THIS EXISTS. The CI used to run ``git log --all -p | grep <vocabulary>``
 for the pollution check (= 4788 hits on the repository's own history, = the
@@ -23,6 +42,7 @@ USAGE::
 
     python3 Tools/wenshu-devtool/ci_change_gate.py --base <sha> --check pollution
     python3 Tools/wenshu-devtool/ci_change_gate.py --base <sha> --check formatting
+    python3 Tools/wenshu-devtool/ci_change_gate.py --base <sha> --check markdown-newline
 
 ``--base`` is the commit the change is measured against (= the CI resolves
 it per trigger, because ``origin/main`` is the wrong base for a push to
@@ -51,6 +71,7 @@ VIOLATION = re.compile(
 )
 
 SWIFT_SUFFIX = ".swift"
+MD_SUFFIX = ".md"
 
 
 def parse_diff(diff_text: str) -> tuple[dict[str, list[tuple[int, int]]], dict[str, dict[int, str]]]:
@@ -282,12 +303,111 @@ def swiftformat_report(paths: list[str], cwd: Path) -> str:
     return output
 
 
+def _blob_bytes(rev: str, path: str, cwd: Path) -> bytes | None:
+    """A file's bytes at a revision (= = None when the path is not there).
+
+    The bytes come from the git OBJECT, = = not from the working tree:
+    this gate measures a COMMIT, = = and a working tree that differs from
+    the commit (= = a staged fix, = = an unstaged edit) would otherwise
+    make the gate read a tree the commit does not have.
+    """
+    result = subprocess.run(
+        ["git", "cat-file", "blob", f"{rev}:{path}"],
+        cwd=str(cwd),
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        return None
+    return result.stdout
+
+
+def _rename_sources(base: str, cwd: Path) -> dict[str, str]:
+    """The changed paths that are RENAMES (= = the new path -> the old path).
+
+    = = A rename is why the merge-base blob can be ABSENT for a path that
+    is not new: = = the content moved, = = so the byte it carries is the
+    SOURCE's byte (= = and a rename drops nothing).
+    """
+    output = _git(["diff", "--find-renames", "--name-status", f"{base}...HEAD"], cwd)
+    sources: dict[str, str] = {}
+    for line in output.splitlines():
+        parts = line.split("\t")
+        if len(parts) == 3 and parts[0].startswith("R"):
+            sources[parts[2]] = parts[1]
+    return sources
+
+
+def markdown_newline_offenders(
+    base: str, paths: list[str], cwd: Path
+) -> list[tuple[str, str]]:
+    """The changed ``.md`` files THAT THIS CHANGE dropped the newline from.
+
+    Returns ``(path, reason)`` pairs, = = and the reason says what
+    happened (= = the change removed the byte, = = or the file is new and
+    never had one). = = The comparison is the DELTA (= = the blob at the
+    merge-base against the blob at HEAD), = = so a file that already
+    lacked the byte is the tree's drift and is NOT this change's = = the
+    rule the other two checks in this gate follow (= = "measure the
+    CHANGE, = = not the history").
+
+    = = MEASURED (= = the review that asked for it): = = over main's last
+    300 COMMITS, = = a state check (= = "does the file on disk end with a
+    newline?") goes RED on 13, = = and 11 of those 13 are FALSE (= = the
+    commit never touched the byte, = = and the tree already has 28 files
+    without it). = = ⇒ The delta rule goes RED on 2, = = and those 2 are
+    the real defect (= = the two commits that dropped the byte from the
+    two registries). = = ⇒ AND OVER THE LAST 300 ``.md``-TOUCHING COMMITS
+    (= = a different, = = larger window): = = DELTA REDs 3 (= = all three
+    genuine drops) = = and STATE REDs 20 (= = 17 of them false).
+    """
+    merge_base = _git(["merge-base", base, "HEAD"], cwd).strip()
+    renames = _rename_sources(base, cwd)
+    offenders: list[tuple[str, str]] = []
+    for path in paths:
+        if not path.endswith(MD_SUFFIX):
+            continue
+        after = _blob_bytes("HEAD", path, cwd)
+        if after is None:
+            # The file is not at HEAD (= = the change deleted it) = = and a
+            # deleted file cannot have dropped a byte.
+            continue
+        if not after or after.endswith(b"\n"):
+            # It ends with the byte (= = or it is empty = = and there is
+            # nothing to drop).
+            continue
+        source = renames.get(path)
+        if source is not None:
+            # = = A RENAME: = = the content moved, = = so the byte the file
+            # carries is the SOURCE's byte. = = ⇒ A rename drops nothing,
+            # and a source that already lacked the byte moved its drift
+            # with the file (= = the tree's drift, = = not this change's).
+            before = _blob_bytes(merge_base, source, cwd)
+            if before is None or not before.endswith(b"\n"):
+                continue
+            offenders.append(
+                (path, "the change DROPPED the trailing newline (= = the byte the merge driver compares)")
+            )
+            continue
+        before = _blob_bytes(merge_base, path, cwd)
+        if before is None:
+            offenders.append(
+                (path, "the NEW .md does not end with a newline (= = the byte the merge driver compares)")
+            )
+        elif before.endswith(b"\n"):
+            offenders.append(
+                (path, "the change DROPPED the trailing newline (= = the byte the merge driver compares)")
+            )
+        # = = ELSE the file already lacked the byte (= = the tree's own
+        # drift) = = and this change did not drop it = = so it is not this
+        # change's business.
+    return offenders
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="The CI's change gate")
     parser.add_argument("--base", required=True, help="the commit the change is measured against")
     parser.add_argument(
         "--check",
-        choices=["pollution", "formatting"],
+        choices=["pollution", "formatting", "markdown-newline"],
         required=True,
         help="which check to run",
     )
@@ -306,6 +426,22 @@ def main(argv: list[str] | None = None) -> int:
         print(f"pollution: {len(offenders)} forbidden vocabulary line(s) in this change")
         for path, line, token, context in offenders:
             print(f"  {path}:{line}: forbidden vocabulary '{token}' | {context}")
+        return 1
+
+    if args.check == "markdown-newline":
+        md_paths = [p for p in changed_paths(args.base, cwd) if p.endswith(MD_SUFFIX)]
+        offenders = markdown_newline_offenders(args.base, md_paths, cwd)
+        if not offenders:
+            print(
+                f"markdown-newline: the change drops no .md's trailing newline "
+                f"({len(md_paths)} changed .md file(s) checked)"
+            )
+            return 0
+        print(
+            f"markdown-newline: {len(offenders)} changed .md file(s) lost their trailing newline"
+        )
+        for path, reason in offenders:
+            print(f"  {path}: {reason}")
         return 1
 
     swift_paths = [p for p in changed_paths(args.base, cwd) if p.endswith(SWIFT_SUFFIX)]

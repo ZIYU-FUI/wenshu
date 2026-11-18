@@ -20,6 +20,56 @@ extension AppleSidebarView {
         return findNode(for: selection, in: nodes)
     }
 
+    /// The rows that have to be open for the selected row to show.
+    ///
+    /// The path to a row runs from the tree's root down to the row
+    /// itself; = the rows above it are the ones whose collapsed
+    /// children hide it. Those rows are the ones to open (= the
+    /// selected row itself is not opened: = a selection is not an
+    /// expansion, = the disclosure triangle opens a row).
+    ///
+    /// The keys come from the rows themselves (= not from the
+    /// selection), = so the same row always carries the same key
+    /// (= the key survives a tree rebuild and a relaunch).
+    static func revealExpansionKeys(
+        for selection: SidebarItem?,
+        in nodes: [SidebarNode]
+    ) -> Set<SidebarItem> {
+        guard let selection, let path = findPath(for: selection, in: nodes) else { return [] }
+        return Set(path.dropLast().compactMap(\.expansionKey))
+    }
+
+    /// The path from the tree's root down to the row a selection names.
+    ///
+    /// The path is the row plus its ancestors (= the row itself is the
+    /// last element). Nil when the tree draws no such row.
+    ///
+    /// ⇒ ⇒ ⇒ THE ROW IS FOUND BY THE ROW SEARCH (= `findNode`, = the
+    /// one function that answers every selection case), = and the path
+    /// is the walk down to it. = ⇒ ⇒ ⇒ So the search itself is NOT
+    /// rewritten here, = and the rule it carries (= including the
+    /// hidden row's own) stays in one place.
+    private static func findPath(for selection: SidebarItem, in nodes: [SidebarNode]) -> [SidebarNode]? {
+        guard let row = findNode(for: selection, in: nodes) else { return nil }
+        return path(to: row, in: nodes)
+    }
+
+    /// The row and the rows above it (= the tree's root first).
+    ///
+    /// The walk compares the rows' own ids (= every row's id is
+    /// unique), = so the path is the row's own line in the tree.
+    private static func path(to row: SidebarNode, in nodes: [SidebarNode]) -> [SidebarNode]? {
+        for node in nodes {
+            if node.id == row.id {
+                return [node]
+            }
+            if let children = node.children, let below = path(to: row, in: children) {
+                return [node] + below
+            }
+        }
+        return nil
+    }
+
     /// / The row search itself (= every selection case the tree can make).
     /// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
     /// / a category row and a tag row carry a string, not an identifier.

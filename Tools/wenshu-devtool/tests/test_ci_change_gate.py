@@ -23,7 +23,16 @@ against the two gates' own claims:
      SwiftFormat abort the whole run and report nothing = a false green).
  10. a SwiftFormat run that could not COMPLETE (= exit 70) is a failure, not
      a clean file.
- 11. this file itself carries no forbidden vocabulary.
+ 11. a change that DROPS a .md's trailing newline is reported (= the byte
+     the house's merge driver compares) = = and it is reported BY the GATE
+     (= = not by the helper), = = so a mutation that breaks the scoping
+     cannot pass.
+ 12. a .md that ALREADY lacked the byte (= the tree's drift) is NOT the
+     change's business (= = the gate's DELTA rule, = = not a state check)
+     = = and the drifted path is not among the reported paths.
+ 13. a NEW .md that never had the byte is reported.
+ 14. a RENAME of a byte-less .md drops nothing (= = and is green).
+ 15. this file itself carries no forbidden vocabulary.
 
 Run:  python3 Tools/wenshu-devtool/tests/test_ci_change_gate.py
 Exit: 0 = every case passed, 1 = at least one case failed.
@@ -90,6 +99,38 @@ def case(name: str, ok: bool, detail: str = "") -> bool:
     mark = "PASS" if ok else "FAIL"
     print(f"[{mark}] {name}" + (f"  ({detail})" if detail else ""))
     return ok
+
+
+def _scratch_repo_with_markdown(tmp: str) -> tuple[Path, str]:
+    """A git repo with two .md files, = = and the base commit's sha.
+
+    ``docs/kept.md`` ends with a newline (= = the normal state) and
+    ``docs/drifted.md`` never had one (= = the tree's own drift, = = which
+    a change that merely EDITS it must not be charged for).
+    """
+    repo = Path(tmp) / "md-repo"
+    (repo / "docs").mkdir(parents=True)
+    (repo / "docs" / "kept.md").write_text("# kept\n\nbody.\n", encoding="utf-8")
+    (repo / "docs" / "drifted.md").write_text("# drifted\n\nbody.", encoding="utf-8")
+    for args in (
+        ["init", "-q"],
+        ["config", "user.email", "gate@test.invalid"],
+        ["config", "user.name", "gate"],
+        ["add", "-A"],
+        ["commit", "-q", "-m", "base"],
+    ):
+        subprocess.run(["git", *args], cwd=str(repo), check=True, capture_output=True)
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True, check=True
+    ).stdout.strip()
+    return repo, base
+
+
+def _commit(repo: Path, message: str) -> None:
+    subprocess.run(["git", "add", "-A"], cwd=str(repo), check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", message], cwd=str(repo), check=True, capture_output=True
+    )
 
 
 def _scratch_repo(tmp: str) -> Path:
@@ -369,6 +410,123 @@ def main() -> int:
     results.append(case_swiftformat_failure_is_not_a_clean_file())
 
     own_text = Path(__file__).read_text(encoding="utf-8")
+    # The trailing-newline check (= = the byte the house's merge driver
+    # compares, = = and the byte that broke it twice).
+    #
+    # ⇒ EVERY CASE BELOW DRIVES THE GATE (= = `gate.main`), = = not the
+    # helper: = = a case that calls the helper cannot fail when the
+    # GATE's scoping breaks (= = MEASURED: = = a mutation that scans every
+    # .md in the tree instead of the changed ones left the helper-only
+    # suite green).
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, base = _scratch_repo_with_markdown(tmp)
+
+        # (a) a change that DROPS the byte = = the gate names the file.
+        (repo / "docs" / "kept.md").write_text("# kept\n\nbody.", encoding="utf-8")
+        _commit(repo, "drop the newline")
+        exit_code = gate.main(
+            ["--base", base, "--check", "markdown-newline", "--repo", str(repo)]
+        )
+        results.append(
+            case(
+                "a change that DROPS a .md's trailing newline is reported BY THE GATE",
+                exit_code == 1,
+                f"gate_exit={exit_code} (= 1 = the drop was caught)",
+            )
+        )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, base = _scratch_repo_with_markdown(tmp)
+
+        # (b) a change that EDITS a .md that already lacked the byte = = the
+        # tree's drift = = and NOT this change's business (= = the delta
+        # rule, = = not a state check).
+        # ⇒ THE EDIT KEEPS THE DRIFT (= = no trailing newline): = = an edit
+        # that ADDED the byte would make the state rule and the delta rule
+        # agree (= = the case would pass against a gate that had no delta
+        # rule at all = = and it would pin nothing).
+        (repo / "docs" / "drifted.md").write_text("# drifted\n\nbody. edited.", encoding="utf-8")
+        _commit(repo, "edit a file that never had the newline")
+        exit_code = gate.main(
+            ["--base", base, "--check", "markdown-newline", "--repo", str(repo)]
+        )
+        results.append(
+            case(
+                "a .md that ALREADY lacked the byte is NOT this change's business",
+                exit_code == 0,
+                f"gate_exit={exit_code} (= 0 = the tree's drift is not charged to the change)",
+            )
+        )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, base = _scratch_repo_with_markdown(tmp)
+
+        # (c) a change that EDITS a .md that KEEPS its byte = = green, = =
+        # and the file that never had one (= = not touched by the change)
+        # is not among the reported paths (= = the scoping).
+        (repo / "docs" / "kept.md").write_text("# kept\n\nbody. edited.\n", encoding="utf-8")
+        _commit(repo, "edit a file that keeps its newline")
+        exit_code = gate.main(
+            ["--base", base, "--check", "markdown-newline", "--repo", str(repo)]
+        )
+        results.append(
+            case(
+                "a change that keeps a .md's newline is green (= = and the scoping holds)",
+                exit_code == 0,
+                f"gate_exit={exit_code} (= 0 = nothing was dropped)",
+            )
+        )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, base = _scratch_repo_with_markdown(tmp)
+
+        # (d) a NEW .md that never had the byte = = reported (= = the
+        # change CREATED a file that breaks the merge driver's comparison).
+        (repo / "docs" / "fresh.md").write_text("# fresh\n\nbody.", encoding="utf-8")
+        _commit(repo, "add a new .md without the newline")
+        exit_code = gate.main(
+            ["--base", base, "--check", "markdown-newline", "--repo", str(repo)]
+        )
+        results.append(
+            case(
+                "a NEW .md that never had the byte is reported",
+                exit_code == 1,
+                f"gate_exit={exit_code} (= 1 = the new file was caught)",
+            )
+        )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, base = _scratch_repo_with_markdown(tmp)
+
+        # (e) a RENAME of a byte-less .md = = GREEN: = = the content moved,
+        # = = so the byte moved with it (= = the tree's drift moved), = = and
+        # a rename drops nothing. = = ⇒ The merge-base blob is ABSENT for
+        # the new path, = = so a gate that reads the new path's base blob
+        # would call it NEW (= = the false red the review measured on the
+        # house's own ADR renames).
+        (repo / "docs" / "renamed.md").write_text("# renamed\n\nbody.", encoding="utf-8")
+        _commit(repo, "add the file to be renamed")
+        rename_base = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True, check=True
+        ).stdout.strip()
+        subprocess.run(
+            ["git", "mv", "docs/renamed.md", "docs/renamed-elsewhere.md"],
+            cwd=str(repo),
+            check=True,
+            capture_output=True,
+        )
+        _commit(repo, "rename a file that never had the newline")
+        exit_code = gate.main(
+            ["--base", rename_base, "--check", "markdown-newline", "--repo", str(repo)]
+        )
+        results.append(
+            case(
+                "a RENAME of a byte-less .md drops nothing (= = and is green)",
+                exit_code == 0,
+                f"gate_exit={exit_code} (= 0 = the rename moved the drift, = = it dropped nothing)",
+            )
+        )
+
     results.append(
         case(
             "this file itself carries no forbidden vocabulary",

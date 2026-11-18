@@ -164,11 +164,31 @@ struct EditorStatusBarWordCountTests {
 
     /// The status bar's painted pixels, as the bytes it drew.
     ///
-    /// ⇒ ⇒ ⇒ **⇒ WHY A WINDOWLESS HOST**: = = the bar's geometry is a
-    /// pure layout question, = = and a window would raise a panel on the
-    /// user's screen for nothing. = ⇒ And the backdrop is painted
-    /// first, = = so a pixel that differs from it is a pixel the view
-    /// drew.
+    /// ⇒ ⇒ ⇒ **⇒ WHY A REAL WINDOW AND NOT A WINDOWLESS
+    /// `NSHostingView`**: = = the bar's own ink is a DYNAMIC system
+    /// colour (= `.secondary` and `IconColor.secondary`), = = and a
+    /// windowless hosting view has NO appearance context, = = so the
+    /// dynamic colour resolves to NOTHING and the label paints NO
+    /// pixels. = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And then the two
+    /// documents with DIFFERENT character counts paint the SAME
+    /// bytes, = = so the case cannot tell the measure out of the
+    /// pixels at all. = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+    /// ⇒ ⇒ ⇒ ⇒ ⇒ MEASURED, = = not read off the source: = = in a
+    /// windowless host the bar paints ONE colour (= the surface),
+    /// = = and in a real window it paints TWO (= the surface + the
+    /// label's ink). = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+    /// ⇒ ⇒ ⇒ ⇒ ⇒ So this case hosts the bar in an `NSWindow` (= =
+    /// the app's own situation, = = the bar is never windowless),
+    /// = = and the window is the repo's established pattern for a
+    /// painted SwiftUI view (= `ChromeBottomFooterSurfaceTests` and
+    /// the chat-zone suites all do this).
+    ///
+    /// ⇒ ⇒ ⇒ **⇒ AND THE BACKDROP**: = = it is painted first, = = so
+    /// a pixel that differs from it is a pixel the view drew. = ⇒ And
+    /// the bar's own surface wears the COLUMN's ground (= = the
+    /// editor column, = = so it is TRANSPARENT, = = see
+    /// `ChromeBottomFooterSurfaceTests`), = = so the backdrop shows
+    /// through the band = = and the label's ink is what differs.
     @MainActor
     private static func pixels(of document: String) throws -> Data {
         let view = EditorStatusBarView(
@@ -180,8 +200,19 @@ struct EditorStatusBarWordCountTests {
 
         let hosting = NSHostingView(rootView: AnyView(view))
         hosting.frame = NSRect(x: 0, y: 0, width: 400, height: 60)
+        let window = NSWindow(
+            contentRect: hosting.frame,
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        // A ground the bar's own surface cannot be mistaken for.
+        window.backgroundColor = .magenta
+        window.contentView = hosting
+        window.orderFront(nil)
         hosting.layoutSubtreeIfNeeded()
-        hosting.displayIfNeeded()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.4))
+        hosting.layoutSubtreeIfNeeded()
 
         guard let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else {
             throw CocoaError(.fileReadUnknown)
@@ -189,7 +220,7 @@ struct EditorStatusBarWordCountTests {
         rep.size = hosting.bounds.size
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
-        NSColor.white.setFill()
+        NSColor.magenta.setFill()
         hosting.bounds.fill()
         NSGraphicsContext.restoreGraphicsState()
         hosting.cacheDisplay(in: hosting.bounds, to: rep)

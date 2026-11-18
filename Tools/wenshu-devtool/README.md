@@ -120,6 +120,10 @@ python3 Tools/wenshu-devtool/probes/column_chrome_band.py --selftest
 # 13. Whether the native segmented control's cells paint an opaque fill, from
 #     rendered pixels (the control alone, over a saturated host layer)
 swift Tools/wenshu-devtool/probes/segmented_control_material.swift
+
+# 14. What fills the SELECTED segment of a segmented control in a KEY window
+#     (the system accent, or a material), from rendered pixels
+swift Tools/wenshu-devtool/probes/segmented_control_selected_fill.swift
 ```
 
 The index's own test proves the index and the probes directory agree in

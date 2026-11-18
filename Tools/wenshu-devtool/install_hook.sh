@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
-# Install wenshu pre-commit hook for pollution vocabulary filter.
-# Idempotent: re-running overwrites existing hook.
+# Install the wenshu git hooks for the pollution vocabulary filter.
+#
+# THREE hooks, = = and AGENTS.md 1.4 names all three: = = the pre-commit
+# hook scans the staged CONTENT, = = the commit-msg hook scans the
+# COMMIT MESSAGE, = = and the pre-push hook scans the commits a push
+# would send (= the commits a `--no-verify` commit made).  ⇒ Installing
+# one of the three leaves the other two unguarded, = = and a fresh clone
+# carries none of them (= = a fresh clone has no hook at all).
+#
+# Idempotent: re-running overwrites every hook.
 
 set -euo pipefail
 
@@ -13,11 +21,12 @@ if [ ! -f "$FILTER_SCRIPT" ]; then
 fi
 
 GIT_DIR="$(git rev-parse --git-dir)"
-HOOK_PATH="$GIT_DIR/hooks/pre-commit"
+HOOKS_DIR="$GIT_DIR/hooks"
 
-mkdir -p "$(dirname "$HOOK_PATH")"
+mkdir -p "$HOOKS_DIR"
 
-cat > "$HOOK_PATH" <<EOF
+# 1) pre-commit: the staged CONTENT (= plus the drag regression suite).
+cat > "$HOOKS_DIR/pre-commit" <<EOF
 #!/usr/bin/env bash
 # wenshu pre-commit hook. installed by Tools/wenshu-devtool/install_hook.sh
 set -e
@@ -38,8 +47,40 @@ if (git diff --cached --name-only | grep -qE '^Sources/WenshuApp/(State/Workspac
 fi
 EOF
 
-chmod +x "$HOOK_PATH"
+chmod +x "$HOOKS_DIR/pre-commit"
 
-echo "wenshu pre-commit hook installed: $HOOK_PATH"
+# 2) commit-msg: the COMMIT MESSAGE (= git passes its path as argv 1).
+cat > "$HOOKS_DIR/commit-msg" <<EOF
+#!/usr/bin/env bash
+# wenshu commit-msg hook. installed by Tools/wenshu-devtool/install_hook.sh
+# (= AGENTS.md 1.4: the commit message carries no forbidden vocabulary).
+set -e
+python3 "$FILTER_SCRIPT" --hook=commit-msg "\$1"
+EOF
+
+chmod +x "$HOOKS_DIR/commit-msg"
+
+# 3) pre-push: the COMMITS A PUSH WOULD SEND (= the commits a
+#    `--no-verify` commit made, = = which the pre-commit hook never saw).
+#    git hands the hook the refs it is about to update on STDIN, = = and
+#    its first two ARGV are the remote's name and URL, = = which the
+#    filter does not take (= = so the hook passes none).
+cat > "$HOOKS_DIR/pre-push" <<EOF
+#!/usr/bin/env bash
+# wenshu pre-push hook. installed by Tools/wenshu-devtool/install_hook.sh
+# (= AGENTS.md 1.4: no pushed commit carries forbidden vocabulary).
+#
+# git hands the hook the remote's name (= argv 1) and its URL (= argv 2)
+# on argv, and the refs to update on STDIN.  ⇒ The remote is what the
+# range is built against, = = because a local tracking ref says nothing
+# about what the remote holds now.
+set -e
+python3 "$FILTER_SCRIPT" --hook=pre-push --remote="\$1" --remote-url="\$2"
+EOF
+
+chmod +x "$HOOKS_DIR/pre-push"
+
+echo "wenshu hooks installed: pre-commit, commit-msg, pre-push"
+echo "  in: $HOOKS_DIR"
 echo "Filter: $FILTER_SCRIPT"
 echo "Test: try a commit with forbidden vocab to verify it blocks."

@@ -228,6 +228,12 @@ extension ChatZoneTabBar {
             // of the page's row, = so the order is load-bearing.
             workspaceUI.currentSidebarPart = scope.sidebarPart
             workspaceUI.sidebarSelection = scope.treeSelection
+            // The tree opens the path to the row the page names (= the
+            // conversation shows where it lives). The request is its
+            // own signal (= the selection's value can be the same as
+            // the one the tree already has, = and then a tree that
+            // watched the value would hear nothing).
+            workspaceUI.requestReveal()
             // The chat's own scope follows the tree's selection, so the
             // session and the history are re-read against the new scope.
             applyScope(scope)

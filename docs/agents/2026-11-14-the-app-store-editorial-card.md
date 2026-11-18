@@ -203,7 +203,9 @@ The card's own text tiers, read out of the app's class metadata
 ivars): `eyebrowArtwork`, `eyebrowText`, `titleArtwork`, `titleLabelView`,
 `backgroundView`, `separatorLineView`, `isArticleSectionHeaderWithBackground`.
 
-So the App Store's editorial card carries FOUR text tiers and an action:
+So the App Store's editorial card carries at least THREE text tiers (= = the
+eyebrow, = = the title, = = and the description), = = and on the djay card a
+FOURTH (= = the offer button), = = with an action:
 
 1. an eyebrow (the category: "Editors' Picks", "New and Noteworthy", "Getting Started"),
 2. a title,
@@ -215,6 +217,46 @@ So the App Store's editorial card carries FOUR text tiers and an action:
 The capture: the App Store window resized to 1400 x 900 points, then
 `screencapture -x -l <window id>`, read at 3024 x 2024 pixels (2x).
 
+**⇒ ⇒ ⇒ AND WHERE A FIGURE'S EVIDENCE LIVES: = = THE CORAL CAPTURE IS
+KEPT, = = AND THE DJAY CAPTURE IS NOT, = = SO THE TWO CARDS' FIGURES DO NOT
+REPRODUCE ALIKE.** The coral capture (2026-11-16) is a file: = =
+`wenshu-visual-audit/references/appstore-editorial-coral-card-2026-11-16.png`
+(= = in the `wenshu-visual-audit` skill's `references/`, = = 3024 x 2024 px),
+= = so every coral figure below can be re-measured from it, = = and this
+document's coral figures were re-measured from exactly that file after the
+captures had been taken (= = the card box at x 632..2831, = = y 292..1015, = =
+the text block at 443 px = 20.1% of the card's width, = = the eyebrow at
+13.4% - 16.4%, = = the title's first line at 21.7% - 28.5%, = = the description
+at 33.8% - 37.2%, = = and the corner's radius at 26 px). The djay capture (2026-11-14)
+was a scratch file and was NOT kept, = = so the djay figures below are the
+record of that measurement and CANNOT be re-measured today. ⇒ ⇒ That
+asymmetry is the reason the figures are split card by card below: = = a
+reader can re-derive the coral half, = = and must take the djay half on
+trust.
+
+**⇒ ⇒ ⇒ AND THE FIRST THING EVERY FIGURE BELOW BELONGS TO: THE SLOT'S
+CONTENT IS NOT A FIXTURE, = = SO EACH FIGURE IS ONE CARD'S, = = NOT THE
+SLOT'S.**
+Two captures of the SAME window (= = the same window id, = = the same bounds,
+= = the same size) held DIFFERENT cards: = = the djay card on 2026-11-14, = =
+and a coral card on 2026-11-16, = = whose words sit at the TOP LEFT of one
+flat surface, with an illustration beside them, and with NO description band
+at the bottom. Both cards were measured with the same instrument, = = and
+what is shared is named below, = = figure by figure.
+
+⇒ ⇒ ⇒ AND THE MECHANISM IS NOT CLAIMED, = = BECAUSE IT WAS NOT MEASURED:
+= = 34 further captures of the same window over 19 minutes held the SAME card
+throughout (= = 33 of them byte-identical), = = and the slot shows hover
+paging chevrons at its edges, = = so it is PAGED and does not advance on its
+own. = = What the two captures two days apart establish is the narrower fact
+this document relies on: = = the slot's content is not a fixture, = = so a
+figure measured from one capture does not carry to another. = = What changed
+in between was NOT observed, = = and this document does not say what.
+
+The djay card (2026-11-14). ⇒ Its capture was NOT kept (= = it was a
+scratch file), = = so these are the record of the 2026-11-14 measurement and
+they cannot be re-measured from any file:
+
 | Measurement | Value | How |
 | --- | --- | --- |
 | the card's full width | 2200 px | the panel's BACKGROUND edge (x=632) to the artwork's right edge (x=2831) |
@@ -224,7 +266,7 @@ The capture: the App Store window resized to 1400 x 900 points, then
 | the card's height | 724 px | the saturated region's bounding box (y 292..1015) |
 | the card's ratio | 3.039 : 1 | 2200 / 724 |
 | the artwork's own ratio | 2.279 : 1 | 1650 / 724 |
-| the outer corner's radius | 24.8 px (= 12.4 PT at 2x) | a circle fitted to the sub-pixel edge over 26 rows, RMS 0.18 px |
+| the outer corner's radius | 24.2 px (= 12.1 PT at 2x) | a circle fitted to the sub-pixel edge over 24 rows, RMS 0.17 px, with the base = the card's own STRAIGHT edge; = = THIS IS A RECORD (= = the capture was not kept), = = it was fitted with the base at the FIRST SURFACE PIXEL (= = x 632), = = which a later calibration showed to be half a pixel inside the card's own edge; = = so this figure is NOT the radius the deposited file reproduces (= = see the coral card's row), = = and it cannot be re-measured today |
 
 ⇒ The width is measured from the PANEL'S BACKGROUND, not from its first
 glyph: the leftmost ink sits at x=686, and measuring from there drops the
@@ -232,20 +274,56 @@ panel's own 54 px of leading padding (= 2146 px, which reproduces the
 earlier figure but is not the card's width). The app's own AX frame for
 this card agrees with the background edge: `1100 x 362` PT = 2200 x 724 px.
 
-The four ink bands inside the panel, as a percentage down the card:
+The four ink bands inside the panel, as a percentage down the card. The
+first TWO START in the same place on the coral card (= = to within 0.1%), = =
+and the last two are this card's alone:
 
-| Band | Extent | What it is |
+| Band | Extent | What it is | Which card |
+| --- | --- | --- | --- |
+| 13.4% - 16.6% | 24 px tall | the eyebrow | BOTH (= = the coral card's is 13.4% - 16.4%, = = the same start and a 0.2pp earlier end) |
+| 21.7% - 28.5% | 50 px tall | the title, line 1 | BOTH (= = the coral card's is 21.7% - 28.5%) |
+| 30.5% - 35.5% | 37 px tall | the title, line 2 (the title wraps) | the djay card |
+| 90.2% - 93.4% | 25 px tall | the description, AT THE BOTTOM of the panel | the djay card |
+
+The coral card (2026-11-16), the same slot, the same window, the same
+instrument. ⇒ The band instrument: = = the longest run of rows whose max blue
+is at least 190 inside x 660..1201, = = read against the card's own 724 px,
+= = and the text block's rule: = = a column counts when it carries at least
+four near-white pixels in the title rows (= = x 690..1132).
+
+| Measurement | Value | How |
 | --- | --- | --- |
-| 13.4% - 16.6% | 24 px tall | the eyebrow |
-| 21.7% - 28.5% | 50 px tall | the title, line 1 |
-| 30.5% - 35.5% | 37 px tall | the title, line 2 (the title wraps) |
-| 90.2% - 93.5% | 25 px tall | the description, AT THE BOTTOM of the panel |
+| the card's full width | 2200 px | the card's own pixels, x 632..2831 |
+| the card's height | 724 px | y 292..1015 |
+| the card's ratio | 3.039 : 1 | 2200 / 724 = = THE SAME as the djay card's |
+| the outer corner's radius | 26 px (= 13 PT at 2x) | measured FIT-FREE: = = a SwiftUI RoundedRectangle of a KNOWN radius, drawn with the same card box and the same corner style on the same canvas, = = its edge curve laid over this capture's edge curve row by row; = = the best match is 12.9 PT (= 25.8 px) at RMS 0.125 px, = = and 13.15 PT (= 26.3 px) at RMS 0.218 px, = = while the 12.1 PT (= 24.2 px) that was published here misses by RMS 0.874 px and a maximum of 2.08 px |
+| a text panel of its own | **none** | the surface's colour is rgb(253,141,128) at the far left AND at the far right, and its luminance is continuous across the djay card's old boundary |
+| the artwork | 1135 px = 51.6% of the card | the teal illustration's own ink, x 1296..2430 |
+| the text block | 443 px = 20.1% of the card | the near-white ink inside the tier rows, x 690..1132 |
+| the ink bands | 13.4% - 16.4% (23 px), 21.7% - 28.5% (50 px), 33.8% - 37.2% (25 px) | the eyebrow and the title's first line land in the SAME bands as the djay card's (= = the same start, = = to within 0.1%); = = the description is here, at 33.8%, = = and there is no band below 37% |
 
-**⇒ THE KEY STRUCTURAL FACT: THE APPLE CARD IS A SPLIT CARD, NOT A
-TEXT-ON-ARTWORK CARD.** The words live in their own panel beside the
-image (25% of the width), and the description is pinned to the BOTTOM of
-that panel while the eyebrow and title sit at the TOP. The image is never
-behind the words.
+**⇒ ⇒ THE STRUCTURAL FACT, SCOPED TO THE CARD IT WAS MEASURED ON: THE
+DJAY CARD IS A SPLIT CARD, = = AND ONE CARD IN THE SLOT IS NOT.** On the djay
+card the words live in their own panel beside the image, and the description
+is pinned to the panel's BOTTOM while the eyebrow and title sit at its TOP.
+On the coral card there is no panel at all, the three tiers STACK at the
+top, and the card's lower 63% carries nothing. So "the Apple card is a
+split card" is a statement about ONE card in the slot, = = NOT about the
+slot. The AX tree agrees independently about the tiers themselves: one
+`AXStaticText` per card whose value joins three comma-separated fields, and
+the class metadata carries `headingField`, `titleField`, `descriptionField`
+on `ArticleCardTextView`.
+
+What the two cards share, and so what a reader may treat as the slot's: the
+2200 x 724 px box (= 3.039 : 1), the text block's width
+(= 20% of the card) and its 2.5% left inset, = = the EYEBROW's band and the
+TITLE's first line's band (= = the same START on both cards, = = to within
+0.1%), = =
+and the fact that the card carries at least three tiers of text (= = the
+eyebrow, = = the title, = = and the description; = = the djay card adds a
+fourth, = = the offer button). What differs, and so
+what is one card's: the panel, the artwork's share, the description's
+position, and the number of bands.
 
 The medium card's artwork is a CIRCLE, not a rectangle: its saturated
 region measures 325 x 340 px (ratio 0.956) and fills 48.6% of its own
@@ -253,7 +331,13 @@ bounding box. A circle fills pi/4 = 78.5% of its box; a rounded rectangle
 fills ~100%. 48.6% is lower than a circle's 78.5% because the artwork
 inside the circle is not uniformly saturated (the second blob's fill is
 46%), but the aspect ratio of 0.956 and the visible round crop in the
-capture settle the shape.
+capture settle the shape. ⇒ ⇒ ⇒ AND THAT CAPTURE IS THE DJAY ONE (= = the
+2026-11-14 frame, = = whose file was not deposited), = = so this figure is
+the record of one measurement and cannot be re-run from a file; = = the coral
+capture's medium card measures 331 x 340 px (= = a ratio of 0.974, = = and
+47.9% of its own bounding box) = = so the width is within 6 px and the fill
+within 0.7 points of a DIFFERENT card's, = = which is the point: = = the
+figure belongs to the card it was measured on.
 
 ### 2.5 The conclusion
 
@@ -263,6 +347,12 @@ The App Store's editorial card is:
   binary, and the macOS build's own classes are the ones that draw it.
 - NOT a control a client can adopt: it is private App Store code in
   private frameworks, with no public API behind it.
+- ⇒ ⇒ AND NOT ONE FIXED LAYOUT: = = the slot is a carousel, = = the card in
+  it changes, = = and the two cards measured here differ inside the box
+  (one is split with its description at the bottom, = = one is flat with its
+  tiers stacked at the top). = = So a reference to "the Apple card" must
+  name WHICH card, = = and every figure in this document is marked with the
+  card it belongs to.
 
 So it is a REFERENCE, and the only thing it can lend is its shape.
 
@@ -275,17 +365,18 @@ pixel), on the same machine.
 
 | Dimension | Apple's editorial card (macOS App Store) | Wenshu's material card |
 | --- | --- | --- |
-| where the words live | a separate panel beside the image (25% of the width) | ON the image, bottom left |
-| the image's share of the card | 75.0% | 100% (the picture IS the card) |
-| the card's ratio | 3.039 : 1 | 4 : 3 (`DesignTokens.coverTileRatio`) |
-| the image's own ratio | 2.279 : 1 | 4 : 3 (the picture is generated in it) |
-| the corner radius | 12 PT (24.8 px at 2x) | 10 PT (`DesignTokens.surfaceCornerRadiusWindow`) |
-| the text tiers | eyebrow, title, description, offer button | title, tag chips |
-| the description | yes, pinned to the panel's bottom | **none** |
+| where the words live | a separate panel beside the image (25% of the width) = = ON THE DJAY CARD; = = on the coral card they sit on one flat surface | ON the image, bottom left |
+| the image's share of the card | 75.0% (= = the djay card) = = 51.6% (= = the coral card) | 100% (the picture IS the card) |
+| the card's ratio | 3.039 : 1 (= = both cards) | 4 : 3 (`DesignTokens.coverTileRatio`) |
+| the image's own ratio | 2.279 : 1 (= = the djay card) | 4 : 3 (the picture is generated in it) |
+| the corner radius | 13 PT (26 px at 2x, = = the coral card, = = measured from the deposited file) | 10 PT (`DesignTokens.surfaceCornerRadiusWindow`) |
+| the text tiers | eyebrow, title, description, = = and on the djay card an offer button (= = four there, = = three on the coral card); = = the eyebrow's and the title's first line's bands START in the same place on both (= = to within 0.1%); = = what differs is the description's position | title, tag chips |
+| the description | yes = = at the panel's bottom (the djay card) = = under the title (the coral card) | **none** |
 | the eyebrow (the category) | yes | **none** |
 | the shape of the image | a circle (medium card), a full-bleed rect (large card) | a full-bleed rect, always |
-| the scrim over the words | none (the words are not on the image) | a black gradient wash (0.18 -> 0.55) |
+| the scrim over the words | none needed | a black gradient wash (0.18 -> 0.55) |
 | the action | an offer button, in the card | none (the card opens on a double click) |
+
 
 The Wenshu side, read from the source of record:
 
@@ -356,18 +447,24 @@ about API:
 
 **TRANSFERS (the composition rules):**
 
-- The card carries a CATEGORY, a TITLE and a DESCRIPTION, = = and the
-  CATEGORY and the DESCRIPTION sit at the panel's TWO ENDS: = = the
-  category at the top, = = the description at the bottom, = = with the
-  title between them. = = So the title and the description BRACKET the
-  panel rather than stacking under one another.
-- The category is a small, quiet line ABOVE the title (= = measured: 24
+- The card carries a CATEGORY, a TITLE and a DESCRIPTION. = = And the
+  DESCRIPTION's PLACE is not a rule: = = on the djay card the category and
+  the description sit at the panel's TWO ENDS (= = the category at the top,
+  = = the description at the bottom, = = with the title between them, = =
+  so the title and the description BRACKET the panel), = = while on the
+  coral card all three tiers STACK at the top (= = and there is no offer
+  button on it), = = and the panel's bottom
+  carries nothing. = = ⇒ ⇒ So the rule that survives both cards is "three
+  tiers", = = and the bracketing is ONE card's arrangement.
+- The category is a small, quiet line ABOVE the title (= = measured: 23-24
   px tall against the title's 50 px, = = and it starts 97 px below the
-  card's top edge while the title starts 157 px down).
+  card's top edge while the title starts 157 px down = = on BOTH cards).
 - The description is the quietest of the three (= = 25 px tall, = = and
   its ink is the lowest-contrast band in the panel).
-- The image is never behind the words, so the image needs no scrim.
-- ⇒ ⇒ AND THE CATEGORY'S CASE IS NOT A RULE: = = in this capture it is
+- The image is never behind the words, so the image needs no scrim = = on
+  EITHER card (= = the djay card's words are in a panel of their own, = =
+  the coral card's sit on the surface beside the illustration).
+- ⇒ ⇒ AND THE CATEGORY'S CASE IS NOT A RULE: = = in the djay capture it is
   CJK text with a Latin acronym in caps (= = the app-store label for the
   editors'-picks shelf, = = which the accessibility tree names in full),
   = = so the CATEGORY is a LABEL, = = not a typographic style to copy.
@@ -378,13 +475,17 @@ about API:
   no way to link it.
 - The exact ratios (3.039 : 1 and 2.279 : 1): Apple's editorial card is
   sized for the App Store's own page at its own width, and its numbers
-  are Apple's, not ours.
+  are Apple's, not ours. = = (The 3.039 : 1 holds for BOTH cards measured
+  = = it belongs to the slot; = = the 2.279 : 1 is the djay card's
+  artwork alone.)
 - The circle crop on the medium card: Apple's medium card is a different
   card from its large card, and Wenshu has ONE card for one column.
 - The offer button: that is a store transaction, and Wenshu's material
   column has no transaction.
-- The pixel sizes: the 24.8 px corner, the 550 px panel. These are Apple's
-  numbers at Apple's window size.
+- The pixel sizes: the 26 px corner (= = the coral card, = = from the deposited
+  file), the 550 px panel. These are Apple's
+  numbers at Apple's window size = = and the 550 px panel is the djay
+  card's, = = because the coral card has no panel at all.
 
 ### 3.3 The two cheapest gaps, if the boss wants them closed
 
@@ -426,7 +527,7 @@ is the boss's call, and it is NOT built here.
 | the App Store app is native macOS | `otool -L` (no `iOSSupport`, no `UIKit`) + `file` + `otool -l` (`LC_BUILD_VERSION platform 1`) |
 | the card's class names | `otool -oV` over the App Store binary, then a Python pass for each class's ivars and properties |
 | the card's AX identifiers | the running App Store's accessibility tree, read with an `AXUIElement` walk |
-| Apple's card geometry | `screencapture -x -l <window id>` of the 1400 x 900 window, then a Python PNG decode and a saturation flood-fill for the artwork's bounding box, and an edge-threshold band scan for the ink tiers |
+| Apple's card geometry | `screencapture -x -l <window id>` of the 1400 x 900 window, then a Python PNG decode and a saturation predicate, and the artwork's bounding box taken over the SATURATED PIXELS of its region (= = not a flood-fill, = = which yields the inner blob, = = 324 x 315, = = and not the region's 331 x 340), and an edge-threshold band scan for the ink tiers |
 | Wenshu's card geometry | the same PNG decoder over the app's own 2x capture, plus the source of record |
 | Wenshu's card composition | `PreviewPaneCard+Body.swift` and `DesignTokens.swift` read directly |
 
@@ -436,16 +537,24 @@ size and not at a scaled-down thumbnail.
 
 ### 4.1 What was NOT measured, and why it matters
 
+- **WHICH card was in the slot.** This is the axis that decides §2, and it
+  is obtainable in the SAME frame, SAME window, SAME size: the capture is
+  one frame of a carousel that advances. Two cards were measured here (the
+  djay card and the coral card), and they differ inside the box. A third
+  card may differ again, so "the Apple card" is not a single thing = = and
+  the §2 figures are marked with the card they belong to.
 - The card's behaviour while scrolling, while the carousel advances, and
-  while a video card plays. The capture is one static frame.
-- The card's appearance in the light appearance. The capture is the dark
+  while a video card plays. The captures are static frames.
+- The card's appearance in the light appearance. The captures are the dark
   appearance.
 - The card's geometry at a second window width. Apple's numbers move with
   the page's width, and one measurement cannot say whether the 3.04 : 1 is
   a constant or a consequence of the 1400-point window.
 
-⇒ So the RATIOS are recorded as ONE measurement at ONE size, and the
-decision to widen the tile must not rest on them alone.
+⇒ So the OUTER RATIOS are recorded as ONE measurement at ONE size (= = and
+they repeat on the two cards measured), the INNER figures are recorded as
+TWO cards' layouts, and the decision to widen the tile must not rest on
+them alone.
 
 ---
 

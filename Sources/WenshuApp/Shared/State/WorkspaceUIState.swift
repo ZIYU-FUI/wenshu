@@ -171,6 +171,91 @@ final class WorkspaceUIState {
     /// selection values use the same coder as `sidebarSelection`).
     var selections: [SidebarPart: SidebarItem] = [:]
 
+    /// The tree rows that are open (= the sidebar tree's expansion).
+    ///
+    /// The key is the row's business identity (= `SidebarItem`; = the
+    /// same identity the selection uses), so an open row survives a
+    /// tree rebuild (= the tree is projected again on every reload)
+    /// and a relaunch (= the state is read back in init).
+    ///
+    /// The set has TWO writers that GROW it, = and one that SHRINKS
+    /// it:
+    ///
+    /// * the user's own OPEN (= the disclosure control's open half, = and
+    ///   it grows the set even when the selection does not move), =
+    /// * the reveal (= the rows above the selected row, = when a
+    ///   conversation names a row), =
+    /// * and the user's own CLOSE (= the disclosure control's close
+    ///   half) is the only writer that SHRINKS it.
+    ///
+    /// ⇒ ⇒ ⇒ So a reveal never closes a row (= it only adds), = and a
+    /// row the user closed comes back when a selection needs its path.
+    ///
+    /// Persisted to `wenshu.sidebar.expandedRows` UserDefaults key
+    /// (= JSON via Codable; = the same coder the selection uses).
+    var expandedSidebarRows: Set<SidebarItem> = [] {
+        didSet {
+            // The same rule the selection observer follows: = no write
+            // back during the restore (= didSet is not called during
+            // init, but the restore assigns the property, which the
+            // observer does see).
+            guard !isRestoring else { return }
+            guard oldValue != expandedSidebarRows else { return }
+            persistExpandedSidebarRows()
+        }
+    }
+
+    /// Write the open rows to the user's defaults.
+    ///
+    /// The rows use the same coder as the selection (= `SidebarItem`
+    /// is Codable), so the stored value is one JSON array.
+    private func persistExpandedSidebarRows() {
+        guard let data = try? JSONEncoder().encode(expandedSidebarRows) else { return }
+        store.setData(data, forKey: .sidebarExpandedRows)
+    }
+
+    /// The count of the times a row was ASKED FOR (= a reveal request).
+    ///
+    /// The tree opens the path to the selected row when this count
+    /// changes. The count is the signal, = not the selection's value:
+    /// the selection can be re-applied with the same value (= the
+    /// conversation's page names the row the tree already has
+    /// selected), = and a tree that watches the value would hear
+    /// nothing (= the row would stay hidden behind a collapsed
+    /// parent).
+    ///
+    /// It is not persisted (= it is a request, = not a state).
+    private(set) var revealRequestCount: Int = 0
+
+    /// Ask the tree to open the path to the selected row.
+    ///
+    /// The caller is the conversation (= a chat page names the row it
+    /// is scoped to), = so the tree shows where that conversation
+    /// lives. The rows above the selected row open; = the rows the
+    /// user opened elsewhere stay open (= the reveal only adds).
+    func requestReveal() {
+        revealRequestCount += 1
+    }
+
+    /// Open the rows a path needs (= and only those).
+    ///
+    /// The rows the user opened elsewhere stay open: = the reveal only
+    /// ADDS, = so it never closes a row. = ⇒ ⇒ ⇒ A row the user closed
+    /// comes back when a selection needs its path (= the path is the
+    /// requirement: = the row the conversation names has to show).
+    /// The rows that are already open are left alone (= a repeated
+    /// reveal writes nothing).
+    ///
+    /// The rule lives here (= the state owns the set), = so it can be
+    /// held by a test that drives the set itself.
+    func openRows(_ keys: Set<SidebarItem>) {
+        guard !keys.isEmpty else { return }
+        var rows = expandedSidebarRows
+        guard !rows.isSuperset(of: keys) else { return }
+        rows.formUnion(keys)
+        expandedSidebarRows = rows
+    }
+
     /// Write the per-part selections to the user's defaults.
     ///
     /// The map is encoded with the part's raw value as the key, so the
@@ -233,6 +318,14 @@ final class WorkspaceUIState {
             if let remembered = selections[part] {
                 sidebarSelection = remembered
             }
+        }
+        // The open rows (= the tree's expansion) come back with the
+        // selection, so the tree draws the same shape it had when the
+        // app was closed.
+        if let data = store.data(forKey: .sidebarExpandedRows),
+           let decoded = try? JSONDecoder().decode(Set<SidebarItem>.self, from: data)
+        {
+            expandedSidebarRows = decoded
         }
         // The restore is over: the observers write from now on.
         isRestoring = false

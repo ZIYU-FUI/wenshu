@@ -56,6 +56,16 @@ struct PreviewPane: View {
     /// counter instead.
     @State private var libraryChangeTick: Int = 0
 
+    /// The whole library's ONE list of documents (= the 资料库's documents,
+    /// then each book's), held by a store the pane loads ONCE per library
+    /// change.
+    ///
+    /// = = The store is passed IN (= = `AssetsPane` owns it, = = so the
+    /// chrome's card count reads the SAME list the grid draws = = and the
+    /// library is not walked twice per body pass). = = The default keeps
+    /// the previews and the unit tests working.
+    let libraryDocuments: LibraryDocumentStore
+
     /// scope of documents to display. Driven by sidebar selection (=
     /// WorkspaceView computes from sidebarSelection).
     let scope: PreviewScope
@@ -107,7 +117,8 @@ struct PreviewPane: View {
         searchQuery: Binding<String?> = .constant(nil),
         customLeadingSearch: AnyView? = nil,
         activeTag: Binding<String?> = .constant(nil),
-        coverServices: CoverPaneServices = CoverPaneServices.live()
+        coverServices: CoverPaneServices = CoverPaneServices.live(),
+        libraryDocuments: LibraryDocumentStore = LibraryDocumentStore()
     ) {
         self.scope = scope
         self.onDoubleClick = onDoubleClick
@@ -116,6 +127,7 @@ struct PreviewPane: View {
         _activeTag = activeTag
         self.customLeadingSearch = customLeadingSearch
         _coverServicesHolder = State(initialValue: coverServices)
+        self.libraryDocuments = libraryDocuments
     }
 
     /// The width at which the pane switches to two columns. The spec says the
@@ -123,6 +135,17 @@ struct PreviewPane: View {
     /// dragged narrower to get there.
     /// The pane stays in 2-column mode.
     static let twoColumnBreakpoint: CGFloat = 350
+
+    /// What the whole library's list load depends on.
+    ///
+    /// = = The scope (= = the list is the whole-library scope's), = = the
+    /// library-change tick (= = the library changed on disk), = = and the
+    /// sort order (= = the list's order IS the sort order). = = A change in
+    /// any of them re-loads the list; = = a body pass that changes none of
+    /// them does not.
+    private var libraryListTaskID: String {
+        "\(scope)|\(libraryChangeTick)|\(previewSortOrder.rawValue)"
+    }
 
     var body: some View {
         // The search and the toolbar sit in one top bar (see OOB.md
@@ -231,6 +254,22 @@ struct PreviewPane: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .wenshuLibraryDidChange)) { _ in
             libraryChangeTick &+= 1
+        }
+        // The whole library's ONE list (= the 资料库's documents, = = then
+        // each book's) is loaded HERE, = = once per library change and once
+        // per sort order, = = and NOT once per body pass.
+        //
+        // = = The task's id carries the three things that change the list:
+        // = = the scope (= = the list is the whole-library scope's), = = the
+        // = = library-change tick (= = the library changed on disk), = = and
+        // = = the sort order (= = the list's order is the sort order's).
+        .task(id: libraryListTaskID) {
+            guard case .allLibraryScope = scope else { return }
+            await libraryDocuments.loadNow(
+                key: libraryListTaskID,
+                bookStore: bookStore,
+                sortOrder: previewSortOrder
+            )
         }
         // Cards fade in on sidebar tap (= no-flicker-stutter, the scope-switch
         // entry animation). The value-based `.animation` modifier is attached to
@@ -341,10 +380,14 @@ struct PreviewPane: View {
                     await loadShelfBooksAsync(shelfId: shelfId)
                 }
         case .allLibraryScope:
-            // The whole library's documents come from the ONE door
-            // (= `loadAllLibraryDocs`), = and the scope view cannot
-            // make its own (= `AllLibraryDocs`' maker is fileprivate).
-            allLibraryScopeView(allDocs: PreviewPaneOps.loadAllLibraryDocs(bookStore: bookStore))
+            // The whole library's documents (= the 资料库's, then each
+            // book's) come from the ONE list the store holds (= = the
+            // library is walked once, = = when the library changes, = =
+            // and not once per body pass).
+            allLibraryScopeView(
+                documents: libraryDocuments.documents.filtered(by: resolvedSearchQuery),
+                isLoaded: libraryDocuments.isLoaded
+            )
         case .empty:
             emptyScopeView()
         }

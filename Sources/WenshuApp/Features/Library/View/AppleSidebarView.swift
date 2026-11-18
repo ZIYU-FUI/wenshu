@@ -83,99 +83,90 @@ struct AppleSidebarView: View {
     /// inside a conditional in the body does not type-check in reasonable
     /// time.
     private var sidebarList: some View {
-        List(
-            currentNodes,
-            children: \.children,
+        SidebarTreeView(
+            nodes: currentNodes,
             selection: Binding(
                 get: { selectedNode },
                 set: { newValue in forwardSelection(newValue) }
-            )
-        ) { node in
-            // The per-row `SidebarRowView`
-            // … (= 18 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // multi-select case).
-            SidebarRowView(
-                node: node,
-                callbacks: SidebarRowCallbacks(
-                    onNewBookHere: { shelfId in
-                        workspaceUI.sidebarSelection = .shelf(shelfId)
-                        sheetRequests.newBook += 1
-                    },
-                    onRenameShelf: { shelfId, _ in
-                        if let shelf = service?.shelves.first(where: { $0.id == shelfId }) {
-                            renaming = SidebarRenamingTarget(
-                                kind: .shelf,
-                                itemId: shelfId,
-                                originalName: shelf.name,
-                                shelfId: nil
-                            )
-                        }
-                    },
-                    onRenameBook: { bookId, _ in
-                        if let book = service?.books.first(where: { $0.id == bookId }) {
-                            renaming = SidebarRenamingTarget(
-                                kind: .book,
-                                itemId: bookId,
-                                originalName: book.title,
-                                shelfId: book.shelfId
-                            )
-                        }
-                    },
-                    onDeleteShelf: { shelfId, name in
-                        pendingDelete = SidebarPendingDelete(
+            ),
+            callbacks: SidebarRowCallbacks(
+                onNewBookHere: { shelfId in
+                    workspaceUI.sidebarSelection = .shelf(shelfId)
+                    sheetRequests.newBook += 1
+                },
+                onRenameShelf: { shelfId, _ in
+                    if let shelf = service?.shelves.first(where: { $0.id == shelfId }) {
+                        renaming = SidebarRenamingTarget(
                             kind: .shelf,
                             itemId: shelfId,
-                            itemName: name
-                        )
-                    },
-                    onDeleteBook: { bookId, _ in
-                        let resolvedName = service?.books.first(where: { $0.id == bookId })?.title ?? ""
-                        pendingDelete = SidebarPendingDelete(
-                            kind: .book,
-                            itemId: bookId,
-                            itemName: resolvedName
-                        )
-                    },
-                    resolveShelf: { id in
-                        service?.shelves.first(where: { $0.id == id })
-                            .map { (id: $0.id, name: $0.name) }
-                    },
-                    resolveBook: { id in
-                        service?.books.first(where: { $0.id == id })
-                            .map { (id: $0.id, name: $0.title) }
-                    },
-                    onImportToReferenceLibrary: {
-                        importPrefillDestination = .referenceLibrary
-                        importPrefillBookID = nil
-                        showImportSheet = true
-                    },
-                    onImportToBook: { bookId in
-                        importPrefillDestination = .book
-                        importPrefillBookID = bookId
-                        showImportSheet = true
-                    },
-                    // The
-                    // … (= 31 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                    // `otherReferenceTitles`).
-                    onRenameReference: { referenceId, _ in
-                        renaming = SidebarRenamingTarget(
-                            kind: .reference,
-                            itemId: referenceId,
-                            originalName: referenceTitle(for: referenceId) ?? "",
+                            originalName: shelf.name,
                             shelfId: nil
                         )
-                    },
-                    onDeleteReference: { referenceId, name in
-                        pendingDelete = SidebarPendingDelete(
-                            kind: .reference,
-                            itemId: referenceId,
-                            itemName: name
+                    }
+                },
+                onRenameBook: { bookId, _ in
+                    if let book = service?.books.first(where: { $0.id == bookId }) {
+                        renaming = SidebarRenamingTarget(
+                            kind: .book,
+                            itemId: bookId,
+                            originalName: book.title,
+                            shelfId: book.shelfId
                         )
                     }
-                )
+                },
+                onDeleteShelf: { shelfId, name in
+                    pendingDelete = SidebarPendingDelete(
+                        kind: .shelf,
+                        itemId: shelfId,
+                        itemName: name
+                    )
+                },
+                onDeleteBook: { bookId, _ in
+                    let resolvedName = service?.books.first(where: { $0.id == bookId })?.title ?? ""
+                    pendingDelete = SidebarPendingDelete(
+                        kind: .book,
+                        itemId: bookId,
+                        itemName: resolvedName
+                    )
+                },
+                resolveShelf: { id in
+                    service?.shelves.first(where: { $0.id == id })
+                        .map { (id: $0.id, name: $0.name) }
+                },
+                resolveBook: { id in
+                    service?.books.first(where: { $0.id == id })
+                        .map { (id: $0.id, name: $0.title) }
+                },
+                onImportToReferenceLibrary: {
+                    importPrefillDestination = .referenceLibrary
+                    importPrefillBookID = nil
+                    showImportSheet = true
+                },
+                onImportToBook: { bookId in
+                    importPrefillDestination = .book
+                    importPrefillBookID = bookId
+                    showImportSheet = true
+                },
+                // The
+                // … (= 31 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // `otherReferenceTitles`).
+                onRenameReference: { referenceId, _ in
+                    renaming = SidebarRenamingTarget(
+                        kind: .reference,
+                        itemId: referenceId,
+                        originalName: referenceTitle(for: referenceId) ?? "",
+                        shelfId: nil
+                    )
+                },
+                onDeleteReference: { referenceId, name in
+                    pendingDelete = SidebarPendingDelete(
+                        kind: .reference,
+                        itemId: referenceId,
+                        itemName: name
+                    )
+                }
             )
-                    }
-        .listStyle(.sidebar)
+        )
     }
 
     var body: some View {
