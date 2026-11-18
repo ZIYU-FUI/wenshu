@@ -394,7 +394,7 @@ struct ChatTranscriptFlatFlowTests {
     /// views' own object identities, before and after the model's newest
     /// message changes (= the streaming reply's own path). Measured: with
     /// the row's identity broken (= a fresh id per render), the row views
-    /// are torn down and eleven new ones appear; with the rule in place,
+    /// are torn down and ten new ones appear; with the rule in place,
     /// every row view survives and none is replaced.
     @Test("a body pass keeps the transcript's rows (= the rows are not rebuilt)")
     func aBodyPassKeepsTheTranscriptRows() {
