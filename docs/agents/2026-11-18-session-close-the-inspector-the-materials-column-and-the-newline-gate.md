@@ -103,7 +103,16 @@ applies WITHIN each group, = = and the groups keep the requirement's order.
 
 **The measured before/after** (= = the probe `card_surfaces_load_cost`, = =
 whose production fragments are checked against the live source before it
-reports a number; = = the record is in `Tools/wenshu-devtool/probe-index.md`):
+reports a number; = = the record is in `Tools/wenshu-devtool/probe-index.md`).
+= = ⇒ ⇒ ⇒ AND THE BLOCK NAMED: = = the pair below is the probe's OWN
+`9225b9941` block (= = `source_commit: 9225b9941d09`, = = 4/4 fragments
+match), = = because that is the tree that carries this scope's ONE list.
+= = The index's row for the probe names `757cc688b` (= = 6/6 fragments), = =
+and its block carries a slightly different pair (= = 441.2/489.5/569.0 us
+and 227.1/248.6/271.1 us) = = because that tree also carries the head read's
+character-boundary fix; = = ⇒ both blocks are the same shape's measurement
+on two trees, = = and this section quotes the FIRST of the scope's two
+blocks:
 
 ```
 A1 full-body walk (= the OLD door)         min 434.9 us | median 479.1 us | p95 537.2 us
@@ -200,8 +209,8 @@ green).
 ```
 7.1  swift build                                    Build complete! (2.26 s)
 7.2  swift test                                     the XCTest half: 494 tests, 1 skipped, 0 failures (= = the skip carries its reason); = = the swift-testing half: 151 tests in 34 suites + 208 tests in 24 suites, = = 6 failed. = = ⇒ THE EXIT CODE WAS 0, = = so see the failures section below
-7.3  the design sweep, on the session's changed view files   clean (= = 1 hit, = = a FALSE POSITIVE, = = see the open items)
-7.5  the CJK comment audit                          the session's commits add CJK only in the product's own Chinese terms (the library's and the app's own names) and in the test fixtures' Chinese content (= = the measured subject); = = the tree already carries 43441 CJK comment lines, = = so this is the house's practice, = = not a new class of defect
+7.3  the design sweep                               CLEAN (= = 0 hits) on the session's OWN 12 changed view files (= = the view files its 21 commits touched); = = and ONE FALSE POSITIVE on the RANGE's 16 (= = the sibling's `SidebarRowView.swift:308`, = = owner `73244ba4c`, = = see the open items)
+7.5  the CJK comment audit                          = = `python3 Tools/wenshu-devtool/inventory-measure.py --base 41b82a8fa --tip 41b82a8fa` (= = the house's own audit) prints the tree's CJK COMMENT LINES: = = doc (`///`) 423 across 55 files + line (`//`) 354 across 85 files = = 777 production CJK comment lines (= = 543 with the string literals' contents removed). = = ⇒ The session's commits add CJK only in the product's own Chinese terms (the library's and the app's own names) and in the test fixtures' Chinese content (= = the measured subject); = = the tree ALREADY carries that practice (= = 777 lines), = = so this is not a new class of defect. = = AND THE HOUSE'S OWN GATE READS IT AS RED: = = `pre_review_gate.py --base 41b82a8fa` exits 1 on the CJK audit (= = it lists the added CJK comment lines), = = and AGENTS.md 7.5 says no comment-level CJK gate ships in the tree (= = the shipped gate is the commit subject's); = = ⇒ the row is NOT a pass, = = and it is reported as the red it is
 7.6  verify-dead.py                                 ALIVE 130 | PARTIAL 4 | DEAD 0 (= = the session's base carries the SAME 4, = = so the session added none)
 7.7  the boss's look                                IN PERSON, = = on the build named below
 7.8  commit hygiene                                 one ticket per commit, = = conventional prefixes, = = English subjects and bodies that say WHY
@@ -256,6 +265,16 @@ AND THE FILE EVIDENCE POINTS THE SAME WAY: = = this session's diff touches
 none of the six suites' areas, = = except the editor's save (= = and there
 the only change is the announcement, = = and `announceLibraryChange`
 returns on a `nil` bookStore, = = which is what the failing test passes).
+
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+AND THE FAILING SET'S MEMBERSHIP IS PATH-DEPENDENT, = = SO THE COUNT IS NOT
+THE CLAIM: = = an independent full run of the merged tree in ANOTHER
+worktree's path produced five of these six (= = plus a sixth at a different
+line), = = and the house's own rule says the whole-suite failing set floats
+on the same tree (= = `reading-a-swift-test-verdict`). = = ⇒ ⇒ The claim
+this section makes is NOT a fixed count; = = it is (1) the three that fail on
+every arm, = = and (2) that this session's diff explains none of the
+failures either way.
 
 ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
 AND THE THREE PRE-EXISTING FAILURES HAVE NO OWNER HERE: = = they are
@@ -336,11 +355,17 @@ registry's tail is gone with the whole file). = = The tree-hygiene card's.
 3. = = `verify-dead.py` reports 4 PARTIAL dead declarations. = = The
 session's base carries the SAME 4, = = so the session added none; = =
 they are pre-existing and unowned here.
-4. = = The design sweep's one hit on the session's changed files is a FALSE
-POSITIVE: = = `Sources/WenshuApp/Features/Library/View/SidebarRowView.swift`
-line 308 is a COMMENT that quotes the blocked form
-(`// naked `Image(systemName:)` is the blocked form)`), = = and that file is
-the sibling sidebar scope's, = = not this session's.
+4. = = The design sweep's ONE hit is a FALSE POSITIVE, = = and it is on the
+RANGE's file set, = = not on this session's: = = the sweep over the
+session's OWN 12 changed view files is CLEAN (= = 0 hits), = = and the hit
+appears only when the sibling sidebar scope's
+`Sources/WenshuApp/Features/Library/View/SidebarRowView.swift` is in the
+set (= = that file's owner is `73244ba4c`, = = the sibling's commit, = = and
+this session's diff does not touch it). = = The hit itself is a COMMENT that
+quotes the blocked form (`// naked `Image(systemName:)` is the blocked
+form)`), = = so it is not a violation either. = = ⇒ The row's honest
+reading: = = CLEAN on the session's own files, = = one false positive on the
+range's.
 5. = = A sibling's card `t_1005d790` (= = "the chat transcript's guards
 measure the production path") was in review when this session closed. = = It
 is not this session's card, = = it moves on its own, = = and it is named here
@@ -350,7 +375,11 @@ launch (= = the processes vanished with no crash report carrying their uuid,
 = = and a sibling's session was running `pkill`-style cleanup at the time).
 = = The app was relaunched and survived; = = the durable hazard is that every
 tree's executable is named `WenshuApp`, = = so a loose-name kill reaches a
-sibling's app.
+sibling's app. = = ⇒ The durable fix (= = a unique executable name for the
+shipped copy) = = belongs to the LAUNCH lane's skill, = = and it is
+recorded there (= = `wenshu-launch-desktop-app`'s "a sibling's loose-name
+kill can take your instance"), = = so no card owns it and none is opened
+here.
 
 ## THE ONE COMMAND THAT COMPLETES THE LOOK
 
