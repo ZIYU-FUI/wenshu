@@ -163,7 +163,7 @@ worktree, = = = because the worktree's path is part of the failure set.
 | 7.2 | the whole suite | `swift test` | base 5 sites, tip 6 sites; the one extra (`HermesTodoStoreConcurrencyTests.swift:268`) is a TIMING assertion (`judged.elapsed < 5.0`) and passes ALONE on BOTH trees (= = = 5 tests in 0.060 s and 0.061 s) = = = ZERO new deterministic failures |
 | 7.3 | the design sweep | the 22 suites under `Tests/WenshuAppTests/UI/DesignSystem` | 84 tests in 22 suites passed |
 | 7.4 | the dual-axis audit | the review card's own pass | the reviewer re-measured the over-magenta probe and the foreground-verified dark/light captures independently |
-| 7.5 | the CJK audit | every ADDED line of the commit | 1 hit, in `docs/agents/nfi.md`'s content tag for a file this card did not write; the SAME character is in the PREVIOUS revision of that same file = = = carried, not added |
+| 7.5 | the CJK audit | every ADDED line of the commit | 1 hit, in `docs/agents/nfi.md`'s content tag for `EditorStatusBarWordCountTests.swift` (= = = a file this scope DID write, = = = because the scope's diff re-emitted that row); the SAME character is in the PREVIOUS revision of that same file = = = carried, not added |
 | 7.6 | dead code | `verify-dead.py` on the two written sources | 2 ALIVE, 0 PARTIAL, 0 DEAD |
 | 7.7 | the boss's own look | = = = | PASSED (= = = section 4) |
 | 7.8 | commit hygiene | `commit_filter.py --hook commit-msg` | exit 0 |
@@ -263,7 +263,10 @@ commit `f9a53497e` (= = = "a diff's context is not this change's text",
 the ADDED lines only, = = = and its own message records the same
 diagnosis. = = = ⇒ ⇒ ⇒ ⇒ ⇒ It is NOT on `main` yet (= = = measured), = = =
 and it belongs to another session's lane, = = = so this session did not
-touch it.
+touch it. = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THAT FIX IS NOT CLEARED EITHER: = = = the
+review card on it (`t_0f70a702`) came back `changes_requested`, = = = so the
+blocker here and the rework in that lane are the same open item, = = = seen
+from two sides.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THE CONSEQUENCE FOR THIS DOCUMENT: = = = this scope's
 carrier `043372cd4` IS on both remotes (= = = section 6), = = = but this
@@ -286,22 +289,26 @@ REMOTES, = = = read back from the servers themselves (= = = `origin` =
 closeout's push). = = = ⇒ ⇒ ⇒ ⇒ ⇒ And this document's own commit is NOT on
 either remote yet, = = = and section 5.4 says why.
 
-= = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THREE COMMITS ON `main` ARE NOT THIS SESSION'S, = = =
-and they are the guard's blocker (= = = section 5.4):
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THREE COMMITS ON `main` ARE NOT THIS SESSION'S. = = =
+ONE OF THEM IS ALREADY PUBLISHED, = = = AND TWO ARE THE GUARD'S BLOCKER
+(= = = section 5.4):
 
-| The commit | Its subject | Whose it is |
-| --- | --- | --- |
-| `f49184cb8` | the file-scope constant no longer shadows Apple's speech rate | the review card `t_5819899a`, whose verdict is `approved` |
-| `31b8fccc0` | the installer writes all three hooks, = and the pre-push mode scans the range | the review card `t_5ce865ce`, whose verdict is `approved` |
-| `337df232a` | the pre-push range is built against the REMOTE's refs, = and the remote is passed in | NO card's body names this sha, = = = and no card's title matches its subject; = = = the nearest card on the same theme is the approved `t_5ce865ce` |
+| The commit | Its subject | Whose it is | Published? |
+| --- | --- | --- | --- |
+| `f49184cb8` | the file-scope constant no longer shadows Apple's speech rate | the review card `t_5819899a`, whose verdict is `approved` | YES: = = = it is an ancestor of `origin`'s `main` (= = = it was pushed before this document was written, = = = and the guard never held it) |
+| `31b8fccc0` | the installer writes all three hooks, = and the pre-push mode scans the range | its patch-id is the SAME change that `t_e3e6496d` REFUSED (= = = `changes_requested`) | NO: = = = on neither remote |
+| `337df232a` | the pre-push range is built against the REMOTE's refs, = and the remote is passed in | its patch-id is the SAME change that `t_5ce865ce` APPROVED | NO: = = = on neither remote |
 
-= = = ⇒ ⇒ ⇒ ⇒ ⇒ Those three are on `main` and on NEITHER remote, = = = and
-the guard will not let a push carry them (= = = section 5.4). = = = ⇒ ⇒ ⇒ ⇒
-⇒ So they are NOT on the server yet, = = = and this document does NOT claim
-they are: = = = the server-side proof in this closeout is for this scope's
-carrier and for this scope's carrier only. = = = ⇒ ⇒ ⇒ ⇒ ⇒ And one of the
-three has NO review verdict on the board's record at all, = = = which the
-next reader should know before it lands.
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So only TWO of the three are unpublished, = = =
+and those two are what the guard refuses to carry (= = = section 5.4). = =
+= = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And the lane's NEWEST verdict belongs to the
+owner's guard fix (`f9a53497e`, = = = the card `t_0f70a702`), = = = and that
+verdict is `changes_requested`: = = = the fix that would clear the blocker
+is itself not yet cleared. = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And a
+verdict is matched by PATCH-ID, = = = not by the sha the card's body names:
+= = = a card that reviewed one sha under one parent reviews the same CHANGE
+under another sha, = = = and that is how `31b8fccc0` and `337df232a` were
+tied to their verdicts here.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THE READ-BACK IS PER REMOTE. = = = A push that
 reported success on one remote says nothing about the other, = = = and a
