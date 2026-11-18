@@ -107,12 +107,17 @@ reports a number; = = the record is in `Tools/wenshu-devtool/probe-index.md`).
 = = ⇒ ⇒ ⇒ AND THE BLOCK NAMED: = = the pair below is the probe's OWN
 `9225b9941` block (= = `source_commit: 9225b9941d09`, = = 4/4 fragments
 match), = = because that is the tree that carries this scope's ONE list.
-= = The index's row for the probe names `757cc688b` (= = 6/6 fragments), = =
-and its block carries a slightly different pair (= = 441.2/489.5/569.0 us
-and 227.1/248.6/271.1 us) = = because that tree also carries the head read's
-character-boundary fix; = = ⇒ both blocks are the same shape's measurement
-on two trees, = = and this section quotes the FIRST of the scope's two
-blocks:
+= = ⇒ AND THE INDEX HOLDS THREE `card_surfaces_load_cost` BLOCKS (= =
+`757cc688b509` = = 6/6, = = `b53dfcdbb749` = = 5/5, = = `9225b9941d09` = =
+4/4), = = and all three source_commits are this scope's own. = = ⇒ This
+section quotes the EARLIEST of the three BY COMMIT ORDER (= = `9225b9941` <
+`b53dfcdbb` < `757cc688b`); = = in FILE order the `757cc688b` block comes
+first (= = `probe-index.md:658`), = = so the block is named by its
+source_commit and not by its position. = = The index's row for the probe
+names `757cc688b`, = = and its block carries a slightly different pair (= =
+441.2/489.5/569.0 us and 227.1/248.6/271.1 us) = = because that tree also
+carries the head read's character-boundary fix; = = ⇒ every block is the
+same shape's measurement on its own tree:
 
 ```
 A1 full-body walk (= the OLD door)         min 434.9 us | median 479.1 us | p95 537.2 us
@@ -209,8 +214,8 @@ green).
 ```
 7.1  swift build                                    Build complete! (2.26 s)
 7.2  swift test                                     the XCTest half: 494 tests, 1 skipped, 0 failures (= = the skip carries its reason); = = the swift-testing half: 151 tests in 34 suites + 208 tests in 24 suites, = = 6 failed. = = ⇒ THE EXIT CODE WAS 0, = = so see the failures section below
-7.3  the design sweep                               CLEAN (= = 0 hits) on the session's OWN 12 changed view files (= = the view files its 21 commits touched); = = and ONE FALSE POSITIVE on the RANGE's 16 (= = the sibling's `SidebarRowView.swift:308`, = = owner `73244ba4c`, = = see the open items)
-7.5  the CJK comment audit                          = = `python3 Tools/wenshu-devtool/inventory-measure.py --base 41b82a8fa --tip 41b82a8fa` (= = the house's own audit) prints the tree's CJK COMMENT LINES: = = doc (`///`) 423 across 55 files + line (`//`) 354 across 85 files = = 777 production CJK comment lines (= = 543 with the string literals' contents removed). = = ⇒ The session's commits add CJK only in the product's own Chinese terms (the library's and the app's own names) and in the test fixtures' Chinese content (= = the measured subject); = = the tree ALREADY carries that practice (= = 777 lines), = = so this is not a new class of defect. = = AND THE HOUSE'S OWN GATE READS IT AS RED: = = `pre_review_gate.py --base 41b82a8fa` exits 1 on the CJK audit (= = it lists the added CJK comment lines), = = and AGENTS.md 7.5 says no comment-level CJK gate ships in the tree (= = the shipped gate is the commit subject's); = = ⇒ the row is NOT a pass, = = and it is reported as the red it is
+7.3  the design sweep                               CLEAN (= = 0 hits) on the session's OWN view files under RULE A (= = any changed path containing `/View/`, = = over the session's 22 commits: = = 9 production + 3 test files = = 12); = = and ONE FALSE POSITIVE on the RANGE's files under RULE B (= = `git diff --name-only 41b82a8fa..main -- 'Sources/**/View/*.swift'` = = 16 production files) = = the sibling's `SidebarRowView.swift:308`, = = owner `73244ba4c`, = = see the open items. = = ⇒ The two rules are NOT interchangeable (= = rule A gives (12, 21) and rule B gives (9, 16)), = = so both sets are named by their rule
+7.5  the CJK comment audit                          = = `python3 Tools/wenshu-devtool/inventory-measure.py --base 41b82a8fa --tip 41b82a8fa` (= = the house's own audit, = = over PRODUCTION `Sources/` only) prints the tree's CJK COMMENT LINES AT THE BASE: = = doc (`///`) 408 across 53 files + line (`//`) 346 across 84 files = = 754 production CJK comment lines (= = 316 + 205 = = 521 with the string literals' contents removed). = = ⇒ 754 is the count the tree ALREADY carried before this session (= = 23 of the lines are this session's own additions, = = and they are the product's own Chinese terms (= = the library's and the app's names) in the COMMENTS; = = the test fixtures' Chinese content is NOT in this measurement, = = because the audit's scope is `Sources/` only). = = ⇒ The house already carries that practice (= = 754 lines at the base), = = so this is not a new class of defect. = = AND THE HOUSE'S OWN GATE READS IT AS RED: = = `pre_review_gate.py --base 41b82a8fa` exits 1 on the CJK audit (= = it lists the added CJK comment lines, = = the session's own), = = and AGENTS.md 7.5 says no comment-level CJK gate ships in the tree (= = the shipped gate is the commit subject's); = = ⇒ the row is NOT a pass, = = and it is reported as the red it is
 7.6  verify-dead.py                                 ALIVE 130 | PARTIAL 4 | DEAD 0 (= = the session's base carries the SAME 4, = = so the session added none)
 7.7  the boss's look                                IN PERSON, = = on the build named below
 7.8  commit hygiene                                 one ticket per commit, = = conventional prefixes, = = English subjects and bodies that say WHY
@@ -357,8 +362,8 @@ session's base carries the SAME 4, = = so the session added none; = =
 they are pre-existing and unowned here.
 4. = = The design sweep's ONE hit is a FALSE POSITIVE, = = and it is on the
 RANGE's file set, = = not on this session's: = = the sweep over the
-session's OWN 12 changed view files is CLEAN (= = 0 hits), = = and the hit
-appears only when the sibling sidebar scope's
+session's OWN view files under rule A (= = 12 files) is CLEAN (= = 0 hits),
+= = and the hit appears only when the sibling sidebar scope's
 `Sources/WenshuApp/Features/Library/View/SidebarRowView.swift` is in the
 set (= = that file's owner is `73244ba4c`, = = the sibling's commit, = = and
 this session's diff does not touch it). = = The hit itself is a COMMENT that
