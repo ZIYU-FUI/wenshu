@@ -261,18 +261,20 @@ the tree's own test fixture (= = = the file that PROVES the guard bites,
 commit `f9a53497e` (= = = "a diff's context is not this change's text",
 = = = in the worktree `.worktrees/t_hook-installer`) makes BOTH modes scan
 the ADDED lines only, = = = and its own message records the same
-diagnosis. = = = ⇒ ⇒ ⇒ ⇒ ⇒ It is NOT on `main` yet (= = = measured), = = =
-and it belongs to another session's lane, = = = so this session did not
-touch it. = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THAT FIX IS NOT CLEARED EITHER: = = = the
+diagnosis. = = = ⇒ ⇒ ⇒ ⇒ ⇒ It is NOT on either remote's `main` yet (= = =
+measured), = = = though `origin` already holds it under
+`refs/heads/project/t_hook-installer` (= = = pushed at 20:27:44), = = = and
+it belongs to another session's lane, = = = so this session did not touch
+it. = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THAT FIX IS NOT CLEARED EITHER: = = = the
 review card on it (`t_0f70a702`) came back `changes_requested`, = = = so the
 blocker here and the rework in that lane are the same open item, = = = seen
 from two sides.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THE CONSEQUENCE FOR THIS DOCUMENT: = = = this scope's
-carrier `043372cd4` IS on both remotes (= = = section 6), = = = but this
-document's own commit is not, = = = and it will ride to both remotes when
-that guard fix lands. = = = ⇒ ⇒ ⇒ ⇒ ⇒ The scope's server-side proof does
-not wait for it.
+carrier `043372cd4` IS on both remotes' `main` (= = = section 6), = = = but
+this document's own commit is on NO ref of either remote, = = = and it will
+ride there when that guard fix lands on `main`. = = = ⇒ ⇒ ⇒ ⇒ ⇒ The scope's
+server-side proof does not wait for it.
 
 ## 6. The commits this session pushed that are NOT this session's
 
@@ -290,30 +292,40 @@ closeout's push). = = = ⇒ ⇒ ⇒ ⇒ ⇒ And this document's own commit is NO
 either remote yet, = = = and section 5.4 says why.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THREE COMMITS ON `main` ARE NOT THIS SESSION'S. = = =
-ONE OF THEM IS ALREADY PUBLISHED, = = = AND TWO ARE THE GUARD'S BLOCKER
-(= = = section 5.4):
+ALL THREE ARE PUBLISHED, = = = AND NONE OF THEM IS ON EITHER REMOTE'S
+`main` EXCEPT ONE:
 
-| The commit | Its subject | Whose it is | Published? |
+| The commit | Its subject | Whose it is | Where the server holds it |
 | --- | --- | --- | --- |
-| `f49184cb8` | the file-scope constant no longer shadows Apple's speech rate | the review card `t_5819899a`, whose verdict is `approved` | YES: = = = it is an ancestor of `origin`'s `main` (= = = it was pushed before this document was written, = = = and the guard never held it) |
-| `31b8fccc0` | the installer writes all three hooks, = and the pre-push mode scans the range | its patch-id is the SAME change that `t_e3e6496d` REFUSED (= = = `changes_requested`) | NO: = = = on neither remote |
-| `337df232a` | the pre-push range is built against the REMOTE's refs, = and the remote is passed in | its patch-id is the SAME change that `t_5ce865ce` APPROVED | NO: = = = on neither remote |
+| `f49184cb8` | the file-scope constant no longer shadows Apple's speech rate | the review card `t_5819899a`, whose verdict is `approved` | `origin`'s `main` (= = = and two of `origin`'s branch refs) |
+| `31b8fccc0` | the installer writes all three hooks, = and the pre-push mode scans the range | its patch-id is the SAME change that `t_e3e6496d` REFUSED (= = = `changes_requested`) | `origin`'s `refs/heads/project/t_hook-installer` (= = = NOT on either remote's `main`; = = = the branch was pushed at 20:19:09, = = = five minutes BEFORE this document was written) |
+| `337df232a` | the pre-push range is built against the REMOTE's refs, = and the remote is passed in | its patch-id is the SAME change that `t_5ce865ce` APPROVED | the same branch ref (= = = NOT on either remote's `main`) |
 
-= = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So only TWO of the three are unpublished, = = =
-and those two are what the guard refuses to carry (= = = section 5.4). = =
-= = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And the lane's NEWEST verdict belongs to the
-owner's guard fix (`f9a53497e`, = = = the card `t_0f70a702`), = = = and that
-verdict is `changes_requested`: = = = the fix that would clear the blocker
-is itself not yet cleared. = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And a
-verdict is matched by PATCH-ID, = = = not by the sha the card's body names:
-= = = a card that reviewed one sha under one parent reviews the same CHANGE
-under another sha, = = = and that is how `31b8fccc0` and `337df232a` were
-tied to their verdicts here.
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So all three ARE
+published, = = = and the scope of the question matters: = = = a read-back
+of `refs/heads/main` cannot see a branch ref, = = = so "not on `main`" is
+NOT "not on the server". = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ And NOT ONE of the three is on `old-origin`: = = = all 45 of that
+remote's refs were scanned, = = = and zero of them carries them. = = = ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And THIS DOCUMENT'S OWN COMMIT is on
+NO ref of either remote (= = = every ref of both remotes was scanned), = =
+= = which is the truth §5.4 relies on.
 
-= = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THE READ-BACK IS PER REMOTE. = = = A push that
-reported success on one remote says nothing about the other, = = = and a
-read-back that comes back empty is a proxy, = = = never evidence that the
-push failed.
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ And the lane's NEWEST verdict belongs to the owner's guard fix
+(`f9a53497e`, = = = the card `t_0f70a702`), = = = and that verdict is
+`changes_requested`: = = = the fix that would clear the blocker is itself
+not yet cleared. = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ And a verdict is matched by PATCH-ID, = = = not by the sha the card's
+body names: = = = a card that reviewed one sha under one parent reviews
+the same CHANGE under another sha, = = = and that is how `31b8fccc0` and
+`337df232a` were tied to their verdicts here.
+
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THE READ-BACK IS PER REMOTE, = = = AND IT READS EVERY
+REF. = = = A push that reported success on one remote says nothing about
+the other, = = = a read-back that comes back empty is a proxy, = = = never
+evidence that the push failed, = = = and a read-back of `main` alone is not
+a read-back of the server.
 
 ## 7. The next session's starting point
 
