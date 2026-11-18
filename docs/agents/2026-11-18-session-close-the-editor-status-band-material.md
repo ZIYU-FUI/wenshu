@@ -274,10 +274,10 @@ from two sides.
 carrier `043372cd4` IS on both remotes' `main` (= = = section 6), = = = but
 this document's own commits are on NO remote's `main`: = = = the tree's own
 guard refuses a push of `main` (= = = it holds a sibling's commit whose
-diff's CONTEXT carries a pre-existing token), = = = so they ride to `origin`
-under the review cards' OWN branch refs (= = = the house's card mechanism,
-= = = and the server's own hook passed that push), = = = and `old-origin`
-does not hold them. = = = ⇒ ⇒ ⇒ ⇒ ⇒ The scope's server-side proof does not
+diff's CONTEXT carries a pre-existing token), = = = so they ride on the review cards' OWN
+branch ref on BOTH remotes (= = = the house's card mechanism, = = = and each
+server's own hook passed that push), = = = and neither remote's `main` holds
+them. = = = ⇒ ⇒ ⇒ ⇒ ⇒ The scope's server-side proof does not
 wait for that.
 
 ## 6. The commits this session pushed that are NOT this session's
@@ -312,10 +312,10 @@ NOT "not on the server". = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ �
 ⇒ And NOT ONE of the three is on `old-origin`: = = = all 45 of that
 remote's refs were scanned, = = = and zero of them carries them. = = = ⇒ ⇒
 ⇒ ⇒ And THIS DOCUMENT'S OWN COMMITS are on NO remote's `main`: = = =
-`origin` holds them under the review cards' OWN branch refs (= = = the
-house's card mechanism), = = = and `old-origin` holds NONE of them (= = =
-all 45 of its refs were scanned).  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
-⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And that is the truth §5.4 relies on.
+they ride on the review cards' OWN branch ref on BOTH remotes (= = = the
+house's card mechanism, = = = and each server's own hook passed that push),
+= = = and neither remote's `main` holds them.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And that is the truth §5.4 relies on.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
 ⇒ ⇒ And the lane's NEWEST verdict belongs to the owner's guard fix
