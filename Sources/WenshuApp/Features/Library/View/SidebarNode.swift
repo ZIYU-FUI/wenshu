@@ -117,6 +117,39 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         }
     }
 
+    /// The row's identity (= what the tree matches a row by).
+    ///
+    /// ⇒ ⇒ ⇒ A ROW IS ITS OWN DATA, = NOT ITS SUBTREE: = the tree's
+    /// rows are matched by identity, = so a row whose children changed
+    /// (= the tree was rebuilt) is still the same row, = and the tree
+    /// does not destroy it and draw it again under the user.
+    ///
+    /// ⇒ ⇒ ⇒ The synthesized conformance hashed the children too, =
+    /// so every row under a parent changed identity when that parent's
+    /// subtree changed (= the selection's highlight was lost, = and the
+    /// row was redrawn).
+    ///
+    /// ⇒ ⇒ ⇒ THE ROW'S OWN DATA IS PART OF ITS IDENTITY, = so a row
+    /// whose title or count changed is a new row (= the tree draws the
+    /// new text, = and a row whose text did not change is not).
+    static func == (lhs: SidebarNode, rhs: SidebarNode) -> Bool {
+        lhs.id == rhs.id
+            && lhs.kind == rhs.kind
+            && lhs.title == rhs.title
+            && lhs.subtitle == rhs.subtitle
+            && lhs.systemImage == rhs.systemImage
+            && lhs.routingKey == rhs.routingKey
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(kind)
+        hasher.combine(title)
+        hasher.combine(subtitle)
+        hasher.combine(systemImage)
+        hasher.combine(routingKey)
+    }
+
     enum Kind: Hashable, Sendable {
         case shelf
         case book
