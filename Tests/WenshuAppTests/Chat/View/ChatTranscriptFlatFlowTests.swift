@@ -500,5 +500,4 @@ struct ChatTranscriptFlatFlowTests {
             "the user's own bubble must still paint its card (= the row's own surface was removed, the bubble's was not)"
         )
     }
-
 }

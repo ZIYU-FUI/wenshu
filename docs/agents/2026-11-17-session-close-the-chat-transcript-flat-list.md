@@ -26,7 +26,7 @@ that removed them are the same hunk):
 
 | # | The commit |
 | --- | --- |
-| 1 | `9ada19911` (= the transcript is one flat list of messages, = = the pin and its grouping type are gone) |
+| 1 | `9ada19911` (= the transcript is one flat list of messages, = = the pin and its grouping type are gone; = = the tip on `origin` carries this and the round-2 and round-3 commits on top) |
 | 2 | `9ebe8c30a` (= the guards now measure the production path, = = after round 1 found that the control did not control and the identity claims measured a copy) |
 
 ## 2. The trace table (= one row per line the boss gave)
@@ -101,7 +101,7 @@ probe over the real stack, not a screenshot of the running app.
 | Gate | Result |
 |---|---|
 | `swift build --build-tests` | exit 0 |
-| the focused suites (`ChatTranscriptFlatFlowTests`, `ChatUserBubbleReadabilityTests`, `ChatUserBubbleShapeTests`, `ChatSurfaceGeometryTests`, `ChatTranscriptScrollTests`, `RenderPathPerformanceTests`, `StreamingUpdateTests`) | 38 tests in 7 suites, PASS |
+| the focused suites (`ChatTranscriptFlatFlowTests`, `ChatUserBubbleReadabilityTests`, `ChatUserBubbleShapeTests`, `ChatSurfaceGeometryTests`, `ChatTranscriptScrollTests`, `RenderPathPerformanceTests`, `StreamingUpdateTests`) | 39 tests in 7 suites, PASS |
 | the whole suite (`swift test`, = = every target) | PASS WITH A PRE-EXISTING RED BASELINE (= = one deterministic site fails on BOTH trees, = = `AsyncDelegationRegistryTests.swift:104`; = = see §3) |
 | `ci_change_gate.py --check formatting` | "the change adds no unformatted line (4 changed Swift file(s) checked)", exit 0 |
 | `ci_change_gate.py --check pollution` | "the change adds no forbidden vocabulary", exit 0 |
@@ -167,7 +167,7 @@ so a broken production identity breaks the test; and
 model's newest message changes, = = the streaming reply's own path).
 **Measured: with the rule in place every row view survives and none is
 replaced (= 13 kept, 0 new); with the identity broken (= a fresh id per
-render) eleven new row views appear.**
+render) TEN new row views appear.**
 
 **⇒ ⇒ ⇒ AND THE THREE VERIFICATIONS, ON THE FIXED SUITES** (= = the
 reviewer's own two mutations, plus the base tree):
@@ -178,6 +178,27 @@ reviewer's own two mutations, plus the base tree):
 | the base tree `84c3a6386` (= = the old pinned code) | **RED** (= = 4 assertions, = = including `Expectation failed: heldRows.isEmpty`) |
 | the user's row NEVER rendered (= = the reviewer's mutation) | **RED** (= = 3 assertions) |
 | every row given a FRESH identity per render (= = the reviewer's mutation) | **RED** (= = 3 assertions, = = including the behavioural `replaced == 0`) |
+
+### Round 2's verdict (`t_edc19eec`, on `fb084e0ee`): CHANGES REQUESTED
+
+**Round 1's two findings are CLOSED**, and the reviewer confirmed it
+first-hand (= = the base tree and BOTH mutations re-run on the
+production tree, = = the geometry re-derived by its own probe, = = the
+two suites run three consecutive times without flaking).
+
+**But the commit failed a gate its own closeout listed as green, and one
+published number did not re-derive.** Both are this scope's own
+bookkeeping, = = not the production change:
+
+- **F3**: the formatting gate was RED at the tip (= = a stray blank line
+  at the end of the flat-flow suite, = = which the round-2 test commit
+  introduced), and §4's table still carried the ROUND-1 tree's results
+  (= = its formatting row and its suite count). ⇒ ⇒ ⇒ So §4 is now
+  RE-RUN on this tree, and the blank line is gone.
+- **F4**: §4a published "eleven new row views"; the measured number is
+  **ten** (= = the mutation's own failure message says `replaced → 10`,
+  = = and the reviewer's probe counted the same). ⇒ ⇒ ⇒ The number in
+  §4a now reads TEN.
 
 ## 5. The registry's rows, and the merge they had to survive
 
