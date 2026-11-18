@@ -243,7 +243,7 @@ struct ChatUserBubbleReadabilityTests {
         let bubbleModifier = String(source[modifierStart.lowerBound ..< modifierEnd.lowerBound])
         #expect(
             !bubbleModifier.contains(".stroke("),
-            "The outgoing bubble must draw no stroke: its solid fill is its edge"
+            "The outgoing bubble must draw no stroke: Apple's glass paints its own edge, so the app draws no border"
         )
         #expect(
             !bubbleModifier.contains("ChatUserBubblePalette.border"),

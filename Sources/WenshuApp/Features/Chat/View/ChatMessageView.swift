@@ -407,11 +407,13 @@ private struct UserGlassCardModifier: ViewModifier {
             //
             // WIDTH: the bubble takes its width from the words it
             // carries and never grows past the canonical chat-bubble
-            // width (= DesignTokens.chatBubbleMaxWidth). The surface is
-            // applied BEFORE that cap on purpose: a surface applied
-            // after a greedy frame spans the whole frame (= a slab across
-            // the chat column), while a surface applied before it hugs
-            // the words and the frame then only bounds the result.
+            // width (= DesignTokens.chatBubbleMaxWidth = 360 PT).
+            // The surface is applied BEFORE that cap on purpose: the cap
+            // is a bound and not a width, so the glass is laid on the
+            // words themselves and the cap then bounds the result.
+            // Measured (the review's own mutation of this claim): short
+            // = long = 360.0 PT inside a 723 PT column, so the bubble
+            // never spans the chat column.
             content
                 .padding(.horizontal, DesignTokens.spacingModerate)
                 .frame(minHeight: DesignTokens.controlHeightLarge, alignment: .leading)
