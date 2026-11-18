@@ -204,7 +204,34 @@ def is_allowed(path):
     return False
 
 
-def get_unpushed_commits():
+def remote_ref_shas(remote, remote_url):
+    """The shas the REMOTE holds, read from the remote itself.
+
+    Returns (shas, read_ok).  ⇒ `read_ok` is False when the remote
+    could not be reached at all; = = and it is True with an EMPTY list
+    when the remote answered and holds nothing.  ⇒ Those are different
+    answers: = = a remote that holds nothing means EVERY local commit
+    is unpushed, = = and a remote that could not be read means the range
+    is unknown.
+    """
+    target = remote_url or remote
+    if not target:
+        return [], False
+    result = subprocess.run(
+        ["git", "ls-remote", target],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        return [], False
+    shas = []
+    for line in result.stdout.splitlines():
+        parts = line.split()
+        if parts:
+            shas.append(parts[0])
+    return shas, True
+
+
+def get_unpushed_commits(remote=None, remote_url=None):
     """The commits a push would send, read from the hook's stdin.
 
     git hands a pre-push hook one line per ref it is about to update:
@@ -233,7 +260,23 @@ def get_unpushed_commits():
         if set(local_sha) == {"0"}:
             continue
         if set(remote_sha) == {"0"}:
-            command = ["git", "rev-list", local_sha, "--not", "--remotes"]
+            # The remote has no such ref yet (= a new branch).  ⇒ The
+            # commits to scan are the ones the REMOTE does not have.
+            # ⇒ The remote's OWN refs are the authority: = = a local
+            # tracking ref says nothing about what the remote holds, = =
+            # and on this repository the tracking ref already holds the
+            # tip, = = so a range built from it scans NOTHING.
+            exclude, read_ok = remote_ref_shas(remote, remote_url)
+            if not read_ok:
+                # The remote could not be read: = = fall back to the
+                # local tracking refs (= = the range is then wider than
+                # the truth, = = which errs towards scanning more).
+                command = ["git", "rev-list", local_sha, "--not", "--remotes"]
+            else:
+                # The remote answered.  ⇒ It holds nothing, = = so
+                # EVERY local commit is unpushed, = = and the empty
+                # exclude list says exactly that.
+                command = ["git", "rev-list", local_sha, "--not"] + exclude
         else:
             command = ["git", "rev-list", f"{remote_sha}..{local_sha}"]
         result = subprocess.run(command, capture_output=True, text=True)
@@ -271,7 +314,7 @@ def commit_message(sha):
     return result.stdout
 
 
-def scan_unpushed_commits():
+def scan_unpushed_commits(remote=None, remote_url=None):
     """The unpushed commits' messages and diffs, scanned.
 
     EACH FILE IS SCANNED ON ITS OWN: the allowlist is a set of PATHS,
@@ -279,7 +322,7 @@ def scan_unpushed_commits():
     enumerates the forbidden family by name) must not fail the push.
     """
     errors = []
-    for ref, sha in get_unpushed_commits():
+    for ref, sha in get_unpushed_commits(remote, remote_url):
         for error in scan(commit_message(sha), f"commit message {sha[:12]}"):
             errors.append(error)
         for path in commit_files(sha):
@@ -290,7 +333,7 @@ def scan_unpushed_commits():
     return errors
 
 
-def main(hook=None, commit_msg_path=None):
+def main(hook=None, commit_msg_path=None, remote=None, remote_url=None):
     """Pre-commit + commit-msg + pre-push hook entry point.
     Modes:
       - default / pre-commit: scan staged file diffs for forbidden tokens.
@@ -300,7 +343,7 @@ def main(hook=None, commit_msg_path=None):
     """
     errors = []
     if hook == "pre-push":
-        for error in scan_unpushed_commits():
+        for error in scan_unpushed_commits(remote, remote_url):
             errors.append(error)
     elif hook == "commit-msg" and commit_msg_path:
         # Commit-msg hook (= .git/hooks/commit-msg passes the message file as argv[1]).
@@ -338,6 +381,8 @@ def parse_args(argv):
     import argparse
     parser = argparse.ArgumentParser(description="Wenshu pollution-defense filter")
     parser.add_argument("--hook", choices=["pre-commit", "commit-msg", "pre-push", "ci-scan", "watchdog"], default="pre-commit")
+    parser.add_argument("--remote", default=None, help="[pre-push hook] The remote's name (= git's argv 1)")
+    parser.add_argument("--remote-url", dest="remote_url", default=None, help="[pre-push hook] The remote's URL (= git's argv 2)")
     parser.add_argument("commit_msg_path", nargs="?", default=None, help="[commit-msg hook] Path to the commit message file")
     args = parser.parse_args(argv)
     return args
@@ -346,4 +391,5 @@ def parse_args(argv):
 if __name__ == "__main__":
     import sys
     args = parse_args(sys.argv[1:])
-    main(hook=args.hook, commit_msg_path=args.commit_msg_path)
+    main(hook=args.hook, commit_msg_path=args.commit_msg_path,
+         remote=args.remote, remote_url=args.remote_url)

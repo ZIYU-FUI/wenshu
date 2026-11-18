@@ -69,8 +69,13 @@ cat > "$HOOKS_DIR/pre-push" <<EOF
 #!/usr/bin/env bash
 # wenshu pre-push hook. installed by Tools/wenshu-devtool/install_hook.sh
 # (= AGENTS.md 1.4: no pushed commit carries forbidden vocabulary).
+#
+# git hands the hook the remote's name (= argv 1) and its URL (= argv 2)
+# on argv, and the refs to update on STDIN.  ⇒ The remote is what the
+# range is built against, = = because a local tracking ref says nothing
+# about what the remote holds now.
 set -e
-python3 "$FILTER_SCRIPT" --hook=pre-push
+python3 "$FILTER_SCRIPT" --hook=pre-push --remote="\$1" --remote-url="\$2"
 EOF
 
 chmod +x "$HOOKS_DIR/pre-push"

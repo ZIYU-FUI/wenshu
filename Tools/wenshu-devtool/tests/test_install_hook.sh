@@ -111,3 +111,38 @@ if ! git push origin "$BRANCH" 2>/dev/null; then
     exit 1
 fi
 echo "PASS: a clean push went through"
+
+# 6) The range must be built against the REMOTE's own refs (= = and not
+#    the local tracking refs).
+#
+#    WHY THIS CASE: a tracking ref (= `refs/remotes/<remote>/<branch>`)
+#    is a LOCAL cache of what the remote had, = = and it is often ahead
+#    of what the remote holds now.  ⇒ With the tracking ref holding the
+#    tip and the remote EMPTY, a range built from the tracking refs
+#    scans NOTHING, = = and the push carries the polluted commit
+#    unchecked.  ⇒ This case must FAIL on that code and PASS here.
+git remote remove origin 2>/dev/null || true
+git init -q --bare "$TMPDIR/remote2.git"
+git remote add origin "$TMPDIR/remote2.git"
+BRANCH2="$(git rev-parse --abbrev-ref HEAD)"
+echo "修真因 z" > f.md
+git add f.md
+git commit --no-verify -m "polluted after the tracking ref" -q
+# A local tracking ref that already holds the tip (= = the trap).
+git update-ref "refs/remotes/origin/$BRANCH2" HEAD
+# The remote is EMPTY (= = it never got the branch).
+set +e
+PUSH2_OUT="$(git push origin "$BRANCH2" 2>&1)"
+PUSH2_RC=$?
+set -e
+if [ "$PUSH2_RC" -eq 0 ]; then
+    echo "FAIL: the pre-push hook should have blocked the push"
+    exit 1
+fi
+case "$PUSH2_OUT" in
+    *"forbidden vocabulary"*) ;;
+    *)  echo "FAIL: the push failed for the wrong reason: $PUSH2_OUT"
+        exit 1
+        ;;
+esac
+echo "PASS: the pre-push hook scans the remote's refs, not the local tracking ref"
