@@ -147,9 +147,11 @@ struct ChatUserBubbleReadabilityTests {
     /// is the shared chat-surface shape, so the bubble and the composer
     /// field are the same material in the same shape.
     ///
-    /// The surface is applied BEFORE the width cap: applied after a
-    /// greedy frame it would span the whole chat column as a slab
-    /// instead of hugging the words.
+    /// The surface is applied BEFORE the width cap: the cap is a
+    /// bound and not a width, so the glass is laid on the words
+    /// themselves. Measured (the review's own mutation of this
+    /// claim): short = long = 360.0 PT inside a 723 PT column, so
+    /// the bubble never spans the chat column.
     @Test func the_outgoing_bubble_wears_apples_liquid_glass() throws {
         let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift")
         let modifierStart = try #require(
@@ -176,12 +178,12 @@ struct ChatUserBubbleReadabilityTests {
             "The outgoing bubble must not wear the inspector's surface"
         )
         // The glass is applied before the width cap, so it hugs the
-        // words instead of spanning the column.
+        // words instead of taking the cap's full width.
         let glassIndex = try #require(bubbleModifier.range(of: ".glassEffect("))
         let capIndex = try #require(bubbleModifier.range(of: ".frame(maxWidth: DesignTokens.chatBubbleMaxWidth"))
         #expect(
             glassIndex.lowerBound < capIndex.lowerBound,
-            "The glass must be applied before the width cap, or it spans the whole column as a slab"
+            "The glass must be applied before the width cap, or the bubble stops hugging its words (= a fixed 360 PT cap-wide bubble in a 723 PT column)"
         )
         // The words on the glass wear the appearance-aware body tier.
         #expect(
