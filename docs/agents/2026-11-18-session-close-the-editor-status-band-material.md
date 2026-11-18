@@ -262,23 +262,36 @@ commit `f9a53497e` (= = = "a diff's context is not this change's text",
 = = = in the worktree `.worktrees/t_hook-installer`) makes BOTH modes scan
 the ADDED lines only, = = = and its own message records the same
 diagnosis. = = = ⇒ ⇒ ⇒ ⇒ ⇒ It is NOT on either remote's `main` yet (= = =
-measured), = = = though `origin` already holds it under
-`refs/heads/project/t_hook-installer` (= = = pushed at 20:27:44), = = = and
-it belongs to another session's lane, = = = so this session did not touch
-it. = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THAT FIX IS NOT CLEARED EITHER: = = = the
-review card on it (`t_0f70a702`) came back `changes_requested`, = = = so the
-blocker here and the rework in that lane are the same open item, = = = seen
-from two sides.
+measured), = = = and the worktree sha `f9a53497e` is on ZERO refs of
+either server (= = = measured over every ref of both): = = = that branch was
+REWRITTEN at 21:41:03, = = = so the sha a card's body named is not the sha
+the server holds.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ The PUBLISHED change is `3a5bd93593`
+(= = = the same subject), = = = and `origin` holds it under
+`refs/heads/project/t_hook-installer` (= = = that branch's tip is
+`7e3878dcdc`).  = = = ⇒ ⇒ ⇒ ⇒ ⇒ And `origin`'s `main` carries a THIRD sha
+for the same subject, `79e993859` (= = = patch-id `286b2a720547`, = = =
+measured), = = = so the same fix now exists under THREE different
+patch-ids: = = = `878a3097f22e` (= = = the worktree sha), = = =
+`010fd00dc4eb` (= = = the branch's published sha), = = = and `286b2a720547`
+(= = = `main`'s published sha).  = = = ⇒ ⇒ ⇒ ⇒ ⇒ And it belongs to another
+session's lane, = = = so this session did not touch it. = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND NO PUBLISHED VARIANT CARRIES A VERDICT AT ALL:
+= = = the lane's newest verdict (`t_0f70a702`, = = = `changes_requested`)
+is attached to the patch-id `878a3097f22e`, = = = so by this document's own
+rule (= = = a verdict is matched by PATCH-ID) = = = it does NOT carry to
+EITHER published sha.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ That is a DIFFERENT statement from
+"the fix is not cleared", = = = and it is the one the servers support.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THE CONSEQUENCE FOR THIS DOCUMENT: = = = this scope's
-carrier `043372cd4` IS on both remotes' `main` (= = = section 6), = = = but
-this document's own commits are on NO remote's `main`: = = = the tree's own
-guard refuses a push of `main` (= = = it holds a sibling's commit whose
-diff's CONTEXT carries a pre-existing token), = = = so they ride on the review cards' OWN
-branch ref on BOTH remotes (= = = the house's card mechanism, = = = and each
-server's own hook passed that push), = = = and neither remote's `main` holds
-them. = = = ⇒ ⇒ ⇒ ⇒ ⇒ The scope's server-side proof does not
-wait for that.
+carrier `043372cd4` IS on both remotes' `main` (= = = section 6), = = = and
+this document's own commits ride on the review cards' OWN branch ref on BOTH
+remotes (= = = the house's card mechanism, = = = and each server's own hook
+passed that push): = = = the tree's own guard refuses a push of `main` (= = =
+it holds a sibling's commit whose diff's CONTEXT carries a pre-existing
+token), = = = and a guard that can be walked past is not a guard.  = = = ⇒ ⇒ ⇒
+⇒ ⇒ Whether any remote's `main` ALSO carries these commits is a MOVING
+fact (= = = §6 measures it as a named snapshot), = = = and it is not what the
+scope's server-side proof rests on: = = = that proof is the carrier's own
+sha, = = = read back from the servers.
 
 ## 6. The commits this session pushed that are NOT this session's
 
@@ -289,43 +302,104 @@ and `old-origin` still sat at the pre-work sha `922568436`. = = = The
 closeout pushed the second remote, = = = and that push carried EXACTLY ONE
 commit: = = = this scope's carrier `043372cd4`.
 
-= = = ⇒ ⇒ ⇒ ⇒ ⇒ AND `043372cd4` IS NOW AN ANCESTOR OF `main` ON BOTH
-REMOTES, = = = read back from the servers themselves (= = = `origin` =
-`043372cd4` at the landing, = = = and `old-origin` = `043372cd4` after the
-closeout's push). = = = ⇒ ⇒ ⇒ ⇒ ⇒ And this document's own commits are on NO
-remote's `main`, = = = and section 5.4 says why.
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ AND `043372cd4` IS AN ANCESTOR OF `main` ON BOTH REMOTES, = = =
+read back from the servers themselves (= = = `origin` = `043372cd4` at the
+landing, = = = and `old-origin` = `043372cd4` after the closeout's push), = = =
+and STILL an ancestor of both at the snapshot below.
+
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ AND EVERY SERVER FACT IN THIS SECTION IS A NAMED SNAPSHOT,
+= = = NOT A STANDING CLAIM. = = = ⇒ ⇒ ⇒ ⇒ ⇒ Measured at 22:43:41 on
+2026-11-18 (Asia/Shanghai) with
+
+    git fetch origin --prune && git fetch old-origin --prune
+    git branch -r --contains <sha>
+
+over EVERY remote-tracking ref of BOTH servers (= = = 152 refs on `origin`,
+= = = 48 on `old-origin`). = = = ⇒ ⇒ ⇒ ⇒ ⇒ The command is printed here
+because the state MOVES: = = = the same command at 22:13:39 showed a
+DIFFERENT sha for `origin`'s `main`, = = = and this section is true AS OF the
+named moment, = = = not as of whenever you read it.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ And it was READ TWICE: = = = the same command at 23:01:21 on
+2026-11-18 (= = = eighteen minutes later) returned the SAME numbers (= = =
+`origin`'s `main` at `750b43d20`, = = = `old-origin`'s `main` at
+`043372cd4`, = = = 152 and 48 refs, = = = and the same branch-ref counts for
+all three sibling commits), = = = so the snapshot is not a lucky read: = = =
+it was STABLE across two independent reads.
+
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ AT THAT MOMENT: = = = `origin`'s `main` tip is
+`750b43d200dc64bdf1475988af3793e9c8f5b831` (= = = it MOVED past this
+scope's carrier, = = = and the carrier is its ancestor), = = = and
+`old-origin`'s `main` tip is `043372cd45b7583b74160f26b0f0abedd78ed14b`
+(= = = the carrier itself).  = = = ⇒ ⇒ ⇒ ⇒ ⇒ THIS DOCUMENT'S OWN COMMITS
+(= = = `e0d3ca08c`, = = = `3add5ca5f`, = = = `bb98b7cdb`, = = = `77465d906`)
+are ancestors of `origin`'s `main` (= = = another lane merged them up, = = =
+which is why this section cannot assert "on no remote's `main`"), = = = and
+they ride on the card branch ref on BOTH servers:
+
+    refs/heads/project/t_63d8cc0f-t1-the-session-closeout-for-the-editor-s
+
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ whose tip is `77465d906` on both.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ That
+branch ref is a NAME, = = = and it is the stable thing: = = = §5.4 explains
+why the commits ride there instead of on `main`.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THREE COMMITS ON `main` ARE NOT THIS SESSION'S. = = =
-ALL THREE ARE PUBLISHED, = = = AND NONE OF THEM IS ON EITHER REMOTE'S
-`main` EXCEPT ONE:
+ALL THREE ARE PUBLISHED, = = = AND AT 22:43:41 ALL THREE ARE ANCESTORS OF
+`origin`'s `main`:
 
-| The commit | Its subject | Whose it is | Where the server holds it |
+| The commit | Its subject | Whose it is (= = = by patch-id) | Where the server held it AT 22:43:41 |
 | --- | --- | --- | --- |
-| `f49184cb8` | the file-scope constant no longer shadows Apple's speech rate | the review card `t_5819899a`, whose verdict is `approved` | `origin`'s `main` (= = = and two of `origin`'s branch refs) |
-| `31b8fccc0` | the installer writes all three hooks, = and the pre-push mode scans the range | its patch-id is the SAME change that `t_e3e6496d` REFUSED (= = = `changes_requested`) | `origin`'s `refs/heads/project/t_hook-installer` (= = = NOT on either remote's `main`; = = = the branch was pushed at 20:19:09, = = = five minutes BEFORE this document was written) |
-| `337df232a` | the pre-push range is built against the REMOTE's refs, = and the remote is passed in | its patch-id is the SAME change that `t_5ce865ce` APPROVED | the same branch ref (= = = NOT on either remote's `main`) |
+| `f49184cb8` | the file-scope constant no longer shadows Apple's speech rate | the card `t_5819899a` reviewed sha `1935c74aa` (= = = the SAME patch-id `2decd7c4377d`), = = = whose verdict is `approved` | an ancestor of `origin`'s `main` and of seven branch refs (= = = the card branch, = = = `project/t_avspeech-shadow`, = = = `project/t_hook-installer`, = = = `project/t_verify-dead-blindspots`, = = = `wt/tabx-2026-11-18`, = = = and on `old-origin` the card branch and `wt/chat-glass-bubble-2026-11-17`) |
+| `31b8fccc0` | the installer writes all three hooks, = and the pre-push mode scans the range | the card `t_e3e6496d` reviewed sha `7b24e2e4` (= = = the SAME patch-id `f352bf27afb7`), = = = whose verdict is `changes_requested` | an ancestor of `origin`'s `main` and of six branch refs (= = = the card branch, = = = `project/t_hook-installer`, = = = `project/t_verify-dead-blindspots`, = = = `wt/tabx-2026-11-18`, = = = and on `old-origin` the card branch and `wt/chat-glass-bubble-2026-11-17`) |
+| `337df232a` | the pre-push range is built against the REMOTE's refs, = and the remote is passed in | the card `t_5ce865ce` reviewed sha `eb7834afc` (= = = the SAME patch-id `fe0ca9a06e80`), = = = whose verdict is `approved` | the same refs as the row above |
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So all three ARE
 published, = = = and the scope of the question matters: = = = a read-back
 of `refs/heads/main` cannot see a branch ref, = = = so "not on `main`" is
 NOT "not on the server". = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
-⇒ And NOT ONE of the three is on `old-origin`: = = = all 45 of that
-remote's refs were scanned, = = = and zero of them carries them. = = = ⇒ ⇒
-⇒ ⇒ And THIS DOCUMENT'S OWN COMMITS are on NO remote's `main`: = = =
-they ride on the review cards' OWN branch ref on BOTH remotes (= = = the
-house's card mechanism, = = = and each server's own hook passed that push),
-= = = and neither remote's `main` holds them.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
-⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And that is the truth §5.4 relies on.
+⇒ And the three ARE on `old-origin`, = = = but only under the card branch this
+scope pushed: = = = `refs/heads/project/t_63d8cc0f-t1-the-session-closeout-for-the-editor-s`
+is the ONE ref on that remote's `main` line carrying all three (= = = measured
+over all 48 of its refs at 22:43:41), = = = while that remote's `main` tip is
+the carrier and holds NONE of them.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So "not on
+`old-origin`'s `main`" is TRUE, = = = and "not on the server" is FALSE: = = =
+the server state MOVES, = = = and this snapshot is NAMED (= = = remote, = =
+= ref, = = = time) precisely because of that.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ And THIS DOCUMENT'S OWN COMMITS ride on the review cards' OWN branch ref
+on BOTH remotes (= = = the house's card mechanism, = = = and each server's own
+hook passed that push): = = = at 22:43:41 they are ALSO ancestors of
+`origin`'s `main` (= = = another lane merged them up), = = = and they are NOT
+on `old-origin`'s `main`.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And that is the truth §5.4 relies on: = = = the branch ref
+is a NAME, = = = and the carrier's sha is the carrier's sha.
+
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ AND WHAT DOES NOT MOVE, = = = which is the whole of the
+scope's proof: = = = (1) the carrier's sha `043372cd4` (= = = measured as an
+ancestor of BOTH remotes' `main` at BOTH reads), = = = (2) the card branch
+ref's NAME, = = = (3) the patch-id to verdict mapping (= = = a patch-id never
+changes, = = = and a verdict never migrates to another patch-id), = = = and
+(4) the three sibling commits' ownership (= = = whose change each one is, = = =
+and therefore whose verdict rides it).  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ Everything else in this section is a snapshot, = = = and a
+snapshot that says its own time and its own command cannot be wrong by being
+out of date: = = = it can only be out of date, = = = and it says so.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
-⇒ ⇒ And the lane's NEWEST verdict belongs to the owner's guard fix
-(`f9a53497e`, = = = the card `t_0f70a702`), = = = and that verdict is
-`changes_requested`: = = = the fix that would clear the blocker is itself
-not yet cleared. = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And the lane's newest verdict belongs to the owner's guard
+fix (= = = the card `t_0f70a702`, = = = `changes_requested`), = = = and that
+verdict is attached to the OLD patch-id (= = = the worktree sha
+`f9a53497e`, = = = which is on ZERO refs of either server).  = = = ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
 ⇒ And a verdict is matched by PATCH-ID, = = = not by the sha the card's
 body names: = = = a card that reviewed one sha under one parent reviews
 the same CHANGE under another sha, = = = and that is how `31b8fccc0` and
-`337df232a` were tied to their verdicts here.
+`337df232a` were tied to their verdicts here.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And the SAME rule cuts the other way here: = = =
+the lane's verdict does NOT carry to EITHER published sha (= = =
+`3a5bd93593` on the branch, = = = `79e993859` on `main`), = = = because each
+is a different patch-id.  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ So the published rework carries NO
+verdict at all (= = = not "a refusal", = = = and not "an approval"), = = = and
+this document does not claim one.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THE READ-BACK IS PER REMOTE, = = = AND IT READS EVERY
 REF. = = = A push that reported success on one remote says nothing about
