@@ -31,6 +31,9 @@ POLLUTION_ALLOWLIST = {
     "Tools/wenshu-devtool/commit_filter.py",
     "Tools/wenshu-devtool/tests/test_block_pollution.sh",
     "Tools/wenshu-devtool/tests/test_allow_allowed_tokens.sh",
+    # A test that PROVES the hook blocks the forbidden family has to NAME
+    # the family (= it writes the token it expects to be blocked).
+    "Tools/wenshu-devtool/tests/test_install_hook.sh",
     "Tools/wenshu-devtool/tests/README.md",       # test README explaining pollution-defense test suite (= enumerates forbidden vocab)
     ".github/PULL_REQUEST_TEMPLATE.md",
     ".github/ISSUE_TEMPLATE/bug_report.md",
@@ -201,8 +204,94 @@ def is_allowed(path):
     return False
 
 
+def get_unpushed_commits():
+    """The commits a push would send, read from the hook's stdin.
+
+    git hands a pre-push hook one line per ref it is about to update:
+    "<local ref> <local sha> <remote ref> <remote sha>". A zero sha
+    means that side does not have the ref yet (= a new branch, = = or a
+    deletion, = = and a deletion carries no new commit).
+
+    WHY THE RANGE IS BUILT PER REF: the remote may have no sha for the
+    branch yet (= a branch pushed for the first time), = = and then the
+    commits to scan are everything the remote does not have, = = not
+    `<remote sha>..<local sha>`.
+    """
+    commits = []
+    seen = set()
+    try:
+        if sys.stdin.isatty():
+            return commits
+        lines = sys.stdin.read().splitlines()
+    except (OSError, ValueError):
+        return commits
+    for line in lines:
+        parts = line.split()
+        if len(parts) < 4:
+            continue
+        local_ref, local_sha, _remote_ref, remote_sha = parts[:4]
+        if set(local_sha) == {"0"}:
+            continue
+        if set(remote_sha) == {"0"}:
+            command = ["git", "rev-list", local_sha, "--not", "--remotes"]
+        else:
+            command = ["git", "rev-list", f"{remote_sha}..{local_sha}"]
+        result = subprocess.run(command, capture_output=True, text=True)
+        for sha in result.stdout.split():
+            if sha not in seen:
+                seen.add(sha)
+                commits.append((local_ref, sha))
+    return commits
+
+
+def commit_files(sha):
+    """The files one commit touched."""
+    result = subprocess.run(
+        ["git", "show", "--name-only", "--format=", sha],
+        capture_output=True, text=True,
+    )
+    return [line for line in result.stdout.splitlines() if line]
+
+
+def commit_diff(sha, path):
+    """One commit's diff for one file."""
+    result = subprocess.run(
+        ["git", "show", "--format=", sha, "--", path],
+        capture_output=True, text=True,
+    )
+    return result.stdout
+
+
+def commit_message(sha):
+    """One commit's message (= its subject and its body)."""
+    result = subprocess.run(
+        ["git", "log", "-1", "--format=%B", sha],
+        capture_output=True, text=True,
+    )
+    return result.stdout
+
+
+def scan_unpushed_commits():
+    """The unpushed commits' messages and diffs, scanned.
+
+    EACH FILE IS SCANNED ON ITS OWN: the allowlist is a set of PATHS,
+    = = and a commit that touches an allowlisted file (= `AGENTS.md`
+    enumerates the forbidden family by name) must not fail the push.
+    """
+    errors = []
+    for ref, sha in get_unpushed_commits():
+        for error in scan(commit_message(sha), f"commit message {sha[:12]}"):
+            errors.append(error)
+        for path in commit_files(sha):
+            if is_allowed(path):
+                continue
+            for error in scan(commit_diff(sha, path), f"{path} in {sha[:12]}"):
+                errors.append(error)
+    return errors
+
+
 def main(hook=None, commit_msg_path=None):
-    """Pre-commit + commit-msg hook entry point.
+    """Pre-commit + commit-msg + pre-push hook entry point.
     Modes:
       - default / pre-commit: scan staged file diffs for forbidden tokens.
       - commit-msg: scan the commit message file (= first arg passed by git hooks).
@@ -210,7 +299,10 @@ def main(hook=None, commit_msg_path=None):
       - working-tree / watchdog: scan the full working tree (= not just staged files).
     """
     errors = []
-    if hook == "commit-msg" and commit_msg_path:
+    if hook == "pre-push":
+        for error in scan_unpushed_commits():
+            errors.append(error)
+    elif hook == "commit-msg" and commit_msg_path:
         # Commit-msg hook (= .git/hooks/commit-msg passes the message file as argv[1]).
         with open(commit_msg_path) as f:
             commit_msg = f.read()
