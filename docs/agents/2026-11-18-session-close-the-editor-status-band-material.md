@@ -272,9 +272,13 @@ from two sides.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THE CONSEQUENCE FOR THIS DOCUMENT: = = = this scope's
 carrier `043372cd4` IS on both remotes' `main` (= = = section 6), = = = but
-this document's own commit is on NO ref of either remote, = = = and it will
-ride there when that guard fix lands on `main`. = = = ⇒ ⇒ ⇒ ⇒ ⇒ The scope's
-server-side proof does not wait for it.
+this document's own commits are on NO remote's `main`: = = = the tree's own
+guard refuses a push of `main` (= = = it holds a sibling's commit whose
+diff's CONTEXT carries a pre-existing token), = = = so they ride to `origin`
+under the review cards' OWN branch refs (= = = the house's card mechanism,
+= = = and the server's own hook passed that push), = = = and `old-origin`
+does not hold them. = = = ⇒ ⇒ ⇒ ⇒ ⇒ The scope's server-side proof does not
+wait for that.
 
 ## 6. The commits this session pushed that are NOT this session's
 
@@ -288,8 +292,8 @@ commit: = = = this scope's carrier `043372cd4`.
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND `043372cd4` IS NOW AN ANCESTOR OF `main` ON BOTH
 REMOTES, = = = read back from the servers themselves (= = = `origin` =
 `043372cd4` at the landing, = = = and `old-origin` = `043372cd4` after the
-closeout's push). = = = ⇒ ⇒ ⇒ ⇒ ⇒ And this document's own commit is NOT on
-either remote yet, = = = and section 5.4 says why.
+closeout's push). = = = ⇒ ⇒ ⇒ ⇒ ⇒ And this document's own commits are on NO
+remote's `main`, = = = and section 5.4 says why.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ AND THREE COMMITS ON `main` ARE NOT THIS SESSION'S. = = =
 ALL THREE ARE PUBLISHED, = = = AND NONE OF THEM IS ON EITHER REMOTE'S
@@ -307,9 +311,11 @@ of `refs/heads/main` cannot see a branch ref, = = = so "not on `main`" is
 NOT "not on the server". = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
 ⇒ And NOT ONE of the three is on `old-origin`: = = = all 45 of that
 remote's refs were scanned, = = = and zero of them carries them. = = = ⇒ ⇒
-⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And THIS DOCUMENT'S OWN COMMIT is on
-NO ref of either remote (= = = every ref of both remotes was scanned), = =
-= = which is the truth §5.4 relies on.
+⇒ ⇒ And THIS DOCUMENT'S OWN COMMITS are on NO remote's `main`: = = =
+`origin` holds them under the review cards' OWN branch refs (= = = the
+house's card mechanism), = = = and `old-origin` holds NONE of them (= = =
+all 45 of its refs were scanned).  = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ And that is the truth §5.4 relies on.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
 ⇒ ⇒ And the lane's NEWEST verdict belongs to the owner's guard fix
