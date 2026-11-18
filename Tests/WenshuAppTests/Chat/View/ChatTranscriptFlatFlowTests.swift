@@ -19,27 +19,30 @@
 //  over a host background the app never paints, and reads the PAINTED
 //  pixels of the transcript viewport.
 //
-//  THE INSTRUMENT IS THE CARD'S OWN COLOUR. The user's bubble wears ONE
-//  filled surface (= the palette's one colour), and nothing else in the
-//  transcript wears it: the agent's reply is bare text on the leading
-//  side, and the composer's own bar draws icons, not a fill. So the
-//  pixels that carry that colour ARE the user's card, and the
-//  measurement can say WHERE the card is instead of "something was
-//  painted over there".
+//  THE INSTRUMENT IS THE LAYOUT AND THE SCROLL POSITION. The bubble's
+//  surface is Apple's Liquid Glass (= `.glassEffect`), and an offscreen
+//  read does not composite a glass surface at all (= the house's rule: =
+//  a control's appearance must be measured on a SCREEN capture): = the
+//  user's bubble paints NOTHING in an offscreen read, = its words and
+//  its surface included (= measured: = the bubble's area carries the
+//  panel's own colour, = 0 pixels of any other kind, = while the
+//  agent's flat reply text still paints). So the pixels cannot see the
+//  user's row any more, and the claims are carried by what IS there: =
+//  the rows the production view tree laid out (= the user's bubble is
+//  the one that hugs the TRAILING edge, = every reply is flat text on
+//  the leading side), = and the transcript's resting scroll position
+//  (= a row held at the viewport's top parks the scroll at the top: =
+//  the old pinned section header's trigger did exactly that).
 //
 //  THE MEASUREMENT IS AT THE VIEWPORT'S RESTING POSITION. The transcript
 //  rests at its bottom (= the newest content is what the panel shows).
 //
 //  WHY THE MEASUREMENT IS TRAILING-ONLY
 //  ====================================
-//  The composer's own bar wears the card's colour too (= 295 pixels of
-//  it, measured, on the LEADING side of the window), and it wears it
-//  whether the transcript shows a conversation or nothing at all. So a
-//  measurement that scans the whole bitmap for the colour is satisfied
-//  by the composer's chrome, and it says nothing about the user's
-//  bubble. The user's bubble is TRAILING (= it hugs its words on the
-//  trailing side of the column), so the control reads the TRAILING
-//  region, where the composer's chrome never reaches.
+//  The user's bubble is TRAILING (= it hugs its words on the trailing
+//  side of the column) and every agent reply is flat text on the
+//  leading side, so the trailing side of the column is where the
+//  user's own row can show itself and where nothing else can.
 //
 //  The two fixtures
 //  ================
@@ -52,16 +55,18 @@
 //      held at the viewport's top in its place.
 //
 //    - the control's fixture puts the user's message LAST, so at rest
-//      the viewport shows it: the trailing region of the transcript's
-//      visible rows must carry the card. A transcript that rendered no
-//      user row at all paints nothing there (= measured: 0 card pixels
-//      with an empty conversation), so this control cannot be satisfied
-//      by anything but the user's own bubble.
+//      the viewport shows it: the trailing side of the transcript's laid
+//      out rows must carry a row that hugs the trailing edge (= the
+//      user's own bubble, = measured: it ends at 592 PT of a 600 PT
+//      column, = while every reply ends at 73 PT). A transcript that
+//      rendered no user row at all lays out no such row, so this
+//      control cannot be satisfied by anything but the user's own
+//      bubble.
 //
 //  The second assertion carries the chat-band guard forward: no row of
 //  the transcript paints a surface across the column's leading edge (= one
 //  material at the window's root, and nothing inside the window painting a
-//  surface of its own), while the user's own bubble keeps its own card.
+//  surface of its own), while the user's own bubble keeps its own words.
 //
 //
 
@@ -81,12 +86,6 @@ struct ChatTranscriptFlatFlowTests {
     /// because a material composited over it desaturates it (= it leaves
     /// the magenta family), so the two are told apart by their pixels.
     private static let hostColor = NSColor.magenta
-
-    /// How tall the measured band is.
-    ///
-    /// The bubble is one row tall (= the composer field's height), so the
-    /// band holds it whole.
-    private static let bandHeight: CGFloat = 120
 
     /// The painted pixels of a hosted view, over the host background.
     private struct Painted {
@@ -180,62 +179,39 @@ struct ChatTranscriptFlatFlowTests {
         )
     }
 
-    /// The user's bubble's own fill, as the palette resolves it.
+    /// The rows the transcript laid out, in the hosted tree.
     ///
-    /// The palette's colour is a semantic one, so it resolves per
-    /// appearance; it is read under the hosted view's own appearance,
-    /// which is the appearance the pixels were drawn in.
-    private func cardFill(of view: NSView) -> (r: Int, g: Int, b: Int) {
-        var resolved = NSColor.gray
-        view.effectiveAppearance.performAsCurrentDrawingAppearance {
-            if let color = NSColor.unemphasizedSelectedTextBackgroundColor
-                .usingColorSpace(.sRGB)
-            {
-                resolved = color
-            }
-        }
-        return (
-            Int((resolved.redComponent * 255).rounded()),
-            Int((resolved.greenComponent * 255).rounded()),
-            Int((resolved.blueComponent * 255).rounded())
-        )
+    /// The scroll view's document holds ONE container (= the lazy
+    /// stack), and the container's children are the realized rows'
+    /// contents: = one view per message, = laid out in the messages'
+    /// order.
+    private func laidOutRows(in scroll: NSScrollView) -> [NSView] {
+        guard let container = scroll.documentView?.subviews.first else { return [] }
+        return container.subviews
     }
 
-    /// The card-coloured pixels of one side of the column, per bitmap row.
+    /// The row that hugs the TRAILING edge of the column.
     ///
-    /// The palette's colour is resolved per appearance and the drawn
-    /// pixels carry it a shade off (= the card's surface is composited),
-    /// so the match carries a tolerance wide enough for that step and
-    /// narrow enough to miss the panel's own greys.
+    /// The user's own bubble carries its words on the trailing side and
+    /// every agent reply is flat text on the leading side, so the
+    /// trailing row is the user's own row and nothing else. (= measured:
+    /// it ends at 592 PT of a 600 PT column, = while every reply ends at
+    /// 73 PT.)
+    private func trailingRow(in scroll: NSScrollView) -> NSView? {
+        let column = scroll.documentView?.frame.width ?? 0
+        guard column > 0 else { return nil }
+        return laidOutRows(in: scroll).first { $0.frame.maxX > column / 2 }
+    }
+
+    /// The transcript's resting scroll offset, in points.
     ///
-    /// The sides are read SEPARATELY (= the trailing half and the leading
-    /// half), because the composer's own bar wears the same colour on the
-    /// leading side: a whole-bitmap scan cannot tell the user's bubble
-    /// from the composer's chrome.
-    private func cardRows(
-        _ painted: Painted,
-        fill: (r: Int, g: Int, b: Int),
-        trailing: Bool
-    ) -> [Int: Int] {
-        var counts: [Int: Int] = [:]
-        let split = painted.width / 2
-        let range = trailing ? split ..< painted.width : 0 ..< split
-        for y in 0 ..< painted.height {
-            var inRow = 0
-            for x in range {
-                let offset = y * painted.bytesPerRow + x * painted.samplesPerPixel
-                let r = Int(painted.bytes[offset])
-                let g = Int(painted.bytes[offset + 1])
-                let b = Int(painted.bytes[offset + 2])
-                if abs(r - fill.r) <= 12, abs(g - fill.g) <= 12, abs(b - fill.b) <= 12 {
-                    inRow += 1
-                }
-            }
-            if inRow > 0 {
-                counts[y] = inRow
-            }
-        }
-        return counts
+    /// The transcript rests at its bottom (= the newest content is what
+    /// the panel shows). A row HELD at the viewport's top parks the
+    /// scroll at the top instead (= the old pinned section header's
+    /// trigger did exactly that: = the pinned card was painted in the
+    /// viewport's top band).
+    private func restingOffset(in scroll: NSScrollView) -> CGFloat {
+        scroll.contentView.bounds.origin.y
     }
 
     /// The share of the leading edge's pixels that carry the host, per row.
@@ -291,7 +267,8 @@ struct ChatTranscriptFlatFlowTests {
     /// The fixture puts the user's message FIRST and twenty replies after
     /// it, so at rest the viewport shows the newest replies: the user's
     /// row has scrolled away with the content. A row HELD there (= the old
-    /// pinned section header) would paint the card in that band instead.
+    /// pinned section header) would park the scroll at the top and keep
+    /// that row in view instead.
     @Test("no row is held at the viewport's top (= the conversation scrolls as one flat list)")
     func noRowIsHeldAtTheViewportTop() {
         let messages = makeMessages(userLast: false)
@@ -312,47 +289,47 @@ struct ChatTranscriptFlatFlowTests {
             "the transcript must be taller than its viewport (= there is something to scroll)"
         )
 
-        let painted = paintedPixels(of: hosting)
-        let trailing = cardRows(painted, fill: cardFill(of: hosting), trailing: true)
-
-        // The viewport's top band, in bitmap rows (= the bitmap runs
-        // top-down, and the viewport's top edge is the window's top edge).
-        let scale = Double(painted.height) / Double(scroll.contentView.bounds.height)
-        let bandRows = 0 ..< Int(Self.bandHeight * scale)
-
-        // The claim: the card is NOT painted in the viewport's top band.
-        //
-        // The transcript rests at its bottom, so the top band shows the
-        // conversation's middle. A row HELD there (= the old pinned
-        // section header) would paint the card in that band; a row that
-        // scrolls with the content does not.
-        let heldRows = bandRows.filter { (trailing[$0] ?? 0) > 0 }
+        // The transcript rests at its BOTTOM. A row held at the viewport's
+        // top parks the scroll at the top instead: the old pinned section
+        // header's trigger scrolled the newest user row up there and kept
+        // it there.
+        let offset = restingOffset(in: scroll)
         #expect(
-            heldRows.isEmpty,
+            offset > 0,
             """
-            no row may be held at the viewport's top: the user's card is \
-            painted in the viewport's top band (= \(heldRows.count) of its \
-            \(bandRows.count) rows wear the card's colour), so the row is \
-            pinned there instead of scrolling with the content.
+            the transcript must rest at its bottom, not at its top: a row \
+            held at the viewport's top parks the scroll at the top (offset = \
+            \(offset)), and the conversation then scrolls under that row.
+            """
+        )
+
+        // And the user's own row is NOT among the rows in view: the
+        // fixture put that message first and the conversation rests at its
+        // bottom, so the row scrolled away with the content.
+        #expect(
+            trailingRow(in: scroll) == nil,
+            """
+            the user's own row must not be held in view: the transcript's \
+            trailing side carries a row that hugs the trailing edge (= the \
+            user's bubble) although that message is FIRST and the \
+            conversation rests at its bottom, so the row was held there \
+            instead of scrolling away with the content.
             """
         )
     }
 
-    /// The control: the user's own bubble IS painted, on the trailing side
-    /// of the transcript's visible rows.
+    /// The control: the user's own row IS laid out, on the trailing side
+    /// of the transcript.
     ///
     /// The fixture puts the user's message LAST, so at rest the viewport
-    /// shows it: the trailing region must carry the card. The composer's
-    /// own bar wears the same colour on the LEADING side (= 295 pixels,
-    /// measured, and present with an empty conversation), so the trailing
-    /// region is the only place the user's own bubble can show itself.
-    ///
-    /// A transcript that never rendered the user's row paints nothing
-    /// there (= measured: 0 card pixels in the trailing region with an
-    /// empty conversation), so this control cannot be satisfied by
-    /// anything but the user's own bubble.
-    @Test("the user's own bubble paints its card on the trailing side (= the control)")
-    func theUsersBubblePaintsItsCardOnTheTrailingSide() {
+    /// shows it: the trailing side of the laid out rows must carry a row
+    /// that hugs the trailing edge (= the user's bubble, = measured: it
+    /// ends at 592 PT of a 600 PT column, = while every reply ends at
+    /// 73 PT). A transcript that never rendered the user's row lays out
+    /// no such row, so this control cannot be satisfied by anything but
+    /// the user's own bubble.
+    @Test("the user's own row is laid out on the trailing side (= the control)")
+    func theUsersRowIsLaidOutOnTheTrailingSide() {
         let messages = makeMessages(userLast: true)
         let vm = ChatViewModel(
             initialMessages: messages,
@@ -366,18 +343,27 @@ struct ChatTranscriptFlatFlowTests {
             Issue.record(Comment("the chat must have a scroll view"))
             return
         }
-        let painted = paintedPixels(of: hosting)
-        let trailing = cardRows(painted, fill: cardFill(of: hosting), trailing: true)
-        let total = trailing.values.reduce(0, +)
-
+        let row = trailingRow(in: scroll)
         #expect(
-            total > 1000,
+            row != nil,
             """
-            the user's own bubble must paint its card on the trailing side \
-            of the transcript's visible rows (= \(total) card-coloured \
-            pixels there), so a transcript that never rendered the user's \
-            row cannot pass this.
+            the user's own bubble must be laid out: the transcript's trailing \
+            side carries no row that hugs the trailing edge, so a transcript \
+            that never rendered the user's row cannot pass this.
             """
+        )
+        let column = scroll.documentView?.frame.width ?? 0
+        if let row {
+            #expect(
+                row.frame.maxX > column / 2,
+                "the user's own bubble must hug the trailing edge of the column; it ends at \(row.frame.maxX) PT of a \(column) PT column"
+            )
+        }
+        // And the transcript rests at its bottom, so the row in view is
+        // the newest one.
+        #expect(
+            restingOffset(in: scroll) > 0,
+            "the transcript must rest at its bottom (= the newest content is what the panel shows)"
         )
     }
 
@@ -455,7 +441,7 @@ struct ChatTranscriptFlatFlowTests {
     /// The chat-band guard, carried forward: no row of the transcript
     /// paints a surface across the column's leading edge, and the user's
     /// own bubble keeps its own card.
-    @Test("no transcript row paints a surface across the column (= the user's bubble keeps its own card)")
+    @Test("no transcript row paints a surface across the column (= the user's bubble keeps its own row)")
     func noRowPaintsASurfaceAcrossTheColumn() {
         let messages = makeMessages(userLast: true)
         let vm = ChatViewModel(
@@ -471,7 +457,6 @@ struct ChatTranscriptFlatFlowTests {
             return
         }
         let painted = paintedPixels(of: hosting)
-        let trailing = cardRows(painted, fill: cardFill(of: hosting), trailing: true)
 
         // The rows this test reads: the transcript's own viewport, leaving
         // the composer's own bar alone.
@@ -492,12 +477,12 @@ struct ChatTranscriptFlatFlowTests {
             """
         )
 
-        // And the row is really there: the user's own bubble paints its
-        // card on the trailing side, so a transcript that rendered nothing
-        // at all cannot pass.
+        // And the row is really there: the user's own bubble is laid out
+        // on the trailing side, so a transcript that rendered nothing at
+        // all cannot pass.
         #expect(
-            trailing.values.reduce(0, +) > 1000,
-            "the user's own bubble must still paint its card (= the row's own surface was removed, the bubble's was not)"
+            trailingRow(in: scroll) != nil,
+            "the user's own bubble must still be laid out (= the row's own surface was removed, the bubble's was not)"
         )
     }
 }
