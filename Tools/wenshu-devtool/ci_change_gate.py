@@ -10,8 +10,8 @@ a change leaves behind:
   copy of either).
 * ``formatting``: the added lines are not the ones SwiftFormat wants to
   change.
-* ``markdown-newline``: every changed ``.md`` file still ends with a
-  newline. = = The byte is unguarded elsewhere, = = and it is not
+* ``markdown-newline``: the change does not DROP a changed ``.md`` file's
+  trailing newline. = = The byte is unguarded elsewhere, = = and it is not
   cosmetic: = = ``docs/agents/nfi.md`` carries the house's key-level merge
   driver, = = whose ``split_rows()`` puts everything after the last table
   row into a TAIL, = = and ``text.split("\n")`` on a newline-terminated
@@ -21,6 +21,13 @@ a change leaves behind:
   = = MEASURED (= = 2026-11-17, = = twice): = = a scope that dropped the
   byte cost a review round to find, = = and the same byte broke the merge
   driver against a sibling card's registry row.
+  = = ⇒ AND IT IS A DELTA CHECK, = = NOT A STATE CHECK: = = it compares
+  the file's blob at the MERGE-BASE with its blob at HEAD, = = and it
+  reports only what THIS change did (= = a file that already lacked the
+  byte is the tree's drift, = = and it is not this change's business = =
+  the same rule the other two checks follow). = = MEASURED: = = a state
+  check went RED on 13 of the last 300 ``.md``-touching commits, = = and 11
+  of those 13 were FALSE (= = the commit never touched the byte).
 
 WHY THIS EXISTS. The CI used to run ``git log --all -p | grep <vocabulary>``
 for the pollution check (= 4788 hits on the repository's own history, = the
@@ -296,31 +303,72 @@ def swiftformat_report(paths: list[str], cwd: Path) -> str:
     return output
 
 
-def markdown_newline_offenders(paths: list[str], cwd: Path) -> list[str]:
-    """The changed ``.md`` files that do NOT end with a newline.
+def _blob_bytes(rev: str, path: str, cwd: Path) -> bytes | None:
+    """A file's bytes at a revision (= = None when the path is not there).
 
-    A file's last byte is the one the house's merge driver compares (= =
-    the registry's tail = = ``text.split("\n")``'s final empty string),
-    so a changed ``.md`` that drops it breaks the NEXT card that appends
-    a row to the same file.
-
-    = = An empty file is not an offender (= = there is nothing to drop),
-    = = and a file that cannot be read is not an offender either (= = the
-    gate reports what it can see, = = and a missing file is the change's
-    own business, = = not this check's).
+    The bytes come from the git OBJECT, = = not from the working tree:
+    this gate measures a COMMIT, = = and a working tree that differs from
+    the commit (= = a staged fix, = = an unstaged edit) would otherwise
+    make the gate read a tree the commit does not have.
     """
-    offenders: list[str] = []
+    result = subprocess.run(
+        ["git", "cat-file", "blob", f"{rev}:{path}"],
+        cwd=str(cwd),
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        return None
+    return result.stdout
+
+
+def markdown_newline_offenders(
+    base: str, paths: list[str], cwd: Path
+) -> list[tuple[str, str]]:
+    """The changed ``.md`` files THAT THIS CHANGE dropped the newline from.
+
+    Returns ``(path, reason)`` pairs, = = and the reason says what
+    happened (= = the change removed the byte, = = or the file is new and
+    never had one). = = The comparison is the DELTA (= = the blob at the
+    merge-base against the blob at HEAD), = = so a file that already
+    lacked the byte is the tree's drift and is NOT this change's = = the
+    rule the other two checks in this gate follow (= = "measure the
+    CHANGE, = = not the history").
+
+    = = MEASURED (= = the review that asked for it): = = a state check
+    (= = "does the file on disk end with a newline?") went RED on 13 of the
+    last 300 ``.md``-touching commits, = = and 11 of those 13 were FALSE
+    (= = the commit never touched the byte, = = and the tree already had
+    28 files without it). = = ⇒ The delta rule goes RED on 2, = = and those
+    2 are the real defect (= = the two commits that dropped the byte from
+    the two registries).
+    """
+    merge_base = _git(["merge-base", base, "HEAD"], cwd).strip()
+    offenders: list[tuple[str, str]] = []
     for path in paths:
         if not path.endswith(MD_SUFFIX):
             continue
-        try:
-            data = (cwd / path).read_bytes()
-        except OSError:
+        after = _blob_bytes("HEAD", path, cwd)
+        if after is None:
+            # The file is not at HEAD (= = the change deleted it) = = and a
+            # deleted file cannot have dropped a byte.
             continue
-        if data and not data.endswith(b"\n"):
-            offenders.append(path)
+        if not after or after.endswith(b"\n"):
+            # It ends with the byte (= = or it is empty = = and there is
+            # nothing to drop).
+            continue
+        before = _blob_bytes(merge_base, path, cwd)
+        if before is None:
+            offenders.append(
+                (path, "the NEW .md does not end with a newline (= = the byte the merge driver compares)")
+            )
+        elif before.endswith(b"\n"):
+            offenders.append(
+                (path, "the change DROPPED the trailing newline (= = the byte the merge driver compares)")
+            )
+        # = = ELSE the file already lacked the byte (= = the tree's own
+        # drift) = = and this change did not drop it = = so it is not this
+        # change's business.
     return offenders
-
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="The CI's change gate")
@@ -350,18 +398,18 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.check == "markdown-newline":
         md_paths = [p for p in changed_paths(args.base, cwd) if p.endswith(MD_SUFFIX)]
-        offenders = markdown_newline_offenders(md_paths, cwd)
+        offenders = markdown_newline_offenders(args.base, md_paths, cwd)
         if not offenders:
             print(
-                f"markdown-newline: every changed .md keeps its trailing newline "
+                f"markdown-newline: the change drops no .md's trailing newline "
                 f"({len(md_paths)} changed .md file(s) checked)"
             )
             return 0
         print(
-            f"markdown-newline: {len(offenders)} changed .md file(s) dropped their trailing newline"
+            f"markdown-newline: {len(offenders)} changed .md file(s) lost their trailing newline"
         )
-        for path in offenders:
-            print(f"  {path}: the file does not end with a newline (= = the byte the merge driver compares)")
+        for path, reason in offenders:
+            print(f"  {path}: {reason}")
         return 1
 
     swift_paths = [p for p in changed_paths(args.base, cwd) if p.endswith(SWIFT_SUFFIX)]
