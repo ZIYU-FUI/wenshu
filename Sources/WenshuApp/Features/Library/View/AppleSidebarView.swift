@@ -17,7 +17,16 @@ struct AppleSidebarView: View {
 
     /// SidebarService owns the tree (= data + business logic; = SwiftUI doesn't
     /// see it; = the List renders it).
+    ///
+    /// The view builds one when it has none (= the app's own path: = the
+    /// service reads the shelves, = the books and = the references through
+    /// the book store), = and a caller may hand it one (= a test counts
+    /// the tree's rebuilds through the service's own loaders).
     @State var service: SidebarService?
+
+    init(service: SidebarService? = nil) {
+        _service = State(initialValue: service)
+    }
 
     /// The row the user picked (= derived from the shared state; = the
     /// shared state is the single truth, so the sidebar and the preview
@@ -295,9 +304,16 @@ struct AppleSidebarView: View {
             }
             await service?.reload()
         }
-        .onChange(of: workspaceUI.sidebarSelection) { _, _ in
-            Task { await service?.reload() }
-        }
+        // ⇒ ⇒ ⇒ THE SELECTION DOES NOT REBUILD THE TREE. = The tree is
+        // the LIBRARY's shape (= the shelves, = the books, = the
+        // reference tags), = and a scope change does not change that
+        // shape. = ⇒ ⇒ ⇒ Rebuilding it under the user is what made the
+        // rows jump when the selection moved: = the tree was replaced,
+        // = the row the user had clicked was a NEW row, = and the open
+        // rows closed. = ⇒ ⇒ ⇒ So the tree is rebuilt when the library
+        // changes (= the notification below, = and the sheets' own
+        // reloads after a create, = a rename or = a delete).
+        //
         // Reveal the first level of the part's tree when the part
         // changes. The list's own expansion state is not reachable
         // through the public API, so the first level is revealed by
