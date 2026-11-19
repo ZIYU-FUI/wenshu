@@ -3,7 +3,7 @@
 //  wenshu
 //
 //  The trailing inspector column's style page: = the book's own style
-//  sheet, = as two lists.
+//  sheet, = as one choice, = five knobs, = and one table.
 //
 //  WHAT THIS PAGE IS
 //
@@ -44,43 +44,46 @@
 //  book (= `BookStyleSheetWriteBack`). = So the page is the book's own
 //  sheet, = editable in place.
 //
-//  THE ACCESSIBILITY FACTS THIS PAGE IS BUILT ON
+//  EVERY CHOICE ON THIS PAGE IS THE SYSTEM'S OWN CONTROL
 //
-//  Measured in the app's own process: = a SwiftUI `Menu` publishes an
-//  `AXMenuButton` AND its label; = a `Text` publishes NOTHING; = a
-//  `TextField` publishes an `AXTextField`. = So a knob that has to be
-//  READ (= by VoiceOver, = and by the test that proves the page shows
-//  the selected book's sheet) = is a `Menu` whose label is the book's
-//  position, = laid over the drawn block that looks like Pages'
-//  drop-down. = The style table's rows are words, = and they are read
-//  from the page's own model instead.
+//  A knob is a pop-up button and the two sets are one segmented control,
+//  = both drawn by the system (= `Picker` with `.menu`, = and
+//  `.segmented`). = The HIG names both for exactly this place: = a pop-up
+//  button is for "a flat list of mutually exclusive options or states"
+//  = and "can update its content to indicate the current selection" (=
+//  pop-up-buttons, = alert-date 2023-10-24, = macOS), = and a segmented
+//  control belongs in "a toolbar or inspector pane" (= segmented-controls,
+//  = alert-date 2023-06-21, = macOS).
 //
-//  THE PAINTING FACT THE PAGE WAS CORRECTED FOR
+//  THE PAGE DREW ITS OWN CONTROLS UNTIL IT WAS CORRECTED. = A knob was a
+//  block of the page's own drawing, = with the position inside it, = and a
+//  borderless `Menu` laid over that block with the menu's own title painted
+//  out (= `.foregroundStyle(.clear)`) = so the block could be the only
+//  painter. = The two sets were two rows carrying a hand-drawn tick. = Both
+//  were facsimiles: = one string needed a hack to silence the control that
+//  was born to draw it, = and every measurement in the block (= its radius,
+//  = its fill, = its height) = was this app's guess at what the system
+//  already ships. = What the system ships follows the OS release, = the
+//  accent colour, = and the reader's text size; = what was drawn here
+//  followed none of them.
 //
-//  A `Menu` does not only publish its label's string, = it hands that
-//  string to the AppKit popup button underneath, = and that button
-//  PAINTS it (= measured in this app's own process: = with the SwiftUI
-//  layer at
-//  `.opacity(0)` the button's own attributed title still sat at alpha
-//  0.85), = so a drawn block carrying the same string drew it twice. =
-//  One string on this page has one painter: = the block draws, = and
-//  the menu's label is cleared with `.foregroundStyle(.clear)`, = which
-//  takes the button's colour to alpha 0.0 without taking the
-//  `AXMenuButton`'s label away.
+//  WHAT THE CONTROLS PUBLISH
 //
-//  WHY THE TWO SETS ARE NOT MENUS
+//  Measured in the app's own process: = a pop-up button publishes its role
+//  and its current selection, = a `Text` on its own publishes NOTHING, = and
+//  a `TextField` publishes an `AXTextField`. = So the page's state is read
+//  out of the controls (= `InspectorAXTree`), = which is also how the tests
+//  prove the page shows the SELECTED book's sheet.
 //
-//  The sets were two rows of the same shape, = each with a block that
-//  dropped down the same two names, = so one row named a set and asked
-//  which of the two sets to go to at once, = and its name was painted
-//  three times. = Two choices is not a drop-down; = the rows are the
-//  menu, = and the set the book is at carries the mark. = (A `Button`
-//  was measured to publish NOTHING to the offscreen accessibility
-//  probe, = unlike a `Menu`, = so the mark is proven by what is drawn
-//  and the row's label is carried for VoiceOver the way the format
-//  page's commands carry theirs (= see OOB.md #2026-11-19 for both of
-//  this page's rulings: = the flat look stays, = and the table moves
-//  below the fine tuning).)
+//  WHY "FINE-TUNED OFF BOTH SETS" NEEDS NO THIRD CONTROL
+//
+//  The set the book is at is the sheet's own optional (=
+//  `BookStylePreset.matching`), = and a segmented `Picker` whose selection
+//  matches no segment lights none (= measured: = AppKit reports its selected
+//  segment as -1). = So the state is the control's own, = not a name the
+//  page has to invent.
+//  = (see OOB.md #2026-11-19: = the native control, = unless a business rule
+//  = the control cannot express argues otherwise.)
 //
 
 import OSLog
@@ -130,26 +133,25 @@ struct InspectorStylePageView: View {
     /// sheet down (= the same write-back the knobs use, = measured
     /// through the same seam).
     private var presetsGroup: some View {
-        InspectorFormatGroup(title: String(localized: "inspector.style.group.presets")) {
-            VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                ForEach(model.presets, id: \.rawValue) { preset in
-                    InspectorStylePresetView(
-                        preset: preset,
-                        isCurrent: model.currentPreset == preset
-                    ) { chosen in
-                        applyPreset(chosen)
-                    }
-                }
+        InspectorFormatGroup(
+            title: String(localized: "inspector.style.group.presets"),
+            showsDivider: false
+        ) {
+            InspectorStylePresetPicker(
+                choices: model.choices,
+                current: model.currentSelection
+            ) { chosen in
+                applySelection(chosen)
             }
         }
     }
 
-    /// Write one of the two sets onto the book, = and persist it.
-    private func applyPreset(_ preset: BookStylePreset) {
+    /// Take the book to one of the three places, = and persist it.
+    private func applySelection(_ selection: BookStyleSelection) {
         guard let bookID = currentBookID else { return }
         do {
             try BookStyleSheetWriteBack.apply(
-                preset: preset,
+                selection: selection,
                 to: bookID,
                 store: bookStore
             )
@@ -163,7 +165,14 @@ struct InspectorStylePageView: View {
     private var stylesGroup: some View {
         InspectorFormatGroup(title: String(localized: "inspector.style.group.styles")) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                ForEach(model.rows) { row in
+                //  Eleven rows of a table, = and a table of rows needs a line
+                //  BETWEEN its rows (= not above and below each one): = the
+                //  first row is separated from what it is not, = and so the
+                //  rule is drawn before every row but the first.
+                ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
+                    if index > 0 {
+                        InspectorStyleRule()
+                    }
                     InspectorStyleRowView(row: row)
                 }
             }
@@ -175,7 +184,7 @@ struct InspectorStylePageView: View {
         InspectorFormatGroup(title: String(localized: "inspector.style.group.tuning")) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                 ForEach(model.knobs) { knob in
-                    InspectorStyleKnobView(knob: knob) { position in
+                    InspectorStyleKnobView(knob: knob, columnWidth: knobColumnWidth) { position in
                         moveKnob(knob.id, to: position)
                     }
                 }
@@ -211,6 +220,18 @@ struct InspectorStylePageView: View {
         }
     }
 
+    /// The width one knob's pop-up is pinned to (= the widest of the five).
+    ///
+    /// MEASURED, = not guessed: = the system's own button is asked how wide
+    /// it must be for every position any of the five knobs offers, = so the
+    /// number carries the bezel, = the chevrons and = the reader's font,
+    /// = and none of them is written down here.
+    private var knobColumnWidth: CGFloat {
+        model.knobs
+            .map { ValuePopUpButton<String>.fittingWidth(forTitles: $0.positions.map(\.label)) }
+            .max() ?? 0
+    }
+
     /// What the page shows (= the selected book's own sheet).
     private var model: InspectorStylePageModel {
         InspectorStylePageModel(sheet: sheet)
@@ -240,17 +261,18 @@ struct InspectorStylePageModel: Equatable, Sendable {
     /// The fine tuning's knobs.
     let knobs: [InspectorStyleKnob]
 
-    /// The two sets a book can be set to.
-    let presets: [BookStylePreset]
+    /// The places the sheet can be set to (= Print, = General, = Custom).
+    let choices: [BookStyleSelection]
 
-    /// The set the book is at, = when it is at one of them.
-    let currentPreset: BookStylePreset?
+    /// Where the book is (= the set its sheet names, = or its own tuning
+    /// when it names none).
+    let currentSelection: BookStyleSelection
 
     init(sheet: BookStyleSheet) {
         rows = InspectorStylePageModel.styleRows(for: sheet)
         knobs = InspectorStylePageModel.fineTuningKnobs(for: sheet)
-        presets = BookStylePreset.allCases
-        currentPreset = BookStylePreset.matching(sheet)
+        choices = BookStyleSelection.choices
+        currentSelection = BookStyleSelection.select(sheet: sheet)
     }
 
     /// The eleven roles, as the sheet sets them.

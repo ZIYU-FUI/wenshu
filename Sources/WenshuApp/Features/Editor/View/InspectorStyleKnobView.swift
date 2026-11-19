@@ -2,110 +2,90 @@
 //  InspectorStyleKnobView.swift · Wenshu
 //
 //  One fine-tuning knob of a book's style sheet: = the knob's name at
-//  the left, = and the position the book sits at in a drop-down at
+//  the left, = and the position the book sits at in a pop-up button at
 //  the right.
 //
 //  WHY IT IS ITS OWN FILE
 //
 //  The page that draws the eleven styles and the five knobs grew past
 //  comfortable when the knobs became writable (= the write-back, = the
-//  position's raw value and its label, = and the menu's own action),
-//  = so the knob's own view moved out. = The page keeps the MODEL (=
-//  the rows, = the knobs, = and the positions), = and this file draws
-//  one knob.
+//  position's raw value and its label, = and the control's own action),
+//  = so the knob's own view moved out. = The page keeps the MODEL
+//  (= the rows, = the knobs, = and the positions), = and this file
+//  draws one knob.
+//
+//  WHY THE CONTROL IS THE SYSTEM'S POP-UP BUTTON
+//
+//  A knob offers a flat list of positions, = all of them applying to the
+//  same thing, = with one of them chosen at a time. = That is the shape
+//  Apple built the pop-up button for (= HIG, = pop-up-buttons, =
+//  alert-date 2023-10-24, = macOS: = "Use a pop-up button to present a
+//  flat list of mutually exclusive options or states"), = and the button
+//  shows the chosen one in itself (= same page: = "the button can update
+//  its content to indicate the current selection"). = Nothing a knob does
+//  asks for more than that, = so the row carries Apple's own
+//  `NSPopUpButton` (= `ValuePopUpButton`) = and the page invents no
+//  control of its own.
+//
+//  THE FACSIMILE THIS REPLACED
+//
+//  The knob used to draw its own block (= a rounded rectangle, = the
+//  position at its left, = a chevron at its right) = and lay a borderless
+//  `Menu` over it with the menu's own title painted out
+//  (`.foregroundStyle(.clear)`). = That inversion existed only because
+//  the drawn block wanted the position at its LEFT and the system button
+//  paints it in its CENTRE. = It cost the page a second painter for every
+//  position, = a hack to silence the first one, = a hand-drawn chevron, =
+//  and a control that no longer followed the system's own size, = tint,
+//  = or focus ring. = The position now rides in the system's button, = at
+//  the system's own position. = (see OOB.md #2026-11-19.)
 //
 
 import SwiftUI
 
 /// One fine-tuning knob: = the knob's name at the left, = and the
-/// position the book sits at in a drop-down at the right.
+/// position the book sits at in a pop-up button at the right, = capped to
+/// the width the page measured for the column.
 struct InspectorStyleKnobView: View {
     /// The knob this row carries.
     let knob: InspectorStyleKnob
+
+    /// The width every knob's pop-up is pinned to (= the widest of the
+    /// column's buttons, = measured by `ValuePopUpButton.fittingWidth`).
+    ///
+    /// The five rows are one column of choices, = and a column whose
+    /// controls start at five different x reads as five unrelated
+    /// controls. = The width is handed in rather than asked for, = because
+    /// only the page knows what its other knobs were offered.
+    var columnWidth: CGFloat?
 
     /// What happens when a position is chosen (= the page writes the
     /// position back onto the book's sheet).
     let onChoose: (String) -> Void
 
     var body: some View {
-        HStack(spacing: DesignTokens.spacingTight) {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingStandard) {
             Text(knob.name)
                 .font(.callout)
                 .foregroundStyle(DesignTokens.textBody)
-            Spacer(minLength: DesignTokens.spacingTight)
-            knobMenu
-        }
-    }
 
-    /// The knob's drop-down.
-    ///
-    /// The menu carries the positions the knob can take, = and choosing
-    /// one writes it back onto the book's sheet (= the page's own
-    /// action). = The menu shows the position's LABEL (= what the
-    /// reader sees) = and carries its RAW value (= what the sheet
-    /// reads back). = The position the book already sits at is the
-    /// menu's label, = so the accessibility tree publishes that
-    /// position (= a SwiftUI `Menu` publishes its label, = and a
-    /// `Text` publishes nothing).
-    private var knobMenu: some View {
-        ZStack(alignment: .leading) {
-            knobBlock
-            Menu {
-                ForEach(knob.positions) { position in
-                    Button {
-                        onChoose(position.rawValue)
-                    } label: {
-                        Text(position.label)
-                    }
-                }
-            } label: {
-                //  ONE PAINTER PER STRING (= the defect this page was
-                //  corrected for): = a SwiftUI `Menu` hands its label's
-                //  STRING to the AppKit popup button underneath, = and
-                //  that button paints the string itself, = whatever the
-                //  SwiftUI layer's opacity is (= `.opacity(0)` hid the
-                //  copy drawn here and left the AppKit one at alpha
-                //  0.85, = measured in this app's own process, = which
-                //  is why the position read twice in one block). =
-                //  `.foregroundStyle(.clear)` is the one modifier that
-                //  reaches the button's OWN attributed colour (= alpha
-                //  0.0, = it paints nothing) = while the `AXMenuButton`
-                //  goes on publishing the position (= measured: the
-                //  label is still the position's own name), = so the block below is the
-                //  only painter and a reader still hears what the knob
-                //  is set to.
-                Text(knob.current.label).foregroundStyle(.clear)
+            Spacer(minLength: DesignTokens.spacingStandard)
+
+            ValuePopUpButton(
+                options: knob.positions.map {
+                    ValuePopUpButton.Option(selection: $0.rawValue, label: $0.label)
+                },
+                selection: knob.current.rawValue,
+                name: knob.name
+            ) { position in
+                onChoose(position)
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .frame(maxWidth: .infinity)
+            //  `maxWidth` and not `width`: = every knob's button takes the
+            //  one measured width the page computed for the whole column
+            //  (= so the five agree), = and when the column is narrower
+            //  than that the row's own leftover wins instead of the button
+            //  drawing over the page's edge.
+            .frame(maxWidth: columnWidth)
         }
-    }
-
-    /// The drawn block the drop-down rides on (= Pages' drop-down: =
-    /// the position at the left, = the indicator at the right).
-    ///
-    /// SwiftUI draws a macOS menu's own title in the CENTRE of its
-    /// button, = and Pages' block puts its title at the left, = so the
-    /// block is drawn here and the real menu rides on top of it as a
-    /// transparent button (= the menu itself, = its items, = and its
-    /// accessibility role all stay the system's, = and its own title is
-    /// painted out so this block is the only thing that draws the
-    /// position).
-    private var knobBlock: some View {
-        HStack(spacing: DesignTokens.spacingTight) {
-            Text(knob.current.label)
-            Spacer(minLength: 0)
-            SFIcon(
-                "chevron.down",
-                style: .inlineSmall,
-                color: IconColor.secondary
-            )
-        }
-        .padding(.horizontal, DesignTokens.spacingStandard)
-        .frame(height: DesignTokens.controlHeightLarge)
-        .background(InspectorFormatBlock())
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
     }
 }

@@ -62,23 +62,41 @@ enum InspectorAXTree {
             found.append(oneElement(from: view))
         }
         for child in view.accessibilityChildren() ?? [] {
-            guard let childView = child as? NSView else {
-                // An accessibility object that is not a view (= a
-                // SwiftUI element): read it and walk ITS children.
-                guard let ax = child as? NSAccessibilityProtocol else { continue }
-                let childIdentifier = ObjectIdentifier(ax as AnyObject)
-                guard visited.insert(childIdentifier).inserted else { continue }
-                found.append(oneElement(from: ax))
-                for grandchild in ax.accessibilityChildren() ?? [] {
-                    guard let grandchildView = grandchild as? NSView else { continue }
-                    collect(grandchildView, depth: depth + 1, into: &found, visited: &visited)
-                }
-                continue
-            }
-            collect(childView, depth: depth + 1, into: &found, visited: &visited)
+            collect(child, depth: depth + 1, into: &found, visited: &visited)
         }
         for subview in view.subviews {
             collect(subview, depth: depth + 1, into: &found, visited: &visited)
+        }
+    }
+
+    /// One published child (= an AppKit view, = or a SwiftUI accessibility
+    /// object that is not one), = and whatever it publishes under it.
+    ///
+    /// THE BLIND SPOT THIS CLOSES
+    ///
+    /// A control SwiftUI draws itself (= a `Picker`, = and a `Button`) is
+    /// NO AppKit view at all: = it exists only as an accessibility object
+    /// = nested under another accessibility object. = A walk that read one
+    /// level of those and then looked only for views among their children
+    /// dropped the control itself, = so a page whose drop-downs are
+    /// SwiftUI's read as a page with none.
+    @MainActor
+    private static func collect(
+        _ child: Any,
+        depth: Int,
+        into found: inout [Element],
+        visited: inout Set<ObjectIdentifier>
+    ) {
+        if let view = child as? NSView {
+            collect(view, depth: depth, into: &found, visited: &visited)
+            return
+        }
+        guard let ax = child as? NSAccessibilityProtocol else { return }
+        let identifier = ObjectIdentifier(ax as AnyObject)
+        guard visited.insert(identifier).inserted else { return }
+        found.append(oneElement(from: ax))
+        for nested in ax.accessibilityChildren() ?? [] {
+            collect(nested, depth: depth + 1, into: &found, visited: &visited)
         }
     }
 

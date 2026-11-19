@@ -34,7 +34,7 @@ enum BookStyleSheetWriteBack {
     /// written if one write failed).
     @discardableResult
     static func apply(
-        preset: BookStylePreset,
+        selection: BookStyleSelection,
         to bookID: UUID,
         store: BookStore
     ) throws -> Book? {
@@ -42,11 +42,39 @@ enum BookStyleSheetWriteBack {
             return nil
         }
         var book = store.books[index]
-        let sheet = preset.sheet(bodyFamily: book.effectiveStyleSheet.bodyFamily)
+        let sheet: BookStyleSheet
+        switch selection {
+        case .preset(let preset):
+            sheet = preset.sheet(bodyFamily: book.effectiveStyleSheet.bodyFamily)
+            //  A set is chosen OVER the tuning, = and the tuning is not
+            //  deleted by it: = `customStyleSheet` keeps what the reader
+            //  had (= the boss's rule: = General and back to Custom returns the
+            //  book to the tuning it was at, = not to the set it passed
+            //  through).
+        case .custom:
+            //  Custom is the book's own saved tuning, = and a book that has
+            //  never been tuned has no tuning to come back to: = it stays
+            //  on what it is showing (= choosing Custom is not an act that
+            //  silently restyles a book).
+            sheet = book.customStyleSheet ?? book.effectiveStyleSheet
+        }
         guard sheet != book.effectiveStyleSheet else { return book }
         book.styleSheet = sheet
         try store.sidebarSaveBook(book)
         return book
+    }
+
+    /// Choose one of the sets, = by name.
+    ///
+    /// The page's own call site reads clearer with the set in it than with
+    /// a case of an enum the reader has to unwrap.
+    @discardableResult
+    static func apply(
+        preset: BookStylePreset,
+        to bookID: UUID,
+        store: BookStore
+    ) throws -> Book? {
+        try apply(selection: .preset(preset), to: bookID, store: store)
     }
 
     /// Move one knob of the book to a position, and save the book.
@@ -73,6 +101,14 @@ enum BookStyleSheetWriteBack {
         // book is not rewritten for nothing.
         guard sheet != book.effectiveStyleSheet else { return book }
         book.styleSheet = sheet
+        //  A move that leaves the book at none of the sets IS the book's
+        //  own tuning, = so the tuning is saved where Custom can find it
+        //  again (= and a move that lands the book exactly back on a set
+        //  leaves the saved tuning alone: = the reader who nudged a knob
+        //  and nudged it back has not lost the tuning they meant).
+        if BookStylePreset.matching(sheet) == nil {
+            book.customStyleSheet = sheet
+        }
         try store.sidebarSaveBook(book)
         return book
     }

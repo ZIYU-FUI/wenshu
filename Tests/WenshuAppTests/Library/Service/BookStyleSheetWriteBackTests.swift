@@ -309,6 +309,97 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
         XCTAssertEqual(written.effectiveStyleSheet.headingLadder, .printStandard)
     }
 
+    /// THE TUNING IS KEPT BEHIND A SET, = AND COMES BACK.
+    ///
+    /// The boss's rule (= OOB.md #2026-11-19): = a book whose knob moved
+    /// sits at Custom, = and General then Custom returns it to the tuning it
+    /// was at, = NOT to the set it passed through. = A set is a whole
+    /// sheet, = so choosing one DOES move the tuned knob back (= that is
+    /// what a set is for), = and the tuning waits in `customStyleSheet`
+    /// for the segment that can find it.
+    ///
+    /// MUTATION: = a set overwriting `customStyleSheet` (= or a knob move
+    /// that never saves the tuning) = leaves Custom a segment with nothing
+    /// to return to, = and the last assertion below fails.
+    func testTheTuningComesBackAfterTheGeneralSet() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let book = try makeBook(in: store)
+
+        _ = try BookStyleSheetWriteBack.apply(
+            knob: .bodySize,
+            position: BookBodySize.large.rawValue,
+            to: book.id,
+            store: store
+        )
+
+        var stored = try JSONDecoder().decode(Book.self, from: try readBookJSON(in: store, book))
+        XCTAssertEqual(
+            stored.customStyleSheet?.bodySize,
+            .large,
+            "a move off both sets IS the book's own tuning, = and is saved as one"
+        )
+        XCTAssertEqual(
+            BookStyleSelection.select(sheet: stored.effectiveStyleSheet),
+            .custom,
+            "the page shows Custom for a book that sits at no set"
+        )
+
+        _ = try BookStyleSheetWriteBack.apply(
+            selection: .preset(.general),
+            to: book.id,
+            store: store
+        )
+        stored = try JSONDecoder().decode(Book.self, from: try readBookJSON(in: store, book))
+        XCTAssertEqual(
+            stored.effectiveStyleSheet.bodySize,
+            .medium,
+            "the general set is a whole sheet, = so it puts the knob back"
+        )
+        XCTAssertEqual(
+            stored.customStyleSheet?.bodySize,
+            .large,
+            "choosing a set does not delete the book's own tuning"
+        )
+
+        _ = try BookStyleSheetWriteBack.apply(
+            selection: .custom,
+            to: book.id,
+            store: store
+        )
+        stored = try JSONDecoder().decode(Book.self, from: try readBookJSON(in: store, book))
+        XCTAssertEqual(
+            stored.effectiveStyleSheet.bodySize,
+            .large,
+            "Custom returns the book to the tuning it was at (= and not to the set it passed through)"
+        )
+    }
+
+    /// A BOOK THAT WAS NEVER TUNED HAS NOTHING TO COME BACK TO.
+    ///
+    /// MUTATION: = `sheet = book.customStyleSheet ?? defaultSheet` = an
+    /// untuned book silently restyled by a click on a segment it never
+    /// earned (= the same click on Custom must be a no-op).
+    func testChoosingCustomForAnUntunedBookChangesNothing() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let book = try makeBook(in: store)
+
+        _ = try BookStyleSheetWriteBack.apply(
+            selection: .custom,
+            to: book.id,
+            store: store
+        )
+
+        let stored = try JSONDecoder().decode(Book.self, from: try readBookJSON(in: store, book))
+        XCTAssertNil(stored.customStyleSheet, "an untuned book has no tuning to install")
+        XCTAssertEqual(
+            stored.effectiveStyleSheet,
+            book.effectiveStyleSheet,
+            "a segment with nothing behind it must not restyle the book"
+        )
+    }
+
     /// THE WRITE-BACK LETS THE SAVE'S FAILURE THROUGH.
     ///
     /// = The source-text guard (= "the file carries no `catch`") =

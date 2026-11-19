@@ -7403,13 +7403,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This Book's Styles"
+            "value": "Current Book Style"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "这本书的样式"
+            "value": "当前书样式"
           }
         }
       }
@@ -7427,6 +7427,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "微调"
+          }
+        }
+      }
+    },
+    "inspector.style.preview.sample": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sample text line\nsecond line here"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "春风又绿江南岸\n明月何时照我还"
           }
         }
       }
@@ -8801,19 +8818,53 @@
         }
       }
     },
-    "inspector.style.preview.sample": {
+    "inspector.style.preset.print": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sample text line\nsecond line here"
+            "value": "Print"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "春风又绿江南岸\n明月何时照我还"
+            "value": "印刷"
+          }
+        }
+      }
+    },
+    "inspector.style.preset.general": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "General"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通用"
+          }
+        }
+      }
+    },
+    "inspector.style.preset.custom": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义"
           }
         }
       }

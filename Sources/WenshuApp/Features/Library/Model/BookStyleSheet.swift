@@ -452,11 +452,16 @@ enum BookStylePreset: String, CaseIterable, Sendable {
     case printBaseline
     case general
 
-    /// Chinese display name (= the label a picker draws for this set).
+    /// The name the switcher draws for this set.
+    ///
+    /// The names are the catalog's (= the printed standard is Print, = the
+    /// screen's is General), = because a control's word is copy and not
+    /// logic: = a literal here would be one book's opinion about a
+    /// reader's language.
     var displayName: String {
         switch self {
-        case .printBaseline: return "印刷基线"
-        case .general: return "通用"
+        case .printBaseline: String(localized: "inspector.style.preset.print")
+        case .general: String(localized: "inspector.style.preset.general")
         }
     }
 
@@ -493,5 +498,50 @@ enum BookStylePreset: String, CaseIterable, Sendable {
             return .general
         }
         return nil
+    }
+}
+
+/// What the switcher says the book is at (= one of the two named sets, =
+/// or the book's own tuning).
+///
+/// WHY A THIRD CASE
+///
+/// A fine-tuned book sits at neither set, = and the switcher used to say
+/// so by lighting nothing (= AppKit's own unlit state, = `selectedSegment
+/// = -1`). = A reader who cannot name a state cannot choose it, = and the
+/// boss's ruling replaced that: = the state gets a segment of its own,
+/// = Custom, = which the page lands on by itself whenever the book's sheet
+/// matches no set (= `matching(_:)` returning nil).
+enum BookStyleSelection: Hashable, Sendable {
+    /// One of the two named sets.
+    case preset(BookStylePreset)
+
+    /// The book's own tuning.
+    case custom
+
+    /// Every place the switcher offers, = in the order it draws them
+    /// (= the two sets first, = because they are what a new book starts
+    /// from, = and the reader's own tuning last, = because it is where a
+    /// book ends up rather than where it begins).
+    static var choices: [BookStyleSelection] {
+        BookStylePreset.allCases.map(BookStyleSelection.preset) + [.custom]
+    }
+
+    /// The name the switcher draws for this choice.
+    var displayName: String {
+        switch self {
+        case .preset(let preset): preset.displayName
+        case .custom: String(localized: "inspector.style.preset.custom")
+        }
+    }
+
+    /// Where the book is, = read off the sheet it is on.
+    ///
+    /// A sheet that names one of the sets IS that set, = whatever the
+    /// saved tuning says: = the reader who set the book to Print is at
+    /// Print, = and the tuning waits behind it.
+    static func select(sheet: BookStyleSheet) -> BookStyleSelection {
+        guard let preset = BookStylePreset.matching(sheet) else { return .custom }
+        return .preset(preset)
     }
 }

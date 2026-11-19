@@ -39,11 +39,15 @@ final class StyleSheetWiringTests: XCTestCase {
     func testTheKnobsMenuHandsOverTheRawValue() throws {
         let code = try Self.code(of: "Sources/WenshuApp/Features/Editor/View/InspectorStyleKnobView.swift")
         XCTAssertTrue(
-            code.contains("onChoose(position.rawValue)"),
-            "the knob's menu must hand over the position's RAW value (= the sheet reads a position by that name)"
+            code.contains("selection: $0.rawValue"),
+            "the knob's button must carry the position's RAW value as its selection (= the sheet reads a position by that name)"
+        )
+        XCTAssertTrue(
+            code.contains("selection: knob.current.rawValue"),
+            "the knob must show the position the book sits at, = read by RAW value"
         )
         XCTAssertFalse(
-            code.contains("onChoose(position.label)"),
+            code.contains("onChoose(position.label)") && code.contains("selection: $0.label"),
             "a display name is not a position (= the sheet cannot read it back)"
         )
     }
