@@ -31,18 +31,22 @@
 #
 # THE BRANCH NAME IS NOT ASKED (2026-11-19, round 2 of the same defect). A
 # card id inside a branch name is a CLAIM about a DIFFERENT commit, and a
-# claim is not a verdict: it could neither bless a tip no card approved
-# (`t_5bff7b80`'s approval of `7e3878dcdc` printing a bare CLEAN over a tip
-# whose newest verdict was `changes_requested`) nor veto a tip some other
-# card approved (a BUILD card's `contract_error`, and, when only ONE literal
-# was matched, four of the gate's five non-zero answers doing the same to
-# seven live branches). So the sha lookup is the only reader, its order is
-# the authority, and the claim is printed as context when a branch is
-# refused. A card body that names its sha outside WHAT TO BUILD's first
-# paragraph therefore no longer lands by its branch name (= 23 of 184 cards
-# were measured in that shape): the house rule is the first paragraph, and a
-# body that breaks it is a body defect, not something the gate routes
-# around.
+# claim is not a verdict. It could not bless: `t_5bff7b80`'s approval of
+# `7e3878dcdc` printed a bare CLEAN over a tip whose newest verdict was
+# `changes_requested`. And it did veto: the round-1 gate (commit
+# 7992995e58, = this commit's predecessor) whitelisted ONE literal,
+# `contract_error`, so a live branch whose name claimed a card answering ANY
+# of the gate's other four non-zero codes was refused for a verdict that was
+# never about its tip. Both shapes are pinned as fixtures rather than as a
+# count: = `case_a_refusal_of_an_other_commit_does_not_veto_the_tip` (the
+# veto that had to be removed) and
+# `case_a_claim_that_is_not_a_review_card_decides_nothing` (a BUILD card's
+# `contract_error`). So the sha lookup is the only reader, its order is the
+# authority, and the claim is printed as context when a branch is refused. A
+# card body that names its sha outside WHAT TO BUILD's first paragraph
+# therefore no longer lands by its branch name: the first paragraph is what
+# `review_gate.py:618` (`reviewed_sha`) parses, = = and a body that breaks
+# that shape is a body defect, not something the landing gate routes around.
 #
 # Usage:
 #   merge-preflight.sh <card-branch> [<card-branch> ...]
@@ -95,13 +99,13 @@ card_id_of() {
 LOOKUP_RC="$(mktemp "${TMPDIR:-/tmp}/wenshu-lookup-rc.XXXXXX")"
 trap 'rm -f "$LOOKUP_RC"' EXIT
 
-# ``covering_cards`` prints EVERY review-card id that the sha lookup says
-# covers the branch, newest verdict first (= the gate's own order). It is
-# the same call the old single-card lookup made; splitting it into a list
-# is what lets the branch-name claim be CHECKED rather than trusted (= a
-# claim that names a card whose verdict is about a DIFFERENT commit must
-# not bless this branch).
-covering_cards() {
+# ``governing_card`` prints the ONE review-card id that decides a branch: the
+# head of the list the sha lookup returns, = = which is the gate's own order
+# (= newest verdict first, in ``matching_cards``). = = The tail is not
+# returned because nothing may read it: = = round 1 of this fix kept it and
+# consulted it on the refusal path only, = = and that asymmetry is the defect
+# that vetoed live branches whose named card had refused an OLDER commit.
+governing_card() {
     local branch="$1"
     local sha
     local out
@@ -115,7 +119,7 @@ covering_cards() {
     [[ -z "$sha" ]] && return 0
     out="$(python3 "$GATE" --branch "$branch" --sha "$sha" --board "$BOARD" 2>/dev/null)"
     printf '%s' "$?" > "$LOOKUP_RC"
-    printf '%s\n' "$out" | sed -n 's/^CARD \([a-z_0-9]*\)$/\1/p'
+    printf '%s\n' "$out" | sed -n 's/^CARD \([a-z_0-9]*\)$/\1/p' | head -1
 }
 
 conflict=0
@@ -157,12 +161,12 @@ for b in "${branches[@]}"; do
         echo "          merge that first, or this merge lands unchecked)"
         continue
     fi
-    # = = = THE AUTHORITY, READ ONCE. = = covering_cards lists every review
-    # = = = card the sha lookup says covers the sha this branch points at,
-    # = = = newest verdict first (= = the gate's own order in
-    # = = matching_cards), = = and it writes the gate's exit code to
-    # = = LOOKUP_RC because a command substitution cannot return one.
-    covering="$(covering_cards "$b")"
+    # = = = THE AUTHORITY, READ ONCE. = = governing_card prints the ONE
+    # = = = review card the sha lookup says decides this branch (the head of
+    # = = = the gate's own order in matching_cards, = = review_gate.py:474),
+    # = = = and it writes the gate's exit code to LOOKUP_RC because a command
+    # = = = substitution cannot return one.
+    governing="$(governing_card "$b")"
     lookup_rc="$(cat "$LOOKUP_RC" 2>/dev/null || echo 0)"
 
     # = = = THE BRANCH NAME IS NO LONGER ASKED. = = It used to be read for a
@@ -193,17 +197,13 @@ for b in "${branches[@]}"; do
     # = = The rule those three share is not "check the claim against the
     # = = lookup": it is that a claim decides nothing. Asking it at all was
     # = = the defect, so it is no longer asked (= and an answer nobody can
-    # = = use is not kept as a spare). The shape that proves the lookup alone
-    # = = covers all three is a case function, not an ordinal:
-    # = = tests/test_merge_preflight.py::
-    # = =     case_a_refusal_of_an_other_commit_does_not_veto_the_tip
+    # = = use is not kept as a spare).
     # = = A card whose body names its sha OUTSIDE the WHAT TO BUILD claim
-    # = = therefore no longer lands by its branch name (= 23 of 184 review
-    # = = cards were measured in that shape): the house rule (AGENTS.md, and
-    # = = the header of this script) already says the claim goes in the
-    # = = first paragraph of WHAT TO BUILD, and a body that breaks the rule
-    # = = is a body defect, not something the gate routes around.
-    card="$(printf '%s\n' "$covering" | head -1)"
+    # = = therefore no longer lands by its branch name: AGENTS.md §1.15
+    # = = requires the heading, and `review_gate.py:618` (`reviewed_sha`)
+    # = = parses the sha out of its FIRST paragraph, so a body that breaks
+    # = = that shape is a body defect, not something the gate routes around.
+    card="$governing"
 
     if [[ -z "$card" ]]; then
         if [[ "${lookup_rc:-0}" -eq 2 ]]; then

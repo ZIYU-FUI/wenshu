@@ -51,6 +51,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -324,12 +325,12 @@ def fixture_env(home: Path, repo: Path) -> dict:
     return env
 
 
-def run_preflight(home: Path, repo: Path, branch: str) -> tuple[int, str]:
+def run_preflight(home: Path, repo: Path, *branches: str, board: str = "fixture") -> tuple[int, str]:
     env = fixture_env(home, repo)
     env["WENSHU_REPO"] = str(repo)
-    env["WENSHU_BOARD"] = "fixture"
+    env["WENSHU_BOARD"] = board
     r = subprocess.run(
-        ["bash", str(PREFLIGHT), branch], capture_output=True, text=True, env=env
+        ["bash", str(PREFLIGHT), *branches], capture_output=True, text=True, env=env
     )
     return r.returncode, r.stdout + r.stderr
 
@@ -355,7 +356,7 @@ def case_the_fixture_board_is_readable() -> None:
         expect("the fixture board answers approved on its review card", rc == 0, f"gate rc={rc}")
 
 
-def case_a_claim_that_is_not_a_review_card_falls_through() -> None:
+def case_a_claim_that_is_not_a_review_card_decides_nothing() -> None:
     """A branch named after a BUILD card is decided by its sha, not by the claim."""
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
@@ -377,13 +378,26 @@ def case_a_claim_that_is_not_a_review_card_falls_through() -> None:
         rc, out = run_preflight(home, g["repo"], branch)
         expect(
             "a build card's contract_error does not veto an approved sha",
-            rc == 0,
+            rc == 0 and "CLEAN" in out and "UNREVIEWED" not in out and "CONTRACT" not in out,
             f"rc={rc}\n          {out.strip()[:400]}",
         )
 
 
 def case_a_claim_on_another_commit_does_not_bless_the_branch() -> None:
-    """A review card that approved a DIFFERENT commit must not print CLEAN."""
+    """A review card that approved a DIFFERENT commit must not print CLEAN.
+
+    The assertion is on the WHOLE output, not on `out.split("CLEAN")[0]`:
+    = = measured 2026-11-19, this fixture's repo prints no `CLEAN` line at
+    = = all, = = so `split` returned a one-element list holding the entire
+    = = output and the clause was evaluated against `""`. = = It went green
+    = = against the round-1 gate, = = the version it exists to catch. = = A
+    = = clause that passes against an empty string is not an assertion.
+    = = (And `CLEAN` cannot be the anchor anyway: = = the script's POSITION
+    = = section prints `CLEAN    <branch> (behind main by N commit(s)…)`
+    = = for a conflict-free branch even when its VERDICT is `UNREVIEWED`,
+    = = as it does here. = = The approving word is the gate's `approved
+    = = <card>` line, = = and that is what is asserted.)
+    """
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         g = make_repo(tmp)
@@ -396,10 +410,13 @@ def case_a_claim_on_another_commit_does_not_bless_the_branch() -> None:
             "t_bbbb0002", g["stale_sha"], outcome="changes_requested", at=CONTRACT_T + 100, run_id=2
         )
         home = make_board(tmp, [stale_card, newer_card], [stale_run, newer_run])
-        rc, out = run_preflight(home, g["repo"], "project/t_aaaa0001-t1-the-stale-claim")
+        branch = "project/t_aaaa0001-t1-the-stale-claim"
+        rc, out = run_preflight(home, g["repo"], branch)
         expect(
-            "a claim that covers another commit never prints a bare CLEAN",
-            rc == 3 and "t_aaaa0001" not in out.split("CLEAN")[0],
+            "a claim that covers another commit never prints an approving verdict",
+            rc == 3
+            and f"UNREVIEWED {branch}" in out
+            and "approved t_aaaa0001" not in out,
             f"rc={rc}\n          {out.strip()[:400]}",
         )
         expect(
@@ -476,16 +493,148 @@ def case_a_sha_no_card_names_is_refused() -> None:
             rc == 3,
             f"rc={rc}\n          {out.strip()[:300]}",
         )
+        # The branch's NAME still claims t_aaaa0001. It is printed so a
+        # human can see why the branch looks reviewed, and explicitly marked
+        # as not-asked (= the shape that used to print a bare CLEAN).
+        expect(
+            "and the claim is printed as CONTEXT, never as the verdict",
+            "(the branch name claims t_aaaa0001" in out
+            and "it was not asked" in out
+            and "approved t_aaaa0001" not in out,
+            f"rc={rc}\n          {out.strip()[:400]}",
+        )
+
+
+def case_an_unreadable_board_refuses_every_branch_it_was_asked_about() -> None:
+    """An unreadable board is never read as "nobody reviewed this".
+
+    THE ARMS. `review_gate.py:49-50` names exit codes 0 (satisfied), 1
+    (contract error), 2 (board unreadable) and 3 (a verdict owed), = and
+    `main()` carries a fifth (`return 4`). = = A reader that keyed on one of
+    them and fell the rest through to a default is what printed, = for a
+    board it could not open at all, = `UNREVIEWED = no review card names the
+    sha this branch points at`. = = That is a DIFFERENT claim from "the board
+    could not be read", = = and it is the claim that lets a merge look merely
+    unfinished. = = So the script handles 1, = 2 and 3 by name and refuses any
+    other non-zero exit, = and this case asserts the two arms that must never
+    swap places: an unreadable board reads `UNREADABLE` for EVERY branch it
+    was asked about, = and a readable board that answers nothing reads
+    `UNREVIEWED`.
+
+    WHAT THIS CASE DOES NOT CLAIM. Round 1 also had a HOLE in the rc channel
+    itself (= = `LOOKUP_RC` was written only after the gate ran, = = so the
+    two early returns left the PREVIOUS branch's code in the file). That
+    difference is not reachable here: = = measured with a branch name git
+    does not know, = = the round-1 script and this one behave identically
+    (both exit 2 before the verdict loop), = = so no fixture can catch it.
+    `case_the_rc_channel_is_written_before_the_lookup_can_return` pins that
+    defect on the text instead, = = and fires on round 1's shape.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        g = make_repo(tmp)
+        card, run = build_card(
+            "t_cccc0003", g["tip_sha"], outcome="approved", at=CONTRACT_T, run_id=1
+        )
+        home = make_board(tmp, [card], [run])
+        git(g["repo"], "branch", "project/t_eeee0005-t1-a-second-branch", g["tip_sha"])
+
+        rc, out = run_preflight(
+            home, g["repo"],
+            "project/t_eeee0005-t1-a-second-branch",
+            "project/t_cccc0003-t1-the-tip-branch",
+            board="does_not_exist_board",
+        )
+        expect("an unreadable board is never a pass", rc != 0, f"rc={rc}\n{out[:400]}")
+        expect(
+            "and EVERY branch it was asked about reads UNREADABLE",
+            out.count("UNREADABLE project/") == 2,
+            f"rc={rc}\n          {out.strip()[:500]}",
+        )
+        expect(
+            "and none of them inherits the previous branch's answer",
+            "UNREVIEWED" not in out and "no review card names the sha" not in out,
+            f"rc={rc}\n          {out.strip()[:500]}",
+        )
+
+        # the success path keeps its own answer: readable board, no card.
+        rc, out = run_preflight(home, g["repo"], "project/t_aaaa0001-t1-the-stale-claim")
+        expect(
+            "a readable board that answers nothing still reads UNREVIEWED, not UNREADABLE",
+            rc == 3 and "UNREVIEWED project/t_aaaa0001-t1-the-stale-claim" in out
+            and "UNREADABLE" not in out,
+            f"rc={rc}\n          {out.strip()[:500]}",
+        )
+
+
+def rc_written_before_first_return(text: str) -> bool:
+    """True if the sha lookup commits its exit code BEFORE it can return.
+
+    The rule round 3 ships is that `LOOKUP_RC` is written on EVERY path,
+    including the two that return early. Round 1 wrote it only after the gate
+    had run, so a branch that hit an early return left the file holding the
+    PREVIOUS branch's exit code, and the loop read it as this branch's answer.
+    """
+    for name in ("governing_card", "covering_cards"):
+        marker = f"{name}() {{"
+        if marker not in text:
+            continue
+        body = text.split(marker, 1)[1].split("\n}", 1)[0]
+        code = [(i, ln.strip()) for i, ln in enumerate(body.splitlines())
+                if ln.strip() and not ln.strip().startswith("#")]
+        returns = [i for i, ln in code if re.search(r"\breturn\b", ln)]
+        first_return = min(returns, default=len(code))
+        return any(ln.startswith("printf") and "$LOOKUP_RC" in ln and i < first_return
+                   for i, ln in code)
+    raise AssertionError("neither governing_card nor covering_cards is in the text")
+
+
+def case_the_rc_channel_is_written_before_the_lookup_can_return() -> None:
+    """The exit code a later reader depends on is written before any return.
+
+    WHY THIS IS CHECKED STATICALLY. The defect is reachable only on a real
+    board whose refs fail to resolve, and the fixture cannot produce that
+    shape: measured 2026-11-19 with `WENSHU_BOARD=does_not_exist_board` and a
+    branch name git does not know, BOTH the round-1 script (`7992995e58`) and
+    this one exit 2 before the verdict loop, so no behaviour difference
+    exists for a fixture to catch (= and a case that asserted one would be a
+    case that cannot fail). The SHAPE, though, is a property of the text, and
+    a text property is cheap and exact: the lookup must commit its rc to the
+    side channel before the first line that can return.
+
+    The round-1 shape is reproduced here as `ROUND_ONE_LOOKUP` so the check is
+    proven to fire on the version it exists to catch, without depending on a
+    git object being present.
+    """
+    ROUND_ONE_LOOKUP = (
+        'covering_cards() {\n'
+        '    local branch="$1"\n'
+        '    local sha\n'
+        '    sha=$(git rev-parse --verify -q "$branch" 2>/dev/null) || return 0\n'
+        '    [[ -z "$sha" ]] && return 0\n'
+        '    out="$(python3 "$GATE" --branch "$branch" --sha "$sha")"\n'
+        '    printf \'%s\' "$?" > "$LOOKUP_RC"\n'
+        '}\n'
+    )
+    shipped = PREFLIGHT.read_text(encoding="utf-8")
+    expect("the sha lookup writes its exit code before it can return",
+           rc_written_before_first_return(shipped),
+           "governing_card returns before writing LOOKUP_RC")
+    expect("and the check fires on the round-1 shape it guards",
+           not rc_written_before_first_return(ROUND_ONE_LOOKUP),
+           "the rc-channel check passes the version that had the hole")
 
 
 def main() -> int:
     for case in (
         case_the_fixture_board_is_readable,
-        case_a_claim_that_is_not_a_review_card_falls_through,
+        case_a_claim_that_is_not_a_review_card_decides_nothing,
         case_a_claim_on_another_commit_does_not_bless_the_branch,
         case_a_refusal_of_an_other_commit_does_not_veto_the_tip,
         case_an_approved_tip_still_lands,
         case_a_sha_no_card_names_is_refused,
+        case_an_unreadable_board_refuses_every_branch_it_was_asked_about,
+        case_the_rc_channel_is_written_before_the_lookup_can_return,
     ):
         case()
     print(f"\n{len(FAILURES)} failure(s)")
