@@ -155,11 +155,17 @@ measured in the source).
   after the first lands with the gate silent, and every round has to reprint
   the pair itself. And a round cannot QUOTE that number in its own text: the
   count and the sentence quoting it land in the same commit, so the sentence is
-  stale the moment the file grows — which is how this bullet came to print 480,
-  the file's count at `ffeb9fafbe`, five inserted lines before this one. (That
-  480 also happens to be the LINE NUMBER of this file's row in `nfi.md`, a
-  coincidence that made the stale count look like a coordinate read as a count;
-  it was neither, it was simply the previous round's number.) = = So what is
+  stale the moment the file grows — which is how round 3 came to print 480: that
+  was this file's count in round 3's DRAFT, five inserted lines short of the count
+  its own commit shipped (`git show 876a08f300:<this file> | grep -c ""` = 485 from
+  any tree). It was never `ffeb9fafbe`'s count — that commit's file is 395 lines
+  (`git show ffeb9fafbe:<this file> | grep -c ""` = 395) — yet round 4's first
+  draft of this very sentence said it was, so 480 is the number this record has
+  now mis-attributed to two different commits. (480 also happens to be the LINE
+  NUMBER this file's row held inside `docs/agents/nfi.md` at those commits —
+  `git show <sha>:docs/agents/nfi.md | grep -n double-click-close.md` prints it per
+  commit — a coincidence that made a stale count read like a coordinate; it was
+  neither, and both readings move when anything grows.) = = So what is
   published here is the INVARIANT plus the two commands that print it, read from
   the tree the reader lands on: `grep -c "" <this file>` and the cell that
   `docs/agents/nfi.md` carries for this file must be EQUAL. Every round of this
@@ -167,18 +173,44 @@ measured in the source).
   verdict. That blind spot is §11 item 8, and the self-reference rule is item 11. At the same pair,
   `ci_change_gate.py --check markdown-newline` prints `2 changed .md file(s)
   checked`, rc 0.
-- Pair (base `b5f34f59e0`, **HEAD = the commit carrying this bullet**): the
-  gates for a record's own correction commits are charged against the parent the
-  commit ACTUALLY has, and a round cannot assume that parent is the previous
-  round's sha. A sibling's cover-menu feature (`b5f34f59e0`) landed between this
-  record's round-3 and round-4 commits, so `--base 876a08f300` charges 12 changed
-  Swift files, 4 registry rows and 716 added lines (6 of them carrying Han) that
-  belong to that feature and not to this record. At the pair printed here the
-  same gates read `0 changed Swift file(s)`, `2 changed .md file(s) checked`,
-  `the change adds no registry row; nothing to check` (= §11 item 8, the row was
-  modified rather than added), 52 added lines and 0 Han in U+4E00-U+9FFF, every
-  rc 0. = = The general rule this record keeps relearning from a new direction:
-  read `git rev-parse HEAD~1` before naming a base, and publish the pair.
+- Pair (base `b5f34f59e0`, **HEAD = the commit carrying this bullet**): the gates
+  for a record's own correction commits are charged against the parent the commit
+  ACTUALLY has, and a round cannot assume that parent is the previous round's sha.
+  A sibling's cover-menu feature (`b5f34f59e0`) landed between this record's
+  round-3 and round-4 commits, so naming round 3's sha as the base charges this
+  commit with that sibling's Swift files, registry rows and added lines. At the
+  right pair the gates read `0 changed Swift file(s)`, `2 changed .md file(s)
+  checked`, `the change adds no registry row; nothing to check` (= §11 item 8, the
+  row was modified rather than added), and the CJK audit finds 0 Han in
+  U+4E00-U+9FFF among this commit's added lines, every gate rc 0. = = The scope
+  figures are COMMANDS here and not counts. Round 4's first draft of this bullet
+  published two of them and both were false the moment the commit shipped, because
+  the measurement was taken before this bullet's own last insertions — each figure
+  was short by exactly the lines the correction then added. That is §11 item 11's
+  defect restated inside the bullet written to close it:
+
+      git rev-parse HEAD~1                    # the base this bullet means
+      git diff --shortstat <that sha>..HEAD   # this commit's whole scope
+      git diff --numstat   <that sha>..HEAD   # PER FILE; the total is not a file
+      git diff --shortstat 876a08f300..HEAD   # the WRONG base, for contrast
+
+  = = Two unit rules come with those commands. `--shortstat`'s TOTAL insertions
+  are not any one file's added-line count (`--numstat` is per file, and round 4's
+  review card quoted the total as this file's own count). And a Han figure must
+  say whether it counts LINES or CHARACTERS: at the wrong base the sibling's added
+  text is ONE line holding SIX Han characters
+  (re-print, ASCII-only because this file carries no Han and BSD grep has no
+  `-P`):
+
+      git diff 876a08f300..HEAD | grep '^+' | python3 -c "
+      import sys,re; ls=sys.stdin.read().splitlines(); r=re.compile(r'[\u4e00-\u9fff]')
+      print('lines',sum(1 for l in ls if r.search(l)),'chars',sum(len(r.findall(l)) for l in ls))"
+
+  which prints `lines 1 chars 6` at that wrong base — ONE line holding SIX Han
+  characters, which an earlier draft of this bullet wrote as six lines.
+  = = The general rule this record keeps relearning from a new direction: read
+  `git rev-parse HEAD~1` before naming a base, publish the pair, and publish the
+  command instead of the count of anything this commit itself changes.
 - Re-run on the tip `main` had moved to when this record closed (`1fbeb0cf96`,
   two sibling sidebar commits later), in the shared checkout: `swift build
   --build-tests` rc 0; `swift test --filter 'PaneTabStripCloseTests'` = `Test
@@ -491,7 +523,12 @@ false by the time it was pushed.
    tree supply the number; if a number must appear, bind it to the commit it was
    measured at and say "measured before this round's final edit". A count with no
    coordinate is a claim, and a count of the counting sentence is a claim that
-   refutes itself.
+   refutes itself. = = Round 4 shipped three MORE of them, in the very text that
+   closed round 3, and the coordinate nobody had counted is a DRAFT reading: the
+   count is taken while the file is still being edited, so it is short by exactly
+   the lines the correction itself adds. Measure after the last insertion, or
+   publish the command — which is what §6's pair bullet and §12's round-2 clause
+   now do.
 ## 12. This record's own rounds
 
 - Round 1 (card `t_a4a6794f`, run 4594 = 3018 s = **50.3 min**, 15:59:27 to
@@ -514,11 +551,14 @@ false by the time it was pushed.
 - Round 2 (card `t_cdf2b1ba`, run 4604 = 853 s = **14.2 min**): F1, F2 and F4
   reprinted EXACTLY under the reviewer's own commands (62/46 with the
   30+32 / 30+16 split, the relative path reading 0/0/0, and `grep -n` on the
-  retired phrase returning two hits at `ffeb9fafbe`, both inside correction
-  sentences — a count that round 3 broke by quoting the grep in §12, which is
-  itself a hit, so the invariant replaces it: EVERY occurrence sits inside a
-  sentence that names it as an error, however many there are
-  = 2 hits inside correction sentences), F3's table and both totals reprinted,
+  retired phrase returning two hits at `ffeb9fafbe` — a figure allowed to appear
+  only inside a clause that names its commit, because
+  `git show ffeb9fafbe:<this file> | grep -c "nine minutes"` = 2 reprints from any
+  tree while an unbound copy goes stale in the commit that ships it — both inside
+  correction sentences, a count that round 3 broke by quoting the grep in §12,
+  which is itself a hit, so the invariant replaces it: EVERY occurrence sits
+  inside a sentence that names it as an error, however many there are), F3's table
+  and both totals reprinted,
   and the verdict was `changes_requested` again, for five more doc-only
   findings, three of them numbers inside the very sections written to close
   round 1: the six excluded runs were described as dead-on-admission when two of
@@ -546,6 +586,23 @@ false by the time it was pushed.
   heartbeats, 16 / 91 / 7 are all event kinds). = = The structural answer is
   §11 item 11: a record publishes invariants and commands, never a count of
   itself, because the counting sentence and the count ship in the same commit.
+- Round 4 (card `t_f6ea27c4`, run 4612 = 570 s = **9.5 min**): C1's invariant
+  PASSED, and it held at every prior commit as well (this file's `grep -c ""` and
+  the registry's cell agreed at each of them, which no gate checks — §11 item 8),
+  and C2, C4, C5 plus all six GATES reprinted. The verdict was `changes_requested`
+  for three sentences that STILL published an absolute count of this record, two of
+  them inside the bullet and the section written that round to close the class:
+  480 was attributed to the wrong commit (it is round 3's draft reading, and
+  `ffeb9fafbe`'s file is 395 lines), §6's round-4 bullet printed two scope counts
+  its own commit did not have (measured on the pre-amend draft, then more lines
+  were inserted), and §12 re-attached a grep-hit count to the sentence that
+  renounces it. = = One defect, not three: a DRAFT reading is a third coordinate
+  beside base and HEAD, and it is the only one that cannot survive, because the
+  sentence reporting it ships in the commit that finishes growing. Two of that
+  round's non-blocking rows are closed here as well — the 480 line-number claim is
+  coordinate-bound to a commit and a command, and the card body that quoted
+  `--shortstat`'s total as this file's own added lines is not repeated — while the
+  third (a half-up minutes figure printed beside its seconds) needed no action.
 - The reviewers' evidence lives in their own profile's scratch, not this
   session's: `/Volumes/ANAN/.hermes/profiles/wenshu-review/cache/scratch/ab-2026-11-19/`
   (round 1) and the two throwaway detached worktrees round 2 added at
