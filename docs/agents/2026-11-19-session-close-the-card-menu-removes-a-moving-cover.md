@@ -125,10 +125,12 @@ stacked commits — two of them are the same commit at three bases.
 | `b5f34f59e0831324e3e5d3806d85f76a3fc3046e` | `876a08f300` | the **LANDED** commit: the round-2 content, rebased once more onto a newer main. |
 
 ⇒ **THE LANDED COMMIT'S COVER AND TEST CONTENT IS BYTE-IDENTICAL TO THE
-REVIEWED TIP.** The command that prints it:
+REVIEWED TIP, AND IT IS STILL THE CONTENT `main` CARRIES.** The command
+that prints it, with both endpoints on `main` so it survives the branch
+being deleted:
 
 ```
-git diff --stat 345e33338c b5f34f59e0 -- \
+git diff --stat b5f34f59e0 main -- \
   Sources/WenshuApp/Features/Cover \
   Sources/WenshuApp/Features/Editor/View/PreviewPaneCardCoverMenu.swift \
   Sources/WenshuApp/Features/Editor/View/PreviewPaneCard+Body.swift \
@@ -138,10 +140,28 @@ git diff --stat 345e33338c b5f34f59e0 -- \
   Tests/WenshuAppTests/Cover
 ```
 
-It prints **nothing**. The whole-tree diff between the two shas is
-`sibling` work only (= the sidebar tree, the tab strip, a sibling's
-closeout record, and the registry rows those rows moved), so the review's
-verdict still covers the change that landed.
+It prints **nothing**. ⇒ **AND THE PAIR THAT PROVES THE VERDICT COVERS THE
+LANDED TREE HAS TO BE STATED ON A REF THAT SURVIVES**: the sha the round-2
+verdict names, `345e33338c`, is reachable from **no ref** — `git branch -a
+--contains 345e33338c` prints nothing and it resolves here only because a
+local reflog still mentions it, so the command that diffs against it works
+on this machine and dies at the next `git gc`. The durable coordinate is
+`refs/heads/wt/cover-menu-2026-11-19`, whose tip `d1f4c400d4` is on `origin`
+and off `main`, and whose cover paths are byte-identical to the landed
+commit:
+
+```
+git diff --stat d1f4c400d4 b5f34f59e0 -- \
+  Sources/WenshuApp/Features/Cover \
+  Sources/WenshuApp/Features/Editor/View/PreviewPaneCardCoverMenu.swift \
+  Tests/WenshuAppTests/Cover
+```
+
+It prints nothing too, which is the same claim, readable by anyone who
+fetches. The whole-tree diff between the two shas is `sibling` work only (=
+the sidebar tree, the tab strip, a sibling's closeout record, and the
+registry rows those rows moved), so the review's verdict still covers the
+change that landed.
 
 **⇒ AND THE PATCH-ID IS NOT THE PROOF, THE FILE LIST IS.** The two shas
 have different `git patch-id` values, because a patch-id is a function of
@@ -208,10 +228,33 @@ independently of the owner's word.
 BECAUSE A FILE THAT IS GONE CANNOT BE RE-READ.** The "before" figures are
 the ones the board's own comment 1913 recorded (the removal was read
 before the owner's action, and the file it names has since been deleted);
-the "after" figures are re-readable from the library at any time. ⇒ **⇒ ⇒
-⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THAT IS A PROPERTY OF EVERY "BEFORE" COLUMN
-IN A RECORD LIKE THIS: IF THE THING IT DESCRIBES IS DELETED, = = THE
-BEFORE FIGURES LIVE IN THE BOARD, = = NOT IN THE TREE.
+the "after" figures are re-readable from the library at any time. ⇒ **AND
+THAT IS A PROPERTY OF EVERY "BEFORE" COLUMN IN A RECORD LIKE THIS: IF THE
+THING IT DESCRIBES IS DELETED, THE BEFORE FIGURES LIVE IN THE BOARD, NOT
+IN THE TREE.** ⇒ **AND THE CITATION ABOVE COVERS FIVE OF THE SIX
+CELLS** (= the `status` = `staticReady` before-cell is not in comment
+1913, and a citation that covers five while claiming the column is the
+same defect class this record exists to catch). ⇒ **THE SIXTH
+CELL'S SOURCE IS THE FILEPROVIDER MIRROR** (= the propagated copy of the
+same library, which still holds the pre-removal `cover.mp4` and
+`cover.json`), and the path is given as a command, because ⇒ **A PATH THAT
+HOLDS AN ELLIPSIS OR A PLACEHOLDER IS NOT A CITATION** (= this round's first
+draft wrote it with `/<id>/` and an ellipsis in it, which is a claim no
+reader can run, and that is the same defect class):
+
+```
+ls -la "$HOME/Library/Application Support/FileProvider/\
+7EA82B9E-F235-46DC-BB77-8BADB0B22789/wharf/wharf/propagate/410336482/\
+assets/covers/bookDoc-E9EEC79C-DFC7-5343-A6AB-CD06EB13DED5/"
+```
+
+It reads `cover.mp4` **260,377 bytes** (= mtime 11-19 15:06:43), `cover.heic`
+**46,683 bytes** (= mtime 10-26 16:12:55), and `cover.json` `clipStatus` =
+`clipReady`, `status` = `staticReady`, `clipAttemptAt` =
+`2026-11-19T07:06:43Z`, `updatedAt` = `2026-11-19T07:06:43Z` (= the file's
+own mtime is 11-19 15:06:43). So the mirror reprints **every** before-cell
+in the table below, and comment 1913 is the second, independent copy of
+five of them.
 
 | file | before | after |
 | --- | --- | --- |
@@ -300,12 +343,16 @@ requirements had landed on `main` under a **different card id and a
 different commit** (= e.g. the export's full-width-colon fix = = `b0985f5a9a`,
 the broken-pin fix = = `a7c0e289c8`, the chat column's split = = `0c97f66234`
 plus `ChatView+KeyboardShortcuts.swift` already in `main`). ⇒ **⇒ ⇒ ⇒ ⇒ ⇒
-⇒ ⇒ ⇒ ⇒ ⇒ AND A LABEL MUST NAME THE COMMIT THAT CARRIES IT** (= = the
-label "the chat column's split" names a REFERENCE-BODY fix, = = and its
-files are the reference store's, = = not the chat's; = = the commit that
-split the chat's shortcuts into their own file = = is `0c97f66234`, = =
-"the chat's keyboard shortcuts, = = in a file of their own"). The number
-that survives re-derivation is **zero** requirements lost. ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ AND A LABEL MUST NAME THE COMMIT THAT
+CARRIES IT** (= = round 1 paired the label "the chat column's split" with
+`9fb8ec32e5`, = = whose files are the reference store's, = = not the chat's;
+= = the commit that split the chat's shortcuts into their own file = = is
+`0c97f66234`, = = "the chat's keyboard shortcuts, = = in a file of their
+own"). ⇒ **AND THE CLAUSE NAMES ITS REFERRENT, BECAUSE A LESSON ABOUT A MISTAKE
+THAT THE PARAGRAPH NO LONGER MAKES CANNOT BE READ** (= the sha it talks
+about has to be IN the paragraph, or the sentence explains a pairing the
+reader cannot see). The number that survives re-derivation is **zero**
+requirements lost. ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒
 ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ THE LESSON, WHICH IS GENERAL: A DELETED BRANCH IS NOT A
 LOST REQUIREMENT.** To ask whether a requirement shipped, ask two
 questions: **does the requirement's SUBJECT appear in a commit that is an
@@ -337,13 +384,40 @@ git ls-remote origin refs/heads/main
 git ls-remote old-origin refs/heads/main
 ```
 
-**⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ THE SNAPSHOT IS NAMED, = = NOT "AT THE TIME
-THIS RECORD WAS WRITTEN".** Two remotes, one sha, one moment: the reading
-is `origin` = = `9f0b263196` and `old-origin` = = `9f0b263196`, and
-`b5f34f59e0` (= = this scope's landed commit) is an ancestor of both. ⇒
-**⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE SHA MOVES** (= = siblings land
-between the record and the reader), = = so **this record names the commit
-and its ancestry, and the reader reads the tip**: `git rev-parse main`.
+**⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ THE REMOTE CLAIM IS CHECKABLE, = = AND IT
+NAMES NO SHA, = = BECAUSE A SHA THAT MOVES WHILE THE RECORD IS BEING
+WRITTEN IS ALREADY STALE.** ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ THE CLAIM
+IS THIS: `b5f34f59e0` (= = this scope's landed commit) IS AN ANCESTOR OF
+WHATEVER THE REMOTE PRINTS.** The reader's commands:
+
+```
+git ls-remote origin refs/heads/main
+git ls-remote old-origin refs/heads/main
+git merge-base --is-ancestor b5f34f59e0 <that sha> && echo YES
+```
+
+⇒ **AND THAT FORM IS THE ONLY ONE THAT SURVIVES**: a snapshot's own sha is
+stale the moment a sibling lands, and this record has its own dated example
+of that. ⇒ **AND THE TWO TIMESTAMPS ARE PRINTABLE, SO THE CLAIM IS
+CHECKABLE**: the reviewer's comment that carries `9f0b263196` is
+board-stamped `2026-11-19 19:49:11` (= epoch `1795088951`), and `main` moved
+off that sha **18 s later** at `2026-11-19 19:49:29` (= epoch `1795088969`,
+the committer date of `001a570551`, a sibling's merge, which is an ancestor
+of `main`). The reader prints them with:
+
+```
+sqlite3 ~/.hermes/kanban/boards/wenshu-par/kanban.db \
+  "SELECT created_at FROM task_comments WHERE id = 1926"
+git log -1 --format=%ct 001a570551
+```
+
+⇒ **AND NEITHER COORDINATE MAY LIVE IN A SHA THIS BRANCH LEAKS**: the first
+round cited `fb8ead22c9`'s committer date, and that commit is only
+reachable while the branch is. What survives a landing and a branch
+deletion is a board row and an ancestor of `main`, so those are what the
+pair above names. What the reader's `ls-remote` prints is whatever the
+remote holds at the moment of reading, which is why the claim above names no
+sha. ⇒ **THE TIP IS THE READER'S TO READ**: `git rev-parse main`.
 
 ## 10. Open items left behind
 
@@ -390,13 +464,18 @@ and its ancestry, and the reader reads the tip**: `git rev-parse main`.
   fix, = = and the chat's split is `0c97f66234`. ⇒ **⇒ ALL FOUR ARE FIXED
   HERE, = = AND THE RECORD NOW NAMES THE RUN IDS, = = THE TWO FILES, = =
   THE RETRACTED READING, = = AND THE COMMIT THAT CARRIES THE LABEL.**
-  ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ The two non-blocking notes are fixed too (= = §9's remote
-  claim now names the snapshot, = = and §7's "before" column now names the
-  board comment it is reprintable from, = = because a deleted file cannot
-  be re-read). ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **AND THE LOC CELL IN THE REGISTRY ROW
-  MOVED WITH THE PROSE** (= = 360 → = = 388), = = which is §11's own rule:
-  = = the row's count is written AFTER the prose is final and IN THE SAME
-  COMMIT.
+  ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ The two non-blocking notes from that round are fixed too (= §9's
+remote claim, and §7's "before" column). ⇒ **AND THE LOC CELL
+IN THE REGISTRY ROW MOVES WITH THE PROSE**, which is this record's own
+rule: the row's count is written AFTER the prose is final and IN THE SAME
+COMMIT. ⇒ **AND THIS RECORD PUBLISHES NO COUNT OF ITS OWN** (= not the
+old one, not the new one, not any of them), because §6's rule is that
+a doc that counts itself publishes the INVARIANT and the two commands
+that print it, and a count carried in a sentence is stale in the very
+commit that writes it (= a round's own ledger entry lengthens the file,
+so the number it quotes was taken before that entry existed). The
+reader's check is two commands: the row's cell, and this file's own
+count, read from the same tree, and EQUAL.
 - **Round 1**: this document. Every number in it was read from the tree or
   from the board's own rows; the two "before" numbers in §7's table were
   read from the library **before** the owner's action and the "after" ones
@@ -409,3 +488,21 @@ and its ancestry, and the reader reads the tip**: `git rev-parse main`.
   the prose is final and **in the same commit** (= a row that carries a
   stale count reads as a defect, and two commits leave the tree red in
   between).
+
+⇒ **AND THIS IS WHERE THE RECORD STOPS.** The closure commit this section
+describes still gets its review card, its gates, and its server proof, but
+**its verdict is not written back into this file.** A closeout record
+cannot name its own closing verdict before the verdict exists, so the
+round that wrote "approved on <sha>" would be a new commit whose review
+demands another. **A record that keeps logging its own meta-reviews has
+become the defect it was written to report.** So no further round is
+logged here: the last entry above is the round BEFORE this commit, and the
+card that reads this record treats any new entry about this record's own
+review as a defect, not as diligence.
+
+The durable lessons this scope learned (= a label must name the commit it
+describes, a path with an ellipsis is not a citation, a remote claim must
+be an ancestry claim, a doc must not publish a count of itself, and a
+closure record does not log its own reviews) are written into the shared
+skill tree at step 4 of the closeout, where the next session actually
+loads them.
