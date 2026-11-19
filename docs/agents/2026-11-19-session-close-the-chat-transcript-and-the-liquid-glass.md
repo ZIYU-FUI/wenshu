@@ -4,7 +4,7 @@
 
 = = = The boss named FIVE lines, = = and every one of them is carried by a
 commit that is on BOTH servers' `main`. = = The read is quoted with its TIME, = =
-because the ref moved SEVEN times during this review: = = `git ls-remote origin
+because the ref has moved TWELVE times since the scopes landed (= = the count `git reflog show origin/main --date=iso` prints = = 46 entries in all, = = the entries NEWER than the `48cfabe11` push at 2026-11-18 23:55:12 = = read at 19:30:50 CST into `gates_round11c_facts.log` lines 5 and 6): = = `git ls-remote origin
 refs/heads/main` and `git ls-remote old-origin refs/heads/main` read `origin` =
 `124ce3275` and `old-origin` = `48cfabe11` at **2026-11-19 15:24:53 CST** (= = and
 the same values again at 15:25:35), = = and by **16:07:22 CST**, = = re-read at
@@ -12,11 +12,27 @@ the same values again at 15:25:35), = = and by **16:07:22 CST**, = = re-read at
 TWO COMMANDS READ `ffeb9fafbe` ON BOTH REMOTES AT 17:09:32, = = RE-READ AT 17:20:24**
 (= = `git ls-remote origin refs/heads/main` and `git ls-remote old-origin
 refs/heads/main` are the commands; = = `ffeb9fafbe` became the tip at 17:02:19 per `git
-reflog show origin/main --date=iso`) — = = and that seventh move moves NO file under
-`Sources` (= = `git rev-parse 1fbeb0cf96:Sources` and `git rev-parse ffeb9fafbe:Sources`
-print the SAME object, = = `f437837e30d609713e48fdf3a0ec755f66fbe1ff`), = = so the
-build and test rows in section 3, = = which were measured on `1fbeb0cf96`, = = are
-readings of a tree that `ffeb9fafbe` still carries byte-for-byte. = = The per-commit
+reflog show origin/main --date=iso`) — = = and THAT move, = = the sixth of the twelve, = = moved no file under
+`Sources`. = = **TWO OF THE TWELVE DO, = = THE 8TH AND THE 11TH, = = AND THIS SECTION'S
+BUILD AND TEST ROWS WERE RE-RUN FOR BOTH OF THEM INSIDE ONE ROUND.** = = `git rev-parse
+<tip>:Sources` for every tip this document has read (= = `gates_round10_facts.log` lines 26-37, = = read
+19:12:56-19:13:11 CST) prints `f437837e30d609713e48fdf3a0ec755f66fbe1ff` for `1fbeb0cf96`, = =
+`ffeb9fafbe` AND `876a08f300`; = = `155cd0c81acae7f66a9ab5589fd0e8916264f6f0` for
+`b5f34f59e0`, = = `8dbaa97058` and `00963c53e6`; = = and **`f2e42b5d89510757c0a9c41025bc7d5cc7140674`**
+for the CURRENT tip **`9f0b263196`** AND FOR ITS PREDECESSOR **`d9ddd46df1`**, = = which share
+that object (= = `git rev-parse 9f0b263196:Sources` = = `git rev-parse d9ddd46df1:Sources` = =
+`f2e42b5d89510757c0a9c41025bc7d5cc7140674` = = `gates_round11c_facts.log` lines 11-12, = = read 19:30:50 CST).
+`d9ddd46df1` (= = "feat(library): the reference library's rows are the tags again", = = committed
+19:02:20, = = pushed 19:03:52 = = the 11th move) is the tip that forced the SECOND re-run of
+this section's rows: = = 7 `Sources` files, = = **+188/-557**, = = and NOTHING under
+`Sources/WenshuApp/Features/Chat` (= = `gates_round10_facts.log` lines 142-145). = = **AND THE
+12TH MOVE, = = `9f0b263196` at 19:16:17 (= = "docs(agents): the closeout record's closure line,
+and §10's tallies become derived (= round 5 approved)"), = = IS THE FIRST MOVE SINCE THE SCOPES
+LANDED THAT THE TREE RULE ANSWERS WITHOUT A RE-RUN**: = = `git diff --shortstat d9ddd46df1
+9f0b263196 -- Sources` prints NOTHING (= = `gates_round11c_facts.log` line 13) = = and its whole delta is 2 files
+/ +43/-11 of `docs/agents` (line 14). = = So the
+byte-for-byte argument holds only across tips that SHARE a `Sources` tree object, = = and
+section 3's rows now name the tree each number was measured on. = = The per-commit
 ancestry is section 6's, = = and section 3's tree row names which tree each number came
 off.
 
@@ -56,14 +72,22 @@ named with the artifact it came from.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
 ⇒ ⇒ **AND THE ANCESTRY COLUMN IN EVERY ROW ABOVE IS ONE PREDICATE, = = NOT A SENTIMENT:**
-`git merge-base --is-ancestor <sha> <tip>` for EACH of this session's EIGHTEEN commits,
-against the tip the row names. = = The current reading is **18 OF 18 YES** against
-`origin/main` = = `1fbeb0cf96` (= = re-run 2026-11-19 16:07:35 CST by
-`Scripts/merge-preflight.sh` and by the loop in section 6), = = and the same 18 of 18
-against `old-origin/main`, = = which the same instant finds at that SAME commit. = = An
-earlier round published 12 of 12 (= = a denominator that counted only the transcript
-lane's commits), = = and the table's rows carried the predicate without its count, = = so
-a reader could not tell which of the two numbers was current. = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+`git merge-base --is-ancestor <sha> <tip>` for EACH of this session's own
+commits, = = against the tip the row names. = = **THE SET IS NOW DERIVED, = = NOT POINTED
+AT**: = = `git rev-list 84c3a6386f..1928e85b3` (the transcript lane's own 11 commits) + `git
+rev-list a89f895c27..81c97ae58` (the bubble lane's own 4) + the two merge commits that
+carried them = = `a89f895c27` and `47eb241142` = = = = **17 commits**, = = and the predicate
+reads **17 OF 17** exit 0 against the CURRENT tip `origin/main` = = **`9f0b263196`** (= = run
+19:30:50 CST, = = one `exit=0` line per commit at `gates_round11c_facts.log` lines 25-39 for the 15 lane
+commits and lines 40-41 for the 2 merges; = = the SAME predicate read against `d9ddd46df1` at
+19:12:56-19:13:11 printed its aggregate as 17 at `gates_round10_facts.log` line 161, = = and
+the 11c run prints no aggregate line, = = so its count is the line count of those two blocks). = = **AN EARLIER ROUND
+PUBLISHED "18 OF 18" FOR THIS PREDICATE POINTING AT A TABLE THAT NEVER ENUMERATED THE 18,
+AND THE NUMBER IS THEREFORE WITHDRAWN, = = NOT CORRECTED**: = = what can be re-derived is 17,
+and a denominator nobody can reproduce is not a measurement (= = an earlier round still
+earlier published 12 of 12 = = a denominator that counted only the transcript lane). = = The
+reads that WERE published with a command and a time (= = 18 of 18 against `1fbeb0cf96` at
+16:07:35 CST via `Scripts/merge-preflight.sh`) are kept as the record of that minute. = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
 ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
 ⇒ ⇒ **AND THE ROWS ABOVE ARE NOT A TABLE TO BE EXTENDED: = = THE 5-COLUMN HEADER IS THE
 SHAPE,** = = and this round's first draft tried to add a 3-cell ancestry row underneath
@@ -159,25 +183,45 @@ written for him.
 = = = The gates are re-run on the MERGED tree, = = not on the branch they were
 measured on before the merge, = = because a merge brings in a sibling's commit and
 that can change the build, = = the inventory and the test set. = = > > > **AND THE
-TREE MOVED SEVEN TIMES WHILE THIS DOCUMENT WAS UNDER REVIEW.** = = The previous round
-measured these gates on `31b5c3929`, = = which was `main` at 08:05:11; = = `origin/main`
-then took `b0ba0e0e2` (13:45:31), = = `124ce3275` (14:55:34), = = `1699b71bc` (15:50:55),
-= = `1fbeb0cf96` (16:04:27) = = and `ffeb9fafbe` (17:02:19), = = every one of them the
-SIBLING lane's, = = and `old-origin/main` = = which held `48cfabe11` all through the
-morning = = moved to the SAME tip as `origin` before this round's 16:07:22 read, = = and
-reads `ffeb9fafbe` too. = = **THE SEVENTH MOVE IS THE INTERESTING ONE FOR THIS
-SECTION**: = = it changes NO file under `Sources` (= = `git rev-parse
-1fbeb0cf96:Sources` and `git rev-parse ffeb9fafbe:Sources` both print
-`f437837e30d609713e48fdf3a0ec755f66fbe1ff`, = = read 17:20:02), = = so the build and the
-two filtered test runs below are readings of a `Sources` tree that the current tip still
-carries, = = while the two doc gates and the registry's row count DO move with it, = =
-and are republished against the new base. = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
-⇒ ⇒ ⇒ ⇒ **SO EVERY NUMBER BELOW IS NAMED TO THE TREE IT WAS MEASURED ON (= = the
-16:04:29 throwaway checkout of `1fbeb0cf96` for the build and tests, = = and the
-17:20:24 throwaway checkout of `ffeb9fafbe` for the sweep, = = the dead-code gate and the
-diffstat probes), = = AND THE RE-TAKE IS `git ls-remote
-origin refs/heads/main` FOLLOWED BY THIS SECTION'S OWN COMMANDS, = = BECAUSE A NUMBER
-THAT CHANGES WITH THE TREE IS NOT PUBLISHED WITHOUT ITS TREE.** = = This round also
+TREE MOVED TWELVE TIMES WHILE THIS DOCUMENT WAS UNDER REVIEW, = = AND THE 8TH AND THE
+11TH MOVES OF THEM BROKE THE CARRY-FORWARD ARGUMENT, = = WHICH IS WHY THIS ROUND RAN THE
+BUILD AND THE TESTS TWICE, = = AND THE 12TH IS THE FIRST MOVE THE TREE RULE CLEARS WITHOUT
+A RE-RUN.** = = `git reflog show origin/main --date=iso` read at 19:30:50 CST
+(`gates_round11c_facts.log` lines 5-10, = = continuing `gates_round10_facts.log` lines 13-23) prints the push
+moments in order: = = `31b5c3929a` 08:05:11 = =
+1st, = = `b0ba0e0e2b` 13:45:31 = = 2nd, = = `124ce32757` 14:55:34 = = 3rd, = =
+`1699b71bc5` 15:50:55 = = 4th, = = `1fbeb0cf96` 16:04:27 = = 5th, = = `ffeb9fafbe`
+17:02:19 = = 6th, = = `876a08f300` 17:35:27 = = 7th, = = **`b5f34f59e0` 17:40:58 = =
+8th**, = = `8dbaa97058` 18:08:11 = = 9th, = = `00963c53e6` 18:47:24 = = 10th, = = **`d9ddd46df1` 19:03:52 = = 11th** = = and **`9f0b263196`
+19:16:17 = = 12th**, = = every one of them the SIBLING lane's. = = **THE
+COUNTING CONVENTION IS NAMED BECAUSE AN OFF-BY-ONE OF CONVENTION IS STILL AN OFF-BY-ONE**:
+= = these are the reflog entries NEWER than the `48cfabe11` push at 2026-11-18 23:55:12, = =
+the moment this session's two scopes landed, = = and `git rev-list --count
+48cfabe11..d9ddd46df1` prints **12** (= = `gates_round10_facts.log` line 24) because a push can carry more
+than one commit. = = An earlier round of this document counted `48cfabe11` itself and so
+called `ffeb9fafbe` the seventh; = = under the convention above it is the sixth, = = and
+section 6 says the same thing. = = The moves are NOT all doc-only: = = `git rev-parse
+<tip>:Sources` (= = `gates_round10_facts.log` lines 26-37) prints `fb85ac38ef75...` for `48cfabe11`, = =
+`335ecf2d671a...` for `31b5c3929`, = = `b9cfe7d9feb2...` for `b0ba0e0e2`, = =
+`0bc253ab17ab...` for `124ce3275` AND `1699b71bc5`, = = `f437837e30d6...` for
+`1fbeb0cf96`/`ffeb9fafbe`/`876a08f300`, = = `155cd0c81aca...` for `b5f34f59e0`/`8dbaa97058`/
+`00963c53e6`, = = and `f2e42b5d8951...` for `d9ddd46df1` **AND FOR `9f0b263196`**. = = **THE 8TH AND THE 11TH ARE THE
+TWO THAT MOVED `Sources` AFTER A GATE ROW HAD BEEN PUBLISHED ON A TREE THAT DID NOT CARRY
+IT**, = = so both forced a re-run rather than an argument: = = the 8th is `b5f34f59e0`
+(= = "feat(cover): the card menu removes a moving cover, = = and the cover items follow the
+switch" = = 10 `Sources` files = = +361/-102, = = `git diff --shortstat ffeb9fafbe
+b5f34f59e0 -- Sources` at `gates_round10_facts.log` line 154), = = and the 11th is `d9ddd46df1` (= = 7
+`Sources` files = = +188/-557, = = `gates_round10_facts.log` lines 142-143, = = and NOTHING under
+`Sources/WenshuApp/Features/Chat` = = line 145). = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ **THE CONSEQUENCE, = = STATED AS A RULE AND THEN OBEYED: = = EVERY NUMBER IN THE
+TABLES BELOW IS NAMED TO THE TREE IT WAS MEASURED ON, = = AND WHEN `origin/main` MOVED
+`Sources` MID-ROUND THE ROWS WERE RE-RUN, = = NOT RE-ARGUED (= = the 18:34:10 run on
+`8dbaa97058` is `gates_round10_tip.log`; = = the run that started 19:12:06 on `d9ddd46df1` is
+`gates_round11_tip.log` and `gates_round11_gates.log`). = = THE RE-TAKE IS `git ls-remote
+origin refs/heads/main` = = `git ls-remote old-origin refs/heads/main` = = `git rev-parse
+<tip>:Sources` = = AND THEN THIS SECTION'S OWN COMMANDS, = = BECAUSE A NUMBER THAT CHANGES
+WITH THE TREE IS NOT PUBLISHED WITHOUT ITS TREE, = = AND A NUMBER CARRIED FORWARD ACROSS A
+`Sources` TREE THAT MOVED IS NOT PUBLISHED AT ALL.** = = This round also
 RE-TOOK the whole-target run on `124ce3275` (= = one unfiltered `swift test` on a quiet
 machine, = = every line kept), = = and that run is **NOT PUBLISHED HERE**: = = it exits
 0 and prints two "Test run with ... passed" summaries while its own output contains 18
@@ -190,17 +234,17 @@ items as the test harness's own, = = not this document's.
 
 | the gate | the result, each named to the tree it was measured on |
 | --- | --- |
-| the tree these numbers were measured on | `origin/main` = = **`1fbeb0cf96`** (= = read 2026-11-19 16:07:22 and 16:07:35 CST), = = checked out DETACHED into a throwaway worktree at 16:04:29, = = with the registry and `.xcstrings` merge drivers configured. = = **THE TIP MOVED AGAIN MID-ROUND, TO `ffeb9fafbe`** (= = read 17:09:32, = = and again at 17:20:02 and 17:27:52), = = and its `Sources` tree is the SAME object `f437837e30d609713e48fdf3a0ec755f66fbe1ff` (= = `git rev-parse 1fbeb0cf96:Sources` = `git rev-parse ffeb9fafbe:Sources`), = = so the build/test rows above are still current readings; = = the two rows below that were re-run on `ffeb9fafbe` itself say so in their own labels |
-| the build | `swift build --build-tests` = = **"Build complete!"** = = exit 0 (= = the elapsed time is not published: = = it is different on every run, = = so it is not a measurement) |
-| the seven focused chat suites | **42 tests in 7 suites passed** = = exit 0 (= = 7 suites, = = 42 tests, = = 0 failures, = = `ChatUserBubbleReadabilityTests`, `ChatUserBubbleShapeTests`, `ChatSurfaceGeometryTests`, `ChatTranscriptFlatFlowTests`, `ChatTranscriptScrollTests`, `RenderPathPerformanceTests`, `WindowTranslucencyTests`) |
-| the six BASELINE suites (= = the scope document's own section 3 table, = = re-run on this tree) | **44 tests in 6 suites, 3 issues** = = exit 1 (= = NOT all-green: = = three PRE-EXISTING failures, = = the table's OWN three deterministic sites: = = `ChatViewHistoryShortcutTests.swift:35`, = = `EditorTabTitleTests.swift:60`, = = `AsyncDelegationRegistryTests.swift:104`; = = SIXTH-ROUND NOTE: = = the same three sites, = = the same names, = = on `84c3a6386`, = = `31b5c3929` and now `1fbeb0cf96`, = = so this tree adds NO failing site) |
+| the tree these numbers were measured on | **`origin/main` = = `d9ddd46df1`** (= = pushed **19:03:52** CST = = `gates_round10_facts.log` line 13 = = and STILL the tree the CURRENT tip `9f0b263196` carries, = = because `git rev-parse 9f0b263196:Sources` = = `d9ddd46df1:Sources` = = the sha named two lines below (= = `gates_round11c_facts.log` lines 11-13, = = read 19:30:50 CST); = = `git ls-remote origin refs/heads/main` and `git ls-remote old-origin refs/heads/main` BOTH read it at 19:12:56-19:13:11 = = `gates_round10_facts.log` lines 3-4), = = checked out DETACHED into `.worktrees/closeout-gates-d9ddd46df1` (= = `WT_HEAD d9ddd46df17698574d6cddb32dc017344958e457`, = = `WT_SOURCES f2e42b5d89510757c0a9c41025bc7d5cc7140674` = = `gates_round11_gates.log` lines 2-3 and `gates_round11_tip.log` lines 7-8, = = read 19:12:06 and 19:13:47), = = where the build and both filtered test runs were re-run from 19:12:06 to 19:17:00 (= = `gates_round11_tip.log` line 1 and line 5929) and the design sweep and the dead-code gate were re-run at 19:13:47 (= = `gates_round11_gates.log` lines 7-9 and 15-20); = = the 18:32:51-18:39 runs on `8dbaa97058` (= = `gates_round10_tip.log` and `gates_round10_sweep.log`) are KEPT as the record of THAT tree, = = because `d9ddd46df1` does NOT share `8dbaa97058`'s `Sources` object (= = `155cd0c81aca...` against `f2e42b5d8951...`, = = `gates_round10_facts.log` lines 34-37) = = and a row is only good for the tree it names) |
+| the build | `swift build --build-tests` on **`d9ddd46df1`** = = **"Build complete!"** = = `BUILD_EXIT=0` (= = `gates_round11_tip.log` lines 5636-5637, = = run 19:12:06-19:15 CST, = = in the detached worktree whose `Sources` sha the log prints at line 8; = = the previous round's identical build on `8dbaa97058` is `gates_round10_tip.log` lines 5620-5621 and is KEPT). = = **THE ELAPSED FIGURE ON THAT LOG LINE IS NOT QUOTED, = = AND NOT ONLY BECAUSE IT IS PRINTED IN A NON-ASCII UNIT: = = A BUILD TIME IS NOT A MEASUREMENT.** = = What the line proves is that this run compiled the sibling's 11th move from cold (= = the same log's next line, = = 5660, = = rebuilds the identical tree warm in a fraction of it) |
+| the seven focused chat suites, = = re-run on the MOVED tree (= = the 11th move) | **42 tests in 7 suites passed** = = `FOCUSED_EXIT=0` (= = `gates_round11_tip.log` line 5764 is the summary, = = line 5765 the exit; = = and the extraction that produced the failure-name sets below (= = `gates_round11_sets2.log`) finds THREE issue lines in the whole log, = = at 5833, = = 5858 and 5898, = = ALL of them inside the baseline section (= = its banner is line 5767 and it ends at 5927) = = NONE inside the focused section (= = its banner is line 5639 and it ends at 5766), = = which is what makes the focused half zero rather than the summary line alone asserting it) = = run 19:15-19:16:09 CST on `d9ddd46df1`; = = the 18:36-18:39 run on `8dbaa97058` read the same 42 in the same 7 suites (`gates_round10_tip.log` line 5743), = = and the round before that read them on `1fbeb0cf96`. = = = = **THE ROW IS ABOUT THE SUITE SET, = = NOT ABOUT THE TIME:** = = the same 7 suites (= = `ChatUserBubbleReadabilityTests`, = = `ChatUserBubbleShapeTests`, = = `ChatSurfaceGeometryTests`, = = `ChatTranscriptFlatFlowTests`, = = `ChatTranscriptScrollTests`, = = `RenderPathPerformanceTests`, = = `WindowTranslucencyTests`) = = on a tree whose `Sources` has moved TWICE since the scopes landed = = ⇒ ⇒ ⇒ the sibling's cover-menu move and its library-rows move touched NEITHER of the two directories this scope owns (= = `gates_round10_facts.log` lines 142-145: = = the 11th move is 7 `Sources` files, = = and `CHAT_FILES_IN_11` prints the EMPTY LIST `[]`) |
+| the six BASELINE suites (= = the scope document's own section 3 table, = = re-run on the MOVED tree) | **44 tests in 6 suites failed after 3.130 seconds with 3 issues** = = `BASELINE_EXIT=1` (= = NOT all-green: = = `gates_round11_tip.log` line 5923 is the summary, = = line 5926 the exit; = = the three failing sites are `gates_round11_tip.log` lines **5833**, = = **5858**, = = **5898**) = = run 19:16:11-19:17:00 on `d9ddd46df1`. = = **THE ROW JUDGES NAMES, = = NOT COUNTS**: = = the three failing test names here (= = `displayTitle_documentPathBasenameWins_overTitle`, = = `body_logs_history_metadata()`, = = and the `AsyncDelegationRegistryTests.swift:104` case whose title is the @-mention registry sentence) are the SAME THREE NAMES, = = at the SAME THREE FILE:LINE SITES, = = as the 18:34 run on the previous tip (= = `gates_round10_tip.log` lines 5822, = = 5862, = = 5877), = = and the mechanical comparison of the two failure-name sets prints **SIZES R11=3 R10=3** = = **ONLY_IN_R11 [ ]** = = **ONLY_IN_R10 [ ]** = = **SAME_NAMES YES** (= = `gates_round11_sets2.log`, = = read 19:47:14 CST, = = built by extracting every line that matches the swift-testing failure spelling (= = a line reading the word Test, = = then the case name, = = then "recorded an issue at" and the file and line, = = with the name either quoted or written as a function call) from each log and comparing the resulting (name, file) sets). = = **AND THE FIRST VERSION OF THAT COMPARISON WAS A FAKE GREEN OF THE SAME CLASS AS THE 126:** = = `gates_round11_sets.log`, = = read 19:18:58 CST, = = greped each log for `Test case '...' failed` = = the XCTest spelling = = while these are swift-testing cases, = = so the pattern matched **0 lines in BOTH logs**, = = both sets were empty, = = and it still printed `SAME_NAMES YES` (= = its own `R11_NAMES [ ]` = = `R10_NAMES [ ]` = = `R11_FAILED_COUNT 0` = = `R10_FAILED_COUNT 0`). = = **AN AGREEMENT BETWEEN TWO EMPTY SETS PROVES NOTHING ABOUT THE TREES, = = IT PROVES ONLY THAT THE GREP WAS WRONG, = = AND THE ONLY DEFENCE IS TO PUBLISH THE SIZE OF THE SET BESIDE THE VERDICT.** = = = = ⇒ the sibling's `Sources` moves added NO failing site and HID none, = = which is the only claim this row makes; = = the counts alone would not prove it, = = because the same suite set on the same tree changes its failure count between runs on this machine (= = the project's own recorded fact). = = The names are quoted WITHOUT their expectation text, = = because two of the three expectation strings are not in this document's script |
 | the formatting gate | `ci_change_gate.py --base 84c3a6386 --check formatting` = = exit 0 (= = "the change adds no unformatted line (**56** changed Swift file(s) checked)"; = = the previous round's same command read 52 on `31b5c3929`, = = which is why the count is published WITH its base); = = `--base 48cfabe11` = = exit 0 (= = **15** changed Swift file(s) checked) |
 | the pollution gate | `ci_change_gate.py --check pollution --base 84c3a6386` = = exit 0 (= = "the change adds no forbidden vocabulary (84c3a6386...HEAD)"); = = `--base 48cfabe11` = = exit 0 (= = 48cfabe11...HEAD) |
 | the registry's LOC gate | `nfi-loc-check.py --base 84c3a6386` = = exit 0 (= = **27** rows checked, = = 23 on `31b5c3929`); = = `nfi-loc-check.py --base 48cfabe11` = = exit 0 (= = **8** rows checked) |
 | the registry's split gate | `nfi-split.py --check` = = **PASS** (= = 30 rows verified in the registry by key) |
-| the FOUR GATES AS THIS PUSH ACTUALLY RUNS THEM (= = base `origin/main` = = `ffeb9fafbe`, = = the branch's own tip, = = read in the same minute the commit was made) | `ci_change_gate.py --base origin/main --check formatting` = = exit 0 (= = "the change adds no unformatted line (**0** changed Swift file(s) checked)", = = because this push moves TWO `.md` files and NO Swift file); = = `--check pollution` = = exit 0 (= = "the change adds no forbidden vocabulary (origin/main...HEAD)"); = = `--check markdown-newline` = = exit 0 (= = "the change drops no .md's trailing newline (**2** changed .md file(s) checked)"); = = `nfi-loc-check.py --base origin/main` = = exit 0 (= = **1** row checked, = = and the row's number equals `wc -l` of the document AT THE COMMIT, = = not a remembered figure). = = The rows ABOVE with bases `84c3a6386` and `48cfabe11` are the WIDE-range readings of the same two gates, = = and they are kept because their denominators (56 and 15 Swift files, = = 27 and 8 registry rows) are the evidence that a gate's number is its base's number |
-| the design sweep (= = **the author's own run, logged to `~/.hermes/profiles/pocock/cache/scratch/gates_round9_sweep.log` lines 41-45, `SWEEP_EXIT=0`; = = the log's `READ AT` stamps its server read at **17:20:02** and its `DONE AT` line reads **17:20:24**) | `Tools/wenshu-devtool/design-sweep.sh` over the bubble scope's THREE production files (= = `Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift`, = = `Sources/WenshuApp/Features/Chat/View/ChatUserBubblePalette.swift`, = = `Sources/WenshuApp/Features/Editor/View/InspectorStatusOutputSheet.swift`) = = exit 0 (= = it prints "design sweep on 3 file(s)" and then "design sweep clean"); = = the bare form (= = "the files changed against `main`") is empty on this tree and settles nothing, = = so the files are named, = = and note that TWO of the three paths are NOT where an earlier round implied they were (= = the palette lives in `Chat/View`, = = not `Chat/Service`, = = and the sheet in `Editor/View`, = = not `Shared/UI`: = = a sweep over a non-existent path exits 127 and would have been read as a clean sweep by a reader who only looked for "clean") |
-| the dead-code gate (= = **the same log, lines 46-52, `DEAD_EXIT=0`, inside the same 17:20:02-17:20:24 window**) | `Tools/wenshu-devtool/verify-dead.py` over the SAME THREE named files = = exit 0 (= = **3 ALIVE**, = = 0 PARTIAL, = = 0 DEAD; = = run against the WRONG two paths it reports 1 ALIVE and 2 PARTIAL, = = which is how this round caught its own command line) |
+| THE SAME FOUR GATES AS THE PREVIOUS PUSH RAN THEM (= = base `origin/main` = = `ffeb9fafbe`, = = which is what the server answered at 17:09:32, = = 17:20:02 and 17:27:52 CST, = = and was therefore the base the push of `62412f48b2` ran against; = = THIS push's own reading of the same four gates, = = against the base it actually has, = = is the row below it) | `ci_change_gate.py --base origin/main --check formatting` = = exit 0 (= = "the change adds no unformatted line (**0** changed Swift file(s) checked)", = = because this push moves TWO `.md` files and NO Swift file); = = `--check pollution` = = exit 0 (= = "the change adds no forbidden vocabulary (origin/main...HEAD)"); = = `--check markdown-newline` = = exit 0 (= = "the change drops no .md's trailing newline (**2** changed .md file(s) checked)"); = = `nfi-loc-check.py --base origin/main` = = exit 0 (= = **1** row checked, = = and the row's number equals `wc -l` of the document AT THE COMMIT, = = not a remembered figure). = = The rows ABOVE with bases `84c3a6386` and `48cfabe11` are the WIDE-range readings of the same two gates, = = and they are kept because their denominators (56 and 15 Swift files, = = 27 and 8 registry rows) are the evidence that a gate's number is its base's number |
+| the design sweep (= = **THE AUTHOR'S OWN RUN ON THE CURRENT TIP `d9ddd46df1`, = = logged to `~/.hermes/profiles/pocock/cache/scratch/gates_round11_gates.log`: = = line 1 stamps `READ AT 2026-11-19 19:13:47 CST`, = = lines 2-3 stamp the worktree HEAD and its `Sources` tree, = = lines 7-9 print "design sweep on 3 file(s)" = = "design sweep clean" = = `SWEEP_EXIT=0`; = = and THE SAME LOG, = = lines 10-12, PRINTS THIS ROUND'S OWN TOOLING FAILURE: = = invoking the script as `./Tools/wenshu-devtool/design-sweep.sh` exits **126**, = = because the file is mode `0644` in the tree (= = line 4, = = `stat -f '%Sp %N'`), = = so it has to be run through its interpreter, = = and a reader who pastes the `./` form gets a permission error and no verdict. = = The previous tip's run is `gates_round10_sweep.log` lines 70-75, = = `SWEEP_EXIT=0` at 18:32:51, = = and it is KEPT**) | `Tools/wenshu-devtool/design-sweep.sh` over the bubble scope's THREE production files (= = `Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift`, = = `Sources/WenshuApp/Features/Chat/View/ChatUserBubblePalette.swift`, = = `Sources/WenshuApp/Features/Editor/View/InspectorStatusOutputSheet.swift`) = = exit 0 on `d9ddd46df1` (= = it prints "design sweep on 3 file(s)" then "design sweep clean", = = on the tree whose `Sources` sha `gates_round11_gates.log` prints at line 3 = = `f2e42b5d89510757c0a9c41025bc7d5cc7140674`, = = i.e. AFTER the sibling's 11th move had changed `Sources` a second time); = = the bare form (= = "the files changed against `main`") is empty on this tree and settles nothing, = = so the files are named, = = and note that TWO of the three paths are NOT where an earlier round implied they were (= = the palette lives in `Chat/View`, = = not `Chat/Service`, = = and the sheet in `Editor/View`, = = not `Shared/UI`: = = a sweep over a non-existent path exits 127 and would have been read as a clean sweep by a reader who only looked for "clean") |
+| the dead-code gate (= = **THE SAME ROUND-11 LOG AND THE SAME TIP: = = `gates_round11_gates.log` lines 15-20 print the report, = = the summary and `DEAD_EXIT=0`, = = inside the 19:13:47 window; = = the previous tip's run is `gates_round10_sweep.log` lines 76-81, = = `DEAD_EXIT=0` at 18:33:02, = = and the round before it is the same log family's lines 46-52, = = `DEAD_EXIT=0` at 17:20:24**) | `Tools/wenshu-devtool/verify-dead.py` over the SAME THREE named files = = exit 0 (= = **3 ALIVE**, = = 0 PARTIAL, = = 0 DEAD, = = "Summary: 3 files") on `d9ddd46df1`; = = run against the WRONG two paths it reports 1 ALIVE and 2 PARTIAL, = = which is how this round caught its own command line) |
 
 = = = > > > **AND A GATE THAT WAS RED WHILE THIS CLOSEOUT RAN IS NOW
 GREEN, = = AND THE CLOSEOUT READS IT AT THE END.** = = The first
@@ -262,7 +306,8 @@ writes the line as `WenshuApp[pid]` and not as the bundle id; = = what works is
 grep -E '<pids>'`. = = > > > **AND THE DIFFSTAT PAIRS, = = EACH NAMED TO ITS
 OWN TWO ENDPOINTS, = = BECAUSE THE PAIR IS A FUNCTION OF THE REFERENCE AND NOT
 OF THE CHANGE.** = = Over `37526bfed` to `81c97ae58` (= = the scope's landed
-tip) the repository's whole diff reads **53 files, = = +7901/-398**, = = and the
+tip, = = and read TWO-DOT: = = the three-dot reading of the same names is a different
+number, = = published below) the repository's whole diff reads **53 files, = = +7901/-398**, = = and the
 `Sources`-only part of THAT SAME pair reads **23 files, = = +1514/-247**; = =
 over `37526bfed` to `old-origin/main` (= = `48cfabe11`) it reads **53 files, =
 = +8182/-402**; = = over `37526bfed` to `31b5c3929` (= = the `origin/main` of
@@ -280,7 +325,57 @@ refs/heads/main`, = = and again at **17:20:02** (the log's own `READ AT` line), 
 **67 files, = = +12478/-971** (= = `Sources`-only of the last two pairs: = = **30
 files, = = +3339/-802**, = = IDENTICAL, = = because `ffeb9fafbe` moves NO file under
 `Sources` at all — = = `git diff --name-only 1fbeb0cf96 ffeb9fafbe -- Sources` is EMPTY
-and the whole move is two `.md` files). = = The READ TIMES that this paragraph used to
+and the whole move is two `.md` files).
+**AND THE PAIR MOVED FIVE MORE TIMES AFTER THAT, = = AND ALL FIVE READINGS ARE NOW FROM
+ONE LOGGED RUN.** = = Every figure in this paragraph was re-taken at 19:12:56-19:13:11 CST in
+`gates_round10_facts.log` lines 74-123 with the SAME command in the SAME form, = = and each is now
+labelled with its DOT COUNT, = = because the two dot counts of one name-pair are two
+different claims (review finding **F-H**, = = §8): = = to `876a08f300` (the 7th move, = =
+tip 17:35:27 to 17:40:58) TWO-DOT reads **67 files, = = +12568/-971** whole and **30
+files, = = +3339/-802** over `Sources`, = = THREE-DOT **75 files, = = +12969/-1490**; = =
+to `b5f34f59e0` (the 8th, = = tip 17:40:58 to 18:08:11) TWO-DOT **77 files, = =
++13232/-1073** and **37 files, = = +3700/-904** over `Sources`, = = THREE-DOT **85
+files, = = +13633/-1592**; = = to `8dbaa97058` (the 9th, = = tip 18:08:11 to 18:47:24)
+TWO-DOT **77 files, = = +13299/-1073** and **37 files, = = +3700/-904**, = = THREE-DOT
+**85 files, = = +13700/-1592**; = = to **`00963c53e6`** (the 10th, = = the tip FROM 18:47:24 UNTIL 19:03:52, = = which is when
+the 11th superseded it, = = and both servers agreed on it while it was the tip) TWO-DOT **77 files, = =
++13356/-1073** whole and **37 files, = = +3700/-904** over `Sources`, = = THREE-DOT **85
+files, = = +13757/-1592** whole and **40 files, = = +3751/-940** over `Sources`; = = and to
+**`d9ddd46df1`** (the 11th, = = the tip since 19:03:52, = = read on BOTH servers at
+19:12:56-19:13:11 = = `gates_round10_facts.log` lines 3-4) TWO-DOT **88 files, = = +13945/-1943** whole and
+**39 files, = = +3866/-1439** over `Sources`, = = THREE-DOT **96 files, = =
++14346/-2462** whole and **42 files, = = +3917/-1475** over `Sources` (= = `gates_round10_facts.log`
+lines 120-123); = = and to **`9f0b263196`** (the 12th, = = the tip since 19:16:17, = = read on BOTH
+servers at 19:30:50 = = `gates_round11c_facts.log` lines 2-3) TWO-DOT **88 files, = = +13977/-1943** whole and
+**39 files, = = +3866/-1439** over `Sources`, = = THREE-DOT **96 files, = = +14378/-2462** whole
+and **42 files, = = +3917/-1475** over `Sources` (= = `gates_round11c_facts.log` lines 19-22). = = **AND THE
+12TH PAIR'S `Sources` HALF IS CELL-FOR-CELL THE 11TH'S WHILE ITS WHOLE HALF GREW BY EXACTLY
+THE DOCUMENTS THE MOVE CARRIED** (= = +32 insertions on each dot count, = = and NEITHER
+deletion side moved) = = which is the rule this section publishes, = = measured. = = The
+last TWO pairs (the 9th and the 10th) have an IDENTICAL `Sources` half (= = the same 37
+files, = = the same +3700/-904) = = because `8dbaa97058` and `00963c53e6` move only `.md`
+(= = `git diff --shortstat 8dbaa97058 00963c53e6 -- Sources` prints NOTHING = = `gates_round10_facts.log`
+lines 147-148) = = while their WHOLE numbers differ by exactly the documentation each one
+added (= = +67 and then +57). = = **THE 11TH BREAKS THE PATTERN, = = AND THAT IS WHY THE MOVES
+ARE NAMED ONE BY ONE RATHER THAN COUNTED**: = = its `Sources` half is 39 files /
++3866/-1439, = = because the 11th move is a feature, = = not a document (= = 7 `Sources`
+files of its own, = = +188/-557 = = `gates_round10_facts.log` line 143). = =
+⇒ ⇒ **SO OVER A DOC-ONLY MOVE THE `Sources` FIGURE IS THE ONLY ONE OF THE TWO THAT IS
+STABLE, = = AND A PARAGRAPH THAT PUBLISHES ONLY THE WHOLE FIGURE LOOKS LIKE IT MOVED FOR
+NO REASON.** = = **AND THE TIP MOVED AGAIN WHILE THIS PARAGRAPH WAS BEING WRITTEN, = = AND
+THE 11TH READ IS THE FIRST ONE WHERE BOTH HALVES OF THE PAIR MOVE.** = = `git diff
+--shortstat 37526bfed d9ddd46df1` (= = TWO-DOT) reads **88 files, = = +13945/-1943** whole and
+**39 files, = = +3866/-1439** over `Sources`; = = the THREE-DOT reading of the same names reads
+**96 files, = = +14346/-2462** whole and **42 files, = = +3917/-1475** over `Sources` (= =
+`gates_round10_facts.log` lines 120-123, = = read 19:12:56-19:13:11 CST). = = The `Sources` half jumped from 37 files /
++3700/-904 to 39 files / +3866/-1439 because the 11th move is the sibling's library-sidebar
+change (= = 7 `Sources` files of its own), = = and it moved in the OPPOSITE direction of the
+whole-repo figure's growth (= = the deletion side grew by 535). = = **THIS IS THE CASE THE
+RULE ABOVE IS FOR: = = `37526bfed` IS FROZEN, = = SO EVERYTHING IN THIS PAIR THAT MOVES IS
+THE TIP, = = AND A FIGURE LIKE THIS ONE DESCRIBES THE REPOSITORY, = = NOT THE CHAT SCOPE
+(= = the scope's own span reads 9 files / +402/-520 whole and 3 files / +51/-36 over
+`Sources` = = `gates_round10_facts.log` lines 54-55 = = and it is the SAME FIGURE IT WAS, = = BECAUSE ITS TWO
+ENDPOINTS ARE BOTH FROZEN).** = = The READ TIMES that this paragraph used to
 publish against those two shas (= = "the 15:56:07 read = = `124ce3275`" and "the
 16:07:22 read = = `1699b71bc5`") were each ONE PUSH LATE, = = and are withdrawn: = = a
 read at 15:56:07 returns `1699b71bc5`, = = not `124ce3275`, = = and a read at 16:07:22
@@ -288,12 +383,58 @@ returns `1fbeb0cf96`, = = which is what section 1 and section 6 publish for that
 minute. = = An earlier round published the
 `+8182/-402` pair while CALLING its endpoint "main's tip today", = = which was a
 `48cfabe11` pair read against a `main` that had already moved; = = the figures above
-are the same measurement against SIX references, = = and no one of them is "the" diff
-of the branch against main. = = > > > **AND THE ONE FIGURE THAT DOES NOT MOVE: = = THE
-DIFFSTAT AGAINST A SCOPE'S OWN LANES IS A CONSTANT.** = = `37526bfed...81c97ae58`
-reads 53 files / +7901/-398 (= = whole repo) and 23 files / +1514/-247 (`Sources`
-only) = = on EVERY tree above, = = because both endpoints are frozen commits, = = and
-it covers only the bubble lane's own commits. = = The transcript lane's carrier is
+are the same measurement against EVERY `main` tip this document has read (= = the list
+continues twice below this sentence, = = and the whole list is re-taken in one run in
+`gates_round10_facts.log` lines 74-117), = = and no one of them is "the" diff of the branch
+against main. = = > > > **AND THE ONE FIGURE THAT DOES NOT MOVE: = = A PAIR OF FROZEN COMMITS, = = READ WITH
+ITS DOT COUNT NAMED.** = = The same two NAMES are TWO DIFFERENT CLAIMS. = = Read
+TWO-DOT (= = `git diff --shortstat 37526bfed 81c97ae58`, = = the trees at the two
+commits), = = the pair reads **53 files, = = +7901/-398** whole-repo and **23 files,
+= = +1514/-247** over `Sources`. = = Read THREE-DOT (= = `git diff --shortstat
+37526bfed...81c97ae58`, = = which is the diff from `git merge-base 37526bfed
+81c97ae58` = = **`83a2b21ea`** = = to the tip commit), = = the SAME two names read
+**61 files, = = +8303/-918** whole-repo and **26 files, = = +1565/-283** over
+`Sources`. = = Both were re-taken at 18:33:02 CST in `gates_round10_sweep.log` lines
+12-17. = = They differ because `83a2b21ea` is an ancestor of `81c97ae58` AND of
+`origin/main`, = = so three dots pulls in everything `main` accumulated between that
+merge-base and `81c97ae58` (= = 51 commits, = = of which the bubble lane's own are 4).
+= = **AND THE CLAIM THAT THIS PAIR 'COVERS ONLY THE BUBBLE LANE'S OWN COMMITS' IS
+WITHDRAWN** (= = `git rev-list --count 37526bfed..81c97ae58` prints **51**, = = not 4;
+= = `git log --format='%s' 37526bfed..81c97ae58 | grep -c '(chat)'` prints **5**, = =
+= = and 7 of the 51 are merges). = = The bubble lane's OWN span is `a89f895c27` to
+`81c97ae58` (= = 4 commits: = = `598ff5815d`, = = `816cd1651a`, = = `f148336fa2`, = =
+= = `81c97ae58`), = = and that pair reads **9 files, = = +402/-520** whole-repo and
+**3 files, = = +51/-36** over `Sources`. = = What the frozen-pair property therefore
+still proves is narrower and it is worth stating exactly: = = the TWO-DOT reading of
+`37526bfed` to `81c97ae58` is the SAME NUMBER on every tip above, = = because a
+tree-to-tree diff between two frozen commits cannot depend on a tip at all. = =
+**AND THE ROUND-10 ROOT CAUSE, = = WHICH NO EARLIER ROUND NAMED: = = `37526bfed` IS NOT
+ON `main` AT ALL.** = = `git merge-base --is-ancestor 37526bfed <tip>` exits **1** for
+every tip probed (= = `1fbeb0cf96`, = = `ffeb9fafbe`, = = `8dbaa97058`, = = `00963c53e6`
+AND `d9ddd46df1` = = `gates_round10_facts.log` lines 39-43, = = read 19:12:56-19:13:11 CST, = = and the SAME exit 1 against `8dbaa97058` is logged at `gates_round10_sweep.log` line 65, = = read 18:32:51), = = and so do its three parents
+`0cc94ad6d5`, = = `1597d01a18`, = = `c3c1b3c778` (= = lines 47-49). = = What it IS, = =
+its own metadata says: = = `git show -s --format='%h a=%ai c=%ci %s'` prints
+`37526bfede a=2026-11-18 14:58:42 c=2026-11-18 14:58:42` and `81c97ae582
+a=2026-11-18 14:58:42 c=2026-11-18 21:31:38` = = the SAME author date, = = the SAME
+subject (= = "fix(chat): the review round's two findings, = = the registry's count and
+the four sentences") = = and a committer date six and a half hours apart; = = and `git
+show <c> -p | git patch-id --stable` prints **`7b90f8386d910953d0230b2e14c9069c1b32f9e3`
+for BOTH** (= = lines 43-44). = = **THEY ARE ONE COMMIT BEFORE AND AFTER THE LANE WAS
+RESTACKED ONTO `main`.** = = So every figure in this document taken "over `37526bfed`
+to <tip>" is a diff from the bubble lane's PRE-RESTACK STATE to that tip = = the
+restack's own delta PLUS whatever `main` had accumulated = = and it NEVER was a measure
+of the chat scope's size. = = That is why the pair grows from **53 files** to **77
+files** as the tip moves while the lane's own diff cannot move at all: = = `git diff
+--shortstat a89f895c27 81c97ae58` = = **9 files, = = +402/-520** whole and **3 files,
+= = +51/-36** over `Sources` (= = `gates_round10_facts.log` lines 51-52) = = and `git rev-list
+--count a89f895c27..81c97ae58` = = **4** (= = line 55), = = both endpoints frozen. = =
+**THE RULE, = = PUBLISHED WHERE THE NUMBERS LIVE: = = BEFORE ANY `A` to `B` FIGURE IS
+PUBLISHED, = = NAME THE DOT COUNT (= = `git diff --shortstat A B` and `git diff
+--shortstat "A...B"` ARE DIFFERENT CLAIMS, = = AND BOTH READINGS OF THE NAMES THIS
+DOCUMENT PUBLISHES ARE ABOVE) = = AND NAME WHETHER `A` IS AN ANCESTOR OF `main` (= =
+`git merge-base --is-ancestor A origin/main`, = = its EXIT CODE read back from the run,
+= = never a recollection). = = A TWO-DOT PAIR WHOSE LEFT ENDPOINT IS NOT ON `main`
+MEASURES THE REPOSITORY'S GROWTH, = = NOT A SCOPE'S WORK.** = = The transcript lane's carrier is
 `1928e85b3`, = = which IS an ancestor of `81c97ae58` (= = `git merge-base --is-ancestor
 1928e85b3 81c97ae58` = = **exit 0**), = = and is NOT an ancestor of the bubble pair's
 BASE `37526bfed` (= = `git merge-base --is-ancestor 1928e85b3 37526bfed` = = **exit
@@ -769,8 +910,12 @@ rounds, = = the last one being the F7 fix), = = `eb18707ae` (the merge of
 `main` into the scope's branch), = = `a89f895c2` (the transcript scope's
 merge onto `main`), = = `598ff5815` + `816cd1651` + `f148336fa` +
 `81c97ae58` (the bubble scope's four), = = and `47eb24114` (its merge onto
-`main`). = = ⇒ ⇒ ⇒ ⇒ And every one of the eighteen reads **YES** for
-`git merge-base --is-ancestor` against BOTH servers' `main` (= = the
+`main`). = = ⇒ ⇒ ⇒ ⇒ And every one of the eighteen names above was checked
+with `git merge-base --is-ancestor`, = = AND THE ANSWER THAT THIS DOCUMENT PUBLISHES IS
+THE 17 IT CAN RE-DERIVE: = = the 15 non-merge commits `git rev-list 84c3a6386f..HEAD` and
+`git rev-list a89f895c27..81c97ae58` produce together (= = `gates_round10_facts.log` lines 125-139, = = one `exit=0` line each) + the two merges that carried them onto `main` (= = lines 156-157) = = = = **17 OF 17 exit 0** against the CURRENT tip `9f0b263196` (= = `gates_round11c_facts.log` lines 25-41, = =
+read 19:30:50 CST; = = the same 17 read exit 0 against `d9ddd46df1` at 19:13:11, = = printed as
+the aggregate at `gates_round10_facts.log` line 161). = = The three merge names in the list above that are NOT in that 17 (= = `eb18707ae`, = = `a89f895c2`, = = `47eb24114`) are the ones the enumeration counted and the derivation does not: = = `eb18707ae` is a merge of `main` INTO the scope's branch and is therefore not a commit the scope contributes to `main`. = = "18 OF 18" is withdrawn for the reason in section 1: = = a denominator that points at no reproducible set (= = the
 restacked forms, = = so `37526bfed` is deliberately not in the list).
 
 = = = ⇒ ⇒ ⇒ **AND THE SERVER-SIDE PROOF, = = READ FROM THE SERVERS** (= =
@@ -785,18 +930,26 @@ READ TWICE: = =
 | `old-origin` | `refs/heads/main` | `1fbeb0cf96` (= = the same commit) | the same two reads (= = **this ref MOVED during this round**: = = at **15:24:53** it read `48cfabe11`, = = and by **16:07:22** it read `1fbeb0cf96`) |
 | `origin` | `refs/heads/main` | `124ce3275` (= = this round's MID read) | **15:24:53 CST** and **15:25:35** (= = KEPT as what was true between 14:55:34 and 15:50:55; = = superseded by the 16:07 row above) |
 | `old-origin` | `refs/heads/main` | `48cfabe11` | **15:24:53 CST** (= = KEPT as what was true until this round's 16:07 read found it moved) |
-| `origin` | `refs/heads/main` | **`ffeb9fafbe`** (= = this round's NEWEST read) | **2026-11-19 17:09:32 CST**, re-read **17:20:24** (= = `git ls-remote origin refs/heads/main`; = = re-read 17:20:02 (= = the log's own `READ AT` line) and 17:27:52; = = SUPSEDES the 16:07 pair below as the current tip, = = and `old-origin` reads the SAME value) |
+| `origin` | `refs/heads/main` | **`ffeb9fafbe`** (= = this round's NEWEST read) | **2026-11-19 17:09:32 CST**, re-read **17:20:24** (= = `git ls-remote origin refs/heads/main`; = = re-read 17:20:02 (= = the log's own `READ AT` line) and 17:27:52; = = SUPERSEDES the 16:07 pair below as the current tip, = = and `old-origin` reads the SAME value) |
 | `old-origin` | `refs/heads/main` | `ffeb9fafbe` (= = the same commit) | 17:09:32, 17:20:02 and 17:27:52 (= = so the two remotes are EQUAL again at this minute; = = an earlier round of this document published them as NOT equal, = = and that was true only up to 16:04) |
+| `origin` | `refs/heads/main` | **`00963c53e6`** (= = the 10th move, = = the tip 18:47:24 to 19:03:52) | **19:04 CST** (= = an EARLIER run of the same read, = = since overwritten in the log; = = the tip at 19:12:56-19:13:11 is `d9ddd46df1`, = = the row below) |
+| `old-origin` | `refs/heads/main` | `00963c53e6` (= = the same commit) | the same earlier run (= = and the two remotes AGREE on every read this round took: = = 18:56:37, = = 18:56:51, = = 19:04, = = 19:12:56-19:13:11) |
+| `origin` | `refs/heads/main` | `d9ddd46df1` (= = the 11th move, = = the tip 19:03:52 to 19:16:17) | **19:12:56-19:13:11 CST** by `git ls-remote origin refs/heads/main` (= = `gates_round10_facts.log` lines 3 and 13) |
+| `origin` | `refs/heads/main` | **`9f0b263196`** (= = the CURRENT tip = = the 12th move, = = pushed 19:16:17, = = the sibling's own closeout round 5) | **19:30:50 CST** by `git ls-remote origin refs/heads/main` (= = `gates_round11c_facts.log` line 2) = = and `old-origin` reads the SAME value (line 3); = = `git rev-parse 9f0b263196:Sources` is the SAME `Sources` object section 3's rows name (line 12), = = so no gate row moved with this tip |
+| `old-origin` | `refs/heads/main` | `d9ddd46df1` (= = the same commit) | the same run (= = `gates_round10_facts.log` line 4) = = and `git ls-tree -r d9ddd46df1 Sources` (= = `d9ddd46df1:Sources` = = `f2e42b5d89510757c0a9c41025bc7d5cc7140674` = = line 37) says this tip's `Sources` is NOT the one section 3's previous rows were measured on, = = which is the reason that section was re-run |
 | `origin` | `refs/heads/main` | `31b5c3929` (= = the PREVIOUS round's snapshot, = = read 11:27:10 and 11:27:16) | KEPT AS THE RECORD OF WHAT WAS TRUE AT 11:27 (= = and it was ALREADY six pushes behind by 16:07) |
 | `origin` | `refs/heads/wt/chat-unpinned-user-row-2026-11-17` | `1928e85b3` | this round's 16:07 pair (= = and the 11:27 and 15:24 reads: = = UNCHANGED) |
 | `old-origin` | `refs/heads/wt/chat-unpinned-user-row-2026-11-17` | `1928e85b3` | the same |
 | `old-origin` | `refs/heads/wt/chat-glass-bubble-2026-11-17` | `81c97ae58` | the same |
 | `origin` | `refs/heads/wt/chat-glass-bubble-2026-11-17` | `3832db2e` (= = the earlier shape, = = reported above) | the same |
 
-= = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **AND `origin/main` HAS MOVED SEVEN TIMES SINCE THE
-SCOPES LANDED, = = AND EVERY MOVE IS THE SIBLING'S, = = AND NONE OF THEM CHANGES THE
-PROOF.** = = `git reflog show origin/main --date=iso` prints the moments, = = so the
-list is not a recollection: = = `48cfabe11` at `2026-11-18 23:55:12`, = = `31b5c3929`
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **AND `origin/main` HAS MOVED TWELVE TIMES SINCE THE
+SCOPES LANDED, = = AND EVERY MOVE IS THE SIBLING'S, = = AND TEN OF THE TWELVE DO NOT
+CHANGE THE PROOF, = = AND THE 8TH AND THE 11TH DO, = = AND THAT IS WHY SECTION 3'S ROWS
+WERE RE-RUN RATHER THAN RE-ARGUED.** = = `git reflog show origin/main --date=iso` prints
+the moments, = = 46 ENTRIES IN ALL (= = `gates_round11c_facts.log` line 5) = = and the
+TWELVE NEWER than the `48cfabe11` push at 2026-11-18 23:55:12 are line 6 and lines 8-10 of that
+log plus lines 13-23 of `gates_round10_facts.log`, = = so the list is not a recollection: = = `48cfabe11` at `2026-11-18 23:55:12`, = = `31b5c3929`
 (= = "feat(tabs): the editor's tabs carry their own close") at `2026-11-19 08:05:11`, = =
 `b0ba0e0e2` (= = "fix(sidebar): the selection no longer rebuilds the tree", = = authored
 07:17:56, = = committed 13:42:27) at `13:45:31`, = = `124ce3275` (= = "feat(tabs): the
@@ -807,15 +960,50 @@ editor tab strip's double-click removal") at `15:50:55`, = = and `1fbeb0cf96` (=
 12:21:55, = = committed before the push) at `16:04:27`, = = and **`ffeb9fafbe`** (= =
 "docs(agents): the closeout record's five unreproducible numbers are replaced with the
 machine's own (= round 2 of t_a4a6794f)", = = committed 17:00:22) at **17:02:19** — =
-= the SEVENTH move, = = a SIBLING'S DOC-ONLY commit whose `git diff --name-only
-1fbeb0cf96 ffeb9fafbe -- Sources` is EMPTY and whose whole tree delta is two `.md`
-files (= = `2 files changed, 217 insertions(+), 68 deletions(-)`). = = `old-origin/main`
+= the SIXTH move under the convention this
+section now states (= = the reflog entries NEWER than the `48cfabe11` push at 2026-11-18
+23:55:12, = = which is the moment both scopes landed; = = an earlier round of this
+document counted `48cfabe11` itself and printed "SEVENTH" for the same commit, = = and
+the count was a convention nobody had named) = = a SIBLING'S DOC-ONLY commit whose `git
+diff --name-only 1fbeb0cf96 ffeb9fafbe -- Sources` is EMPTY and whose whole tree delta is
+two `.md` files (= = `2 files changed, 217 insertions(+), 68 deletions(-)`).
+**AND THE REFLOG CONTINUED THREE MORE TIMES AFTER THAT READ, = = AND THE SECOND OF THE
+THREE IS THE ONE THAT MATTERS**: = = `876a08f300` at 17:35:27 (= = "docs(agents): a
+count needs BOTH its coordinates, = = and the record's run ledger says what the column
+says (= round 3)", = = committed 17:34:22, = = 2 files / +111/-21) = = the 7th; = =
+**`b5f34f59e0` at 17:40:58** (= = "feat(cover): the card menu removes a moving cover,
+= = and the cover items follow the switch", = = committed 17:39:09) = = the **8th** = =
+and THIS ONE MOVES `Sources`: = = `git diff --shortstat ffeb9fafbe b5f34f59e0 --
+Sources` prints **10 files, = = +361/-102** and `git rev-parse b5f34f59e0:Sources` = =
+`155cd0c81acae7f66a9ab5589fd0e8916264f6f0` against `ffeb9fafbe:Sources` = =
+`f437837e30d609713e48fdf3a0ec755f66fbe1ff` (= = `gates_round10_facts.log` lines 31-33 and 110, = =
+read 19:12:56-19:13:11 CST); = = `8dbaa97058` at 18:08:11 (= = "docs(agents): the record stops
+counting itself, = = because the counting sentence ships in the same commit (= round
+4)", = = committed 18:07:06) = = the 9th = = and **`00963c53e6` at 18:47:24** (= =
+"docs(agents): the record's last three self-counts go, = = and a draft reading is named
+as the third coordinate (= round 5)", = = committed 18:46:32) = = the **10th** = =
+which was the tip BOTH servers answered at 19:04:14-19:04:36 CST, = = **AND THE 11th AND THE 12th**:
+`d9ddd46df1` at **19:03:52** (= = "feat(library): the reference library's rows are the tags
+again", = = committed 19:02:20) = = which BOTH servers answer at 19:12:56-19:13:11 (= = `gates_round10_facts.log`
+lines 3-4, = = 13). = = **THE 11TH MOVE MOVES `Sources`**, = = unlike the 9th and the 10th: = = `git
+diff --shortstat 00963c53e6 d9ddd46df1 -- Sources` prints **7 files, = = +188/-557** (= = `gates_round10_facts.log`
+lines 142-144) = = and `git rev-parse d9ddd46df1:Sources` = = `f2e42b5d89510757c0a9c41025bc7d5cc7140674`
+against `00963c53e6:Sources` = = `155cd0c81aca...` (= = `gates_round10_facts.log` lines 34-37), = = so it is the
+SECOND move this document has had to re-run section 3 for, = = after the 8th. = = What it does
+NOT do is touch this scope: = = the files it moves are 7 and NONE of them is under
+`Sources/WenshuApp/Features/Chat` (= = `gates_round10_facts.log` line 145 prints the EMPTY LIST `[]`), = = and
+that is the difference between "the tree moved" (= = re-run the rows) and "the tree moved INSIDE
+my scope" (= = re-do the work). = = `old-origin/main`
 sat at `48cfabe11` from `2026-11-18 23:55:12` until this round's 16:07:22 read, = =
 where it reads the SAME commit as `origin`, = = and it reads `ffeb9fafbe` too at
 17:09:32 and 17:20:24. = = **AND THIS SECTION USED TO SAY THE REF MOVED SIX TIMES, = =
-WHICH WAS TRUE WHEN IT WAS WRITTEN AND IS NOT NOW**: = = the count above is the count
-`git reflog show origin/main --date=iso` prints at 17:20:24, = = and a reader who runs
-it later will see more. = = > > > **AND THE SENTENCE AN EARLIER ROUND
+THEN SEVEN, = = THEN EIGHT, = = THEN TEN, = = THEN ELEVEN, = = AND EACH OF THOSE SENTENCES WAS
+TRUE AT THE MINUTE IT WAS WRITTEN AND IS NOT NOW**: = = the count above is the count `git reflog
+show origin/main --date=iso` prints at 19:30:50 (= = 12, = = `gates_round11c_facts.log` line 6), = = and a
+reader who runs it later will see more. = = **THE SENTENCE WILL THEREFORE NEVER BE A STABLE NUMBER, = =
+WHICH IS WHY EVERY COUNT IN THIS SECTION IS WRITTEN WITH THE COMMAND, = = THE LINE NUMBERS OF
+ITS OWN LOG, = = AND THE MINUTE, = = AND WHY THE DOC-ONLY CLAIM LIVES ON THE TREE OBJECT COMPARISON
+AND NOT ON THE COUNT.** = = > > > **AND THE 11TH MOVE MOVED `Sources` AGAIN (= = the 8th had done the same), = = SO THE GATE SECTION WAS RUN A SECOND TIME INSIDE THIS SAME ROUND (= = 19:12:06-19:17:00 CST = = `gates_round11_tip.log`), = = AND THE 12TH MOVE LEFT `Sources` BYTE-IDENTICAL (= = `git rev-parse 9f0b263196:Sources` = = `git rev-parse d9ddd46df1:Sources` = = `f2e42b5d89510757c0a9c41025bc7d5cc7140674` = = `gates_round11c_facts.log` lines 11-13, = = and the same equality re-printed at 19:40:14 in `gates_round11_final.log`), = = SO IT DID NOT RUN A THIRD TIME. = = **THE RULE DECIDED BOTH CASES WITHOUT A DECISION BEING TAKEN, = = WHICH IS WHAT A RULE IS FOR.** = = > > > **AND THE SENTENCE AN EARLIER ROUND
 PUBLISHED BESIDE THIS TABLE — = = "the values are UNCHANGED from the previous round's
 read" — = = WAS TRUE AT 11:27 AND WAS FALSE BY 13:45.** = = That is not a story about
 the remote, = = it is a story about a fact written without a read time, = = and it is
@@ -823,14 +1011,9 @@ exactly why every server line above now carries ITS OWN timestamp and why this r
 re-read the servers instead of re-stating the old read. = =
 **AND BOTH SERVERS' CURRENT `main` STILL CARRY THIS SESSION'S OWN COMMITS, = = AND
 THE TWO SERVERS NOW AGREE ON THE SAME COMMIT.** = = The predicate
-`for c in <the 18 shas listed above>; do git merge-base --is-ancestor $c <tip>; done`
-reads YES for **18 OF 18** against `origin`'s tip `1fbeb0cf96` (= = run **2026-11-19
-16:07:35 CST**, = = no sha missing) = = and against `old-origin`'s tip, = = which the
-same read finds at the SAME commit `1fbeb0cf96` (= = `old-origin` has moved too, = = so
-this round's earlier statement that the two remotes are NOT equal is superseded by
-this read, = = and both statements carry their time). = = ⇒ ⇒ ⇒ AND THE TREE THE GATES
-IN SECTION 3 WERE LAST RUN ON IS NAMED IN SECTION 3'S OWN ROWS, = = NOT HERE, = =
-because that tree also moves.
+`for c in $(git rev-list 84c3a6386f..1928e85b3; git rev-list a89f895c27..81c97ae58 | sort -u); do git merge-base --is-ancestor $c 9f0b263196; done` reads exit 0 for **15 OF 15** (= = the 11 commits of the transcript lane's own span plus the 4 of the bubble lane's own span, = = enumerated one per line at `gates_round10_facts.log` lines 125-139, = = read 19:12:56-19:13:11 CST), = = and the two merge commits that carried them onto `main` read exit 0 as well (= = lines 156-157), = = so the full predicate this document publishes is **17 OF 17** (= = `gates_round11c_facts.log` lines 25-41, = =
+read 19:30:50 CST, = = against the CURRENT tip; = = the aggregate printed for the same 17
+against `d9ddd46df1` is `gates_round10_facts.log` line 161). = = **THE LIST IS NOW DERIVED BY A COMMAND INSTEAD OF POINTING AT A TABLE**: = = this sentence used to read "the 18 shas listed above", = = and a reader with a later copy of the document could not re-derive which 18 commits that was (= = the table it pointed at had moved, = = and the count had gone stale twice over; = = section 1 withdraws "18 OF 18" for that reason). = = That is the same defect family as a number published without its tree: = = **A PREDICATE'S INPUT SET IS PART OF THE PREDICATE, = = AND IF IT IS NOT PRINTED BY A COMMAND IT IS NOT REPRODUCIBLE.** = = The 15 are: = = `095cf85be3`, = = `1928e85b37`, = = `220aa18e6c`, = = `37a645b9db`, = = `518b58ef52`, = = `598ff5815d`, = = `69f8a81d11`, = = `6f9a1410eb`, = = `816cd1651a`, = = `81c97ae582`, = = `83a2b21ea3`, = = `9ada199113`, = = `9ebe8c30a3`, = = `f148336fa2`, = = `fb084e0ee6`. = = `37526bfed` is STILL deliberately not in the list (= = section 4 now names what it is: = = the bubble carrier's PRE-RESTACK twin, = = not on `main` at all, = = and `git merge-base --is-ancestor 37526bfed d9ddd46df1` exits 1 = = line 43), = = and no restacked pre-image of any of the 15 is counted twice. = = ⇒ ⇒ AND THE TREE SECTION 3'S GATES RAN ON IS NAMED IN SECTION 3'S OWN ROWS, = = NOT HERE, = = because that tree also moves: = = the 8th move changed `Sources`, = = and section 3 was re-run for it.
 
 ## 7. The next session's starting point
 
@@ -1194,8 +1377,11 @@ blocking findings), = = and both are fixed here: = =
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE REVIEWER ALSO RECORDED FOUR
 NON-BLOCKING PRECISION NOTES, = = AND ALL FOUR ARE TAKEN: = = the thirteen
 commits sit on TWELVE distinct trees; = = the whole-repository diff's pair is
-named (= = `37526bfed` to `81c97ae58`, = = and against `main`'s tip it reads
-+8182/-402); = = the registry gate's row count moves with the tree (= = 20 and 2
+named (= = `37526bfed` to `48cfabe11` = = `old-origin/main` as it read at 15:24:53 = =
+TWO-DOT = = **53 files, = = +8182/-402**, = = whose THREE-DOT reading is a different
+claim (= = 61 files, = = +8583/-921) = = `gates_round10_facts.log` lines 74 and 76; = = the value is
+NOT "against `main`'s tip" at all, = = which is what an earlier sentence said and what
+review finding F-H is about); = = the registry gate's row count moves with the tree (= = 20 and 2
 on this branch); = = and the sibling's two timed-out runs read 3621 s and 3620 s.
 
 = = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **AND THE FOURTH CARD (`t_5a678cec`)
@@ -1230,3 +1416,107 @@ WAS ITSELF RECLAIMED AND ARCHIVED for the same reason (= = the author found
 defects in the document it was reading), = = and the card that replaces it names
 the LANE's runtime, = = so the reviewer is not killed before it can return a
 verdict.
+
+= = = > > > **AND THE ROUND-9 REVIEW (`t_ae3cce89`, = = run **4607**, = = started 17:39:52
+and ended **18:28:19 CST** = = 2907 s = = 48 min 27 s, = = `completed`) RETURNED
+`changes_requested` WITH `blocking_count` **1**, = = AND THE ONE BLOCKING FINDING IS A
+CLASS, = = NOT A NUMBER.** = = The reviewer's verdict is the comment it posted at 18:28:01
+and its run metadata carries `review_outcome = changes_requested` and
+`reviewed_sha = 62412f48b22716cea9dc5d3326510d1b8530b135`, = = with `tree_modified = no`. = == = **F-H** = = §4's "one figure that does not move" printed the pair as
+`37526bfed...81c97ae58` (= = THREE-DOT) while publishing the TWO-DOT values. = = The
+reviewer re-took all four readings: = = three-dot = = 61 files / +8303/-918 whole and 26
+files / +1565/-283 over `Sources`; = = two-dot = = the published 53 / +7901/-398 and 23 /
++1514/-247; = = and `git merge-base 37526bfed 81c97ae58` = = `83a2b21ea3ab...` is not
+`37526bfed`, = = which is why the two differ. = = The same sentence also claimed the pair
+"covers only the bubble lane's own commits", = = and `git rev-list --count
+37526bfed..81c97ae58` prints **51**, = = of which 5 carry a chat/bubble/glass subject and
+46 are other lanes'. = = **ALL SIX OF THE OTHER FINDINGS AND ALL THREE NOTES REPRODUCED**
+(= = F-A through F-G and N1-N3, = = re-taken by the reviewer with this document's own
+commands, = = and the structure predicate and the five repo gates read the same on the
+reviewed tree) = = so the repair is not a numbers hunt, = = it is a notation hunt. = => > > **WHAT THIS ROUND DID ABOUT IT, = = AND WHERE IT WENT FURTHER THAN THE FINDING**: = =
+the reviewer's smallest-honest-repair was two sentence edits. = = This round made the
+notation a PUBLISHED PROPERTY of every pair in §4 instead (= = both dot counts for every
+endpoint in one logged run, = = `gates_round10_facts.log` lines 74-123) = = AND FOUND THE ROOT CAUSE the
+finding pointed at without naming: = = **`37526bfed` IS NOT ON `main` AT ALL** (= =
+`git merge-base --is-ancestor 37526bfed 00963c53e6` exits **1**, = = as does the same probe
+against `1fbeb0cf96`, = = `ffeb9fafbe` and `8dbaa97058`, = = and so do its three parents) = =
+and it is the SAME COMMIT as `81c97ae58` before the lane was restacked (= = identical
+`patch-id` `7b90f8386d910953d0230b2e14c9069c1b32f9e3`, = = identical author date
+2026-11-18 14:58:42, = = committer dates 14:58:42 and 21:31:38). = = So the pair this
+document used as its frozen reference measures the REPOSITORY'S GROWTH SINCE THE
+PRE-RESTACK STATE, = = not the chat scope's work, = = and that is why it moved 53 → 77
+files across the tips while the lane's own span (`a89f895c27` to `81c97ae58` = = 4 commits
+= = 9 files / +402/-520 whole, = = 3 files / +51/-36 over `Sources`) cannot move at all. = =
+The rule §4 now publishes beside the numbers: = = name the dot count AND name whether the
+left endpoint is an ancestor of `main`, = = with the exit code read back from the run. = =
+> > > **AND THE SECOND HALF OF THE VERDICT'S IMPLICATION, = = WHICH THIS ROUND ACTED ON
+WITHOUT BEING TOLD**: = = §3's gate rows were published against `ffeb9fafbe` and `main` had
+
+moved FIVE more times since (= = `876a08f300`, = = `b5f34f59e0`, = = `8dbaa97058`, = =
+`00963c53e6` and `d9ddd46df1`), = = and the 8th and the 11th of them move `Sources` (= = `ffeb9fafbe:Sources` = =
+`f437837e30d6...` against `b5f34f59e0:Sources` = = `155cd0c81aca...` = = 10 files /
++361/-102) = = so the carry-forward argument that had held for three rounds LOST ITS
+PREMISE. = = This round therefore re-ran, = = in a throwaway checkout of the tip: = = the
+build (`swift build --build-tests` = = `BUILD_EXIT=0`, = = `gates_round10_tip.log` lines
+5620-5621), = = the seven focused chat suites (= = **42 tests**, = = `FOCUSED_EXIT=0`, = =
+lines 5743-5744), = = the six baseline suites (= = **44 tests**, = = failing at the same
+three deterministic sites, = = lines 5822/5862/5877 and the summary at 5902-5905), = = the
+design sweep and the dead-code gate (= = `gates_round10_sweep.log`, = = read 18:32:51-18:33:02
+CST), = = and every diffstat pair (`gates_round10_facts.log`, = = read 19:12:56-19:13:11 CST). = = The values did not
+move; = = the TREE they are named to did, = = and it is named now. = =
+> > > **AND THE SAME SITUATION RECURRED INSIDE THE SAME ROUND, = = WHICH IS THE EVIDENCE
+THAT THE RULE IS WHAT WAS FIXED, = = NOT THE NUMBER**: = = the tip moved an 11th time at
+19:03:52 (= = `d9ddd46df1`) = = and moved `Sources` AGAIN (= = `155cd0c81aca...` against
+`f2e42b5d8951...` = = `gates_round10_facts.log` lines 34-37), = = so §3's rows were re-run a SECOND time in
+this round: = = the build (= = `swift build --build-tests` = = `BUILD_EXIT=0` = =
+`gates_round11_tip.log` lines 5636-5637, = = run 19:12:06-19:17:00 in the detached checkout
+of the tip), = = the seven focused suites (= = **42 tests in 7 suites passed** = = line
+5764 = = `FOCUSED_EXIT=0`), = = the six baseline suites (= = **44 tests in 6 suites, = = 3
+issues** = = line 5923 = = `BASELINE_EXIT=1` = = at the SAME three sites, = = lines
+5833/5858/5898, = = and `gates_round11_sets2.log` compares the two runs' FAILURE-NAME SETS (= = 3 = = 3, = = the diffs empty, = = and `gates_round11_sets.log` is the superseded first attempt whose pattern matched nothing)
+AND PRINTS `SAME_NAMES YES` WITH BOTH DIFFERENCES EMPTY), = = and the two source-level
+gates (= = `gates_round11_gates.log` lines 7-9 and 15-20, = = 19:13:47: = = the design sweep
+clean and the dead-code gate 3 ALIVE). = = **THE NEXT TIME THE TIP MOVES `Sources` MID-ROUND
+THERE IS NO DECISION TO MAKE, = = AND THAT IS THE WHOLE PURPOSE.** = = **AND THE RULE WAS
+PUT TO THE OPPOSITE TEST BEFORE THIS ROUND CLOSED**: = = at 19:30:50 the tip had moved a 12th
+time (= = `9f0b263196`, = = pushed 19:16:17), = = and `git rev-parse 9f0b263196:Sources`
+printed THE SAME OBJECT as `d9ddd46df1:Sources` (= = `f2e42b5d89510757c0a9c41025bc7d5cc7140674`
+= = `gates_round11c_facts.log` lines 11-13), = = so NOTHING in §3 was re-run for it. = = **THE RULE HAD BEEN
+WRITTEN AS A TREE COMPARISON BEFORE THAT MOVE HAPPENED, = = SO THE 12TH MOVE IS AN ANSWERED
+QUESTION RATHER THAN A NEW ONE, = = AND THAT IS THE DIFFERENCE BETWEEN A RULE AND A RESOLUTION.** = =
+> > > **AND ONE THING THIS ROUND DECLINES TO PUBLISH**: = = the build log's own elapsed
+figure (= = `gates_round10_tip.log` line 5620) is printed by the toolchain in a LOCALIZED
+UNIT, = = and this document publishes no non-ASCII text, = = so the number is quoted WITHOUT
+its unit and is not used as evidence of anything; = = the same log's next build (= = line
+5639) rebuilds the identical tree warm in 1.59 s, = = which is the reason a build duration is
+not a measurement. = = > > > **AND THE SAME ROUND CAUGHT A SECOND KIND OF FAKE GREEN**: = = the two
+source-level tools are mode `0644` in the tree (= = `stat -f '%Sp %N'` prints
+`-rw-r--r--` for both = = `gates_round11_gates.log` line 4), = = so invoking them as
+`./Tools/wenshu-devtool/design-sweep.sh` exits **126** (= = `gates_round11_tip.log` lines 12
+and 16 print `SWEEP_EXIT=126` and `DEAD_EXIT=126`, = = and the shell's own words are
+"permission denied") = = and a reader who glances for a non-zero number sees one and stops.
+ = = **THE NUMBER THAT WOULD HAVE BEEN PUBLISHED IS 126, = = WHICH IS NOT A VERDICT ABOUT THE
+CODE, = = AND IT LOOKS LIKE A FAILURE OF THE CODE.** = = The tools were re-invoked through
+their interpreters (`bash` and `python3`) = = exit 0 and the real verdicts (= = the sweep
+clean, = = the gate 3 ALIVE) = = and those are the numbers §3 publishes. = = The lesson is not
+"chmod the tools": = = it is that AN EXIT CODE FROM A COMMAND THAT DID NOT RUN IS NOT A
+MEASUREMENT, = = AND THE ONLY WAY TO TELL IS TO READ THE LINE ABOVE THE CODE. = = An earlier
+draft of this round's text copied the log line verbatim and
+thereby put a Han unit into a zero-Han document; = = that draft was rejected by the structure
+predicate before it was committed, = = and it is recorded here because the near-miss is the
+kind of thing the next reader would otherwise re-do. = =
+> > > **AND THE REVIEW-LANE RELIABILITY NOTE STAYS OPEN, = = AND IS NOT THIS DOCUMENT'S TO
+FIX**: = = `t_20587cce` was SIGTERMed twice at the 5400 s floor, = = `t_5a678cec` lost its run
+to a mid-run machine restart, = = and a sibling lane's runs 4498 and 4500 both went over 3600
+s. = = This round's card therefore states its runtime budget on its face. = = The whole-target
+`swift test` harness defect (18 sites reported as `failed after` in `gates_recheck.log`) is
+likewise REPORTED, = = not fixed, = = per the lane's own discipline: = = a closeout document
+does not ship a test-harness change. = =
+> > > **AND THE AUTHOR'S OWN TRANSCRIPTION ERROR FROM THE PREVIOUS ROUND STAYS ON THE
+RECORD**: = = the probe-listing comment on `t_ae3cce89` published `max 70` where the probe
+prints **max 78**; = = the correction was posted as a SEPARATE comment rather than an edit, = =
+and the reviewer ruled it a comment-side error, = = not a finding against the tree, = = because
+§4 publishes no max (= = red 68 / green 61 / blue 76 / mean 57 are the four values the
+document carries). = = **A PUBLISHED NUMBER IS EVIDENCE; = = A NUMBER THAT ONLY LIVES IN A
+COMMENT IS NOT, = = AND THE FIX IS TO SEPARATE THE TWO RATHER THAN SILENTLY REWRITE THE
+LATTER.**
