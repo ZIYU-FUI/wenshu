@@ -1569,3 +1569,4 @@ were not re-run for it and the rule decided that too.
  the reflog line was meant to prevent and is why every count in §4 and §6 now names the log AND the minute it
  was read from: = = a count without a minute attached is not a measurement, = = it is a guess that has not
  yet been caught.
+**AND THE CORRECTION TO THE CORRECTION'S OWN MESSAGE**: = = the commit that appended the two paragraphs above, = = `fe4d1b80ed`, = = described them as `§7.3` and `§7.5`. = = They are in `§8`, = = which begins at line 1095 (= = `grep -n '^## ' docs/agents/2026-11-19-session-close-the-chat-transcript-and-the-liquid-glass.md` = = read 20:31 CST); = = `§7` is "The next session's starting point" and was not touched. = = The message is not amended, = = because the sha it carries is already in this document's §6 table and in the review card; = = it is recorded here instead, = = which is what a correction section is for.
