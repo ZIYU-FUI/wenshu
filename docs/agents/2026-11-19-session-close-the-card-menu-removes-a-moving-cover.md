@@ -51,10 +51,10 @@ offered the same two items in the same shape.
 | `Sources/WenshuApp/Features/Cover/Service/CoverVideoService.swift` | `removeVideo(for:)` — the service-level removal, and it publishes to the signal on **both** paths |
 | `Sources/WenshuApp/Features/Cover/Service/CoverGenerationService.swift` | `removeCover(for:)` publishes to the same signal |
 | `Sources/WenshuApp/Features/Cover/Model/CoverChangeSignal.swift` | **new.** `shared` + `revision` + `noteCoverChanged()` — a cover changed on the disk, as a count a view can watch |
-| `Sources/WenshuApp/Features/Editor/View/PreviewPaneGrids.swift` | the card's one cover lookup reads the signal's revision |
+| `Sources/WenshuApp/Features/Editor/View/PreviewPaneGrids.swift` | the card's one cover lookup reads the signal's revision, = = and THREE of the four card-building sites (= = `referenceCategoryCard`, `overviewGrid`, `bookDocsGrid`) wire the removal |
 | `Sources/WenshuApp/Features/Editor/View/PreviewPaneCard+Body.swift` | the two copies of the cover block become **one** builder |
 | `Sources/WenshuApp/Features/Editor/View/PreviewPaneCard.swift` | the menu's closures and the switch read |
-| `Sources/WenshuApp/Features/Editor/View/PreviewPaneScopeViews.swift` | the four card-building sites wire the removal |
+| `Sources/WenshuApp/Features/Editor/View/PreviewPaneScopeViews.swift` | one card-building site (`card(for:)`) wires the removal |
 | `Sources/WenshuApp/Resources/Localizable.xcstrings` | `cover_context_menu_remove_dynamic` = `Remove moving cover` (en) and the Chinese label for the same item (zh-Hans) |
 | `Tests/WenshuAppTests/Cover/View/CardCoverMenuTests.swift` | **new.** the menu's rules, asked without a window |
 | `Tests/WenshuAppTests/Cover/View/CoverRemovalRefreshTests.swift` | **new.** the card asks the disk again after the removal |
@@ -200,9 +200,18 @@ independently of the owner's word.
   second instance of the same bundle id aborts BOTH processes).
 - **What the owner did**: right-clicked a card that carried a moving cover,
   chose the removal item, and confirmed the card changed immediately and
-  did not spring back. The owner then regenerated a cover.
+  did not spring back. The owner then **reports** regenerating a cover
+  (= unconfirmed — see the block below).
 - **The disk's own record of the removal**, read from the owner's library
-  (`~/Documents/anbaiqiang.ws/assets/covers/`):
+  (`~/Documents/anbaiqiang.ws/assets/covers/`). ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ THE "BEFORE" COLUMN'S SOURCE IS NAMED, = =
+BECAUSE A FILE THAT IS GONE CANNOT BE RE-READ.** The "before" figures are
+the ones the board's own comment 1913 recorded (the removal was read
+before the owner's action, and the file it names has since been deleted);
+the "after" figures are re-readable from the library at any time. ⇒ **⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THAT IS A PROPERTY OF EVERY "BEFORE" COLUMN
+IN A RECORD LIKE THIS: IF THE THING IT DESCRIBES IS DELETED, = = THE
+BEFORE FIGURES LIVE IN THE BOARD, = = NOT IN THE TREE.
 
 | file | before | after |
 | --- | --- | --- |
@@ -263,8 +272,18 @@ Two review cards, and the board's own rows are the cost:
 | `t_c32629b5` (round 2) | 1 | 0 | 979 s = 16.3 min | `approved` on `345e33338c` |
 
 ⇒ **Seven of round one's eight runs were `rate_limited`** (= the provider
-quota wall, = = each ~60 s). The card's real review was its eighth run
-(= 272 s). Round two cost one run.
+quota wall). ⇒ ⇒ **⇒ AND THE PER-RUN DURATIONS ARE NOT UNIFORM, = = AND
+THE RECORD MUST GIVE THE RUN THAT IS NOT.** The board's own rows read
+61, 60, **2759**, 60, 61, 64, 60 s for the seven, and 272 s for the
+eighth (= = the card's real review). ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ SIX of them are
+~60 s, = = and ONE (= = run 4547) ran 2759 s (= = 45 min 59 s, = = 81 % of
+the card's whole wall). ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ THAT IS WHY THE WALL IS 3397 s
+AND NOT SEVEN MINUTES** (= = 61 + 60 + 2759 + 60 + 61 + 64 + 60 + 272 =
+= = 3397), = = and a "each ~60 s" beside that same table contradicts the
+table it sits in. ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ THE RULE: A PER-RUN FIGURE
+NEEDS ITS RUN IDS, = = BECAUSE A CARD'S WALL IS THE SUM OF ITS RUNS' OWN
+DURATIONS AND ONE LONG RUN CAN BE MOST OF IT.** Round two cost one run
+(= 979 s).
 
 ⇒ ⇒ **⇒ AND THE NOTIFICATION THAT CARRIED THE VERDICT WAS SILENTLY
 BROKEN, = = WHICH IS A SEPARATE SCOPE.** This scope's first verdict
@@ -279,8 +298,13 @@ pass counted "the branch is gone" as "the requirement is undelivered", and
 reported 26 requirements lost. **That was wrong.** Every one of those
 requirements had landed on `main` under a **different card id and a
 different commit** (= e.g. the export's full-width-colon fix = = `b0985f5a9a`,
-the broken-pin fix = = `a7c0e289c8`, the chat column's split = = `9fb8ec32e5`
-plus `ChatView+KeyboardShortcuts.swift` already in `main`). The number
+the broken-pin fix = = `a7c0e289c8`, the chat column's split = = `0c97f66234`
+plus `ChatView+KeyboardShortcuts.swift` already in `main`). ⇒ **⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ AND A LABEL MUST NAME THE COMMIT THAT CARRIES IT** (= = the
+label "the chat column's split" names a REFERENCE-BODY fix, = = and its
+files are the reference store's, = = not the chat's; = = the commit that
+split the chat's shortcuts into their own file = = is `0c97f66234`, = =
+"the chat's keyboard shortcuts, = = in a file of their own"). The number
 that survives re-derivation is **zero** requirements lost. ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒
 ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ THE LESSON, WHICH IS GENERAL: A DELETED BRANCH IS NOT A
 LOST REQUIREMENT.** To ask whether a requirement shipped, ask two
@@ -313,9 +337,13 @@ git ls-remote origin refs/heads/main
 git ls-remote old-origin refs/heads/main
 ```
 
-Both read the same sha as `main` at the time this record was written. ⇒ The
-sha moves as siblings land, so **this record names the commit and its
-ancestry, and the reader reads the tip**: `git rev-parse main`.
+**⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ THE SNAPSHOT IS NAMED, = = NOT "AT THE TIME
+THIS RECORD WAS WRITTEN".** Two remotes, one sha, one moment: the reading
+is `origin` = = `9f0b263196` and `old-origin` = = `9f0b263196`, and
+`b5f34f59e0` (= = this scope's landed commit) is an ancestor of both. ⇒
+**⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE SHA MOVES** (= = siblings land
+between the record and the reader), = = so **this record names the commit
+and its ancestry, and the reader reads the tip**: `git rev-parse main`.
 
 ## 10. Open items left behind
 
@@ -346,6 +374,29 @@ ancestry, and the reader reads the tip**: `git rev-parse main`.
 
 ## 11. This record's own rounds
 
+- **Round 2** (card `t_8c62791f`, run 4614): the reviewer re-derived C1-C9
+  and found **four** places where the machine reads the record differently,
+  all of them text-only, all of them the same defect class this record
+  exists to catch (= = a number or a label the machine does not reprint).
+  **F1** = §8 gave a per-run duration "each ~60 s" while the board's own
+  rows read 61, 60, **2759**, 60, 61, 64, 60 s (= = one run was 81 % of
+  the card's whole wall, = = so the "each" was false and the table beside
+  it contradicted itself); **F2** = §3 pinned all four card-building sites
+  to one file, when the tree carries three in `PreviewPaneGrids.swift` and
+  one in `PreviewPaneScopeViews.swift`; **F3** = §7 still asserted the
+  regeneration in the record's own voice, = = which is the reading the
+  board had already retracted in comment 1915; **F4** = §8 paired the label
+  "the chat column's split" with a commit that carries a reference-body
+  fix, = = and the chat's split is `0c97f66234`. ⇒ **⇒ ALL FOUR ARE FIXED
+  HERE, = = AND THE RECORD NOW NAMES THE RUN IDS, = = THE TWO FILES, = =
+  THE RETRACTED READING, = = AND THE COMMIT THAT CARRIES THE LABEL.**
+  ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ The two non-blocking notes are fixed too (= = §9's remote
+  claim now names the snapshot, = = and §7's "before" column now names the
+  board comment it is reprintable from, = = because a deleted file cannot
+  be re-read). ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **AND THE LOC CELL IN THE REGISTRY ROW
+  MOVED WITH THE PROSE** (= = 360 → = = 388), = = which is §11's own rule:
+  = = the row's count is written AFTER the prose is final and IN THE SAME
+  COMMIT.
 - **Round 1**: this document. Every number in it was read from the tree or
   from the board's own rows; the two "before" numbers in §7's table were
   read from the library **before** the owner's action and the "after" ones
