@@ -3,11 +3,14 @@
 ## 1. The scope
 
 = = = The boss named FIVE lines, = = and every one of them is carried by a
-commit that is on BOTH servers' `main` (= = read 2026-11-19 15:24:53 CST by
-`git ls-remote origin refs/heads/main` and `git ls-remote old-origin
-refs/heads/main`: = = `origin` = `124ce3275`, = = `old-origin` = `48cfabe11`; = =
-re-read at 15:25:35 with the SAME values; = = the per-commit ancestry is section
-6's, = = re-read 15:33).
+commit that is on BOTH servers' `main`. = = The read is quoted with its TIME, = =
+because the ref moved SIX times during this review: = = `git ls-remote origin
+refs/heads/main` and `git ls-remote old-origin refs/heads/main` read `origin` =
+`124ce3275` and `old-origin` = `48cfabe11` at **2026-11-19 15:24:53 CST** (= = and
+the same values again at 15:25:35), = = and by **16:07:22 CST**, = = re-read at
+**16:07:35**, = = BOTH remotes read the SAME commit `1fbeb0cf96`. = = The per-commit
+ancestry is section 6's, = = and the gates in section 3 are measured on that
+`1fbeb0cf96` tree.
 
 = = = **THE TRANSCRIPT SCOPE** (= = the first three lines, = = all in ONE
 message, = = 2026-11-17 09:43:22, = = the message store's row `268251`, = =
@@ -122,28 +125,38 @@ written for him.
 = = = The gates are re-run on the MERGED tree, = = not on the branch they were
 measured on before the merge, = = because a merge brings in a sibling's commit and
 that can change the build, = = the inventory and the test set. = = > > > **AND THE
-TREE MOVED UNDER THIS SESSION TWICE MORE SINCE THE PREVIOUS ROUND WROTE THIS
-SECTION**: = = the previous round measured these gates on `48cfabe11`, = = which
-was `main` then; = = `origin/main` then took `31b5c3929` (= = the sibling lane's
-editor tab-strip scope, = = at 2026-11-19 08:05:11 per `git reflog origin/main`)
-= = and then `b0ba0e0e2` and `124ce3275` (= = the same lane's next two, = = read
-back 2026-11-19 15:24:53 CST by `git ls-remote origin refs/heads/main`). = = ⇒ ⇒ ⇒
-⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **SO EVERY
-NUMBER BELOW IS NAMED TO THE COMMIT IT WAS MEASURED ON, = = AND THE RE-TAKE IS
-`git ls-remote origin refs/heads/main` FOLLOWED BY THIS SECTION'S OWN COMMANDS, = =
-BECAUSE A NUMBER THAT CHANGES WITH THE TREE IS NOT PUBLISHED WITHOUT ITS TREE.**
+TREE MOVED SIX TIMES WHILE THIS DOCUMENT WAS UNDER REVIEW.** = = The previous round
+measured these gates on `31b5c3929`, = = which was `main` at 08:05:11; = = `origin/main`
+then took `b0ba0e0e2` (13:45:31), = = `124ce3275` (14:55:34), = = `1699b71bc` (15:50:55)
+and `1fbeb0cf96` (16:04:27), = = every one of them the SIBLING lane's, = = and
+`old-origin/main` = = which held `48cfabe11` all through the morning = = moved to the
+SAME tip `1fbeb0cf96` before this round's 16:07:22 read. = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ **SO EVERY NUMBER BELOW IS NAMED TO THE TREE IT WAS MEASURED ON (= = the
+16:04:29 throwaway checkout of `1fbeb0cf96`), = = AND THE RE-TAKE IS `git ls-remote
+origin refs/heads/main` FOLLOWED BY THIS SECTION'S OWN COMMANDS, = = BECAUSE A NUMBER
+THAT CHANGES WITH THE TREE IS NOT PUBLISHED WITHOUT ITS TREE.** = = This round also
+RE-TOOK the whole-target run on `124ce3275` (= = one unfiltered `swift test` on a quiet
+machine, = = every line kept), = = and that run is **NOT PUBLISHED HERE**: = = it exits
+0 and prints two "Test run with ... passed" summaries while its own output contains 18
+"failed after ... with N issue(s)" lines across seven suites and NO third summary line
+for the run those failures belong to. = = A whole-target reading whose exit code
+contradicts its own body is not evidence, = = so section 3 publishes only the TWO
+FILTERED runs whose exit code and summary agree (= = 42/7 passed at exit 0, = = and
+44/6 with three issues at exit 1), = = and the anomaly is reported in section 5's open
+items as the test harness's own, = = not this document's.
 
 | the gate | the result, each named to the tree it was measured on |
 | --- | --- |
-| the build | `swift build --build-tests` = = **"Build complete!"** (= = the elapsed time is not published: = = it is different on every run, = = so it is not a measurement) |
-| the seven focused chat suites | **42 tests in 7 suites passed** (= = 7 suites, = = 42 tests, = = 0 failures, = = `ChatUserBubbleReadabilityTests`, `ChatUserBubbleShapeTests`, `ChatSurfaceGeometryTests`, `ChatTranscriptFlatFlowTests`, `ChatTranscriptScrollTests`, `RenderPathPerformanceTests`, `WindowTranslucencyTests`) |
-| the six BASELINE suites (= = the scope document's own section 3 table, = = re-run on this merged tree) | **44 tests in 6 suites, 3 issues** (= = NOT all-green: = = three PRE-EXISTING failures, = = the table's OWN three deterministic sites: = = `ChatViewHistoryShortcutTests.swift:35`, = = `EditorTabTitleTests.swift:60`, = = `AsyncDelegationRegistryTests.swift:104`) = = and the scope document's own table shows the base tree (`84c3a6386`) failing the SAME three sites, = = so the scope adds NO failing site |
-| the formatting gate | `ci_change_gate.py --check formatting --base 84c3a6386` = = exit 0 (= = "the change adds no unformatted line (52 changed Swift file(s) checked)"; = = the 52 is THAT base's denominator, = = and the same command against `48cfabe11` reads "8 changed Swift file(s) checked") |
-| the pollution gate | `ci_change_gate.py --check pollution --base 84c3a6386` = = exit 0 (= = "the change adds no forbidden vocabulary (84c3a6386...HEAD)") |
-| the registry's LOC gate | `nfi-loc-check.py --base 84c3a6386` = = exit 0 (= = 23 rows checked); = = `nfi-loc-check.py --base wt/chat-unpinned-user-row-2026-11-17` = = exit 0 (= = 5 rows checked) |
-| the registry's split gate | `nfi-split.py --check` = = **PASS** |
-| the design sweep | `design-sweep.sh` over the bubble scope's THREE production files = = exit 0 (= = it prints "design sweep on 3 file(s)" and then "design sweep clean"); = = the bare form (= = "the files changed against `main`") is empty on the merged tree and settles nothing, = = so the files are named |
-| the dead-code gate | `verify-dead.py` over the bubble scope's THREE production files = = exit 0 (= = **3 ALIVE**, = = 0 PARTIAL, = = 0 DEAD) |
+| the tree these numbers were measured on | `origin/main` = = **`1fbeb0cf96`** (= = read 2026-11-19 16:07:22 and 16:07:35 CST), = = checked out DETACHED into a throwaway worktree at 16:04:29, = = with the registry and `.xcstrings` merge drivers configured |
+| the build | `swift build --build-tests` = = **"Build complete!"** = = exit 0 (= = the elapsed time is not published: = = it is different on every run, = = so it is not a measurement) |
+| the seven focused chat suites | **42 tests in 7 suites passed** = = exit 0 (= = 7 suites, = = 42 tests, = = 0 failures, = = `ChatUserBubbleReadabilityTests`, `ChatUserBubbleShapeTests`, `ChatSurfaceGeometryTests`, `ChatTranscriptFlatFlowTests`, `ChatTranscriptScrollTests`, `RenderPathPerformanceTests`, `WindowTranslucencyTests`) |
+| the six BASELINE suites (= = the scope document's own section 3 table, = = re-run on this tree) | **44 tests in 6 suites, 3 issues** = = exit 1 (= = NOT all-green: = = three PRE-EXISTING failures, = = the table's OWN three deterministic sites: = = `ChatViewHistoryShortcutTests.swift:35`, = = `EditorTabTitleTests.swift:60`, = = `AsyncDelegationRegistryTests.swift:104`; = = SIXTH-ROUND NOTE: = = the same three sites, = = the same names, = = on `84c3a6386`, = = `31b5c3929` and now `1fbeb0cf96`, = = so this tree adds NO failing site) |
+| the formatting gate | `ci_change_gate.py --base 84c3a6386 --check formatting` = = exit 0 (= = "the change adds no unformatted line (**56** changed Swift file(s) checked)"; = = the previous round's same command read 52 on `31b5c3929`, = = which is why the count is published WITH its base); = = `--base 48cfabe11` = = exit 0 (= = **15** changed Swift file(s) checked) |
+| the pollution gate | `ci_change_gate.py --check pollution --base 84c3a6386` = = exit 0 (= = "the change adds no forbidden vocabulary (84c3a6386...HEAD)"); = = `--base 48cfabe11` = = exit 0 (= = 48cfabe11...HEAD) |
+| the registry's LOC gate | `nfi-loc-check.py --base 84c3a6386` = = exit 0 (= = **27** rows checked, = = 23 on `31b5c3929`); = = `nfi-loc-check.py --base 48cfabe11` = = exit 0 (= = **8** rows checked) |
+| the registry's split gate | `nfi-split.py --check` = = **PASS** (= = 30 rows verified in the registry by key) |
+| the design sweep | `Tools/wenshu-devtool/design-sweep.sh` over the bubble scope's THREE production files (= = `Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift`, = = `Sources/WenshuApp/Features/Chat/View/ChatUserBubblePalette.swift`, = = `Sources/WenshuApp/Features/Editor/View/InspectorStatusOutputSheet.swift`) = = exit 0 (= = it prints "design sweep on 3 file(s)" and then "design sweep clean"); = = the bare form (= = "the files changed against `main`") is empty on this tree and settles nothing, = = so the files are named, = = and note that TWO of the three paths are NOT where an earlier round implied they were (= = the palette lives in `Chat/View`, = = not `Chat/Service`, = = and the sheet in `Editor/View`, = = not `Shared/UI`: = = a sweep over a non-existent path exits 127 and would have been read as a clean sweep by a reader who only looked for "clean") |
+| the dead-code gate | `Tools/wenshu-devtool/verify-dead.py` over the SAME THREE named files = = exit 0 (= = **3 ALIVE**, = = 0 PARTIAL, = = 0 DEAD; = = run against the WRONG two paths it reports 1 ALIVE and 2 PARTIAL, = = which is how this round caught its own command line) |
 
 = = = > > > **AND A GATE THAT WAS RED WHILE THIS CLOSEOUT RAN IS NOW
 GREEN, = = AND THE CLOSEOUT READS IT AT THE END.** = = The first
@@ -212,11 +225,24 @@ over `37526bfed` to `old-origin/main` (= = `48cfabe11`) it reads **53 files, =
 the PREVIOUS round's read) it reads **62 files, = = +11067/-929**; = = and over
 `37526bfed` to `origin/main` AT THIS ROUND'S READ (= = `b0ba0e0e2`, = = read at
 14:24 CST by `git ls-remote origin refs/heads/main`) it reads **63 files, = =
-+11312/-933**. = = An earlier round published the `+8182/-402` pair while
-CALLING its endpoint "main's tip today", = = which was a `48cfabe11` pair read
-against a `main` that had already moved; = = the four figures above are the same
-measurement against the four references, = = and no one of them is "the" diff of
-the branch against main.
++11312/-933**. = = **AND THE PAIR MOVED THREE MORE TIMES INSIDE THIS ROUND:** = = the
+15:56:07 read of `origin/main` = = `124ce3275` gives **64 files, = = +11338/-942**, = =
+the 16:07:22 read = = `1699b71bc5` = = gives **65 files, = = +11493/-956**, = = and the
+same read's tip `1fbeb0cf96` gives **67 files, = = +12329/-971** (= = `Sources`-only of
+that last pair: = = **30 files, = = +3339/-802**). = = An earlier round published the
+`+8182/-402` pair while CALLING its endpoint "main's tip today", = = which was a
+`48cfabe11` pair read against a `main` that had already moved; = = the figures above
+are the same measurement against SIX references, = = and no one of them is "the" diff
+of the branch against main. = = > > > **AND THE ONE FIGURE THAT DOES NOT MOVE: = = THE
+DIFFSTAT AGAINST A SCOPE'S OWN LANES IS A CONSTANT.** = = `37526bfed...81c97ae58`
+reads 53 files / +7901/-398 (= = whole repo) and 23 files / +1514/-247 (`Sources`
+only) = = on EVERY tree above, = = because both endpoints are frozen commits, = = and
+it covers only the bubble lane's own 22 commits. = = The transcript lane's carrier is
+`1928e85b3`, = = which is NOT an ancestor of `81c97ae58` (= = `git merge-base
+--is-ancestor 1928e85b3 81c97ae58` = = exit 1), = = so a pair built only on
+`81c97ae58` omits the whole transcript scope (= = 16 files / +856/-246 over
+`83a2b21ea...1928e85b3`), = = and a pair that claims to cover BOTH scopes must
+enumerate both endpoints.
 
 = = = > > > **AND THE LIVE MEASUREMENT OF THE MATERIAL, = = READ OFF THE
 APP'S OWN WINDOW** (= = `screencapture -x -o -l<window id>`, = = because an
@@ -309,15 +335,25 @@ script.
 | the panel behind, in the same file (NOT a cross-file control: = = see the paragraph under the table) | (1500, 1080) | `rgb(37,37,37)` | `rgb(42,42,42)` |
 
 = = = > > > **AND THE FILL IS NOT UNIFORM, = = AND THE PARTITION NAMES ITS
-DENOMINATOR.** = = The 201 pixels of row 1080 between x=1900 and x=2100
-partition as: = = **82** read the fill's value EXACTLY, = = **21** read a
-value within two levels of it, = = **62** read the words' value exactly, = =
-and **36** are the words' own antialiasing (= = they read between 77 and 218
-under RULE RAW, = = and between 87 and 223 under RULE MANAGED). = = 82 + 21 +
-62 + 36 = 201. = = So the earlier wording "a UNIFORM `rgb(66,66,66)`" was
-wrong, = = because it published a single value as the whole of a region that
-holds four different populations, = = and the count beside it (= = 82 of 201)
-contradicted the word "uniform". = = The fill also ramps: = = AT x=2000, = =
+DENOMINATOR, = = ITS PREDICATE AND ITS HISTOGRAM.** = = The 201 pixels of row 1080
+between x=1900 and x=2100 (= = INCLUSIVE at both ends, = = which is what makes the
+denominator 201 and not 200) partition as: = = **88** read the fill's value EXACTLY
+(= = 66), = = **15** read a value within two levels of it WITHOUT being it (= = 8 pixels
+at 65 and 7 at 67), = = **62** read the words' value exactly (= = 236), = = and **36**
+are the words' own antialiasing (= = they read between 77 and 218 under RULE RAW, = =
+and between 87 and 223 under RULE MANAGED). = = 88 + 15 + 62 + 36 = 201 with nothing
+left over, = = and the histogram of those 201 columns is `65 x8, = = 66 x88, = = 67 x7,
+ = = 36 scattered values from 77 to 218, = = 236 x62`. = = Re-take: `python3 -c "from
+PIL import Image; import collections; im=Image.open('glass-live-2026-11-19.png').
+convert('RGB'); print(collections.Counter(im.getpixel((x,1080))[0] for x in
+range(1900,2101)))"` over the file whose `sha256` is named above. = = An EARLIER ROUND
+published this partition as **82** exact and **21** near, = = which does not reproduce
+on that file (= = the same 103 fill-side pixels split 88 and 15), = = and it named no
+predicate, = = so a reader could not tell "within two levels" from "not exactly". = =
+So the wording that came before it (= = "a UNIFORM `rgb(66,66,66)`") was wrong twice
+over: = = it published a single value as the whole of a region that holds four
+different populations, = = and the count beside it contradicted the word "uniform".
+= = The fill also ramps: = = AT x=2000, = =
 row 1044 reads `rgb(77,76,76)` raw and `rgb(87,86,86)` managed, = = and row 1047
 reads `rgb(70,70,70)` raw and `rgb(80,80,80)` managed (= = the x IS part of the
 reading: = = at x=1915 those same two rows read `rgb(36,37,37)` and
@@ -377,11 +413,19 @@ left from that edge along row 1620, = = by offset d: = = `rgb(45,43,45)` at d=2,
 at d=37, = = `rgb(42,42,44)` at d=50, = = then it FALLS and keeps falling: = =
 `rgb(40,39,39)` at d=100, = = `rgb(38,38,38)` at d=150, = = `rgb(36,35,36)` at
 d=200, = = `rgb(35,35,36)` at d=300, = = `rgb(38,36,38)` at d=400, = =
-`rgb(40,39,40)` at d=500. = = The band that averages 42 or more is **x=1369..1436
-on row 1620 = = 57 px wide = = offsets d=1..68 from the fill edge**, = = and it IS
-the shadow ring. = = The NEW capture has no such ring: = = over the same offsets
-its panel takes only the values {36, 37, 38} raw (= = modal `rgb(37,37,37)`, = =
-249 of 499 samples), = = because a Liquid Glass bubble carries no drop shadow. = =
+`rgb(40,39,40)` at d=500. = = THE BAND, = = STATED AS A PREDICATE RATHER THAN A
+SIZE: = = walking left from the fill edge on row 1620, = = the value stays at 42 or
+above for **48 CONTIGUOUS columns** (= = x=1389..1436, = = offsets d=1..48), = = peak
+`rgb(45,43,45)` at d=2; = = across the wider span x=1345..1436 (= = offsets d=1..92)
+it reaches 42 or more on **68** of those 92 columns but the run is broken; = = and
+averaged over rows 1600..1640 it is x=1384..1436. = = An earlier round published ONE
+figure (= = "57 px") where three predicates exist, = = and 57 is what row 1618 gives
+and row 1620 does not. = = It IS the shadow ring. = = The NEW capture has no such
+ring: = = walking left from ITS fill edge (= = x=1898) along row 1080 by the same
+offsets d=2..500, = = the panel takes only the values {36, = = 37, = = 38} raw (= =
+modal `rgb(37,37,37)` on **437** of the 499 samples, = = where an earlier round wrote
+249, = = which no row of that file yields), = = because a Liquid Glass bubble carries
+no drop shadow.
 So the earlier round compared a shadow against a surface. = = > > > **(3) PANEL
 BODY AGAINST PANEL BODY, = = OVER NAMED RECTANGLES OF THE SAME SIZE, = = THE
 RESULT INVERTS.** = = The old panel's body, = = x=1050..1389 and y=1560..1689, = =
@@ -414,8 +458,9 @@ therefore inside one space, = = a RIM (= = `rgb(115,115,115)` raw at the top edg
 row 1042 falling to `rgb(94,94,94)` inner at row 1043, = = mirrored at rows 1112 and
 1113), = = a FILL THAT RAMPS DOWNWARD (= = `rgb(77,76,76)` at row 1044 to
 `rgb(70,70,70)` at row 1047 at x=2000), = = and NO DROP SHADOW beside the bubble (= =
-the panel reads 36..38 flat at every offset d=2..500, = = where the old bubble's
-immediate neighbour is a 57 px ring averaging 42 or more). = = Those three ARE the
+the panel reads 36..38 flat at every offset d=2..500 (= = 437 of the 499 samples
+read 37 EXACTLY), = = where the old bubble's immediate neighbour is a ring that
+holds 42 or more for 48 CONTIGUOUS columns against its fill edge). = = Those three ARE the
 glass and the flat fill was not, = = and none of them is a comparison between two
 files. = = The WITHIN-file step of the fill above the panel is **29** levels under
 RULE RAW and **33** under RULE MANAGED (= = one file, = = one space, = = two
@@ -488,6 +533,37 @@ values measured here.
   (runs `4498` and `4500`, = = elapsed 3621 s and 3620 s, = = against a 3600 s limit) before its
   later rounds completed. = = **Measured, not closed** (= = they are the
   sibling's cards, = = and their own runs carry the verdicts).
+- **A WHOLE-TARGET `swift test` IN THIS REPO EXITS 0 WHILE ITS OWN BODY IS RED,**
+  = = so its exit code is NOT a gate, = = and a reader who treats it as one will land a
+  red tree. = = Measured TWICE on two different commits, = = both runs every line kept:
+  = = on `1fbeb0cf96` at 14:37-14:46 CST (= = an earlier round's run) and on `124ce3275`
+  = = at 15:29:51-15:38:40 CST (= = this round's re-take, = = one run, = = no `parallel`,
+  = = no retry, = = nothing else on the machine). = = Both times the command was `swift
+  = = test --skip CSSearchableIndexSearchTests`, = = both times it printed THREE `Test run
+  = = started.` markers and only TWO `Test run with ... passed` summaries (= = 151 tests
+  = = in 34 suites, = = and 208 tests in 24 suites), = = both times its exit code was
+  **0**, = = and both times its body carries real per-test failures (= = this round's:
+  = = **18 lines of the form `✘ Test ... failed after ... with N issue(s)` spread over
+  = = SEVEN suites** (= = `ChatViewHistoryShortcutTests`, = = `EditorTabTitleTests`, = =
+  = = `PaneTabStripTitleTests`, = = `EditorTabStripOverflowTests`, = =
+  = = `EditorPersistenceTests`, = = `AsyncDelegationRegistryTests`, = =
+  = = `SidebarTreeReloadTests`), = = and the run those 18 belong to never printed a
+  summary at all. = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **SO THE FILTERED RUNS ARE THE ONLY
+  `swift test` EVIDENCE THIS DOCUMENT PUBLISHES, = = AND THEY ARE PUBLISHED BECAUSE
+  THEIR EXIT CODE AND THEIR SUMMARY AGREE** (= = 42 tests in 7 suites at exit 0, = = and
+  = = 44 tests in 6 suites with three issues at exit 1, = = both in section 3). = = The
+  whole-target run's per-suite failures ARE still a reading of the tree (= = they name
+  which suites are red, = = which is what section 2's rows use), = = but they are
+  labelled as a reading and never as a green gate. = = **Reported and NOT fixed**: = =
+  the harness is not this scope's code, = = it is the toolchain lane's, = = and no card
+  owns it. = = The next session's first move on it is a ONE-SUITE reproduction (= =
+  `swift test --filter EditorTabTitleTests` exits 1 correctly on its own, = = so the
+  signal is lost when the app-hosted bundle runs inside the whole-target invocation)
+  = = filed against the gate and NOT against the product.
+- **AND COUNTING THE ITEMS IN THIS SECTION IS ITSELF A MEASURED NUMBER:** = = section 5
+  = = carries **EIGHT** bullets after this round (= = seven before it), = = and an
+  earlier round's summary sentence said "five" when the list already held six, = =
+  because a count of a list is a claim about the list and the list grew underneath it.
 
 ## 6. The commits this session pushed that are NOT this session's
 
@@ -573,39 +649,45 @@ READ TWICE: = =
 
 | the remote | the ref | the value | read at |
 | --- | --- | --- | --- |
-| `origin` | `refs/heads/main` | `124ce3275` | **2026-11-19 15:24:53 CST**, = = re-read **15:25:35** (= = the SAME value on both reads) |
-| `old-origin` | `refs/heads/main` | `48cfabe11` (= = UNCHANGED since 2026-11-18 23:55:12) | the same two reads |
-| `origin` | `refs/heads/main` | `31b5c3929` (= = the PREVIOUS round's snapshot, = = read 11:27:10 and 11:27:16) | KEPT AS THE RECORD OF WHAT WAS TRUE AT 11:27: = = **it is NO LONGER the value of that ref** (= = it moved at 13:45:31) |
-| `old-origin` | `refs/heads/main` | `48cfabe11` | 2026-11-19 11:27:10 CST (= = and 11:27:16) |
-| `origin` | `refs/heads/wt/chat-unpinned-user-row-2026-11-17` | `1928e85b3` | both of this round's reads (= = and the 11:27 pair: = = UNCHANGED) |
+| `origin` | `refs/heads/main` | `1fbeb0cf96` | **2026-11-19 16:07:22 CST**, re-read **16:07:35** (= = the SAME value on both reads; = = the two reads also MATCH `old-origin`) |
+| `old-origin` | `refs/heads/main` | `1fbeb0cf96` (= = the same commit) | the same two reads (= = **this ref MOVED during this round**: = = at **15:24:53** it read `48cfabe11`, = = and by **16:07:22** it read `1fbeb0cf96`) |
+| `origin` | `refs/heads/main` | `124ce3275` (= = this round's MID read) | **15:24:53 CST** and **15:25:35** (= = KEPT as what was true between 14:55:34 and 15:50:55; = = superseded by the 16:07 row above) |
+| `old-origin` | `refs/heads/main` | `48cfabe11` | **15:24:53 CST** (= = KEPT as what was true until this round's 16:07 read found it moved) |
+| `origin` | `refs/heads/main` | `31b5c3929` (= = the PREVIOUS round's snapshot, = = read 11:27:10 and 11:27:16) | KEPT AS THE RECORD OF WHAT WAS TRUE AT 11:27 (= = and it was ALREADY six pushes behind by 16:07) |
+| `origin` | `refs/heads/wt/chat-unpinned-user-row-2026-11-17` | `1928e85b3` | this round's 16:07 pair (= = and the 11:27 and 15:24 reads: = = UNCHANGED) |
 | `old-origin` | `refs/heads/wt/chat-unpinned-user-row-2026-11-17` | `1928e85b3` | the same |
 | `old-origin` | `refs/heads/wt/chat-glass-bubble-2026-11-17` | `81c97ae58` | the same |
 | `origin` | `refs/heads/wt/chat-glass-bubble-2026-11-17` | `3832db2e` (= = the earlier shape, = = reported above) | the same |
 
-= = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **AND `origin/main` HAS MOVED FOUR TIMES SINCE THE
-SCOPES LANDED, = = AND EVERY MOVE IS THE SIBLING'S, = = AND NONE OF THEM CHANGES
-THE PROOF.** = = `git reflog origin/main --date=iso` prints the four moments, = =
-so the list is not a recollection: = = `48cfabe11` at `2026-11-18 23:55:12`, = =
-`31b5c3929` (= = "feat(tabs): the editor's tabs carry their own close") at
-`2026-11-19 08:05:11`, = = `b0ba0e0e2` (= = "fix(sidebar): the selection no
-longer rebuilds the tree", = = authored 07:17:56, = = committed 13:42:27) at
-`2026-11-19 13:45:31`, = = and `124ce3275` (= = "feat(tabs): the editor's tab
-strip has no double-click close", = = authored 09:16:10, = = committed 14:53:26)
-at `2026-11-19 14:55:34`. = = `old-origin/main` has NOT moved since
-`2026-11-18 23:55:12`. = = > > > **AND THE SENTENCE AN EARLIER ROUND PUBLISHED
-BESIDE THIS TABLE — = = "the values are UNCHANGED from the previous round's read"
-— = = WAS TRUE AT 11:27 AND WAS FALSE BY 13:45.** = = That is not a story about
-the remote, = = it is a story about a fact written without a read time, = = and
-it is exactly why every server line above now carries ITS OWN timestamp and why
-this round re-read the servers instead of re-stating the old read. = = > > >
-**AND BOTH SERVERS' CURRENT `main` STILL CARRY THIS SESSION'S OWN COMMITS:** = =
-the predicate
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **AND `origin/main` HAS MOVED SIX TIMES SINCE THE
+SCOPES LANDED, = = AND EVERY MOVE IS THE SIBLING'S, = = AND NONE OF THEM CHANGES THE
+PROOF.** = = `git reflog show origin/main --date=iso` prints the moments, = = so the
+list is not a recollection: = = `48cfabe11` at `2026-11-18 23:55:12`, = = `31b5c3929`
+(= = "feat(tabs): the editor's tabs carry their own close") at `2026-11-19 08:05:11`, = =
+`b0ba0e0e2` (= = "fix(sidebar): the selection no longer rebuilds the tree", = = authored
+07:17:56, = = committed 13:42:27) at `13:45:31`, = = `124ce3275` (= = "feat(tabs): the
+editor's tab strip has no double-click close", = = authored 09:16:10, = = committed
+14:53:26) at `14:55:34`, = = `1699b71bc` (= = "docs(agents): the closeout record for the
+editor tab strip's double-click removal") at `15:50:55`, = = and `1fbeb0cf96` (= =
+"fix(sidebar): the tree's rows are drawn by their subtree's shape", = = authored
+12:21:55, = = committed before the push) at `16:04:27`. = = `old-origin/main` sat at
+`48cfabe11` from `2026-11-18 23:55:12` until this round's 16:07:22 read, = = where it
+reads the SAME commit as `origin`. = = > > > **AND THE SENTENCE AN EARLIER ROUND
+PUBLISHED BESIDE THIS TABLE — = = "the values are UNCHANGED from the previous round's
+read" — = = WAS TRUE AT 11:27 AND WAS FALSE BY 13:45.** = = That is not a story about
+the remote, = = it is a story about a fact written without a read time, = = and it is
+exactly why every server line above now carries ITS OWN timestamp and why this round
+re-read the servers instead of re-stating the old read. = =
+**AND BOTH SERVERS' CURRENT `main` STILL CARRY THIS SESSION'S OWN COMMITS, = = AND
+THE TWO SERVERS NOW AGREE ON THE SAME COMMIT.** = = The predicate
 `for c in <the 18 shas listed above>; do git merge-base --is-ancestor $c <tip>; done`
-reads YES for **18 OF 18** on `origin`'s `124ce3275` (= = read **2026-11-19
-15:33:12 CST**) = = and YES for the same **18 OF 18** on `old-origin`'s
-`48cfabe11` (= = read **2026-11-19 15:33:15 CST**). = = ⇒ ⇒ ⇒ AND THE TREE THE
-GATES IN SECTION 3 WERE LAST RUN ON IS NAMED IN SECTION 3'S OWN ROWS, = = NOT
-HERE, = = because that tree also moves.
+reads YES for **18 OF 18** against `origin`'s tip `1fbeb0cf96` (= = run **2026-11-19
+16:07:35 CST**, = = no sha missing) = = and against `old-origin`'s tip, = = which the
+same read finds at the SAME commit `1fbeb0cf96` (= = `old-origin` has moved too, = = so
+this round's earlier statement that the two remotes are NOT equal is superseded by
+this read, = = and both statements carry their time). = = ⇒ ⇒ ⇒ AND THE TREE THE GATES
+IN SECTION 3 WERE LAST RUN ON IS NAMED IN SECTION 3'S OWN ROWS, = = NOT HERE, = =
+because that tree also moves.
 
 ## 7. The next session's starting point
 
@@ -645,10 +727,12 @@ tree moves its `change_id`).
 `79e993859` has already landed, = = so the guard no longer refuses a push of
 `main` (= = its scan of the unpushed range on both remotes reads 0 errors).
 
-5. The app's own pixels are the evidence: = = the boss's own 10:45
-the glass build's own trailing bubble reads the fill's value at 82 of the
+5. The app's own pixels are the evidence, = = and the boss's own 10:45
+the glass build's own trailing bubble reads the fill's value at **88** of the
 201 pixels of row 1080 between x=1900 and x=2100 (= = `rgb(66,66,66)` under
-RULE RAW, = = `rgb(75,75,75)` under RULE MANAGED) with a BRIGHT rim band
+RULE RAW, = = `rgb(75,75,75)` under RULE MANAGED, = = with 15 more pixels inside two
+levels of it and nothing else in the span but the words and their antialiasing), = =
+and it wears a BRIGHT rim band
 (= = `rgb(126,126,126)` at the top edge, = = `rgb(125,125,125)` at the
 bottom, = = under RULE MANAGED), = = and the panel BEHIND IT IN THE SAME FILE
 reads `rgb(37,37,37)` raw / `rgb(42,42,42)` managed at (1500, 1080). = = > > >
@@ -700,14 +784,18 @@ document the author already knew to be wrong: = =
    chunk into sRGB"), = = with the two-line PIL recipe beside it, = = and the
    lift is attributed to the TONE CURVE and not to a wide gamut. = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
    ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
-   **AND THE OLD WORDING WAS ALSO WRONG ON ITS OWN**: = = it called the fill "a
-   UNIFORM `rgb(66,66,66)`" and then published "82 of the 201 pixels", = = which
-   contradicts "uniform"; = = the measured partition is 82 exact + 21 within two
-   levels + 62 the words' value + 36 the words' antialiasing = = 201. = = **AND
+**AND THE OLD WORDING WAS ALSO WRONG ON ITS OWN, AND THIS ROUND'S RE-TAKE CAUGHT A
+SECOND NUMBER OF OURS**: = = the earlier text called the fill "a UNIFORM
+`rgb(66,66,66)`" and then published "82 of the 201 pixels", = = which contradicts
+"uniform"; = = and the 82 is itself wrong on the named file, = = because the measured
+partition of those same 201 columns is **88** exact + **15** within two levels + 62 the
+words' value + 36 the words' antialiasing = = 201. = = §4 carries the predicate, = = the
+histogram and the one-line re-take.
    THE RULE-SETTLING CROSS-CHECK IS WITHDRAWN, = = NOT REPAIRED**: = = it
    compared the NEW capture's panel BODY against a value taken out of the OLD
-   capture's bubble SHADOW RING (= = x=1369..1436 on row 1620, = = offsets
-   d=1..68 from the fill edge, = = because no coordinate was published), = = and
+capture's bubble SHADOW RING (= = a band of values 42..45 hugging the old fill's
+left edge, = = published without its predicate, = = because no coordinate was
+published either), = = and
    panel-body against panel-body over matched rectangles the result is INVERTED
    (= = RAW agrees at 37 against 36, = = MANAGED disagrees at 42 against 36); = =
    and the measurement could not have settled anything, = = because the panel is
@@ -738,11 +826,14 @@ document the author already knew to be wrong: = =
    previous round's "a FRESH capture cannot be taken" is withdrawn as a fact and
    published as what it was (= = a permission state of that moment).
 
-= = = > > > **AND THE GATES ARE RE-MEASURED ON THE TREE `origin/main` NOW
-POINTS AT** (= = `b0ba0e0e2`, = = read by `git ls-remote` at the time section 3
-states), = = because the previous round measured them on `48cfabe11`, = = which
-was `main` then, = = then `31b5c3929`, = = and is `main` no longer. = = The
-numbers, = = and the denominators that move with the tree, = = are in section 3.
+= = = > > > **AND THE GATES IN SECTION 3 ARE RE-MEASURED ON THE TIP `origin/main`
+HOLDS AT THE END OF THIS ROUND** (= = `1fbeb0cf96`, = = read twice at 16:07:22 and
+16:07:35 CST by `git ls-remote origin refs/heads/main`), = = because the previous
+round measured them on `31b5c3929`, = = which was `main` then and is six pushes
+behind `main` now, = = and the DENOMINATORS move with it (= = the formatting gate's
+changed-file count went 52 -> 56 against the same base, = = and the registry's LOC
+gate's row count went 23 -> 27). = = The numbers, = = each named to its tree, = = are
+in section 3.
 
 = = = > > > **AND THIS ROUND'S OWN REVIEW (`t_952a8380`, = = run 4574) RETURNED
 `changes_requested` ON FOUR BLOCKING FINDINGS, = = AND ALL FOUR WERE RE-MEASURED
