@@ -1556,3 +1556,16 @@ is the difference between the minute the server took the ref and the minute the 
 line printed BEFORE the ref update, = = again carrying no Swift change (= = `git diff --name-only
 001a570551..1cf0f8ce24` is the closeout document and `docs/agents/nfi.md`, = = two files), = = so §3's rows
 were not re-run for it and the rule decided that too.
+ **THE LAST TWO GATE RUNS ARE CITED, NOT PARAPHRASED.** = = `gates_round11_docs.log`
+ (read 20:15:52-20:15:54 CST: struct, formatting, pollution, markdown-newline, nfi-loc and nfi-split all
+ `EXIT=0`, `IS_14TH_ANCESTOR YES`, `SWIFT_IN_MY_COMMITS_SINCE_12TH 0`) = = and `gates_round11_publish2.log`
+ (read 20:27:47 CST on the tree that carries this sentence: the same six gates `EXIT=0`, and the citation
+ audit reporting `CITED_LINES 252`, `BEYOND_EOF 0`, `TRACEBACKS 0`). = = The second one is the run a reader
+ should compare against, = = because it is the only one taken on a tree whose `origin/main` is already this
+ document's own push.
+ **AND THE ORDINAL LESSON, = = WHICH IS THE CHEAPEST LESSON OF THE ROUND**: = = this document called
+ `00d35a62d8` "the fourteenth move" for eleven minutes. = = It is the NINETEENTH. = = The number was right
+ when it was written and nobody re-read it after four more pushes went through, = = which is the same failure
+ the reflog line was meant to prevent and is why every count in §4 and §6 now names the log AND the minute it
+ was read from: = = a count without a minute attached is not a measurement, = = it is a guess that has not
+ yet been caught.
