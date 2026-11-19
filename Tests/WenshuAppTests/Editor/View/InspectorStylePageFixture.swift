@@ -75,7 +75,40 @@ enum InspectorStylePageFixture {
         return WorkspaceUIState(store: UserDefaultsStore(defaults: defaults))
     }
 
-    /// The style page, rendered in a window of its own.
+    /// The name each of the five knobs answers with (= the catalog key,
+    /// = which is what a test host renders a localized string AS).
+    static let knobNameKeys: [String] = [
+        "inspector.style.knob.bodySize",
+        "inspector.style.knob.lineSpacing",
+        "inspector.style.knob.firstLineIndent",
+        "inspector.style.knob.segmentSpacing",
+        "inspector.style.knob.bodyFamily",
+    ]
+
+    /// Every word the page draws that a reader cannot produce by typing: =
+    /// the three groups' headings, = the three places the switcher offers,
+    /// = and the five knobs.
+    static let pageNameKeys: [String] = [
+        "inspector.style.group.presets",
+        "inspector.style.group.styles",
+        "inspector.style.group.tuning",
+        "inspector.style.preset.print",
+        "inspector.style.preset.general",
+        "inspector.style.preset.custom",
+    ] + knobNameKeys
+
+    /// The string catalog (= where those names live).
+    static func catalogURL() -> URL {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // View
+            .deletingLastPathComponent() // Editor
+            .deletingLastPathComponent() // WenshuAppTests
+            .deletingLastPathComponent() // Tests
+            .deletingLastPathComponent() // the worktree's root
+        return root
+            .appendingPathComponent("Sources/WenshuApp/Resources/Localizable.xcstrings")
+    }
+
     static func renderPage(
         store: BookStore,
         workspace: WorkspaceUIState

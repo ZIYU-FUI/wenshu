@@ -6,21 +6,27 @@
 //
 //  WHAT IS MEASURED
 //
-//  The control is a real AppKit `NSSegmentedControl` (= SwiftUI's
-//  `SegmentedPickerStyle` builds one, = and it is visible in the view
-//  tree), = so the selection is read where it lives: = the control's own
-//  selected segment. = That is what answers the complaint this control
-//  was written for: = one set's name, = three times, = in its own row.
-//  = The control's segments ARE the names, = and each is painted once,
-//  = by the control.
+//  The control is a real AppKit `NSSegmentedControl` (= the repo's own
+//  bridge, = `Shared/UI/LabelSegmentedControl`, = and NOT a SwiftUI
+//  `Picker` with `.pickerStyle(.segmented)`, = which cannot be pinned to
+//  the width its row was given), = so the selection is read where it
+//  lives: = the control's own selected segment. = That is what answers the
+//  complaint this control was written for: = one set's name, = three times,
+//  = in its own row. = The control's segments ARE the names, = and each is
+//  painted once, = by the control.
 //
-//  WHY 自定义 IS MEASURED AS A SEGMENT
+//  WHY CUSTOM IS MEASURED AS A SEGMENT
 //
 //  A book fine-tuned off both sets used to be shown by lighting nothing
 //  (= `selectedSegment == -1`). = That state had no door: = a reader could
-//  see it and could not return to it. = The ruling this file now holds the
-//  line on (= OOB.md #2026-11-19): = the fine-tuned book lights 自定义,
-//  = and nothing else is lit.
+//  see it and could not return to it. = The ruling this file holds the line
+//  on (= OOB.md #2026-11-19): = Custom is a segment, = the fine-tuned book
+//  lights it, = and nothing else is lit. = The same ruling has it entered
+//  from a set as well (= an untuned book takes the general set's values),
+//  = which is why the place a book is at is recorded on the book and not
+//  only read off its sheet: = a sheet that IS the general set reads back as
+//  the general set, = and a segment read only off the sheet springs back on
+//  the click that chose Custom.
 //
 //  swift test --filter InspectorStylePresetPickerTests
 //
@@ -35,7 +41,7 @@ import Testing
 @Suite("Inspector style page, the set control", .serialized)
 struct InspectorStylePresetPickerTests {
     /// The control lights the place the book is at, = and a fine-tuned
-    /// book is at 自定义.
+    /// book is at Custom.
     @Test("the control lights where the book is")
     func theControlLightsWhereTheBookIs() throws {
         let printBaseline = render(current: .preset(.printBaseline))
@@ -53,7 +59,7 @@ struct InspectorStylePresetPickerTests {
         )
         #expect(
             fineTuned.selectedSegment == order.firstIndex(of: .custom),
-            "a book fine-tuned off both sets lights 自定义 (= got \(fineTuned.selectedSegment))"
+            "a book fine-tuned off both sets lights Custom (= got \(fineTuned.selectedSegment))"
         )
         #expect(
             fineTuned.selectedSegment >= 0,
@@ -77,7 +83,7 @@ struct InspectorStylePresetPickerTests {
         )
         #expect(
             labels.last == BookStyleSelection.custom.displayName,
-            "自定义 is last (= the sets are where a book starts, = the tuning is where it ends up)"
+            "Custom is last (= the sets are where a book starts, = the tuning is where it ends up)"
         )
     }
 
@@ -105,7 +111,7 @@ struct InspectorStylePresetPickerTests {
         sheet.bodySize = .large
         #expect(
             BookStyleSelection.select(sheet: sheet) == .custom,
-            "a book whose own knob moved sits at none of the sets (= so the switcher says 自定义)"
+            "a book whose own knob moved sits at none of the sets (= so the switcher says Custom)"
         )
     }
 
@@ -130,7 +136,7 @@ struct InspectorStylePresetPickerTests {
         )
         #expect(
             code.contains("regionWidth:"),
-            "the switcher is pinned to the width its row was given (= the boss's ruling: = 拉到全列宽, = and a segmented control that keeps its own fitting width is not that)"
+            "the switcher is pinned to the width its row was given (= the boss's ruling: = the whole column width, = and a segmented control that keeps its own fitting width is not that)"
         )
         #expect(
             !code.contains("checkmark") && !code.contains("InspectorFormatBlock"),

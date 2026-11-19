@@ -29,9 +29,10 @@
 //  8. The page paints each position ONCE (= the drop-down's own AppKit
 //     title is transparent: = the one thing a screenshot of the
 //     rendered page cannot see, = so it is read off the button).
-//  9. The set the book is at is marked, = and the two sets are rows and
-//     not drop-downs (= a `Button` publishes nothing to the offscreen
-//     tree, = so the mark is proven by the ink it draws).
+//  9. The place the book is at is lit by the switcher itself (= one
+//     segmented control over the column), = and no ink of this page's
+//     drawing marks it: = the control's own selected segment is the
+//     whole of the claim.
 //
 //  The tree is read through the ACCESSIBILITY SYSTEM (= the route the
 //  layout probe reads a running app's tree through), because a SwiftUI
