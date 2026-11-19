@@ -5850,6 +5850,23 @@
         }
       }
     },
+    "cover_context_menu_remove_dynamic": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove moving cover"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除动态封面"
+          }
+        }
+      }
+    },
     "cover_context_menu_video_failed": {
       "extractionState": "manual",
       "localizations": {

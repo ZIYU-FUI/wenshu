@@ -78,11 +78,19 @@ struct AppleSidebarView: View {
     /// The shelves part shows the shelf hierarchy, the library part shows
     /// the reference library hierarchy, and the reserved ebooks part has
     /// no tree.
-    private var currentNodes: [SidebarNode] {
+    ///
+    /// ⇒ ⇒ ⇒ THE TREE IS READ, = NOT ITS ROWS: = the rows compare by
+    /// their OWN data, = so a tree whose rows differ only BELOW the top
+    /// compares EQUAL, = and the observation that carries the tree never
+    /// fires (= the rows under the user keep the text they had). = ⇒ ⇒ ⇒
+    /// The tree carries its shape (= the digest of every row's
+    /// subtree), = so a tree that changed IS a new tree (= the sidebar
+    /// reads it again).
+    private var currentTree: SidebarTree {
         switch workspaceUI.currentSidebarPart {
-        case .shelves: return service?.shelfNodes ?? []
-        case .library: return service?.libraryNodes ?? []
-        case .referenceBooks: return []
+        case .shelves: return service?.shelfTree ?? SidebarTree(nodes: [])
+        case .library: return service?.libraryTree ?? SidebarTree(nodes: [])
+        case .referenceBooks: return SidebarTree(nodes: [])
         }
     }
 
@@ -93,7 +101,7 @@ struct AppleSidebarView: View {
     /// time.
     private var sidebarList: some View {
         SidebarTreeView(
-            nodes: currentNodes,
+            tree: currentTree,
             selection: Binding(
                 get: { selectedNode },
                 set: { newValue in forwardSelection(newValue) }
@@ -155,24 +163,6 @@ struct AppleSidebarView: View {
                     importPrefillDestination = .book
                     importPrefillBookID = bookId
                     showImportSheet = true
-                },
-                // The
-                // … (= 31 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // `otherReferenceTitles`).
-                onRenameReference: { referenceId, _ in
-                    renaming = SidebarRenamingTarget(
-                        kind: .reference,
-                        itemId: referenceId,
-                        originalName: referenceTitle(for: referenceId) ?? "",
-                        shelfId: nil
-                    )
-                },
-                onDeleteReference: { referenceId, name in
-                    pendingDelete = SidebarPendingDelete(
-                        kind: .reference,
-                        itemId: referenceId,
-                        itemName: name
-                    )
                 }
             )
         )
@@ -530,8 +520,10 @@ struct AppleSidebarView: View {
     /// remembered selection and no first-level row leaves the selection
     /// empty, and the preview pane falls back to its overview.
     private func revealFirstLevel() {
-        if workspaceUI.sidebarSelection != nil { return }
-        guard let first = currentNodes.first else { return }
+        if workspaceUI.sidebarSelection != nil {
+            return
+        }
+        guard let first = currentTree.nodes.first else { return }
         forwardSelection(first)
     }
 

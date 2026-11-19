@@ -22,14 +22,24 @@
 //  = sibling of SidebarRowView.swift + SidebarRowCallbacks.swift
 //  in the same View/ dir).
 //
-//  The function is preserved verbatim (= 1:1 move; = no logic
-//  change; = the §6.6 60-LOC function-level cap violation is
-//  inherited from AppleSidebarView's A14-A38 era; = a future
-//  ticket may split the 4 `node.kind` switch cases into 4
-//  separate per-kind handlers).
+//  The function was moved verbatim in A108 (= 1:1 move; = no logic
+//  change). = It has since been SPLIT IN TWO, = and the split is the
+//  point: = `writes(for:in:)` is the row→value decision (= pure, = so a
+//  test can name what a click chooses), = and `forwardSelection` is that
+//  decision plus the two writes it decides (= the §6.6 60-LOC
+//  function-level cap violation inherited from AppleSidebarView's
+//  A14-A38 era is gone with the split).
 //
 
 import SwiftUI
+
+/// The pair `AppleSidebarView.writes(for:in:)` decides for one clicked
+/// row (= two fields, = one decision, = so a test can assert both the
+/// selection and the store write without a running window).
+struct SidebarClickWrites {
+    var selection: SidebarItem?
+    var selectedBookId: UUID?
+}
 
 extension AppleSidebarView {
     // MARK: Reference-row right-click helpers
@@ -74,21 +84,6 @@ extension AppleSidebarView {
             return service?.otherBookDocTitles(excluding: target.itemId) ?? []
         }
     }
-
-    /// Resolve the current title of a reference by id (= the rename sheet's
-    /// `originalName` field; = the existing `renameShelf` / `renameBook`
-    /// callbacks look up the name from `service.shelves` / `service.books`
-    /// synchronously; = the reference equivalent reads from `bookStore.
-    /// loadAllReferences()`). Returns nil if the reference is missing (= the
-    /// rename sheet opens with an empty name; = the user can still type a new
-    /// one; = the save fails with `bookNotFound`).
-    func referenceTitle(for id: UUID) -> String? {
-        guard let references = try? bookStore.loadAllReferences() else {
-            return nil
-        }
-        return references.first(where: { $0.id == id })?.title
-    }
-
     /// ', ': context-menu builder (= extracted from the inline body of
     /// `.contextMenu(forSelectionType:menuItems:)` above; = the inline closure
     /// body was so large the Swift type checker gave up; = extracting it to a
@@ -133,140 +128,83 @@ extension AppleSidebarView {
     /// A FOLDER ROW writes the book that OWNS the folder (= the same
     /// book the `.folder` selection resolves to), = so the store and
     /// the selection always name ONE book.
-    func forwardSelection(_ node: SidebarNode?) {
-        // RATIONALE: the sidebar click
-        // is a scope filter only (= NOT
-        // a tab-opener; = the previous
-        // behavior fired
-        // `openFolderInEditor` /
-        // `openBookInEditor` on every
-        // click; = that mutates
-        // `appState.openTabs`; = the
-        // wenshu 1:1 macOS Finder
-        // canonical = "click to scope,
-        // double-click to open"). The
-        // sidebar selection is still
-        // recorded in
-        // `workspaceUI.sidebarSelection`
-        // (= the middle column re-scopes
-        // to show the cards inside the
-        // selected folder / book; = the
-        // user can see what's inside the
-        // folder without the editor
-        // automatically opening a tab).
-        guard let node else { return }
+    /// WHAT A CLICKED ROW WRITES, = as ONE decision a test can call.
+    ///
+    /// ⇒ WHY IT IS NOT INLINE: = the header above names this the only
+    /// seam left for selection, = and a claim nobody can observe is not
+    /// a guard (= the review's R2 finding: = the row→selection mapping
+    /// lived inside `forwardSelection`, = which is a mutation path on a
+    /// view, = so a test could only read it back by asserting on SOURCE
+    /// TEXT). = Extracted, = a test names what a click chooses.
+    ///
+    /// `selection` = the value `workspaceUI.sidebarSelection` takes, =
+    /// nil for a divider row (= pure chrome, = the previous selection
+    /// stays put). = `selectedBookId` = the value
+    /// `BookStore.selectedBookId` takes, = nil when the row names no
+    /// book (= the field keeps what it had: = a tag row is not a book).
+    ///
+    /// ⇒ THE INVARIANT THE TWO SHARES: = when a row names a book, = the
+    /// selection and the store name THE SAME one.
+    static func writes(
+        for node: SidebarNode,
+        in nodes: [SidebarNode]
+    ) -> SidebarClickWrites {
         switch node.kind {
         case .shelf:
-            workspaceUI.sidebarSelection = .shelf(node.id)
+            return SidebarClickWrites(selection: .shelf(node.id), selectedBookId: nil)
         case .book:
-            // Determine if this is a real book (top-level row) or a
-            // folder row (child of a book). Folder rows have a
-            // parent in the sidebar tree (= the v1.68f folder
-            // children, = 5 standard folders per book); real books
-            // are children of a shelf. Walk the tree to disambiguate.
-            let parent = Self.parentBookInfo(for: node.id, in: service?.nodes ?? [])
-            if let parent {
-                // Folder row.
-                // RATIONALE 2026-10-13: the
-                // `openFolderInEditor(...)` call
-                // is removed (= the boss asked
-                // the sidebar click to NOT
-                // open a tab; = the sidebar
-                // click only records the
-                // selection in
-                // `workspaceUI.sidebarSelection`;
-                // = the middle column re-scopes
-                // to show the cards inside the
-                // folder; = the user can
-                // double-click a card to open
-                // a tab if they want to edit).
-                workspaceUI.sidebarSelection = .folder(bookId: parent.bookId, folderName: parent.folderName)
-            } else {
-                // Real book row. RATIONALE 2026-10-13:
-                // the `openBookInEditor(...)` call
-                // is removed (= same reason as
-                // the folder row above).
-                workspaceUI.sidebarSelection = .book(node.id)
+            // A book row with a parent is a FOLDER row (= the 5 standard
+            // folders under each book), = and it selects the folder it
+            // names; = a real book row selects the book.
+            if let parent = parentBookInfo(for: node.id, in: nodes) {
+                return SidebarClickWrites(
+                    selection: .folder(bookId: parent.bookId, folderName: parent.folderName),
+                    selectedBookId: parent.bookId
+                )
             }
-            // The store's selected book = the book the row names (= the
-            // book that OWNS the folder, = when the row is a folder row).
-            // = ONE write, = so the store and the selection always name
-            // ONE book, = and the sheet's page and the editor read the
-            // same one.
-            bookStore.selectedBookId = parent?.bookId ?? node.id
+            return SidebarClickWrites(selection: .book(node.id), selectedBookId: node.id)
         case .reference:
-            // reference-library leaf (= a single Reference
-            // document). node.title carries the reference's
-            // display title, not its category, so writing
-            // `.referenceCategory(node.title)` here is incorrect;
-            // the correct route is `.referenceCategory(<ref's
-            // category directoryName>)` — but the SidebarNode
-            // doesn't carry the Reference struct (= only id +
-            // title + subtitle), so we resolve the reference's
-            // category downstream by storing a structured
-            // selection. Without that plumbing (= v1.69 ticket
-            // scope = expand the CLC category tree only; =
-            // single-reference selection lands on a future
-            // ticket), the leaf row falls through to
-            // .referenceScope(nil) in the preview pane via
-            // ShellMiddleColumn's case-mismatch fallback (= =
-            // the user sees the full overview; = the leaf can
-            // be opened via the existing double-click pipeline
-            // on the middle-column card).
-            workspaceUI.sidebarSelection = .referenceCategory(node.title)
-        case .referenceCategory:
-            // :
-            // a category parent row (= one of the 22 CLC
-            // top-level categories under the Reference-Library
-            // root). Selecting it scopes the middle-column card
-            // grid to that category.
-            //
-            // p (see OOB.md #2026-09-22) OOB: read the routing key
-            // (= the EntityCategory.directoryName, stored in
-            // SidebarNode.routingKey during the v1.69j projection;
-            // = lowercase letter for the official 22 cases,
-            // "" for .z, "" for pre-v0.29 nil-category
-            // references). The routing key is what
-            // ShellMiddleColumn.previewScope's case-insensitive
-            // EntityCategory(rawValue:) lookup resolves back to
-            // a category — the user-visible title (= "") can't
-            // be used directly because no EntityCategory rawValue
-            // is "". Falling back to node.title (= the previous
-            // m behaviour) leaves the routing key in the
-            // user-visible slot (= the user's ',
-            // ' complaint).
-            // The catch-all row (= the references no category claims) has no
-            // category behind it, so it carries its own selection case instead
-            // of the category route.
-            if node.routingKey == SidebarService.unclassifiedRoutingKey {
-                workspaceUI.sidebarSelection = .referenceUnclassified
-                return
-            }
-            workspaceUI.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
+            // THE LIBRARY ROOT NAMES ITSELF. = The row is the container
+            // the tag rows hang under, = and the value the click writes
+            // is what the highlight and the reveal read back, = so it
+            // has to be an id the tree can resolve. = The value this
+            // case used to write (= a category-shaped key built from the
+            // row's TITLE) matched no row at all, = so clicking the root
+            // selected nothing.
+            return SidebarClickWrites(selection: .referenceLibraryRoot, selectedBookId: nil)
         case .tag:
-            // tag row (= SidebarNode.Kind.tag,
-            // populated by SidebarService from the union of
-            // Reference.tags across all references). Routing
-            // uses the node title (= the tag string) directly;
-            // AssetsPane.previewScope() maps .tag(let tagString)
-            // to .referenceScope(nil) AND sets
-            // workspaceUI.activeTag = tagString (= PreviewPane
-            // applies the tag filter on top of the reference
-            // scope). This case must be its own branch
-            // (= NOT a .referenceCategory fallback; = the
-            // previous code used .referenceCategory here and
-            // the tag filter was silently unreachable).
-            workspaceUI.sidebarSelection = .tag(node.title)
+            // A tag leaf routes by the tag string (= the material zone's
+            // grid filters on it). = It was routed through the
+            // category-shaped key once, = and the filter was silently
+            // unreachable.
+            return SidebarClickWrites(selection: .tag(node.title), selectedBookId: nil)
         case .divider:
-            // bb (see OOB.md #2026-09-23) OOB '
-            // ': divider rows are non-interactive;
-            // = the user can never select a divider (= it's
-            // pure chrome between sections). Forwarding a
-            // sidebarSelection here would corrupt the
-            // .referenceCategory discriminator (= the divider
-            // sentinel has no EntityCategory mapping). Simply
-            // no-op so the previous selection stays put.
-            break
+            // Divider rows are non-interactive (= see OOB.md
+            // #2026-09-23): = forwarding a selection here would corrupt
+            // the discriminator, = so nothing is written.
+            return SidebarClickWrites(selection: nil, selectedBookId: nil)
+        }
+    }
+
+    /// The click handler (= the sidebar's "click to scope"). = It is
+    /// `writes(for:in:)` and NOTHING BUT the two writes that function
+    /// decides (= the store's selected book is written HERE, = and the
+    /// book a FOLDER row writes is the book that OWNS the folder, = so
+    /// the store and the selection always name ONE book).
+    func forwardSelection(_ node: SidebarNode?) {
+        // RATIONALE: the sidebar click is a scope filter only (= NOT a
+        // tab-opener; = `openFolderInEditor` / `openBookInEditor` fired
+        // on every click, = which mutated `appState.openTabs`; = the
+        // wenshu 1:1 macOS Finder canonical is "click to scope,
+        // double-click to open"). = The selection is still recorded, =
+        // so the middle column re-scopes to the cards inside the row.
+        guard let node else { return }
+        let writes = Self.writes(for: node, in: service?.nodes ?? [])
+        if let selection = writes.selection {
+            workspaceUI.sidebarSelection = selection
+        }
+        if let bookId = writes.selectedBookId {
+            bookStore.selectedBookId = bookId
         }
     }
 }

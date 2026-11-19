@@ -156,6 +156,41 @@ struct CardCoverServiceTests {
         }
     }
 
+    @Test("Removing the clip leaves the picture")
+    func removingTheClipLeavesThePicture() async throws {
+        let root = try makeLibraryRoot()
+        let key = CardCoverService.key(forReference: UUID())
+
+        try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            let service = CardCoverService()
+            // A picture and a clip: two files beside each other.
+            try service.saveImage(
+                Data([0x01, 0x02, 0x03]),
+                forKey: key,
+                kind: WSCardCoverKind.reference
+            )
+            try service.saveVideo(
+                Data([0x00, 0x00, 0x00, 0x18]),
+                forKey: key
+            )
+            let image = service.coverImageURL(for: key)
+            let clip = service.coverVideoURL(for: key)
+            #expect(image != nil)
+            #expect(clip != nil)
+
+            try service.removeVideo(forKey: key)
+
+            // The clip goes; the picture the user liked stays.
+            #expect(service.coverVideoURL(for: key) == nil)
+            #expect(service.coverImageURL(for: key) == image)
+            #expect(FileManager.default.fileExists(atPath: image!.path))
+            #expect(!FileManager.default.fileExists(atPath: clip!.path))
+            // The record says so too: a card whose record still claims
+            // a clip would show the motion mark with nothing to play.
+            #expect(service.record(forKey: key)?.clipStatus == WSCardCoverStatus.clipNone)
+        }
+    }
+
     @Test("A cover resolves the same way on every read")
     func theLookupIsStable() async throws {
         let root = try makeLibraryRoot()

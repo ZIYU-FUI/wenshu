@@ -77,11 +77,10 @@ struct SidebarTreeExpansionTests {
 
     /// The reference library's tree (= the other part's hierarchy).
     ///
-    /// Its rows are the library root and the category rows under it, =
-    /// so the two parts' rows are told apart by their OWN kind (= a
-    /// shelf against a category).
+    /// Its rows are the library root and the tag rows under it, = so the
+    /// two parts' rows are told apart by their OWN kind (= a shelf
+    /// against a tag).
     private static func libraryTree() -> [SidebarNode] {
-        let categoryID = UUID()
         return [
             SidebarNode(
                 id: SidebarService.referenceLibraryRootId,
@@ -91,13 +90,13 @@ struct SidebarTreeExpansionTests {
                 systemImage: "books.vertical",
                 children: [
                     SidebarNode(
-                        id: categoryID,
-                        kind: .referenceCategory,
-                        title: "Category",
+                        id: UUID(),
+                        kind: .tag,
+                        title: "poet",
                         subtitle: nil,
-                        systemImage: "folder",
+                        systemImage: "tag",
                         children: nil,
-                        routingKey: "category-key"
+                        routingKey: "poet"
                     ),
                 ]
             ),
@@ -162,12 +161,12 @@ struct SidebarTreeExpansionTests {
 
         // The shelves part's reveal names a shelf (= the shelf above
         // the book), = and the library part's reveal names the library
-        // root (= the root above the category). = ⇒ ⇒ ⇒ The two parts'
+        // root (= the root above the tag). = ⇒ ⇒ ⇒ The two parts'
         // keys are told apart by their own kind, = so a row in one part
         // can never be opened by the other part's reveal.
         let shelfKeys = AppleSidebarView.revealExpansionKeys(for: .book(bookID), in: shelves)
         let libraryKeys = AppleSidebarView.revealExpansionKeys(
-            for: .referenceCategory("category-key"),
+            for: .tag("poet"),
             in: library
         )
 

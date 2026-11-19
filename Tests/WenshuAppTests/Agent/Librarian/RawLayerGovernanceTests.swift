@@ -137,12 +137,11 @@ struct RawLayerGovernanceTests {
     func sidebarCountCountsVisibleDocuments() {
         // One visible document and one raw document, = both carrying
         // the same tag. = The grid shows one, = so the count says one.
-        let rows = SidebarService.groupedTagRows(for: [
+        let rows = SidebarService.tagRows(for: [
             Self.document(title: "Cao Cao", layer: .layerEntities, tags: ["Three Kingdoms"]),
             Self.document(title: "The Ming tax roll", layer: .layerRaw, tags: ["Three Kingdoms"]),
         ])
         let count: String? = rows
-            .flatMap { $0.children ?? [] }
             .compactMap { node -> String? in
                 guard node.kind == .tag else { return nil }
                 return node.subtitle
@@ -154,10 +153,10 @@ struct RawLayerGovernanceTests {
     @Test("A tag carried only by raw documents does not put a row on the sidebar")
     @MainActor
     func rawOnlyTagMakesNoRow() {
-        let rows = SidebarService.groupedTagRows(for: [
+        let rows = SidebarService.tagRows(for: [
             Self.document(title: "The Ming tax roll", layer: .layerRaw, tags: ["Taxes"]),
         ])
-        let tags = rows.flatMap { $0.children ?? [] }.filter { $0.kind == .tag }
+        let tags = rows.filter { $0.kind == .tag }
         #expect(tags.isEmpty)
     }
 }

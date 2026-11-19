@@ -97,18 +97,22 @@ extension AppleSidebarView {
                     return folder
                 }
             case let .referenceCategory(key):
-                if node.kind == .referenceCategory, node.routingKey == key {
-                    return node
-                }
-                if node.kind == .referenceCategory, node.title == key {
-                    return node
-                }
-            case .referenceUnclassified:
-                if node.kind == .referenceCategory,
-                   node.routingKey == SidebarService.unclassifiedRoutingKey
+                // The library root's own selection names the root (= the
+                // tree draws no category row any more, = so the root is
+                // the only row this value can name). = The root's kind
+                // is `.reference` (= it is the container, = not a
+                // category), = so the search names it by its own
+                // selection value.
+                if node.kind == .reference,
+                   SidebarItem.referenceCategory(key) == .referenceLibraryRoot
                 {
                     return node
                 }
+            case .referenceUnclassified:
+                // The catch-all row is gone (= the surface is one flat
+                // tag list), = so a persisted catch-all selection names a
+                // row the tree does not draw.
+                break
             case let .tag(tag):
                 if node.kind == .tag, node.title == tag {
                     return node

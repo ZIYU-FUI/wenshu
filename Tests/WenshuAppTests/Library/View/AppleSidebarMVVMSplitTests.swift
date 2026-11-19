@@ -224,38 +224,6 @@ struct AppleSidebarMVVMSplitTests {
                         "folderChildren MUST format the count as \"X 项\" (= the same shape the reference-library rows use)")
     }
 
-    @Test("sidebar_service_reference_library_expands_to_category_rows")
-    func sidebar_service_reference_library_expands_to_category_rows() throws {
-        //
-        // the Reference-Library root expands to the category
-        // rows (= one per non-empty CLC bucket), and each of
-        // those holds the tags that belong to it (= a two-level
-        // tree). Individual references are NOT rendered as leaves
-        // in the sidebar.
-        let src = try Self.sidebarServiceSource()
-        #expect(src.contains("referenceCategoryKey"),
-                "SidebarService MUST bucket references by category")
-        #expect(src.contains("EntityCategoryFromDirectoryName"),
-                "SidebarService MUST map directoryName back to EntityCategory (= for icon + displayName)")
-        #expect(src.contains("let libraryRoot = SidebarNode(")
-                && src.contains("children: tagRows.isEmpty ? nil : tagRows"),
-                "SidebarService MUST emit the category rows as the Reference-Library root's children (= the root row is the libraryRoot node; = the current source names it libraryRoot)")
-        #expect(src.contains("kind: .referenceCategory") || src.contains(".referenceCategory"),
-                "category rows MUST be tagged .referenceCategory (= distinguishes from .reference leaves; = current source uses the .referenceCategory case; = accept either form)")
-    }
-
-    @Test("sidebar_node_kind_includes_referenceCategory")
-    func sidebar_node_kind_includes_referenceCategory() throws {
-        // 
-        // SidebarNode.Kind grows a `.referenceCategory` case so
-        // AppleSidebarView.forwardSelection can route category
-        // row clicks to .referenceCategory(dirName) selection
-        // (= the preview pane narrows to that category).
-        let src = try SourceLocator.read("Sources/WenshuApp/Features/Library/View/SidebarNode.swift")
-        #expect(src.contains("case referenceCategory"),
-                "SidebarNode.Kind MUST have .referenceCategory (= the category row discriminator)")
-    }
-
     @Test("previewScope_referenceCategory_lookup_is_case_insensitive")
     func previewScope_referenceCategory_lookup_is_case_insensitive() throws {
         // 
@@ -271,32 +239,6 @@ struct AppleSidebarMVVMSplitTests {
         let src = try SourceLocator.read("Sources/WenshuApp/Features/Editor/View/AssetsPane.swift")
         #expect(src.contains(".uppercased()"),
                 "AssetsPane.previewScope (= renamed from ShellMiddleColumn in commit 5723d226c) MUST do a case-insensitive rawValue lookup")
-    }
-
-    @Test("sidebar_service_reference_category_title_is_displayName_with_routing_key")
-    func sidebar_service_reference_category_title_is_displayName_with_routing_key() throws {
-        // 
-        // 的一个字母. 不是中文分类名': category row title
-        // MUST be the EntityCategory.displayName (= the
-        // user-facing Chinese label "哲学、宗教", what the
-        // user reads in the sidebar) NOT the routing key.
-        // The routing key (= EntityCategory.directoryName
-        // that previewScope's case-insensitive rawValue
-        // lookup resolves back to a category) lives in the
-        // dedicated `routingKey` field on SidebarNode.
-        //
-        // Why split title vs routingKey:
-        //   The earlier iteration put directoryName in title + displayName
-        //   in subtitle. forwardSelection read node.title →
-        //   routed correctly BUT the sidebar showed the first-letter
-        //   hint. The fix: displayName in
-        //   title (user-readable); routingKey in dedicated
-        //   field (forwardSelection reads it).
-        let src = try Self.sidebarServiceSource()
-        #expect(src.contains("title: folder.displayName") || src.contains("title: category.displayName"),
-                "category rows MUST use displayName as the title (= the user-facing Chinese label; = current source uses folder.displayName for the folder row)")
-        #expect(src.contains("routingKey: tag") || src.contains("routingKey: category.directoryName"),
-                "category rows MUST store the routing identifier in the dedicated routingKey field (= current source stores the tag string)")
     }
 
     @Test("sidebar_node_kind_includes_routing_key")
