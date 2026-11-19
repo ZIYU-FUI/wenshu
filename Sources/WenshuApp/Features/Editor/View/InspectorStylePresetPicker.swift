@@ -128,13 +128,16 @@ struct InspectorStylePresetPicker: View {
 
     /// The book's place, = as the control's selection.
     ///
-    /// The setter tells the page where the reader put the control AND writes
-    /// the sheet, = in that order: = the page owns the place so the segment
-    /// answers the click at once (= a book whose sheet write changes nothing
-    /// would otherwise leave the old segment lit while the reader's hand is
-    /// still on it), = and the sheet is what a book carries between
-    /// documents, = so a place with no record in it is a place the reader
-    /// lands back at the moment anything reloads.
+    /// The setter stores nothing itself: = it hands the gesture to the page
+    /// (`onChoose`), = and the page takes it to
+    /// `BookStyleSheetWriteBack.apply(selection:to:store:)`, = which writes
+    /// the sheet AND the place in one save, = under a guard that skips a
+    /// click that moved neither. = So the segment lights from the place
+    /// recorded ON THE BOOK (= `InspectorStylePageModel.init` answers
+    /// `recordedSelection ?? BookStyleSelection.select(sheet:)`), = which is
+    /// what survives a reload; = reading the place off the sheet is only the
+    /// fallback for a book that never recorded one (= every book written
+    /// before the switcher recorded places).
     private var selection: Binding<BookStyleSelection> {
         Binding(
             get: { current },
