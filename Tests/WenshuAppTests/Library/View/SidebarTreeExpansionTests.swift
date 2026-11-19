@@ -5,19 +5,25 @@
 //  selection opens, and what survives a relaunch.
 //
 //  Coverage:
-//    1. The reveal names the rows above the selected row (= the
-//       selected row itself is not opened).
-//    2. A reveal of a deep row opens every row above it.
-//    3. The reveal of a row in one part does not open rows in
+//    1. The reveal opens the path's rows (= the named row's
+//       ancestors AND the named container itself).
+//    2. A reveal of a deep row opens the shelf above it AND the book
+//       the conversation names.
+//    3. The top row opens itself, = and so does the reference
+//       library's root row (= a row with no ancestor has itself as
+//       its whole path).
+//    4. A row the tree does not carry, = or carries but cannot see, =
+//       opens nothing.
+//    5. The reveal of a row in one part does not open rows in
 //       another part.
-//    4. The reveal only ADDS (= the rows the user opened elsewhere
+//    6. The reveal only ADDS (= the rows the user opened elsewhere
 //       stay open, = and it closes nothing: = a row the user closed
 //       comes back when a selection needs its path).
-//    5. The open rows round-trip through the user's defaults.
-//    6. A row's expansion key names the same row after the tree is
+//    7. The open rows round-trip through the user's defaults.
+//    8. A row's expansion key names the same row after the tree is
 //       rebuilt (= the key is the business identity, = not the row's
 //       per-process id).
-//    7. The reveal request counts (= so the same selection can be
+//    9. The reveal request counts (= so the same selection can be
 //       asked for twice) and is not persisted (= it is a request, = not
 //       a state).
 //
@@ -103,24 +109,46 @@ struct SidebarTreeExpansionTests {
         ]
     }
 
-    @Test("The reveal opens the rows above the selected row")
-    func theRevealOpensTheRowsAboveTheSelectedRow() throws {
+    @Test("The reveal opens the path's rows (= the named container too)")
+    func theRevealOpensThePathsRows() throws {
         let tree = Self.shelfTree()
         let bookID = try Self.bookID(of: tree)
 
         let keys = AppleSidebarView.revealExpansionKeys(for: .book(bookID), in: tree)
 
-        #expect(keys == [.shelf(tree[0].id)])
+        // ⇒ ⇒ ⇒ THE NAMED ROW IS PART OF THE PATH: = the book has
+        // children (= its folders), = so the reveal opens the book as
+        // well as the shelf above it.
+        #expect(keys == [.shelf(tree[0].id), .book(bookID)])
     }
 
-    @Test("The reveal of the top row opens nothing")
-    func theRevealOfTheTopRowOpensNothing() {
+    @Test("The reveal of the top row opens the top row")
+    func theRevealOfTheTopRowOpensTheTopRow() {
         let tree = Self.shelfTree()
         let shelfID = tree[0].id
 
         let keys = AppleSidebarView.revealExpansionKeys(for: .shelf(shelfID), in: tree)
 
-        #expect(keys.isEmpty)
+        // ⇒ ⇒ ⇒ THE TOP ROW IS A CONTAINER (= it holds the books), =
+        // so naming it opens it: = a selection with no row above it
+        // must still show what it named.
+        #expect(keys == [.shelf(shelfID)])
+    }
+
+    @Test("The reveal of the library root opens the root")
+    func theRevealOfTheLibraryRootOpensTheRoot() {
+        let library = Self.libraryTree()
+
+        let keys = AppleSidebarView.revealExpansionKeys(
+            for: .referenceLibraryRoot,
+            in: library
+        )
+
+        // ⇒ ⇒ ⇒ THE LIBRARY SCOPE'S REVEAL: = the root's path is the
+        // root alone, = so the rule that opened only the rows ABOVE
+        // the selection opened nothing at all (= the root's tag rows
+        // stayed hidden). = ⇒ ⇒ ⇒ The named container is on the path.
+        #expect(keys == [.referenceLibraryRoot])
     }
 
     @Test("The reveal of a folder row opens the shelf and the book")
@@ -170,7 +198,7 @@ struct SidebarTreeExpansionTests {
             in: library
         )
 
-        #expect(shelfKeys == [.shelf(shelves[0].id)])
+        #expect(shelfKeys == [.shelf(shelves[0].id), .book(bookID)])
         #expect(libraryKeys == [.referenceLibraryRoot])
         #expect(
             shelfKeys.isDisjoint(with: libraryKeys),
@@ -201,7 +229,7 @@ struct SidebarTreeExpansionTests {
         // ⇒ ⇒ ⇒ THE UNION: = the path's rows open, = and the row the
         // user opened stays open. = ⇒ ⇒ ⇒ A reveal is NEVER a reset.
         #expect(
-            state.expandedSidebarRows == [openedByHand, .shelf(tree[0].id)],
+            state.expandedSidebarRows == [openedByHand, .shelf(tree[0].id), .book(bookID)],
             """
             the open rows are \(state.expandedSidebarRows) (= they must hold the row the \
             user opened AND the path's row: = a reveal only adds).

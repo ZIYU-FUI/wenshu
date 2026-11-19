@@ -24,9 +24,17 @@ extension AppleSidebarView {
     ///
     /// The path to a row runs from the tree's root down to the row
     /// itself; = the rows above it are the ones whose collapsed
-    /// children hide it. Those rows are the ones to open (= the
-    /// selected row itself is not opened: = a selection is not an
-    /// expansion, = the disclosure triangle opens a row).
+    /// children hide it. = ⇒ ⇒ ⇒ So the reveal opens EVERY row on the
+    /// path that can be open: = the rows above it, = and the named row
+    /// itself when it has children (= a container: = a shelf, = a book, =
+    /// the library root). = ⇒ ⇒ ⇒ A leaf row has no expansion key, = so
+    /// naming a leaf opens its rows above it and nothing else.
+    ///
+    /// ⇒ ⇒ ⇒ THE NAMED CONTAINER IS PART OF THE PATH, = not above it:
+    /// = a selection that names the library root opens the root, = so
+    /// the root's tag rows show. = ⇒ ⇒ ⇒ The row the user closed comes
+    /// back when a selection needs its path again (= the path IS the
+    /// requirement).
     ///
     /// The keys come from the rows themselves (= not from the
     /// selection), = so the same row always carries the same key
@@ -36,7 +44,7 @@ extension AppleSidebarView {
         in nodes: [SidebarNode]
     ) -> Set<SidebarItem> {
         guard let selection, let path = findPath(for: selection, in: nodes) else { return [] }
-        return Set(path.dropLast().compactMap(\.expansionKey))
+        return Set(path.compactMap(\.expansionKey))
     }
 
     /// The path from the tree's root down to the row a selection names.

@@ -123,10 +123,11 @@ struct SidebarTreeView: View {
 
     /// Open the path to the selected row.
     ///
-    /// The path = the rows above the selected row (= the ancestors, =
-    /// the rows whose collapsed children hide it). The selected row
-    /// itself is not opened (= a selection is not an expansion, = the
-    /// disclosure triangle is the only control that opens a row).
+    /// The path = every row on the way down to the selected row (= the
+    /// ancestors, = and the selected row itself when it is a container
+    /// with children). = ⇒ ⇒ ⇒ A selection that names the library
+    /// root opens the root, = so the root's rows show; = and a
+    /// selection that names a leaf opens the rows above it.
     ///
     /// The reveal only ADDS (= the rows the user opened survive, = and
     /// it closes nothing: = a row the user closed comes back when a

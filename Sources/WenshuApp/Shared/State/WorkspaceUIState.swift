@@ -183,8 +183,9 @@ final class WorkspaceUIState {
     ///
     /// * the user's own OPEN (= the disclosure control's open half, = and
     ///   it grows the set even when the selection does not move), =
-    /// * the reveal (= the rows above the selected row, = when a
-    ///   conversation names a row), =
+    /// * the reveal (= the path's rows: = the named row's ancestors
+    ///   AND the named container itself, = when a conversation names
+    ///   a row), =
     /// * and the user's own CLOSE (= the disclosure control's close
     ///   half) is the only writer that SHRINKS it.
     ///
@@ -231,8 +232,9 @@ final class WorkspaceUIState {
     ///
     /// The caller is the conversation (= a chat page names the row it
     /// is scoped to), = so the tree shows where that conversation
-    /// lives. The rows above the selected row open; = the rows the
-    /// user opened elsewhere stay open (= the reveal only adds).
+    /// lives. The path's rows open (= the named row's ancestors AND
+    /// the named container itself); = the rows the user opened
+    /// elsewhere stay open (= the reveal only adds).
     func requestReveal() {
         revealRequestCount += 1
     }
