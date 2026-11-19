@@ -115,7 +115,7 @@ struct InspectorStylePreview: Equatable, Sendable {
             //  is how `MarkdownASTStyler.bolded` is built, = :1202-1205),
             //  = which is what lands a Heiti title on its Medium face.
             let heading = bolded(font(named: EngineStyleSheetBridge.headingFontName(for: sheet),
-                                     at: body.pointSize * step))
+                                      at: body.pointSize * step))
             return voice(of: heading, lineHeight: ceil(naturalHeight(of: heading)) + 1)
 
         case .quote:
@@ -174,7 +174,9 @@ struct InspectorStylePreview: Equatable, Sendable {
 
     private static func monospaced(at size: CGFloat) -> NSFont {
         for name in codeFaceNames {
-            if let font = NSFont(name: name, size: size) { return font }
+            if let font = NSFont(name: name, size: size) {
+                return font
+            }
         }
         return .monospacedSystemFont(ofSize: size, weight: .regular)
     }

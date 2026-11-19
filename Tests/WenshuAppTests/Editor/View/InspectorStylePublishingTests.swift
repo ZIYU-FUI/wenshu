@@ -15,9 +15,9 @@
 //
 
 import Foundation
-@testable import WenshuApp
 import SwiftUI
 import Testing
+@testable import WenshuApp
 
 @MainActor
 struct InspectorStylePublishingTests {

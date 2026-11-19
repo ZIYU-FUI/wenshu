@@ -122,7 +122,7 @@ struct ValuePopUpButton<Selection: Hashable>: NSViewRepresentable {
     func sizeThatFits(
         _ proposal: ProposedViewSize,
         nsView button: NSPopUpButton,
-        context: Context
+        context _: Context
     ) -> CGSize? {
         let fitting = button.intrinsicContentSize
         return CGSize(width: proposal.width ?? fitting.width, height: fitting.height)
@@ -191,7 +191,9 @@ extension ValuePopUpButton where Selection == String {
     static func fittingWidth(forTitles titles: [String], controlSize: NSControl.ControlSize = .regular) -> CGFloat {
         let button = NSPopUpButton(frame: .zero, pullsDown: false)
         button.controlSize = controlSize
-        for title in titles { button.addItem(withTitle: title) }
+        for title in titles {
+            button.addItem(withTitle: title)
+        }
         return button.intrinsicContentSize.width
     }
 }

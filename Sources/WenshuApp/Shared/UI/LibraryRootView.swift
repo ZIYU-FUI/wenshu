@@ -153,19 +153,19 @@ struct LibraryRootView: View {
                     )
                 }
             }
-                .environment(bookStore)
-                // The book the format page edits is the book of the
-                // document the user puts in front of him. Opening a
-                // book's manuscript from the card grid therefore names
-                // that book (= before this, ONLY an outline click in the
-                // sidebar ever did, so after a relaunch the page showed a
-                // document, had no target, and its switcher rebound to the
-                // set it was already showing). `initial: true` is the
-                // launch case: the restored tabs are already there and no
-                // later change to `activeTabId` follows them.
-                .onChange(of: appState.activeTabId, initial: true) { _, _ in
-                    bookStore.adoptActiveBook(appState.activeBookId)
-                }
+            .environment(bookStore)
+            // The book the format page edits is the book of the
+            // document the user puts in front of him. Opening a
+            // book's manuscript from the card grid therefore names
+            // that book (= before this, ONLY an outline click in the
+            // sidebar ever did, so after a relaunch the page showed a
+            // document, had no target, and its switcher rebound to the
+            // set it was already showing). `initial: true` is the
+            // launch case: the restored tabs are already there and no
+            // later change to `activeTabId` follows them.
+            .onChange(of: appState.activeTabId, initial: true) { _, _ in
+                bookStore.adoptActiveBook(appState.activeBookId)
+            }
         } else {
             // BookStore is built asynchronously by LibraryLifecycleHook.
             // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)

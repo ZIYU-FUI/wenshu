@@ -43,7 +43,7 @@ struct InspectorStylePresetPickerTests {
     /// The control lights the place the book is at, = and a fine-tuned
     /// book is at Custom.
     @Test("the control lights where the book is")
-    func theControlLightsWhereTheBookIs() throws {
+    func theControlLightsWhereTheBookIs() {
         let printBaseline = render(current: .preset(.printBaseline))
         let general = render(current: .preset(.general))
         let fineTuned = render(current: .custom)
@@ -70,7 +70,7 @@ struct InspectorStylePresetPickerTests {
     /// The segments carry the three names, = each once, = in the order the
     /// page lists them.
     @Test("the segments carry the three names, once each")
-    func theSegmentsCarryTheNamesOnceEach() throws {
+    func theSegmentsCarryTheNamesOnceEach() {
         let control = render(current: .preset(.general))
         let labels = (0 ..< control.segmentCount).map { control.label(forSegment: $0) ?? "" }
         #expect(
@@ -87,22 +87,22 @@ struct InspectorStylePresetPickerTests {
         )
     }
 
-    /// WHY THERE IS NO TEST THAT THE SWITCHER FILLS THE COLUMN
-    ///
-    /// The width the control is pinned to is the width its ROW was given,
-    /// = and an offscreen `NSHostingView` never lays that row out: = the
-    /// measurement recorded 612 PT for a 252 PT column, = which is the
-    /// control's own fitting width (= and its fitting width is itself the
-    /// catalog's KEYS here, = because a test process renders keys, = not
-    /// words). = A number that only exists in a live window cannot be
-    /// asserted from a headless one, = so the guard is structural
-    /// (`theSetsAreTheSystemsControl`, = which fails the moment the region
-    /// stops being passed in), = and the width itself is read off the
-    /// running app.
+    // WHY THERE IS NO TEST THAT THE SWITCHER FILLS THE COLUMN
+    //
+    // The width the control is pinned to is the width its ROW was given,
+    // = and an offscreen `NSHostingView` never lays that row out: = the
+    // measurement recorded 612 PT for a 252 PT column, = which is the
+    // control's own fitting width (= and its fitting width is itself the
+    // catalog's KEYS here, = because a test process renders keys, = not
+    // words). = A number that only exists in a live window cannot be
+    // asserted from a headless one, = so the guard is structural
+    // (`theSetsAreTheSystemsControl`, = which fails the moment the region
+    // stops being passed in), = and the width itself is read off the
+    // running app.
 
     /// Where the book is, = read off the sheet the book carries.
     @Test("a tuned sheet reads as the reader's own")
-    func aTunedSheetReadsAsTheReadersOwn() throws {
+    func aTunedSheetReadsAsTheReadersOwn() {
         var sheet = BookStyleSheet.default
         #expect(
             BookStyleSelection.select(sheet: sheet) == .preset(.printBaseline),
@@ -155,7 +155,7 @@ struct InspectorStylePresetPickerTests {
                 choices: BookStyleSelection.choices,
                 current: current
             ) { _ in }
-            .frame(width: CGFloat(Self.columnWidth))
+                .frame(width: CGFloat(Self.columnWidth))
         ))
         host.frame = NSRect(x: 0, y: 0, width: Self.columnWidth, height: 40)
         host.layoutSubtreeIfNeeded()
@@ -171,9 +171,13 @@ struct InspectorStylePresetPickerTests {
     private static let columnWidth: CGFloat = 252
 
     private static func segmented(in view: NSView) -> NSSegmentedControl? {
-        if let control = view as? NSSegmentedControl { return control }
+        if let control = view as? NSSegmentedControl {
+            return control
+        }
         for sub in view.subviews {
-            if let found = segmented(in: sub) { return found }
+            if let found = segmented(in: sub) {
+                return found
+            }
         }
         return nil
     }

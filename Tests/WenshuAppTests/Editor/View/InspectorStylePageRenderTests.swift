@@ -468,7 +468,6 @@ struct InspectorStylePageRenderTests {
         InspectorStylePageFixture.renderPage(store: store, workspace: workspace)
     }
 
-
     /// The knob's own source file (= where its control is chosen).
     private static func knobSourceURL() -> URL {
         let root = URL(fileURLWithPath: #filePath)

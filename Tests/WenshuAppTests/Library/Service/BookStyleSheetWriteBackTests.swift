@@ -333,7 +333,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
             store: store
         )
 
-        var stored = try JSONDecoder().decode(Book.self, from: try readBookJSON(in: store, book))
+        var stored = try JSONDecoder().decode(Book.self, from: readBookJSON(in: store, book))
         XCTAssertEqual(
             stored.customStyleSheet?.bodySize,
             .large,
@@ -350,7 +350,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
             to: book.id,
             store: store
         )
-        stored = try JSONDecoder().decode(Book.self, from: try readBookJSON(in: store, book))
+        stored = try JSONDecoder().decode(Book.self, from: readBookJSON(in: store, book))
         XCTAssertEqual(
             stored.effectiveStyleSheet.bodySize,
             .medium,
@@ -367,7 +367,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
             to: book.id,
             store: store
         )
-        stored = try JSONDecoder().decode(Book.self, from: try readBookJSON(in: store, book))
+        stored = try JSONDecoder().decode(Book.self, from: readBookJSON(in: store, book))
         XCTAssertEqual(
             stored.effectiveStyleSheet.bodySize,
             .large,
@@ -402,7 +402,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
             store: store
         )
 
-        let stored = try JSONDecoder().decode(Book.self, from: try readBookJSON(in: store, book))
+        let stored = try JSONDecoder().decode(Book.self, from: readBookJSON(in: store, book))
         XCTAssertNil(stored.customStyleSheet, "entering Custom invents no tuning")
         XCTAssertEqual(
             BookStylePreset.matching(stored.effectiveStyleSheet),
@@ -449,7 +449,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
             to: book.id,
             store: store
         )
-        var stored = try JSONDecoder().decode(Book.self, from: try readBookJSON(in: store, book))
+        var stored = try JSONDecoder().decode(Book.self, from: readBookJSON(in: store, book))
         XCTAssertEqual(stored.styleSelection, .custom, "a knob moved under a set IS the book's own tuning")
         XCTAssertEqual(
             stored.customStyleSheet?.bodySize,
@@ -463,7 +463,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
             to: book.id,
             store: store
         )
-        stored = try JSONDecoder().decode(Book.self, from: try readBookJSON(in: store, book))
+        stored = try JSONDecoder().decode(Book.self, from: readBookJSON(in: store, book))
         XCTAssertEqual(
             stored.styleSelection,
             .preset(.printBaseline),
@@ -485,7 +485,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
     ///
     /// MUTATION: = make the page ignore the fallback (= always derive, = or
     /// always read the record) = this and the case above cannot both pass.
-    func testABookWithoutARecordIsReadOffItsSheet() throws {
+    func testABookWithoutARecordIsReadOffItsSheet() {
         let tuned = BookStyleSheet.default.setting(.bodySize, to: BookBodySize.large.rawValue)
         XCTAssertEqual(
             InspectorStylePageModel(sheet: tuned).currentSelection,

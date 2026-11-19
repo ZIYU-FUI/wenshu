@@ -183,9 +183,13 @@ struct RenderedPage {
     }
 
     private static func firstSegmented(in view: NSView) -> NSSegmentedControl? {
-        if let control = view as? NSSegmentedControl { return control }
+        if let control = view as? NSSegmentedControl {
+            return control
+        }
         for subview in view.subviews {
-            if let found = firstSegmented(in: subview) { return found }
+            if let found = firstSegmented(in: subview) {
+                return found
+            }
         }
         return nil
     }

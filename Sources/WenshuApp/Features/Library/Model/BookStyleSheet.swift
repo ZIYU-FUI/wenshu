@@ -541,7 +541,7 @@ enum BookStyleSelection: Hashable, Sendable {
     /// The name the switcher draws for this choice.
     var displayName: String {
         switch self {
-        case .preset(let preset): preset.displayName
+        case let .preset(preset): preset.displayName
         case .custom: String(localized: "inspector.style.preset.custom")
         }
     }
@@ -552,7 +552,7 @@ enum BookStyleSelection: Hashable, Sendable {
     /// set).
     var persistedIdentifier: String {
         switch self {
-        case .preset(let preset): preset.rawValue
+        case let .preset(preset): preset.rawValue
         case .custom: "custom"
         }
     }

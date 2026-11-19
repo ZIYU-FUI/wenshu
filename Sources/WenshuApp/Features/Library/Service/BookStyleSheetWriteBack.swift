@@ -44,13 +44,13 @@ enum BookStyleSheetWriteBack {
         var book = store.books[index]
         let sheet: BookStyleSheet
         switch selection {
-        case .preset(let preset):
+        case let .preset(preset):
             sheet = preset.sheet(bodyFamily: book.effectiveStyleSheet.bodyFamily)
-            //  A set is chosen OVER the tuning, = and the tuning is not
-            //  deleted by it: = `customStyleSheet` keeps what the reader
-            //  had (= the boss's rule: = General and back to Custom returns the
-            //  book to the tuning it was at, = not to the set it passed
-            //  through).
+        //  A set is chosen OVER the tuning, = and the tuning is not
+        //  deleted by it: = `customStyleSheet` keeps what the reader
+        //  had (= the boss's rule: = General and back to Custom returns the
+        //  book to the tuning it was at, = not to the set it passed
+        //  through).
         case .custom:
             //  Custom is the book's own saved tuning when it has one. = A
             //  book that has never been tuned has nothing to come back to,
@@ -68,7 +68,9 @@ enum BookStyleSheetWriteBack {
         //  he calls a bug.
         let sheetAlreadyThere = sheet == book.effectiveStyleSheet
         let placeAlreadyRecorded = book.styleSelection == selection
-        if sheetAlreadyThere && placeAlreadyRecorded { return book }
+        if sheetAlreadyThere, placeAlreadyRecorded {
+            return book
+        }
         book.styleSheet = sheet
         book.styleSelectionIdentifier = selection.persistedIdentifier
         try store.sidebarSaveBook(book)
