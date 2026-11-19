@@ -146,6 +146,7 @@ struct InspectorStylePublishingTests {
     /// `.frame(maxWidth:)`: = the bridge answers the proposal it is handed
     /// either way, = which is why the mutation has to be made where the
     /// width is ANSWERED and not where it is asked.
+    @Test("the five knobs share one width")
     func theKnobsShareOneWidth() throws {
         let (store, plain, _) = try InspectorStylePageFixture.makeStore()
         store.selectedBookId = plain.id
