@@ -449,7 +449,9 @@ def case_a_refusal_of_an_other_commit_does_not_veto_the_tip() -> None:
     `31b5c3929a` (named card `t_10af78c5` refused `0b6fcd88e4`; the sha
     lookup reads CARD `t_30847781` approved) read rc 3, = = while the
     control on the SAME tip, `project/t_ce7c0c11-t3-…`, = = whose name
-    claims nothing, read rc 0. = = Both arms are asserted here.
+    claims the card t_ce7c0c11, which APPROVED that very tip, read rc 0
+    (the name claimed; the claim decided nothing). = = Both arms are
+    asserted here.
     """
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
@@ -471,9 +473,10 @@ def case_a_refusal_of_an_other_commit_does_not_veto_the_tip() -> None:
         rc, out = run_preflight(home, repo, "project/t_aaaa0001-t1-the-vetoed-name")
         expect("a claim that refused another commit cannot veto an approved tip",
                rc == 0, f"rc={rc}\n          {out.strip()[:400]}")
-        # the control: the same tip under a name that claims nothing
+        # the control: the same tip under a name claiming t_cccc0003,
+        # the fixture card that APPROVED this tip (built approved above)
         rc, out = run_preflight(home, repo, "project/t_cccc0003-t1-the-tip-branch")
-        expect("and the same tip under a name that claims nothing lands the same",
+        expect("and the same tip under a name whose card approved it lands the same",
                rc == 0, f"rc={rc}\n          {out.strip()[:400]}")
 
 
@@ -532,7 +535,8 @@ def case_an_unreadable_board_refuses_every_branch_it_was_asked_about() -> None:
     print `UNREADABLE` for BOTH branches at rc 3 = with no wrong
     `UNREVIEWED` line (= and the "the review gate could not read the board"
     message EXISTS in every version (= `grep -c` answers 1 at
-    `001a570551`, `fb9d0b8b36`, `7276dad436` and this tip); = on the two
+    `001a570551`, `df4b74a066`, `16f99f03c5` and this tip — all four are
+    ANCESTORS of this branch); = on the two
     oldest it is simply not REACHED for these claiming names). = = So this
     case PINS the claim arm on the old scripts and both arms here; = it
     passes on all three old scripts, = = it is not a RED arm and does not
@@ -616,7 +620,8 @@ def case_the_rc_channel_is_written_before_the_lookup_can_return() -> None:
     WHY THIS IS CHECKED STATICALLY. The defect is reachable only on a real
     board whose refs fail to resolve, and the fixture cannot produce that
     shape: measured 2026-11-19 with `WENSHU_BOARD=does_not_exist_board` and a
-    branch name git does not know, BOTH the round-1 script (`fb9d0b8b36`, the twin of `7992995e58`) and
+    branch name git does not know, BOTH the round-1 script (`df4b74a066`, whose
+    pre-rebase twins `7992995e58`/`fb9d0b8b36` this branch no longer carries) and
     this one exit 2 before the verdict loop, so no behaviour difference
     exists for a fixture to catch (= and a case that asserted one would be a
     case that cannot fail). The SHAPE, though, is a property of the text, and

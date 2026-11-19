@@ -38,8 +38,9 @@
 # literal, `no_handoff` (:174 of that version): SEVEN live branches were
 # refused by a claim answering `changes_requested` about another commit, and
 # ONE more, = `project/t_393cc135-…`, = by a claim answering `contract_error`.
-# The first pass at this fix (commit `fb9d0b8b36`, the same version as the
-# pre-rebase twin `7992995e58`, blob `23e174e9494f`) whitelisted TWO literals
+# The first pass at this fix (ancestor commit `df4b74a066`, blob
+# `23e174e9494f`; its pre-rebase twins `7992995e58`/`fb9d0b8b36` are shas
+# this branch no longer carries) whitelisted TWO literals
 # there, `no_handoff|contract_error` (:214 of that version), which cleared
 # the one and left the seven. Of the gate's non-zero answers (1, 2 and 3
 # named at `review_gate.py:49-50`, plus 4, `card_absent`, the `return 4` at
@@ -47,7 +48,7 @@
 # the seven hit: 1 was whitelisted by round 1, 2 prints `UNREADABLE` from
 # the board-read arm, and 4 was never a veto at all: BOTH versions exempt
 # it explicitly — `-eq 4` clears the claim (`001a570551` :153,
-# `fb9d0b8b36` :163) and the veto guard reads `-ne 0 && -ne 4` (:158,
+# `df4b74a066` :163) and the veto guard reads `-ne 0 && -ne 4` (:158,
 # :186) — so a card-absent claim fell through to the sha lookup, measured
 # rc 0 with one `CLEAN` line on every version from `001a570551` to this
 # tip, which is why the seven survived on code 3 alone.
@@ -59,7 +60,7 @@
 # authority, and the claim is printed as context when a branch is refused. A
 # card body that names its sha outside WHAT TO BUILD's first paragraph
 # therefore no longer lands by its branch name: the first paragraph is what
-# `review_gate.py:618` (`reviewed_sha`) parses, = = and a body that breaks
+# `review_gate.py:617` (`reviewed_sha`) parses, = = and a body that breaks
 # that shape is a body defect, not something the landing gate routes around.
 #
 # Usage:
@@ -215,7 +216,7 @@ for b in "${branches[@]}"; do
     # = =      2 printed `UNREADABLE` from the board-read arm, = and 4
     # = =      (`card_absent`) was EXEMPTED from the veto by the explicit
     # = =      `-eq 4` / `-ne 4` guards (:153/:158 of `001a570551`,
-    # = =      :163/:186 of `fb9d0b8b36`) and fell through to the sha
+    # = =      :163/:186 of `df4b74a066`) and fell through to the sha
     # = =      lookup, = measured rc 0 on every version (= it never vetoed
     # = =      anything).    # = =
     # = = The rule those three share is not "check the claim against the
@@ -224,7 +225,7 @@ for b in "${branches[@]}"; do
     # = = use is not kept as a spare).
     # = = A card whose body names its sha OUTSIDE the WHAT TO BUILD claim
     # = = therefore no longer lands by its branch name: AGENTS.md §1.15
-    # = = requires the heading, and `review_gate.py:618` (`reviewed_sha`)
+    # = = requires the heading, and `review_gate.py:617` (`reviewed_sha`)
     # = = parses the sha out of its FIRST paragraph, so a body that breaks
     # = = that shape is a body defect, not something the gate routes around.
     card="$governing"
