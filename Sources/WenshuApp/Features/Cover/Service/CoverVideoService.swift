@@ -127,6 +127,30 @@ final class CoverVideoService {
         }
     }
 
+    /// Removes a card's moving cover.
+    ///
+    /// The clip's owner removes it: the service that makes the clip
+    /// also takes it away, so the file on the disk and the clip's state
+    /// in the record change in one place.
+    ///
+    /// The picture stays: the user is getting rid of the motion, not of
+    /// the cover.
+    func removeVideo(for target: CardCoverTarget) {
+        do {
+            try coverService.removeVideo(forKey: target.coverKey)
+        } catch {
+            coverVideoLogger.error(
+                "[wenshu.cover] video removal failed key=\(target.coverKey, privacy: .public): \(String(describing: error), privacy: .public)"
+            )
+        }
+        // The card asks the disk again. A removal has no in-flight
+        // phase for a card to watch, so without this note the card
+        // goes on drawing a clip that is already gone. It is noted
+        // whether or not the removal threw: the clip goes first and
+        // the record second, so a throw can leave the disk changed.
+        CoverChangeSignal.shared.noteCoverChanged()
+    }
+
     /// Records that the clip could not be made.
     ///
     /// The still cover stays where it is: the user liked it, and a

@@ -302,6 +302,10 @@ extension PreviewPane {
                 removeCover(for: target)
 
             },
+            onRemoveDynamicCover: {
+                removeDynamicCover(for: target)
+
+            },
             hasCover: cover.hasCover,
             isGeneratingCover: coverGenerationService.isGenerating(target),
             coverErrorMessage: cover.record?.lastError,

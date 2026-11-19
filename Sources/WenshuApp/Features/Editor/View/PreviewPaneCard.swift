@@ -165,6 +165,22 @@ struct Card: View {
     /// not wire it.
     var onRemoveCover: (() -> Void)? = nil
 
+    /// The "remove the moving cover" callback. Nil when the call site
+    /// does not wire it.
+    ///
+    /// The moving cover is its own removal: the picture the user liked
+    /// stays, and only the motion goes.
+    var onRemoveDynamicCover: (() -> Void)? = nil
+
+    /// Whether the user has turned the automatic cover switch on.
+    ///
+    /// It is a CLOSURE and not a Bool because the switch lives in
+    /// another window: the card is drawn long before the user opens
+    /// the menu, and a Bool read at draw time would carry the switch's
+    /// answer from before the user flipped it. The menu calls this when
+    /// the menu is built.
+    var isCoverGenerationEnabled: () -> Bool = { CoverAutoCoverStore().policy.isEnabled }
+
     /// Whether this card already has a cover.
     ///
     /// The menu labels depend on it: a card with no cover gets

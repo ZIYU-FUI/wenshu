@@ -155,6 +155,11 @@ final class CoverGenerationService {
     /// Removes a card's cover, its picture and its clip.
     func removeCover(for target: CardCoverTarget) {
         try? coverService.removeCover(forKey: target.coverKey)
+        // The card asks the disk again (= see `CoverChangeSignal`):
+        // taking the whole cover away was as silent as taking the
+        // clip away, and a card that is not told to ask again keeps
+        // drawing the picture the user just removed.
+        CoverChangeSignal.shared.noteCoverChanged()
     }
 
     // MARK: - Record state
