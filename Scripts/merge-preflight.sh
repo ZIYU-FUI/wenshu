@@ -80,7 +80,13 @@ card_id_of() {
 LOOKUP_RC="$(mktemp "${TMPDIR:-/tmp}/wenshu-lookup-rc.XXXXXX")"
 trap 'rm -f "$LOOKUP_RC"' EXIT
 
-review_card_for_branch() {
+# ``covering_cards`` prints EVERY review-card id that the sha lookup says
+# covers the branch, newest verdict first (= the gate's own order). It is
+# the same call the old single-card lookup made; splitting it into a list
+# is what lets the branch-name claim be CHECKED rather than trusted (= a
+# claim that names a card whose verdict is about a DIFFERENT commit must
+# not bless this branch).
+covering_cards() {
     local branch="$1"
     local sha
     local out
@@ -88,7 +94,11 @@ review_card_for_branch() {
     [[ -z "$sha" ]] && return 0
     out="$(python3 "$GATE" --branch "$branch" --sha "$sha" --board "$BOARD" 2>/dev/null)"
     printf '%s' "$?" > "$LOOKUP_RC"
-    printf '%s\n' "$out" | sed -n 's/^CARD \([a-z_0-9]*\)$/\1/p' | head -1
+    printf '%s\n' "$out" | sed -n 's/^CARD \([a-z_0-9]*\)$/\1/p'
+}
+
+review_card_for_branch() {
+    covering_cards "$1" | head -1
 }
 conflict=0
 unreviewed=0
@@ -155,6 +165,24 @@ for b in "${branches[@]}"; do
             # the sha decides.
             card=""
         fi
+        if [[ $claim_rc -eq 0 ]]; then
+            # = = THE CLAIM ANSWERS `approved`. = = A CLAIM IS STILL NOT A
+            # = = FACT ABOUT THE COMMIT THE BRANCH POINTS AT. = = The card
+            # = = may have approved a sha this branch no longer carries
+            # = = (= a rebase onto a moved main, = = or a branch name
+            # = = reused by another stream's work), = = and then the
+            # = = approval belongs to a DIFFERENT tree. = = Measured
+            # = = 2026-11-19: `project/t_5bff7b80-…` printed a bare
+            # = = `CLEAN` on the strength of `t_5bff7b80`'s approval of
+            # = = `7e3878dcdc`, = = while the branch's own tip carried a
+            # = = NEWER `changes_requested` verdict from another card.
+            # = = So the claim counts only when the sha lookup also names
+            # = = THAT card for THIS branch.
+            covering="$(covering_cards "$b")"
+            if ! printf '%s\n' "$covering" | grep -qx -- "$card"; then
+                card=""
+            fi
+        fi
         if [[ $claim_rc -ne 0 && $claim_rc -ne 4 ]]; then
             # The gate could not clear the card for any other reason
             # (= it owes a verdict, or it breaks the contract). The
@@ -171,7 +199,19 @@ for b in "${branches[@]}"; do
             # = = card, = = and that card read `no_handoff`, = = so the
             # = = gate refused a branch whose REVIEW card carried an
             # = = approving verdict on the very sha the branch pointed at.
-            if echo "$gate_out" | grep -q 'no_handoff'; then
+            # = =
+            # = = `contract_error` IS THE SAME CASE AND WAS MISSED. = = The
+            # = = rule above is "a card that is not a review card does not
+            # = = decide the branch", = = but the code implemented it by
+            # = = matching ONE literal. = = A build card whose body writes
+            # = = code without a REVIEW HANDOFF section answers
+            # = = `contract_error` (= = exit 1), = = and that answer is
+            # = = ALSO not a verdict on the work: = = measured 2026-11-19,
+            # = = `review_gate.py --branch <b> --sha <tip>` read
+            # = = `approved` while `merge-preflight.sh <b>` read
+            # = = `UNREVIEWED … contract_error`, = = so an approved commit
+            # = = could not land.
+            if echo "$gate_out" | grep -qE 'no_handoff|contract_error'; then
                 card=""
             else
                 unreviewed=1
