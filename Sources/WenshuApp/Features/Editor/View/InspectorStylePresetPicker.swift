@@ -128,10 +128,13 @@ struct InspectorStylePresetPicker: View {
 
     /// The book's place, = as the control's selection.
     ///
-    /// The setter does not store anything here: = the book's sheet is the
-    /// only record of where it is, = so the segment that ends up lit is the
-    /// one the write-back left the book at (= a write that changed nothing
-    /// leaves the old segment lit, = which is the truth).
+    /// The setter tells the page where the reader put the control AND writes
+    /// the sheet, = in that order: = the page owns the place so the segment
+    /// answers the click at once (= a book whose sheet write changes nothing
+    /// would otherwise leave the old segment lit while the reader's hand is
+    /// still on it), = and the sheet is what a book carries between
+    /// documents, = so a place with no record in it is a place the reader
+    /// lands back at the moment anything reloads.
     private var selection: Binding<BookStyleSelection> {
         Binding(
             get: { current },

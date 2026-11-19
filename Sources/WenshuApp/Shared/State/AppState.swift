@@ -392,7 +392,7 @@ struct PersistedEditorTab: Codable {
     // a document and no book, and the page has nothing to write to).
     // Optional (= tabs persisted before this field existed decode as
     // nil, which reads as "this tab names no book").
-    var sourceScope: PreviewScope? = nil
+    var sourceScope: PreviewScope?
 }
 
 // per-tab editor state. Holds all data that was previously
