@@ -708,8 +708,10 @@ sentence asserting equality with it was already false by the time it was pushed.
 - Round 5 (card `t_fcd6aab4`, run 4613 = 825 s = **13.8 min**): **APPROVED** on
   `00963c53e6`. The command to re-run rather than trust this sentence is
   `python3 Tools/wenshu-devtool/review_gate.py --card t_fcd6aab4`, which reads
-  `approved by wenshu-review`. C1-C6 all passed: the four gates and the two extra
-  strings reprinted, the registry equality held at every commit of this record
+  `approved by wenshu-review`. C1-C6 all passed: all six gates plus the one extra
+  string §6 publishes reprinted (that partition is read from run 4613's own summary
+  row and from the `GATES — 6/6` header of its verdict post, not from this sentence),
+  the registry equality held at every commit of this record
   (each read from the reviewer's own tree, not quoted from here), §6's printed
   python block ran and printed `lines 1 chars 6`, and ancestry held for every
   commit of this record against both remotes.
@@ -719,11 +721,15 @@ sentence asserting equality with it was already false by the time it was pushed.
   records that a review card's ACCEPTANCE test can carry the same draft reading as a
   sentence — which is what round 5's own card did, and why the next card phrases its
   test as a claim rather than a number.
-  = = This is the record's last substantive edit. A closure line can only be written
-  after the verdict it names, so the review of THIS commit lives on the board and is
-  deliberately not logged here as a further round: the record stops growing rather
-  than logging its own growth, which is the defect every one of these five rounds
-  was an instance of.
+  = = The stopping rule is a claim about this section's shape, not a prediction about
+  the file: no further `- Round ` entry is added, and no sentence here asserts that
+  the record will not be edited again. A closure line can only be written after the
+  verdict it names, so the review of THIS commit lives on the board and is
+  deliberately not logged here as a further round. A later claim that is not about a
+  round at all — a look taken at a running build, a sentence this session retracting
+  its own evidence — belongs to the section that owns that subject, and is not an
+  entry in this list. The record stops growing by listing itself, which is the defect
+  every one of these rounds was an instance of.
 - The reviewers' evidence lives in their own profile's scratch, not this
   session's: `/Volumes/ANAN/.hermes/profiles/wenshu-review/cache/scratch/ab-2026-11-19/`
   (round 1) and the two throwaway detached worktrees round 2 added at
