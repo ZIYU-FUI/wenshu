@@ -270,12 +270,14 @@ not be read, 3 = a card owes a verdict it does not have. The merge gate
 (`Scripts/merge-preflight.sh`) runs the record check for the branch it is
 asked to bless and refuses the merge until the verdict is on the record.
 
-The merge gate takes the card two ways: the id inside the branch's NAME is a
-claim, and the sha the branch points at is a fact. A claim only counts when
-the sha lookup also names that card (= a card that approved some other commit
-does not bless this branch, and a card that is not a review card at all — its
-answer being `no_handoff` or `contract_error` — decides nothing about the
-work). The gate's own suite is on fixtures and runs the real script:
+The merge gate reads ONE authority: the sha the branch points at. The card id
+inside a branch NAME is not asked, because a claim about a commit is not a
+verdict on the commit the branch carries now — measured 2026-11-19, it could
+neither bless a tip no card approved nor veto a tip another card approved, and
+three live shapes came from that (see the suite's docstring). A card body that
+names its sha outside the first paragraph of WHAT TO BUILD is therefore
+refused, and the fix is the body, not the gate. The gate's own suite runs the
+real script against a fixture repository and a fixture board:
 
 ```bash
 python3 Tools/wenshu-devtool/tests/test_merge_preflight.py

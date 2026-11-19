@@ -1,16 +1,31 @@
 #!/usr/bin/env python3
-"""test_merge_preflight.py — the landing gate's branch-name CLAIM is a claim.
+"""test_merge_preflight.py — the landing gate reads the sha, never the name.
 
-= = WHY THIS TEST EXISTS. = = The preflight answers two questions about one
-branch and used to answer them with two different authorities without ever
-comparing them:
+= = WHY THIS TEST EXISTS. = = The preflight used to answer one question about
+a branch with TWO authorities and never compare them:
 
   * `review_gate.py --branch <b> --sha <tip>` — the sha lookup, which the
     script's own header calls the authority under the one-developer flow.
   * `review_gate.py --card <the id inside the branch name>` — the CLAIM.
 
-Two defects came from trusting the claim alone. Both were measured on the
-real board on 2026-11-19, and both are reproduced here on a fixture.
+THREE defects came from trusting the claim, all measured on the real board on
+2026-11-19, and all three are reproduced here on a fixture:
+
+  1. A branch named after a BUILD card was refused although a REVIEW card
+     carried an APPROVING verdict on the sha the branch pointed at (= the
+     refusal path recognised only the literal `no_handoff`).
+  2. A branch named after a REVIEW CARD that approved a DIFFERENT commit
+     printed a bare `CLEAN` with no verdict line at all.
+  3. The first fix for 1 and 2 put the membership check on the APPROVING
+     path only, so a claim answering `changes_requested` about another
+     commit still vetoed an approved tip (= seven live branches, measured
+     as a pair on one and the same sha: `t_10af78c5`'s branch rc 3 against
+     `t_ce7c0c11`'s rc 0). This suite's sixth case is that pair.
+
+The rule all three share is not "check the claim against the lookup" — it is
+that a claim decides nothing, so the script no longer asks it. Every case
+below is therefore an assertion about the LOOKUP, and cases that used to be
+about two readers are now about one.
 
   1. A branch named after a BUILD card. The build card breaks the contract
      (it writes code and carries no REVIEW HANDOFF), the gate answers
@@ -84,6 +99,14 @@ same JSON shape the real CLI prints (= `task` / `runs` / `events` /
 
 The argv it accepts is exactly what the gate sends:
 `kanban --board <board> show <id> --json` and `--board list`.
+
+WHAT THE FIXTURE CANNOT ASK. `events` is printed as an empty list, because
+the fixture board has no event rows and the gate's handoff answers are read
+from them (= `not_approved` with a named reviewer, `no_reviewer_named`,
+`self_review`). Those three answers are therefore UNREACHABLE here: a case
+that asserts one of them would be asserting the shim, not the gate. The
+cases below stick to answers the fixture really carries — `approved`,
+`changes_requested`, and the sha lookup's own order.
 """
 import json
 import sqlite3
@@ -386,6 +409,49 @@ def case_a_claim_on_another_commit_does_not_bless_the_branch() -> None:
         )
 
 
+
+def case_a_refusal_of_an_other_commit_does_not_veto_the_tip() -> None:
+    """F1: the shape that kept seven live branches refused.
+
+    The branch's NAME claims a card whose verdict on an OLDER commit was
+    `changes_requested`, = = while a DIFFERENT card approved the sha the
+    branch points at now. = = The claim path decided this branch by a
+    two-literal whitelist (`no_handoff|contract_error`), = = so a refusal
+    answer vetoed a tip that carried an approval, = = and the ONLY thing
+    that separated it from the branch that landed was its name.
+
+    Measured on board `wenshu-par`: = = `project/t_10af78c5-t3-…` at tip
+    `31b5c3929a` (named card `t_10af78c5` refused `0b6fcd88e4`; the sha
+    lookup reads CARD `t_30847781` approved) read rc 3, = = while the
+    control on the SAME tip, `project/t_ce7c0c11-t3-…`, = = whose name
+    claims nothing, read rc 0. = = Both arms are asserted here.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        g = make_repo(tmp)
+        refusing, refusing_run = build_card(
+            "t_aaaa0001", g["other_sha"], outcome="changes_requested",
+            at=CONTRACT_T, run_id=1,
+        )
+        approving, approving_run = build_card(
+            "t_cccc0003", g["tip_sha"], outcome="approved",
+            at=CONTRACT_T + 100, run_id=2,
+        )
+        home = make_board(tmp, [refusing, approving], [refusing_run, approving_run])
+        repo = g["repo"]
+        # the arm that was vetoed: the tip branch, named after the refusing card
+        subprocess.run(["git", "branch", "project/t_aaaa0001-t1-the-vetoed-name",
+                        "project/t_cccc0003-t1-the-tip-branch"],
+                       cwd=repo, capture_output=True, text=True)
+        rc, out = run_preflight(home, repo, "project/t_aaaa0001-t1-the-vetoed-name")
+        expect("a claim that refused another commit cannot veto an approved tip",
+               rc == 0, f"rc={rc}\n          {out.strip()[:400]}")
+        # the control: the same tip under a name that claims nothing
+        rc, out = run_preflight(home, repo, "project/t_cccc0003-t1-the-tip-branch")
+        expect("and the same tip under a name that claims nothing lands the same",
+               rc == 0, f"rc={rc}\n          {out.strip()[:400]}")
+
+
 def case_an_approved_tip_still_lands() -> None:
     """The gate must still let through the branch a review card approved."""
     with tempfile.TemporaryDirectory() as td:
@@ -417,6 +483,7 @@ def main() -> int:
         case_the_fixture_board_is_readable,
         case_a_claim_that_is_not_a_review_card_falls_through,
         case_a_claim_on_another_commit_does_not_bless_the_branch,
+        case_a_refusal_of_an_other_commit_does_not_veto_the_tip,
         case_an_approved_tip_still_lands,
         case_a_sha_no_card_names_is_refused,
     ):
