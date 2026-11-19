@@ -143,10 +143,6 @@ struct EditorTabStrip: View {
                 labels: orderedTabs.map(\.id),
                 displayStrings: orderedTabs.map { EditorTab.displayTitle($0) },
                 iconStyle: .paneTab,
-                onDoubleClickSegment: { segmentIndex in
-                    guard segmentIndex >= 0, segmentIndex < displayOrder.count else { return }
-                    onClose(displayOrder[segmentIndex])
-                },
                 // ⇒ ⇒ ⇒ The Safari-style X: = the one that closes the tab
                 // it sits in. = The strip owns the mapping (= the segment
                 // index is an index into the DISPLAY ORDER, = and the

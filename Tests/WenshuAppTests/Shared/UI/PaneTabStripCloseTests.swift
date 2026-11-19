@@ -6,9 +6,10 @@
 //
 // 1. The X's two rules (= the pure ones: = whether it FITS in a segment, =
 // and = how much room it takes from the title). 2. The control's behaviour:
-// = the X is drawn when a segment is hovered, = it is not drawn when
-// nothing is, = the hovered segment's title gives up the X's room, = and a
-// click on the X closes that tab.
+// = the X is drawn in the SELECTED segment alone, = the pointer's segment
+// paints a wash behind it, = the selected segment's title gives up the X's
+// room, = and a click on the X closes that tab. 3. The close path the strip
+// does NOT have (= no double-click close).
 //
 // THE CRASH RULE THIS FILE ALSO GUARDS
 //
@@ -98,16 +99,6 @@ struct PaneTabStripCloseTests {
         // segment's own width (= it never claims its neighbour).
         let narrow = NSRect(x: 0, y: 0, width: 10, height: 28)
         #expect(PaneTabStripClose.hitRect(in: narrow).width <= narrow.width)
-    }
-
-    /// A click recognizer that answers with the point the test chooses (= so
-    /// the delegate can be asked about a click the test places).
-    private final class FixedPointClickRecognizer: NSClickGestureRecognizer {
-        var fixedPoint: NSPoint = .zero
-
-        override func location(in _: NSView?) -> NSPoint {
-            fixedPoint
-        }
     }
 
     // MARK: - The control
@@ -908,51 +899,55 @@ struct PaneTabStripCloseTests {
         #expect(closed.isEmpty)
     }
 
-    @Test("A double-click on an unselected tab still closes that tab")
-    func aDoubleClickOnAnUnselectedTabStillClosesIt() throws {
-        // ⇒ ⇒ ⇒ AND THE CONTROL SITS AWAY FROM THE ORIGIN: = a control at
-        // (0, 0) cannot tell a point that is converted from a point that
-        // is not (= MEASURED: = the review's own probe, = = 2026-11-18: =
-        // the app's own control sits at (260, 896), = = and the double
-        // conversion moved the delegate's point by exactly that).
-        let (control, window) = makeControl(origin: NSPoint(x: 260, y: 12))
-        defer { window.orderOut(nil) }
-        control.setSelectedSegment(1)
-
-        // ⇒ ⇒ ⇒ AND THE DOUBLE-CLICK'S OWN PREDICATE IS THE SAME ONE: = the
-        // delegate asks "is this click on the X?", = = and the X lives in
-        // the SELECTED tab only, = = so the answer must be scoped the same
-        // way (= MEASURED: = the review's own probe, = = 2026-11-18).
-        let other = try #require(control.closeCell.frame(ofSegment: 0))
-        let otherInk = PaneTabStripClose.glyphRect(in: other)
-        let onTheUnselectedEdge = control.closeSegment(at: NSPoint(x: otherInk.midX, y: otherInk.midY))
-        #expect(onTheUnselectedEdge < 0)
-        // ⇒ ⇒ ⇒ AND THE DELEGATE ITSELF IS ASKED: = the double-click's
-        // decision is the delegate's, = = and the delegate is the only
-        // thing that can refuse the gesture (= MEASURED: = the review's own
-        // probe, = = 2026-11-18).
-        let recognizer = FixedPointClickRecognizer()
-        recognizer.numberOfClicksRequired = 2
-        control.addGestureRecognizer(recognizer)
-        let coordinator = LabelSegmentedControl<String>.Coordinator(
-            parent: LabelSegmentedControl(
-                selection: .constant("a"),
-                labels: ["a", "b", "c"],
-                iconStyle: .inlineSmall
-            )
+    /// The strip has no double-click close.
+    ///
+    /// The boss's own ruling: a double-click close is not wanted. The X
+    /// closes the selected tab and the right-click menu closes the tab
+    /// under the pointer, so a third close path only duplicates them.
+    @Test("The strip carries no double-click close")
+    func theStripCarriesNoDoubleClickClose() throws {
+        // Nothing is attached to the control the REAL strip hosts: a
+        // double-click close needs a recognizer on the control, and the
+        // production control carries none.
+        let hosted = try #require(
+            hostedStrip(tabCount: 3, columnWidth: 240, onClose: { _ in })
         )
-        // ⇒ ⇒ ⇒ AND THE GESTURE IS NOT REFUSED ON AN UNSELECTED TAB's
-        // EDGE: = the predicate asks "is this click on the X?", = = and the
-        // X lives in the SELECTED tab, = = so the answer is no and the
-        // double-click runs (= = the tab closes).
-        recognizer.fixedPoint = NSPoint(x: otherInk.midX, y: otherInk.midY)
-        #expect(coordinator.gestureRecognizerShouldBegin(recognizer))
-        // ⇒ ⇒ ⇒ AND THE GESTURE IS REFUSED ON THE X ITSELF: = a double
-        // click on the selected tab's X must not close a second tab.
-        let selected = try #require(control.closeCell.frame(ofSegment: 1))
-        let selectedInk = PaneTabStripClose.glyphRect(in: selected)
-        recognizer.fixedPoint = NSPoint(x: selectedInk.midX, y: selectedInk.midY)
-        #expect(!coordinator.gestureRecognizerShouldBegin(recognizer))
+        defer { hosted.1.orderOut(nil) }
+        #expect(hosted.0.gestureRecognizers.isEmpty)
+
+        // And the plumbing is gone from both files that could carry it.
+        let controlSource = try String(
+            contentsOf: Self.repositoryURL(
+                relativePath: "Sources/WenshuApp/Shared/UI/LabelSegmentedControl.swift"
+            ),
+            encoding: .utf8
+        )
+        #expect(!controlSource.contains("NSClickGestureRecognizer"))
+        #expect(!controlSource.contains("numberOfClicksRequired"))
+        #expect(!controlSource.contains("onDoubleClickSegment"))
+
+        let stripSource = try String(
+            contentsOf: Self.repositoryURL(
+                relativePath: "Sources/WenshuApp/Features/Editor/Store/EditorTabStrip.swift"
+            ),
+            encoding: .utf8
+        )
+        #expect(!stripSource.contains("onDoubleClickSegment"))
+    }
+
+    /// The repository root, found from this file's own path (= so the test
+    /// reads the tree it was compiled from, in any worktree).
+    private static func repositoryURL(relativePath: String) throws -> URL {
+        var current = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        while current.path != "/" {
+            if FileManager.default.fileExists(
+                atPath: current.appendingPathComponent("Package.swift").path
+            ) {
+                return current.appendingPathComponent(relativePath)
+            }
+            current.deleteLastPathComponent()
+        }
+        throw CocoaError(.fileNoSuchFile)
     }
 
     @Test("After the column is too narrow, the drawn cells stay inside it")

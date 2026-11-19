@@ -38,9 +38,9 @@ struct EditorViewIconMigrationTests {
         //
         // The X glyph itself is GONE (= commit 22baaeb9a1 = "A116 = delete 3
         // dead private funcs": `tabButton(for:)` held the only `xmark` and
-        // had no call site, so it was deleted as dead code). The strip now
-        // closes a document by DOUBLE-CLICK on its segment
-        // (= `onDoubleClickSegment`), and the segments themselves are drawn
+        // had no call site, so it was deleted as dead code). The strip closes
+        // a document from the X that `LabelSegmentedControl` draws (= and
+        // from the right-click menu), and the segments themselves are drawn
         // by `LabelSegmentedControl`.
         //
         // So the invariant is not "the xmark renders via SFIcon" (= there is

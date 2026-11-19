@@ -163,22 +163,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// control's height, so a caller cannot shrink the drawn pill by
     /// constraining the SwiftUI frame alone.
     let controlSize: NSControl.ControlSize
-    /// Double-click callback (= the user double-clicks a segment; = the
-    /// callback receives the zero-indexed segment position; = the
-    /// `LabelSegmentedControl` is in the editor tab strip in this role, the
-    /// callback closes the corresponding tab = the wenshu 1:1 Safari
-    /// canonical "double-click a tab to close it" behavior). RATIONALE: the
-    /// segmented control wires
-    /// `NSClickGestureRecognizer(numberOfClicksRequired: 2)`; the gesture's
-    /// `target` fires `onDoubleClickSegment` (= the canonical way to bridge
-    /// SwiftUI's `NSViewRepresentable` to AppKit's double-click event).
-    /// SwiftUI HStack tab strip could have had a SwiftUI
-    /// `.onTapGesture(count: 2)` modifier; the AppKit `NSSegmentedControl`
-    /// does NOT auto-bridge SwiftUI gestures; = we need an AppKit
-    /// `NSClickGestureRecognizer` (= the macOS canonical native
-    /// double-click detector) wired up to fire the callback).
-    let onDoubleClickSegment: ((Int) -> Void)?
-
     /// Fired when the pointer clicks the Safari-style X inside a segment (=
     /// the segment's index).
     ///
@@ -203,7 +187,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         displayStrings: [String]? = nil,
         iconStyle: IconStyle = .paneTab,
         icon: ((Selection) -> NSImage?)? = nil,
-        onDoubleClickSegment: ((Int) -> Void)? = nil,
         onCloseSegment: ((Int) -> Void)? = nil,
         showsContextMenu: Bool = false,
         regionWidth: CGFloat = 0,
@@ -215,7 +198,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         self.displayStrings = displayStrings ?? labels.map { String(describing: $0) }
         self.iconStyle = iconStyle
         self.icon = icon
-        self.onDoubleClickSegment = onDoubleClickSegment
         self.onCloseSegment = onCloseSegment
         self.showsContextMenu = showsContextMenu
         self.regionWidth = regionWidth
@@ -245,32 +227,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             control = NSSegmentedControl(frame: .zero)
         }
         configure(control, coordinator: context.coordinator)
-        // RATIONALE 2026-10-13: the AppKit `NSSegmentedControl` does NOT
-        // auto-bridge SwiftUI gestures (= the previous SwiftUI HStack tab
-        // strip could have used `.onTapGesture(count: 2)`; = the AppKit
-        // native control needs an explicit `NSClickGestureRecognizer` to
-        // fire on double-click). The recognizer (= `numberOfClicksRequired
-        // = 2`) calls `handleDoubleClick` on the coordinator (= which
-        // forwards the click location → segment index →
-        // `onDoubleClickSegment`). The recognizer is attached once at
-        // make-time (= not in `updateNSView` to avoid stacking duplicates;
-        // = the recognizer's target is the coordinator which captures the
-        // latest `parent` via `coordinator.parent = self` in `configure`).
-        if onDoubleClickSegment != nil {
-            let dblClick = NSClickGestureRecognizer(
-                target: context.coordinator,
-                action: #selector(Coordinator.handleDoubleClick(_:))
-            )
-            dblClick.numberOfClicksRequired = 2
-            dblClick.delaysPrimaryMouseButtonEvents = false
-            // ⇒ ⇒ ⇒ AND THE X OWNS ITS OWN CLICKS: = a double-click that
-            // lands on the X must NOT also run the strip's
-            // double-click-to-close (= that would close a second tab, the
-            // one the segment index now names). = The recognizer refuses to
-            // begin when the click is on the X.
-            dblClick.delegate = context.coordinator
-            control.addGestureRecognizer(dblClick)
-        }
         return control
     }
 
@@ -615,46 +571,10 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator: NSObject, NSGestureRecognizerDelegate {
+    final class Coordinator: NSObject {
         var parent: LabelSegmentedControl
         init(parent: LabelSegmentedControl) {
             self.parent = parent
-        }
-
-        /// The double-click recognizer refuses to begin when the click
-        /// landed on the Safari-style X (= the X's own click closes that
-        /// tab, = and the strip's double-click must not close a second
-        /// one).
-        func gestureRecognizerShouldBegin(_ gestureRecognizer: NSGestureRecognizer) -> Bool {
-            guard let click = gestureRecognizer as? NSClickGestureRecognizer,
-                  let control = click.view as? PaneTabStripCloseControl
-            else { return true }
-            // ⇒ ⇒ ⇒ AND THE POINT IS ALREADY IN THE CONTROL'S OWN SPACE:
-            // = `location(in: control)` answers in the control's
-            // coordinates, = = and converting it AGAIN (= from the
-            // window's base) = = moved it by the control's own origin
-            // (= MEASURED: = the review's own probe, = = 2026-11-18: = =
-            // the origin was (260, 896), = = so the delegate asked about a
-            // point far from the X, = = and it NEVER refused the gesture
-            // on the X = = which closed a second tab).
-            let point = click.location(in: control)
-            return control.closeSegment(at: point) < 0
-        }
-
-        @objc func handleDoubleClick(_ sender: NSClickGestureRecognizer) {
-            // RATIONALE 2026-10-13: the `NSClickGestureRecognizer` fires
-            // AFTER the underlying control's `target/action` (=
-            // `segmentChanged`) runs (= the first click selects the segment
-            // via AppKit's normal single-click handler; = the second click
-            // fires the gesture recognizer). By the time
-            // `handleDoubleClick` runs, the control's `selectedSegment` (=
-            // the `Int` index of the segment the user just clicked on) is
-            // already up-to-date. The `selectedSegment` is -1 if no segment
-            // is selected (= the click missed; = we guard).
-            guard let control = sender.view as? NSSegmentedControl else { return }
-            let segmentIndex = control.selectedSegment
-            guard segmentIndex >= 0, segmentIndex < parent.labels.count else { return }
-            parent.onDoubleClickSegment?(segmentIndex)
         }
 
         @objc func segmentChanged(_ sender: NSSegmentedControl) {

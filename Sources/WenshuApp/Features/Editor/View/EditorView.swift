@@ -99,8 +99,8 @@ struct EditorView: View {
     //
     // It is ONE button beside the strip, not a button per tab (= the
     // per-tab shape is the known macOS 27 crash shape; = the narrow
-    // window crash triage owns that rule), and the strip itself keeps
-    // its own close path (= a double click on a segment).
+    // window crash triage owns that rule), and the strip closes a tab
+    // from that tab's own X and from the right-click menu.
 
     /// / On editor zone mount: upgrade any preview-mode tabs to edit mode, seed
     /// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
