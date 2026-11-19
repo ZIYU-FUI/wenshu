@@ -29,6 +29,40 @@
 # cover the branch. A branch whose sha no card names carries NO verdict and
 # is refused, never skipped.
 #
+# THE BRANCH NAME IS NOT ASKED (2026-11-19; the third pass at one defect). A
+# card id inside a branch name is a CLAIM about a DIFFERENT commit, and a
+# claim is not a verdict. It could not bless: `t_5bff7b80`'s approval of
+# `7e3878dcdc` printed a bare CLEAN over a tip whose newest verdict was
+# `changes_requested`. And it did veto. Measured on `wenshu-par` on
+# 2026-11-19 against `origin/main`'s refusal path, = which whitelisted ONE
+# literal, `no_handoff` (:174 of that version): SEVEN live branches were
+# refused by a claim answering `changes_requested` about another commit, and
+# ONE more, = `project/t_393cc135-…`, = by a claim answering `contract_error`.
+# The first pass at this fix (ancestor commit `df4b74a066`, blob
+# `23e174e9494f`; its pre-rebase twins `7992995e58`/`fb9d0b8b36` are shas
+# this branch no longer carries) whitelisted TWO literals
+# there, `no_handoff|contract_error` (:214 of that version), which cleared
+# the one and left the seven. Of the gate's non-zero answers (1, 2 and 3
+# named at `review_gate.py:49-50`, plus 4, `card_absent`, the `return 4` at
+# `review_gate.py:1048-1052`), exactly ONE — 3, the verdict owed — is what
+# the seven hit: 1 was whitelisted by round 1, 2 prints `UNREADABLE` from
+# the board-read arm, and 4 was never a veto at all: BOTH versions exempt
+# it explicitly — `-eq 4` clears the claim (`001a570551` :153,
+# `df4b74a066` :163) and the veto guard reads `-ne 0 && -ne 4` (:158,
+# :186) — so a card-absent claim fell through to the sha lookup, measured
+# rc 0 with one `CLEAN` line on every version from `001a570551` to this
+# tip, which is why the seven survived on code 3 alone.
+# Both shapes are pinned by case functions rather than by a sentence here:
+# `case_a_refusal_of_an_other_commit_does_not_veto_the_tip` (the veto that had
+# to be removed) and
+# `case_a_claim_that_is_not_a_review_card_decides_nothing` (a BUILD card's
+# `contract_error`). So the sha lookup is the only reader, its order is the
+# authority, and the claim is printed as context when a branch is refused. A
+# card body that names its sha outside WHAT TO BUILD's first paragraph
+# therefore no longer lands by its branch name: the first paragraph is what
+# `review_gate.py:617` (`reviewed_sha`) parses, = = and a body that breaks
+# that shape is a body defect, not something the landing gate routes around.
+#
 # Usage:
 #   merge-preflight.sh <card-branch> [<card-branch> ...]
 #   merge-preflight.sh --all          # every project/ branch on the repo
@@ -80,16 +114,29 @@ card_id_of() {
 LOOKUP_RC="$(mktemp "${TMPDIR:-/tmp}/wenshu-lookup-rc.XXXXXX")"
 trap 'rm -f "$LOOKUP_RC"' EXIT
 
-review_card_for_branch() {
+# ``governing_card`` prints the ONE review-card id that decides a branch: the
+# head of the list the sha lookup returns, = = which is the gate's own order
+# (= newest verdict first, in ``matching_cards``). = = The tail is not
+# returned because nothing may read it: = = round 1 of this fix kept it and
+# consulted it on the refusal path only, = = and that asymmetry is the defect
+# that vetoed live branches whose named card had refused an OLDER commit.
+governing_card() {
     local branch="$1"
     local sha
     local out
+    # The rc file is written on EVERY path, = = including the two failures
+    # below: = = a reader that fell back to the previous branch's rc would
+    # print this branch's answer as "the board is unreadable" because an
+    # earlier branch could not be read. = = A command substitution cannot
+    # return a value, = = so this file is the only channel the caller has.
+    printf '0' > "$LOOKUP_RC"
     sha=$(git rev-parse --verify -q "$branch" 2>/dev/null) || return 0
     [[ -z "$sha" ]] && return 0
     out="$(python3 "$GATE" --branch "$branch" --sha "$sha" --board "$BOARD" 2>/dev/null)"
     printf '%s' "$?" > "$LOOKUP_RC"
     printf '%s\n' "$out" | sed -n 's/^CARD \([a-z_0-9]*\)$/\1/p' | head -1
 }
+
 conflict=0
 unreviewed=0
 for b in "${branches[@]}"; do
@@ -129,67 +176,62 @@ for b in "${branches[@]}"; do
         echo "          merge that first, or this merge lands unchecked)"
         continue
     fi
-    card="$(card_id_of "$b")"
-    if [[ -n "$card" ]]; then
-        # A card id in the branch name is a CLAIM, not a fact: the card may
-        # have been archived, or the branch may name a card that never
-        # existed. The claim only counts when the board still carries
-        # that card. Otherwise the lookup falls through to the sha, and a
-        # sha that no card names is refused below.
-        #
-        # The exit code is captured WITHOUT the `if !` form: inside `if !`,
-        # `$?` is the status of the negation (= 0 when the command failed),
-        # not the command's own code, so the board-unreadable case would
-        # be read as a plain miss.
-        python3 "$GATE" --card "$card" --board "$BOARD" >/dev/null 2>&1
-        claim_rc=$?
-        if [[ $claim_rc -eq 2 ]]; then
-            unreviewed=1
-            echo "UNREADABLE $b"
-            echo "         the board could not be read, so the card"
-            echo "         ($card) this branch names cannot be checked"
-            continue
-        fi
-        if [[ $claim_rc -eq 4 ]]; then
-            # The card is not on the board: the claim does not count, so
-            # the sha decides.
-            card=""
-        fi
-        if [[ $claim_rc -ne 0 && $claim_rc -ne 4 ]]; then
-            # The gate could not clear the card for any other reason
-            # (= it owes a verdict, or it breaks the contract). The
-            # verdict of the card this branch names is what is asked
-            # for, so the gate's own answer stands.
-            gate_out="$(python3 "$GATE" --card "$card" --board "$BOARD" 2>&1)"
-            # = = BUT A CARD THAT IS NOT A REVIEW CARD AT ALL DOES NOT
-            # = = DECIDE THE BRANCH. = = A branch name can carry the id of
-            # = = a BUILD card (= = one that never handed off for review),
-            # = = and that card's verdict is nobody's verdict on the work.
-            # = = So the CLAIM falls through to the sha lookup below,
-            # = = which is the authority. = = Measured 2026-11-09: the
-            # = = layout tree's split branch was named after its BUILD
-            # = = card, = = and that card read `no_handoff`, = = so the
-            # = = gate refused a branch whose REVIEW card carried an
-            # = = approving verdict on the very sha the branch pointed at.
-            if echo "$gate_out" | grep -q 'no_handoff'; then
-                card=""
-            else
-                unreviewed=1
-                echo "UNREVIEWED $b"
-                echo "$gate_out" | sed 's/^/         /'
-                continue
-            fi
-        fi
-    fi
+    # = = = THE AUTHORITY, READ ONCE. = = governing_card prints the ONE
+    # = = = review card the sha lookup says decides this branch (the head of
+    # = = = the gate's own order in matching_cards, = = review_gate.py:474),
+    # = = = and it writes the gate's exit code to LOOKUP_RC because a command
+    # = = = substitution cannot return one.
+    governing="$(governing_card "$b")"
+    lookup_rc="$(cat "$LOOKUP_RC" 2>/dev/null || echo 0)"
+
+    # = = = THE BRANCH NAME IS NO LONGER ASKED. = = It used to be read for a
+    # = = card id, and that id's verdict could decide the branch. Three
+    # = = measured defects came from that, all on this board 2026-11-19:
+    # = =
+    # = =   1. hole 1: a branch named after its BUILD card. That card
+    # = =      answers `contract_error`, and the gate refused a tip whose
+    # = =      own covering card had approved it (= project/t_393cc135-t2-…
+    # = =      at 9137874fd9, approved by t_178fe9d5).
+    # = =   2. hole 2: a branch named after a REVIEW CARD that approved a
+    # = =      DIFFERENT commit. The claim answered `approved`, so the
+    # = =      branch printed a bare CLEAN with no verdict line at all
+    # = =      (= project/t_5bff7b80-t2-… at 77465d9066, whose newest
+    # = =      verdict is t_712673d9's changes_requested).
+    # = =   3. F1, the first version of THIS fix: membership in the covering
+    # = =      list was checked on the approving path only, while the
+    # = =      refusal path still decided by a two-literal whitelist
+    # = =      (`no_handoff|contract_error`), so the ONE answer the seven
+    # = =      branches actually hit — exit 3, the verdict owed — still
+    # = =      vetoed an approved tip (= the named
+    # = =      card t_10af78c5 refused a sha this branch no longer carries,
+    # = =      0b6fcd88e4 — LATER than tip 31b5c3929a, not an ancestor of it
+    # = =      (`git for-each-ref --contains` answers nothing) — while the
+    # = =      lookup read CARD t_30847781 approved for the tip -> rc 3,
+    # = =      where the control on the SAME tip, whose name claims
+    # = =      t_ce7c0c11 and whose claim answers `approved`
+    # = =      (project/t_ce7c0c11-t3-…), read rc 0). Seven
+    # = =      live branches sat on that asymmetry, and the only difference
+    # = =      between them was the name. The other three non-zero answers
+    # = =      did none of this work: = 1 was the second whitelist literal,
+    # = =      2 printed `UNREADABLE` from the board-read arm, = and 4
+    # = =      (`card_absent`) was EXEMPTED from the veto by the explicit
+    # = =      `-eq 4` / `-ne 4` guards (:153/:158 of `001a570551`,
+    # = =      :163/:186 of `df4b74a066`) and fell through to the sha
+    # = =      lookup, = measured rc 0 on every version (= it never vetoed
+    # = =      anything).    # = =
+    # = = The rule those three share is not "check the claim against the
+    # = = lookup": it is that a claim decides nothing. Asking it at all was
+    # = = the defect, so it is no longer asked (= and an answer nobody can
+    # = = use is not kept as a spare).
+    # = = A card whose body names its sha OUTSIDE the WHAT TO BUILD claim
+    # = = therefore no longer lands by its branch name: AGENTS.md §1.15
+    # = = requires the heading, and `review_gate.py:617` (`reviewed_sha`)
+    # = = parses the sha out of its FIRST paragraph, so a body that breaks
+    # = = that shape is a body defect, not something the gate routes around.
+    card="$governing"
+
     if [[ -z "$card" ]]; then
-        card="$(review_card_for_branch "$b")"
-        # The lookup runs in a command substitution (= a subshell), so its
-        # exit code does not reach this shell: the function writes it to a
-        # file the caller reads.
-        if [[ -z "$card" ]]; then
-            lookup_rc="$(cat "$LOOKUP_RC" 2>/dev/null || echo 0)"
-        fi
-        if [[ -z "$card" && "${lookup_rc:-0}" -eq 2 ]]; then
+        if [[ "${lookup_rc:-0}" -eq 2 ]]; then
             # The gate could not read the board, so it could not answer.
             # That is not "no card names this sha": it is "the answer is
             # unknown", and an unknown answer must not read as a pass.
@@ -198,20 +240,25 @@ for b in "${branches[@]}"; do
             echo "         the review gate could not read the board"
             continue
         fi
-    fi
-    if [[ -z "$card" ]]; then
         # No review card resolves this branch. That is NOT "no card to
         # gate": under the one-developer flow the sha lookup is the ONLY
-        # lookup (= the branch is pocock's own and is not named after a
-        # card), so a miss means the work carries no verdict. A gate that
-        # skips its own check silently is the exact defect this gate
-        # exists to prevent (= a check that cannot fail).
+        # lookup, so a miss means the work carries no verdict. A gate that
+        # skips its own check silently is the exact defect this gate exists
+        # to prevent (= a check that cannot fail).
         unreviewed=1
         echo "UNREVIEWED $b"
         echo "         no review card names the sha this branch points at"
-        echo "         (the review card's body names the sha under review;"
-        echo "          the gate matches the CHANGE, so a branch that was"
-        echo "          rebased still matches the card that reviewed it)"
+        claimed="$(card_id_of "$b")"
+        if [[ -n "$claimed" ]]; then
+            # Named for the reader, not for the verdict: the branch's own
+            # card id is NOT a verdict on this tip (= findings 1 to 3 above).
+            echo "         (the branch name claims $claimed; a claim is not"
+            echo "          a verdict on this commit, so it was not asked)"
+        fi
+        echo "         (the review card's body names the sha under review in"
+        echo "          the first paragraph of WHAT TO BUILD; the gate"
+        echo "          matches the CHANGE, so a rebased branch still"
+        echo "          matches the card that reviewed it)"
         continue
     fi
     gate_out="$(python3 "$GATE" --card "$card" --board "$BOARD" 2>&1)"
