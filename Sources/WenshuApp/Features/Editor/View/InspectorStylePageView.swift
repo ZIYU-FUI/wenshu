@@ -119,7 +119,16 @@ struct InspectorStylePageView: View {
             //  like (= the table is the LONGest group, = and it is the
             //  one a reader scrolls to rather than starts at).
             presetsGroup
+                // Nothing to set when no book is named. A switcher that
+                // answers a click by springing back to what it already
+                // showed tells the user his own click was imagined; = the
+                // disabled state is Apple's word for "there is no target
+                // here", = and it is the honest one (= the table below
+                // stays, = because a preview of the baseline sheet is not
+                // a claim about any book).
+                .disabled(currentBookID == nil)
             tuningGroup
+                .disabled(currentBookID == nil)
             stylesGroup
         }
         .onChange(of: bookStore.selectedBookId, initial: true) { _, bookID in

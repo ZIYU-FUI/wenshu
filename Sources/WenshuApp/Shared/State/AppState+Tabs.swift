@@ -24,7 +24,8 @@ extension AppState {
                 draft: $0.draft,
                 originalBody: $0.originalBody,
                 mode: $0.mode.rawValue,
-                title: $0.title
+                title: $0.title,
+                sourceScope: $0.sourceScope
             )
         }
         if let data = try? JSONEncoder().encode(snapshot) {
@@ -166,7 +167,7 @@ extension AppState {
                 // launch).
                 return (fileContent, fileContent)
             }()
-            return EditorTab(
+            let tab = EditorTab(
                 id: p.id,
                 documentPath: p.documentPath,
                 draft: restoredDraft,
@@ -174,6 +175,12 @@ extension AppState {
                 mode: mode,
                 title: p.title
             )
+            // The scope is set after init (= the same way the open paths
+            // set it, = `SidebarOpenOps` / `CardOpenOps`), so a restored
+            // tab names the SAME book its pre-relaunch self named (= the
+            // format page's target survives a restart).
+            tab.sourceScope = p.sourceScope
+            return tab
         }
         if let activeId = UserDefaultsStore.shared.uuid(forKey: .activeTabId),
            openTabs.contains(where: { $0.id == activeId }) {
@@ -181,5 +188,21 @@ extension AppState {
         } else if let first = openTabs.first {
             self.activeTabId = first.id
         }
+    }
+
+    /// The book the document in front of the user belongs to, = or nil
+    /// when the active tab is a placeholder, = a reference-library card,
+    /// or a document opened before a scope was recorded.
+    ///
+    /// This is what makes "the book" mean the same thing on the format
+    /// page and in the editor: the page and the editor both read the
+    /// store's selected book, = and the store adopts THIS on every tab
+    /// change (= `LibraryRootView`). Opening a book's document from the
+    /// card grid therefore names that book, = which the sidebar's outline
+    /// click alone never did.
+    var activeBookId: UUID? {
+        guard let tab = openTabs.first(where: { $0.id == activeTabId }) else { return nil }
+        if case .bookScope(let bookId, _) = tab.sourceScope { return bookId }
+        return nil
     }
 }

@@ -72,6 +72,14 @@ struct ValuePopUpButton<Selection: Hashable>: NSViewRepresentable {
     /// drawn bezel's height, = because AppKit fills the control's height).
     var controlSize: NSControl.ControlSize = .regular
 
+    /// Whether the caller's context lets the reader use this control. A
+    /// representable is NOT handed SwiftUI's disabled state for free (= a
+    /// `.disabled(true)` around one leaves the AppKit control live), so the
+    /// state is carried onto the control here (= and AppKit draws and gates
+    /// the dimming itself, which is the vocabulary every other control on
+    /// the system uses).
+    @Environment(\.isEnabled) private var isEnabled
+
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
     }
@@ -94,6 +102,7 @@ struct ValuePopUpButton<Selection: Hashable>: NSViewRepresentable {
     func updateNSView(_ button: NSPopUpButton, context: Context) {
         context.coordinator.parent = self
         button.controlSize = controlSize
+        button.isEnabled = isEnabled
         button.setAccessibilityLabel(name)
         button.cell?.setAccessibilityLabel(name)
         reload(button)

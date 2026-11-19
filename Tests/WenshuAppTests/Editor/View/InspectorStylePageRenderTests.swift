@@ -385,8 +385,20 @@ struct InspectorStylePageRenderTests {
         //  The table comes LAST on the page (= see OOB.md #2026-11-19),
         //  = because it is the group a reader looks at after they have
         //  set the book, = and it is the long one.
+        //  The ORDER is what is asserted, not the adjacency: the groups
+        //  carry modifiers between them (= a `.disabled` for the case of
+        //  no book named), and an assertion about which line follows which
+        //  is an assertion about how the file is formatted.
+        let tuning = try #require(
+            code.firstRange(of: "tuningGroup").map { code.distance(from: code.startIndex, to: $0.lowerBound) },
+            "the page's body must render the fine tuning"
+        )
+        let table = try #require(
+            code.firstRange(of: "stylesGroup").map { code.distance(from: code.startIndex, to: $0.lowerBound) },
+            "the page's body must render the style table"
+        )
         #expect(
-            code.contains("tuningGroup\n            stylesGroup\n"),
+            tuning < table,
             "the fine tuning must be rendered above the style table"
         )
     }

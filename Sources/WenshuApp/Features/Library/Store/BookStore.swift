@@ -71,7 +71,24 @@ final class BookStore {
 
     /// Currently selected book id (= drives the per-book reload via
     /// SwiftUI .onChange observer in App.swift).
+    ///
+    /// The ONE record of which book is active: = the format page writes
+    /// the book named here, = and the editor renders the sheet of the
+    /// book named here, = so the two can never name different books.
     var selectedBookId: UUID?
+
+    /// Adopt the book the active document belongs to.
+    ///
+    /// `nil` (= a placeholder tab, = a reference-library card, = a tab
+    /// restored from a snapshot that predates the scope field) leaves
+    /// the record ALONE: an outline click in the sidebar is still a
+    /// legitimate way to name a book, = and clearing it here would cost
+    /// the format page its target every time a non-book tab came to the
+    /// front.
+    func adoptActiveBook(_ bookId: UUID?) {
+        guard let bookId else { return }
+        selectedBookId = bookId
+    }
 
     /// Library-level store bundle (= constructed by LibraryLifecycleHook
     /// at app launch; held here for per-book resolution).
