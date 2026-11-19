@@ -44,7 +44,7 @@ import tempfile
 
 # = The tool lives beside this test, = so its path is the test's own
 # directory's parent.
-TOOL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "nfi-loc-check.py")
+TOOL = os.environ.get("NFI_LOC_CHECK_TOOL") or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "nfi-loc-check.py")
 
 
 def run(args, cwd):
@@ -216,8 +216,122 @@ def rewritten_row_case():
     return 0
 
 
+def behind_main_case():
+    """F1 EXACTLY: a branch BEHIND main must NOT be charged for a rewrite
+    MAIN did.
+
+    THE SHAPE: the branch forked from BASE; main then moved on and
+    rewrote a registered file (and corrected that row); the BRANCH's own
+    tree still carries the OLD (pre-correction) row. The branch did NOT
+    touch that file (it has zero commits naming it), and by the
+    registry's header the row's staleness is the TREE's own drift, not
+    this branch's business.
+
+    SO THE GATE MUST NOT CHARGE IT, and the fix is the THREE-DOT diff
+    (base...HEAD = the merge-base to HEAD = this branch's own work).
+
+    MEASURED 2026-11-19 (the review's F1): a two-dot diff named every
+    file main changed after the fork, so the branch was charged for a
+    row main itself had corrected.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        run(["git", "init", "-q", tmp], cwd=tmp)
+        run(["git", "config", "user.email", "t@t"], cwd=tmp)
+        run(["git", "config", "user.name", "t"], cwd=tmp)
+        os.makedirs(os.path.join(tmp, "Sources"), exist_ok=True)
+        os.makedirs(os.path.join(tmp, "docs", "agents"), exist_ok=True)
+        theirs = os.path.join(tmp, "Sources", "Theirs.swift")
+        ours = os.path.join(tmp, "Sources", "Ours.swift")
+        registry = os.path.join(tmp, "docs", "agents", "nfi.md")
+
+        # = the base: = one registered file, = and a row for it.
+        with open(theirs, "w", encoding="utf-8") as handle:
+            handle.write("let a = 1\nlet b = 2\n")
+        with open(ours, "w", encoding="utf-8") as handle:
+            handle.write("let x = 1\n")
+        write_registry(registry, [("Sources/Theirs.swift", "Sources/Theirs.swift", 99)])
+        run(["git", "add", "-A"], cwd=tmp)
+        run(["git", "commit", "-qm", "base"], cwd=tmp)
+
+        # = the BRANCH forks here, = and never touches Theirs.swift.
+        run(["git", "checkout", "-qb", "branch"], cwd=tmp)
+        with open(ours, "w", encoding="utf-8") as handle:
+            handle.write("let x = 1\nlet y = 2\n")
+        write_registry(
+            registry,
+            [
+                ("Sources/Theirs.swift", "Sources/Theirs.swift", 99),
+                ("Sources/Ours.swift", "Sources/Ours.swift", 2),
+            ],
+        )
+        run(["git", "add", "-A"], cwd=tmp)
+        run(["git", "commit", "-qm", "the branch's own work"], cwd=tmp)
+
+        # = MAIN moves on: = it rewrites Theirs.swift, = and corrects the
+        # = row (= = so main's own tree is consistent).
+        run(["git", "checkout", "-q", "main"], cwd=tmp)
+        with open(theirs, "w", encoding="utf-8") as handle:
+            handle.write("let a = 1\nlet b = 2\nlet c = 3\n")
+        write_registry(
+            registry,
+            [
+                ("Sources/Theirs.swift", "Sources/Theirs.swift", 3),
+                ("Sources/Ours.swift", "Sources/Ours.swift", 1),
+            ],
+        )
+        run(["git", "add", "-A"], cwd=tmp)
+        run(["git", "commit", "-qm", "main moved on"], cwd=tmp)
+        main = run(["git", "rev-parse", "HEAD"], cwd=tmp).stdout.strip()
+
+        # = the branch's tree still carries the PRE-correction row (= = = 2
+        # = = = = for a file that is now 3 lines), = = and that is the drift
+        # = = = = the header says is NOT this branch's business.
+        run(["git", "checkout", "-q", "branch"], cwd=tmp)
+
+        # = the gate, = = run against MAIN (= = = = = the landing case).
+        result = run([sys.executable, TOOL, "--base", main, "--registry", registry], cwd=tmp)
+        if result.returncode != 0:
+            print("FAILED: the gate charged a branch for a rewrite MAIN did")
+            print("  (= = = the F1 shape: = the row's staleness is the tree's drift)")
+            print(result.stdout)
+            return 1
+
+        # = AND the gate must STILL charge the branch for ITS OWN work:
+        # = the branch rewrote Ours.swift (= = and the row in the branch's
+        # = tree says 1 while the file is 3 lines).
+        with open(ours, "w", encoding="utf-8") as handle:
+            handle.write("let x = 1\nlet y = 2\nlet z = 3\n")
+        write_registry(
+            registry,
+            [
+                ("Sources/Theirs.swift", "Sources/Theirs.swift", 99),
+                ("Sources/Ours.swift", "Sources/Ours.swift", 1),
+            ],
+        )
+        run(["git", "add", "-A"], cwd=tmp)
+        run(["git", "commit", "-qm", "the branch rewrote its own file"], cwd=tmp)
+
+        result = run([sys.executable, TOOL, "--base", main, "--registry", registry], cwd=tmp)
+        if result.returncode == 0:
+            print("FAILED: the gate did NOT charge the branch for its OWN rewrite")
+            print(result.stdout)
+            return 1
+        if "Ours.swift" not in result.stdout:
+            print("FAILED: the gate went red without naming the branch's own row")
+            print(result.stdout)
+            return 1
+        if "Theirs.swift" in result.stdout:
+            print("FAILED: the gate charged the branch for MAIN's rewrite too")
+            print(result.stdout)
+            return 1
+
+    return 0
+
+
 if __name__ == "__main__":
     code = main()
     if code == 0:
         code = rewritten_row_case()
+    if code == 0:
+        code = behind_main_case()
     sys.exit(code)

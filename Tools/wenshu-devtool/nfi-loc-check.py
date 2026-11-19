@@ -27,16 +27,33 @@ file today". = So a row that names a file this change did not add is
 NOT this change's business, = and its count may be stale BY DESIGN
 (= 92 such rows carry a count from when their row was written).
 
-So the gate reads the rows this change ADDED: = a key the base's
-registry does not carry and the tip's does. = For each, = the row must
-name a file, = and that row's LOC cell must be that file's own `wc -l`
+So the gate reads the rows this change ADDED **union** the rows whose
+NAMED FILE this change REWROTE: = the added half is a key the base's
+registry does not carry and the tip's does; = the rewritten half is a
+key whose file the change rewrote. = For each, = the row must name a
+file, = and that row's LOC cell must be that file's own `wc -l`
 (= the convention the registry's own header names).
 
-= Rewriting a file does NOT bring its row into scope: = the row was
-written when the file was split out, = and the file's later growth is
-the tree's own drift (= which the header says is expected). = The rule
-this gate holds is the one the driver cannot: = a row that is ADDED
-with the WRONG count, = or a count pasted over another file's row.
+= The REWRITTEN half is NOT optional, = and the header already says
+so: = "a row for a file this change ADDED is written with that file's
+count, = and the row is CORRECTED if the same change REWRITES the
+file". = So a change that rewrites a registered file must rewrite that
+row too, = even when the change adds no registry row at all.
+
+= MEASURED 2026-11-19 (= the library card's round 3): = a replay of
+that branch onto a moved `main` ran the registry's merge driver, = the
+driver NAMED two conflicted keys and exited 1, = and still wrote
+`main`'s rows into the file with ZERO conflict markers. = Every gate
+read green, = because the two lost rows were SAME-KEY rows and this
+gate scoped itself to the ADDED half alone.
+
+= A row this change touched NEITHER half of is NOT this change's
+business: = the row was written when the file was split out, = and
+the file's later growth is the tree's own drift (= which the header
+says is expected). = The rule this gate holds is the one the driver
+cannot: = a row that is ADDED with the WRONG count, = or a count
+pasted over another file's row, = or a row this change made a lie by
+rewriting the file it names.
 
 ⇒ ⇒ ⇒ AND THE TWO COUNTS A ROW CARRIES USE TWO CONVENTIONS, = = AND
 THEY CAN DIFFER BY ONE: = = the registry's PARENT cell's prose (= "= =
@@ -77,11 +94,6 @@ def run(args, cwd=REPO):
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True).stdout
 
 
-def changed_swift_files(base):
-    out = run(["git", "diff", "--name-only", base, "HEAD", "--", "*.swift"])
-    return [line.strip() for line in out.split("\n") if line.strip()]
-
-
 def added_keys(base):
     """The registry keys this change ADDED (= the base has none of them)."""
     base_text = run(["git", "show", f"{base}:docs/agents/nfi.md"])
@@ -112,8 +124,20 @@ def rewritten_keys(base):
     two lost rows were SAME-KEY rows (= = = a key the base already
     carried). = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ SO A REPLAY CAN SILENTLY REWRITE AN
     EXISTING ROW, = = AND THIS IS THE CHECK THAT SEES IT.
+
+    ⇒ ⇒ ⇒ AND THE SCOPE IS **THIS CHANGE'S OWN WORK**, = = NOT EVERY
+    FILE THAT DIFFERS FROM THE BASE: = = the diff is THREE-DOT (= =
+    `base...HEAD` = = = the merge-base to HEAD), = = = = = so it names
+    the files THIS branch rewrote. = = ⇒⇒⇒ MEASURED 2026-11-19 (= = =
+    = the review's F1): = = = = = a two-dot diff named every file `main`
+    changed after the fork, = = = = = = so a branch BEHIND `main` was
+    charged for a row `main` itself had corrected (= = = = = = = = the
+    branch's tree still carried the pre-correction row, = = = = = = = =
+    = and rebasing onto `main` fixes it). = = ⇒⇒⇒ **⇒ SO THE GATE
+    CHARGES A REWRITE THE BRANCH ITSELF DID, = = = = = = = = = = = = =
+    = = = = and never one it merely inherited.**
     """
-    changed = set(run(["git", "diff", "--name-only", base, "HEAD"]).split("\n"))
+    changed = set(run(["git", "diff", "--name-only", f"{base}...HEAD"]).split("\n"))
     changed = {name.strip() for name in changed if name.strip()}
     tip_text = run(["git", "show", "HEAD:docs/agents/nfi.md"])
     keys = set()
@@ -185,14 +209,16 @@ def main():
             print("  " + failure)
         print(
             f"  ({checked} row(s) checked: = {len(added)} the change added, "
-            f"= {len(rewritten)} whose named file the change rewrote)"
+            f"= {len(rewritten - added)} whose named file the change rewrote "
+            f"and did not add)"
         )
         return 1
 
     print(
         f"nfi-loc-check: every added or rewritten file's row carries its own count "
         f"({checked} row(s) checked: = {len(added)} the change added, "
-        f"= {len(rewritten)} whose named file the change rewrote)"
+        f"= {len(rewritten - added)} whose named file the change rewrote "
+        f"and did not add)"
     )
     return 0
 
