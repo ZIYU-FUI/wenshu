@@ -449,9 +449,12 @@ def case_a_refusal_of_an_other_commit_does_not_veto_the_tip() -> None:
     `31b5c3929a` (named card `t_10af78c5` refused `0b6fcd88e4`; the sha
     lookup reads CARD `t_30847781` approved) read rc 3, = = while the
     control on the SAME tip, `project/t_ce7c0c11-t3-…`, = = whose name
-    claims the card t_ce7c0c11, which APPROVED that very tip, read rc 0
-    (the name claimed; the claim decided nothing). = = Both arms are
-    asserted here.
+    claims the card t_ce7c0c11, whose OWN claim answers approved (for the
+    later sha 23728909b7, its parent being this tip; the approval THAT the
+    lookup reads belongs to card t_30847781 — measured, review_gate.py
+    --branch project/t_ce7c0c11-t3-… --sha 31b5c3929a answers `CARD
+    t_30847781 / verdict: approved`), read rc 0 (the name claimed; the
+    claim decided nothing). = = Both arms are asserted here.
     """
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
