@@ -365,7 +365,7 @@ proxy metric (= "the branch is gone") answers neither.
 | --- | --- | --- |
 | `b5f34f59e0831324e3e5d3806d85f76a3fc3046e` | **the landed commit** (= 14 files, +664/-102) | yes |
 | `345e33338cd497b1a49c0a9e8cbb378773f7921b` | the round-2 tip the reviewer approved | yes (= the same content, an earlier base) |
-| `23728909b78768d3cad54d2ecd98702d3c3046e` | the round-1 tip the reviewer approved | yes (= the same content minus the refresh fix) |
+| `23728909b78768d3cad54d2ecd98702d3c304e32` | the round-1 tip the reviewer approved | yes (= the same content minus the refresh fix) |
 | `876a08f300d6b2c79eb0a5ae0845b5fcc81b6097` | the landed commit's parent (= a sibling's closeout record) | **no** |
 | `b0ba0e0e2b2bcd6f53e7c403f7d836ed5f01a824` | the round-2 tip's parent (= a sibling's sidebar fix) | **no** |
 | `31b5c3929ab7b3cd1b25545b267d584eec7a14b6` | the round-1 tip's parent (= a sibling's tab-strip commit) | **no** |
