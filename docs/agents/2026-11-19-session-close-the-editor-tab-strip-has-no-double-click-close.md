@@ -153,10 +153,32 @@ measured in the source).
   = = The blind spot is general and this record is its own worst case: EVERY
   correction round of a closeout record modifies that one row, so every round
   after the first lands with the gate silent, and every round has to reprint
-  the pair itself. This round does: `grep -c "" <this file>` = 480 and the
-  row's cell = 485. That blind spot is §11 item 8. At the same pair,
+  the pair itself. And a round cannot QUOTE that number in its own text: the
+  count and the sentence quoting it land in the same commit, so the sentence is
+  stale the moment the file grows — which is how this bullet came to print 480,
+  the file's count at `ffeb9fafbe`, five inserted lines before this one. (That
+  480 also happens to be the LINE NUMBER of this file's row in `nfi.md`, a
+  coincidence that made the stale count look like a coordinate read as a count;
+  it was neither, it was simply the previous round's number.) = = So what is
+  published here is the INVARIANT plus the two commands that print it, read from
+  the tree the reader lands on: `grep -c "" <this file>` and the cell that
+  `docs/agents/nfi.md` carries for this file must be EQUAL. Every round of this
+  record re-derives both after its last insertion and prints them beside its own
+  verdict. That blind spot is §11 item 8, and the self-reference rule is item 11. At the same pair,
   `ci_change_gate.py --check markdown-newline` prints `2 changed .md file(s)
   checked`, rc 0.
+- Pair (base `b5f34f59e0`, **HEAD = the commit carrying this bullet**): the
+  gates for a record's own correction commits are charged against the parent the
+  commit ACTUALLY has, and a round cannot assume that parent is the previous
+  round's sha. A sibling's cover-menu feature (`b5f34f59e0`) landed between this
+  record's round-3 and round-4 commits, so `--base 876a08f300` charges 12 changed
+  Swift files, 4 registry rows and 716 added lines (6 of them carrying Han) that
+  belong to that feature and not to this record. At the pair printed here the
+  same gates read `0 changed Swift file(s)`, `2 changed .md file(s) checked`,
+  `the change adds no registry row; nothing to check` (= §11 item 8, the row was
+  modified rather than added), 52 added lines and 0 Han in U+4E00-U+9FFF, every
+  rc 0. = = The general rule this record keeps relearning from a new direction:
+  read `git rev-parse HEAD~1` before naming a base, and publish the pair.
 - Re-run on the tip `main` had moved to when this record closed (`1fbeb0cf96`,
   two sibling sidebar commits later), in the shared checkout: `swift build
   --build-tests` rc 0; `swift test --filter 'PaneTabStripCloseTests'` = `Test
@@ -190,7 +212,9 @@ read and it still exits 0 (`no new CJK comment line (0 added line(s) scanned)`
 was printed for this doc's commit). A tracked .md's zero-CJK rule is therefore
 proved by the direct Han-range scan of the file itself, which this record's
 commit carries: 0 occurrences in the range U+4E00-U+9FFF, in the file and in
-its added lines, over `wc -l` = 485 lines. That gap is a gate defect in
+its added lines, over a `wc -l` that is deliberately NOT quoted here (= the
+count moves with the sentence that quotes it; the invariant and its two commands
+are in the bullet above). That gap is a gate defect in
 its own right (= nothing in CI enforces rule 1.1 on markdown, and widening the
 check to all tracked text files WITHOUT dropping the `'*.swift'` pathspec would
 close nothing) and is listed in §11 item 7.
@@ -322,7 +346,13 @@ sqlite3 <board>/kanban.db "SELECT id,outcome,(ended_at-started_at)
   board and the table below refutes them in two rows: the six excluded runs are
   exactly the `rate_limited` rows and they are not all short — 4534 ran 628 s
   (10.5 min) and 4538 ran 5227 s (**87.1 min**), and `task_events` for run 4538
-  carries 85 heartbeat rows (4534: 16, 4552: 7), so a rate-limited run did get
+  carries 85 heartbeat rows, and the predicate is printed because the kind
+  matters — `SELECT run_id,count(*) FROM task_events WHERE run_id IN
+  (4534,4538,4552) AND kind='heartbeat' GROUP BY run_id` = 4534|10, 4538|85,
+  4552|1, while the SAME query with the kind predicate dropped reads 4534|16,
+  4538|91, 4552|7 (all event kinds: claimed, owner_admitted, spawned,
+  worker_bound, heartbeat, rate_limited, worker_result). An earlier draft quoted
+  the second set as heartbeats. So a rate-limited run did get
   a process. What the short four are is `4552/4556/4560/4564` = 60/61/62/61 s,
   which died on admission; the other two were killed by the quota wall mid
   flight. The excluded six sum to 6099 s = 1.69 h.
@@ -379,6 +409,16 @@ origin refs/heads/main` and `git ls-remote old-origin refs/heads/main` both read
 `1fbeb0cf96b66698cef7e878c4493f312b12310d` (= two sibling sidebar commits past
 this scope), and `git merge-base --is-ancestor <sha> <remote>/main` returns rc 0
 for BOTH `124ce32757` and `1699b71bc5` against BOTH remotes.
+
+= = The tip moved twice more while this record was under review, which is the
+point of using ancestry: at round 4's write-time both remotes read
+`b5f34f59e0831324e3e5d3806d85f76a3fc3046e` (a sibling's cover-menu feature,
+landed between this record's own round-3 and round-4 commits), and
+`git merge-base --is-ancestor` returns rc 0 for all four of this record's
+commits — `124ce32757`, `1699b71bc5`, `ffeb9fafbe`, `876a08f300` — against both
+remotes. Re-run the ancestry check, not a tip equality: the tip changed three
+times across four rounds, so any sentence asserting equality with it was already
+false by the time it was pushed.
 
 ## 11. Open items left behind
 
@@ -442,6 +482,16 @@ for BOTH `124ce32757` and `1699b71bc5` against BOTH remotes.
    excludes the file that defines the vocabulary. It pre-dates this scope by 24
    days (`780d7cb5f4`, 2026-10-26).
 
+11. **A closeout record must not publish an absolute count of itself** (§6,
+   §12): `wc -l` of the record, the number of hits a grep finds INSIDE the
+   record, the record's own line numbers — each has a coordinate that the
+   record's last edit moves, so the sentence is stale in the very commit that
+   ships it. Round 3 of this record shipped two such sentences. = = The rule:
+   publish the INVARIANT and the command that prints it, and let the reader's own
+   tree supply the number; if a number must appear, bind it to the commit it was
+   measured at and say "measured before this round's final edit". A count with no
+   coordinate is a claim, and a count of the counting sentence is a claim that
+   refutes itself.
 ## 12. This record's own rounds
 
 - Round 1 (card `t_a4a6794f`, run 4594 = 3018 s = **50.3 min**, 15:59:27 to
@@ -456,14 +506,18 @@ for BOTH `124ce32757` and `1699b71bc5` against BOTH remotes.
   stated (F1); §8's bundle path had to be absolute, because the bundle exists
   only in the shared checkout and a relative path reads 0/0/0 from a worktree
   (F2); §9's run ledger mis-cited four runs and carried one number no board row
-  prints (F3); "approved in nine minutes" was 1309 s = 21.8 min, stated twice
+  prints (F3); the retired duration claim was 1309 s = 21.8 min, stated twice
   (F4); and §6/§10 named a moving ref and a pruned branch, so the published
   commands no longer measured this change (F5). This commit is the fix.
   `1699b71bc5` was already pushed, so the fix is a NEW commit and the pushed
   sha was not amended.
 - Round 2 (card `t_cdf2b1ba`, run 4604 = 853 s = **14.2 min**): F1, F2 and F4
   reprinted EXACTLY under the reviewer's own commands (62/46 with the
-  30+32 / 30+16 split, the relative path reading 0/0/0, `grep -n "nine minutes"`
+  30+32 / 30+16 split, the relative path reading 0/0/0, and `grep -n` on the
+  retired phrase returning two hits at `ffeb9fafbe`, both inside correction
+  sentences — a count that round 3 broke by quoting the grep in §12, which is
+  itself a hit, so the invariant replaces it: EVERY occurrence sits inside a
+  sentence that names it as an error, however many there are
   = 2 hits inside correction sentences), F3's table and both totals reprinted,
   and the verdict was `changes_requested` again, for five more doc-only
   findings, three of them numbers inside the very sections written to close
@@ -479,6 +533,19 @@ for BOTH `124ce32757` and `1699b71bc5` against BOTH remotes.
   hold in prose than to state in prose: a count with no coordinates next to it is
   a claim, and this record had been printing counts with only one coordinate for
   two rounds running.
+- Round 3 (card `t_21b9722a`, run 4608 = 651 s = **10.9 min**): C1's pair rule
+  CLOSED — the reviewer re-measured both halves itself (`10 / 2 / 3` from this
+  record's tree, `5 / 1` at `124ce32757` and `1 row` at `1699b71bc5` in two
+  throwaway detached worktrees, both removed) — and C2, C4, C5, C6, C7 and all
+  six GATES passed. The verdict was `changes_requested` for three findings of a
+  NEW class, not the rounds-1-and-2 class: numbers the record invalidated BY
+  GROWING ITSELF. One self-count was stale by this round's own five inserted
+  lines and contradicted another sentence four paragraphs later; a count of grep
+  hits inside the record was itself a hit; and a per-run event count was labelled
+  "heartbeat" when the kind predicate had not been applied (10 / 85 / 1 are the
+  heartbeats, 16 / 91 / 7 are all event kinds). = = The structural answer is
+  §11 item 11: a record publishes invariants and commands, never a count of
+  itself, because the counting sentence and the count ship in the same commit.
 - The reviewers' evidence lives in their own profile's scratch, not this
   session's: `/Volumes/ANAN/.hermes/profiles/wenshu-review/cache/scratch/ab-2026-11-19/`
   (round 1) and the two throwaway detached worktrees round 2 added at
