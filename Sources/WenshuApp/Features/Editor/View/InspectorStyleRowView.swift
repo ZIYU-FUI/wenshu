@@ -55,16 +55,17 @@ struct InspectorStyleRow: Identifiable, Equatable, Sendable {
     let spacing: Double?
 
     /// The role's voice (= the face, = the size and = the line height
-    /// the ENGINE gives it), = or nil for a role set in no type.
-    let preview: InspectorStylePreview?
+    /// the ENGINE gives it). = Total, because every role the table carries
+    /// is words.
+    let preview: InspectorStylePreview
 
     var id: String {
         role.rawValue
     }
 
-    /// The cells the row keeps under the pointer (= the face, = the
-    /// size and = the leading, = and a dash where the sheet names
-    /// none).
+    /// The cells the row keeps under the pointer (= the face, = the size
+    /// and = the leading, = and only the ones the sheet names: = the code
+    /// row carries the leading alone).
     var cells: [String] {
         var cells: [String] = []
         if let family {
@@ -86,12 +87,6 @@ struct InspectorStyleRow: Identifiable, Equatable, Sendable {
                     comment: "A style role's line spacing, as a multiple of the body size"
                 ),
                 spacing
-            ))
-        }
-        if cells.isEmpty {
-            cells.append(NSLocalizedString(
-                "inspector.style.unset",
-                comment: "The dash that stands for a value the book's style sheet does not name"
             ))
         }
         return cells
@@ -155,21 +150,13 @@ struct InspectorStyleRowView: View {
     /// (= STHeitiSC-Medium, = not Light), = so a `.bold()` here would
     /// embolden a face that is bold, = which is the double paint this
     /// page is being corrected for.
-    @ViewBuilder private var sample: some View {
-        if let preview = row.preview {
-            Text(sampleText)
-                .font(.custom(preview.faceName, size: preview.size))
-                .lineSpacing(preview.extraLeading)
-                .multilineTextAlignment(.leading)
-                .foregroundStyle(DesignTokens.textBody)
-                .fixedSize(horizontal: false, vertical: true)
-        } else {
-            //  A role the book sets in no type (= the picture, = the
-            //  rule): = the dash is the only honest thing to show.
-            Text(InspectorStyleRow.unsetValue)
-                .font(.caption)
-                .foregroundStyle(DesignTokens.textChrome)
-        }
+    private var sample: some View {
+        Text(sampleText)
+            .font(.custom(row.preview.faceName, size: row.preview.size))
+            .lineSpacing(row.preview.extraLeading)
+            .multilineTextAlignment(.leading)
+            .foregroundStyle(DesignTokens.textBody)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// The two lines every row speaks.
@@ -179,12 +166,4 @@ struct InspectorStyleRowView: View {
             comment: "The two sample lines the book's style table sets in each role's own voice (a newline separates them)"
         )
     }
-}
-
-extension InspectorStyleRow {
-    /// The dash that stands for a role the sheet sets in no type.
-    static let unsetValue = NSLocalizedString(
-        "inspector.style.unset",
-        comment: "The dash that stands for a value the book's style sheet does not name"
-    )
 }

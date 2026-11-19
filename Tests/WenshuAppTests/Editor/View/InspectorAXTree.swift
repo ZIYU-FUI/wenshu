@@ -145,14 +145,6 @@ enum InspectorAXTree {
         )
     }
 
-    /// The dash that stands for a value the sheet does not name.
-    static var unsetName: String {
-        NSLocalizedString(
-            "inspector.style.unset",
-            comment: "The dash that stands for a value the book's style sheet does not name"
-        )
-    }
-
     /// The catalog's keys (= the names the page draws).
     static func catalog(at url: URL) throws -> [String: Int] {
         let data = try Data(contentsOf: url)

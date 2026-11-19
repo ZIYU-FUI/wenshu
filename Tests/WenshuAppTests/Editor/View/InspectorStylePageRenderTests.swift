@@ -52,25 +52,24 @@ import Testing
 @Suite("Inspector column style page, rendered", .serialized)
 struct InspectorStylePageRenderTests {
     /// The page carries the eleven roles and the five knobs.
-    @Test("the page carries the eleven styles and the five knobs")
+    @Test("the page carries the nine styles and the five knobs")
     func thePageCarriesTheStylesAndTheKnobs() {
         let model = InspectorStylePageModel(sheet: .default)
         #expect(
-            model.rows.count == 11,
-            "the style table names the eleven roles a novel uses"
+            model.rows.count == 9,
+            "the style table names the nine roles a novel's text is made of"
         )
         #expect(
             model.rows.map(\.role) == [
                 .body, .quote, .note,
                 .headingOne, .headingTwo, .headingThree,
-                .figureCaption, .tableCaption,
-                .image, .rule, .monospace,
+                .figureCaption, .tableCaption, .monospace,
             ],
-            "the style table names the eleven roles in the order a book is made of"
+            "the style table names the nine roles in the order a book is made of"
         )
         #expect(
-            InspectorStyleRole.allCases.count == 11,
-            "the role enum carries the eleven roles (= the book's own name is not one of them)"
+            InspectorStyleRole.allCases.count == 9,
+            "the role enum carries the nine roles (= the book's own name is not one of them, = and neither is a picture or a rule)"
         )
         #expect(
             model.knobs.map(\.id) == [
@@ -107,11 +106,16 @@ struct InspectorStylePageRenderTests {
             "the headings follow the body's own heading face (= the sheet names it)"
         )
         #expect(heading?.size == 18, "the heading's size comes from the sheet's ladder")
-        let image = model.rows.first { $0.role == .image }
-        #expect(image?.family == nil, "the sheet names no face for the image")
+        //  The code block is the one row the sheet names no face and no
+        //  size for, = and it keeps the leading alone (= the dash that
+        //  used to stand for "nothing to name" went out with the two rows
+        //  that were its only customer).
+        let code = model.rows.first { $0.role == .monospace }
+        #expect(code?.family == nil, "the sheet names no face for the code block")
+        #expect(code?.size == nil, "the sheet names no size for the code block")
         #expect(
-            image?.cells == [InspectorAXTree.unsetName],
-            "a role the sheet names nothing for shows a dash (= the print standard's own table writes one)"
+            code?.cells.count == 1,
+            "the row the sheet names only a leading for carries that one cell"
         )
     }
 
@@ -436,7 +440,6 @@ struct InspectorStylePageRenderTests {
             "inspector.style.family.pingFang",
             "inspector.style.size",
             "inspector.style.leading",
-            "inspector.style.unset",
             "inspector.style.preview.sample",
         ] {
             missing.append(key)
@@ -515,5 +518,4 @@ struct InspectorStylePageRenderTests {
         return root
             .appendingPathComponent("Sources/WenshuApp/Resources/Localizable.xcstrings")
     }
-
 }

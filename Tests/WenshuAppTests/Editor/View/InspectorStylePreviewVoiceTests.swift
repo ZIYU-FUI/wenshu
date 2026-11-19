@@ -49,7 +49,11 @@ struct InspectorStylePreviewVoiceTests {
         let model = InspectorStylePageModel(sheet: sheet)
 
         func shown(_ role: InspectorStyleRole) throws -> InspectorStylePreview {
-            try #require(model.rows.first { $0.role == role }?.preview, "the \(role) row carries a voice")
+            let row = try #require(
+                model.rows.first { $0.role == role },
+                "the \(role) row is in the table at all"
+            )
+            return row.preview
         }
 
         //  The body: the sheet's own grid, = and the grid is the size
@@ -104,16 +108,17 @@ struct InspectorStylePreviewVoiceTests {
         #expect(code.lineHeight == code.lineHeight.rounded(.up), "the code's height is whole points")
         #expect(code.faceName != body.faceName, "the code is not set in the book's prose face")
 
-        //  A role the book sets in no type has no voice (= the picture,
-        //  = the rule: = they show the dash and nothing else).
-        #expect(model.rows.first { $0.role == .image }?.preview == nil, "a picture has no face to show")
-        #expect(model.rows.first { $0.role == .rule }?.preview == nil, "a rule has no face to show")
+        //  And the table carries nothing but roles that HAVE a voice:
+        //  nine rows, = and the two that were not text (= the picture,
+        //  = the rule) are not among them, = which is why `resolve`
+        //  answers a voice and not an optional.
+        #expect(model.rows.count == 9, "the table carries the nine roles a novel's text is made of")
 
         //  And every name a preview carries is a FACE the system can
         //  draw by that name (= `.font(.custom(_:size:))` reaches the
         //  face a name names, = and nothing else).
         for row in model.rows {
-            guard let voice = row.preview else { continue }
+            let voice = row.preview
             #expect(
                 NSFont(name: voice.faceName, size: voice.size)?.fontName == voice.faceName,
                 "the \(row.role.rawValue) row names a face that cannot be drawn: \(voice.faceName)"

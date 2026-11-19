@@ -24,7 +24,7 @@
 //  note keeps the book's leading PER POINT at its own smaller size, =
 //  a quote adds its own extra, = and a code block takes a face the
 //  sheet does not name at all. = So a preview that read the sheet's
-//  one multiple for all eleven roles would draw eleven rows of a
+//  one multiple for all nine roles would draw nine rows of a
 //  leading the book never sets, = which is a worse lie than a number.
 //  = These are the engine's own rules, = read off the same mapped
 //  values the editor is configured from.
@@ -92,18 +92,16 @@ struct InspectorStylePreview: Equatable, Sendable {
     /// 18.2 pt apart.
     let extraLeading: Double
 
-    /// The role's voice, = or nil when the role carries no type of its
-    /// own (= the image and the rule: = they are not words, = so they
-    /// have no voice to show).
-    static func resolve(role: InspectorStyleRole, sheet: BookStyleSheet) -> InspectorStylePreview? {
+    /// The role's voice. = Every role the table carries is words, = which
+    /// is what makes this total: = the two rows that were not (= the
+    /// picture, = the rule) were deleted rather than left here as the one
+    /// case that could answer with nothing.
+    static func resolve(role: InspectorStyleRole, sheet: BookStyleSheet) -> InspectorStylePreview {
         let body = font(named: EngineStyleSheetBridge.fontName(for: sheet),
                         at: EngineStyleSheetBridge.fontSize(for: sheet))
         let bodyLineHeight = baseLineHeight(of: body, sheet: sheet)
 
         switch role {
-        case .image, .rule:
-            return nil
-
         case .body:
             return voice(of: body, lineHeight: bodyLineHeight)
 

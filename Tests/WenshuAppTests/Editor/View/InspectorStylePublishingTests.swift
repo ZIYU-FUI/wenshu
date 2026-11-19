@@ -127,10 +127,25 @@ struct InspectorStylePublishingTests {
     /// the RELATIVE fact the shared width exists to produce: = five equal
     /// widths, = none of them zero.
     ///
-    /// MUTATION: = hand each knob its own fitting width instead of the
-    /// shared one = the buttons take the width of their own titles, = the
-    /// five stop agreeing, = and this fails.
-    @Test("the five knobs share one width")
+    /// WHY THE AGREEMENT IS MEASURED WITHIN A POINT AND NOT TO IT. The
+    /// shared width the page hands is one value, = but AppKit lays each row
+    /// out on the pixel grid on its own, = and where a row lands on the grid
+    /// depends on the page's height: = measured 2026-11-19, with the eleven
+    /// rows the table came from, = the five buttons all reported 127.5; = with
+    /// the nine it carries now, = they report [126.5, 127.5, 127.0, 127.5,
+    /// 127.5]. That half-point spread is the grid, not the column (= the
+    /// column is 1 PT wide here, = and a knob given its OWN width instead of
+    /// the shared one differs by tens of points), = so the claim is one band
+    /// wide and the mutation below is what keeps it honest.
+    ///
+    /// MUTATION: = let the bridge answer its OWN width to SwiftUI
+    /// (`ValuePopUpButton.sizeThatFits` returning `fitting.width` instead of
+    /// the proposal) = each button then takes the width of its own titles, =
+    /// the five stop agreeing, = and this fails (= measured 2026-11-19:
+    /// red at this line). = What does NOT fail it is dropping the page's
+    /// `.frame(maxWidth:)`: = the bridge answers the proposal it is handed
+    /// either way, = which is why the mutation has to be made where the
+    /// width is ANSWERED and not where it is asked.
     func theKnobsShareOneWidth() throws {
         let (store, plain, _) = try InspectorStylePageFixture.makeStore()
         store.selectedBookId = plain.id
@@ -147,7 +162,7 @@ struct InspectorStylePublishingTests {
             "a pop-up laid out at zero width was never given the column: \(widths)"
         )
         #expect(
-            Set(widths).count == 1,
+            (widths.max() ?? 0) - (widths.min() ?? 0) <= 1.0,
             "the five knobs are laid out at the width they were handed, = not at the width of their own titles: \(widths)"
         )
     }

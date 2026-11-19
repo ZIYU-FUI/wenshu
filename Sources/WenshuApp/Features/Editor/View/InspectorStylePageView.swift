@@ -10,11 +10,19 @@
 //  The format page stopped being a wall of commands and became the
 //  BOOK's style sheet:
 //
-//    - THIS BOOK'S STYLES: the eleven roles a novel uses (= the body,
-//      = the quote, = the note, = the three heading levels, = the two
-//      captions, = the image, = the rule, = and the monospace code), =
-//      each row naming its role and showing the face, = the size and =
-//      the leading the book's sheet gives it.
+//    - THIS BOOK'S STYLES: the nine roles a novel's TEXT is made of
+//      (= the body, = the quote, = the note, = the three heading levels,
+//      = the two captions, = and the monospace code), = each row naming
+//      its role and showing the face, = the size and = the leading the
+//      book's sheet gives it.
+//
+//      A PICTURE AND A RULE ARE NOT ROWS. = The sheet names no face, no
+//      size and no leading for them, = and the engine gives them no voice
+//      of its own, = so their two rows could only ever carry an empty
+//      cell (= the boss's ruling of 2026-11-19 off his own screenshot:
+//      the two boxed rows said nothing, = delete them; = recorded in
+//      OOB.md, = with the dash that stood for "nothing to name" deleted
+//      with them, = because no row can reach it any more).
 //
 //      THE BOOK'S OWN NAME IS NOT ONE OF THEM. = The book's title is
 //      the book's own (= it is drawn on the cover, = and it is not a
@@ -189,12 +197,12 @@ struct InspectorStylePageView: View {
         }
     }
 
-    /// The style table (= the eleven roles the book is set in, = each
+    /// The style table (= the nine roles the book is set in, = each
     /// row showing that role's own voice = `InspectorStyleRowView`).
     private var stylesGroup: some View {
         InspectorFormatGroup(title: String(localized: "inspector.style.group.styles")) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                //  Eleven rows of a table, = and a table of rows needs a line
+                //  Nine rows of a table, = and a table of rows needs a line
                 //  BETWEEN its rows (= not above and below each one): = the
                 //  first row is separated from what it is not, = and so the
                 //  rule is drawn before every row but the first.
@@ -286,7 +294,7 @@ struct InspectorStylePageView: View {
 
 // MARK: - The model
 
-/// What the style page shows: = the book's eleven style roles, = and
+/// What the style page shows: = the book's nine style roles, = and
 /// the five knobs it is fine-tuned with.
 struct InspectorStylePageModel: Equatable, Sendable {
     /// The style table's rows (= one per role).
@@ -313,12 +321,12 @@ struct InspectorStylePageModel: Equatable, Sendable {
         currentSelection = recordedSelection ?? BookStyleSelection.select(sheet: sheet)
     }
 
-    /// The eleven roles, as the sheet sets them.
+    /// The nine roles, as the sheet sets them.
     ///
-    /// A role the sheet names nothing for shows a dash (= the print
-    /// standard's own table writes a dash for the image and the rule),
-    /// = because a value the sheet cannot name is a value the page must
-    /// not invent.
+    /// The code block is the one row the sheet names no face and no size
+    /// for (= its voice is the highlighter's own face at the code block's
+    /// own scale, = which the sheet does not carry), = so its cells keep
+    /// the leading alone.
     ///
     /// WHY A ROLE WITHOUT WORDS STILL GETS A VOICE
     ///
@@ -356,8 +364,6 @@ struct InspectorStylePageModel: Equatable, Sendable {
             row(.headingThree, heading, sheet.headingSize(forLevel: 3), leading),
             row(.figureCaption, sheet.bodyFamily, sheet.figureCaptionSize, leading),
             row(.tableCaption, sheet.bodyFamily, sheet.tableCaptionSize, leading),
-            row(.image, nil, nil),
-            row(.rule, nil, nil),
             row(.monospace, nil, nil, leading),
         ]
     }
@@ -457,10 +463,13 @@ struct InspectorStylePageModel: Equatable, Sendable {
 
 // MARK: - The role
 
-/// The eleven style roles a novel uses.
+/// The nine style roles a novel's text is made of.
 ///
 /// The roles are the book's own (= the kinds of text a book is made
-/// of), = and the sheet sets what each of them looks like.
+/// of), = and the sheet sets what each of them looks like. = A picture
+/// and a rule are NOT among them: = they are not text, = the sheet names
+/// nothing for them, = and a row that can only ever show an empty cell is
+/// a row the reader cannot act on.
 enum InspectorStyleRole: String, CaseIterable, Sendable {
     case body
     case quote
@@ -470,8 +479,6 @@ enum InspectorStyleRole: String, CaseIterable, Sendable {
     case headingThree
     case figureCaption
     case tableCaption
-    case image
-    case rule
     case monospace
 
     /// The role's name in the reader's language.
