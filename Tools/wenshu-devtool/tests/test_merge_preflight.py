@@ -20,7 +20,9 @@ THREE defects came from trusting the claim, all measured on the real board on
      path only, so a claim answering `changes_requested` about another
      commit still vetoed an approved tip (= seven live branches, measured
      as a pair on one and the same sha: `t_10af78c5`'s branch rc 3 against
-     `t_ce7c0c11`'s rc 0). This suite's sixth case is that pair.
+     `t_ce7c0c11`'s rc 0). The case that pins it is
+     `case_a_refusal_of_an_other_commit_does_not_veto_the_tip`, = the fourth
+     of eight in `main()`'s order.
 
 The rule all three share is not "check the claim against the lookup" — it is
 that a claim decides nothing, so the script no longer asks it. Every case
@@ -386,17 +388,22 @@ def case_a_claim_that_is_not_a_review_card_decides_nothing() -> None:
 def case_a_claim_on_another_commit_does_not_bless_the_branch() -> None:
     """A review card that approved a DIFFERENT commit must not print CLEAN.
 
-    The assertion is on the WHOLE output, not on `out.split("CLEAN")[0]`:
-    = = measured 2026-11-19, this fixture's repo prints no `CLEAN` line at
-    = = all, = = so `split` returned a one-element list holding the entire
-    = = output and the clause was evaluated against `""`. = = It went green
-    = = against the round-1 gate, = = the version it exists to catch. = = A
-    = = clause that passes against an empty string is not an assertion.
-    = = (And `CLEAN` cannot be the anchor anyway: = = the script's POSITION
-    = = section prints `CLEAN    <branch> (behind main by N commit(s)…)`
-    = = for a conflict-free branch even when its VERDICT is `UNREVIEWED`,
-    = = as it does here. = = The approving word is the gate's `approved
-    = = <card>` line, = = and that is what is asserted.)
+    The assertion is on the WHOLE output, not on `out.split("CLEAN")[0]`.
+    = = Measured on this fixture's own repo, = against this script and the
+    round-1 and round-2 ones: = `out.count("CLEAN") == 1`, = and the operand
+    of the old clause, = `repr(out.split("CLEAN")[0])`, = was `''` — because
+    the single `CLEAN` line is the POSITION line, = which the script prints
+    BEFORE any verdict line. = = So the clause was not "false" and not
+    vacuously true by accident: = it was evaluated against the empty string,
+    = where `"CLEAN" not in ""` holds whatever the verdict says. = = It went
+    green against `origin/main`'s script, = the version this case exists to
+    catch (= both assertions here are RED there); = the round-1 gate already
+    answered `UNREVIEWED` correctly. = = (And `CLEAN` cannot be the anchor
+    anyway: = the POSITION section prints `CLEAN    <branch> (behind main by
+    N commit(s)…)` for a conflict-free branch even when its VERDICT is
+    `UNREVIEWED`, = as it does here, = = see the `"CLEAN" in out` assertion
+    two cases above. = The approving word is the gate's `approved <card>`
+    line, = and that is what is asserted.)
     """
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
@@ -510,16 +517,23 @@ def case_an_unreadable_board_refuses_every_branch_it_was_asked_about() -> None:
 
     THE ARMS. `review_gate.py:49-50` names exit codes 0 (satisfied), 1
     (contract error), 2 (board unreadable) and 3 (a verdict owed), = and
-    `main()` carries a fifth (`return 4`). = = A reader that keyed on one of
-    them and fell the rest through to a default is what printed, = for a
-    board it could not open at all, = `UNREVIEWED = no review card names the
-    sha this branch points at`. = = That is a DIFFERENT claim from "the board
-    could not be read", = = and it is the claim that lets a merge look merely
-    unfinished. = = So the script handles 1, = 2 and 3 by name and refuses any
-    other non-zero exit, = and this case asserts the two arms that must never
-    swap places: an unreadable board reads `UNREADABLE` for EVERY branch it
-    was asked about, = and a readable board that answers nothing reads
-    `UNREVIEWED`.
+    `main()` carries a fifth (`return 4`). = A reader that keyed on one of
+    them and fell the rest through to a default WOULD print, = for a board it
+    could not open at all, = `UNREVIEWED = no review card names the sha this
+    branch points at`. = That is a DIFFERENT claim from "the board could not
+    be read", = = and it is the claim that lets a merge look merely
+    unfinished. = = MEASURED: = no version here did it — replayed on this
+    fixture with a board that cannot be opened and two branches whose names
+    claim nothing, = `origin/main`, = round 1, = round 2 and this script each
+    print `UNREADABLE` for BOTH branches at rc 3 = and no wrong `UNREVIEWED`
+    line (= and the "the review gate could not read the board" message is
+    round 2's own addition, = absent from `origin/main` and round 1). = = So
+    this case PINS the arm round 2 asked to have pinned; = it passes on all
+    three old scripts, = = it is not a RED arm and does not claim to be. = =
+    The script handles 1, = 2 and 3 by name and refuses any other non-zero
+    exit, = and this case asserts the two arms that must never swap places:
+    an unreadable board reads `UNREADABLE` for EVERY branch it was asked
+    about, = and a readable board that answers nothing reads `UNREVIEWED`.
 
     WHAT THIS CASE DOES NOT CLAIM. Round 1 also had a HOLE in the rc channel
     itself (= = `LOOKUP_RC` was written only after the gate ran, = = so the

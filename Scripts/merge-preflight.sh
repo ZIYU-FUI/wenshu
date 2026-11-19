@@ -29,17 +29,25 @@
 # cover the branch. A branch whose sha no card names carries NO verdict and
 # is refused, never skipped.
 #
-# THE BRANCH NAME IS NOT ASKED (2026-11-19, round 2 of the same defect). A
+# THE BRANCH NAME IS NOT ASKED (2026-11-19; the third pass at one defect). A
 # card id inside a branch name is a CLAIM about a DIFFERENT commit, and a
 # claim is not a verdict. It could not bless: `t_5bff7b80`'s approval of
 # `7e3878dcdc` printed a bare CLEAN over a tip whose newest verdict was
-# `changes_requested`. And it did veto: the round-1 gate (commit
-# 7992995e58, = this commit's predecessor) whitelisted ONE literal,
-# `contract_error`, so a live branch whose name claimed a card answering ANY
-# of the gate's other four non-zero codes was refused for a verdict that was
-# never about its tip. Both shapes are pinned as fixtures rather than as a
-# count: = `case_a_refusal_of_an_other_commit_does_not_veto_the_tip` (the
-# veto that had to be removed) and
+# `changes_requested`. And it did veto. Measured on `wenshu-par` on
+# 2026-11-19 against `origin/main`'s refusal path, = which whitelisted ONE
+# literal, `no_handoff` (:174 of that version): SEVEN live branches were
+# refused by a claim answering `changes_requested` about another commit, and
+# ONE more, = `project/t_393cc135-…`, = by a claim answering `contract_error`.
+# The first pass at this fix (commit `7992995e58`) whitelisted TWO literals
+# there, = `no_handoff|contract_error` (:214 of that version), = which cleared
+# the one and left the seven. Of the gate's four non-zero answers (1, 2 and 3
+# named at `review_gate.py:49-50`, = plus the 4 `main()` returns), exactly ONE
+# — 3, = the verdict owed — is what the seven hit: 1 was whitelisted by round
+# 1, = 2 prints `UNREADABLE` from the board-read arm, = and 4 (`card_absent`,
+# `review_gate.py:1048`) was refused like any other unwhitelisted answer.
+# Both shapes are pinned by case functions rather than by a sentence here:
+# `case_a_refusal_of_an_other_commit_does_not_veto_the_tip` (the veto that had
+# to be removed) and
 # `case_a_claim_that_is_not_a_review_card_decides_nothing` (a BUILD card's
 # `contract_error`). So the sha lookup is the only reader, its order is the
 # authority, and the claim is printed as context when a branch is refused. A
@@ -185,14 +193,19 @@ for b in "${branches[@]}"; do
     # = =   3. F1, the first version of THIS fix: membership in the covering
     # = =      list was checked on the approving path only, while the
     # = =      refusal path still decided by a two-literal whitelist
-    # = =      (`no_handoff|contract_error`), leaving 4 of the gate's 5
-    # = =      non-zero answers free to veto an approved tip (= the named
+    # = =      (`no_handoff|contract_error`), so the ONE answer the seven
+    # = =      branches actually hit — exit 3, the verdict owed — still
+    # = =      vetoed an approved tip (= the named
     # = =      card t_10af78c5 refused an OLDER sha 0b6fcd88e4 while the
     # = =      lookup read CARD t_30847781 approved for tip 31b5c3929a ->
     # = =      rc 3, where the control on the SAME tip, a branch whose name
     # = =      claims nothing (project/t_ce7c0c11-t3-…), read rc 0). Seven
     # = =      live branches sat on that asymmetry, and the only difference
-    # = =      between them was the name.
+    # = =      between them was the name. The other three non-zero answers
+    # = =      did none of this work: = 1 was the second whitelist literal,
+    # = =      2 printed `UNREADABLE` from the board-read arm, = 4
+    # = =      (`card_absent`) was refused like any unwhitelisted answer
+    # = =      (= `review_gate.py:49-50`, = and `main()`'s `return 4`).
     # = =
     # = = The rule those three share is not "check the claim against the
     # = = lookup": it is that a claim decides nothing. Asking it at all was
