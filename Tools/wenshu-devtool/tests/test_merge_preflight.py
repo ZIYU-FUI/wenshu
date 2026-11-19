@@ -402,7 +402,8 @@ def case_a_claim_on_another_commit_does_not_bless_the_branch() -> None:
     anyway: = the POSITION section prints `CLEAN    <branch> (behind main by
     N commit(s)…)` for a conflict-free branch even when its VERDICT is
     `UNREVIEWED`, = as it does here, = = see the `"CLEAN" in out` assertion
-    two cases above. = The approving word is the gate's `approved <card>`
+    case immediately above, `case_a_claim_that_is_not_a_review_card_decides_nothing`
+    (the assertion at its :383). = The approving word is the gate's `approved <card>`
     line, = and that is what is asserted.)
     """
     with tempfile.TemporaryDirectory() as td:
@@ -523,13 +524,19 @@ def case_an_unreadable_board_refuses_every_branch_it_was_asked_about() -> None:
     branch points at`. = That is a DIFFERENT claim from "the board could not
     be read", = = and it is the claim that lets a merge look merely
     unfinished. = = MEASURED: = no version here did it — replayed on this
-    fixture with a board that cannot be opened and two branches whose names
-    claim nothing, = `origin/main`, = round 1, = round 2 and this script each
-    print `UNREADABLE` for BOTH branches at rc 3 = and no wrong `UNREVIEWED`
-    line (= and the "the review gate could not read the board" message is
-    round 2's own addition, = absent from `origin/main` and round 1). = = So
-    this case PINS the arm round 2 asked to have pinned; = it passes on all
-    three old scripts, = = it is not a RED arm and does not claim to be. = =
+    fixture with a board that cannot be opened, the fixture names DO claim
+    cards (= `card_id_of` answers `t_eeee0005` and `t_cccc0003`), = and on
+    `origin/main` and round 1 the `UNREADABLE` line that prints is the CLAIM
+    arm's text (= "the board could not be read, so the card (t_eeee0005)
+    this branch names cannot be checked"), = while round 2 and this script
+    print `UNREADABLE` for BOTH branches at rc 3 = with no wrong
+    `UNREVIEWED` line (= and the "the review gate could not read the board"
+    message EXISTS in every version (= `grep -c` answers 1 at
+    `001a570551`, `fb9d0b8b36`, `7276dad436` and this tip); = on the two
+    oldest it is simply not REACHED for these claiming names). = = So this
+    case PINS the claim arm on the old scripts and both arms here; = it
+    passes on all three old scripts, = = it is not a RED arm and does not
+    claim to be. = =
     The script handles 1, = 2 and 3 by name and refuses any other non-zero
     exit, = and this case asserts the two arms that must never swap places:
     an unreadable board reads `UNREADABLE` for EVERY branch it was asked
@@ -609,7 +616,7 @@ def case_the_rc_channel_is_written_before_the_lookup_can_return() -> None:
     WHY THIS IS CHECKED STATICALLY. The defect is reachable only on a real
     board whose refs fail to resolve, and the fixture cannot produce that
     shape: measured 2026-11-19 with `WENSHU_BOARD=does_not_exist_board` and a
-    branch name git does not know, BOTH the round-1 script (`7992995e58`) and
+    branch name git does not know, BOTH the round-1 script (`fb9d0b8b36`, the twin of `7992995e58`) and
     this one exit 2 before the verdict loop, so no behaviour difference
     exists for a fixture to catch (= and a case that asserted one would be a
     case that cannot fail). The SHAPE, though, is a property of the text, and

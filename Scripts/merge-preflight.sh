@@ -38,13 +38,19 @@
 # literal, `no_handoff` (:174 of that version): SEVEN live branches were
 # refused by a claim answering `changes_requested` about another commit, and
 # ONE more, = `project/t_393cc135-…`, = by a claim answering `contract_error`.
-# The first pass at this fix (commit `7992995e58`) whitelisted TWO literals
-# there, = `no_handoff|contract_error` (:214 of that version), = which cleared
-# the one and left the seven. Of the gate's four non-zero answers (1, 2 and 3
-# named at `review_gate.py:49-50`, = plus the 4 `main()` returns), exactly ONE
-# — 3, = the verdict owed — is what the seven hit: 1 was whitelisted by round
-# 1, = 2 prints `UNREADABLE` from the board-read arm, = and 4 (`card_absent`,
-# `review_gate.py:1048`) was refused like any other unwhitelisted answer.
+# The first pass at this fix (commit `fb9d0b8b36`, the same version as the
+# pre-rebase twin `7992995e58`, blob `23e174e9494f`) whitelisted TWO literals
+# there, `no_handoff|contract_error` (:214 of that version), which cleared
+# the one and left the seven. Of the gate's non-zero answers (1, 2 and 3
+# named at `review_gate.py:49-50`, plus 4, `card_absent`, the `return 4` at
+# `review_gate.py:1048-1052`), exactly ONE — 3, the verdict owed — is what
+# the seven hit: 1 was whitelisted by round 1, 2 prints `UNREADABLE` from
+# the board-read arm, and 4 was never a veto at all: BOTH versions exempt
+# it explicitly — `-eq 4` clears the claim (`001a570551` :153,
+# `fb9d0b8b36` :163) and the veto guard reads `-ne 0 && -ne 4` (:158,
+# :186) — so a card-absent claim fell through to the sha lookup, measured
+# rc 0 with one `CLEAN` line on every version from `001a570551` to this
+# tip, which is why the seven survived on code 3 alone.
 # Both shapes are pinned by case functions rather than by a sentence here:
 # `case_a_refusal_of_an_other_commit_does_not_veto_the_tip` (the veto that had
 # to be removed) and
@@ -196,17 +202,22 @@ for b in "${branches[@]}"; do
     # = =      (`no_handoff|contract_error`), so the ONE answer the seven
     # = =      branches actually hit — exit 3, the verdict owed — still
     # = =      vetoed an approved tip (= the named
-    # = =      card t_10af78c5 refused an OLDER sha 0b6fcd88e4 while the
-    # = =      lookup read CARD t_30847781 approved for tip 31b5c3929a ->
-    # = =      rc 3, where the control on the SAME tip, a branch whose name
-    # = =      claims nothing (project/t_ce7c0c11-t3-…), read rc 0). Seven
+    # = =      card t_10af78c5 refused a sha this branch no longer carries,
+    # = =      0b6fcd88e4 — LATER than tip 31b5c3929a, not an ancestor of it
+    # = =      (`git for-each-ref --contains` answers nothing) — while the
+    # = =      lookup read CARD t_30847781 approved for the tip -> rc 3,
+    # = =      where the control on the SAME tip, whose name claims
+    # = =      t_ce7c0c11 and whose claim answers `approved`
+    # = =      (project/t_ce7c0c11-t3-…), read rc 0). Seven
     # = =      live branches sat on that asymmetry, and the only difference
     # = =      between them was the name. The other three non-zero answers
     # = =      did none of this work: = 1 was the second whitelist literal,
-    # = =      2 printed `UNREADABLE` from the board-read arm, = 4
-    # = =      (`card_absent`) was refused like any unwhitelisted answer
-    # = =      (= `review_gate.py:49-50`, = and `main()`'s `return 4`).
-    # = =
+    # = =      2 printed `UNREADABLE` from the board-read arm, = and 4
+    # = =      (`card_absent`) was EXEMPTED from the veto by the explicit
+    # = =      `-eq 4` / `-ne 4` guards (:153/:158 of `001a570551`,
+    # = =      :163/:186 of `fb9d0b8b36`) and fell through to the sha
+    # = =      lookup, = measured rc 0 on every version (= it never vetoed
+    # = =      anything).    # = =
     # = = The rule those three share is not "check the claim against the
     # = = lookup": it is that a claim decides nothing. Asking it at all was
     # = = the defect, so it is no longer asked (= and an answer nobody can
