@@ -1544,7 +1544,7 @@ THAT IS THIS LANE'S OWN** (= = `git reflog show origin/main` read 12 moves newer
 push at 19:30:50 CST = = `gates_round11c_facts.log` lines 5-6; = = the 13th is this push, = = so a reader
 who runs the count later will get 13 and then more, = = which is exactly why every count here is
 published with the minute it was read). = =
-**AND THE COMMIT THAT CARRIES THIS SENTENCE IS NOT GIVEN A NUMBER HERE, = = BECAUSE A SENTENCE CANNOT COUNT THE PUSH IT IS WAITING FOR**: = = the reader's own `git reflog show origin/main` names it at their minute, = = and the move immediately before this one is the 14th, = = `1cf0f8ce24` was pushed at 19:54:50 CST and
+**AND THE COMMIT THAT CARRIES THIS SENTENCE IS NOT GIVEN A NUMBER HERE, = = BECAUSE A SENTENCE CANNOT COUNT THE PUSH IT IS WAITING FOR**: = = the reader's own `git reflog show origin/main` names it at their minute, = = and the push the sentences below describe is named by its sha, = = `1cf0f8ce24`, = = not by its position in a race: = = `1cf0f8ce24` was pushed at 19:54:50 CST and
 both servers answered `1cf0f8ce24a24f3e940ac275fa6d206964721786`, = = again with the receiving side's hook
 line printed BEFORE the ref update, = = again carrying no Swift change (= = `git diff --name-only
 001a570551..1cf0f8ce24` is the closeout document and `docs/agents/nfi.md`, = = two files), = = so §3's rows
