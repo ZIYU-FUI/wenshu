@@ -55,6 +55,33 @@
 //  drop-down. = The style table's rows are words, = and they are read
 //  from the page's own model instead.
 //
+//  THE PAINTING FACT THE PAGE WAS CORRECTED FOR
+//
+//  A `Menu` does not only publish its label's string, = it hands that
+//  string to the AppKit popup button underneath, = and that button
+//  PAINTS it (= measured in this app's own process: = with the SwiftUI
+//  layer at
+//  `.opacity(0)` the button's own attributed title still sat at alpha
+//  0.85), = so a drawn block carrying the same string drew it twice. =
+//  One string on this page has one painter: = the block draws, = and
+//  the menu's label is cleared with `.foregroundStyle(.clear)`, = which
+//  takes the button's colour to alpha 0.0 without taking the
+//  `AXMenuButton`'s label away.
+//
+//  WHY THE TWO SETS ARE NOT MENUS
+//
+//  The sets were two rows of the same shape, = each with a block that
+//  dropped down the same two names, = so one row named a set and asked
+//  which of the two sets to go to at once, = and its name was painted
+//  three times. = Two choices is not a drop-down; = the rows are the
+//  menu, = and the set the book is at carries the mark. = (A `Button`
+//  was measured to publish NOTHING to the offscreen accessibility
+//  probe, = unlike a `Menu`, = so the mark is proven by what is drawn
+//  and the row's label is carried for VoiceOver the way the format
+//  page's commands carry theirs (= see OOB.md #2026-11-19 for both of
+//  this page's rulings: = the flat look stays, = and the table moves
+//  below the fine tuning).)
+//
 
 import OSLog
 import SwiftUI
@@ -83,9 +110,14 @@ struct InspectorStylePageView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingLoose) {
+            //  The order is the order of a reader's questions: = which
+            //  set is this book in, = what is fine-tuned off it, = and
+            //  only then what every role of the sheet actually looks
+            //  like (= the table is the LONGest group, = and it is the
+            //  one a reader scrolls to rather than starts at).
             presetsGroup
-            stylesGroup
             tuningGroup
+            stylesGroup
         }
         .onChange(of: bookStore.selectedBookId, initial: true) { _, bookID in
             currentBookID = bookID
@@ -126,7 +158,8 @@ struct InspectorStylePageView: View {
         }
     }
 
-    /// The style table (= the eleven roles the book is set in).
+    /// The style table (= the eleven roles the book is set in, = each
+    /// row showing that role's own voice = `InspectorStyleRowView`).
     private var stylesGroup: some View {
         InspectorFormatGroup(title: String(localized: "inspector.style.group.styles")) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
@@ -226,76 +259,46 @@ struct InspectorStylePageModel: Equatable, Sendable {
     /// standard's own table writes a dash for the image and the rule),
     /// = because a value the sheet cannot name is a value the page must
     /// not invent.
+    ///
+    /// WHY A ROLE WITHOUT WORDS STILL GETS A VOICE
+    ///
+    /// The face, = the size and = the leading are what the SHEET says
+    /// about a role; = the preview is what the ENGINE does with it. =
+    /// They are not the same list (= a code block has no face in the
+    /// sheet at all, = and a heading is not set on the book's multiple),
+    /// = so a row whose preview was built from its own cells would show
+    /// the sheet's words about a page the reader would never get.
     private static func styleRows(for sheet: BookStyleSheet) -> [InspectorStyleRow] {
         let heading = headingFamily(of: sheet)
         let leading = sheet.lineSpacing.multiple
+
+        func row(
+            _ role: InspectorStyleRole,
+            _ family: BookBodyFamily?,
+            _ size: Double?,
+            _ spacing: Double? = nil
+        ) -> InspectorStyleRow {
+            InspectorStyleRow(
+                role: role,
+                family: family,
+                size: size,
+                spacing: spacing,
+                preview: InspectorStylePreview.resolve(role: role, sheet: sheet)
+            )
+        }
+
         return [
-            InspectorStyleRow(
-                role: .body,
-                family: sheet.bodyFamily,
-                size: sheet.bodySize.points,
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .quote,
-                family: sheet.quoteFamily,
-                size: sheet.quoteSize,
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .note,
-                family: sheet.bodyFamily,
-                size: sheet.noteSize,
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .headingOne,
-                family: heading,
-                size: sheet.headingSize(forLevel: 1),
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .headingTwo,
-                family: heading,
-                size: sheet.headingSize(forLevel: 2),
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .headingThree,
-                family: heading,
-                size: sheet.headingSize(forLevel: 3),
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .figureCaption,
-                family: sheet.bodyFamily,
-                size: sheet.figureCaptionSize,
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .tableCaption,
-                family: sheet.bodyFamily,
-                size: sheet.tableCaptionSize,
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .image,
-                family: nil,
-                size: nil,
-                spacing: nil
-            ),
-            InspectorStyleRow(
-                role: .rule,
-                family: nil,
-                size: nil,
-                spacing: nil
-            ),
-            InspectorStyleRow(
-                role: .monospace,
-                family: nil,
-                size: nil,
-                spacing: leading
-            ),
+            row(.body, sheet.bodyFamily, sheet.bodySize.points, leading),
+            row(.quote, sheet.quoteFamily, sheet.quoteSize, leading),
+            row(.note, sheet.bodyFamily, sheet.noteSize, leading),
+            row(.headingOne, heading, sheet.headingSize(forLevel: 1), leading),
+            row(.headingTwo, heading, sheet.headingSize(forLevel: 2), leading),
+            row(.headingThree, heading, sheet.headingSize(forLevel: 3), leading),
+            row(.figureCaption, sheet.bodyFamily, sheet.figureCaptionSize, leading),
+            row(.tableCaption, sheet.bodyFamily, sheet.tableCaptionSize, leading),
+            row(.image, nil, nil),
+            row(.rule, nil, nil),
+            row(.monospace, nil, nil, leading),
         ]
     }
 
@@ -420,64 +423,6 @@ enum InspectorStyleRole: String, CaseIterable, Sendable {
     }
 }
 
-// MARK: - The row
-
-/// One row of the style table: = a role, = and what the book's sheet
-/// says about it.
-struct InspectorStyleRow: Identifiable, Equatable, Sendable {
-    /// The role this row names.
-    let role: InspectorStyleRole
-
-    /// The face the sheet sets the role in (= nil = the sheet names no
-    /// face for this role).
-    let family: BookBodyFamily?
-
-    /// The size in points (= nil = the sheet names no size).
-    let size: Double?
-
-    /// The leading the role runs at (= nil = the role carries no
-    /// leading of its own).
-    let spacing: Double?
-
-    var id: String {
-        role.rawValue
-    }
-
-    /// The cells the row shows at the right (= the face, = the size
-    /// and = the leading, = and a dash where the sheet names none).
-    var cells: [String] {
-        var cells: [String] = []
-        if let family {
-            cells.append(localizedFamilyName(family))
-        }
-        if let size {
-            cells.append(String.localizedStringWithFormat(
-                NSLocalizedString(
-                    "inspector.style.size",
-                    comment: "A style role's size, in points"
-                ),
-                size
-            ))
-        }
-        if let spacing {
-            cells.append(String.localizedStringWithFormat(
-                NSLocalizedString(
-                    "inspector.style.leading",
-                    comment: "A style role's line spacing, as a multiple of the body size"
-                ),
-                spacing
-            ))
-        }
-        if cells.isEmpty {
-            cells.append(NSLocalizedString(
-                "inspector.style.unset",
-                comment: "The dash that stands for a value the book's style sheet does not name"
-            ))
-        }
-        return cells
-    }
-}
-
 // MARK: - The knob
 
 /// One fine-tuning knob: = the positions it can take, = and the one
@@ -517,38 +462,5 @@ struct InspectorStylePosition: Identifiable, Equatable, Sendable {
 
     var id: String {
         rawValue
-    }
-}
-
-// MARK: - The names
-
-/// A face's name in the reader's language.
-private func localizedFamilyName(_ family: BookBodyFamily) -> String {
-    NSLocalizedString(
-        "inspector.style.family.\(family.rawValue)",
-        comment: "The name of one face a book's body can be set in"
-    )
-}
-
-// MARK: - The row view
-
-/// One row of the style table: = the role's name at the left, = and
-/// what the sheet gives it at the right.
-struct InspectorStyleRowView: View {
-    /// The row this view draws.
-    let row: InspectorStyleRow
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingTight) {
-            Text(row.role.localizedName)
-                .font(.callout)
-                .foregroundStyle(DesignTokens.textBody)
-            Spacer(minLength: DesignTokens.spacingTight)
-            ForEach(row.cells, id: \.self) { cell in
-                Text(cell)
-                    .font(.caption)
-                    .foregroundStyle(DesignTokens.textChrome)
-            }
-        }
     }
 }

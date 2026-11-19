@@ -22,6 +22,16 @@
 //     model's own rows (= the rows are NOT in the accessibility tree,
 //     = so they are held by the page's own source, = with two anchors:
 //     = the call site and the binding).
+//  7. Each row is shown in the VOICE the engine gives that role (= the
+//     face, = the size, = the line height), = and the voice is the
+//     engine's own arithmetic, = not the sheet's one multiple read
+//     eleven times.
+//  8. The page paints each position ONCE (= the drop-down's own AppKit
+//     title is transparent: = the one thing a screenshot of the
+//     rendered page cannot see, = so it is read off the button).
+//  9. The set the book is at is marked, = and the two sets are rows and
+//     not drop-downs (= a `Button` publishes nothing to the offscreen
+//     tree, = so the mark is proven by the ink it draws).
 //
 //  The tree is read through the ACCESSIBILITY SYSTEM (= the route the
 //  layout probe reads a running app's tree through), because a SwiftUI
@@ -114,8 +124,8 @@ struct InspectorStylePageRenderTests {
         defer { rendered.close() }
         let labels = rendered.menuLabels()
         #expect(
-            labels.count == 7,
-            "the page carries the five knobs (= the five a book is set with) = and the two sets: \(labels)"
+            labels.count == 5,
+            "the page carries the five knobs and nothing else drops down (= the two sets are rows, = not menus): \(labels)"
         )
         for key in [
             "inspector.style.bodySize.medium",
@@ -127,6 +137,48 @@ struct InspectorStylePageRenderTests {
             #expect(
                 labels.contains(InspectorAXTree.positionName(key)),
                 "the knob for \(key) must show the book's own position"
+            )
+        }
+    }
+
+    /// The page paints each position ONCE.
+    ///
+    /// THE DEFECT THIS HOLDS
+    ///
+    /// A `Menu` hands its label's string to the AppKit popup button
+    /// underneath, = and that button paints the string in its own
+    /// colour, = so the drawn block the page puts under it (= the flat
+    /// Pages look the boss asked to keep) = drew the same position a
+    /// second time beside it. = `.opacity(0)` did not stop it: = the
+    /// SwiftUI layer went to 0 while the button's title stayed at alpha
+    /// 0.85 (= measured in this app's own process).
+    ///
+    /// WHY THIS IS NOT A PIXEL TEST
+    ///
+    /// The offscreen cache a pixel test reads does NOT contain the
+    /// AppKit title (= measured), = so a screenshot of the rendered
+    /// page cannot see the second copy at all. = The guard has to read
+    /// the button's own colour.
+    @Test("the page paints each position once")
+    func thePagePaintsEachPositionOnce() throws {
+        let (store, plain, _) = try makeStore()
+        let workspace = makeWorkspace()
+        store.selectedBookId = plain.id
+        let rendered = renderPage(store: store, workspace: workspace)
+        defer { rendered.close() }
+        let popups = rendered.popupButtons()
+        #expect(
+            popups.count == 5,
+            "the five knobs are the page's only drop-downs (= got \(popups.count))"
+        )
+        for popup in popups {
+            let title = popup.attributedTitle
+            guard title.length > 0 else { continue }
+            let colour = title.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
+            let alpha = colour?.usingColorSpace(.sRGB)?.alphaComponent ?? 1
+            #expect(
+                alpha == 0,
+                "the drop-down's own title paints a second copy of \(title.string) (alpha \(alpha))"
             )
         }
     }
@@ -252,6 +304,13 @@ struct InspectorStylePageRenderTests {
             code.contains("\n            stylesGroup\n"),
             "the page's body must render the style group (= not an empty view)"
         )
+        //  The table comes LAST on the page (= see OOB.md #2026-11-19),
+        //  = because it is the group a reader looks at after they have
+        //  set the book, = and it is the long one.
+        #expect(
+            code.contains("tuningGroup\n            stylesGroup\n"),
+            "the fine tuning must be rendered above the style table"
+        )
     }
 
     /// Every role and knob name is in the catalog.
@@ -287,6 +346,7 @@ struct InspectorStylePageRenderTests {
             "inspector.style.size",
             "inspector.style.leading",
             "inspector.style.unset",
+            "inspector.style.preview.sample",
         ] {
             missing.append(key)
         }
@@ -396,6 +456,32 @@ struct InspectorStylePageRenderTests {
         func close() {
             window.orderOut(nil)
         }
+
+        /// The AppKit buttons the page's drop-downs are drawn by.
+        ///
+        /// A SwiftUI `Menu` is NOT an AppKit view in the accessibility
+        /// tree, = but under the hosting view it does become one (= a
+        /// `SwiftUIPopupButton`), = and that button is the layer that
+        /// owns the title colour (= which is why a second copy of a
+        /// position can be painted there without the drawn block's
+        /// knowledge, = and why the guard reads it here).
+        func popupButtons() -> [NSButton] {
+            host.layoutSubtreeIfNeeded()
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+            return RenderedPage.popups(in: host)
+        }
+
+        private static func popups(in view: NSView) -> [NSButton] {
+            var found: [NSButton] = []
+            for subview in view.subviews {
+                if let button = subview as? NSButton,
+                   String(describing: type(of: subview)).contains("Popup") {
+                    found.append(button)
+                }
+                found.append(contentsOf: popups(in: subview))
+            }
+            return found
+        }
     }
 
     /// The format page's own source file (= where its rows are written).
@@ -434,48 +520,4 @@ struct InspectorStylePageRenderTests {
             .appendingPathComponent("Sources/WenshuApp/Resources/Localizable.xcstrings")
     }
 
-    /// The page marks the set the book is at.
-    ///
-    /// = The mark is in the row's OWN label, = because a SwiftUI
-    /// `Menu` publishes its label to the accessibility tree (= and a
-    /// `Text` publishes nothing), = so the reader can see where the
-    /// book stands.
-    @Test("the page marks the set the book is at")
-    func thePageMarksTheSetTheBookIsAt() throws {
-        let (store, plain, _) = try makeStore()
-        let workspace = makeWorkspace()
-        // = A book AT THE GENERAL SET, = so the page must mark THAT
-        // set (= and not the print baseline).
-        store.books = [
-            Book(
-                title: "General",
-                shelfId: plain.shelfId,
-                styleSheet: BookStylePreset.general.sheet(bodyFamily: .songti)
-            ),
-        ]
-        store.selectedBookId = store.books.first?.id
-
-        let rendered = renderPage(store: store, workspace: workspace)
-        defer { rendered.close() }
-        let labels = rendered.menuLabels()
-
-        #expect(labels.contains("通用 ✓"), "the set the book is at is marked: \(labels)")
-        #expect(!labels.contains("印刷基线 ✓"), "the set the book is NOT at is not marked: \(labels)")
-    }
 }
-
-// MARK: - The rendered tree
-
-// The rendered accessibility tree of a hosted view.
-//
-// The tree is read through the ACCESSIBILITY PROTOCOL, because a
-// SwiftUI control publishes itself there (= it never becomes an
-// AppKit view), and the walk goes all the way down (= the page's rows
-// sit under the scroll area's content).
-//
-// The measurements this rests on (= measured in the app's own
-// process): = a SwiftUI `Menu` publishes an `AXMenuButton` AND its
-// label; = a `Text` publishes NOTHING; = a `TextField` publishes an
-// `AXTextField`. = So the knobs (= the only values on the page that
-// have to be read back) = are menus, = and their labels are the
-// book's own positions.

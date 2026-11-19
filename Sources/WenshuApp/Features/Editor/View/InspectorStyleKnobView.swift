@@ -59,7 +59,22 @@ struct InspectorStyleKnobView: View {
                     }
                 }
             } label: {
-                Text(knob.current.label).opacity(0)
+                //  ONE PAINTER PER STRING (= the defect this page was
+                //  corrected for): = a SwiftUI `Menu` hands its label's
+                //  STRING to the AppKit popup button underneath, = and
+                //  that button paints the string itself, = whatever the
+                //  SwiftUI layer's opacity is (= `.opacity(0)` hid the
+                //  copy drawn here and left the AppKit one at alpha
+                //  0.85, = measured in this app's own process, = which
+                //  is why the position read twice in one block). =
+                //  `.foregroundStyle(.clear)` is the one modifier that
+                //  reaches the button's OWN attributed colour (= alpha
+                //  0.0, = it paints nothing) = while the `AXMenuButton`
+                //  goes on publishing the position (= measured: the
+                //  label is still the position's own name), = so the block below is the
+                //  only painter and a reader still hears what the knob
+                //  is set to.
+                Text(knob.current.label).foregroundStyle(.clear)
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
@@ -74,7 +89,9 @@ struct InspectorStyleKnobView: View {
     /// button, = and Pages' block puts its title at the left, = so the
     /// block is drawn here and the real menu rides on top of it as a
     /// transparent button (= the menu itself, = its items, = and its
-    /// accessibility role all stay the system's).
+    /// accessibility role all stay the system's, = and its own title is
+    /// painted out so this block is the only thing that draws the
+    /// position).
     private var knobBlock: some View {
         HStack(spacing: DesignTokens.spacingTight) {
             Text(knob.current.label)

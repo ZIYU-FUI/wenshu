@@ -5850,23 +5850,6 @@
         }
       }
     },
-    "cover_context_menu_remove_dynamic": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remove moving cover"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "移除动态封面"
-          }
-        }
-      }
-    },
     "cover_context_menu_video_failed": {
       "extractionState": "manual",
       "localizations": {
@@ -8797,6 +8780,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "默认书架的名称属于本应用，不能重命名。"
+          }
+        }
+      }
+    },
+    "cover_context_menu_remove_dynamic": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove moving cover"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除动态封面"
+          }
+        }
+      }
+    },
+    "inspector.style.preview.sample": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sample text line\nsecond line here"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "春风又绿江南岸\n明月何时照我还"
           }
         }
       }
