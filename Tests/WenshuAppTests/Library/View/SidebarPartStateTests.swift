@@ -153,11 +153,11 @@ final class SidebarPartStateTests: XCTestCase {
                 ]
             ),
             SidebarNode(
-                id: UUID(),
-                kind: .referenceCategory,
-                title: "Literature",
+                id: SidebarService.referenceLibraryRootId,
+                kind: .reference,
+                title: "Reference Library",
                 subtitle: nil,
-                systemImage: "book.pages",
+                systemImage: "books.vertical",
                 children: [
                     SidebarNode(
                         id: UUID(),
@@ -185,8 +185,9 @@ final class SidebarPartStateTests: XCTestCase {
             "Worldview"
         )
         XCTAssertEqual(
-            AppleSidebarView.node(for: .referenceCategory("Literature"), in: tree)?.title,
-            "Literature"
+            AppleSidebarView.node(for: .referenceLibraryRoot, in: tree)?.id,
+            SidebarService.referenceLibraryRootId,
+            "The library root's own selection MUST find the root row (= it is the row the tree draws)"
         )
         XCTAssertEqual(
             AppleSidebarView.node(for: .tag("poet"), in: tree)?.title,

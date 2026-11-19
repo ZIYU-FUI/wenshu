@@ -163,24 +163,6 @@ struct AppleSidebarView: View {
                     importPrefillDestination = .book
                     importPrefillBookID = bookId
                     showImportSheet = true
-                },
-                // The
-                // … (= 31 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // `otherReferenceTitles`).
-                onRenameReference: { referenceId, _ in
-                    renaming = SidebarRenamingTarget(
-                        kind: .reference,
-                        itemId: referenceId,
-                        originalName: referenceTitle(for: referenceId) ?? "",
-                        shelfId: nil
-                    )
-                },
-                onDeleteReference: { referenceId, name in
-                    pendingDelete = SidebarPendingDelete(
-                        kind: .reference,
-                        itemId: referenceId,
-                        itemName: name
-                    )
                 }
             )
         )

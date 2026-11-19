@@ -55,8 +55,38 @@ struct SidebarItemTagPreviewFilterTests {
         // case writes the row's title (= the tag string) into the
         // workspace selection, and the preview pane reads the tag
         // back out of it.
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Library/View/AppleSidebarSelection.swift"), encoding: .utf8)
-        #expect(source.contains("workspaceUI.sidebarSelection = .tag(node.title)"),
+        //
+        // ⇒ ⇒ ⇒ AND THE WRITER IS ASKED, = NOT READ: = the decision
+        // (= what a click writes) lives in
+        // `AppleSidebarView.writes(for:in:)`, = so the check CALLS it
+        // (= = = the same call the sidebar's own click makes) = = and
+        // the answer is the VALUE (= the tag string), = not the
+        // spelling of the line that produces it. = ⇒ ⇒ ⇒ A source-text
+        // anchor here went RED when the decision MOVED (= = = the
+        // extraction this repo just made) = = while the behaviour it
+        // stands for never changed, = = = and the anchor charged the
+        // move to the preview-pane filter's suite.
+        // ⇒ ⇒ ⇒ AND THE ROUTING KEY IS NOT THE TITLE: = a tag row
+        // carries the tag string as its title (= = = what the user
+        // reads, = = = and what the grid filters on) = = and its
+        // routing key is a separate thing, = = so a writer that took
+        // the WRONG one of the two is caught here. = ⇒ ⇒ ⇒ With the
+        // two equal, = = = the two spellings are indistinguishable, = =
+        // = = and the case would pass either way (= = = = = = a guard
+        // that cannot fail).
+        let tag = SidebarNode(
+            id: UUID(),
+            kind: .tag,
+            title: "poet",
+            subtitle: nil,
+            systemImage: "tag",
+            children: nil,
+            routingKey: "wenshu.tag.poet"
+        )
+
+        let writes = AppleSidebarView.writes(for: tag, in: [tag])
+
+        #expect(writes.selection == .tag("poet"),
                 "the sidebar's tag-row selection MUST write the tag string into the workspace selection (= the canonical producer path)")
     }
 

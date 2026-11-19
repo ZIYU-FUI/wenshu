@@ -195,52 +195,20 @@ final class SidebarService {
             }
 
             // Reference library = one root node whose children are the tag facet (=
-            // cross-cutting tag cloud; = per boss 2026-10-08 (see OOB.md
-            // #2026-10-08) 删除' directive). The tag cloud is built from the
-            // union of `Reference.tags` across all references; = each tag
-            // row is one SidebarNode keyed by the tag string (=
-            // SidebarItem.tag(tagString), which the spec already wires to
-            // .referenceScope(nil) in the preview pane). Why pure tag (and
-            // not the 22-EntityCategory hierarchy): per AGENTS.md §11.16
-            // facet model (= boss 2026-09-25 (see OOB.md #2026-09-25)
-            // model'), the tag is the cross-cutting facet that carries the
-            // user's mental model of how to find material. The 22
-            // EntityCategory cases stay as a primary facet on the
-            // Reference struct (= still assigned by EntityClassifier), but
-            // they no longer drive the sidebar browse surface. The
-            // previous -category sidebar was too rigid for the wenshu use
-            // case (= users couldn't tag '唐代边塞诗' under both '唐朝' + '边塞诗' =
-            // the tag cloud collapses to one row per distinct tag). Tag
-            // row shape (= matches the reference- category row shape so
-            // the sidebar visual rhythm is preserved): - title = the tag
-            // string (= '唐朝' / '诗人' / etc.) - subtitle = 'N 项' (= tag
-            // count; = mirrors the previous 'N 项' format on the
-            // 22-category rows so the user has a consistent density cue) -
-            // systemImage = 'tag.fill' (= SF Symbols 6 tag glyph = the
-            // canonical 'tag' iconography; = the boss can review every tag
-            // in one glance the same way he wanted to review every
-            // category) - children = nil (= leaf = no disclosure chevron =
-            // single-click routes the preview pane to .referenceScope(nil)
-            // with the active tag filter) - routingKey = the tag string (=
-            // the same string passed to SidebarItem.tag(tagString); =
-            // forwardSelection can map the row to the SidebarItem.tag case
-            // without ambiguity) Sort order = descending count (= '唐朝'
-            // N=10 above '诗人' N=4), then by tag string ascending for tie-
-            // break (= stable order; = Swift Set has no inherent order so
-            // this sort is required for consistent rendering across
-            // launches).
-            // The reference library root holds one row per library category,
-            // and each of those holds the tags that belong to it (= a
-            // two-level tree; = the flat tag list became too long to
-            // scan).
+            // the cross-cutting tag cloud: = one row per distinct tag, = the most
+            // carried tag first).
             //
-            // A tag belongs to exactly one category. Where two references
-            // carry the same tag but disagree about the category, the
-            // category more of them give wins; a tie goes to the category
-            // that comes first in the library's own category order. The
-            // result depends only on the loaded references, so it is the
-            // same on every launch.
-            let tagRows = Self.groupedTagRows(for: references)
+            // ⇒ ⇒ ⇒ The library's own categories (= the 22 CLC buckets) are NOT a
+            // second level: = a category row was a grouping the tree rebuilt from
+            // the classifier's answer on every reload (= so the rows moved when
+            // the selection changed), = and the flat cloud is the surface the
+            // user asked for.
+            //
+            // The tag rows carry the count of the documents that carry them (= the
+            // entities layer only, = the layer the grid shows), = the tag glyph, =
+            // and no children (= a leaf, = so a click scopes the grid to that
+            // tag).
+            let tagRows = Self.tagRows(for: references)
             // The reference library is its own hierarchy (= the sidebar
             // shows one hierarchy per part, so the two no longer share a
             // list and need no divider between them).

@@ -21,30 +21,20 @@
 
 import Foundation
 
-/// One row in the macOS 27 sidebar (= shelf root, book,
-/// reference category folder, reference leaf, or the synthetic
-/// Reference-Library root). The children property is what Apple's
-/// `List(_, children:)` initializer needs to render disclosure
-/// indicators automatically (= non-nil = parent, nil = leaf).
-///
-/// : adds
-/// the `.referenceCategory` Kind case (= the 22 CLC top-level
-/// categories that auto-classify references). When
-/// SidebarService projects the Reference-Library subtree, it
-/// emits one `.referenceCategory` parent per category that has
-/// >= 1 reference (the v0.29 the directive 'category folders grow with
-/// the content, instead of being laid out all at once' rule).
-/// The category parent's children are the reference leaves.
+/// One row in the macOS 27 sidebar (= shelf root, book, folder leaf,
+/// tag leaf, section divider, or the synthetic Reference-Library root).
+/// The children property is what Apple's `List(_, children:)` initializer
+/// needs to render disclosure indicators automatically (= non-nil = parent,
+/// nil = leaf).
 ///
 /// ', 
 /// . ': the user-facing `title` MUST carry
 /// the Chinese display label (= the user reads the sidebar in
-/// ), NOT the routing key. The routing key (= the
-/// EntityCategory.directoryName that ShellMiddleColumn
-/// previewScope's case-insensitive rawValue lookup resolves
-/// to an EntityCategory) is stored in the dedicated
-/// `routingKey` field (= only set for .referenceCategory
-/// rows). `AppleSidebarView.forwardSelection` reads
+/// ), NOT the routing key. The routing key (= the string that
+/// survives the round-trip from sidebar click → SidebarItem →
+/// PreviewScope) is stored in the dedicated
+/// `routingKey` field (= only set for the tag rows).
+/// `AppleSidebarView.forwardSelection` reads
 /// `routingKey ?? node.title` so the routing contract is
 /// preserved without putting the routing key in the
 /// user-visible title slot.
@@ -77,13 +67,11 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
     /// : routing key for sidebar
     /// selection = the string that survives the round-trip
     /// from sidebar click → SidebarItem → PreviewScope
-    /// case-insensitive EntityCategory lookup. Set on
-    /// `.referenceCategory` rows to EntityCategory
-    /// .directoryName (= "a" / "b" / ... / "" / "").
-    /// Nil for every other Kind (= the existing
-    /// shelf / book / reference rows route via the row id
-    /// or the title respectively; = no separate routing key
-    /// needed).
+    /// case-insensitive lookup. Set on the `.tag`
+    /// rows to the tag string. Nil for every other Kind
+    /// (= the existing shelf / book / library root rows
+    /// route via the row id or the title respectively; =
+    /// no separate routing key needed).
     var routingKey: String?
 
     /// The row's stable key for the tree's expansion state.
@@ -108,10 +96,8 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
             return .book(id)
         case .reference:
             // The reference library's root row (= the synthetic root
-            // the category rows hang under).
+            // the tag rows hang under).
             return .referenceLibraryRoot
-        case .referenceCategory:
-            return .referenceCategory(routingKey ?? title)
         case .tag, .divider:
             return nil
         }
@@ -207,18 +193,13 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         case shelf
         case book
         case reference
-        // reference-library
-        // category parent (= one of 22 CLC top-level categories
-        // = EntityCategory). Children = the references in that
-        // category.
-        case referenceCategory
-        // tag row (= a v2.6 cross-cutting
-        // facet; = one SidebarNode per unique tag string; =
-        // orthogonal to `referenceCategory` and entityType).
-        // Children = nil (= leaf; = clicking a tag row routes
-        // `workspaceUI.sidebarSelection = .tag(<tagString>)` and
-        // PreviewPane filters its card grid by
-        // `tags.contains(tag)`).
+        /// A tag row (= a cross-cutting
+        /// facet; = one SidebarNode per unique tag string; =
+        /// the reference library's whole browse surface).
+        /// Children = nil (= leaf; = clicking a tag row routes
+        /// `workspaceUI.sidebarSelection = .tag(<tagString>)` and
+        /// PreviewPane filters its card grid by
+        /// `tags.contains(<tag>)`).
         case tag
         // bb (see OOB.md #2026-09-23) OOB '
         // ': non-interactive row that renders a horizontal
@@ -236,7 +217,6 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
             case .shelf: return "shelf"
             case .book: return "book"
             case .reference: return "reference"
-            case .referenceCategory: return "referenceCategory"
             case .tag: return "tag"
             case .divider: return "divider"
             }

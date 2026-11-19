@@ -92,13 +92,58 @@ final class StyleSheetWiringTests: XCTestCase {
     ///
     /// MUTATION: = `node.id` alone = names a folder row's own
     /// SYNTHETIC id (= `SidebarService.stableFolderId(bookId:folderName:)`),
-    /// = which matches no book, = so every reader falls back to the
+    /// which matches no book, = so every reader falls back to the
     /// print baseline. = So the check is on the VALUE assigned, = not
     /// on the assignment's presence.
+    ///
+    /// ⇒ ⇒ ⇒ AND THE VALUE IS ASKED OF THE PRODUCTION, = NOT READ
+    /// OUT OF ITS TEXT: = the decision (= what a click writes) lives
+    /// in `AppleSidebarView.writes(for:in:)`, = so the check CALLS it
+    /// (= = = the same call the sidebar's own click makes) = = and the
+    /// answer is the VALUE, = not the spelling of the line that
+    /// produces it. = ⇒ ⇒ ⇒ A source-text anchor here would go RED
+    /// when the decision MOVES (= = = the extraction this repo just
+    /// made) = = while the behaviour it stands for never changed, = =
+    /// = = and the anchor would have charged the move to the editor's
+    /// suite. = ⇒ ⇒ ⇒ So the invariant is owned by the BEHAVIOURAL
+    /// suite (`SidebarRowWritesTests.aFolderRowNamesTheOwningBook`,
+    /// = = = which asserts the same value) = = and this case asks the
+    /// production directly, = = = so the editor's suite keeps its own
+    /// say over the join.
     func testTheSidebarNamesTheOwningBook() throws {
-        let code = try Self.code(of: "Sources/WenshuApp/Features/Library/View/AppleSidebarSelection.swift")
-        XCTAssertTrue(
-            code.contains("bookStore.selectedBookId = parent?.bookId ?? node.id"),
+        let bookId = UUID()
+        // A folder row shares the `.book` kind (= only a real book row
+        // has children), = so the tree is what tells the two apart.
+        let folder = SidebarNode(
+            id: UUID(),
+            kind: .book,
+            title: "Drafts",
+            subtitle: nil,
+            systemImage: "circle",
+            children: nil
+        )
+        let book = SidebarNode(
+            id: bookId,
+            kind: .book,
+            title: "Li Bai",
+            subtitle: nil,
+            systemImage: "circle",
+            children: [folder]
+        )
+        let shelf = SidebarNode(
+            id: UUID(),
+            kind: .shelf,
+            title: "Works",
+            subtitle: nil,
+            systemImage: "circle",
+            children: [book]
+        )
+
+        let writes = AppleSidebarView.writes(for: folder, in: [shelf])
+
+        XCTAssertEqual(
+            writes.selectedBookId,
+            bookId,
             "a folder row must name the book that OWNS the folder (= not the folder's own synthetic id)"
         )
     }
