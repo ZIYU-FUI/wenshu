@@ -25,17 +25,48 @@ final class SidebarService {
     /// The current sidebar tree (= shelf roots + a synthetic
     /// Reference Library root). Apple HIG syncs this state into the
     /// List's row content closure (= one node per row).
-    private(set) var nodes: [SidebarNode] = []
+    ///
+    /// ⇒ ⇒ ⇒ THE TREE IS PUBLISHED WITH ITS SHAPE: = the rows are
+    /// compared by their OWN data, = so a tree whose rows differ only
+    /// BELOW the top compares EQUAL, = and the observation that carries
+    /// the tree never fires (= the rows under the user keep the text
+    /// they had). = ⇒ ⇒ ⇒ The shape is the digest of every row's
+    /// subtree, = so a tree that changed IS a new tree (= the sidebar
+    /// reads it again).
+    private(set) var tree = SidebarTree(nodes: [])
 
     /// The shelf hierarchy (= the user's shelves and their books).
     ///
     /// The sidebar shows one hierarchy per part, so the shelf hierarchy
     /// and the reference library hierarchy live in separate collections
     /// instead of one joined list.
-    private(set) var shelfNodes: [SidebarNode] = []
+    ///
+    /// ⇒ ⇒ ⇒ PUBLISHED WITH ITS SHAPE: = the rows compare by their own
+    /// data, = so a shelf whose books changed compares EQUAL, = and the
+    /// sidebar would never read the new rows.
+    private(set) var shelfTree = SidebarTree(nodes: [])
 
     /// The reference library hierarchy (= the grouped tag surface).
-    private(set) var libraryNodes: [SidebarNode] = []
+    ///
+    /// ⇒ ⇒ ⇒ PUBLISHED WITH ITS SHAPE: = the rows compare by their own
+    /// data, = so a category whose tags changed compares EQUAL, = and
+    /// the sidebar would never read the new rows.
+    private(set) var libraryTree = SidebarTree(nodes: [])
+
+    /// The current sidebar tree's rows (= the tree's rows).
+    var nodes: [SidebarNode] {
+        tree.nodes
+    }
+
+    /// The shelf hierarchy's rows (= the tree's rows).
+    var shelfNodes: [SidebarNode] {
+        shelfTree.nodes
+    }
+
+    /// The reference library hierarchy's rows (= the tree's rows).
+    var libraryNodes: [SidebarNode] {
+        libraryTree.nodes
+    }
 
     /// Last reload error (= surfaced in the sidebar's error footer
     /// = the loadError semantics the legacy LazySidebarView
@@ -222,14 +253,14 @@ final class SidebarService {
                 children: tagRows.isEmpty ? nil : tagRows
             )
 
-            shelfNodes = roots
-            libraryNodes = [libraryRoot]
+            shelfTree = SidebarTree(nodes: roots)
+            libraryTree = SidebarTree(nodes: [libraryRoot])
             // The joined list stays for the callers that still read it
             // (= the preview pane's scope resolution walks it).
-            nodes = roots + [libraryRoot]
+            tree = SidebarTree(nodes: roots + [libraryRoot])
             loadError = nil
         } catch {
-            nodes = []
+            tree = SidebarTree(nodes: [])
             loadError = "Failed to load sidebar: \(error.localizedDescription)"
         }
     }

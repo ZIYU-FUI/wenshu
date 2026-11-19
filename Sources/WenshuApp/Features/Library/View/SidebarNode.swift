@@ -150,6 +150,59 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         hasher.combine(routingKey)
     }
 
+    /// The row's DRAWING identity (= what the view matches a drawn row by).
+    ///
+    /// ⇒ ⇒ ⇒ EQUALITY IS THE ROW'S OWN DATA, = BUT THE DRAWING IS THE
+    /// ROW'S SUBTREE: = a row whose descendant changed must be drawn
+    /// again, = so the identity the view matches a row by carries the
+    /// subtree's content.
+    ///
+    /// ⇒ ⇒ ⇒ THE EQUALITY ABOVE CANNOT CARRY IT: = a row's own data
+    /// did not change when a book appeared under the shelf, = so the
+    /// row compared EQUAL, = so the tree kept the row it had drawn, =
+    /// and the book under it never appeared. = ⇒ ⇒ ⇒ The equality says
+    /// what a row IS; = the drawing identity says what the tree must
+    /// DRAW AGAIN.
+    ///
+    /// ⇒ ⇒ ⇒ The digest names the row's OWN DATA and every
+    /// descendant's own data, = so a renamed, added or removed
+    /// descendant changes its ancestor's identity (= the ancestor's row
+    /// is drawn again, = and its subtree is drawn with it).
+    ///
+    /// ⇒ ⇒ ⇒ A rebuild that yields the same shape and the same content
+    /// yields the same identity, = so the row the tree already drew is
+    /// the row the tree draws again (= the tree does not destroy the
+    /// row under the user).
+    var drawIdentity: String {
+        var digest = SidebarSubtreeDigest()
+        digest.combine(id.uuidString)
+        digest.combine(kind.drawToken)
+        digest.combine(title)
+        digest.combine(subtitle ?? "")
+        digest.combine(systemImage)
+        digest.combine(routingKey ?? "")
+        for child in children ?? [] {
+            digest.combine(child.drawIdentity)
+        }
+        return digest.hex
+    }
+
+    /// The tree's shape (= the digest of every top-level row's subtree).
+    ///
+    /// ⇒ ⇒ ⇒ THE TREE'S SHAPE IS ITS OWN IDENTITY: = the rows are
+    /// compared by their own data, = so two trees whose rows differ
+    /// only BELOW the top compare equal, = and the view that holds
+    /// them would never read them again (= the rows under the user
+    /// would keep the text they had). = ⇒ ⇒ ⇒ The shape is what tells
+    /// the view that the tree it holds is a NEW tree.
+    static func treeIdentity(of nodes: [SidebarNode]) -> String {
+        var digest = SidebarSubtreeDigest()
+        for node in nodes {
+            digest.combine(node.drawIdentity)
+        }
+        return digest.hex
+    }
+
     enum Kind: Hashable, Sendable {
         case shelf
         case book
@@ -175,5 +228,85 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         // (= user shelves) and the reference library (= the
         // synthetic `reference` root node) by SidebarService.
         case divider
+
+        /// The kind's stable name (= the digest's own token, = so a
+        /// row's kind is part of the digest that names its subtree).
+        var drawToken: String {
+            switch self {
+            case .shelf: return "shelf"
+            case .book: return "book"
+            case .reference: return "reference"
+            case .referenceCategory: return "referenceCategory"
+            case .tag: return "tag"
+            case .divider: return "divider"
+            }
+        }
+    }
+}
+
+/// The tree the sidebar publishes (= the rows, = and the tree's shape).
+///
+/// ⇒ ⇒ ⇒ THE TREE'S SHAPE IS THE TREE'S IDENTITY: = the rows are
+/// compared by their OWN data, = so a tree whose rows differ only
+/// BELOW the top compares EQUAL, = and the observation that carries
+/// the tree never fires (= the rows under the user keep the text they
+/// had). = ⇒ ⇒ ⇒ The shape is the digest of every row's subtree, = so
+/// a tree that changed IS a new tree (= the sidebar reads it again), =
+/// and a tree that did not change is the same tree (= the sidebar does
+/// not destroy the rows under the user).
+///
+/// ⇒ ⇒ ⇒ THE ROWS KEEP THEIR OWN IDENTITY: = the tree's shape says
+/// what the tree IS; = the rows still say what each row IS (= its own
+/// data, = = the card's premise).
+struct SidebarTree: Equatable {
+    /// The tree's rows.
+    let nodes: [SidebarNode]
+
+    /// The tree's shape (= the digest of every row's subtree).
+    let shape: String
+
+    init(nodes: [SidebarNode]) {
+        self.nodes = nodes
+        shape = SidebarNode.treeIdentity(of: nodes)
+    }
+
+    static func == (lhs: SidebarTree, rhs: SidebarTree) -> Bool {
+        lhs.shape == rhs.shape
+    }
+}
+
+/// The digest of a row's subtree (= the row's own id + every
+/// descendant's).
+///
+/// ⇒ ⇒ ⇒ A DIGEST, = NOT A LIST: = the tree compares digests, = so a
+/// deep subtree does not make a row's identity long.
+///
+/// ⇒ ⇒ ⇒ The digest is FNV-1a, = and it is NOT seeded per process
+/// (= Swift's own Hasher is), = so the same tree yields the same
+/// identity in every launch (= the identity means the same thing
+/// tomorrow as it means today).
+private struct SidebarSubtreeDigest {
+    /// FNV-1a's 64-bit offset basis.
+    private var accumulator: UInt64 = 0xCBF2_9CE4_8422_2325
+
+    /// FNV-1a's 64-bit prime.
+    private static let prime: UInt64 = 0x0000_0100_0000_01B3
+
+    /// Fold one field into the digest.
+    ///
+    /// ⇒ ⇒ ⇒ The field's end is folded in too, = so two fields can
+    /// never be read as one (= "ab" + "c" is not "a" + "bc").
+    mutating func combine(_ field: String) {
+        for byte in field.utf8 {
+            accumulator ^= UInt64(byte)
+            accumulator = accumulator &* Self.prime
+        }
+        accumulator ^= 0x1F
+        accumulator = accumulator &* Self.prime
+    }
+
+    /// The digest, as the row's identity.
+    var hex: String {
+        String(format: "%016llx", accumulator)
     }
 }
