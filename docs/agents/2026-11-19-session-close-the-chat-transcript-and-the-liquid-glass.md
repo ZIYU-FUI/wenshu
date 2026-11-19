@@ -46,6 +46,24 @@ named with the artifact it came from.
 | 4 | The outgoing bubble wears Apple's own default bubble, in the Liquid Glass material, after Apple's HIG and the framework-retrieval skill | `598ff5815` (= = "feat(chat): the user's own bubble wears Apple's Liquid Glass" = = `ChatMessageView.swift`, `ChatUserBubblePalette.swift`, `InspectorStatusOutputSheet.swift`, = = the three suites, = = the registry row and the closeout) | `t_0736a764` (round 1) → `t_9c377e3c` (round 2) → **`t_e37d7753` = APPROVED** (= = round 3) | `git merge-base --is-ancestor 598ff5815 <remote>/main` reads **YES** on BOTH remotes; the scope's merge on `main` = = `47eb24114`; the SAME CHANGE = = the reviewed sha `37526bfed` and the landed tip `81c97ae58` carry the IDENTICAL patch-id `7b90f8386d910953d0230b2e14c9069c1b32f9e3`, = = and `review_gate.py --card t_e37d7753` reads **approved** (= = the card names the reviewed sha; = = the branch was then RESTACKED onto the merged `main`, = = so `review_gate.py --branch ... --sha 81c97ae58` names no card, = = and `37526bfed` is not on `main`) |
 | 5 | Do not copy the message bubble: change the material of the background that is there | `598ff5815` (= = the same commit: = = the bubble's surface becomes `.glassEffect(.regular, in: ChatSurfaceShape())`, = = the palette's `surface` becomes `inspectorOutputSurface`, = = and the shape, = = the width, = = the padding and the words are untouched) | the same three cards, ending **`t_e37d7753` = APPROVED** | the same ancestry read YES on both remotes; the geometry is measurable = = the bubble scope's OWN document's section 3 table records the bubble's content frame as 355x49 (= = and its section 6 records the solid fill's as 355x36) (= = Apple's glass reserves room for its own rim), = = and the words and the shape are unchanged |
 
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ **AND THE ANCESTRY COLUMN IN EVERY ROW ABOVE IS ONE PREDICATE, = = NOT A SENTIMENT:**
+`git merge-base --is-ancestor <sha> <tip>` for EACH of this session's EIGHTEEN commits,
+against the tip the row names. = = The current reading is **18 OF 18 YES** against
+`origin/main` = = `1fbeb0cf96` (= = re-run 2026-11-19 16:07:35 CST by
+`Scripts/merge-preflight.sh` and by the loop in section 6), = = and the same 18 of 18
+against `old-origin/main`, = = which the same instant finds at that SAME commit. = = An
+earlier round published 12 of 12 (= = a denominator that counted only the transcript
+lane's commits), = = and the table's rows carried the predicate without its count, = = so
+a reader could not tell which of the two numbers was current. = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ **AND THE ROWS ABOVE ARE NOT A TABLE TO BE EXTENDED: = = THE 5-COLUMN HEADER IS THE
+SHAPE,** = = and this round's first draft tried to add a 3-cell ancestry row underneath
+them, = = which is the same class of defect as the dropped row the previous round
+reported (= = a row whose pipe count does not match its header is DROPPED by the
+renderer, = = taking its numbers with it). = = The predicate therefore lives in prose
+here, = = where it cannot be silently dropped.
+
 = = = ⇒ ⇒ ⇒ **AND THE BOSS'S OWN VERDICT ON THE TRANSCRIPT SCOPE IS A
 RAW ROW, = = AND IT IS A PASS.** = = The message store's row `284506`
 (= = 2026-11-18 10:26:24, = = `role='user'`) says, in the boss's own words,
@@ -533,37 +551,70 @@ values measured here.
   (runs `4498` and `4500`, = = elapsed 3621 s and 3620 s, = = against a 3600 s limit) before its
   later rounds completed. = = **Measured, not closed** (= = they are the
   sibling's cards, = = and their own runs carry the verdicts).
-- **A WHOLE-TARGET `swift test` IN THIS REPO EXITS 0 WHILE ITS OWN BODY IS RED,**
-  = = so its exit code is NOT a gate, = = and a reader who treats it as one will land a
-  red tree. = = Measured TWICE on two different commits, = = both runs every line kept:
-  = = on `1fbeb0cf96` at 14:37-14:46 CST (= = an earlier round's run) and on `124ce3275`
-  = = at 15:29:51-15:38:40 CST (= = this round's re-take, = = one run, = = no `parallel`,
-  = = no retry, = = nothing else on the machine). = = Both times the command was `swift
-  = = test --skip CSSearchableIndexSearchTests`, = = both times it printed THREE `Test run
-  = = started.` markers and only TWO `Test run with ... passed` summaries (= = 151 tests
-  = = in 34 suites, = = and 208 tests in 24 suites), = = both times its exit code was
-  **0**, = = and both times its body carries real per-test failures (= = this round's:
-  = = **18 lines of the form `✘ Test ... failed after ... with N issue(s)` spread over
-  = = SEVEN suites** (= = `ChatViewHistoryShortcutTests`, = = `EditorTabTitleTests`, = =
-  = = `PaneTabStripTitleTests`, = = `EditorTabStripOverflowTests`, = =
-  = = `EditorPersistenceTests`, = = `AsyncDelegationRegistryTests`, = =
-  = = `SidebarTreeReloadTests`), = = and the run those 18 belong to never printed a
-  summary at all. = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **SO THE FILTERED RUNS ARE THE ONLY
-  `swift test` EVIDENCE THIS DOCUMENT PUBLISHES, = = AND THEY ARE PUBLISHED BECAUSE
-  THEIR EXIT CODE AND THEIR SUMMARY AGREE** (= = 42 tests in 7 suites at exit 0, = = and
-  = = 44 tests in 6 suites with three issues at exit 1, = = both in section 3). = = The
-  whole-target run's per-suite failures ARE still a reading of the tree (= = they name
-  which suites are red, = = which is what section 2's rows use), = = but they are
-  labelled as a reading and never as a green gate. = = **Reported and NOT fixed**: = =
-  the harness is not this scope's code, = = it is the toolchain lane's, = = and no card
-  owns it. = = The next session's first move on it is a ONE-SUITE reproduction (= =
-  `swift test --filter EditorTabTitleTests` exits 1 correctly on its own, = = so the
-  signal is lost when the app-hosted bundle runs inside the whole-target invocation)
-  = = filed against the gate and NOT against the product.
-- **AND COUNTING THE ITEMS IN THIS SECTION IS ITSELF A MEASURED NUMBER:** = = section 5
-  = = carries **EIGHT** bullets after this round (= = seven before it), = = and an
-  earlier round's summary sentence said "five" when the list already held six, = =
-  because a count of a list is a claim about the list and the list grew underneath it.
+- **`swift test` IN THIS REPO EXITS 0 WHILE ITS OWN BODY IS RED,** = = so its exit
+  code is NOT a gate, = = and a reader who treats it as one will land a red tree. = = The
+  shape is the app-hosted bundle (= = `WenshuAppTests`): = = in an UNFILTERED run, = =
+  when it carries swift-testing failures ITS run never prints a summary line (= = the
+  log shows only `Test run started.`) = = and the process still exits 0. = = Measured on
+  FOUR logs, = = three red and one green, = = every line kept, = = and each row below
+  names the FILE it was read out of (= =
+  `~/.hermes/profiles/pocock/cache/scratch/<name>`).
+  - `gates_b0ba0e0e.log`, = = unfiltered `swift test --skip
+    CSSearchableIndexSearchTests` on tip `124ce3275` (= = the file's OWN line 1, = =
+    `TARGET TIP = 124ce3275727955162a896fa4d90657c334c3375`), = = 15:18:55-15:23:34 CST:
+    = = exit **0** (= = `SEVENTEST_EXIT=0`), = = THREE `Test run started.` markers, = =
+    TWO summaries and BOTH read `passed` (= = 151 tests in 34 suites, = = and 208 tests
+    in 24 suites) = = and NEITHER is the run that holds the failures, = = and inside it
+    are **11 per-test `failed after` lines spread over SEVEN suites** (= =
+    `ChatViewHistoryShortcutTests`, = = `EditorTabTitleTests`, = =
+    `PaneTabStripTitleTests`, = = `EditorTabStripOverflowTests`, = =
+    `EditorPersistenceTests`, = = `AsyncDelegationRegistryTests`, = =
+    `SidebarTreeReloadTests`). = = > > > **AND THAT LOG'S SECTION HEADER IS ITS OWN FIRST
+    ERROR:** = = the script wrote `=== THE SEVEN SUITES THE SCOPE DOCS NAME (whole target
+    run) ===` over a command that filters NOTHING, = = so for one round this document's
+    evidence was labelled a filtered run when it was an unfiltered one, = = and the row
+    above is corrected from the script's own lines (= = `gates_b0ba0e0e.sh` 35-37) = =
+    and not from the memory of writing it.
+  - `gates_recheck.log`, = = the SAME unfiltered command re-taken on the SAME tip
+    `124ce3275`, = = 15:29:33-15:38:40 CST, = = quiet machine (load < 8, = =
+    `swiftpm-testing-helper` = 0), = = one run, = = no `parallel`, = = no retry: = = exit
+    **0** (= = `WHOLE_EXIT=0`), = = THREE markers, = = the same two `passed` summaries,
+    = = and **18 `failed after` lines** over the same seven suites (= = 11 per-test and 7
+    suite-level). = = So the defect is NOT a one-off of one log.
+  - `native-tabs-tip-full.log`, = = the SIBLING lane's unfiltered run (its own mtime
+    15:28:50, = = and its log names its tree only as worktree `native-tabs-picker`, = =
+    which this round did NOT verify, = = so it is cited as a third instance of the SHAPE
+    and NEVER as a measurement of a tree): = = exit **0**, = = THREE markers, = = TWO
+    `passed` summaries (= = 151/34, = = 208/24), = = and **12 per-test `failed after`
+    lines over EIGHT suites** (= = the seven above plus `HermesTodoStore concurrency`).
+  - `gates_round7.log`, = = **THE GREEN COUNTER-CASE**, = = this round, = = tip
+    `1fbeb0cf96` (= = the 16:04:27 push, = = checked out detached into a throwaway
+    worktree at 16:04:29), = = `swift test --filter` over the seven chat suites, = =
+    16:04:29-16:07:27: = = exit 0, = = TWO markers, = = and **`Test run with 42 tests in
+    7 suites passed`** = = the filtered run's OWN summary, = = printed = = with nothing
+    red inside it. = = The same log's filtered BASELINE run prints its own summary too (=
+    = `Test run with 44 tests in 6 suites failed after 3.146 seconds with 3 issues`) = =
+    and exits **1**: = = agreement in both directions.
+  ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **SO THE ONLY `swift test`
+  EVIDENCE THIS DOCUMENT PUBLISHES AS A GATE IS A RUN WHOSE EXIT CODE AND ITS OWN SUMMARY
+  AGREE.** = = The distinction is NOT `--filter` against unfiltered (= = the third bullet
+  is a filtered run that agreed, = = the first is a run whose header CLAIMED a filter it
+  did not apply), = = it is whether the bundle that carried the failures printed a
+  summary. = = The unfiltered run's per-suite failures ARE still a reading of the tree (=
+  = they name which suites are red, = = which is what section 2's rows use), = = but they
+  are labelled a reading and never a gate. = = **Reported and NOT fixed**: = = the
+  harness is not this scope's code, = = it is the toolchain lane's, = = and no card owns
+  it. = = The next session's first move on it is a ONE-SUITE reproduction against a suite
+  that is deterministically red (= = `EditorTabTitleTests` is the cheapest known one), = =
+  asking at each step whether the app-hosted bundle's own summary line appears, = =
+  filed against the gate and NOT against the product.
+  > > > **AND THE ATTRIBUTION ERROR THIS ROUND MADE WHILE WRITING THIS BULLET IS THE
+  RULE'S POINT:** = = the first draft put two of these runs on `1fbeb0cf96` at 14:37 CST,
+  = = and the logs' own line 1 puts all three red runs on `124ce3275`, = = and
+  `1fbeb0cf96` did not exist as a ref until 16:04:27 (= = `git reflog origin/main`), = =
+  so a 14:37 run against it is IMPOSSIBLE. = = A number taken from the memory of a run
+  instead of from the log's own header is exactly the defect section 3 exists to prevent,
+  = = and it is why every row above names the FILE it was read out of.
 
 ## 6. The commits this session pushed that are NOT this session's
 
@@ -691,9 +742,19 @@ because that tree also moves.
 
 ## 7. The next session's starting point
 
-= = = 1. Both scopes are ON `main` (= = `a89f895c2` and `47eb24114`), = =
-with their verdicts on the board (= = `t_7c1d9edd` and `t_e37d7753`, = =
-both approved, = = both read back as approved by `review_gate.py --card`).
+= = = 1. Both scopes are ON `main`. = = > > > **AND A MERGE COMMIT IS NOT THE
+CARRIER, = = SO THOSE TWO NAMES ARE NOT INTERCHANGEABLE.** = = `a89f895c27` (= =
+"merge the transcript scope's closeout onto main", = = 2026-11-18 21:31:33) and
+`47eb241142` (= = "merge the chat bubble's Liquid Glass scope onto main", = =
+2026-11-18 21:32:01) are the two MERGES; = = the CARRIERS are `1928e85b37` (= =
+"docs(agents): the section 3 summary publishes the table's OWN six sites", = =
+2026-11-18 17:16:15) and `81c97ae582` (= = "fix(chat): the review round's two
+findings, = = the registry's count and the four sentences", = = 2026-11-18 14:58:42). = =
+All four are ancestors of the newest tip this document names (= =
+`git merge-base --is-ancestor <each> origin/main` reads YES for all four against
+`1fbeb0cf96`, = = run 2026-11-19 16:07:35 CST). = = Their verdicts are on the board (= =
+`t_7c1d9edd` and `t_e37d7753`, = = both approved, = = both read back as approved by
+`review_gate.py --card` at 11:25:22 and 11:25:38 CST.
 
 = = = 2. **The bubble scope's boss look is the one thing left**, = = and the app
 is NOT running for it (= = the last instance, = = pid 3017, = = launched
@@ -716,11 +777,16 @@ SURVIVES (= = `~/.hermes/profiles/pocock/cache/evidence/glass-live-2026-11-19.pn
 = = 2660x1932), = = so a reader can take the readings again from it without
 launching anything.
 
-= = = 3. **FIVE** items in section 5 are reported and not fixed. = = Four of
-them name an owning card (= = `t_7c1d9edd` and `t_e37d7753`), = = and the
-fifth names none, = = because no card can rewrite a published ref. = = Each
-one needs ITS OWN card if it is to be repaired (= = = = editing an approved
-tree moves its `change_id`).
+= = = 3. **SIX** of section 5's **EIGHT** bullets are reported and not fixed,
+= = and the count is MEASURED, = = not remembered (= = `grep -c 'Reported and NOT
+= = fixed'` over that section reads SIX, = = and the section's top-level bullets read
+= = EIGHT; = = the two that are not in the six are the boss's look, = = which only he
+= = can settle, = = and the sibling lane's two cards, = = which are measured and belong
+= = to the sibling). = = Four of the six name an owning card (= = `t_7c1d9edd` and
+= = `t_e37d7753`), = = and two name none: = = one because no card can rewrite a
+= = published ref, = = and one because the test-harness defect in the newest bullet is
+the toolchain lane's and is not ticketed yet. = = Each one needs ITS OWN card if it is
+to be repaired (= = = = editing an approved tree moves its `change_id`).
 
 = = = 4. The sibling lane's two blocked cards (= = `t_6d8d6b08`, = =
 `t_3d047959`) are its own to close, = = and the sibling lane's own guard fix
