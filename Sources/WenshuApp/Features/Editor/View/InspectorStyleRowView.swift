@@ -112,12 +112,19 @@ func localizedFamilyName(_ family: BookBodyFamily) -> String {
 
 /// One row of the style table: = the role's name at the left, = and two
 /// lines set in the book's own voice at the right.
+///
+/// WHY THE NAME IS CENTRED AND NOT ON THE FIRST LINE
+///
+/// The row is the unit (= the dashed rules are drawn BETWEEN rows), so the
+/// name belongs to the whole row, = and the row's height is the sample's two
+/// lines: = on the first baseline the name hung at the top of a two-line
+/// block and read as a caption of the line under it.
 struct InspectorStyleRowView: View {
     /// The row this view draws.
     let row: InspectorStyleRow
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingTight) {
+        HStack(alignment: .center, spacing: DesignTokens.spacingTight) {
             Text(row.role.localizedName)
                 .font(.callout)
                 .foregroundStyle(DesignTokens.textBody)
