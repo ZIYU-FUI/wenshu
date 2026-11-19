@@ -43,12 +43,12 @@ struct ChromeTopBar<Content: View>: View {
     /// The band's horizontal inset (= the gap between the
     /// band's edge and its content).
     ///
-    /// The shared default is 8 PT (= `DesignTokens.spacingStandard`),
-    /// and the other call sites keep it. A call site whose column
-    /// has a different inner inset passes its own: the sidebar's
-    /// chrome band matches the tree's 10 PT row inset
-    /// (= `DesignTokens.spacingRelaxed`), so the switcher inside it
-    /// lines up with the tree rows below.
+    /// The shared default is 8 PT (= `DesignTokens.spacingStandard`).
+    /// A call site whose column has a different inner inset passes its
+    /// own: = the sidebar's chrome band matches the tree's 10 PT row
+    /// inset (= `DesignTokens.spacingRelaxed`), = so the switcher inside
+    /// it lines up with the tree rows below (= the boss confirmed on
+    /// 2026-11-19 that this inset is deliberate).
     let horizontalPadding: CGFloat
     /// Whether the band paints the shared chrome material.
     ///

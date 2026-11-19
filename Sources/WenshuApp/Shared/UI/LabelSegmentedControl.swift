@@ -117,10 +117,19 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// macOS 27 segmented-control role. The role decides how the SELECTED
     /// segment is drawn.
     ///
-    /// `.valueSelection` is the default because a text label inside a
-    /// `.tabs` segment is not painted (the selected segment becomes a dark
-    /// inset with an invisible label). `.tabs` suits a strip whose segments
-    /// carry SYMBOLS, where the symbol carries the state.
+    /// `.valueSelection` is the default, = and the reason is the WIDTH, not
+    /// the label (= the tab role paints a text label fine, measured again
+    /// 2026-11-19): the tab role will not SQUEEZE.
+    ///
+    /// MEASURED 2026-11-19 on macOS 27.2.1, 12 segments pinned to a 222 PT
+    /// frame: `.tabs` holds a ~33 PT floor per cell whatever the label says
+    /// (= the same 395 PT track with BLANK labels), so it paints 173 PT past
+    /// its column = Apple's tab-bar model, where a tab keeps its natural
+    /// width and the bar scrolls. `.valueSelection` lets `.fillEqually`
+    /// divide the frame (= 222 PT), which is what this strip's rule needs.
+    ///
+    /// The three column-top switchers, which may clip instead of squeeze,
+    /// wear the tab role in `WenshuTabPicker`.
     var role: NSSegmentedControl.Role = .valueSelection
 
     /// Per-segment display strings (= the `String` shown in
@@ -422,23 +431,17 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // actually render with).
         if #available(macOS 27.0, *) {
             control.segmentStyle = .roundRect
-            // macOS 27 role API. The role decides how the SELECTED segment
-            // is drawn, and the two roles are not interchangeable for a
-            // text-labelled strip:
-            //
-            // - `.tabs` draws the selected segment as a dark inset and
-            // leaves its LABEL UNPAINTED (measured on macOS 27.0.1: the
-            // selected segment's max luminance is 46 and it has ZERO pixels
-            // above 140, while the unselected segments peak at 223). The
-            // role exists for ICON segments, where the symbol carries the
-            // state; a text label inside a `.tabs` segment is invisible. -
-            // `.valueSelection` paints the selected segment's label
-            // normally (max luminance 227, 1049 pixels above 140) and still
-            // marks the selection with the dark inset.
-            //
-            // So a strip whose segments carry TEXT must use
-            // `.valueSelection`; a strip whose segments carry SYMBOLS may
-            // use `.tabs`.
+            // macOS 27 role API (= how the SELECTED segment is drawn). Both
+            // roles paint a text label: a 27.0.1 measurement read the
+            // opposite and this comment recorded it, re-measured 2026-11-19
+            // on 27.2.1 with this strip's own cell the label reads normally
+            // (= 1187 bright pixels on the plate, the close X above it).
+            // `.tabs` draws the system's own glass plate; `.valueSelection`
+            // draws the app's accent plate and squeezes its cells into the
+            // frame. This strip keeps `.valueSelection` for the WIDTH (the
+            // tab role's ~33 PT floor overflows a narrow column - see
+            // `role`); the three column-top switchers, which may clip, wear
+            // the tab role in `WenshuTabPicker`.
             control.role = role
         } else {
             // Defensive fallback (= NSSegmentedControl.role is macOS 27
