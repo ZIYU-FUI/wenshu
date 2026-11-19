@@ -328,10 +328,82 @@ def behind_main_case():
     return 0
 
 
+def no_trailing_newline_case():
+    """The LOC column counts NEWLINES (= = `wc -l`), = = not LINES.
+
+    MEASURED 2026-11-19: the gate counted the ITERATIONS of a binary file
+    handle (= = the LINES, = = `splitlines()`), = = and for a file that ends
+    WITHOUT a trailing newline that is ONE HIGHER than the registry's own
+    convention. = = So on `wt/inspector-9roles-2026-11-19` the gate reported
+    `InspectorStylePageFixture.swift: the row says 218, the file is 219`
+    = = where the file holds 218 newlines and 219 lines. = = The ROW was
+    right and the GATE was wrong.
+
+    ⇒ ⇒ ⇒ So this case writes a file with NO trailing newline, = = gives
+    its row the NEWLINE count (= = what `wc -l` says), = = and the gate
+    must be GREEN. = = And the RED half: the row carries the LINE count
+    (= = one higher), = = and then the gate must go red and name it.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        run(["git", "init", "-q", tmp], cwd=tmp)
+        run(["git", "config", "user.email", "t@t"], cwd=tmp)
+        run(["git", "config", "user.name", "t"], cwd=tmp)
+        os.makedirs(os.path.join(tmp, "Sources"), exist_ok=True)
+        os.makedirs(os.path.join(tmp, "docs", "agents"), exist_ok=True)
+        src = os.path.join(tmp, "Sources", "NoNewline.swift")
+        registry = os.path.join(tmp, "docs", "agents", "nfi.md")
+
+        # = the base: = one file with NO trailing newline (= = 2 newlines,
+        # = = 3 lines), = and no row for it yet.
+        with open(src, "w", encoding="utf-8") as handle:
+            handle.write("let a = 1\nlet b = 2\nlet c = 3")  # = = no trailing \n
+        write_registry(registry, [])
+        run(["git", "add", "-A"], cwd=tmp)
+        run(["git", "commit", "-qm", "base"], cwd=tmp)
+        base = run(["git", "rev-parse", "HEAD"], cwd=tmp).stdout.strip()
+
+        with open(src, "rb") as handle:
+            raw = handle.read()
+        newlines = raw.count(b"\n")
+        lines = len(raw.decode("utf-8").splitlines())
+        if newlines != 2 or lines != 3:
+            print(f"FAILED: the fixture is not the shape: newlines={newlines} lines={lines}")
+            return 1
+
+        # = the GREEN half: = the row carries the NEWLINE count (= = `wc -l`).
+        write_registry(registry, [("Sources/NoNewline.swift", "Sources/NoNewline.swift", newlines)])
+        run(["git", "add", "-A"], cwd=tmp)
+        run(["git", "commit", "-qm", "the row carries wc -l's count"], cwd=tmp)
+        result = run([sys.executable, TOOL, "--base", base, "--registry", registry], cwd=tmp)
+        if result.returncode != 0:
+            print("FAILED: the gate charged a row that carries wc -l's own count")
+            print(result.stdout)
+            return 1
+
+        # = the RED half: = the row carries the LINE count (= = one higher),
+        # = = and the gate must go red and name it.
+        write_registry(registry, [("Sources/NoNewline.swift", "Sources/NoNewline.swift", lines)])
+        run(["git", "add", "-A"], cwd=tmp)
+        run(["git", "commit", "-qm", "the row carries the line count instead"], cwd=tmp)
+        result = run([sys.executable, TOOL, "--base", base, "--registry", registry], cwd=tmp)
+        if result.returncode == 0:
+            print("FAILED: the gate did NOT charge a row that carries the line count")
+            print(result.stdout)
+            return 1
+        if "NoNewline.swift" not in result.stdout:
+            print("FAILED: the gate went red without naming the row")
+            print(result.stdout)
+            return 1
+
+    return 0
+
+
 if __name__ == "__main__":
     code = main()
     if code == 0:
         code = rewritten_row_case()
     if code == 0:
         code = behind_main_case()
+    if code == 0:
+        code = no_trailing_newline_case()
     sys.exit(code)

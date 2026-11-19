@@ -149,10 +149,30 @@ def rewritten_keys(base):
 
 
 def wc_lines(path):
-    """The file's own `wc -l` count (= the registry's own convention)."""
+    """The file's own `wc -l` count (= the registry's own convention).
+
+    = = ⇒ ⇒ ⇒ **⇒ COUNT THE NEWLINES, = = NOT THE LINES.** = = `wc -l`
+    counts newline-terminated lines, = = so a file that ends WITHOUT a
+    trailing newline counts ONE LESS than the number of lines it holds.
+    = = The registry's own header says so (= = "counting a file's lines the
+    way `wc -l` does (= = newline-terminated lines, = = so a file that ends
+    WITHOUT a trailing newline counts one less)"), = = and the header even
+    names the one file in the table where the two counts differ.
+
+    = = ⇒ ⇒ ⇒ AND THE IMPLEMENTATION MUST MATCH THAT: = = counting the
+    ITERATIONS of a binary file handle (= = `sum(1 for _ in handle)`) counts
+    the LINES, = = which is `splitlines()`, = = and that is ONE HIGHER for
+    such a file. = = ⇒ ⇒ ⇒ MEASURED 2026-11-19: = = on
+    `wt/inspector-9roles-2026-11-19` the gate reported
+    `InspectorStylePageFixture.swift: the row says 218, the file is 219`
+    = = where the file holds 218 newlines and 219 lines (= = it ends without
+    a trailing newline). = = The row was RIGHT (= = 218 = = the registry's
+    own convention) and the gate was wrong. = = ⇒ ⇒ ⇒ So this counts the
+    newlines, = = and that is the registry's LOC column.
+    """
     try:
         with open(path, "rb") as handle:
-            return sum(1 for _ in handle)
+            return handle.read().count(b"\n")
     except OSError:
         return None
 
