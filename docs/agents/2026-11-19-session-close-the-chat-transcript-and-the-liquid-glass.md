@@ -1520,3 +1520,27 @@ and the reviewer ruled it a comment-side error, = = not a finding against the tr
 document carries). = = **A PUBLISHED NUMBER IS EVIDENCE; = = A NUMBER THAT ONLY LIVES IN A
 COMMENT IS NOT, = = AND THE FIX IS TO SEPARATE THE TWO RATHER THAN SILENTLY REWRITE THE
 LATTER.**
+
+> > > **AND THIS ROUND'S LANDING, = = RECORDED THE WAY EVERYTHING ELSE HERE IS RECORDED, = = WITH A
+COMMAND AND A MINUTE**: = = the lane merged `origin/main`, = = so the merge commit is **`001a570551919ba64a46c6d58b5e7e3cd3a71f12`** and its
+second parent is the 12th move `9f0b263196`; = = `git merge-base --is-ancestor origin/main HEAD` answers YES on that tree (= = the log's own ANCESTRY line), = = and the MERGED tree's `Sources` object is
+**`f2e42b5d89510757c0a9c41025bc7d5cc7140674`**, = = which is THE SAME OBJECT §3's rows were measured on (= = `git rev-parse HEAD:Sources`
+printed at `gates_round11_landed.log` line 3, = = against
+`git rev-parse 9f0b263196:Sources` at `gates_round11c_facts.log` lines 11-13). = = **THAT EQUALITY IS THE
+CONDITION UNDER WHICH ROWS MEASURED ON AN OLDER COMMIT MAY BE PUBLISHED AGAINST A TIP THAT HAS SINCE
+MOVED TWICE, = = AND IT IS CHECKED RATHER THAN ASSERTED.** = = Every gate was then re-run ON THE LANDED
+TREE (= = read 2026-11-19 19:50:51 CST, = = finished 2026-11-19 19:53:36 CST, = = `gates_round11_landed.log`: = = the three doc gates, = =
+the registry's LOC gate and split gate, = = the design sweep `SWEEP_EXIT=0`, = = the dead-code
+gate `DEAD_EXIT=0`, = = and the seven focused suites `FOCUSED_EXIT=0` at its lines
+40-45), = = which is the version WITH A LOG; = = the same commands had already been run in the
+transcript at 19:49:30-19:49:59 BEFORE the push, = = and that earlier pass is named here as an in-session
+observation rather than as a citation, = = because it was never written to a file. = = The focused suites
+read '\U0010105b  Test run with 42 tests in 7 suites passed after 49.899 seconds.' / '\U0010105b  Test run with 42 tests in 7 suites passed after 49.899 seconds.' on THIS tree. = = The push printed
+`9f0b263196..001a570551  HEAD -> main` on BOTH servers at 19:50:00 CST, = = and the receiving side's own
+hook line, = = "Start Git Hooks Checking [PASSED]", = = was printed BEFORE the ref update, = = which is the
+only server-side evidence this lane has that anything at all was checked at the other end. = =
+**AND THIS IS THE 13TH MOVE OF `origin/main` SINCE THE SCOPES LANDED, = = AND THE FIRST OF THE THIRTEEN
+THAT IS THIS LANE'S OWN** (= = `git reflog show origin/main` read 12 moves newer than the `48cfabe11`
+push at 19:30:50 CST = = `gates_round11c_facts.log` lines 5-6; = = the 13th is this push, = = so a reader
+who runs the count later will get 13 and then more, = = which is exactly why every count here is
+published with the minute it was read).
