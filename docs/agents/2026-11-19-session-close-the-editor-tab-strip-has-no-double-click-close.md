@@ -98,30 +98,65 @@ Run after the rebase onto `b0ba0e0e2b`, in the shared checkout at
 the landed sha differ only by that clean rebase, which resolved nothing, so the
 verdict still covers the change):
 
-Every base below is a SHA, not a moving ref: `main` has since been pushed two
-sibling commits past this scope, so `--base main~1` and the pruned branch name
-`wt/dblclick-2026-11-19` no longer measure this change (`nfi-loc-check.py --base
-main~1` now prints "the change adds no registry row; nothing to check", and
-`merge-preflight.sh wt/dblclick-2026-11-19` prints "no such branch"). With the
-sha-named bases every published string reprints.
+Two coordinates, not one. Naming the base as a SHA is necessary and NOT
+sufficient. Both gates read the tip as the second coordinate:
+`ci_change_gate.py:231` calls `git diff --name-only --diff-filter=d
+{base}...HEAD`; in `nfi-loc-check.py`, `changed_swift_files` (:63-65) calls
+`git diff --name-only <base> HEAD -- '*.swift'` and `added_keys` (:68-75)
+compares `git show {base}:docs/agents/nfi.md` against `git show
+HEAD:docs/agents/nfi.md`. So every published count is a function of the base
+AND the HEAD it is run from. The pair is printed under
+every number below, because a reader who runs the command from `main` gets a
+different one: at HEAD `ffeb9fafbe` this record's own tree, the same
+`--base b0ba0e0e2b` prints **10** changed Swift files and **2** changed .md
+files (not 5 and 1), and `--base 1699b71bc5~1` prints **3 row(s) checked** (not
+1). = = A second, unrelated reason a moving ref fails: `main` is now two
+sibling commits past this scope, so `--base main~1` measures someone else's
+change, and the branch pruned on landing is gone
+(`Scripts/merge-preflight.sh:51-52` refuses with "no such branch: <name>",
+measured in the source).
 
 - `review_gate.py --card t_f5f901e0` = `approved` rc 0 (this one reprints by
   card id, so it survives the branch's deletion; the preflight run that printed
   `CLEAN` before the fast-forward does not).
-- At `--base b0ba0e0e2b` (= the code commit's own parent):
+- Pair (base `b0ba0e0e2b`, **HEAD `124ce32757`**) — re-measured by this
+  round in a throwaway detached worktree at that HEAD, `git worktree add
+  --detach .worktrees/probe-124ce32757 124ce32757`, then removed:
   `ci_change_gate.py --check formatting` = ok, `5 changed Swift file(s)`;
   `--check pollution` = ok; `--check markdown-newline` = ok,
-  `1 changed .md file(s)`.
+  `1 changed .md file(s)`. Run from this record's tree instead, the same base
+  prints 10 and 2 (= the sentence above).
 - `pre_review_gate.py --base b0ba0e0e2b --card <the card body>` = every gate
   measured on this tree and green (build exit 0, the filter exit 0 with `29
   tests in 1 suite passed`, CJK audit exit 0 over 58 added lines, `verify-dead`
   exit 0 with 0 dead declarations, the registry's round-trip exit 0).
-- At `--base 1699b71bc5~1` (= this record's own commit): `nfi-loc-check.py` =
-  `every rewritten file's row carries its own count (1 row(s) checked)`;
+- Pair (base `1699b71bc5~1`, **HEAD `1699b71bc5`**) — also re-measured in a
+  detached worktree at that HEAD: `nfi-loc-check.py` = `every rewritten file's
+  row carries its own count (1 row(s) checked)`;
   `ci_change_gate.py --check markdown-newline` = `2 changed .md file(s)
   checked`; `nfi-split.py --check` = `PASS`; `python3
   Scripts/merge-nfi-registry.py 1699b71bc5~1 docs/agents/nfi.md
   docs/agents/nfi.md` = rc 0 (a merge driver, so `python3` and three paths).
+  At HEAD `124ce32757` that same base is the HEAD itself and prints `the change
+  adds no registry row; nothing to check` (= measured: one preamble sentence
+  cannot cover both bullets, which is why each now carries its pair).
+- Pair (base `1fbeb0cf96`, **HEAD `ffeb9fafbe`** = this correction commit): the
+  gates were re-run from the shared checkout at this commit and every rc is 0,
+  and the two strings the record's earlier drafts expected are NOT what the
+  machine prints from here. `nfi-loc-check.py --base 1fbeb0cf96` prints `the
+  change adds no registry row; nothing to check` with rc 0 — because
+  `nfi-loc-check.py:68-75` keys on `added_keys = tip_keys - base_keys` and this
+  commit only MODIFIES the existing row (246 to 395). So no published gate
+  measures this commit's registry edit, and the number was proved directly
+  instead: `grep -c "" <this file>` printed 395 and the row that
+  `docs/agents/nfi.md` carries for this file printed 395, at that pair.
+  = = The blind spot is general and this record is its own worst case: EVERY
+  correction round of a closeout record modifies that one row, so every round
+  after the first lands with the gate silent, and every round has to reprint
+  the pair itself. This round does: `grep -c "" <this file>` = 480 and the
+  row's cell = 485. That blind spot is §11 item 8. At the same pair,
+  `ci_change_gate.py --check markdown-newline` prints `2 changed .md file(s)
+  checked`, rc 0.
 - Re-run on the tip `main` had moved to when this record closed (`1fbeb0cf96`,
   two sibling sidebar commits later), in the shared checkout: `swift build
   --build-tests` rc 0; `swift test --filter 'PaneTabStripCloseTests'` = `Test
@@ -130,8 +165,14 @@ sha-named bases every published string reprints.
   rc 0; the registry round-trip rc 0; `ci_change_gate.py --base 124ce32757~1
   --check formatting` rc 0 and `--check markdown-newline` rc 0. The change
   still holds on a tree that moved under it.
-- `python3 Tools/wenshu-devtool/pollution_watchdog.py <repo>` = **rc 1, on this
-  checkout and on every clean one**, and it is not this scope's account: the
+- `python3 Tools/wenshu-devtool/pollution_watchdog.py
+  /Volumes/ANAN/Engineering/wenshu` = **rc 1 in the shared checkout**, and it is
+  not this scope's account. The claim is scoped on purpose: `pollution_watchdog.py:94`
+  requires a `.git` DIRECTORY, so in a LINKED worktree — where every ticket of
+  this board runs — the same command exits **rc 2**, `Not a git repo:
+  /Volumes/ANAN/Engineering/wenshu/.worktrees/wt-closeout-doc-r2-2026-11-19`
+  (measured with both `.` and the absolute path). The tool cannot honour "every
+  clean checkout", so neither does this record. The reason the rc 1 is real: the
   watchdog scans all tracked text files (1626 under its own
   `.md/.swift/.txt/.json/.yaml/.yml` filter) as well as the changed ones, and
   the repo's rule file `.swiftlint.yml:62` carries the forbidden-vocab list
@@ -139,7 +180,7 @@ sha-named bases every published string reprints.
   definition. Present since `780d7cb5f4` (2026-10-26), unchanged at
   `124ce32757` and at `1fbeb0cf96`. The gate that blocks landing is
   `ci_change_gate.py --check pollution` (added lines only) = rc 0. Listed in
-  §11 item 8. One trap worth keeping: piped, its status is invisible
+  §11 items 9 and 10. One trap worth keeping: piped, its status is invisible
   (`pollution_watchdog.py . | tail -3; echo $?` printed 0 where the direct
   `> log; echo $?` printed 1).
 
@@ -149,7 +190,7 @@ read and it still exits 0 (`no new CJK comment line (0 added line(s) scanned)`
 was printed for this doc's commit). A tracked .md's zero-CJK rule is therefore
 proved by the direct Han-range scan of the file itself, which this record's
 commit carries: 0 occurrences in the range U+4E00-U+9FFF, in the file and in
-its added lines, over `wc -l` = 395 lines. That gap is a gate defect in
+its added lines, over `wc -l` = 485 lines. That gap is a gate defect in
 its own right (= nothing in CI enforces rule 1.1 on markdown, and widening the
 check to all tracked text files WITHOUT dropping the `'*.swift'` pathspec would
 close nothing) and is listed in §11 item 7.
@@ -262,12 +303,29 @@ draft used that definition without naming it:
 ```
 sqlite3 <board>/kanban.db "SELECT id,outcome,(ended_at-started_at)
   FROM task_runs WHERE task_id IN ('t_014a4e3f','t_f5f901e0') ORDER BY id"
+# the five-row subset: append AND outcome <> 'rate_limited'
 ```
 
 - ALL of this scope's runs: **11 runs, 14223 s = 3.95 h** (10 on `t_014a4e3f`,
   1 on `t_f5f901e0`).
-- The runs that actually got a reviewer process (the other six died inside a
-  minute, on admission): 4523 + 4528 + 4569 + 4576 + 4584 = **8124 s = 2.26 h**.
+- The five runs whose outcome is not `rate_limited`:
+  4523 + 4528 + 4569 + 4576 + 4584 = **8124 s = 2.26 h**. The predicate is the
+  machine's column, printed as a query, not a story about what died:
+
+  ```
+  SELECT id FROM task_runs WHERE task_id IN ('t_014a4e3f','t_f5f901e0')
+    AND outcome <> 'rate_limited'
+  ```
+
+- An earlier draft of this line said the other six "died inside a minute, on
+  admission" and that only five "got a reviewer process". Both are false on the
+  board and the table below refutes them in two rows: the six excluded runs are
+  exactly the `rate_limited` rows and they are not all short — 4534 ran 628 s
+  (10.5 min) and 4538 ran 5227 s (**87.1 min**), and `task_events` for run 4538
+  carries 85 heartbeat rows (4534: 16, 4552: 7), so a rate-limited run did get
+  a process. What the short four are is `4552/4556/4560/4564` = 60/61/62/61 s,
+  which died on admission; the other two were killed by the quota wall mid
+  flight. The excluded six sum to 6099 s = 1.69 h.
 
 The ledger, one row per run, as the board prints it:
 
@@ -365,7 +423,18 @@ for BOTH `124ce32757` and `1699b71bc5` against BOTH remotes.
    working-copy state, never a commit (§6 prints the measurement that shows
    why), and the term belongs in the closed card's command, not in an artifact
    the rule covers.
-8. **`pollution_watchdog.py` is red on every clean checkout** (§6): it scans all
+8. **The registry's LOC gate is blind to a MODIFIED row** (§6):
+   `nfi-loc-check.py:68-75` keys on `added_keys = tip_keys - base_keys`, so a
+   commit that edits an existing row's count — every correction round of a
+   closeout record does exactly that — prints `the change adds no registry row;
+   nothing to check` with rc 0. The number in the row is therefore guarded by
+   nothing but the direct `wc -l` and a grep of the row. The fix is to check
+   every key the diff TOUCHES, added or modified.
+9. **`pollution_watchdog.py` cannot run in a linked worktree** (§6): it
+   requires a `.git` directory and so exits rc 2 there, which is the only place
+   this board's tickets live. It should accept a `.git` FILE (worktrees,
+   submodules) or say so in its own usage line.
+10. **`pollution_watchdog.py` is red on every clean SHARED checkout**: it scans all
    tracked text files and so reports the forbidden-vocab list written inside
    `.swiftlint.yml:62`, which is its own rule definition, and exits 1. No
    landing gate consumes it today (`ci_change_gate.py --check pollution` does,
@@ -375,7 +444,8 @@ for BOTH `124ce32757` and `1699b71bc5` against BOTH remotes.
 
 ## 12. This record's own rounds
 
-- Round 1 (card `t_a4a6794f`, run 4594, 47 min): all six acceptance claims were
+- Round 1 (card `t_a4a6794f`, run 4594 = 3018 s = **50.3 min**, 15:59:27 to
+  16:49:45): all six acceptance claims were
   re-derived by the reviewer with its own commands and PASSED — including claim
   4's A/B, re-run sequentially in two detached worktrees (`b0ba0e0e2b` and
   `1699b71bc5`, both `59 tests in 7 suites failed ... with 17 issues` at the
@@ -391,5 +461,25 @@ for BOTH `124ce32757` and `1699b71bc5` against BOTH remotes.
   commands no longer measured this change (F5). This commit is the fix.
   `1699b71bc5` was already pushed, so the fix is a NEW commit and the pushed
   sha was not amended.
-- The reviewer's evidence lives in that profile's scratch, not this session's:
-  `/Volumes/ANAN/.hermes/profiles/wenshu-review/cache/scratch/ab-2026-11-19/`.
+- Round 2 (card `t_cdf2b1ba`, run 4604 = 853 s = **14.2 min**): F1, F2 and F4
+  reprinted EXACTLY under the reviewer's own commands (62/46 with the
+  30+32 / 30+16 split, the relative path reading 0/0/0, `grep -n "nine minutes"`
+  = 2 hits inside correction sentences), F3's table and both totals reprinted,
+  and the verdict was `changes_requested` again, for five more doc-only
+  findings, three of them numbers inside the very sections written to close
+  round 1: the six excluded runs were described as dead-on-admission when two of
+  them ran 628 s and 5227 s (F1); naming the base does not pin a count, because
+  every published number has a HEAD too and the record printed counts from three
+  different HEADs under one sentence (F2, the headline); and §12's own "47 min"
+  for run 4594 is 3018 s = 50.3 min on the board (F3). F4 and F5 there were a
+  gate that prints "nothing to check" for a MODIFIED registry row, and the
+  watchdog's rc 1 being a shared-checkout fact rather than a universal.
+  = = This commit is that rework. Round 1 and round 2 both being `changes_requested`
+  over unreproducible numbers is the honest signal that the rule is harder to
+  hold in prose than to state in prose: a count with no coordinates next to it is
+  a claim, and this record had been printing counts with only one coordinate for
+  two rounds running.
+- The reviewers' evidence lives in their own profile's scratch, not this
+  session's: `/Volumes/ANAN/.hermes/profiles/wenshu-review/cache/scratch/ab-2026-11-19/`
+  (round 1) and the two throwaway detached worktrees round 2 added at
+  `124ce32757` / `1699b71bc5` and removed again.
