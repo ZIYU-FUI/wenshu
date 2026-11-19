@@ -76,7 +76,15 @@ extension PreviewPane {
     /// answers all three, so the card is read once rather than three
     /// times.
     func coverEntry(for target: CardCoverTarget) -> CoverEntry {
-        CardCoverService().entry(forKey: target.coverKey)
+        // The signal is read here, and not in the card, because this
+        // is the ONE door every card's cover goes through: a view
+        // that reads the signal renders again when a cover changes on
+        // the disk, and rendering again is what makes the card ask
+        // what its cover holds now. A removal changes no in-flight
+        // state, so without this read the card keeps the cover it was
+        // handed before the removal.
+        _ = CoverChangeSignal.shared.revision
+        return CardCoverService().entry(forKey: target.coverKey)
     }
 
     /// The service that draws a card's cover.
@@ -129,6 +137,14 @@ extension PreviewPane {
         coverGenerationService.removeCover(for: target)
     }
 
+    /// Removes a card's moving cover.
+    ///
+    /// The clip goes and the picture stays: the user is getting rid of
+    /// the motion, not of the cover.
+    func removeDynamicCover(for target: CardCoverTarget) {
+        coverVideoService.removeVideo(for: target)
+    }
+
     func referenceCategoryCard(_ entity: Reference) -> some View {
         let target = coverTarget(forReference: entity.id)
         let cover = coverEntry(for: target)
@@ -158,6 +174,9 @@ extension PreviewPane {
 
                 removeCover(for: target)
 
+            },
+            onRemoveDynamicCover: {
+                removeDynamicCover(for: target)
             },
             hasCover: cover.hasCover,
             isGeneratingCover: coverGenerationService.isGenerating(target),
@@ -428,6 +447,9 @@ extension PreviewPane {
                                     removeCover(for: target)
 
                                 },
+                                onRemoveDynamicCover: {
+                                    removeDynamicCover(for: target)
+                                },
                                 hasCover: cover.hasCover,
                                 isGeneratingCover: coverGenerationService.isGenerating(target),
                                 coverErrorMessage: cover.record?.lastError,
@@ -514,6 +536,9 @@ extension PreviewPane {
 
                                 removeCover(for: target)
 
+                            },
+                            onRemoveDynamicCover: {
+                                removeDynamicCover(for: target)
                             },
                             hasCover: cover.hasCover,
                             isGeneratingCover: coverGenerationService.isGenerating(target),

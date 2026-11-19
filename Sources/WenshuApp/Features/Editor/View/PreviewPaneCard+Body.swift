@@ -326,58 +326,7 @@ extension Card {
                     Divider()
                 }
                 // The cover items (= the same in both card kinds).
-                if onGenerateCover != nil || onRemoveCover != nil {
-                    if hasCover {
-                        Button(String(localized: "cover_context_menu_regenerate")) {
-                            onGenerateCover?()
-                        }
-                        .disabled(isGeneratingCover)
-                    } else {
-                        Button(String(localized: "cover_context_menu_generate")) {
-                            onGenerateCover?()
-                        }
-                        .disabled(isGeneratingCover)
-                    }
-                    if let onRemoveCover {
-                        Button(String(localized: "cover_context_menu_remove")) {
-                            onRemoveCover()
-                        }
-                    }
-                    // "Make it move" shows only when the card HAS a
-                    // still cover (= a clip is made FROM the still) and
-                    // does not already have a clip.
-                    if hasCover, onMakeDynamicCover != nil {
-                        Button(String(localized: "cover_context_menu_make_dynamic")) {
-                            onMakeDynamicCover?()
-                        }
-                        .disabled(isMakingVideo)
-                    }
-                    // The last attempt failed: the menu reports it, so
-                    // the user can read why. The PICTURE's failure and
-                    // the CLIP's failure are two different things and
-                    // each is reported with its own words: a good
-                    // picture with a failed clip is not a card without
-                    // a cover.
-                    if let coverErrorMessage {
-                        Divider()
-                        Button(String(localized: "cover_context_menu_failed")) {
-                            // A failure is a report, not an action.
-                        }
-                        .disabled(true)
-                        .help(coverErrorMessage)
-                    }
-                    if let coverClipErrorMessage {
-                        if coverErrorMessage == nil {
-                            Divider()
-                        }
-                        Button(String(localized: "cover_context_menu_video_failed")) {
-                            // A failure is a report, not an action.
-                        }
-                        .disabled(true)
-                        .help(coverClipErrorMessage)
-                    }
-                    Divider()
-                }
+                coverMenuButtons
                 Button(String(localized: "sidebar_context_menu_rename")) {
                     onRename()
                 }
@@ -399,58 +348,7 @@ extension Card {
                     Divider()
                 }
                 // The cover items (= the same in both card kinds).
-                if onGenerateCover != nil || onRemoveCover != nil {
-                    if hasCover {
-                        Button(String(localized: "cover_context_menu_regenerate")) {
-                            onGenerateCover?()
-                        }
-                        .disabled(isGeneratingCover)
-                    } else {
-                        Button(String(localized: "cover_context_menu_generate")) {
-                            onGenerateCover?()
-                        }
-                        .disabled(isGeneratingCover)
-                    }
-                    if let onRemoveCover {
-                        Button(String(localized: "cover_context_menu_remove")) {
-                            onRemoveCover()
-                        }
-                    }
-                    // "Make it move" shows only when the card HAS a
-                    // still cover (= a clip is made FROM the still) and
-                    // does not already have a clip.
-                    if hasCover, onMakeDynamicCover != nil {
-                        Button(String(localized: "cover_context_menu_make_dynamic")) {
-                            onMakeDynamicCover?()
-                        }
-                        .disabled(isMakingVideo)
-                    }
-                    // The last attempt failed: the menu reports it, so
-                    // the user can read why. The PICTURE's failure and
-                    // the CLIP's failure are two different things and
-                    // each is reported with its own words: a good
-                    // picture with a failed clip is not a card without
-                    // a cover.
-                    if let coverErrorMessage {
-                        Divider()
-                        Button(String(localized: "cover_context_menu_failed")) {
-                            // A failure is a report, not an action.
-                        }
-                        .disabled(true)
-                        .help(coverErrorMessage)
-                    }
-                    if let coverClipErrorMessage {
-                        if coverErrorMessage == nil {
-                            Divider()
-                        }
-                        Button(String(localized: "cover_context_menu_video_failed")) {
-                            // A failure is a report, not an action.
-                        }
-                        .disabled(true)
-                        .help(coverClipErrorMessage)
-                    }
-                    Divider()
-                }
+                coverMenuButtons
                 Button(String(localized: "sidebar_context_menu_rename")) {
                     onRename()
                 }
@@ -462,6 +360,70 @@ extension Card {
                     onDelete()
                 }
             }
+        }
+    }
+
+    /// The cover items in the card's menu.
+    ///
+    /// ONE builder for both card kinds: the items are the same for a
+    /// reference card and a book card, and two copies of the same menu
+    /// are two places where the two kinds drift apart.
+    ///
+    /// The items come from `coverMenu` (= a rule, and not a pile of
+    /// `if`s in a view), and the failures sit below a separator of
+    /// their own: they report what the card carries, and the user
+    /// cannot do anything about them.
+    @ViewBuilder
+    private var coverMenuButtons: some View {
+        let menu = coverMenu
+        if !menu.isEmpty {
+            ForEach(menu.actions, id: \.self) { action in
+                switch action {
+                case .generateCover:
+                    Button(String(localized: "cover_context_menu_generate")) {
+                        onGenerateCover?()
+                    }
+                    .disabled(isGeneratingCover)
+                case .regenerateCover:
+                    Button(String(localized: "cover_context_menu_regenerate")) {
+                        onGenerateCover?()
+                    }
+                    .disabled(isGeneratingCover)
+                case .removeCover:
+                    Button(String(localized: "cover_context_menu_remove")) {
+                        onRemoveCover?()
+                    }
+                case .makeDynamicCover:
+                    Button(String(localized: "cover_context_menu_make_dynamic")) {
+                        onMakeDynamicCover?()
+                    }
+                    .disabled(isMakingVideo)
+                case .removeDynamicCover:
+                    Button(String(localized: "cover_context_menu_remove_dynamic")) {
+                        onRemoveDynamicCover?()
+                    }
+                }
+            }
+            if !menu.failures.isEmpty {
+                Divider()
+                ForEach(menu.failures, id: \.self) { failure in
+                    switch failure {
+                    case let .still(message):
+                        Button(String(localized: "cover_context_menu_failed")) {
+                            // A failure is a report, not an action.
+                        }
+                        .disabled(true)
+                        .help(message)
+                    case let .clip(message):
+                        Button(String(localized: "cover_context_menu_video_failed")) {
+                            // A failure is a report, not an action.
+                        }
+                        .disabled(true)
+                        .help(message)
+                    }
+                }
+            }
+            Divider()
         }
     }
 }

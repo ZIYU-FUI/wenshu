@@ -293,6 +293,34 @@ struct CardCoverService {
 
     // MARK: - Removing
 
+    /// Removes a card's moving cover: the clip and the clip's state.
+    ///
+    /// The PICTURE stays: the user liked the picture, and the motion
+    /// is what they are getting rid of. A removal that takes the
+    /// picture too is a different removal (= `removeCover`).
+    ///
+    /// The record carries the clip's state, so a card whose record
+    /// still says the clip is ready would show the motion mark with
+    /// nothing to play.
+    ///
+    /// Safe to call when the card has no clip, and safe to call twice.
+    func removeVideo(forKey key: String) throws {
+        let existing = record(forKey: key)
+        let video = Self.videoURL(forKey: key)
+        if let video, FileManager.default.fileExists(atPath: video.path) {
+            try FileManager.default.removeItem(at: video)
+        }
+        // The entry is dropped either way: the card asks the entry for
+        // its clip, and the entry must not keep a file that is gone.
+        CoverEntryCache.shared.evict(forKey: key)
+        guard var record = existing else { return }
+        record.clipStatus = WSCardCoverStatus.clipNone
+        record.clipError = nil
+        record.clipAttemptAt = nil
+        record.updatedAt = .now
+        try writeRecord(record, forKey: key)
+    }
+
     /// Removes a card's cover: its picture, its clip and its record.
     ///
     /// The whole DIRECTORY is removed rather than the two recorded
