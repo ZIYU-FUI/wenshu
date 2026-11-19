@@ -3,13 +3,13 @@
 //
 //  The inspector column's style page, rendered.
 //
-//  The style page is the BOOK's style sheet: = the eleven styles a
+//  The style page is the BOOK's style sheet: = the nine styles a
 //  novel uses, = and the five knobs the book is fine-tuned with. = This
 //  suite renders the real page and reads the rendered accessibility tree
 //  back, so the facts a source read cannot reach are measured on the
 //  page itself:
 //
-//  1. The page carries the eleven roles and the five knobs.
+//  1. The page carries the nine roles and the five knobs.
 //  2. Each row shows the face, = the size and = the leading the book's
 //     own sheet gives that role.
 //  3. The knobs show the SELECTED BOOK's positions, = and two books
@@ -25,7 +25,7 @@
 //  7. Each row is shown in the VOICE the engine gives that role (= the
 //     face, = the size, = the line height), = and the voice is the
 //     engine's own arithmetic, = not the sheet's one multiple read
-//     eleven times.
+//     nine times.
 //  8. The page paints each position ONCE (= the drop-down's own AppKit
 //     title is transparent: = the one thing a screenshot of the
 //     rendered page cannot see, = so it is read off the button).
@@ -51,7 +51,7 @@ import Testing
 @MainActor
 @Suite("Inspector column style page, rendered", .serialized)
 struct InspectorStylePageRenderTests {
-    /// The page carries the eleven roles and the five knobs.
+    /// The page carries the nine roles and the five knobs.
     @Test("the page carries the nine styles and the five knobs")
     func thePageCarriesTheStylesAndTheKnobs() {
         let model = InspectorStylePageModel(sheet: .default)
@@ -352,7 +352,7 @@ struct InspectorStylePageRenderTests {
 
     /// THE RENDERED STYLE ROWS ARE HELD.
     ///
-    /// The eleven rows are the page's other half, = and they are NOT
+    /// The nine rows are the page's other half, = and they are NOT
     /// in the accessibility tree (= a bare `Text` publishes nothing:
     /// = the reviewer measured `Text`, = `.accessibilityElement(children:
     /// .combine)` and = `.accessibilityElement(children: .ignore)` +

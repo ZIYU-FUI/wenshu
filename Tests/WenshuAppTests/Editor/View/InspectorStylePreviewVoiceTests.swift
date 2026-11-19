@@ -24,7 +24,7 @@ import Testing
 @Suite("Inspector style table, in the engine's own voice", .serialized)
 struct InspectorStylePreviewVoiceTests {
     /// Each row is shown in the voice the ENGINE gives that role, = not
-    /// in the sheet's one multiple read eleven times.
+    /// in the sheet's one multiple read nine times.
     ///
     /// WHY THE NUMBERS ARE PINNED
     ///

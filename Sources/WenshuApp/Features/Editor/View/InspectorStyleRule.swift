@@ -5,7 +5,7 @@
 //
 //  WHY A RULE AT ALL
 //
-//  The table is eleven rows of the same shape, = and a row of this table
+//  The table is nine rows of the same shape, = and a row of this table
 //  says one thing about one role of the book. = Without a line the rows
 //  run into each other and the reader has to find the edge of a row by
 //  reading it (= the boss's ask: = one line between every style and the

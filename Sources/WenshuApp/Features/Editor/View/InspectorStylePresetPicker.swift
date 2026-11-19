@@ -7,7 +7,7 @@
 //
 //  WHY IT IS ITS OWN FILE
 //
-//  The page that draws the eleven styles and the five knobs already grew
+//  The page that draws the nine styles and the five knobs already grew
 //  past comfortable, = so the choice of set lives here, = beside the
 //  knob's. = The page keeps the MODEL (= the rows, = the knobs, = the
 //  positions, = and the three places), = and this file draws the choice.
