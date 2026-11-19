@@ -4,13 +4,21 @@
 
 = = = The boss named FIVE lines, = = and every one of them is carried by a
 commit that is on BOTH servers' `main`. = = The read is quoted with its TIME, = =
-because the ref moved SIX times during this review: = = `git ls-remote origin
+because the ref moved SEVEN times during this review: = = `git ls-remote origin
 refs/heads/main` and `git ls-remote old-origin refs/heads/main` read `origin` =
 `124ce3275` and `old-origin` = `48cfabe11` at **2026-11-19 15:24:53 CST** (= = and
 the same values again at 15:25:35), = = and by **16:07:22 CST**, = = re-read at
-**16:07:35**, = = BOTH remotes read the SAME commit `1fbeb0cf96`. = = The per-commit
-ancestry is section 6's, = = and the gates in section 3 are measured on that
-`1fbeb0cf96` tree.
+**16:07:35**, = = BOTH remotes read the SAME commit `1fbeb0cf96`. = = **AND THE SAME
+TWO COMMANDS READ `ffeb9fafbe` ON BOTH REMOTES AT 17:09:32, = = RE-READ AT 17:20:24**
+(= = `git ls-remote origin refs/heads/main` and `git ls-remote old-origin
+refs/heads/main` are the commands; = = `ffeb9fafbe` became the tip at 17:02:19 per `git
+reflog show origin/main --date=iso`) — = = and that seventh move moves NO file under
+`Sources` (= = `git rev-parse 1fbeb0cf96:Sources` and `git rev-parse ffeb9fafbe:Sources`
+print the SAME object, = = `f437837e30d609713e48fdf3a0ec755f66fbe1ff`), = = so the
+build and test rows in section 3, = = which were measured on `1fbeb0cf96`, = = are
+readings of a tree that `ffeb9fafbe` still carries byte-for-byte. = = The per-commit
+ancestry is section 6's, = = and section 3's tree row names which tree each number came
+off.
 
 = = = **THE TRANSCRIPT SCOPE** (= = the first three lines, = = all in ONE
 message, = = 2026-11-17 09:43:22, = = the message store's row `268251`, = =
@@ -80,8 +88,16 @@ move its `change_id` and void the verdict that cleared it.
 = = = ⇒ ⇒ ⇒ **AND THE BUBBLE SCOPE'S ACCEPTANCE IS NOT YET GIVEN.** = =
 The boss's look for the MATERIAL is the one thing only he can settle, = = and
 no raw row in the message store carries an acceptance of it. = = ⇒ ⇒ ⇒ ⇒ ⇒
-AND THE ENUMERATION NAMES ITS DENOMINATOR: = = the store holds **304** raw
-`role='user'` rows between row `268251` and row `297673` (= = the two scopes'
+AND THE ENUMERATION NAMES ITS DENOMINATOR **AND ITS DATABASE**: = = the store is this
+agent's own session database, = = `~/.hermes/profiles/pocock/state.db` (a second copy
+sits at the same path under the volume root, = =
+`/Volumes/ANAN/.hermes/profiles/pocock/state.db`, = = and both read `304`), = = table
+`messages`, = = opened read-only (`sqlite3.connect('file:...?mode=ro', uri=True)`), = =
+with NO filter on `session_id`, = = and the predicate runs over its `id`, = = `role`
+and `content` columns. = = The `id` column here is an INTEGER PRIMARY KEY (= = the
+rowid), = = NOT a uuid: = = the same store's `message_uid` column is the uuid, = = so a
+reader who types `WHERE message_id = ...` gets nothing. = = That database holds **304**
+raw `role='user'` rows between row `268251` and row `297673` (= = the two scopes'
 first turn and this session's closeout order), = = of which **12** name either
 scope. = = > > > **AND THE RULE IS PRINTED AS A PREDICATE A READER CAN RUN,
 = = NOT AS A PARAPHRASE**, = = because a paraphrase is what made this rule
@@ -143,14 +159,23 @@ written for him.
 = = = The gates are re-run on the MERGED tree, = = not on the branch they were
 measured on before the merge, = = because a merge brings in a sibling's commit and
 that can change the build, = = the inventory and the test set. = = > > > **AND THE
-TREE MOVED SIX TIMES WHILE THIS DOCUMENT WAS UNDER REVIEW.** = = The previous round
+TREE MOVED SEVEN TIMES WHILE THIS DOCUMENT WAS UNDER REVIEW.** = = The previous round
 measured these gates on `31b5c3929`, = = which was `main` at 08:05:11; = = `origin/main`
-then took `b0ba0e0e2` (13:45:31), = = `124ce3275` (14:55:34), = = `1699b71bc` (15:50:55)
-and `1fbeb0cf96` (16:04:27), = = every one of them the SIBLING lane's, = = and
-`old-origin/main` = = which held `48cfabe11` all through the morning = = moved to the
-SAME tip `1fbeb0cf96` before this round's 16:07:22 read. = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+then took `b0ba0e0e2` (13:45:31), = = `124ce3275` (14:55:34), = = `1699b71bc` (15:50:55),
+= = `1fbeb0cf96` (16:04:27) = = and `ffeb9fafbe` (17:02:19), = = every one of them the
+SIBLING lane's, = = and `old-origin/main` = = which held `48cfabe11` all through the
+morning = = moved to the SAME tip as `origin` before this round's 16:07:22 read, = = and
+reads `ffeb9fafbe` too. = = **THE SEVENTH MOVE IS THE INTERESTING ONE FOR THIS
+SECTION**: = = it changes NO file under `Sources` (= = `git rev-parse
+1fbeb0cf96:Sources` and `git rev-parse ffeb9fafbe:Sources` both print
+`f437837e30d609713e48fdf3a0ec755f66fbe1ff`, = = read 17:20:02), = = so the build and the
+two filtered test runs below are readings of a `Sources` tree that the current tip still
+carries, = = while the two doc gates and the registry's row count DO move with it, = =
+and are republished against the new base. = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
 ⇒ ⇒ ⇒ ⇒ **SO EVERY NUMBER BELOW IS NAMED TO THE TREE IT WAS MEASURED ON (= = the
-16:04:29 throwaway checkout of `1fbeb0cf96`), = = AND THE RE-TAKE IS `git ls-remote
+16:04:29 throwaway checkout of `1fbeb0cf96` for the build and tests, = = and the
+17:20:24 throwaway checkout of `ffeb9fafbe` for the sweep, = = the dead-code gate and the
+diffstat probes), = = AND THE RE-TAKE IS `git ls-remote
 origin refs/heads/main` FOLLOWED BY THIS SECTION'S OWN COMMANDS, = = BECAUSE A NUMBER
 THAT CHANGES WITH THE TREE IS NOT PUBLISHED WITHOUT ITS TREE.** = = This round also
 RE-TOOK the whole-target run on `124ce3275` (= = one unfiltered `swift test` on a quiet
@@ -165,7 +190,7 @@ items as the test harness's own, = = not this document's.
 
 | the gate | the result, each named to the tree it was measured on |
 | --- | --- |
-| the tree these numbers were measured on | `origin/main` = = **`1fbeb0cf96`** (= = read 2026-11-19 16:07:22 and 16:07:35 CST), = = checked out DETACHED into a throwaway worktree at 16:04:29, = = with the registry and `.xcstrings` merge drivers configured |
+| the tree these numbers were measured on | `origin/main` = = **`1fbeb0cf96`** (= = read 2026-11-19 16:07:22 and 16:07:35 CST), = = checked out DETACHED into a throwaway worktree at 16:04:29, = = with the registry and `.xcstrings` merge drivers configured. = = **THE TIP MOVED AGAIN MID-ROUND, TO `ffeb9fafbe`** (= = read 17:09:32, = = and again at 17:20:02 and 17:27:52), = = and its `Sources` tree is the SAME object `f437837e30d609713e48fdf3a0ec755f66fbe1ff` (= = `git rev-parse 1fbeb0cf96:Sources` = `git rev-parse ffeb9fafbe:Sources`), = = so the build/test rows above are still current readings; = = the two rows below that were re-run on `ffeb9fafbe` itself say so in their own labels |
 | the build | `swift build --build-tests` = = **"Build complete!"** = = exit 0 (= = the elapsed time is not published: = = it is different on every run, = = so it is not a measurement) |
 | the seven focused chat suites | **42 tests in 7 suites passed** = = exit 0 (= = 7 suites, = = 42 tests, = = 0 failures, = = `ChatUserBubbleReadabilityTests`, `ChatUserBubbleShapeTests`, `ChatSurfaceGeometryTests`, `ChatTranscriptFlatFlowTests`, `ChatTranscriptScrollTests`, `RenderPathPerformanceTests`, `WindowTranslucencyTests`) |
 | the six BASELINE suites (= = the scope document's own section 3 table, = = re-run on this tree) | **44 tests in 6 suites, 3 issues** = = exit 1 (= = NOT all-green: = = three PRE-EXISTING failures, = = the table's OWN three deterministic sites: = = `ChatViewHistoryShortcutTests.swift:35`, = = `EditorTabTitleTests.swift:60`, = = `AsyncDelegationRegistryTests.swift:104`; = = SIXTH-ROUND NOTE: = = the same three sites, = = the same names, = = on `84c3a6386`, = = `31b5c3929` and now `1fbeb0cf96`, = = so this tree adds NO failing site) |
@@ -173,8 +198,9 @@ items as the test harness's own, = = not this document's.
 | the pollution gate | `ci_change_gate.py --check pollution --base 84c3a6386` = = exit 0 (= = "the change adds no forbidden vocabulary (84c3a6386...HEAD)"); = = `--base 48cfabe11` = = exit 0 (= = 48cfabe11...HEAD) |
 | the registry's LOC gate | `nfi-loc-check.py --base 84c3a6386` = = exit 0 (= = **27** rows checked, = = 23 on `31b5c3929`); = = `nfi-loc-check.py --base 48cfabe11` = = exit 0 (= = **8** rows checked) |
 | the registry's split gate | `nfi-split.py --check` = = **PASS** (= = 30 rows verified in the registry by key) |
-| the design sweep | `Tools/wenshu-devtool/design-sweep.sh` over the bubble scope's THREE production files (= = `Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift`, = = `Sources/WenshuApp/Features/Chat/View/ChatUserBubblePalette.swift`, = = `Sources/WenshuApp/Features/Editor/View/InspectorStatusOutputSheet.swift`) = = exit 0 (= = it prints "design sweep on 3 file(s)" and then "design sweep clean"); = = the bare form (= = "the files changed against `main`") is empty on this tree and settles nothing, = = so the files are named, = = and note that TWO of the three paths are NOT where an earlier round implied they were (= = the palette lives in `Chat/View`, = = not `Chat/Service`, = = and the sheet in `Editor/View`, = = not `Shared/UI`: = = a sweep over a non-existent path exits 127 and would have been read as a clean sweep by a reader who only looked for "clean") |
-| the dead-code gate | `Tools/wenshu-devtool/verify-dead.py` over the SAME THREE named files = = exit 0 (= = **3 ALIVE**, = = 0 PARTIAL, = = 0 DEAD; = = run against the WRONG two paths it reports 1 ALIVE and 2 PARTIAL, = = which is how this round caught its own command line) |
+| the FOUR GATES AS THIS PUSH ACTUALLY RUNS THEM (= = base `origin/main` = = `ffeb9fafbe`, = = the branch's own tip, = = read in the same minute the commit was made) | `ci_change_gate.py --base origin/main --check formatting` = = exit 0 (= = "the change adds no unformatted line (**0** changed Swift file(s) checked)", = = because this push moves TWO `.md` files and NO Swift file); = = `--check pollution` = = exit 0 (= = "the change adds no forbidden vocabulary (origin/main...HEAD)"); = = `--check markdown-newline` = = exit 0 (= = "the change drops no .md's trailing newline (**2** changed .md file(s) checked)"); = = `nfi-loc-check.py --base origin/main` = = exit 0 (= = **1** row checked, = = and the row's number equals `wc -l` of the document AT THE COMMIT, = = not a remembered figure). = = The rows ABOVE with bases `84c3a6386` and `48cfabe11` are the WIDE-range readings of the same two gates, = = and they are kept because their denominators (56 and 15 Swift files, = = 27 and 8 registry rows) are the evidence that a gate's number is its base's number |
+| the design sweep (= = **the author's own run, logged to `~/.hermes/profiles/pocock/cache/scratch/gates_round9_sweep.log` lines 41-45, `SWEEP_EXIT=0`; = = the log's `READ AT` stamps its server read at **17:20:02** and its `DONE AT` line reads **17:20:24**) | `Tools/wenshu-devtool/design-sweep.sh` over the bubble scope's THREE production files (= = `Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift`, = = `Sources/WenshuApp/Features/Chat/View/ChatUserBubblePalette.swift`, = = `Sources/WenshuApp/Features/Editor/View/InspectorStatusOutputSheet.swift`) = = exit 0 (= = it prints "design sweep on 3 file(s)" and then "design sweep clean"); = = the bare form (= = "the files changed against `main`") is empty on this tree and settles nothing, = = so the files are named, = = and note that TWO of the three paths are NOT where an earlier round implied they were (= = the palette lives in `Chat/View`, = = not `Chat/Service`, = = and the sheet in `Editor/View`, = = not `Shared/UI`: = = a sweep over a non-existent path exits 127 and would have been read as a clean sweep by a reader who only looked for "clean") |
+| the dead-code gate (= = **the same log, lines 46-52, `DEAD_EXIT=0`, inside the same 17:20:02-17:20:24 window**) | `Tools/wenshu-devtool/verify-dead.py` over the SAME THREE named files = = exit 0 (= = **3 ALIVE**, = = 0 PARTIAL, = = 0 DEAD; = = run against the WRONG two paths it reports 1 ALIVE and 2 PARTIAL, = = which is how this round caught its own command line) |
 
 = = = > > > **AND A GATE THAT WAS RED WHILE THIS CLOSEOUT RAN IS NOW
 GREEN, = = AND THE CLOSEOUT READS IT AT THE END.** = = The first
@@ -243,11 +269,23 @@ over `37526bfed` to `old-origin/main` (= = `48cfabe11`) it reads **53 files, =
 the PREVIOUS round's read) it reads **62 files, = = +11067/-929**; = = and over
 `37526bfed` to `origin/main` AT THIS ROUND'S READ (= = `b0ba0e0e2`, = = read at
 14:24 CST by `git ls-remote origin refs/heads/main`) it reads **63 files, = =
-+11312/-933**. = = **AND THE PAIR MOVED THREE MORE TIMES INSIDE THIS ROUND:** = = the
-15:56:07 read of `origin/main` = = `124ce3275` gives **64 files, = = +11338/-942**, = =
-the 16:07:22 read = = `1699b71bc5` = = gives **65 files, = = +11493/-956**, = = and the
-same read's tip `1fbeb0cf96` gives **67 files, = = +12329/-971** (= = `Sources`-only of
-that last pair: = = **30 files, = = +3339/-802**). = = An earlier round published the
++11312/-933**. = = **AND THE PAIR MOVED FOUR MORE TIMES INSIDE THIS ROUND.** = = Each
+endpoint below is named by the commit `origin/main` carried, = = and the INTERVAL in
+which it was the tip comes from `git reflog show origin/main --date=iso`: = =
+`124ce3275` (the tip from 14:55:34 to 15:50:55) gives **64 files, = = +11246/-956**; = =
+`1699b71bc5` (15:50:55 to 16:04:27) gives **65 files, = = +11493/-956**; = =
+`1fbeb0cf96` (16:04:27 to 17:02:19) gives **67 files, = = +12329/-971**; = = and
+`ffeb9fafbe` (the tip FROM 17:02:19, = = read at 17:09:32 by `git ls-remote origin
+refs/heads/main`, = = and again at **17:20:02** (the log's own `READ AT` line), = = where `old-origin` reads the SAME commit) gives
+**67 files, = = +12478/-971** (= = `Sources`-only of the last two pairs: = = **30
+files, = = +3339/-802**, = = IDENTICAL, = = because `ffeb9fafbe` moves NO file under
+`Sources` at all — = = `git diff --name-only 1fbeb0cf96 ffeb9fafbe -- Sources` is EMPTY
+and the whole move is two `.md` files). = = The READ TIMES that this paragraph used to
+publish against those two shas (= = "the 15:56:07 read = = `124ce3275`" and "the
+16:07:22 read = = `1699b71bc5`") were each ONE PUSH LATE, = = and are withdrawn: = = a
+read at 15:56:07 returns `1699b71bc5`, = = not `124ce3275`, = = and a read at 16:07:22
+returns `1fbeb0cf96`, = = which is what section 1 and section 6 publish for that
+minute. = = An earlier round published the
 `+8182/-402` pair while CALLING its endpoint "main's tip today", = = which was a
 `48cfabe11` pair read against a `main` that had already moved; = = the figures above
 are the same measurement against SIX references, = = and no one of them is "the" diff
@@ -255,12 +293,28 @@ of the branch against main. = = > > > **AND THE ONE FIGURE THAT DOES NOT MOVE: =
 DIFFSTAT AGAINST A SCOPE'S OWN LANES IS A CONSTANT.** = = `37526bfed...81c97ae58`
 reads 53 files / +7901/-398 (= = whole repo) and 23 files / +1514/-247 (`Sources`
 only) = = on EVERY tree above, = = because both endpoints are frozen commits, = = and
-it covers only the bubble lane's own 22 commits. = = The transcript lane's carrier is
-`1928e85b3`, = = which is NOT an ancestor of `81c97ae58` (= = `git merge-base
---is-ancestor 1928e85b3 81c97ae58` = = exit 1), = = so a pair built only on
-`81c97ae58` omits the whole transcript scope (= = 16 files / +856/-246 over
-`83a2b21ea...1928e85b3`), = = and a pair that claims to cover BOTH scopes must
-enumerate both endpoints.
+it covers only the bubble lane's own commits. = = The transcript lane's carrier is
+`1928e85b3`, = = which IS an ancestor of `81c97ae58` (= = `git merge-base --is-ancestor
+1928e85b3 81c97ae58` = = **exit 0**), = = and is NOT an ancestor of the bubble pair's
+BASE `37526bfed` (= = `git merge-base --is-ancestor 1928e85b3 37526bfed` = = **exit
+1**), = = read at 17:20:02 in `gates_round9_sweep.log` lines 31-34. = = **AN EARLIER
+ROUND OF THIS DOCUMENT HAD THAT BACKWARDS, = = AND PRINTED THE WRONG EXIT CODE FOR ITS
+OWN COMMAND** (= = it asserted "NOT an ancestor ... = = exit 1"): = = both halves were
+false, = = and the sentence is corrected here rather than in a comment because the
+command it quoted is the thing a reader would run. = = What follows from the corrected
+direction: = = a pair built on `81c97ae58` does NOT omit the transcript lane's
+PRODUCTION change (= = `9ada19911` IS an ancestor of `37526bfed`, = = exit 0, = = so
+the flat-list fix sits inside the bubble pair's BASE and is therefore INVISIBLE in its
+diffstat), = = and the only thing the pair omits is the lane's DOCUMENT-ONLY tail. = =
+The transcript lane's own span is `84c3a6386f..1928e85b3` (= = 11 commits, = =
+`9ada19911` first, = = `1928e85b3` last): = = **11 files / +942/-605** whole-repo, = =
+and over `Sources` of the same pair, = = `git diff --shortstat 84c3a6386f 1928e85b3 --
+Sources`, = = **3 files / +43/-301** = = i.e. the lane NETS 258 `Sources` lines OUT. = =
+The figures this document used to publish for that span (= = 16 files / +856/-246) are
+UNREPRODUCIBLE: = = no endpoint pair among the lane's own commits prints them, = = and
+the pair it named (`83a2b21ea 1928e85b3`) prints **1 file / +10/-7**. = = So a pair
+that claims to cover BOTH scopes must enumerate both endpoints AND say which lane's
+commits are already in its base.
 
 = = = > > > **AND THE LIVE MEASUREMENT OF THE MATERIAL, = = READ OFF THE
 APP'S OWN WINDOW** (= = `screencapture -x -o -l<window id>`, = = because an
@@ -277,9 +331,11 @@ coordinates named, = = so any reader can take them again.
 TWO RULES GIVE DIFFERENT NUMBERS, = = AND THE DECODER IS NAMED OFF THE FILE'S
 OWN BYTES, = = NOT OFF A DISPLAY MODEL.** = = The file carries a 516-byte ICC
 profile in its `iCCP` chunk, = = read off as: = = device class `mntr` (= = a
-MONITOR), = = colour space `RGB`, = = PCS `XYZ`, = = creator `APPL`, = =
+MONITOR), = = colour space `RGB`, = = PCS `XYZ`, = = **manufacturer `APPL`** (= =
+bytes 40-43; = = the PROFILE-CREATOR field at bytes 64-67 is ZERO-FILLED in this
+profile AND in `Display P3.icc`, = = so "creator `APPL`" named the wrong field), = =
 description `SU2790B`, = = copyright `Apple Inc., 2026`, = = ten tags
-`bTRC bXYZ chad cprt desc gTRC rTRC rXYZ wtpt` (= = one curve shared by the
+`bTRC bXYZ chad cprt desc gTRC gXYZ rTRC rXYZ wtpt` (= = one curve shared by the
 three channels), = = `wtpt = [0.9642, 1.0, 0.8249]` (= = D50, = = as every
 ICC-to-PCS profile has), = = and all three tone curves `para` **funcType 0** =
 = a PURE POWER with **gamma `1.96099853515625`**, = = with D50 colorants
@@ -289,9 +345,18 @@ ICC-to-PCS profile has), = = and all three tone curves `para` **funcType 0** =
 IT.** = = `/System/Library/ColorSync/Profiles/Display P3.icc` is also a 536-byte
 `mntr`/`APPL` profile, = = so the two LOOK alike in the header, = = and they
 differ in exactly the two places that decide a number: = = its colorants are
-`rXYZ [0.5151, 0.2412, -0.0011]` and `gXYZ [0.2920, 0.6922, 0.0419]`, = = and
-its TRC is `para` **funcType 3** (= = a PIECEWISE curve, = = gamma 2.4, = =
-512 samples), = = NOT a pure 1.9610 power. = = > > > **AND THE FUNCTIONAL PROOF
+`rXYZ [0.5151, 0.2412, -0.0011]`, = = `gXYZ [0.2920, 0.6922, 0.0419]` = = and its
+THIRD colorant, = = which this document never published, = = `bXYZ [0.1571, 0.0666,
+0.7841]`; = = and its TRC is `para` **funcType 3** carrying **FIVE `s15Fixed16`
+parameters** = = `[2.3999939, 0.9478607, 0.0521393, 0.0773926, 0.040451]` (= = the
+FIRST parameter is the 2.4; = = the tag is 32 bytes) = = NOT a pure 1.9610 power. = =
+**AND THERE IS NO SAMPLE ARRAY IN THIS PROFILE AT ALL**: = = it has no `curv` tag, = =
+so the "512 samples" this document published could not be re-taken from it (= = `ten
+tags: bTRC bXYZ chad cprt desc gTRC gXYZ rTRC rXYZ wtpt` — = = and note the earlier
+version of this sentence listed NINE names under a heading of TEN, = = missing `gXYZ`
+whose values it published two lines later). = = The probe that prints all of this is
+`~/.hermes/profiles/pocock/cache/scratch/icc_probe.py`, = = and its output is logged at
+`gates_round9_sweep.log` lines 35-41. = = > > > **AND THE FUNCTIONAL PROOF
 IS THE PART THAT MATTERS, = = BECAUSE EVERY PIXEL IN THE TABLE BELOW IS
 NEUTRAL.** = = A neutral has no chroma, = = so the primaries CANNOT move it and
 only the tone curve can, = = and the two candidates then differ as IDENTITY
@@ -336,9 +401,21 @@ THE FILE** (= = `~/.hermes/profiles/pocock/cache/evidence/glass-pixel-readings.p
 and `glass-geometry.py` beside it prints the region runs and the partition), = =
 so the readings are re-derivable without re-writing a decoder. = = **AND BOTH
 SCRIPTS CARRIED THE SAME WRONG NAME** (= = their header comments said "Display
-P3, = = profile SU2790B"), = = and both headers are corrected in place, = =
-because a deposited script that contradicts its own document is worse than no
-script.
+P3, = = SU2790B"). = = **THEY NOW DO NOT, = = AND THE CLAIM IS CHECKABLE IN ONE
+COMMAND**: = = `grep -c 'Display P3, '
+~/.hermes/profiles/pocock/cache/evidence/glass-pixel-readings.py
+~/.hermes/profiles/pocock/cache/evidence/glass-geometry.py` reads **0** in each file (= =
+the only remaining mention in either is the sentence saying the profile is NOT Display
+P3), = = both files compile (`python3 -m py_compile`, = = exit 0), = = and
+`glass-pixel-readings.py glass-live-2026-11-19.png` re-prints the table below
+unchanged (= = 236/239, = = 66/75, = = 115/126, = = 94/105, = = 94/105, = = 114/125, = =
+37/42, = = 16/14, = = 59/67), = = read at 17:17:25 CST. = = **AND AN EARLIER ROUND OF
+THIS DOCUMENT ASSERTED THOSE HEADERS WERE ALREADY "CORRECTED IN PLACE" WHEN THEY WERE
+NOT** (= = `stat -f '%Sm'` read 12:24:50 and 12:24:54 at the time of that claim, = =
+about four hours BEFORE that round's commit, = = so nothing in that round had touched
+either file): = = that is recorded here as a defect of this document's own prose, = =
+because a deposited script that contradicts its own document is worse than no script, =
+= and a document that reports a repair it did not make is worse than that.
 
 | what | the coordinate | RULE RAW | RULE MANAGED |
 | --- | --- | --- | --- |
@@ -432,11 +509,15 @@ at d=37, = = `rgb(42,42,44)` at d=50, = = then it FALLS and keeps falling: = =
 `rgb(40,39,39)` at d=100, = = `rgb(38,38,38)` at d=150, = = `rgb(36,35,36)` at
 d=200, = = `rgb(35,35,36)` at d=300, = = `rgb(38,36,38)` at d=400, = =
 `rgb(40,39,40)` at d=500. = = THE BAND, = = STATED AS A PREDICATE RATHER THAN A
-SIZE: = = walking left from the fill edge on row 1620, = = the value stays at 42 or
-above for **48 CONTIGUOUS columns** (= = x=1389..1436, = = offsets d=1..48), = = peak
+SIZE (= = **AND THE CHANNEL IS NAMED, = = BECAUSE THE COUNT DEPENDS ON IT**): = =
+walking left from the fill edge on row 1620, = = the RED channel stays at 42 or above
+for **48 CONTIGUOUS columns** (= = x=1389..1436, = = offsets d=1..48), = = peak
 `rgb(45,43,45)` at d=2; = = across the wider span x=1345..1436 (= = offsets d=1..92)
-it reaches 42 or more on **68** of those 92 columns but the run is broken; = = and
-averaged over rows 1600..1640 it is x=1384..1436. = = An earlier round published ONE
+the RED channel reaches 42 or more on **68** of those 92 columns but the run is broken;
+= = over that SAME span the GREEN channel reads **61**, = = the BLUE **76**, = = and the
+MEAN of the three reads **57** — = = which is exactly the figure this document elsewhere
+disowns, = = so a reader who averages gets a number that is an ARTEFACT OF AVERAGING and
+not a measurement; = = and averaged over rows 1600..1640 the red run is x=1384..1436. = = An earlier round published ONE
 figure (= = "57 px") where three predicates exist, = = and 57 is what row 1618 gives
 and row 1620 does not. = = It IS the shadow ring. = = The NEW capture has no such
 ring: = = walking left from ITS fill edge (= = x=1898) along row 1080 by the same
@@ -530,8 +611,8 @@ values measured here.
 - **The transcript scope's closeout document's server-proof table names the
   earlier carrier `9ada19911` and the round-1 card `t_343b2d1f`, and it does
   not name the final carrier `1928e85b3` at all** (= = a grep for
-  `1928e85b3` in that document returns 0 hits). = = **Reported and NOT
-  fixed** (= = the same reason). = = The owning card is `t_7c1d9edd`.
+  `1928e85b3` in that document returns 0 hits). = = **Reported and NOT fixed**
+  (= = the same reason). = = The owning card is `t_7c1d9edd`.
 - **Two scope documents carry CJK** (= = 40 Han ideographs in the transcript
   scope's document, = = 70 in the bubble scope's, = = both counted as Han
   ideographs ONLY, = = both measured on the same tree, `48cfabe11`), = = and
@@ -704,13 +785,15 @@ READ TWICE: = =
 | `old-origin` | `refs/heads/main` | `1fbeb0cf96` (= = the same commit) | the same two reads (= = **this ref MOVED during this round**: = = at **15:24:53** it read `48cfabe11`, = = and by **16:07:22** it read `1fbeb0cf96`) |
 | `origin` | `refs/heads/main` | `124ce3275` (= = this round's MID read) | **15:24:53 CST** and **15:25:35** (= = KEPT as what was true between 14:55:34 and 15:50:55; = = superseded by the 16:07 row above) |
 | `old-origin` | `refs/heads/main` | `48cfabe11` | **15:24:53 CST** (= = KEPT as what was true until this round's 16:07 read found it moved) |
+| `origin` | `refs/heads/main` | **`ffeb9fafbe`** (= = this round's NEWEST read) | **2026-11-19 17:09:32 CST**, re-read **17:20:24** (= = `git ls-remote origin refs/heads/main`; = = re-read 17:20:02 (= = the log's own `READ AT` line) and 17:27:52; = = SUPSEDES the 16:07 pair below as the current tip, = = and `old-origin` reads the SAME value) |
+| `old-origin` | `refs/heads/main` | `ffeb9fafbe` (= = the same commit) | 17:09:32, 17:20:02 and 17:27:52 (= = so the two remotes are EQUAL again at this minute; = = an earlier round of this document published them as NOT equal, = = and that was true only up to 16:04) |
 | `origin` | `refs/heads/main` | `31b5c3929` (= = the PREVIOUS round's snapshot, = = read 11:27:10 and 11:27:16) | KEPT AS THE RECORD OF WHAT WAS TRUE AT 11:27 (= = and it was ALREADY six pushes behind by 16:07) |
 | `origin` | `refs/heads/wt/chat-unpinned-user-row-2026-11-17` | `1928e85b3` | this round's 16:07 pair (= = and the 11:27 and 15:24 reads: = = UNCHANGED) |
 | `old-origin` | `refs/heads/wt/chat-unpinned-user-row-2026-11-17` | `1928e85b3` | the same |
 | `old-origin` | `refs/heads/wt/chat-glass-bubble-2026-11-17` | `81c97ae58` | the same |
 | `origin` | `refs/heads/wt/chat-glass-bubble-2026-11-17` | `3832db2e` (= = the earlier shape, = = reported above) | the same |
 
-= = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **AND `origin/main` HAS MOVED SIX TIMES SINCE THE
+= = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **AND `origin/main` HAS MOVED SEVEN TIMES SINCE THE
 SCOPES LANDED, = = AND EVERY MOVE IS THE SIBLING'S, = = AND NONE OF THEM CHANGES THE
 PROOF.** = = `git reflog show origin/main --date=iso` prints the moments, = = so the
 list is not a recollection: = = `48cfabe11` at `2026-11-18 23:55:12`, = = `31b5c3929`
@@ -721,9 +804,18 @@ editor's tab strip has no double-click close", = = authored 09:16:10, = = commit
 14:53:26) at `14:55:34`, = = `1699b71bc` (= = "docs(agents): the closeout record for the
 editor tab strip's double-click removal") at `15:50:55`, = = and `1fbeb0cf96` (= =
 "fix(sidebar): the tree's rows are drawn by their subtree's shape", = = authored
-12:21:55, = = committed before the push) at `16:04:27`. = = `old-origin/main` sat at
-`48cfabe11` from `2026-11-18 23:55:12` until this round's 16:07:22 read, = = where it
-reads the SAME commit as `origin`. = = > > > **AND THE SENTENCE AN EARLIER ROUND
+12:21:55, = = committed before the push) at `16:04:27`, = = and **`ffeb9fafbe`** (= =
+"docs(agents): the closeout record's five unreproducible numbers are replaced with the
+machine's own (= round 2 of t_a4a6794f)", = = committed 17:00:22) at **17:02:19** — =
+= the SEVENTH move, = = a SIBLING'S DOC-ONLY commit whose `git diff --name-only
+1fbeb0cf96 ffeb9fafbe -- Sources` is EMPTY and whose whole tree delta is two `.md`
+files (= = `2 files changed, 217 insertions(+), 68 deletions(-)`). = = `old-origin/main`
+sat at `48cfabe11` from `2026-11-18 23:55:12` until this round's 16:07:22 read, = =
+where it reads the SAME commit as `origin`, = = and it reads `ffeb9fafbe` too at
+17:09:32 and 17:20:24. = = **AND THIS SECTION USED TO SAY THE REF MOVED SIX TIMES, = =
+WHICH WAS TRUE WHEN IT WAS WRITTEN AND IS NOT NOW**: = = the count above is the count
+`git reflog show origin/main --date=iso` prints at 17:20:24, = = and a reader who runs
+it later will see more. = = > > > **AND THE SENTENCE AN EARLIER ROUND
 PUBLISHED BESIDE THIS TABLE — = = "the values are UNCHANGED from the previous round's
 read" — = = WAS TRUE AT 11:27 AND WAS FALSE BY 13:45.** = = That is not a story about
 the remote, = = it is a story about a fact written without a read time, = = and it is
@@ -752,7 +844,9 @@ CARRIER, = = SO THOSE TWO NAMES ARE NOT INTERCHANGEABLE.** = = `a89f895c27` (= =
 findings, = = the registry's count and the four sentences", = = 2026-11-18 14:58:42). = =
 All four are ancestors of the newest tip this document names (= =
 `git merge-base --is-ancestor <each> origin/main` reads YES for all four against
-`1fbeb0cf96`, = = run 2026-11-19 16:07:35 CST). = = Their verdicts are on the board (= =
+`1fbeb0cf96`, = = run 2026-11-19 16:07:35 CST, = = **AND AGAIN, = = FOUR FOR FOUR, =
+= AGAINST `ffeb9fafbe` at 17:20:02 CST** (= = `a89f895c27`, = = `47eb241142`, = =
+`1928e85b37`, = = `81c97ae582`, = = each exit 0). = = Their verdicts are on the board (= =
 `t_7c1d9edd` and `t_e37d7753`, = = both approved, = = both read back as approved by
 `review_gate.py --card` at 11:25:22 and 11:25:38 CST.
 
@@ -841,11 +935,14 @@ document the author already knew to be wrong: = =
    back and concludes the MANAGED column is invented. = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
    ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **AND SECTION 4 NOW NAMES
    THE DECODER OFF THE FILE'S OWN BYTES**: = = a 516-byte `mntr` display profile,
-   = = creator `APPL`, = = description `SU2790B`, = = three `para` funcType-0
+   = = manufacturer `APPL` (= = bytes 40-43; = = the profile-creator field is zero), =
+= description `SU2790B`, = = three `para` funcType-0
    curves at a PURE gamma of `1.96099853515625`, = = colorants `rXYZ [0.4387,
    0.2245, 0.0093]` and `gXYZ [0.3682, 0.7154, 0.0603]` = = which is the
    MONITOR'S OWN PROFILE and is NOT Display P3, = = whose colorants are `[0.5151,
-   0.2412, -0.0011]` and whose curve is a piecewise funcType-3 at gamma 2.4. = =
+   0.2412, -0.0011]` and whose curve is a funcType-3 `para` of FIVE `s15Fixed16`
+   parameters whose first is 2.4 and which carries NO sample array at all (= = no
+   `curv` tag; = = ten tags, = = `bTRC bXYZ chad cprt desc gTRC gXYZ rTRC rXYZ wtpt`). = =
    The rule is now named by the CHUNK IT TRAVELS IN (= = "the file's own `iCCP`
    chunk into sRGB"), = = with the two-line PIL recipe beside it, = = and the
    lift is attributed to the TONE CURVE and not to a wide gamut. = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
@@ -893,9 +990,19 @@ published either), = = and
    published as what it was (= = a permission state of that moment).
 
 = = = > > > **AND THE GATES IN SECTION 3 ARE RE-MEASURED ON THE TIP `origin/main`
-HOLDS AT THE END OF THIS ROUND** (= = `1fbeb0cf96`, = = read twice at 16:07:22 and
-16:07:35 CST by `git ls-remote origin refs/heads/main`), = = because the previous
-round measured them on `31b5c3929`, = = which was `main` then and is six pushes
+HOLDS AT THE END OF THIS ROUND** (= = `ffeb9fafbe`, = = read at 17:09:32, 17:20:02 and 17:27:52 CST by `git
+ls-remote origin refs/heads/main`, = = where `git ls-remote
+old-origin refs/heads/main` reads the SAME commit), = = on a FRESH detached worktree at
+that tip (= = `.worktrees/closeout-gates-ffeb9fafbe`, = = created 17:20:02, = = `HEAD =
+ffeb9fafbed9d6b566de864671d7cfe3e5a9ce2c`), = = and the run is logged to
+`~/.hermes/profiles/pocock/cache/scratch/gates_round9_sweep.log` with `TARGET TIP`, = =
+both remotes' values, = = every diffstat probe, = = every ancestry exit code, = = the
+ICC tag probe, = = and the two gate exits. = = **THE BUILD AND TEST ROWS WERE NOT
+RE-RUN, = = AND THE DOCUMENT SAYS WHY INSTEAD OF PRETENDING**: = = `ffeb9fafbe` and
+`1fbeb0cf96` (the tip the build and the two filtered test runs were measured on at
+16:07) have the SAME `Sources` tree object, = = `f437837e30d609713e48fdf3a0ec755f66fbe1ff`, =
+= and the move between them is two `.md` files. = = The previous round measured them on
+`31b5c3929`, = = which was `main` then and is six pushes
 behind `main` now, = = and the DENOMINATORS move with it (= = the formatting gate's
 changed-file count went 52 -> 56 against the same base, = = and the registry's LOC
 gate's row count went 23 -> 27). = = The numbers, = = each named to its tree, = = are
@@ -928,6 +1035,73 @@ a fragment of a sentence an earlier patch cut in half) is gone, = = and BOTH
 captures' `sha256` are published IN FULL (= = 64 hex), = = because an earlier
 round published 32 hex characters under a label that said 64, = = so a reader's
 `shasum -a 256` could never match them.
+
+= = = > > > **AND THE ROUND-8 REVIEW (`t_54fc85af`, = = run 4602, = = 28 minutes, = =
+`completed`) RETURNED `changes_requested` ON SIX BLOCKING FINDINGS, = = AND ALL SIX
+WERE RE-MEASURED BEFORE BEING ACCEPTED, = = AND ALL SIX REPRODUCE.** = = The reviewer
+published six one-comment findings and three notes; = = every number below is what THIS
+round re-took, = = not what the reviewer wrote. = =
+**F-A** = = §4's `124ce3275` diffstat pair did not reproduce: = = the published
++11338/-942 is neither the two-dot (64 files, = = **11246 insertions, = = 956
+deletions**) nor the three-dot (72 files, = = 11647/1475) reading, = = and the file
+count was right, = = so the paragraph published a MIX. = = §4 now reads 64 files /
++11246/-956. = = **F-B** = = two of §4's server READ TIMES named shas that could not
+have been the tip at that minute: = = the reflog says `124ce3275` was the tip only
+14:55:34-15:50:55 and `1699b71bc5` only 15:50:55-16:04:27, = = so "15:56:07 read = =
+`124ce3275`" returns `1699b71bc5`, = = and "16:07:22 read = = `1699b71bc5`" returns
+`1fbeb0cf96`, = = which is what §1 and §6 publish for that minute. = = §4 now names each
+endpoint by the INTERVAL in which it was the tip and withdraws both labels. = = **F-C** =
+= "16 files / +856/-246 over `83a2b21ea...1928e85b3`" is not that pair and is not any
+pair among the lane's commits (that pair prints **1 file / +10/-7**): = = §4 now publishes
+the lane's OWN span `84c3a6386f..1928e85b3` (= = 11 commits, = = `9ada19911` first) as
+**11 files / +942/-605** whole and **3 files / +43/-301** over `Sources`. = = **F-D** = =
+the grep predicate §7 published as the MEASUREMENT of "SIX of EIGHT" read 5, = = because
+the phrase `Reported and NOT fixed` was split by a soft wrap in §5's fourth bullet: = =
+the wrap is repaired, = = `grep -c 'Reported and NOT fixed'` over §5 now reads **6**, =
+= and `grep -c '^- '` over it reads **8**. = = **F-E** = = §4 claimed both deposited
+scripts' headers were "corrected in place"; = = they were NOT (= = `stat -f '%Sm'` read
+12:24:54 and 12:24:50, = = four hours before the commit that asserted it). = = They are
+now actually corrected (17:17:25), = = `grep -c 'Display P3, '` reads 0 in both, = = both
+compile, = = and `glass-pixel-readings.py` re-prints the published table unchanged. = =
+**F-F** = = the decoder block published "512 samples" for `/System/
+Library/ColorSync/Profiles/Display P3.icc`, = = which has NO `curv` tag and NO sample
+array: = = its three TRCs are `para` funcType 3 with FIVE `s15Fixed16` parameters, = =
+first = = 2.3999939 (= = tag-size 32), = = printed by `icc_probe.py`; = = and "creator
+`APPL`" named the wrong field (bytes 64-67 are zero; = = `APPL` is the MANUFACTURER at
+bytes 40-43); = = and the "ten tags" list printed NINE names, = = missing `gXYZ`. = = All
+three are fixed in §4 and §8. = = > > > **THE REVIEWER ALSO MISSED ONE, = = AND THIS
+ROUND FOUND IT WHILE RE-MEASURING F-C (= = F-G):** = = §4 asserted `1928e85b3` is NOT an
+ancestor of `81c97ae58` and quoted `git merge-base --is-ancestor 1928e85b3 81c97ae58` =
+= exit 1. = = Both halves are false: = = the command exits **0**, = = `1928e85b3` IS an
+ancestor of `81c97ae58`, = = and the exit-1 relation is against the pair's BASE
+`37526bfed`. = = ⇒ ⇒ ⇒ ⇒ The consequence for the SCOPE, not just the sha: = = the
+transcript lane's production change is inside the bubble pair's base, = = so the pair
+shows it as NO CHANGE (= = `git diff --shortstat 37526bfed 81c97ae58 -- Sources/
+WenshuApp/Features/Chat/View/ChatMessageView.swift` is EMPTY for all three of the
+transcript's production files), = = and the earlier sentence had inverted cause and
+consequence to make a true-sounding point. = = **THE RULE THIS ROUND ADDS: = = a
+ANCESTRY CLAIM IS PUBLISHED WITH ITS COMMAND AND ITS EXIT CODE READ BACK FROM THE RUN, =
+= NEVER FROM MEMORY, = = AND THE TWO PROBES THAT LOOK ALIKE (`A ancestor-of B`) AND
+(`A IN THE RANGE base..carrier`) ARE SEPARATE CLAIMS AND MUST BE SEPARATELY NAMED.** = =
+> > > **AND THE THREE NOTES ARE TAKEN TOO**: = = N1 = = §3's design-sweep and dead-code
+rows existed in NO log the author owned (= = `gates_round7.log` holds only the FAILED
+attempt at the wrong paths, = = exit 127), = = so both were re-run at 17:20:24 into
+`gates_round9_sweep.log` and each row now names its log lines; = = N2 = = the ring's
+"68 of 92 columns" was channel-unnamed, = = and it reproduces as RED = = 68, = = GREEN = =
+61, = = BLUE = = 76, = = MEAN = = 57 over the SAME span x=1345..1436 on row 1620, = =
+where 57 is the figure §4 elsewhere disowns, = = so the sentence now names the red
+channel and publishes the mean's artefact; = = N3 = = §2's enumeration ran against a
+database the document never named (= = the reviewer read a different store and got
+nothing), = = so §2 now names `~/.hermes/profiles/pocock/state.db`, = = its `messages`
+table, = = the read-only connect form, = = that `id` is the rowid and `message_uid` the
+uuid, = = and that the published predicate over that store re-takes **304 / 12 / 24**
+and the twelve rows in the order §2 prints them. = = > > > **AND ONE THING THE ROUND
+GAINED FROM THE SEVENTH MOVE**: = = `origin/main` moved again at 17:02:19, = = while the
+round-8 review was RUNNING, = = to `ffeb9fafbe`, = = whose whole delta against
+`1fbeb0cf96` is two `.md` files and whose `Sources` tree is the SAME object (= =
+`f437837e30d609713e48fdf3a0ec755f66fbe1ff`) — = = which is the cheapest possible proof
+that a gate number may be carried forward: = = name the tree OBJECT, = = not the
+"tip". = =
 
 = = = The first review card for this document (`t_a8463162`) was RECLAIMED
 before it returned a verdict, = = because the author found seven defects in
