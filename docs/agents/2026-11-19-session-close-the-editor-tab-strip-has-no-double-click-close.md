@@ -442,15 +442,22 @@ origin refs/heads/main` and `git ls-remote old-origin refs/heads/main` both read
 this scope), and `git merge-base --is-ancestor <sha> <remote>/main` returns rc 0
 for BOTH `124ce32757` and `1699b71bc5` against BOTH remotes.
 
-= = The tip moved twice more while this record was under review, which is the
-point of using ancestry: at round 4's write-time both remotes read
-`b5f34f59e0831324e3e5d3806d85f76a3fc3046e` (a sibling's cover-menu feature,
-landed between this record's own round-3 and round-4 commits), and
-`git merge-base --is-ancestor` returns rc 0 for all four of this record's
-commits — `124ce32757`, `1699b71bc5`, `ffeb9fafbe`, `876a08f300` — against both
-remotes. Re-run the ancestry check, not a tip equality: the tip changed three
-times across four rounds, so any sentence asserting equality with it was already
-false by the time it was pushed.
+= = The tip kept moving while this record was under review, which is the point of
+using ancestry: at round 4's write-time both remotes read
+`b5f34f59e0831324e3e5d3806d85f76a3fc3046e` (a sibling's cover-menu feature, landed
+between this record's own round-3 and round-4 commits), and by the time this
+closure line was written both remotes read a sibling's library commit that had
+landed ON TOP of this record's approved one.
+
+The set to check is DERIVED, not counted, because a count of this record's own
+history is the exact thing that goes stale (§11 item 11):
+
+    git log --format=%h main -- <this file>
+
+and `git merge-base --is-ancestor <sha> <remote>/main` must return rc 0 for EVERY
+commit that command lists, against BOTH remotes. ⇒ ⇒ Re-run that, never a tip
+equality: while this record was under review the tip moved on repeatedly, so any
+sentence asserting equality with it was already false by the time it was pushed.
 
 ## 11. Open items left behind
 
@@ -514,7 +521,13 @@ false by the time it was pushed.
    excludes the file that defines the vocabulary. It pre-dates this scope by 24
    days (`780d7cb5f4`, 2026-10-26).
 
-11. **A closeout record must not publish an absolute count of itself** (§6,
+11. **A closeout record must not publish an absolute count of itself** (= = a
+    review CARD inherits the same defect in its acceptance test: round 5's card
+    demanded "no self-count survives, `grep -c <phrase>` = 1 at HEAD", measured 2,
+    because the SECOND hit was the literal string inside the command the test
+    itself asked the reviewer to run. A test phrased as a number is unsatisfiable
+    together with the command that prints it — phrase it as the substantive claim:
+    "no sentence ASSERTS X", "no UNBOUND count is published".) (§6,
    §12): `wc -l` of the record, the number of hits a grep finds INSIDE the
    record, the record's own line numbers — each has a coordinate that the
    record's last edit moves, so the sentence is stale in the very commit that
@@ -603,6 +616,25 @@ false by the time it was pushed.
   coordinate-bound to a commit and a command, and the card body that quoted
   `--shortstat`'s total as this file's own added lines is not repeated — while the
   third (a half-up minutes figure printed beside its seconds) needed no action.
+- Round 5 (card `t_fcd6aab4`, run 4613 = 825 s = **13.8 min**): **APPROVED** on
+  `00963c53e6`. The command to re-run rather than trust this sentence is
+  `python3 Tools/wenshu-devtool/review_gate.py --card t_fcd6aab4`, which reads
+  `approved by wenshu-review`. C1-C6 all passed: the four gates and the two extra
+  strings reprinted, the registry equality held at every commit of this record
+  (each read from the reviewer's own tree, not quoted from here), §6's printed
+  python block ran and printed `lines 1 chars 6`, and ancestry held for every
+  commit of this record against both remotes.
+  = = The approval left two non-blocking rows and the commit carrying this bullet
+  closes both: §10's hand-counted tallies of this record's own history are replaced
+  by the derived `git log --format=%h main -- <this file>` form, and §11 item 11 now
+  records that a review card's ACCEPTANCE test can carry the same draft reading as a
+  sentence — which is what round 5's own card did, and why the next card phrases its
+  test as a claim rather than a number.
+  = = This is the record's last substantive edit. A closure line can only be written
+  after the verdict it names, so the review of THIS commit lives on the board and is
+  deliberately not logged here as a further round: the record stops growing rather
+  than logging its own growth, which is the defect every one of these five rounds
+  was an instance of.
 - The reviewers' evidence lives in their own profile's scratch, not this
   session's: `/Volumes/ANAN/.hermes/profiles/wenshu-review/cache/scratch/ab-2026-11-19/`
   (round 1) and the two throwaway detached worktrees round 2 added at
