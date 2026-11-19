@@ -23,11 +23,16 @@
 //  help people switch views in a toolbar or inspector pane"), = and their
 //  names are nouns, = which is what the same page asks of a segment's
 //  label (= "Use nouns or noun phrases for segment labels"). = So this is
-//  a `Picker` with `.pickerStyle(.segmented)` (= `SegmentedPickerStyle`),
-//  = stretched over the column's whole width (= `.frame(maxWidth:)`), =
+//  the repo's own bridged `NSSegmentedControl` (`Shared/UI/LabelSegmentedControl`),
+//  = pinned to the width its row was given (`regionWidth`, read off the row by
+//  `onGeometryChange`, and negotiated in the control's `sizeThatFits`), =
 //  because three short names in a narrow inspector read as a strip of
 //  buttons only when the strip is the column: = segments of unequal width
-//  make the longest one the centre of attention.
+//  make the longest one the centre of attention. = A SwiftUI `Picker` with
+//  `.pickerStyle(.segmented)` was tried first and is NOT what ships here: =
+//  handed a 252 PT column it asked AppKit for 594 PT and laid itself over the
+//  inspector's edge, = because a representable's frame is not set by a
+//  `.frame` modifier and the width has to be answered in `sizeThatFits`.
 //
 //  WHY Custom IS A SEGMENT AND NOT AN ABSENCE
 //
@@ -41,6 +46,19 @@
 //  matches no set, = and the tuning is the book's own record
 //  (= `Book.customStyleSheet`), = so General and back to Custom returns what
 //  the reader had tuned, = not what the set in between said.
+//
+//  THE SAME RULING'S OTHER HALF: = CUSTOM IS ENTERED, = NOT EARNED
+//
+//  A segment the reader can see and cannot switch to is a bug he has no
+//  name for. = So Custom is always reachable: = an untuned book that is
+//  sent there takes the GENERAL set's values (= "reuse the general set at
+//  the start") = and is then tuned by hand. = That is why the lit segment
+//  is not read off the sheet alone: = a sheet that IS the general set
+//  answers "General" to the click that chose Custom, = the segment springs
+//  back under the finger, = and nothing was ever written. = The place the
+//  reader chose is therefore recorded on the book (=
+//  `Book.styleSelectionIdentifier`), = and the sheet's own reading is only
+//  what a book that recorded nothing falls back to.
 //  = (see OOB.md #2026-11-19.)
 //
 //  WHY THE DROP-DOWN AND THE MARKED ROWS ARE BOTH GONE

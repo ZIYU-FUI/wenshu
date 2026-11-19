@@ -46,10 +46,20 @@
 //
 //  EVERY CHOICE ON THIS PAGE IS THE SYSTEM'S OWN CONTROL
 //
-//  A knob is a pop-up button and the two sets are one segmented control,
-//  = both drawn by the system (= `Picker` with `.menu`, = and
-//  `.segmented`). = The HIG names both for exactly this place: = a pop-up
-//  button is for "a flat list of mutually exclusive options or states"
+//  A knob is a pop-up button and the sets are one segmented control, = and
+//  NEITHER is a SwiftUI `Picker`: = the pop-up is AppKit's own
+//  `NSPopUpButton` bridged (`Shared/UI/ValuePopUpButton`), = because a
+//  `Picker` with `.menu` publishes NO accessibility element at all (= a
+//  one-off measurement in this app's own process: = the hosted view read
+//  back as one empty `AXGroup`, = and the running app carried zero
+//  `AXPopUpButton`/`AXMenuButton`), = while the page's state has to be
+//  READABLE to be tested; = and the switcher is the repo's own bridged
+//  `NSSegmentedControl` (`Shared/UI/LabelSegmentedControl`), = because the
+//  boss's ruling is that it spans the column it was given, = which needs the
+//  width negotiated in `sizeThatFits` (= SwiftUI's own segmented `Picker`,
+//  handed a 252 PT column, asked AppKit for 594 PT and laid itself over the
+//  inspector's edge). = The HIG names both kinds for exactly this place: = a
+//  pop-up button is for "a flat list of mutually exclusive options or states"
 //  = and "can update its content to indicate the current selection" (=
 //  pop-up-buttons, = alert-date 2023-10-24, = macOS), = and a segmented
 //  control belongs in "a toolbar or inspector pane" (= segmented-controls,
@@ -73,17 +83,27 @@
 //  and its current selection, = a `Text` on its own publishes NOTHING, = and
 //  a `TextField` publishes an `AXTextField`. = So the page's state is read
 //  out of the controls (= `InspectorAXTree`), = which is also how the tests
-//  prove the page shows the SELECTED book's sheet.
+//  prove the page shows the SELECTED book's sheet. = A pop-up's accessible
+//  NAME is answered by its CELL (= measured: with the control's own label
+//  set the tree still published an unnamed `AXPopUpButton`), = which is why
+//  `ValuePopUpButton` sets the name on both.
 //
-//  WHY "FINE-TUNED OFF BOTH SETS" NEEDS NO THIRD CONTROL
+//  WHERE THE BOOK SITS AMONG THE SETS
 //
-//  The set the book is at is the sheet's own optional (=
-//  `BookStylePreset.matching`), = and a segmented `Picker` whose selection
-//  matches no segment lights none (= measured: = AppKit reports its selected
-//  segment as -1). = So the state is the control's own, = not a name the
-//  page has to invent.
+//  The switcher is three segments: = the two sets, = and Custom. = A sheet
+//  that matches neither set is the reader's own tuning (=
+//  `BookStyleSelection.select`), = the tuning is kept on the book (=
+//  `Book.customStyleSheet`), = and choosing a set leaves it in place, = so
+//  Custom returns the book to its tuning and not to the set it passed
+//  through. = Custom is also entered with nothing behind it, = which takes
+//  the general set's values, = and a book that has never been tuned has no
+//  tuning to come back to; = so the place the reader chose is recorded on
+//  the book (= `Book.styleSelectionIdentifier`) = and the segment that
+//  stays lit is that record, = not a reading that can spring back.
 //  = (see OOB.md #2026-11-19: = the native control, = unless a business rule
-//  = the control cannot express argues otherwise.)
+//  = the control cannot express argues otherwise; = and the same day's
+//  = ruling that a state a reader can see but cannot return to is not a
+//  = state, which is what cancelled the earlier "no third segment" scheme.)
 //
 
 import OSLog
@@ -241,9 +261,17 @@ struct InspectorStylePageView: View {
             .max() ?? 0
     }
 
-    /// What the page shows (= the selected book's own sheet).
+    /// What the page shows (= the selected book's own sheet, = and the
+    /// place its switcher records).
     private var model: InspectorStylePageModel {
-        InspectorStylePageModel(sheet: sheet)
+        InspectorStylePageModel(sheet: sheet, recordedSelection: currentBook?.styleSelection)
+    }
+
+    /// The book the page is setting (= the one the editor has open, = or
+    /// nothing when no document names a book).
+    private var currentBook: Book? {
+        guard let currentBookID else { return nil }
+        return bookStore.books.first(where: { $0.id == currentBookID })
     }
 
     /// The selected book's sheet.
@@ -252,10 +280,7 @@ struct InspectorStylePageView: View {
     /// `effectiveStyleSheet`), = so the page never invents a sheet of
     /// its own.
     private var sheet: BookStyleSheet {
-        guard let currentBookID,
-              let book = bookStore.books.first(where: { $0.id == currentBookID })
-        else { return .default }
-        return book.effectiveStyleSheet
+        currentBook?.effectiveStyleSheet ?? .default
     }
 }
 
@@ -277,11 +302,15 @@ struct InspectorStylePageModel: Equatable, Sendable {
     /// when it names none).
     let currentSelection: BookStyleSelection
 
-    init(sheet: BookStyleSheet) {
+    /// - Parameter recordedSelection: the place the reader put the
+    ///   switcher, = as the book's own record. = nil when the book records
+    ///   nothing (= every book written before the switcher recorded places),
+    ///   = and the place is then read off the sheet.
+    init(sheet: BookStyleSheet, recordedSelection: BookStyleSelection? = nil) {
         rows = InspectorStylePageModel.styleRows(for: sheet)
         knobs = InspectorStylePageModel.fineTuningKnobs(for: sheet)
         choices = BookStyleSelection.choices
-        currentSelection = BookStyleSelection.select(sheet: sheet)
+        currentSelection = recordedSelection ?? BookStyleSelection.select(sheet: sheet)
     }
 
     /// The eleven roles, as the sheet sets them.

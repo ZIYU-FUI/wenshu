@@ -375,12 +375,23 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
         )
     }
 
-    /// A BOOK THAT WAS NEVER TUNED HAS NOTHING TO COME BACK TO.
+    /// CUSTOM IS A PLACE THE READER CAN ALWAYS GO TO, = AND AN UNTUNED
+    /// BOOK ENTERS IT FROM THE GENERAL SET.
     ///
-    /// MUTATION: = `sheet = book.customStyleSheet ?? defaultSheet` = an
-    /// untuned book silently restyled by a click on a segment it never
-    /// earned (= the same click on Custom must be a no-op).
-    func testChoosingCustomForAnUntunedBookChangesNothing() throws {
+    /// The boss's ruling (= OOB.md #2026-11-19): = Custom is entered first
+    /// and tuned afterwards. = An untuned book that is sent to Custom takes
+    /// the general set's sheet (= "reuse the general set at the start"), =
+    /// and that sheet READS as the general set, = which is exactly why the
+    /// place has to be recorded as well as derived: = reading it off the
+    /// sheet alone answers General to the click that chose Custom, = the
+    /// segment springs back under the reader's finger, = and he reports a
+    /// bug.
+    ///
+    /// MUTATION: = delete the line that records the place = the disk has no
+    /// record, = the page falls back to the sheet's own reading, = and the
+    /// third and fourth assertions below fail (= and the last one is the
+    /// one that says the fallback WOULD have lied).
+    func testEnteringCustomFromASetStaysInCustom() throws {
         let (store, root) = try makeStore()
         defer { try? FileManager.default.removeItem(at: root) }
         let book = try makeBook(in: store)
@@ -392,11 +403,99 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
         )
 
         let stored = try JSONDecoder().decode(Book.self, from: try readBookJSON(in: store, book))
-        XCTAssertNil(stored.customStyleSheet, "an untuned book has no tuning to install")
+        XCTAssertNil(stored.customStyleSheet, "entering Custom invents no tuning")
         XCTAssertEqual(
-            stored.effectiveStyleSheet,
-            book.effectiveStyleSheet,
-            "a segment with nothing behind it must not restyle the book"
+            BookStylePreset.matching(stored.effectiveStyleSheet),
+            .general,
+            "an untuned book enters Custom from the general set's own values"
+        )
+        XCTAssertEqual(stored.styleSelection, .custom, "the place the reader chose is on disk")
+        XCTAssertEqual(
+            InspectorStylePageModel(
+                sheet: stored.effectiveStyleSheet,
+                recordedSelection: stored.styleSelection
+            ).currentSelection,
+            .custom,
+            "the page lights Custom for the book the reader just put there"
+        )
+        XCTAssertEqual(
+            BookStyleSelection.select(sheet: stored.effectiveStyleSheet),
+            .preset(.general),
+            "the sheet alone would answer General, = which is the spring-back this record exists to prevent"
+        )
+    }
+
+    /// A KNOB MOVED UNDER A SET RECORDS CUSTOM; = A NUDGE BACK ONTO A
+    /// SET'S VALUES RECORDS THAT SET.
+    ///
+    /// The other half of the boss's ruling: = the mechanism that switches
+    /// a book to Custom the moment one of its knobs moves is kept under
+    /// either set. = The record therefore cannot be stale in the direction
+    /// that matters: = the switcher says Custom because the book is at no
+    /// set, = and says the set again when the reader nudges it back onto
+    /// one (= while the tuning he made stays where Custom can find it).
+    ///
+    /// MUTATION: = stop recording the place on the knob path = the second
+    /// and third assertions fail; = record Custom unconditionally = the
+    /// fifth fails.
+    func testAKnobMoveRecordsThePlaceItLandsOn() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let book = try makeBook(in: store)
+
+        _ = try BookStyleSheetWriteBack.apply(
+            knob: .bodySize,
+            position: BookBodySize.large.rawValue,
+            to: book.id,
+            store: store
+        )
+        var stored = try JSONDecoder().decode(Book.self, from: try readBookJSON(in: store, book))
+        XCTAssertEqual(stored.styleSelection, .custom, "a knob moved under a set IS the book's own tuning")
+        XCTAssertEqual(
+            stored.customStyleSheet?.bodySize,
+            .large,
+            "and it is saved where Custom can find it"
+        )
+
+        _ = try BookStyleSheetWriteBack.apply(
+            knob: .bodySize,
+            position: BookBodySize.medium.rawValue,
+            to: book.id,
+            store: store
+        )
+        stored = try JSONDecoder().decode(Book.self, from: try readBookJSON(in: store, book))
+        XCTAssertEqual(
+            stored.styleSelection,
+            .preset(.printBaseline),
+            "nudging back onto a set's values is being at that set"
+        )
+        XCTAssertEqual(
+            stored.customStyleSheet?.bodySize,
+            .large,
+            "and the tuning meant is not thrown away by it"
+        )
+    }
+
+    /// A BOOK THAT RECORDS NOTHING IS STILL READ OFF ITS SHEET.
+    ///
+    /// Every book written before the switcher recorded places has no
+    /// record, = and the page must not land such a book on Custom or on a
+    /// set it never sat at: = for those, = the sheet's own reading is the
+    /// answer.
+    ///
+    /// MUTATION: = make the page ignore the fallback (= always derive, = or
+    /// always read the record) = this and the case above cannot both pass.
+    func testABookWithoutARecordIsReadOffItsSheet() throws {
+        let tuned = BookStyleSheet.default.setting(.bodySize, to: BookBodySize.large.rawValue)
+        XCTAssertEqual(
+            InspectorStylePageModel(sheet: tuned).currentSelection,
+            .custom,
+            "a sheet at no set reads as the reader's own tuning"
+        )
+        XCTAssertEqual(
+            InspectorStylePageModel(sheet: .default).currentSelection,
+            .preset(.printBaseline),
+            "a sheet that IS a set reads as that set"
         )
     }
 

@@ -91,6 +91,18 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     /// book tuned, = set to General, = then set back to Custom reads the
     /// tuning it had, = not the set it passed through).
     var customStyleSheet: BookStyleSheet?
+    /// The place the reader put the switcher (= a `BookStyleSelection`'s
+    /// own identifier, = or nil when the reader never touched it).
+    ///
+    /// WHY THE PLACE NEEDS ITS OWN RECORD
+    ///
+    /// The sheet cannot tell Custom from the set it happens to look like:
+    /// = a book with no tuning sent to Custom is shown the general set's
+    /// sheet (= the boss's ruling of 2026-11-19), = and reading the place
+    /// off that sheet answers "General", = so the segment springs back on
+    /// the click that chose Custom. = The click has to stick, = because a
+    /// control that refuses to move is what a reader calls a bug.
+    var styleSelectionIdentifier: String?
     let createdAt: Date
     var updatedAt: Date
 
@@ -104,6 +116,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         idea: String? = nil,
         styleSheet: BookStyleSheet? = nil,
         customStyleSheet: BookStyleSheet? = nil,
+        styleSelectionIdentifier: String? = nil,
         createdAt: Date = .now,
         updatedAt: Date = .now
     ) {
@@ -116,6 +129,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         self.idea = idea
         self.styleSheet = styleSheet
         self.customStyleSheet = customStyleSheet
+        self.styleSelectionIdentifier = styleSelectionIdentifier
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -133,6 +147,19 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     /// cannot disagree about what the book looks like.
     var effectiveStyleSheet: BookStyleSheet {
         styleSheet ?? .default
+    }
+
+    /// The place the reader put the switcher, = as the choice itself.
+    ///
+    /// nil when the book recorded nothing, = which is every book written
+    /// before the switcher recorded places (= and the page reads those
+    /// off the sheet).
+    var styleSelection: BookStyleSelection? {
+        get {
+            guard let styleSelectionIdentifier else { return nil }
+            return BookStyleSelection(persistedIdentifier: styleSelectionIdentifier)
+        }
+        set { styleSelectionIdentifier = newValue?.persistedIdentifier }
     }
 
     /// Book icon for sidebar display. Returns `icon` if set,
@@ -165,7 +192,8 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     // list, etc.) should follow the same pattern.
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, author, icon, shelfId, length, idea, styleSheet, customStyleSheet, createdAt,
+        case id, title, author, icon, shelfId, length, idea, styleSheet, customStyleSheet,
+             styleSelectionIdentifier, createdAt,
              updatedAt
     }
 
@@ -180,6 +208,10 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         let icon = try c.decodeIfPresent(String.self, forKey: .icon)
         let styleSheet = try c.decodeIfPresent(BookStyleSheet.self, forKey: .styleSheet)
         let customStyleSheet = try c.decodeIfPresent(BookStyleSheet.self, forKey: .customStyleSheet)
+        let styleSelectionIdentifier = try c.decodeIfPresent(
+            String.self,
+            forKey: .styleSelectionIdentifier
+        )
         let createdAt = try c.decode(Date.self, forKey: .createdAt)
         let updatedAt = try c.decode(Date.self, forKey: .updatedAt)
         self.init(
@@ -192,6 +224,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
             idea: idea,
             styleSheet: styleSheet,
             customStyleSheet: customStyleSheet,
+            styleSelectionIdentifier: styleSelectionIdentifier,
             createdAt: createdAt,
             updatedAt: updatedAt
         )

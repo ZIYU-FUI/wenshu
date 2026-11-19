@@ -109,4 +109,64 @@ struct InspectorStylePageIdentityTests {
             "a knob must be off for the same reason the switcher is"
         )
     }
+
+    /// THE SEGMENT THE READER CLICKS IS THE SEGMENT THAT STAYS LIT.
+    ///
+    /// THE DEFECT THIS HOLDS
+    ///
+    /// The place a book sits used to be read off its sheet alone. = A book
+    /// at the general set HAS the general set's sheet, = so a click on
+    /// Custom was answered "General", = the segment went back under the
+    /// finger, = and the reader had no door into his own tuning at all. =
+    /// The boss's ruling of 2026-11-19 is the opposite shape: = Custom is
+    /// entered first, = and tuned afterwards.
+    ///
+    /// WHY THE CLICK IS FIRED AT THE CONTROL
+    ///
+    /// Calling the write-back and reading the store proves the data, = and
+    /// the symptom is the CONTROL in the window that stayed open. = So the
+    /// segment is set and the control's own action is sent (= the path a
+    /// finger takes, = since `LabelSegmentedControl` wires target/action
+    /// onto its coordinator), = and the same control is read back after the
+    /// page has had its layout pumps. = A write that does not move the
+    /// model leaves the control on the segment the model says, = which is
+    /// exactly what this case cannot tolerate.
+    @Test("a click on Custom stays on Custom")
+    func clickingCustomStaysOnCustom() throws {
+        let (store, plain, _) = try InspectorStylePageFixture.makeStore()
+        let workspace = InspectorStylePageFixture.makeWorkspace()
+        store.selectedBookId = plain.id
+        _ = try BookStyleSheetWriteBack.apply(
+            selection: .preset(.general),
+            to: plain.id,
+            store: store
+        )
+        let rendered = InspectorStylePageFixture.renderPage(store: store, workspace: workspace)
+        defer { rendered.close() }
+
+        let order = BookStyleSelection.choices
+        let generalIndex = try #require(order.firstIndex(of: .preset(.general)))
+        let customIndex = try #require(order.firstIndex(of: .custom))
+
+        let control = try #require(rendered.segmentedSwitcher())
+        #expect(
+            control.selectedSegment == generalIndex,
+            "the book starts at the general set (= got \(control.selectedSegment))"
+        )
+
+        let action = try #require(control.action)
+        let target = try #require(control.target)
+        control.selectedSegment = customIndex
+        NSApp.sendAction(action, to: target, from: control)
+
+        let written = try #require(store.books.first(where: { $0.id == plain.id }))
+        #expect(
+            written.styleSelection == .custom,
+            "the click the reader made is the place the book records (= got \(String(describing: written.styleSelection)))"
+        )
+        #expect(
+            rendered.segmentedSwitcher()?.selectedSegment == customIndex,
+            "the switcher in the open window stayed where the reader left it (= got \(String(describing: rendered.segmentedSwitcher()?.selectedSegment)))"
+        )
+    }
 }

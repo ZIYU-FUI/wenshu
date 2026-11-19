@@ -510,8 +510,19 @@ enum BookStylePreset: String, CaseIterable, Sendable {
 /// so by lighting nothing (= AppKit's own unlit state, = `selectedSegment
 /// = -1`). = A reader who cannot name a state cannot choose it, = and the
 /// boss's ruling replaced that: = the state gets a segment of its own,
-/// = Custom, = which the page lands on by itself whenever the book's sheet
-/// matches no set (= `matching(_:)` returning nil).
+/// = Custom.
+///
+/// WHY THE PLACE IS RECORDED AND NOT ONLY READ OFF THE SHEET
+///
+/// The sheet cannot tell Custom from the set it happens to look like. = A
+/// book that has never been tuned and is sent to Custom shows the general
+/// set's sheet (= the boss's ruling: = Custom starts from the general
+/// set, = and the reader tunes from there), = and a sheet that IS that
+/// set reads back as that set, = so a place read only off the sheet
+/// springs back on the click that chose it. = So the place the reader
+/// chose is written on the book (= `Book.styleSelectionIdentifier`), =
+/// and the sheet's own reading is what a book that recorded nothing falls
+/// back to.
 enum BookStyleSelection: Hashable, Sendable {
     /// One of the two named sets.
     case preset(BookStylePreset)
@@ -535,11 +546,38 @@ enum BookStyleSelection: Hashable, Sendable {
         }
     }
 
+    /// The place as the book's own record (= a string `book.json` can
+    /// hold, = and the set's half is the raw value `BookStylePreset`
+    /// already carries, = so nothing here invents a second name for a
+    /// set).
+    var persistedIdentifier: String {
+        switch self {
+        case .preset(let preset): preset.rawValue
+        case .custom: "custom"
+        }
+    }
+
+    /// The place as the book's record, = read back.
+    ///
+    /// A record naming nothing that exists decodes to nil (= and the page
+    /// then falls back to reading the sheet), = so a hand-edited or a
+    /// future book.json cannot strand a switcher on a segment that does
+    /// not exist.
+    init?(persistedIdentifier: String) {
+        if persistedIdentifier == "custom" {
+            self = .custom
+            return
+        }
+        guard let preset = BookStylePreset(rawValue: persistedIdentifier) else { return nil }
+        self = .preset(preset)
+    }
+
     /// Where the book is, = read off the sheet it is on.
     ///
-    /// A sheet that names one of the sets IS that set, = whatever the
-    /// saved tuning says: = the reader who set the book to Print is at
-    /// Print, = and the tuning waits behind it.
+    /// This is the FALLBACK: = it is what a book that recorded no place
+    /// is at, = and what a knob move records. = A sheet that names one of
+    /// the sets IS that set, = and a sheet that names none is the
+    /// reader's own tuning.
     static func select(sheet: BookStyleSheet) -> BookStyleSelection {
         guard let preset = BookStylePreset.matching(sheet) else { return .custom }
         return .preset(preset)
