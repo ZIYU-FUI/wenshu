@@ -58,11 +58,20 @@ struct ActiveBookIdentityTests {
     }
 
     /// The production open path: a manuscript card double-clicked in the grid.
-    private func openManuscript(ofBook bookId: UUID, in appState: AppState) {
-        _ = CardOpenOps.openTab(
+    ///
+    /// WHY THE BODY IS UNIQUE PER CALL. `openTab` dedupes by the first 200
+    /// characters of the tab's on-disk content, and the tabs' record is one
+    /// process-global key that other suites also write, so a shared literal
+    /// makes this open SWITCH to someone else's tab instead of opening its
+    /// own (= measured 2026-11-19: with the same literal as
+    /// `InspectorStylePageIdentityTests`, that suite's open came back with
+    /// no new tab id once this suite had persisted a tab of the same body).
+    @discardableResult
+    private func openManuscript(ofBook bookId: UUID, in appState: AppState) -> CardOpenOps.OpenCardResult {
+        CardOpenOps.openTab(
             triad: CardOpenOps.CardTriad(
                 path: "/tmp/wenshu-identity-\(UUID().uuidString).md",
-                content: "# Chapter\n\nA page of the manuscript.",
+                content: "# Chapter \(UUID().uuidString)\n\nA page of the manuscript.",
                 title: "Chapter one"
             ),
             previewScope: .bookScope(bookId: bookId, folderName: nil),
@@ -125,30 +134,56 @@ struct ActiveBookIdentityTests {
         )
     }
 
-    /// THE BOOK SURVIVES A RELAUNCH.
+    /// THE BOOK SURVIVES THE RECORD A RELAUNCH READS.
     ///
     /// The restart was the common case of the defect: the tabs came back, the
     /// document came back, and the book it belongs to did not, because the
     /// scope was never persisted.
+    ///
+    /// WHY THIS DOES NOT READ DEFAULTS. The tabs' record is one
+    /// process-global key that every suite opening a tab overwrites, so
+    /// reading it back here measured whoever wrote last (= the case passed
+    /// alone and failed inside a combined `--filter` run; measured
+    /// 2026-11-19). What a relaunch really keeps is the pair of production
+    /// mappings around the disk format, so this goes through both of them and
+    /// through the encode and decode that write and read that format.
     @Test("a relaunched session still names the open document's book")
     func theBookSurvivesARelaunch() throws {
         let bookId = UUID()
         let appState = AppState()
-        openManuscript(ofBook: bookId, in: appState)
-        let tabId = try #require(appState.openTabs.first?.id)
+        let opened = openManuscript(ofBook: bookId, in: appState)
+        //  BY ID, NOT BY POSITION: `AppState.init` restores the tabs the
+        //  last writer left in the shared record, so the first tab in the
+        //  list is not necessarily the one this case opened (= measured
+        //  2026-11-19 in a combined run, where the case read a foreign tab
+        //  and then asked it to name this case's book).
+        let tabId = try #require(opened.openedTabId)
+        let tab = try #require(appState.openTabs.first { $0.id == tabId })
 
-        //  A new AppState is what launching the app again is: the tabs come
-        //  back out of the same defaults `persistOpenTabs` wrote.
-        let relaunched = AppState()
-        #expect(relaunched.openTabs.count == 1, "the tab itself did not survive the restart")
-        #expect(relaunched.activeTabId == tabId, "the active tab was not the one that came back")
+        let record = try JSONEncoder().encode(AppState.snapshot(of: appState.openTabs))
+        let restored = try AppState.tabs(
+            from: JSONDecoder().decode([PersistedEditorTab].self, from: record)
+        )
+
+        let reopened = try #require(
+            restored.first { $0.id == tab.id },
+            "the tab itself did not survive the record"
+        )
         #expect(
-            relaunched.activeBookId == bookId,
+            reopened.sourceScope == tab.sourceScope,
+            "the scope was dropped by the record (= the format page would name no book after a restart)"
+        )
+        #expect(reopened.documentPath == tab.documentPath, "the document was not the one that came back")
+
+        appState.openTabs = restored
+        appState.activeTabId = reopened.id
+        #expect(
+            appState.activeBookId == bookId,
             "the restored tab shows a document and names no book (= the scope is not carried across the snapshot)"
         )
 
         let store = makeStore()
-        store.adoptActiveBook(relaunched.activeBookId)
+        store.adoptActiveBook(appState.activeBookId)
         #expect(store.selectedBookId == bookId)
     }
 
@@ -164,16 +199,20 @@ struct ActiveBookIdentityTests {
         "draft":"A page typed before the scope existed","originalBody":"",\
         "mode":"edit","title":"Chapter one"}]
         """
-        UserDefaults.standard.set(
-            legacy.data(using: .utf8)!,
-            forKey: WenshuDefaultsKey.openTabs.rawValue
+        let data = try #require(legacy.data(using: .utf8))
+        let restored = try AppState.tabs(
+            from: JSONDecoder().decode([PersistedEditorTab].self, from: data)
         )
-        let appState = AppState()
+
         #expect(
-            appState.openTabs.count == 1,
+            restored.count == 1,
             "a snapshot without the scope key was refused (= the reader lost the tabs he had open)"
         )
-        #expect(appState.openTabs[0].sourceScope == nil)
+        #expect(restored[0].sourceScope == nil)
+
+        let appState = AppState()
+        appState.openTabs = restored
+        appState.activeTabId = restored[0].id
         #expect(appState.activeBookId == nil)
     }
 }
