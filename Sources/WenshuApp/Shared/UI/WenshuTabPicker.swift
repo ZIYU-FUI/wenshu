@@ -155,7 +155,7 @@ private struct TabControl<Selection: Hashable>: NSViewRepresentable {
     func sizeThatFits(
         _ proposal: ProposedViewSize,
         nsView: NSSegmentedControl,
-        context: Context
+        context _: Context
     ) -> CGSize? {
         let height = nsView.fittingSize.height
         if regionWidth > 0 {

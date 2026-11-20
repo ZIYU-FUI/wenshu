@@ -200,7 +200,7 @@ struct TabPickerBandGeometryTests {
             backing: .buffered,
             defer: false
         )
-        window.setFrameOrigin(CGPoint(x: -20_000, y: -20_000))
+        window.setFrameOrigin(CGPoint(x: -20000, y: -20000))
         window.contentView = host
         window.orderFront(nil)
         for _ in 0 ..< 12 {
@@ -221,12 +221,16 @@ struct TabPickerBandGeometryTests {
         guard let root = control.layer else { return nil }
         var found: CALayer?
         func scan(_ layer: CALayer) {
-            if found != nil { return }
+            if found != nil {
+                return
+            }
             if String(describing: type(of: layer)) == "CABackdropLayer" {
                 found = layer
                 return
             }
-            for sublayer in layer.sublayers ?? [] { scan(sublayer) }
+            for sublayer in layer.sublayers ?? [] {
+                scan(sublayer)
+            }
         }
         scan(root)
         guard let plate = found else { return nil }
@@ -249,20 +253,24 @@ struct TabPickerBandGeometryTests {
             if String(describing: type(of: layer)) == "CGDrawingLayer" {
                 found.append(layer.frame.midX)
             }
-            for sublayer in layer.sublayers ?? [] { scan(sublayer) }
+            for sublayer in layer.sublayers ?? [] {
+                scan(sublayer)
+            }
         }
         scan(root)
         var centres: [CGFloat] = []
-        for position in found.sorted()
-            where centres.last.map { abs($0 - position) > 1 } ?? true
-        {
-            centres.append(position)
+        for position in found.sorted() {
+            if centres.last.map({ abs($0 - position) > 1 }) ?? true {
+                centres.append(position)
+            }
         }
         return centres
     }
 
     private static func findControl(in view: NSView) -> NSSegmentedControl? {
-        if let control = view as? NSSegmentedControl { return control }
+        if let control = view as? NSSegmentedControl {
+            return control
+        }
         for subview in view.subviews {
             if let found = findControl(in: subview) {
                 return found
