@@ -43,6 +43,16 @@
 #      called every difference a disagreement, so a branch that edited the
 #      tail collided with a sibling that merely re-landed it)
 # 14b. the same merge with the sides reversed => the same expectation
+# 15. one side DROPS the trailing newline => clean, that side's tail wins, and
+#     the dropped byte is silent (only ci_change_gate markdown-newline guards it)
+# 16. a key DELETED on one side and UNCHANGED on the other => clean, and the
+#     deletion WINS (= the old one-sided rule appended whichever row it found
+#     with no reference to base, so a repaired row deleted its defective twin
+#     and the defective twin came back on merge, rc=0, gate still green)
+# 17. a key DELETED on one side and CHANGED on the other => CONFLICT, named
+# 18. a branch that deletes two defective rows and adds two repaired forms,
+#     against an untouched sibling => clean, repaired keys exactly once,
+#     defective keys zero (the landing shape measured on 2026-11-20)
 set -uo pipefail
 
 SCRIPT_PATH="${BASH_SOURCE[0]}"
@@ -111,6 +121,17 @@ elif cmd == "striptail":
 elif cmd == "chgrow":
     fname, loc = args
     out = re.sub(rf"(\| `{re.escape(fname)}` \| )\d+( \|)", rf"\g<1>{loc}\g<2>", text)
+elif cmd == "delrow":
+    # Delete the row whose extracted-file key is exactly this, and refuse if
+    # it is not exactly one row: a case that deletes nothing is a case that
+    # tests nothing, and the resurrection defect hides in exactly that gap.
+    fname = args[0]
+    pat = re.compile(rf"^\| `[^|]*` \| `{re.escape(fname)}` \|")
+    kept = [ln for ln in text.split("\n") if not pat.match(ln)]
+    dropped = len(text.split("\n")) - len(kept)
+    if dropped != 1:
+        sys.exit(f"delrow: expected to delete exactly 1 row for {fname}, matched {dropped}")
+    out = "\n".join(kept)
 elif cmd == "chdr":
     old, new = args
     header = "\n".join(before)
@@ -133,6 +154,11 @@ addtail() { reg addtail "$1"; }
 striptail() { reg striptail; }
 # chgrow <file> <newloc>  = change an existing row's LOC
 chgrow() { reg chgrow "$1" "$2"; }
+# delrow <file>  = delete the row whose extracted-file key is exactly <file>.
+# The fixture refuses to delete anything other than exactly one row, so a case
+# cannot claim to test a deletion that never happened (= the shape that let the
+# resurrection survive every earlier version of this suite).
+delrow() { reg delrow "$1"; }
 # chdr <old> <new>  = change ONE phrase of the header (= the prose above the
 # table). The fixture refuses a phrase that is not unique in the header, so
 # a case cannot silently edit a row instead.
@@ -443,6 +469,76 @@ if [ "$MRC" -eq 0 ] \
     pass "15. one side drops the trailing newline => the merge is clean, that side's tail wins, and the byte is dropped in silence"
 else
     fail "15. the newline-less side did not win silently (exit $MRC, last byte: $LASTBYTE, rows: $(grep -cE '^\| `' merged15.md), expected $((BASEROWS + 2)))"
+fi
+
+# Two base keys to delete, taken with the driver's own key rule so a fixture
+# and the merge can never disagree about what the key of a row is.
+K1=$(grep -oE '^\| `[^|]*` \| `[^`]+`' "$REG" | head -1 | sed -E 's/.*\| `([^`]+)`$/\1/')
+K2=$(grep -oE '^\| `[^|]*` \| `[^`]+`' "$REG" | sed -n 2p | sed -E 's/.*\| `([^`]+)`$/\1/')
+if [ -z "$K1" ] || [ -z "$K2" ] || [ "$K1" = "$K2" ]; then
+    fail "fixture: two distinct base keys required (K1='$K1' K2='$K2')"
+fi
+
+# 16. one side DELETES a key, the other leaves it UNCHANGED => clean, and the
+#     row is GONE from the merged file.
+#     WHY THIS CASE EXISTS: the driver used to resolve "this key has a row on
+#     exactly one side" by appending whichever row it found, with no reference
+#     to base. A card that repairs a defective row by DELETING it therefore
+#     lost the deletion the moment it merged -- the base and the untouched
+#     sibling still had the row, so the defective key came back and the repair
+#     sat next to it. Measured on a real landing merge: 468 rows, both repaired
+#     keys present AND both resurrected defective keys present, merge rc=0,
+#     and nfi-loc-check.py then printed success because a resurrected row is
+#     in neither its `added` set nor its `rewritten` set.
+branch d1; addrow "Sources/.../RepairOne.swift" "TestRepairOne.swift" 111; delrow "$K1"; git commit -qam "d1 deletes a base row and adds a repair"
+branch d2; addrow "Sources/.../RepairTwo.swift" "TestRepairTwo.swift" 222; git commit -qam "d2 never touches the deleted key"
+MRC=0; git merge-tree --write-tree --name-only d1 d2 >/dev/null 2>&1 || MRC=$?
+TREE=$(git merge-tree --write-tree d1 d2 2>/dev/null | head -1)
+git cat-file -p "$TREE:$REG" > merged16.md 2>/dev/null
+K1N=$(grep -cE "^\| \`[^|]*\` \| \`$K1\` \|" merged16.md)
+if [ "$MRC" -eq 0 ] && [ "$K1N" -eq 0 ] \
+   && grep -q "TestRepairOne.swift" merged16.md && grep -q "TestRepairTwo.swift" merged16.md \
+   && [ "$(grep -cE '^\| `' merged16.md)" -eq "$((BASEROWS + 1))" ]; then
+    pass "16. deleted on one side, unchanged on the other => clean merge and the deletion WINS (no resurrection)"
+else
+    fail "16. the deleted key came back (exit $MRC, copies of $K1: $K1N, rows: $(grep -cE '^\| `' merged16.md), expected $((BASEROWS + 1)))"
+fi
+
+# 17. one side DELETES a key, the other CHANGES it => CONFLICT, and the key is
+#     NAMED (the module docstring's fourth rule; a silent pick of either side
+#     would be the same class of loss one screen above).
+branch e1; delrow "$K2"; addrow "Sources/.../DelAndChg.swift" "TestDelAndChg.swift" 333; git commit -qam "e1 deletes $K2"
+branch e2; chgrow "$K2" 913; git commit -qam "e2 changes $K2's LOC"
+OUT=$(git merge-tree --write-tree --name-only --messages e1 e2 2>&1 || true)
+ERCT=0; git merge-tree --write-tree e1 e2 >/dev/null 2>&1 || ERCT=$?
+if [ "$ERCT" -ne 0 ] && echo "$OUT" | grep -qF "$K2"; then
+    pass "17. deleted on one side, changed on the other => CONFLICT naming the key"
+else
+    fail "17. the delete/modify disagreement was resolved silently (merge-tree rc $ERCT; output: $(echo "$OUT" | tr '\n' ' ' | cut -c1-120))"
+fi
+
+# 18. the landing shape this whole case block exists for: one side deletes TWO
+#     defective rows and adds their two repaired forms, the other side is an
+#     unrelated sibling that never touched either key. Expect clean, each
+#     repaired key EXACTLY ONCE, each defective key ZERO times.
+branch f1; delrow "$K1"; delrow "$K2"
+addrow "Sources/.../Repaired.swift" "RepairedAlpha.swift" 1001
+addrow "Sources/.../Repaired.swift" "RepairedBeta.swift"  1002
+git commit -qam "f1 repairs two rows by re-keying them"
+branch f2; addrow "Sources/.../Sibling.swift" "TestSibling.swift" 2001; git commit -qam "f2 an unrelated sibling row"
+MRC=0; git merge-tree --write-tree --name-only f1 f2 >/dev/null 2>&1 || MRC=$?
+TREE=$(git merge-tree --write-tree f1 f2 2>/dev/null | head -1)
+git cat-file -p "$TREE:$REG" > merged18.md 2>/dev/null
+DEAD1=$(grep -cE "^\| \`[^|]*\` \| \`$K1\` \|" merged18.md)
+DEAD2=$(grep -cE "^\| \`[^|]*\` \| \`$K2\` \|" merged18.md)
+REPA=$(grep -cE "^\| \`[^|]*\` \| \`RepairedAlpha.swift\` \|" merged18.md)
+REPB=$(grep -cE "^\| \`[^|]*\` \| \`RepairedBeta.swift\` \|" merged18.md)
+if [ "$MRC" -eq 0 ] && [ "$DEAD1" -eq 0 ] && [ "$DEAD2" -eq 0 ] \
+   && [ "$REPA" -eq 1 ] && [ "$REPB" -eq 1 ] \
+   && [ "$(grep -cE '^\| `' merged18.md)" -eq "$((BASEROWS + 1))" ]; then
+    pass "18. a re-keying branch merges against an untouched sibling: repaired keys once, defective keys zero"
+else
+    fail "18. the landing shape is wrong (exit $MRC, defective: $DEAD1/$DEAD2, repaired: $REPA/$REPB, rows: $(grep -cE '^\| `' merged18.md), expected $((BASEROWS + 1)))"
 fi
 
 echo

@@ -178,11 +178,43 @@ def merge_docs(base: str, ours: str, theirs: str) -> tuple[str, list[str]]:
             conflicted.append(key)
             merged_rows.append(o)
             continue
-        if o is not None:
-            merged_rows.append(o)
+        # A key present on exactly ONE side has two completely different
+        # causes, and this branch used to treat them as one: it appended
+        # whichever row it found. That silently RESURRECTED a deletion -- a
+        # card that repaired a defective key by deleting its row lost the row
+        # again the moment the branch merged, because the base and the other
+        # side still carried it (measured: a landing merge put both repaired
+        # keys back alongside their defective forms, rc=0, and the LOC gate
+        # then read the landed tree and reported success, because a
+        # resurrected row is in neither `added` nor `rewritten`).
+        #
+        # So a one-sided row is resolved THREE WAYS against base, the way the
+        # header and the tail above already are:
+        #   - never in base            -> that side ADDED it; keep it.
+        #   - in base, unchanged here  -> the other side DELETED it; honour
+        #     the deletion. That is the whole point of a key-level driver: an
+        #     unedited side is not a claim that the row must live forever.
+        #   - in base, edited here     -> deleted on one side, changed on the
+        #     other: the CONFLICT the module docstring promises to NAME.
+        #     The row is still written out (= the human needs a file to
+        #     resolve from) and rc=1, exactly like a two-sided disagreement.
+        if o is not None:  # theirs has no row for this key
+            if b is None:
+                merged_rows.append(o)
+            elif o == b:
+                pass  # theirs deleted it and ours never touched it
+            else:
+                conflicted.append(key)
+                merged_rows.append(o)
             continue
-        if t is not None:
-            merged_rows.append(t)
+        if t is not None:  # ours has no row for this key
+            if b is None:
+                merged_rows.append(t)
+            elif t == b:
+                pass  # ours deleted it and theirs never touched it
+            else:
+                conflicted.append(key)
+                merged_rows.append(t)
             continue
         # Deleted on both sides: nothing to keep.
         continue
