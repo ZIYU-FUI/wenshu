@@ -49,6 +49,7 @@ THE THREE GUARDS, AND WHAT EACH TEST ASSERTS
 """
 import importlib.util
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -193,6 +194,11 @@ def case_g2_head_refusal(tool, tmp):
         tool.measure_at_tip(repo, branch, tip, keep, None)
     finally:
         tool.git_rc = real
+        # = = ⇒ ⇒ ⇒ AND THIS FIXTURE LEAVES NOTHING BEHIND: = = this suite
+        # = = enforces the sweep's own G4 (= = a tree comes back exactly as it
+        # = = was found, = = including the directory it made), = = so it must
+        # = = not leave ITS OWN `keep` directory in the temp dir.
+        shutil.rmtree(keep, ignore_errors=True)
 
     if branch.measured:
         print("FAILED: a tree whose HEAD is not the tip was MEASURED (= the refusal did not fire)")
@@ -276,6 +282,11 @@ def case_g3_clean_refusal(tool, tmp):
         tool.measure_at_tip(repo, branch, tip, keep, None)
     finally:
         tool.git_rc = real
+        # = = ⇒ ⇒ ⇒ AND THIS FIXTURE LEAVES NOTHING BEHIND: = = this suite
+        # = = enforces the sweep's own G4 (= = a tree comes back exactly as it
+        # = = was found, = = including the directory it made), = = so it must
+        # = = not leave ITS OWN `keep` directory in the temp dir.
+        shutil.rmtree(keep, ignore_errors=True)
 
     if branch.measured:
         print("FAILED: a dirty detached worktree was MEASURED (= the refusal did not fire)")

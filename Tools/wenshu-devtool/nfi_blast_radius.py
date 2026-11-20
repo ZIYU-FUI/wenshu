@@ -285,7 +285,15 @@ def measure_lane_buffer(
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--base", default="origin/main")
+    ap.add_argument(
+        "--base",
+        required=True,
+        help=(
+            "the sha the blast radius is measured against (= = NAME IT: = = "
+            "every number this script prints belongs to a snapshot, = = and "
+            "`origin/main` moves under the reader's feet)"
+        ),
+    )
     ap.add_argument("--repo", default=REPO_DEFAULT)
     ap.add_argument("--only", action="append", default=[])
     ap.add_argument(
