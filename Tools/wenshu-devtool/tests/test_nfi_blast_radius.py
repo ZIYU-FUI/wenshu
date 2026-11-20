@@ -13,18 +13,32 @@ sweep must therefore measure at each branch's NAMED TIP SHA, in a clean
 detached worktree, = = and it must ASSERT both facts before it reads a
 number.
 
-= = ⇒ ⇒ ⇒ So this test holds three things:
+= = ⇒ ⇒ ⇒ So this test holds FOUR things:
   (1) a branch whose TIP is green, = = but whose LIVE worktree carries an
       uncommitted edit that breaks a row, = = is reported GREEN (= = the
       sweep measures the tip) = = and the buffer is reported in its OWN
       column, labelled as not committed;
-  (2) the sweep REFUSES to measure a tree whose HEAD is not the tip it
+  (2) **THE RULER INVARIANT** (= = `nfi_blast_radius.py`'s docstring states it,
+      = = and this is where it is pinned): = = a tree with NO GATE OF ITS OWN
+      IS MEASURED with the sweep's own injected ruler, = = and the run NAMES
+      that ruler; = = a sweep with NO RULER BESIDE IT prints `NOT MEASURED`,
+      = = exits 2, = = and prints no table; = = and `--gate <no such file>`
+      refuses the same way instead of crashing mid-walk.
+      = = ⇒ ⇒ **⇒ This case CHANGED in round 10, = = on purpose.** = = It used
+      to pin "a tree with no gate is NOT MEASURED", = = and round 8's
+      default-gate fix made that path unreachable from any typed command, = =
+      so the invariant moved from the TREE to the INSTRUMENT. = = Round 9 left
+      the old assertion in place and shipped a RED suite; = = that is the
+      defect this rewrite closes (= = round 9's BLOCKING 1).
+  (3) the sweep REFUSES to measure a tree whose HEAD is not the tip it
       names (= = it asserts, = = it does not assume); = = and
-  (3) the sweep's own reproduction is printed for every red point, = = so a
-      reader can re-take it.
+  (4) the sweep's own reproduction is printed for every red point, = = so a
+      reader can re-take it, = = and every tree is left EXACTLY as it was
+      found (another lane's live worktree must keep the gate it had).
 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 """
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -167,15 +181,28 @@ def main():
             print(out)
             return 1
 
-        # = = (2) a tree with NO GATE is NOT MEASURED, = = not green. = = The
-        # = = fixture's tip carries the gate, = = so make a second branch whose
-        # = = tip predates it, = = and the sweep must say NOT MEASURED.
+        # = = (2) **THE RULER INVARIANT, = = AS CHANGED IN ROUND 8 AND STATED
+        # = = IN ROUND 10** (= = see `nfi_blast_radius.py`'s docstring,
+        # = = "THE RULER INVARIANT").
+        # = =
+        # = = The OLD rule this case pinned was "a tree with no gate is NOT
+        # = = MEASURED". = = Round 8's default-gate fix makes that path
+        # = = UNREACHABLE from any command a person can type: = = the sweep
+        # = = carries its own ruler and INJECTS it into every tree, = = so a
+        # = = branch whose tip predates `nfi-loc-check.py` is measured with the
+        # = = sweep's ruler instead of being skipped. = = That is the point of a
+        # = = blast radius (= = "what would the CURRENT ruler do to every lane?"),
+        # = = and skipping the lanes that predate the ruler would hide exactly
+        # = = the lanes a new rule bites.
+        # = =
+        # = = So the invariant moved from the TREE to the INSTRUMENT, = = and
+        # = = this case now pins BOTH halves of that sentence.
         old = os.path.join(tmp, "oldrepo")
         subprocess.run(["git", "clone", "-q", repo, old], cwd=tmp)
         run(["git", "checkout", "-q", base], cwd=old)
         run(["git", "checkout", "-q", "-b", "ancient"], cwd=old)
         # = = remove the gate from this branch's tip = = and commit it, = = so
-        # = = the tip has no gate to run.
+        # = = the tip has no gate of its own.
         os.remove(os.path.join(old, "Tools", "wenshu-devtool", "nfi-loc-check.py"))
         run(["git", "add", "-A"], cwd=old)
         run(["git", "commit", "-qm", "the gate is gone"], cwd=old)
@@ -189,13 +216,64 @@ def main():
             cwd=tmp,
         )
         out2 = result2.stdout + result2.stderr
-        if "NOT MEASURED" not in out2:
-            print("FAILED: a tree with no gate was reported as measured")
+
+        # = = (2a) A TREE WITH NO GATE IS MEASURED WITH THE SWEEP'S RULER, = =
+        # = = = = and the run SAYS which ruler it used.
+        if "NOT MEASURED" in out2:
+            print("FAILED: a tree with no gate of its own was refused, "
+                  "though the sweep has a ruler to inject")
             print(out2)
             return 1
-        if "red points = 0" in out2 and "NOT MEASURED" not in out2:
-            print("FAILED: a tree with no gate was reported as green")
+        if "gate = " not in out2:
+            print("FAILED: the gateless-tree measurement did not name its ruler")
             print(out2)
+            return 1
+        if "branch-backed worktrees measured = 0" in out2:
+            print("FAILED: the gateless tree was not measured")
+            print(out2)
+            return 1
+
+        # = = (2b) A SWEEP WITH NO RULER BESIDE IT MEASURES NOTHING (= = = = it
+        # = = = = refuses BEFORE the walk, = = = = and never prints a table).
+        lonely_tree = os.path.join(tmp, "lonely")
+        lonely_dir = os.path.join(lonely_tree, "Tools", "wenshu-devtool")
+        os.makedirs(lonely_dir, exist_ok=True)
+        lonely_tool = os.path.join(lonely_dir, "nfi_blast_radius.py")
+        shutil.copyfile(TOOL, lonely_tool)
+        if os.path.exists(os.path.join(lonely_dir, "nfi-loc-check.py")):
+            print("FAILED: the fixture put a gate beside the lonely sweep")
+            return 1
+        result2b = run(
+            [sys.executable, lonely_tool, "--base", base, "--repo", old,
+             "--only", "ancient"],
+            cwd=lonely_tree,
+        )
+        out2b = result2b.stdout + result2b.stderr
+        if result2b.returncode != 2:
+            print(f"FAILED: a ruler-less sweep exited {result2b.returncode}, expected 2")
+            print(out2b)
+            return 1
+        if "NOT MEASURED" not in out2b:
+            print("FAILED: a ruler-less sweep did not print NOT MEASURED")
+            print(out2b)
+            return 1
+        if "branch-backed worktrees measured" in out2b:
+            print("FAILED: a ruler-less sweep printed a measurement table anyway")
+            print(out2b)
+            return 1
+
+        # = = (2c) `--gate` NAMING NO FILE IS A REFUSAL, = = not a traceback
+        # = = = = (round 8's non-blocking 2).
+        result2c = run(
+            [sys.executable, TOOL, "--base", base, "--repo", old,
+             "--only", "ancient", "--gate", os.path.join(tmp, "no-such-gate.py")],
+            cwd=tmp,
+        )
+        out2c = result2c.stdout + result2c.stderr
+        if result2c.returncode != 2 or "NOT MEASURED" not in out2c or "Traceback" in out2c:
+            print("FAILED: `--gate <no such file>` did not refuse cleanly "
+                  f"(rc={result2c.returncode})")
+            print(out2c)
             return 1
 
         # = = (4) the sweep must leave every tree EXACTLY as it found it:
@@ -222,7 +300,8 @@ def main():
         print(f"  tip   = {tip[:12]}")
         print(f"  base  = {base[:12]}")
         print("  PASS 1: the tip's red point is reported (= the buffer's GREEN is not)")
-        print("  PASS 2: a tree with no gate is NOT MEASURED (= not green)")
+        print("  PASS 2: the ruler invariant holds — a gateless tree is MEASURED with the "
+              "sweep's ruler, a ruler-less sweep measures NOTHING, and a bad --gate refuses")
         print("  PASS 3: the reproduction is printed for every red point")
         print("  PASS 4: every tree is left exactly as it was found")
         return 0

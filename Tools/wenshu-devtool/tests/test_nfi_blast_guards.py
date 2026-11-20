@@ -361,6 +361,88 @@ def case_g5_own_tree_gate(tool, tmp):
     return 0
 
 
+def case_g6_missing_gate_flag(tool, tmp):
+    """G6: `--gate <no such file>` is a REFUSAL, = = not a traceback.
+
+    = = Round 8's non-blocking 2: the default ruler gained an existence check
+    = = while `--gate` did not, = = so a typo'd path reached `shutil.copyfile`
+    = = and died in the middle of walking live worktrees. = = A crash after the
+    = = walk began is the dangerous shape: = = some lanes were measured, = = the
+    = = output stops, = = and nothing says which ones were not.
+    """
+    repo = make_repo(tmp, "g6repo")
+    tip = run(["git", "rev-parse", "HEAD"], cwd=repo).stdout.strip()
+    result = run(
+        [sys.executable, TOOL, "--base", tip, "--repo", repo,
+         "--gate", os.path.join(tmp, "no-such-gate.py")],
+        cwd=tmp,
+    )
+    out = result.stdout + result.stderr
+    if result.returncode != 2:
+        print(f"FAILED: a missing --gate exited {result.returncode}, expected 2")
+        print(out)
+        return 1
+    if "NOT MEASURED" not in out:
+        print("FAILED: a missing --gate did not print NOT MEASURED")
+        print(out)
+        return 1
+    if "Traceback" in out:
+        print("FAILED: a missing --gate crashed instead of refusing")
+        print(out)
+        return 1
+    print("  G6: `--gate` naming no file refuses with NOT MEASURED, = = before any walk")
+    return 0
+
+
+def case_g7_sweep_without_a_ruler(tool, tmp):
+    """G7: a sweep with NO ruler beside it measures NOTHING (= = stated invariant).
+
+    = = This is the case that REPLACES the old "a tree with no gate is NOT
+    = = MEASURED" pin, = = which round 8 made unreachable from any command a
+    = = person can type (the sweep now injects its own ruler into every tree,
+    = = so a tree that carries no gate is measured, = = not refused).
+    = = The invariant moved from the TREE to the INSTRUMENT, = = and this is the
+    = = arm that holds it: = = copy the sweep into a tree with no
+    = = `nfi-loc-check.py` beside it, = = and the run must refuse, = = exit 2,
+    = = print NOT MEASURED, = = and above all NOT print a measured/green table.
+    """
+    tree = os.path.join(tmp, "g7tree")
+    tool_dir = os.path.join(tree, "Tools", "wenshu-devtool")
+    os.makedirs(tool_dir, exist_ok=True)
+    lonely_tool = os.path.join(tool_dir, "nfi_blast_radius.py")
+    shutil.copyfile(TOOL, lonely_tool)
+    ruler = os.path.join(tool_dir, "nfi-loc-check.py")
+    if os.path.exists(ruler):
+        print("FAILED: the fixture put a gate beside the sweep")
+        return 1
+    repo = make_repo(tmp, "g7repo")
+    tip = run(["git", "rev-parse", "HEAD"], cwd=repo).stdout.strip()
+    result = run(
+        [sys.executable, lonely_tool, "--base", tip, "--repo", repo],
+        cwd=tree,
+    )
+    out = result.stdout + result.stderr
+    if result.returncode != 2:
+        print(f"FAILED: a ruler-less sweep exited {result.returncode}, expected 2")
+        print(out)
+        return 1
+    if "NOT MEASURED" not in out:
+        print("FAILED: a ruler-less sweep did not print NOT MEASURED")
+        print(out)
+        return 1
+    if "Traceback" in out:
+        print("FAILED: a ruler-less sweep crashed instead of refusing")
+        print(out)
+        return 1
+    for probe in ("branch-backed worktrees measured", "red points = 0"):
+        if probe in out:
+            print(f"FAILED: a ruler-less sweep printed a table anyway ({probe!r})")
+            print(out)
+            return 1
+    print("  G7: a sweep with no ruler beside it refuses BEFORE it walks a worktree")
+    return 0
+
+
 def main():
     tool = load_tool()
     failures = 0
@@ -371,6 +453,8 @@ def main():
             ("G3 the cleanliness refusal", case_g3_clean_refusal),
             ("G4 the directory the sweep made", case_g4_made_directory),
             ("G5 the sweep's own tree's gate", case_g5_own_tree_gate),
+            ("G6 the `--gate` that names no file", case_g6_missing_gate_flag),
+            ("G7 the sweep with no ruler beside it", case_g7_sweep_without_a_ruler),
         ):
             rc = case(tool, tmp)
             if rc != 0:
@@ -379,7 +463,7 @@ def main():
     if failures:
         print(f"FAILED: {failures} guard(s) did not hold")
         return 1
-    print("blast radius: the sweep's five guards hold")
+    print("blast radius: the sweep's seven guards hold")
     return 0
 
 

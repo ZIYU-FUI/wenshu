@@ -44,11 +44,41 @@ point). = = ⇒ ⇒ **⇒ AND THE COMMAND THAT REPRODUCES A POINT** (= = the gat
 = = in that tree, = = against that base) = = = =
 `python3 Tools/wenshu-devtool/nfi-loc-check.py --base <the sweep's base>`,
 = = run in a detached worktree at that tip; = = the header above each point
-names the branch and the tip, = = so the point is reproducible. = = ⇒ ⇒ **⇒
-(At this tree the sweep does NOT print the point's own gate command line by
+names the branch and the tip, = = so the point is reproducible. = = ⇒ ⇒ **⇒ (At
+this tree the sweep does NOT print the point's own gate command line by
 line; = = it prints what the point is, = = where it is, = = and the base, = =
 = = and this sentence is the promise the tool actually keeps.)**
-= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+THE RULER INVARIANT (= = stated here because this is the file that enforces it)
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+**A sweep runs with ONE NAMED RULER, = = or it does not run at all.**
+
+  • the ruler is `--gate <path>` when given (= = and the path MUST exist, = = or
+    the run prints `NOT MEASURED: --gate names no readable file` and exits 2),
+  • otherwise it is the gate BESIDE THIS SCRIPT (= = = = NOT the one in
+    `--repo`'s tree, = = which is a DIFFERENT FILE whenever the sweep runs from a
+    worktree, = = and measuring a lane with another tree's ruler is the silent
+    false green this file was fixed for),
+  • if THAT is missing too, = = the run prints `NOT MEASURED: this sweep has no
+    ruler beside it` and exits 2 = = BEFORE it walks a single worktree.
+
+**A measured tree is NOT required to carry its own gate.** = The sweep injects
+the ruler it named, = = so a branch whose tip predates `nfi-loc-check.py` is
+measured with the sweep's ruler (= = and the tree is left exactly as found: =
+the injected file is removed, = = or the tree's own gate is restored).
+
+= = ⇒ This is a CHANGE of invariant, = = made in round 8 and stated in round 10
+= = because round 9 shipped it silently: = = the OLD rule was "a tree with no
+= = gate is NOT MEASURED", = = and under injection that path can no longer be
+= = reached by any command a person can type. = = The tree-level refusal still
+= = exists inside `measure_at_tip` as the last line of defence for a caller that
+= = hands it `gate=None` directly. = = Both are pinned by name in
+= = `tests/test_nfi_blast_guards.py` (`G6` = = the `--gate` path, = = `G7` = = a
+= = copy of this script with nothing beside it) = = and each arm is proven
+= = load-bearing by the mutation log, = = never by this sentence.
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 """
 from __future__ import annotations
 
@@ -317,27 +347,38 @@ def main() -> int:
     base_sha = git("rev-parse", args.base, cwd=repo).strip()
     rows = collect(repo, args.base, args.only)
 
-    gate: Path | None = None
+    # = = ⇒ ⇒ ⇒ **THE INVARIANT, = = STATED WHERE IT IS ENFORCED**: = = a sweep
+    # = = runs with ONE NAMED RULER, = = or it does not run at all. = = The
+    # = = ruler is `--gate` when given, = = and otherwise the gate BESIDE THIS
+    # = = SCRIPT ( = = never `--repo`'s tree's, = = which is a different file
+    # = = whenever the sweep runs from a worktree, = = and measuring a lane
+    # = = with another tree's ruler is a SILENT FALSE GREEN). = = A MEASURED
+    # = = TREE IS NOT REQUIRED TO CARRY ITS OWN GATE: = = the sweep injects
+    # = = the ruler it named, = = and a tree that had none is measured with
+    # = = that injected ruler.
+    # = =
+    # = = Round 8 moved the "no gate" refusal from the TREE to here, = = and
+    # = = round 9 was asked to say so out loud rather than leave the old suite
+    # = = pinning a path that can no longer be reached. = = The refusal inside
+    # = = `measure_at_tip` stays as the last line of defence for any caller
+    # = = that hands it `gate=None` directly; = = the run a person can type
+    # = = refuses BEFORE it walks a single worktree, = = which is where a
+    # = = false green would otherwise be printed. = = Both are pinned in
+    # = = `tests/test_nfi_blast_guards.py` ( = = `G6` names `--gate` missing,
+    # = = `G7` runs a copy of this script with no gate beside it).
     if args.gate:
         gate = Path(args.gate).resolve()
+        if not gate.is_file():
+            print(f"NOT MEASURED: --gate names no readable file: {gate}")
+            return 2
     else:
-        # = = ⇒ ⇒ ⇒ THE DEFAULT GATE IS THE ONE BESIDE THIS SCRIPT, = = NOT
-        # = = THE ONE IN `--repo`'s TREE. = = The two are different files when
-        # = = the sweep runs from a worktree, = = and measuring with the other
-        # = = tree's gate is a SILENT FALSE GREEN: = = the old ruler charges
-        # = = only a brand-new row, = = so every rewritten-row point vanished
-        # = = and the sweep printed a clean repo.
-        own = Path(__file__).resolve().parent / "nfi-loc-check.py"
-        if own.exists():
-            gate = own
-    gate_blob = ""
-    if gate is not None:
-        blob = subprocess.run(
-            ["git", "hash-object", str(gate)], capture_output=True, text=True
-        ).stdout.strip()
-        gate_blob = blob
-    else:
-        gate = None
+        gate = Path(__file__).resolve().parent / "nfi-loc-check.py"
+        if not gate.is_file():
+            print(f"NOT MEASURED: this sweep has no ruler beside it: {gate}")
+            return 2
+    gate_blob = subprocess.run(
+        ["git", "hash-object", str(gate)], capture_output=True, text=True
+    ).stdout.strip()
 
     keep = Path(tempfile.mkdtemp(prefix="nfi-blast-", dir="/tmp"))
     try:
