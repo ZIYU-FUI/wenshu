@@ -52,7 +52,18 @@
 # 17. a key DELETED on one side and CHANGED on the other => CONFLICT, named
 # 18. a branch that deletes two defective rows and adds two repaired forms,
 #     against an untouched sibling => clean, repaired keys exactly once,
-#     defective keys zero (the landing shape measured on 2026-11-20)
+#     defective keys zero (the landing shape measured on 2026-11-20). THE
+#     DRIVER'S INVOCATION COUNT IS ASSERTED, not assumed: `driver ran: N`.
+# 19. THE FIRING ARM: both sides change the registry against a base that is
+#     neither (base carries the two defective rows, ours deletes them and
+#     adds a row, theirs adds a different row). Expects `driver ran >= 1`, a
+#     clean merge, the defective keys ZERO times and each added key once.
+#     Under the pre-fix driver this is the case that goes RED naming itself,
+#     and the row count it prints is the 468-row blob.
+# 20. THE NON-FIRING ARM, pinned at ZERO: ours changes the registry, theirs
+#     never touches the file, so git takes ours and consults no driver at
+#     all. This is the shape the published landing arms were in (= a census
+#     taken on it says nothing about the driver, wired or not).
 set -uo pipefail
 
 SCRIPT_PATH="${BASH_SOURCE[0]}"
@@ -65,11 +76,19 @@ REPO_ROOT="$( cd "$SCRIPT_DIR/../../.." && pwd )"
 REG="docs/agents/nfi.md"
 
 FAILURES=0
-pass() { echo "  PASS  $1"; }
+PASSINGS=0
+pass() { echo "  PASS  $1"; PASSINGS=$((PASSINGS + 1)); }
 fail() { echo "  FAIL  $1"; FAILURES=$((FAILURES + 1)); }
 
 WORK=$(mktemp -d)
-trap 'rm -rf "$WORK"' EXIT
+# The invocation log and its markers live OUTSIDE the scratch repository: a
+# tracked log would be dirtied by every merge and then refuse the next
+# `git checkout` (= measured: the first version of this counter committed the
+# log with `git add -A`, and case 3 died on "local changes would be
+# overwritten by checkout" rather than on its own assertion).
+SANDBOX=$(mktemp -d)
+DRIVER_LOG="$SANDBOX/driver-invocations.log"
+trap 'rm -rf "$WORK" "$SANDBOX"' EXIT
 
 cd "$WORK"
 git init -q -b main .
@@ -80,7 +99,24 @@ cp "$REPO_ROOT/$REG" "$REG"
 cp "$REPO_ROOT/AGENTS.md" AGENTS.md
 cp "$REPO_ROOT/.gitattributes" .gitattributes
 cp "$REPO_ROOT/Scripts/merge-nfi-registry.py" Scripts/
-git config merge.nfi-registry.driver "python3 Scripts/merge-nfi-registry.py %O %A %B"
+# THE DRIVER IS RUN THROUGH A WRAPPER THAT COUNTS ITS INVOCATIONS. The suite
+# used to call the driver directly, so nothing could tell a merge the driver
+# resolved from a merge git never handed to the driver at all: an arm that
+# fires the driver and an arm that silently takes one side's blob print the
+# same thing. Cases 18-20 assert the COUNT, not the output (= the whole point
+# of a driver arm is that the driver ran; see case 20 for the shape that never
+# reaches it).
+printf '#!/bin/sh\necho invoke >> "%s"\nexec python3 "%s/Scripts/merge-nfi-registry.py" "$@"\n' \
+    "$DRIVER_LOG" "$WORK" > Scripts/driver-wrapper.sh
+chmod +x Scripts/driver-wrapper.sh
+git config merge.nfi-registry.driver "sh Scripts/driver-wrapper.sh %O %A %B"
+: > "$DRIVER_LOG"
+# driver_ran <since>  = invocations the driver appended since <since>'s snapshot was taken.
+# The name is the same token `docs/agents/nfi.md` publishes beside every arm, so a reader
+# can grep one word in both files instead of translating between two.
+driver_ran() { echo "$(grep -c invoke "$DRIVER_LOG") - $(wc -l < "$1" | tr -d ' ')" | bc; }
+# marker <name>  = snapshot of the log for the next driver_ran
+marker() { cp "$DRIVER_LOG" "$SANDBOX/marker-$1"; }
 git add -A
 git commit -qm "base"
 
@@ -92,7 +128,12 @@ BASEROWS=$(grep -cE '^\| `' "$REG")
 # where the table ends, and so the fixture lands a row where the driver
 # will read it as a row. nfi-split.py loads the driver the same way.
 #
-# reg <addrow|addtail|striptail|chgrow> ...
+# reg <add|addtail|striptail|chgrow|delrow|dupdef|chdr> ...
+# The fixture's exit code is propagated: a command that refuses (delrow on a
+# key it cannot find, dupdef on a key already present) MUST stop the case, or
+# the case goes on to assert on a fixture that was never built (= measured on
+# the first run of cases 19-20, where a refused delrow left the row in place
+# and the arm failed on its row count instead of naming the refusal).
 reg() { python3 - "$WORK/Scripts/merge-nfi-registry.py" "$REG" "$@" <<'PY'
 import importlib.util
 import re
@@ -132,6 +173,26 @@ elif cmd == "delrow":
     if dropped != 1:
         sys.exit(f"delrow: expected to delete exactly 1 row for {fname}, matched {dropped}")
     out = "\n".join(kept)
+elif cmd == "dupdef":
+    # Re-create a row the tree no longer carries (= the shape of `main`'s
+    # registry before a repair landed). The fixture refuses a key that is
+    # ALREADY present: a case that duplicates a live key would report a
+    # resurrection that never needed one.
+    fname, parent, loc, tag = args
+    pat = re.compile(rf"^\| `[^|]*` \| `{re.escape(fname)}` \|")
+    if any(pat.match(ln) for ln in text.split("\n")):
+        sys.exit(f"dupdef: the key {fname} is already in the table; this case needs it absent")
+    out = "\n".join(before + rows + [f"| `{parent}` | `{fname}` | {loc} | {tag} |"] + after)
+elif cmd in ("count", "countkey"):
+    # READ-ONLY probes, answered with the DRIVER'S OWN row and key rules
+    # (split_rows / key_of) rather than a grep of ours: the bash `grep -c
+    # '^| `' ruler counts the table's header and separator as rows too, so a
+    # case that mixes the two gets an arithmetic it cannot explain.
+    if cmd == "count":
+        print(len(rows))
+    else:
+        print(sum(1 for r in rows if driver.key_of(r) == args[0]))
+    sys.exit(0)
 elif cmd == "chdr":
     old, new = args
     header = "\n".join(before)
@@ -143,6 +204,7 @@ else:
 
 open(reg_path, "w", encoding="utf-8").write(out)
 PY
+    return $?
 }
 # addrow <parent> <file> <loc>
 # The row lands at the END of the table: after the last table row, so the
@@ -159,6 +221,10 @@ chgrow() { reg chgrow "$1" "$2"; }
 # cannot claim to test a deletion that never happened (= the shape that let the
 # resurrection survive every earlier version of this suite).
 delrow() { reg delrow "$1"; }
+# dupdef <file> <parent> <loc> <tag>  = re-create a row this tree no longer
+# carries, the way the defective rows sit on `main`. The fixture refuses a key
+# that is already present, so case 19 cannot report a resurrection it never set up.
+dupdef() { reg dupdef "$@"; }
 # chdr <old> <new>  = change ONE phrase of the header (= the prose above the
 # table). The fixture refuses a phrase that is not unique in the header, so
 # a case cannot silently edit a row instead.
@@ -505,8 +571,8 @@ else
 fi
 
 # 17. one side DELETES a key, the other CHANGES it => CONFLICT, and the key is
-#     NAMED (the module docstring's fourth rule; a silent pick of either side
-#     would be the same class of loss one screen above).
+#     NAMED (the third outcome of the docstring's one-sided rule; a silent
+#     pick of either side would be the same class of loss one screen above).
 branch e1; delrow "$K2"; addrow "Sources/.../DelAndChg.swift" "TestDelAndChg.swift" 333; git commit -qam "e1 deletes $K2"
 branch e2; chgrow "$K2" 913; git commit -qam "e2 changes $K2's LOC"
 OUT=$(git merge-tree --write-tree --name-only --messages e1 e2 2>&1 || true)
@@ -526,22 +592,103 @@ addrow "Sources/.../Repaired.swift" "RepairedAlpha.swift" 1001
 addrow "Sources/.../Repaired.swift" "RepairedBeta.swift"  1002
 git commit -qam "f1 repairs two rows by re-keying them"
 branch f2; addrow "Sources/.../Sibling.swift" "TestSibling.swift" 2001; git commit -qam "f2 an unrelated sibling row"
+marker c18
 MRC=0; git merge-tree --write-tree --name-only f1 f2 >/dev/null 2>&1 || MRC=$?
+DR18=$(driver_ran "$SANDBOX/marker-c18")
 TREE=$(git merge-tree --write-tree f1 f2 2>/dev/null | head -1)
 git cat-file -p "$TREE:$REG" > merged18.md 2>/dev/null
 DEAD1=$(grep -cE "^\| \`[^|]*\` \| \`$K1\` \|" merged18.md)
 DEAD2=$(grep -cE "^\| \`[^|]*\` \| \`$K2\` \|" merged18.md)
 REPA=$(grep -cE "^\| \`[^|]*\` \| \`RepairedAlpha.swift\` \|" merged18.md)
 REPB=$(grep -cE "^\| \`[^|]*\` \| \`RepairedBeta.swift\` \|" merged18.md)
-if [ "$MRC" -eq 0 ] && [ "$DEAD1" -eq 0 ] && [ "$DEAD2" -eq 0 ] \
+if [ "$DR18" -lt 1 ]; then
+    fail "18. this merge never reached the driver (driver ran: $DR18, log $DRIVER_LOG) (= the shape this case used to be: a clean tree that measured nothing)"
+elif [ "$MRC" -eq 0 ] && [ "$DEAD1" -eq 0 ] && [ "$DEAD2" -eq 0 ] \
    && [ "$REPA" -eq 1 ] && [ "$REPB" -eq 1 ] \
    && [ "$(grep -cE '^\| `' merged18.md)" -eq "$((BASEROWS + 1))" ]; then
-    pass "18. a re-keying branch merges against an untouched sibling: repaired keys once, defective keys zero"
+    pass "18. a re-keying branch merges against an untouched sibling: repaired keys once, defective keys zero (driver ran: $DR18)"
 else
-    fail "18. the landing shape is wrong (exit $MRC, defective: $DEAD1/$DEAD2, repaired: $REPA/$REPB, rows: $(grep -cE '^\| `' merged18.md), expected $((BASEROWS + 1)))"
+    fail "18. the landing shape is wrong (exit $MRC, driver ran: $DR18, log $DRIVER_LOG, defective: $DEAD1/$DEAD2, repaired: $REPA/$REPB, rows: $(grep -cE '^\| `' merged18.md), expected $((BASEROWS + 1)))"
+fi
+
+# 19. THE LANDING ITSELF, AT THE KEYS THE DEFECT WAS ACTUALLY MEASURED ON.
+#     This tree no longer carries the two defective rows `main` still does
+#     (`262`, `Vendor/MarkdownEngine/`) and it carries their two repaired
+#     forms. So: base = the tip's table PLUS those two defective rows; ours
+#     deletes both and adds one well-formed row for a real file; theirs adds a
+#     different well-formed row. Both sides change `docs/agents/nfi.md`
+#     against a base that is neither, which is the only shape in which git
+#     hands the file to an external merge driver at all (= case 20 is the
+#     shape it does not). Expect: the driver RAN (count >= 1, asserted, not
+#     assumed), the merge is clean, the repaired key and the added key each
+#     arrive exactly once, and each defective key arrives ZERO times. Under
+#     the pre-fix driver this goes RED on the defective keys (= the 468-row
+#     blob reappearing on the next registry merge).
+DEF1="262"
+DEF2="Vendor/MarkdownEngine/"
+REP1="docs/agents/2026-11-03-session-close-board-client.md"
+REP2="Vendor/MarkdownEngine/Package.swift"
+# `branch` always starts the new branch at the base commit, so BOTH defective
+# rows go on one branch in one commit: that commit is the merge base of the
+# pair below, exactly as `main`'s registry is the merge base of a repair
+# branch and a sibling that landed after it.
+branch g2
+dupdef "$DEF1" "$REP1" 190 "the closeout record, keyed by a bare NUMBER (= nothing to open)"
+dupdef "$DEF2" "Sources/WenshuApp/Features/Editor/Model/EngineStyleSheetBridge.swift" 30994 "a whole VENDORED TREE keyed as if it were one file"
+git commit -qam "g2 base carries both defective rows"
+git checkout -q -B g3 g2; delrow "$DEF1"; delrow "$DEF2"
+addrow "Sources/.../LandingRepair.swift" "TestLandingRepair.swift" 111; git commit -qam "g3 the repair branch: deletes both defective rows, adds one well-formed row"
+git checkout -q -B g4 g2; addrow "Sources/.../LandingSibling.swift" "TestLandingSibling.swift" 222; git commit -qam "g4 the sibling that landed first: another well-formed row"
+marker c19
+MRC=0; git checkout -q g3; git merge --no-ff -m "landing g4" g4 > merged19.log 2>&1 || MRC=$?
+DR19=$(driver_ran "$SANDBOX/marker-c19")
+D19A=$(reg countkey "$DEF1")
+D19B=$(reg countkey "$DEF2")
+R19A=$(reg countkey "TestLandingRepair.swift")
+R19B=$(reg countkey "TestLandingSibling.swift")
+M19=$(grep -cE '^(<<<<<<<|>>>>>>>) ' "$REG")
+ROWS19=$(reg count)
+# base = BASEROWS + 2 defective; the deletions win; +1 row per side.
+EXPECT19=$((BASEROWS + 2))
+if [ "$DR19" -lt 1 ]; then
+    fail "19. FIRING arm: the merge never reached the driver (driver ran: $DR19, log $DRIVER_LOG) (= a clean tree from a one-sided take is not landing evidence)"
+elif [ "$MRC" -ne 0 ]; then
+    fail "19. FIRING arm: the landing merge did not complete (exit $MRC, driver ran: $DR19): $(tr '\n' ' ' < merged19.log | cut -c1-140)"
+elif [ "$D19A" -ne 0 ] || [ "$D19B" -ne 0 ]; then
+    fail "19. FIRING arm: the deleted defective keys came BACK (driver ran: $DR19, \`$DEF1\`: $D19A, \`$DEF2\`: $D19B, rows: $ROWS19) (= the pre-fix one-sided rule: it appended whichever row it found without consulting base)"
+elif [ "$M19" -ne 0 ]; then
+    fail "19. FIRING arm: the merged registry carries $M19 conflict markers (driver ran: $DR19)"
+elif [ "$R19A" -ne 1 ] || [ "$R19B" -ne 1 ]; then
+    fail "19. FIRING arm: an added key is not exactly once (driver ran: $DR19, added: $R19A/$R19B)"
+elif [ "$ROWS19" -ne "$EXPECT19" ]; then
+    fail "19. FIRING arm: row count wrong (driver ran: $DR19, rows: $ROWS19, expected $EXPECT19 = $BASEROWS base rows + 2 defective + 2 added - 2 deleted)"
+else
+    pass "19. FIRING arm: both sides changed the registry against a base that is neither, driver ran: $DR19, clean, defective keys $D19A/$D19B, added keys once, rows $ROWS19"
+fi
+
+# 20. THE NON-FIRING ARM, pinned at zero. Ours changes the registry; theirs
+#     changes something else, so `docs/agents/nfi.md` on theirs IS the base's
+#     blob and ort takes ours without consulting any driver (= the shape the
+#     published landing arms were in, and the reason a census taken on it can
+#     never be evidence about the driver). Assert the count is ZERO: a driver
+#     that silently started running here would mean the rule above is wrong.
+git checkout -q -B n1 g3
+git checkout -q -B n2 g2; echo "a prose line only the sibling wrote" >> AGENTS.md; git commit -qam "n2 never touches the registry"
+marker c20
+MRC=0; git checkout -q n1; git merge --no-ff -m "merge n2" n2 > merged20.log 2>&1 || MRC=$?
+DR20=$(driver_ran "$SANDBOX/marker-c20")
+if [ "$MRC" -ne 0 ]; then
+    fail "20. NON-FIRING arm: the one-sided merge failed (exit $MRC): $(tr '\n' ' ' < merged20.log | cut -c1-140)"
+elif [ "$DR20" -ne 0 ]; then
+    fail "20. NON-FIRING arm: the driver ran $DR20 times on a merge where only one side touched the file (log $DRIVER_LOG) (= the one-sided-take rule this case pins is false)"
+elif [ "$(git rev-parse HEAD:docs/agents/nfi.md)" != "$(git rev-parse n1:docs/agents/nfi.md)" ]; then
+    fail "20. NON-FIRING arm: the merged registry is not ours byte-for-byte (driver ran: $DR20)"
+else
+    pass "20. NON-FIRING arm: one side never touched the file => the tip, unmerged: driver ran: $DR20, merged blob == ours"
 fi
 
 echo
+echo "nfi registry: PASS=$PASSINGS FAIL=$FAILURES  driver_ran: c18=$DR18 c19=$DR19 (must be >= 1), c20=$DR20 (must be 0); invocations logged this run: $(grep -c invoke "$DRIVER_LOG"), log $DRIVER_LOG)"
 if [ "$FAILURES" -eq 0 ]; then
     echo "nfi registry: all tests passed"
     exit 0

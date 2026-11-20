@@ -32,7 +32,9 @@ This table used to live in `AGENTS.md` §1.11. It moved here because it is
 APPEND-ONLY (= every new row lands at the end), so two cards each adding one
 row both wrote the same last line and collided. In its own file it merges at
 the KEY level: `docs/agents/nfi.md merge=nfi-registry` in `.gitattributes`
-makes two cards' rows both survive, and a genuine disagreement (the same row,
+makes two cards' rows both survive (= where the clone has registered the driver, because the
+attribute only SELECTS a driver by name and `.git/config` is what defines it — see the arms
+below for what an unregistered name does instead), and a genuine disagreement (the same row,
 two different contents) still conflicts with the key named.
 
 `AGENTS.md` keeps the rule and points here. The rule is unchanged: every
@@ -54,60 +56,136 @@ beside each one, and they are read the way the gate reads them (`rows()` / `LITE
 the key being `cells[1].strip("`")` — a key passed with its backticks still on reads as absent,
 which is how a first attempt at this very census printed 0 readable rows on a tree that has 424):
 
-- `834b37db1f` — `origin/main` while this paragraph was written: 462 numeric LOC rows, 424
-  opening as a readable file, 33 `...` roll-ups (skipped by design), 5 opening nothing
-  (= 3 absent paths, 1 directory, 1 bare number).
-- `94c2e0cf29` — this branch's tip: 462 numeric, 426 readable, 33 roll-ups, 3 opening nothing
-  (3 absent paths, none of them this card's).
-- as configured today, this branch **fast-forwards** onto `834b37db1f` (`main..tip` = 2, `tip..main` = 0): the landing tree is the tip's tree by identity, and no merge driver runs.
-- `29c6212efd` — the LANDING **with the declared merge driver wired** (`git config
-  merge.nfi-registry.driver` pointing at the script, as `.gitattributes` intends): main
-  fast-forwarded to `f1646a0c43`, then this branch's tip merged into it, two parents: 462 numeric,
-  426 readable, 33 roll-ups, 3 opening nothing, no duplicate key. That merge sha belongs to the
-  tip it merged (`94c2e0cf29`); a merge commit is named by its parents, so re-running the arm at a
-  later tip yields a different sha and the same four numbers. Both arms are reproducible inside the
-  repository, not from a scratch file: `Tools/wenshu-devtool/nfi-census.py <tree>...` prints the
-  per-tree line above using the tree's own `rows()` / `LITERAL` / `wc_lines` and the driver's own
-  `key_of`, and case 18 of `Tools/wenshu-devtool/tests/test_nfi_registry.sh` builds the landing
-  merge itself (a re-keying branch against an untouched sibling) and asserts every key arrives
-  exactly once. A merge sha is an output of such an arm, never an input to it.
-- and the LANDING **as this repository is configured today** — `.gitattributes` names
-  `merge=nfi-registry`, `.git/config` defines only `merge.xcstrings.driver`, so git silently
-  falls back to its built-in text merge: 462 numeric, 426 readable, 33 roll-ups, 3 opening
-  nothing, no duplicate key, no conflict markers, gate exits 0. Clean for THIS pair of edits,
-  by luck of where they sit in the table, not by construction.
+- `ce7b456945` — the registry repair's tip, the commit this card's own commit lands on (the
+  repair card's branch ref and `origin/review/ce7b456945` both sit on it): 462 numeric LOC rows,
+  426 readable, 33 roll-ups, 3 opening nothing (3 absent paths, none of them this card's).
+  The same four numbers were published here under the label `94c2e0cf29`, an earlier
+  revision of the same card; the numbers were right and the label was not —
+  `git merge-base --is-ancestor 94c2e0cf29 ce7b456945` exits **1**, so that commit is
+  not an ancestor of the tree carrying these rows, and a number pinned to it pins
+  nothing. A superseded revision is named by the ref that moved, not by a sha a later
+  reader cannot reach: pinned reviews are written `origin/review/<sha10>` (a local
+  clone has that ref and has **no** `refs/heads/review/<sha10>`).
+- `b183da4069` — `origin/main` while this paragraph was re-measured (main has since moved to
+  `ee0e821cbd`, three `tools(devtool)` commits; `git diff --stat b183da4069 ee0e821cbd -- docs/agents/nfi.md`
+  is **empty**, so the registry blob and every number below are unchanged by that move): 464 numeric
+  LOC
+  rows, 426 readable, 33 roll-ups, 5 opening nothing (= 3 absent paths, 1 directory,
+  1 bare number: the two defective rows are still on `main`, which is exactly what the
+  landing pair below merges against).
+- the shape this branch is in against `origin/main` (`ee0e821cbd`, re-fetched before this line was
+  written): `git merge-base tip origin/main` = `834b37db1f`, which is neither side, so
+  `git merge --ff-only` exits **128** (= "Diverging branches can't be fast-forwarded") and
+  `driver_ran: 0` — there is no merge to resolve. The distance is `3` commits ahead (this branch's
+  own, a fact about the branch) and `5` behind (a fact about the clock: `tip..main` was `0` when this
+  section was first written, and the branch did fast-forward onto `834b37db1f` then). That is why this
+  arm states its merge-base and not its distance, and why every landing arm has to name its two
+  parents and print its invocation count.
+- `f1646a0c43` × `ce7b456945`, driver **registered** in the clone's `.git/config`: merge
+  exits 0, **`driver_ran: 0`**, merged blob `fd781da03d`, merged tree `482cdb5d4e` — byte for
+  byte the tip's own tree. This is **the tip, unmerged**, and not a landing: `git merge-base`
+  of that pair IS the ours side, whose `docs/agents/nfi.md` blob (`9260e6b70b`) is identical to
+  the base's, so one side differs, ort takes it, and an external merge driver is never
+  consulted — wired or not. The two arms published here before this line (one as "the landing
+  **with the declared merge driver wired**", merge sha `29c6212efd`, one as "the landing **as
+  this repository is configured today**") were both this shape, so they were never a
+  wired/unwired differential but two readings of one no-op merge — and `29c6212efd` does not
+  resolve as an object in this repository at all (`git cat-file -t` fails on it), which is what
+  makes the sentence above it about re-running an arm unfalsifiable. Its claim that git
+  "silently falls back to its built-in text merge" is deleted with it: on an arm with
+  `driver_ran: 0` for this reason there was no fallback and no text merge, only a take.
+- the FIRING PAIR, re-measured against today's `origin/main` (`b183da4069`, 466 rows = the base's
+  464 plus the one row each of `4aa3ffe4bb` and `b183da4069` appended): merge base
+  `834b37db1f` (464 rows), ours = that main, theirs = `ce7b456945` (464 rows: two deleted, two
+  re-keyed), both sides change `docs/agents/nfi.md` against a base that is neither, driver
+  registered. Every number is printed by the run, not copied: the
+  row count by `grep -cE '^\| `' (the table's data rows; the header and separator excluded,
+  which is also what `nfi-census.py` calls `data rows` minus its 1 header line) and the census
+  by `Tools/wenshu-devtool/nfi-census.py <worktree>` (that tool's own functions, not a grep):
+  - with the **pre-fix** driver (`c3d343c2c8`): merge exits 0, **`driver_ran: 1`**, merged blob
+    `ab6269ce36`, **468 rows**, and BOTH deleted defective keys are back (`262` once,
+    `Vendor/MarkdownEngine/` once), 466 numeric LOC rows, 0 conflict markers, and
+    `nfi-loc-check` exits **0** on it (= blind: a resurrected row is neither added nor
+    rewritten, so the per-change gate cannot see the undoing).
+  - with the **fixed** driver (`e5f61b15ef`): merge exits 0, **`driver_ran: 1`**, merged blob
+    `4e6272ced7`, **466 rows**, both defective keys **0**, 464 numeric LOC rows = 428 readable
+    + 33 roll-ups + 3 opening nothing, no duplicate key, gate exits 0.
+  - with the attribute declared and **no driver in `.git/config`** (= this repository as it is
+    configured right now: `git config --get-regexp '^merge\.'` prints only
+    `merge.xcstrings.driver`, although `Scripts/setup-dev-env.sh` has had the line that installs
+    `merge.nfi-registry.driver` since `9301d5c4a2` (2026-10-21, the commit that introduced the
+    driver) — a clone that never ran step 6 of it is in this state): merge exits 0,
+    **`driver_ran: 0`**, merged blob `daf13fd012`, 466 rows, both defective
+    keys 0. Git's built-in text merge genuinely ran here, and on THIS pair of edits it agrees with
+    the fixed driver on the row set while disagreeing on the bytes (= a different blob, because the
+    two appended rows land in each side's own order). Clean for this pair by luck of where the hunks
+    sit, not by construction: it is the same merge with one side's row placed where the other side
+    deleted, and the declaration in `.gitattributes` that should have routed it to the driver is
+    silent about the driver being missing. The card that makes that silence loud is
+    `t_c15ad028`, this card's child; it lands AFTER the fix above, because a driver that is loud
+    before it is correct only makes a wrong driver easier to trust.
+- all three arms are reproducible inside the repository rather than from a scratch file:
+  `Tools/wenshu-devtool/nfi-census.py <tree>` prints a tree's line with that tree's own
+  `rows()` / `LITERAL` / `wc_lines` and the driver's `key_of`, and cases 18-20 of
+  `Tools/wenshu-devtool/tests/test_nfi_registry.sh` build the merges themselves and assert the
+  driver's **invocation count** — a wrapper appends one line per call, case 19 requires `>= 1`
+  on the firing pair and case 20 requires `== 0` on the one-sided shape, and a zero on an arm
+  that must fire FAILS the run naming the log path. A merge sha is an output of such an arm,
+  never an input to it.
 
 No pipe table here on purpose: `rows()` takes every line that starts with `|`, so a comparison
 table written in this file's own idiom would be read as registry rows — with a number in the
 LOC column and a sentence in the key column. The gate would then fail on the paragraph that
 describes it, which is a worse outcome than a slightly wider paragraph.
 
-The landing was measured, not inferred, and what it measures depends on a fact that changes under
-this card: at the moment these numbers were taken, `main..tip` is 2 and `tip..main` is 0, so this
-branch **fast-forwards** onto `origin/main` (`834b37db1f`) — no merge commit, and no merge driver is
-consulted at all. A real merge happens the moment anything else lands first; both shapes were run in
-throwaway clones and both are in the list above. The reason a merge --ff-only arm is NOT landing
-evidence for a claim about the driver is the mistake this paragraph was written to correct: an
-earlier round ran `git merge --ff-only` against an ancestor, produced no merge at all, and published
-the tip's own census under a landing label. It also matters what a real merge is resolved BY: with
-the OLD `Scripts/merge-nfi-registry.py`, that same merge lands 468 rows carrying BOTH repaired keys
-and BOTH defective ones, because a key present on one
-side only was appended back whenever either side still had it, and `nfi-loc-check` then exits 0
-on it (= a resurrected row is neither added nor rewritten, so the gate is blind to the undoing).
-The driver now resolves a one-sided row against the merge base — added by one side: keep; deleted
-by one side and untouched by the other: the deletion wins; deleted by one side and edited by the
-other: CONFLICT, named — and `Tools/wenshu-devtool/tests/test_nfi_registry.sh` carries
-delete-vs-unchanged, delete-vs-changed and this landing shape as cases 16, 17 and 18, each of which
-refuses to run unless its fixture deletes exactly one row.
+The landing was measured, not inferred, and what an arm measures depends on a fact that moves
+under the card writing it: while `tip..main` is 0 the branch fast-forwards and no driver exists
+to consult; the moment any other card lands first, a real merge happens and the driver is the
+thing that decides whether a deleted row stays deleted. Both shapes were run in throwaway
+clones, and every arm in the list above now carries `driver_ran: N` beside its numbers, because
+an earlier round published three arms as a landing differential while all three trees were the
+tip's own tree — the arms ran the driver zero times, for the reason given above (one side never
+changed the file), and nothing in the printout could tell that apart from a driver that had run
+and agreed. That is why the count is asserted and not inferred, and it is asserted in the
+repository: `Tools/wenshu-devtool/tests/test_nfi_registry.sh` wraps the driver in a script that
+appends one line per invocation, and its case 19 fails by name if the firing pair reports 0.
+
+What the firing pair measures is the hazard, and it is not hypothetical: `main` still carries
+both defective rows, so any merge of a repair branch with anything that appends a row is this
+pair. With the pre-fix driver it lands **468 rows** carrying both repaired keys AND both
+defective ones, `driver_ran: 1`, and `nfi-loc-check` exits 0 on the result (= a resurrected row
+is neither added nor rewritten by the change, so the per-change gate is blind to the undoing).
+With the fixed driver the same merge lands **466 rows** with the defective keys present zero
+times. The rule the difference turns on is the one-sided row, now resolved three ways against
+the merge base: never in base, so a side ADDED it, keep that row; in base and unchanged on the
+side that still has it, so the other side DELETED it, the deletion wins; in base and EDITED on
+the side that still has it, so one side deleted it and the other changed it, CONFLICT, named.
+`Tools/wenshu-devtool/tests/test_nfi_registry.sh` carries those three outcomes as cases 16, 17
+and 18 and the landing shape as case 19, each of them refusing to run unless its fixture deletes
+exactly one row, and cases 18-19 refusing to pass unless the driver was actually invoked.
 
 Read any row of that table as "the gate measured every row" and it is wrong: it never reads the 33
 roll-ups, and until this change it skipped the unopenable ones without saying so. Of every file the
 gate could open, none ended without a trailing newline — so on any row the gate actually measures,
-`wc -l` and a reader's `splitlines()` cannot disagree. Two live rows do carry an approximation, and
-they are two different shapes: `Sources/WenshuApp/Features/Reader/View/.../ReaderViews.swift` =
-`~428` (= several files rolled up) and `Sources/.../Editor/View/PreviewPaneModels.swift` = `~284`.
-A `~` count does NOT satisfy this gate — an approximation is what the gate exists to turn into a
-measurement. The gate prints how many rows it checked and names each failure with its own reason,
+`wc -l` and a reader's `splitlines()` cannot disagree. Two live rows do carry an approximation.
+The ruler that finds them is one line of the table's own idiom — every row whose LOC cell is not
+`^[0-9]+$`, header and separator excluded — and it prints exactly two, named here as the table
+names them: `Sources/.../ImportDocumentTemplateSkeletons.swift` = `~428` and
+`Sources/.../Editor/View/PreviewPaneModels.swift` = `~284`. Both keys expand to one tracked file
+each (`git ls-files -- '*ImportDocumentTemplateSkeletons.swift'` and
+`'*Editor/View/PreviewPaneModels.swift'`), and both files are measurable at this tree: `wc -l`
+says **474** against the `~428` and **315** against the `~284`. So an approximation cell is not a
+roll-up of several files (that is what the 33 `...` keys are) and not a placeholder for a file
+that has gone away: it is a count typed once and never re-taken, which is the one thing this gate
+exists to turn into a measurement. An earlier version of this paragraph named the first row as a
+`ReaderViews.swift` under a `Features/Reader/View` path and called it "several files rolled up";
+that name is in no table and no tree — `git ls-files '*ReaderViews*'` returns **0** paths, and
+`git log --all -S ReaderViews` names only `ce7b456945`, the commit whose subject is the two rows the
+LOC gate can never read. It invented a third while correcting two. An approximation with no stated
+ruler is how the next reader repeats the same mistake, so the ruler is written above rather than
+implied.
+A `~` count does NOT satisfy this gate. The gate prints how many rows it checked and names each
+failure with its own reason,
 in this order: `shorthand (…/…) — an approved directory roll-up, its number is a sum over the files
 under that prefix, not a wc -l` FIRST, then `not a path`, then `the named file does not exist`,
 then `the row says ~N, not a LITERAL count`. Shorthand is tested before existence because it is the

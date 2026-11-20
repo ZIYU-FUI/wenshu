@@ -21,12 +21,35 @@ breaks the registry's one-row-per-file invariant without reporting anything.
 So the registry gets a driver that merges at the KEY level, the same shape as
 the string catalog's driver:
 
-  - a key only in one side        -> that side's row
+  - a key only in one side        -> THREE WAYS against base, like the header
+    and the tail below (= this is what `f1646a0c43` changed; the rule used to
+    be "that side's row", which silently RESURRECTED a deleted row whenever
+    the other side merely had not touched it):
+      * never in base             -> that side ADDED it: keep that row
+      * in base, unchanged there  -> the other side DELETED it: the deletion
+                                     wins, the row does not come back
+      * in base, edited there     -> deleted on one side, changed on the
+                                     other: CONFLICT, and the key is named
   - a key in base, changed in one side only -> that side's row
   - a key in base, changed in BOTH sides to the SAME row -> that row
   - a key in base, changed in BOTH sides to DIFFERENT rows -> CONFLICT, and
     the driver NAMES the key
-  - a key deleted on one side, changed on the other -> CONFLICT, named
+
+The deletion rule is the one an unedited side cannot see coming, so it is
+pinned by a COUNT of driver invocations, not by its output: cases 18-20 of
+`Tools/wenshu-devtool/tests/test_nfi_registry.sh` run the driver through a
+wrapper that appends one line per invocation and assert `driver_ran >= 1` on
+the merge that must reach it and `== 0` on the shape that must not (= one
+side never touched the file, so ort takes the other side's blob and no driver
+is consulted). An arm that prints `driver_ran: 0` and exits 0 measures the
+tip, not the driver.
+
+One numbering note, because `f1646a0c43`'s commit message calls this the
+"fourth rule" and the file then carried it as the FIFTH bullet (= below the
+two-sided disagreement, at `:29`). Both counts were wrong about the file the
+commit shipped. The rule now lives inside the FIRST bullet as three named
+outcomes, so no ordinal points at it: cite the shape — a one-sided key, three
+ways against base — and not a position in this list, which has moved twice.
 
 THE FILE'S HEADER
 
