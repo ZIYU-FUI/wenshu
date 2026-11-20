@@ -37,6 +37,12 @@
 #  12. DIFFERENT headers on both sides => CONFLICT, and the header is named
 #  13. the SAME header edit on both sides => merged (= a false conflict on a
 #      header the two sides agree on would be a false alarm)
+#  14. ONE side edits the tail => the merge is CLEAN and the edited tail
+#      wins (= the tail is merged THREE WAYS against base, the way the
+#      header is: one side changed it => that side's tail. The two-way rule
+#      called every difference a disagreement, so a branch that edited the
+#      tail collided with a sibling that merely re-landed it)
+# 14b. the same merge with the sides reversed => the same expectation
 set -uo pipefail
 
 SCRIPT_PATH="${BASH_SOURCE[0]}"
@@ -361,6 +367,82 @@ if grep -qF "$HDR_A" merged13.md; then
     pass "13b. the merged registry carries the agreed header"
 else
     fail "13b. the merged registry lost the agreed header"
+fi
+
+# 14. ONE side edits the tail => the merge is CLEAN and the edited tail wins
+#     The tail is merged THREE WAYS against base (= the header's rule): one
+#     side changed it => that side's tail. The two-way rule compared the two
+#     sides alone, so a branch that EDITED the tail collided with a sibling
+#     that merely re-landed it (= the driver named "<the file's tail>" and
+#     exited 1) although only one side had changed anything.
+#     Here "ours" keeps the base's tail byte-for-byte and "theirs" edits it.
+TAIL_BASE_MARK="Append new rows"
+TAIL_EDITED="<!-- the tail marker, edited by one side -->"
+branch u1; addrow "Sources/.../TailEditOne.swift" "TestTailEditOne.swift" 111; git commit -qam "u1 adds a row and keeps the tail byte-for-byte"
+branch u2; addrow "Sources/.../TailEditTwo.swift" "TestTailEditTwo.swift" 222; addtail "$TAIL_EDITED"; git commit -qam "u2 adds a row and edits the tail"
+MRC=0; git merge-tree --write-tree --name-only u1 u2 >/dev/null 2>&1 || MRC=$?
+TREE=$(git merge-tree --write-tree u1 u2 2>/dev/null | head -1)
+git cat-file -p "$TREE:$REG" > merged14.md 2>/dev/null
+if [ "$MRC" -eq 0 ] \
+   && grep -qF "$TAIL_EDITED" merged14.md \
+   && ! grep -qF "$TAIL_BASE_MARK" merged14.md \
+   && grep -q "TestTailEditOne.swift" merged14.md \
+   && grep -q "TestTailEditTwo.swift" merged14.md \
+   && [ "$(grep -cE '^\| `' merged14.md)" -eq "$((BASEROWS + 2))" ]; then
+    pass "14. one side edits the tail => the merge is clean, the edited tail wins and both rows survive"
+else
+    fail "14. one side editing the tail did not merge cleanly (exit $MRC, edited tail: $(grep -cF "$TAIL_EDITED" merged14.md), base tail: $(grep -cF "$TAIL_BASE_MARK" merged14.md), rows: $(grep -cE '^\| `' merged14.md), expected $((BASEROWS + 2)))"
+fi
+
+# 14b. the same merge with the sides reversed => the edited tail still wins
+branch u3; addrow "Sources/.../TailEditThree.swift" "TestTailEditThree.swift" 333; addtail "$TAIL_EDITED"; git commit -qam "u3 adds a row and edits the tail"
+branch u4; addrow "Sources/.../TailEditFour.swift" "TestTailEditFour.swift" 444; git commit -qam "u4 adds a row and keeps the tail byte-for-byte"
+MRC=0; git merge-tree --write-tree --name-only u3 u4 >/dev/null 2>&1 || MRC=$?
+TREE=$(git merge-tree --write-tree u3 u4 2>/dev/null | head -1)
+git cat-file -p "$TREE:$REG" > merged14b.md 2>/dev/null
+if [ "$MRC" -eq 0 ] \
+   && grep -qF "$TAIL_EDITED" merged14b.md \
+   && ! grep -qF "$TAIL_BASE_MARK" merged14b.md \
+   && grep -q "TestTailEditThree.swift" merged14b.md \
+   && grep -q "TestTailEditFour.swift" merged14b.md \
+   && [ "$(grep -cE '^\| `' merged14b.md)" -eq "$((BASEROWS + 2))" ]; then
+    pass "14b. the sides reversed => the merge is clean and the edited tail still wins"
+else
+    fail "14b. the sides reversed did not merge cleanly (exit $MRC, edited tail: $(grep -cF "$TAIL_EDITED" merged14b.md), base tail: $(grep -cF "$TAIL_BASE_MARK" merged14b.md), rows: $(grep -cE '^\| `' merged14b.md), expected $((BASEROWS + 2)))"
+fi
+
+# 15. one side DELETES the registry's trailing newline => the merge is CLEAN
+#     (no CONFLICT), that side's tail wins, and the merged file's last byte is
+#     NOT a newline.
+#     This is the shape the three-way rule changed: under the two-way rule the
+#     two sides' tails differed, the driver named "<the file's tail>" and
+#     exited 1; now the newline-less side simply wins and the merge is SILENT
+#     about the dropped byte, so ci_change_gate.py's `markdown-newline` check
+#     is the ONLY guard for it (= = its prose says so, = = and this case pins
+#     the behaviour).
+branch v1; addrow "Sources/.../TailNewlineOne.swift" "TestTailNewlineOne.swift" 111
+python3 - "$REG" <<'PY'
+import sys
+p = sys.argv[1]
+data = open(p, "rb").read()
+if not data.endswith(b"\n"):
+    sys.exit("the fixture already lacked the trailing newline")
+open(p, "wb").write(data[:-1])
+PY
+git commit -qam "v1 adds a row and DROPS the trailing newline"
+branch v2; addrow "Sources/.../TailNewlineTwo.swift" "TestTailNewlineTwo.swift" 222; git commit -qam "v2 adds a row and keeps the trailing newline"
+MRC=0; git merge-tree --write-tree --name-only v1 v2 >/dev/null 2>&1 || MRC=$?
+TREE=$(git merge-tree --write-tree v1 v2 2>/dev/null | head -1)
+git cat-file -p "$TREE:$REG" > merged15.md 2>/dev/null
+LASTBYTE=$(tail -c 1 merged15.md 2>/dev/null | od -An -tx1 | tr -d ' \n')
+if [ "$MRC" -eq 0 ] \
+   && [ "$LASTBYTE" != "0a" ] \
+   && grep -q "TestTailNewlineOne.swift" merged15.md \
+   && grep -q "TestTailNewlineTwo.swift" merged15.md \
+   && [ "$(grep -cE '^\| `' merged15.md)" -eq "$((BASEROWS + 2))" ]; then
+    pass "15. one side drops the trailing newline => the merge is clean, that side's tail wins, and the byte is dropped in silence"
+else
+    fail "15. the newline-less side did not win silently (exit $MRC, last byte: $LASTBYTE, rows: $(grep -cE '^\| `' merged15.md), expected $((BASEROWS + 2)))"
 fi
 
 echo

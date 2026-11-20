@@ -16,11 +16,20 @@ a change leaves behind:
   driver, = = whose ``split_rows()`` puts everything after the last table
   row into a TAIL, = = and ``text.split("\n")`` on a newline-terminated
   file leaves a final empty string while a file without the newline does
-  not (= = so the tail differs, = = and the driver reports ``conflicted
-  keys: <the file's tail>`` against the next card that appends a row).
-  = = MEASURED (= = 2026-11-17, = = twice): = = a scope that dropped the
-  byte cost a review round to find, = = and the same byte broke the merge
-  driver against a sibling card's registry row.
+  not (= = so the tail differs).
+  = = **HOW THE DRIVER TREATS THAT DIFFERENCE CHANGED ON 2026-11-20**: = = the
+  tail is now merged THREE WAYS against the base (= = one side changed ⇒ = =
+  that side's tail wins outright; = = both sides changed differently ⇒ = = a
+  CONFLICT named ``<the file's tail>``), = = so a side that DROPS the
+  trailing newline no longer trips a conflict against the sibling that kept
+  it: = = the newline-less side's tail simply wins, = = and the merge says
+  nothing about the dropped byte. = = ⇒ ⇒ **⇒ ⇒ AND THIS CHECK IS NOW THE
+  ONLY GUARD FOR THAT BYTE** (= = the driver's conflict is no longer the
+  backstop). = = HISTORY (= = 2026-11-17, = = twice, = = under the driver of
+  that day): = = a scope that dropped the byte cost a review round to find,
+  = = and the same byte used to break the merge driver against a sibling
+  card's registry row (= = that failure mode is what this check's history
+  records; = = the driver's rule is what changed).
   = = ⇒ AND IT IS A DELTA CHECK, = = NOT A STATE CHECK: = = it compares
   the file's blob at the MERGE-BASE with its blob at HEAD, = = and it
   reports only what THIS change did (= = a file that already lacked the
