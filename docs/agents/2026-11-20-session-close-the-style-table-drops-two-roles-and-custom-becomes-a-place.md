@@ -25,9 +25,9 @@ Delivered as a seventeen-commit stack landed on `main` at `b48942d29f`, from
 |---|---|---|---|---|
 | L1 | "Adjust how Custom is entered (= the current way reads as a bug): it must be switchable into from the start, begin by reusing the general set, and then the user fine-tunes by hand" | `b4b4280f76` (= `fix(inspector): Custom is entered, not earned`), on `35810deeb0`, with `4d3bceed8d` an ancestor two steps under it (= `git log --format='%h %p' -1 b4b4280f76` answers `b4b4280f76 35810deeb0`, and `git merge-base --is-ancestor 4d3bceed8d b4b4280f76` answers 0), which replaced the hand-rolled switcher with Apple's own controls | `t_7c12b4c5` approved the behaviour at `d05242f281`; the stack was rebased four times since, and every later claim was re-measured at the new tip (`t_d4552e4c`, then `t_d00f50ad` approved) | both remotes ANSWERED `b48942d29f…` for `refs/heads/main` at the landing (`git ls-remote`, not a local ref); they now carry this doc's commit on top (§7) |
 | L2 | "And keep the existing rule: change a fine-tune under either print or general and the book moves onto Custom" | same commit; pinned by `InspectorStylePresetPickerTests` (the picker suite) and `BookStyleSheetWriteBackTests` | the picker suite ran green at every tip; `t_d4552e4c` re-ran the filtered block at `4241b259fa` | ditto |
-| L3 | "The two boxed in red are useless (= delete them)" | `20afb54373` (= `feat(inspector): the style table drops the picture and the rule`), then `df196df334` for the files that still counted eleven, then `b48942d29f` for the registry rows the stack left lying | `t_d4552e4c` P1-P3 at `4241b259fa`: nine cases, nine rows, nine catalog keys, zero hits for the deleted roles, and the mutation measured both ways (= re-adding the two cases reddens `InspectorStylePageRenderTests.swift:58`, `:62`, `:70` and `InspectorStylePreviewVoiceTests.swift:115`; withholding the catalog keys adds `InspectorStylePageRenderTests.swift:447` (= the catalog assertion, in a 521-line file; the number once sat there with no file of its own and inherited `InspectorStylePreviewVoiceTests.swift`, which ends at 155 lines, so the citation pointed past the end of the file it appeared to name -- what round 1 of this doc's own review caught. That broken form is described here rather than printed, because quoting a range with no file name re-arms the very check that catches it.); its F1 (the registry) was closed and re-approved by `t_d00f50ad` | ditto |
-| L4 | "Give me a screenshot, I want to see the final effect" | no commit (= an observation, not an edit) | n/a | `look9_preset.png`, 2904×1952, the app's own window at 2x, captured by the app's own screenshot hook against an isolated clone (§4). It sits at `/tmp/look9_preset.png`, outside the tree and untracked: a reader cloning `main` cannot check it, so it is evidence of the ask being answered, not of the ink being right |
-| L5 | "It looks as though the body should sit vertically centred between its two dashed rules" | `35810deeb0` centres the row and its role name (`InspectorStyleRowView.swift:122`; the dashes are drawn between rows at `InspectorStylePageView.swift:209-213`, the row's own file ends at 169 lines) | UNRESOLVED — no test measures the ink, and the boss's eye is the acceptance (§5) | — |
+| L3 | "The two boxed in red are useless (= delete them)" | `20afb54373` (= `feat(inspector): the style table drops the picture and the rule`), then `df196df334` for the files that still counted eleven, then `b48942d29f` for the registry rows the stack left lying | `t_d4552e4c` P1-P3 at `4241b259fa`: nine cases, nine rows, nine catalog keys, zero hits for the deleted roles, and the mutation measured both ways (= re-adding the two cases reddens `InspectorStylePageRenderTests.swift:58`, `:62`, `:70` and `InspectorStylePreviewVoiceTests.swift:115`; withholding the catalog keys adds `InspectorStylePageRenderTests.swift:447` (= the catalog assertion, in a file of 521 lines; the number once sat there with no file of its own and inherited `InspectorStylePreviewVoiceTests.swift`, which ends at 155 lines, so the citation pointed past the end of the file it appeared to name -- what round 1 of this doc's own review caught. That broken form is described here rather than printed, because quoting a range with no file name re-arms the very check that catches it. The three counts in this cell come from one command: `wc -l Tests/WenshuAppTests/Editor/View/InspectorStylePageRenderTests.swift Tests/WenshuAppTests/Editor/View/InspectorStylePreviewVoiceTests.swift Sources/WenshuApp/Features/Editor/View/InspectorStyleRowView.swift` answers 521, 155 and 169); its F1 (the registry) was closed and re-approved by `t_d00f50ad` | ditto |
+| L4 | "Give me a screenshot, I want to see the final effect" | no commit (= an observation, not an edit) | n/a | `look9_preset.png`, 2904×1952 (= `sips -g pixelWidth -g pixelHeight /tmp/look9_preset.png` answers 2904 and 1952), the app's own window at 2x, captured by the app's own screenshot hook against an isolated clone (§4). It sits at `/tmp/look9_preset.png`, outside the tree and untracked: a reader cloning `main` cannot check it, so it is evidence of the ask being answered, not of the ink being right |
+| L5 | "It looks as though the body should sit vertically centred between its two dashed rules" | `35810deeb0` centres the row and its role name (`InspectorStyleRowView.swift:122`; the dashes are drawn between rows at `InspectorStylePageView.swift:209-213`, the row's own file ends at 169 lines, the page's at 533 (= `wc -l Sources/WenshuApp/Features/Editor/View/InspectorStylePageView.swift`)) | UNRESOLVED — no test measures the ink, and the boss's eye is the acceptance (§5) | — |
 
 ## 3. The gates, on the tree this doc names (= `b48942d29f`, which is `main`)
 
@@ -231,7 +231,12 @@ def check(text, where):
                 if anchor is None:
                     bad.append((number, "range with no file in its own cell", token)); continue
                 cands = TRACKED.get(os.path.basename(anchor.group(1)), [])
-                if len(cands) != 1: continue
+                if len(cands) == 0:
+                    bad.append((number, "names a file not in the tree", token)); continue
+                if len(cands) > 1:
+                    bad.append((number, f"basename matches {len(cands)} files", token)); continue
+                if cands[0] == DOC:
+                    bad.append((number, "the doc cites a range in itself", token)); continue
                 n = sum(1 for _ in open(cands[0], encoding="utf8", errors="replace"))
                 hi = max(int(g) for g in token.split(":")[-1].split("-") if g.isdigit())
                 if hi > n: bad.append((number, "past EOF", token, cands[0], n))
@@ -240,22 +245,39 @@ def check(text, where):
     return bad
 tip = open(DOC, encoding="utf8").read()
 assert "L5" in tip, "the doc read back empty -- a check on nothing must not print 0"
-check(tip, "this tree")
-for sha in ("b5a70cf160", "main"):
+here = check(tip, "this tree")
+for sha in ("a6ee591331", "b5a70cf160", "main"):
     shown = subprocess.run(["git", "show", f"{sha}:{DOC}"], capture_output=True, text=True)
     assert shown.returncode == 0 and "L5" in shown.stdout, f"{sha}: blob not read"
     check(shown.stdout, sha)
+# The check's own teeth: a citation to a file the tree does not have must count as a
+# violation. The token is assembled at runtime (chr(58) is the colon) because a literal
+# one written here would be scanned by this very check and flagged as a defect of the
+# doc -- which is how this round's own finding arrived, in the flesh.
+FAKE = "nope/FakeCitedFile" + ".swift" + chr(58) + "900-999"
+planted = check(tip + "\n| cites " + FAKE + " |\n", "planted fake")
+assert len(planted) == len(here) + 1, "the planted citation was NOT flagged: the check is decoration"
 PY
 ```
 
 It answers **0 violations at this sha and 2 at `main` / `b5a70cf160`** (= the two ranges
 that inherited the wrong file: one pointing past a 155-line test's end, one past a
-169-line view's end).
+169-line view's end). It answers **1 at the blob round 2 of its own review rejected**
+(= what `git show` of that sha carries and this tree no longer does: a harness
+read-fingerprint trailer that got committed as prose, citing a range against this doc's
+own name under a path the repository has never had).
+
+Two rules were added to catch what the first version skipped, each with its own red case
+printed by the run above. A cited basename the tree does not have is now a violation; the
+first version `continue`d past it, which is why a planted citation to a file outside the
+repository answered 0. And a range cited against this doc's own name is a violation: the
+file carries its own line count in the registry, so a self-citation goes stale by
+construction -- the trailer above is the proof, and the sentence you are reading is
+deliberately a description rather than a quote, because printing the bad token re-arms the
+check that flags it.
 
 A finding about the doc's numbers is fixed by making the number a command, not by
 adding a section. A finding about its wording does not open another round. This
 doc's own verdict lives on the board and is deliberately NOT written back here: a
 closure doc that logs its own meta-reviews becomes the defect it was written to
 report, and each such entry lengthens the file that carries its own line count.
-
-[read-fingerprint] /Volumes/ANAN/.hermes/hermes-agent/docs/agents/2026-11-20-session-close-the-style-table-drops-two-roles-and-custom-becomes-a-place.md:1-196 — content 9c82c19fa6f0. Cite this range instead of re-reading the file.
