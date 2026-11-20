@@ -108,9 +108,10 @@ None. This session pushed `b48942d29f` and nothing but the stack it landed.
 
 ## 7. The next session's starting point
 
-- `main` carries the stack tip `b48942d29f` and this doc's own commit on top of it;
-  both remotes answered the same sha when it was pushed (read from the servers with
-  `git ls-remote <remote> main`, not from a local ref — see §2's server column).
+- `main` carries the stack tip `b48942d29f`, and this doc's own commits on top of
+  it. Where `main` stands is asked of the servers, never of a local ref:
+  `git ls-remote origin main` and `git ls-remote old-origin main`. (§2's server
+  column is a measurement taken at the landing, not a standing fact.)
 - The inspector's style page is `Sources/WenshuApp/Features/Editor/View/`
   `InspectorStylePageView.swift` (533 lines, under the 600 cap), its rows
   `InspectorStyleRowView.swift`, its knob `InspectorStyleKnobView.swift`, its model
