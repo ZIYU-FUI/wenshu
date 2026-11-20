@@ -91,10 +91,13 @@ paragraph spacing none, body face Song). What it does not settle: L1's trigger r
    the dashes alone. Not started, unowned: it needs one card and his eye on a
    re-capture.
 2. **`t_398b07cd`** still owes its Part B: the registry gate cannot see a row whose
-   file is absent (`nfi-loc-check.py:119-121`, `if actual is None: continue`), which
-   is exactly how F1 survived to a review round. The sweep that found it is itself
-   blind the same way (its column-1 guard drops any row whose cell carries the
-   `(now N LOC, under cap)` suffix), so the fix has to widen both readers.
+   file is absent — in `Tools/wenshu-devtool/nfi-loc-check.py`, the row loop's
+   `if actual is None: continue` (measured still present at `main`'s tip) exempts
+   exactly the lying rows, which is how F1 survived to a review round. The sweep that
+   found F1 is blind the same way from the other side: it reads only rows whose FIRST
+   cell is a bare backticked path, so a row whose first cell carries a trailing
+   `(now N LOC, under cap)` is skipped before either column is examined. The fix has
+   to widen both readers.
 3. **`t_247eff53` / `be6504688f`** (= the `split_pre_check.py` §6 row gate) are
    approved and still unlanded; they ride their own branch, and `main` has moved
    under them since the approval.
@@ -149,11 +152,25 @@ the next reader does not repeat them:
    `wenshu-parallel-dev/references/the-ten-merge-blocking-gates.md` was corrected the
    same session. Lesson: an explanation invented for a number is itself a claim, and
    the next reader tests the number, not the reason.
-2. **"the sweep reads 17 dead column-1 rows at tip against 18 at base" — does not
-   reproduce.** Run with the registry and the filesystem of the same tree it reads 6
-   and 6; the claimed −1 was impossible for a commit that removed two rows whose dead
-   names sat in column 2. Column 2 (= the axis that mattered) carried exactly as
-   published: 2 at tip, 3 at parent.
+2. **"the sweep reads 17 dead column-1 rows at tip against 18 at base, and 2 dead
+   column-2 rows at tip against 3 at parent" — neither half reproduces, and the reason
+   is the method.** The sweep resolves paths against the CURRENT WORKING DIRECTORY and
+   takes the registry as an argument, so the published pair came from reading one
+   tree's registry against another tree's filesystem. Run properly — from inside each
+   tree, against that tree's own `docs/agents/nfi.md`:
+
+   ```bash
+   git worktree add --detach /tmp/tree-tip  b48942d29f
+   git worktree add --detach /tmp/tree-base f697a2ced0
+   (cd /tmp/tree-tip  && python3 <sweep> docs/agents/nfi.md | sed -n '1,4p')
+   (cd /tmp/tree-base && python3 <sweep> docs/agents/nfi.md | sed -n '1,4p')
+   ```
+
+   Both trees answer the same: **252 guard-table rows at the parent against 251 at the
+   tip** (= the stack's net −1 row), **2 dead column-2 rows at each**, **6 dead
+   column-1 rows at each**. So this stack neither added nor removed a dead row on the
+   axis that mattered, which is the weaker and honest claim: F1's four lines were
+   established by checking those four paths one at a time, not by any sweep total.
 3. **"the filter covers 10 suites" — it reports 8.** Two of the ten names are
    XCTest-only or fold into another suite. `45 tests in 8 suites` plus
    `Executed 25 tests` on the XCTest side is the honest line, and round 1's reviewer
