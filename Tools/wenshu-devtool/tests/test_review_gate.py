@@ -1187,57 +1187,76 @@ def main() -> int:
         os.chdir(cwd_before)
 
     # ---- D5: the verdict's OWN run, not the newest ended run ----
-    # The claim here must be a COMMIT this repository holds (= the gate
-    # asks a card's stated subject whether it resolves before it may
-    # govern a queried sha, and a synthetic token resolves to nothing).
-    # What the case is about is the ORDER of the verdicts, not the shape
-    # of the token, so the real head of the running repository serves as
-    # the subject and the assertion below proves the subject resolved.
-    real_head = (tool._git_out(["rev-parse", "HEAD"]) or "").strip()
-    check("D5: the fixture repository answers with a commit the gate resolves",
-          bool(real_head) and tool._claims_commit(real_head),
-          True)
-    approved_runs = [
-        {"id": 1, "profile": "wenshu-review", "outcome": "completed",
-         "ended_at": 100, "metadata": {"review_outcome": "approved"}},
-        # a later run that carried NO verdict (a crash, a superseded
-        # attempt): it is not a verdict, and it must not make the
-        # approval look newer than it is.
-        {"id": 2, "profile": "wenshu-review", "outcome": "completed",
-         "ended_at": 400, "metadata": {}},
-    ]
-    card_approved = {
-        "id": "t_approval", "title": f"[T2][{REVIEW_TAG}] x",
-        "body": "## WHAT TO BUILD\n\nA verdict on `" + real_head + "`.\n\n"
-                "## REVIEW HANDOFF\n\nnone\n",
-        "runs": approved_runs, "events": [], "created_at": 100,
-    }
-    card_refused = {
-        "id": "t_refusal", "title": f"[T2][{REVIEW_TAG}] x",
-        "body": "## WHAT TO BUILD\n\nA verdict on `" + real_head + "`.\n\n"
-                "## REVIEW HANDOFF\n\nnone\n",
-        "runs": [{"id": 3, "profile": "wenshu-review", "outcome": "completed",
-                  "ended_at": 200, "metadata": {"review_outcome": "changes_requested"}}],
-        "events": [], "created_at": 200,
-    }
-    check(
-        "D5: a run that carried no verdict does not date the verdict",
-        tool._verdict_time({"task": card_approved, "runs": approved_runs,
-                            "events": []}),
-        100,
-    )
-    found = tool.matching_cards([card_approved, card_refused], real_head, None)
-    check(
-        "D5: both cards govern the commit they name (= the guard let a "
-        "resolving claim through)",
-        sorted(row[0] for row in found),
-        ["t_approval", "t_refusal"],
-    )
-    check(
-        "D5: the later REFUSAL governs over the earlier approval",
-        [f[0] for f in found][:1],
-        ["t_refusal"],
-    )
+    # The claim must be a COMMIT the gate resolves (= the guard asks a card's
+    # stated subject whether it resolves before it may govern a queried sha,
+    # and a synthetic token resolves to nothing), and what the case pins is the
+    # ORDER of the verdicts, not the shape of the token. The commit comes from
+    # a fixture repository of D5's own, not from the directory the suite
+    # happens to be launched from: an ambient `rev-parse HEAD` made the case
+    # report a red that blamed the gate for where it was run (= measured: rc 1
+    # with exactly these three D5 checks from a directory that is not a
+    # worktree, and the same file answering rc 0 inside one).
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        run = lambda *a: subprocess.run(
+            ["git", *a], cwd=repo, capture_output=True, text=True, check=True
+        )
+        run("init", "-q", "-b", "main")
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        cwd_before = Path.cwd()
+        os.chdir(repo)
+        (repo / "prog.py").write_text("a = 1\n")
+        run("add", "-A")
+        run("commit", "-qm", "the fixture head")
+        real_head = run("rev-parse", "HEAD").stdout.strip()
+        check("D5: the fixture repository answers with a commit the gate resolves",
+              bool(real_head) and tool._claims_commit(real_head),
+              True)
+        approved_runs = [
+            {"id": 1, "profile": "wenshu-review", "outcome": "completed",
+             "ended_at": 100, "metadata": {"review_outcome": "approved"}},
+            # a later run that carried NO verdict (a crash, a superseded
+            # attempt): it is not a verdict, and it must not make the
+            # approval look newer than it is.
+            {"id": 2, "profile": "wenshu-review", "outcome": "completed",
+             "ended_at": 400, "metadata": {}},
+        ]
+        card_approved = {
+            "id": "t_approval", "title": f"[T2][{REVIEW_TAG}] x",
+            "body": "## WHAT TO BUILD\n\nA verdict on `" + real_head + "`.\n\n"
+                    "## REVIEW HANDOFF\n\nnone\n",
+            "runs": approved_runs, "events": [], "created_at": 100,
+        }
+        card_refused = {
+            "id": "t_refusal", "title": f"[T2][{REVIEW_TAG}] x",
+            "body": "## WHAT TO BUILD\n\nA verdict on `" + real_head + "`.\n\n"
+                    "## REVIEW HANDOFF\n\nnone\n",
+            "runs": [{"id": 3, "profile": "wenshu-review", "outcome": "completed",
+                      "ended_at": 200,
+                      "metadata": {"review_outcome": "changes_requested"}}],
+            "events": [], "created_at": 200,
+        }
+        check(
+            "D5: a run that carried no verdict does not date the verdict",
+            tool._verdict_time({"task": card_approved, "runs": approved_runs,
+                                "events": []}),
+            100,
+        )
+        found = tool.matching_cards([card_approved, card_refused], real_head, None)
+        check(
+            "D5: both cards govern the commit they name (= the guard let a "
+            "resolving claim through)",
+            sorted(row[0] for row in found),
+            ["t_approval", "t_refusal"],
+        )
+        check(
+            "D5: the later REFUSAL governs over the earlier approval",
+            [f[0] for f in found][:1],
+            ["t_refusal"],
+        )
+        os.chdir(cwd_before)
 
     # ---- the four defects the review round measured on this change ----
     # D-A: a TEXT file whose CONTENT says "Binary files ..." is not a
