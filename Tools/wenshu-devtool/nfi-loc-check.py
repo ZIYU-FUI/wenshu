@@ -72,6 +72,35 @@ parent's count. = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **⇒ SO A STALE PAREN
 IS NOT WHAT THIS GATE CHARGES** (= = = and a reviewer reading this
 card's own fixture must not expect it to).
 
+WHAT A ROW THE GATE CANNOT OPEN DOES
+====================================
+⇒ ⇒ ⇒ THE TWO SHAPES THAT ARE NOT ABSENT FILES, = = AND THE ONE
+RESULT THEY USED TO SHARE: = = a key can be a real PATH that names a
+DIRECTORY (= `Vendor/MarkdownEngine/`), = = or a cell that is not a
+path at all (= = the bare number `262`, = = = = which is the count of a
+closeout document pasted into the FILE column, = = measured at
+`899cb3a1ee`, = = = card `t_70592b92`). = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ BOTH return
+`None` from `wc_lines`, = = and until card `t_70592b92` BOTH hit the
+same silent `continue`, = = so the gate's own output could not tell an
+absent file from a directory key from a mis-pasted count, = = = and the
+three shapes need three different repairs.
+⇒ ⇒ ⇒ **⇒ A ROW'S LOC CELL IS THEREFORE NOT EVIDENCE THAT ANYTHING WAS
+MEASURED.** = The gate now prints each added or rewritten row whose key
+opens nowhere, = with `absent` / `not-a-file` / `not-a-path` on the
+line, = = and fails the run (= exit 1) on it, = = because a report the
+exit code ignores is still read as clean.
+⇒ ⇒ ⇒ AND THE CENSUS, = = so the split cannot be read as "all rows
+measured": = = measured with this file's own `rows()` / `LITERAL` /
+`wc_lines` over the live registry at `b96d3f7cb5` (= = the tip this
+change rebases onto), = = 461 rows carry a literal LOC cell, = = of
+which 423 open a readable file, = = 33 are the table's own `...`
+shorthand (= = = `rows()` skips them, = = = not a defect), = = and 5
+open nothing (= = = 3 absent files, = = 1 DIRECTORY, = = 1 bare
+NUMBER). = ⇒ ⇒ ⇒ THIS CHANGE REPAIRS the last two of those five, = = so at
+this tip the same census reads 425 open a readable file and 3 open
+nothing, = = and the 3 are the absent files, = = which this card does
+not own.
+
 USAGE
 
     python3 Tools/wenshu-devtool/nfi-loc-check.py --base <sha> [--registry <path>]
@@ -177,6 +206,54 @@ def wc_lines(path):
         return None
 
 
+def why_unreadable(key):
+    """WHY this row's key resolves to no readable file, = in one phrase.
+
+    ⇒ ⇒ ⇒ `wc_lines` returns `None` for every shape below, = = and they
+    need three different repairs: = an ABSENT path is a row whose file
+    is gone (= = delete the row, = = or point it where the file went), =
+    a DIRECTORY is a row that registered a whole tree (= = name one
+    file of it), = and a BARE TOKEN is not a path at all (= = the count
+    was pasted into the FILE column, = = = = so the row's key and its
+    LOC are the same number, = = = = which is the tell).
+    ⇒ ⇒ ⇒ ⇒ ⇒ The gate's output has to carry the difference; = = = a row
+    reported as merely "unmeasurable" tells the next reader nothing
+    about which repair applies. = = = Measured 2026-11-20, = = = card
+    `t_70592b92`.
+    """
+    path = os.path.join(REPO, key)
+    # ⇒ ⇒ THE SHORTHAND TEST COMES FIRST, = = BEFORE ANY EXISTENCE BRANCH.
+    # Every one of the 33 live abbreviated keys in the table contains `/`
+    # (`Sources/.../ImportService.swift`), = = so a branch that tests
+    # `"/" in key and not exists` first answers `absent (= = no such path in
+    # the tree)` for a row the table's OWN convention sanctions — = and the
+    # repair it then suggests (= = "repoint or delete") is the wrong repair.
+    # Measured 2026-11-20 by authoring such a row: rc=1, reason `absent`.
+    # The reason label is the only thing the next reader acts on, = = so a
+    # label that points at the wrong repair is a defect in the gate, = = not
+    # cosmetics. = = Card `t_702d729c`, = = non-blocking 2.
+    if "..." in key:
+        return "not-a-path (the key is the table's `...` shorthand, not a path)"
+    if key.endswith("/") and os.path.isdir(path):
+        return "not-a-file (the key names a DIRECTORY, not a file)"
+    if "/" in key and not os.path.exists(path):
+        return "absent (no such path in the tree)"
+    if os.path.isdir(path):
+        return "not-a-file (the key names a DIRECTORY, not a file)"
+    if os.path.exists(path):
+        return "not-a-file (the key exists, but it is not a regular file)"
+    if not key.strip("/").strip():
+        return "not-a-path (the file's cell is EMPTY)"
+    if LITERAL.match(key):
+        return "not-a-path (the file's cell carries a bare NUMBER, not a path)"
+    if "/" not in key:
+        # NOT the shorthand case, which is answered above before any existence
+        # test; this is a token with no separator at all that is also not a bare
+        # number (the bare-number shape is caught just below).
+        return "not-a-path (the key carries no directory separator, so no file can be opened from it)"
+    return "not-a-path (the key is not a path this gate can open)"
+
+
 def rows(registry_text):
     """The table's rows, = each as its cells."""
     for line in registry_text.split("\n"):
@@ -207,6 +284,7 @@ def main():
         text = handle.read()
 
     failures = []
+    unmeasurable = []
     checked = 0
     for cells in rows(text):
         key = cells[1].strip("`")
@@ -215,22 +293,42 @@ def main():
         named = key
         loc_cell = next((index for index in range(2, len(cells)) if LITERAL.match(cells[index])), None)
         if loc_cell is None:
+            unmeasurable.append(
+                f"{named}: the row carries no LITERAL LOC cell (= nothing to compare)"
+            )
             continue
         actual = wc_lines(os.path.join(REPO, named))
         if actual is None:
+            # ⇒ ⇒ ⇒ **⇒ THE SILENT `continue` WAS THE DEFECT.** = = The row
+            # was not measured, = = and until this line existed neither the
+            # output nor the exit code said so.
+            unmeasurable.append(
+                f"{named}: {why_unreadable(named)} (= the row says {cells[loc_cell]})"
+            )
             continue
         checked += 1
         if int(cells[loc_cell]) != actual:
             failures.append(f"{named}: the row says {cells[loc_cell]}, the file is {actual}")
 
-    if failures:
+    if failures or unmeasurable:
         print("nfi-loc-check: FAILED")
         for failure in failures:
             print("  " + failure)
+        if unmeasurable:
+            print(
+                f"  {len(unmeasurable)} added or rewritten row(s) name no readable file "
+                f"(= NOT measured, = NOT clean):"
+            )
+            for line in unmeasurable:
+                print("  " + line)
         print(
-            f"  ({checked} row(s) checked: = {len(added)} the change added, "
-            f"= {len(rewritten - added)} whose named file the change rewrote "
-            f"and did not add)"
+            f"  ({checked} row(s) checked against the files this change added or rewrote; "
+            f"{len(added)} key(s) added, {len(rewritten - added)} rewritten)"
+        )
+        print(
+            "  exit 1 = a row disagreed with its file OR could not be opened at all;\n"
+            "  exit 0 = every checked row was opened and agreed. A row the gate could not\n"
+            "  measure is NEVER counted clean."
         )
         return 1
 

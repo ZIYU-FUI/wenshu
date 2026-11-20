@@ -43,16 +43,76 @@ reference, LOC, and content tag.
 charges a change only for the registered files that change ADDS or REWRITES, and
 it measures them the way `wc -l` does. A row whose extracted-file key the gate
 cannot open is a row the gate cannot measure at all — it neither passes nor fails.
-Two keys in this table are not files at all: one names a DIRECTORY
-(`Vendor/MarkdownEngine/`), one is a BARE NUMBER with no path in it (`262`). That
-pair is a property of the table's shape, not a number to re-take each round — any
-future row written with a key that is not a file joins it. The counts beside it
-are a snapshot AT A TREE: measured at the tip this paragraph was written at, the
-table had 463 data rows, the gate opened 423 of them, and the 40 it could not open
-were 35 keys abbreviated with `...`, these 2 keys that are not files, and 3 keys
-whose path is absent from the tree. Of every file the gate could open, none ended
-without a trailing newline — so on any row the gate actually measures, `wc -l` and
-a reader's `splitlines()` cannot disagree.
+**AND A ROW'S EXTRACTED-FILE CELL MUST NAME A FILE THE GATE CAN OPEN:** the LOC
+column is only evidence when the cell beside it is a readable file, because a key
+the gate cannot open has never been measured, and a wrong count sitting on such a
+row is unenforceable debt. A directory and a bare number were both once keys in
+this table (`Vendor/MarkdownEngine/`, `262`); both are gone, repaired the same way
+— the cell now names one real file and carries THAT file's `wc -l` in the same
+commit that changed it. The counts beside it are a snapshot AT A TREE, so the tree is named
+beside each one, and they are read the way the gate reads them (`rows()` / `LITERAL` / `wc_lines`,
+the key being `cells[1].strip("`")` — a key passed with its backticks still on reads as absent,
+which is how a first attempt at this very census printed 0 readable rows on a tree that has 424):
+
+- `834b37db1f` — `origin/main` while this paragraph was written: 462 numeric LOC rows, 424
+  opening as a readable file, 33 `...` roll-ups (skipped by design), 5 opening nothing
+  (= 3 absent paths, 1 directory, 1 bare number).
+- `94c2e0cf29` — this branch's tip: 462 numeric, 426 readable, 33 roll-ups, 3 opening nothing
+  (3 absent paths, none of them this card's).
+- as configured today, this branch **fast-forwards** onto `834b37db1f` (`main..tip` = 2, `tip..main` = 0): the landing tree is the tip's tree by identity, and no merge driver runs.
+- `29c6212efd` — the LANDING **with the declared merge driver wired** (`git config
+  merge.nfi-registry.driver` pointing at the script, as `.gitattributes` intends): main
+  fast-forwarded to `f1646a0c43`, then this branch's tip merged into it, two parents: 462 numeric,
+  426 readable, 33 roll-ups, 3 opening nothing, no duplicate key. That merge sha belongs to the
+  tip it merged (`94c2e0cf29`); a merge commit is named by its parents, so re-running the arm at a
+  later tip yields a different sha and the same four numbers. Both arms are reproducible inside the
+  repository, not from a scratch file: `Tools/wenshu-devtool/nfi-census.py <tree>...` prints the
+  per-tree line above using the tree's own `rows()` / `LITERAL` / `wc_lines` and the driver's own
+  `key_of`, and case 18 of `Tools/wenshu-devtool/tests/test_nfi_registry.sh` builds the landing
+  merge itself (a re-keying branch against an untouched sibling) and asserts every key arrives
+  exactly once. A merge sha is an output of such an arm, never an input to it.
+- and the LANDING **as this repository is configured today** — `.gitattributes` names
+  `merge=nfi-registry`, `.git/config` defines only `merge.xcstrings.driver`, so git silently
+  falls back to its built-in text merge: 462 numeric, 426 readable, 33 roll-ups, 3 opening
+  nothing, no duplicate key, no conflict markers, gate exits 0. Clean for THIS pair of edits,
+  by luck of where they sit in the table, not by construction.
+
+No pipe table here on purpose: `rows()` takes every line that starts with `|`, so a comparison
+table written in this file's own idiom would be read as registry rows — with a number in the
+LOC column and a sentence in the key column. The gate would then fail on the paragraph that
+describes it, which is a worse outcome than a slightly wider paragraph.
+
+The landing was measured, not inferred, and what it measures depends on a fact that changes under
+this card: at the moment these numbers were taken, `main..tip` is 2 and `tip..main` is 0, so this
+branch **fast-forwards** onto `origin/main` (`834b37db1f`) — no merge commit, and no merge driver is
+consulted at all. A real merge happens the moment anything else lands first; both shapes were run in
+throwaway clones and both are in the list above. The reason a merge --ff-only arm is NOT landing
+evidence for a claim about the driver is the mistake this paragraph was written to correct: an
+earlier round ran `git merge --ff-only` against an ancestor, produced no merge at all, and published
+the tip's own census under a landing label. It also matters what a real merge is resolved BY: with
+the OLD `Scripts/merge-nfi-registry.py`, that same merge lands 468 rows carrying BOTH repaired keys
+and BOTH defective ones, because a key present on one
+side only was appended back whenever either side still had it, and `nfi-loc-check` then exits 0
+on it (= a resurrected row is neither added nor rewritten, so the gate is blind to the undoing).
+The driver now resolves a one-sided row against the merge base — added by one side: keep; deleted
+by one side and untouched by the other: the deletion wins; deleted by one side and edited by the
+other: CONFLICT, named — and `Tools/wenshu-devtool/tests/test_nfi_registry.sh` carries
+delete-vs-unchanged, delete-vs-changed and this landing shape as cases 16, 17 and 18, each of which
+refuses to run unless its fixture deletes exactly one row.
+
+Read any row of that table as "the gate measured every row" and it is wrong: it never reads the 33
+roll-ups, and until this change it skipped the unopenable ones without saying so. Of every file the
+gate could open, none ended without a trailing newline — so on any row the gate actually measures,
+`wc -l` and a reader's `splitlines()` cannot disagree. Two live rows do carry an approximation, and
+they are two different shapes: `Sources/WenshuApp/Features/Reader/View/.../ReaderViews.swift` =
+`~428` (= several files rolled up) and `Sources/.../Editor/View/PreviewPaneModels.swift` = `~284`.
+A `~` count does NOT satisfy this gate — an approximation is what the gate exists to turn into a
+measurement. The gate prints how many rows it checked and names each failure with its own reason,
+in this order: `shorthand (…/…) — an approved directory roll-up, its number is a sum over the files
+under that prefix, not a wc -l` FIRST, then `not a path`, then `the named file does not exist`,
+then `the row says ~N, not a LITERAL count`. Shorthand is tested before existence because it is the
+one shape that is unreadable on purpose: 33 live rows use it, and telling their author to "repoint
+or delete" a row the registry's own entry rule allows is a wrong repair, not just a noisy one.
 
 | Parent (god-class) | Extracted file | LOC | Content tag |
 | ------------------ | -------------- | --- | ----------- |
@@ -287,7 +347,7 @@ a reader's `splitlines()` cannot disagree.
 | `Sources/WenshuApp/Features/Settings/View/SettingView.swift` (now 483 LOC, under cap) | `Sources/WenshuApp/Features/Settings/View/SettingView+Providers.swift` | 457 | extension SettingView { providersPane modelsPane refreshProviderStatus() reloadModels() async } = the provider pane, the model pane and the SettingsOps plumbing they call. |
 | `Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift` (now 580 LOC, under cap) | `Sources/WenshuApp/Features/Library/View/AppleSidebarView+Nodes.swift` | 181 | extension AppleSidebarView { node(for:in:) findNode(for:in:) parentBookInfo(for:in:) reverseFolderName(title:) } = the tree-row lookup: the row a shared selection names, the row's parent book, and a folder row's title mapped back. |
 | `Sources/WenshuApp/Features/Library/View/SidebarService.swift` (now 348 LOC, under cap) | `Sources/WenshuApp/Features/Library/View/SidebarService+ReferenceLibrary.swift` | 94 | extension SidebarService { tagRows(for:) stableReferenceTagId(_:) } = the reference library's own browse surface: = one flat row per tag (= the most carried tag first, = the count over the entities layer only). |
-| `docs/agents/2026-11-03-session-close-board-client.md` | `262` | 190 | the closeout record of the card board client (= the scope the boss ruled, = the thirteen commits that landed it, = the measured facts the two teardowns established, = the three reviews and what each found, = the gates that ran on the merged tree, = the open items left behind, = the residue kept and the residue removed). |
+| `docs/agents/2026-11-03-session-close-board-client.md` | `docs/agents/2026-11-03-session-close-board-client.md` | 262 | the closeout record of the card board client (= the scope the boss ruled, = the thirteen commits that landed it, = the measured facts the two teardowns established, = the three reviews and what each found, = the gates that ran on the merged tree, = the open items left behind, = the residue kept and the residue removed). |
 | `Sources/WenshuApp/Features/Agent/Service/BookChapterTool.swift` (now 449 LOC, under cap) | `Sources/WenshuApp/Features/Agent/Service/BookChapterActor+ToolProtocol.swift` | 325 | extension BookChapterActor { execute(input:) extractMarkdown(_:) parseUUID(_:) encodeSuccess(...) encodeSuccessRead(...) encodeSuccessUpdate(...) encodeSuccessFind(...) encodeSuccessList(...) encodeFailure(...) encodeFailureScopeViolation(...) descriptorToJSON(_:) encodeJSON(_:) } = the actor's tool-protocol face: the LLM-facing dispatcher and the JSON helpers it answers with. |
 | `Sources/WenshuApp/Features/Agent/Service/BookEntityTool.swift` (now 436 LOC, under cap) | `Sources/WenshuApp/Features/Agent/Service/BookEntityActor+ToolProtocol.swift` | 300 | extension BookEntityActor { execute(input:) extractMarkdown(_:) parseUUID(_:) descriptorToJSON(_:) encodeJSON(_:) encodeSuccess(...) encodeSuccessRead(...) encodeSuccessList(...) encodeSuccessFind(...) encodeFailure(...) encodeFailureScopeViolation(...) errorKind(for:) } = the actor's tool-protocol face. |
 | `Sources/WenshuApp/Features/Agent/Service/BookOutlineTool.swift` (now 381 LOC, under cap) | `Sources/WenshuApp/Features/Agent/Service/BookOutlineActor+ToolProtocol.swift` | 288 | extension BookOutlineActor { execute(input:) extractMarkdown(_:) parseUUID(_:) parseOptionalUUID(_:) encodeSuccess(...) encodeSuccessRead(...) encodeSuccessFind(...) encodeSuccessList(...) encodeFailure(...) encodeFailureScopeViolation(...) descriptorToJSON(_:) encodeJSON(_:) } = the actor's tool-protocol face. |
@@ -365,7 +425,7 @@ a reader's `splitlines()` cannot disagree.
 | `Sources/WenshuApp/Features/Editor/View/InspectorStylePageView.swift` (now 533 LOC, under cap) | `Sources/WenshuApp/Features/Editor/View/InspectorStyleKnobView.swift` | 91 | `struct InspectorStyleKnobView` = ONE fine-tuning knob of a book's style sheet (= the knob's name at the left, = and the position the book sits at in Apple's own pop-up button at the right = `ValuePopUpButton`, = with the row's `Spacer` between them, = because the boss's ruling is title left, = control right); = `columnWidth` is handed IN (= only the page knows what its other knobs were offered, = and the five buttons agree on the widest measured width), = and the button shows the position's LABEL (= what the reader sees) = while carrying its RAW value (= what the sheet reads back). |
 | `Tests/WenshuAppTests/Editor/Model/EngineStyleSheetBridgeTests.swift` (now 183 LOC, under cap) | `Tests/WenshuAppTests/Editor/Model/StyleSheetWiringTests.swift` | 878 | `struct StyleSheetWiringTests` = the sheet's WIRING held where it cannot be measured through a window (= the knob's menu hands over the RAW value, = the engine view is keyed BY the fingerprint, = and the sidebar's click names the OWNING book); = each is a source check anchored on the exact expression, = because the join lives in a view's own action and no test's own call reaches it; = = EXCEPT the sidebar's click (= = the one join whose decision now lives in a PURE function, = = = `AppleSidebarView.writes(for:in:)`, = = = so that case CALLS the production and asserts the VALUE, = = = and a source-text anchor there went RED when the decision MOVED, = = = while the behaviour never changed); = = and the page's own claim (= the book it writes is the book it SHOWS) is held by BOTH its anchors, = = each scoped to `moveKnob`'s OWN body, = = and the call-site anchor reads the knob's OWN write-back (= the one carrying `knob:` and `position:`), = = because a whole-file contains is satisfied by the page's OTHER write-back, = = and a count of the lines carrying one spelling is satisfied by a SECOND path inside the body |
 | `Tests/WenshuAppTests/Editor/View/InspectorStylePageRenderTests.swift` (now 521 LOC, under cap) | `Tests/WenshuAppTests/Editor/View/InspectorAXTree.swift` | 182 | `enum InspectorAXTree` = the accessibility tree READER the two page suites share (= the page is hosted in a real NSHostingView, = and its painted tree is read back, = so the facts a source read cannot reach are measured on the page itself: = that a SwiftUI `Menu` publishes its label, = that a `Text` publishes NOTHING, = and that a `TextField` publishes an `AXTextField`); = it is its own file because BOTH suites read it, = and the style page's suite grew past the cap with it in place |
-| `Sources/WenshuApp/Features/Editor/Model/EngineStyleSheetBridge.swift` | `Vendor/MarkdownEngine/` | 30994 | `Vendor/MarkdownEngine/` = the markdown engine, VENDORED at upstream 0.13.0 (= `d1421012`) = so the book style sheet's three knobs (= the heading face, = the first-line indent, = the line-spacing multiple) are the engine's own; = the tree is upstream's code (= Apache-2.0, = attributed in `THIRD_PARTY_NOTICES.md`, = 30994 lines over 142 files) and the engine's own suite (= 517 tests in 71 suites, = upstream's 503 plus ours) is the regression net |
+| `Sources/WenshuApp/Features/Editor/Model/EngineStyleSheetBridge.swift` | `Vendor/MarkdownEngine/Package.swift` | 55 | `Vendor/MarkdownEngine/` = the markdown engine, VENDORED at upstream 0.13.0 (= `d1421012`) = so the book style sheet's three knobs (= the heading face, = the first-line indent, = the line-spacing multiple) are the engine's own; = this row's FILE is the vendored tree's own SwiftPM manifest (= the library and test target), and the tree's size is stated here rather than in the LOC column: 31187 lines over 143 Swift files, with the engine's own suite (= 521 `@Test` in 73 suite types, = upstream's 503 plus ours) as the regression net, measured 2026-11-20 at `b96d3f7cb5` |
 | `Sources/WenshuApp/Features/Editor/View/InspectorStylePageView.swift` | `Sources/WenshuApp/Features/Editor/View/InspectorStylePresetView.swift` | 93 | `struct InspectorStylePresetView` = one of the two sets a book can be set to (= the set's name at the left, = and the set in a drop-down at the right); = it lives in its own file (= the page that draws the twelve styles and the five knobs grew past comfortable) |
 | `Tools/wenshu-devtool/README.md` | `Tools/wenshu-devtool/tests/test_pre_review_gate.py` | 355 | `test_pre_review_gate` = the pre-review gate's own cases (= a filter that matched NO test case measured nothing, = a card's filter line is read in both quote styles, = a card's GATE line the reader cannot parse is named, = a card's PROSE mention of the phrase is not a gate (= so a card is never failed for its own explanation), = and the CJK audit holds a trailing comment and a block comment, = while a CJK string literal stays a literal (= = and a CJK literal beside a trailing comment stays too, = = because the audit reads the COMMENT PART)), = so the gate that says "every gate was measured" can be shown to have measured nothing. |
 | `Vendor/MarkdownEngine/` | `Vendor/MarkdownEngine/Tests/MarkdownEngineTests/WenshuContentRolesTests.swift` | 260 | `struct WenshuContentRolesTests` = the engine's two new content roles MEASURED ON THE RENDERED ATTRIBUTES (= the font and the paragraph style the engine actually painted, = not a helper's return value): = a footnote definition wears the note's own face and size, = carries no first-line indent, = and reads as the body when it has no voice of its own, = and a figure caption and a table caption each wear their OWN role's size (= the two roles are told apart by their neighbour, = so only distinct sizes can tell them apart); = it lives in the ENGINE's suite (= these are the engine's knobs, = the app's bridge maps the sheet onto them, = and the app's own suite measures that mapping) |

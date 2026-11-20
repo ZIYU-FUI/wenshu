@@ -398,6 +398,126 @@ def no_trailing_newline_case():
     return 0
 
 
+def unmeasurable_row_case():
+    """THE DEFECT THIS CASE WAS WRITTEN FOR (= = card `t_70592b92`): = a row whose
+    key the gate cannot open used to hit a bare `continue`, = = so the table could
+    carry a row that had NEVER been measured, = = and neither the output nor the
+    exit code said so.
+
+    FOUR SHAPES, = = = = because they need three DIFFERENT repairs and a report
+    that only says "unmeasurable" tells the next reader which one to do:
+    a DIRECTORY (= the row registered a whole vendored tree), = a bare NUMBER
+    (= = a count pasted into the file column), = an ABSENT path (= the file is
+    gone), = = and a row with no literal LOC cell at all.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        run(["git", "init", "-q", tmp], cwd=tmp)
+        run(["git", "config", "user.email", "t@t"], cwd=tmp)
+        run(["git", "config", "user.name", "t"], cwd=tmp)
+        os.makedirs(os.path.join(tmp, "Sources"), exist_ok=True)
+        os.makedirs(os.path.join(tmp, "docs", "agents"), exist_ok=True)
+        registry = os.path.join(tmp, "docs", "agents", "nfi.md")
+
+        with open(os.path.join(tmp, "Sources", "Real.swift"), "w", encoding="utf-8") as handle:
+            handle.write("let a = 1\n")
+        # = a real DIRECTORY the change adds rows beside, = so the directory key is
+        # not a fiction of the fixture (= = = `wc_lines` opens it and gets EISDIR).
+        os.makedirs(os.path.join(tmp, "Sources", "Vendored"), exist_ok=True)
+        with open(os.path.join(tmp, "Sources", "Vendored", "Manifest.swift"), "w", encoding="utf-8") as handle:
+            handle.write("let m = 1\n")
+
+        # = the base: one ordinary row, so the added set is everything below.
+        write_registry(registry, [("Sources/Real.swift", "Sources/Real.swift", 1)])
+        run(["git", "add", "-A"], cwd=tmp)
+        run(["git", "commit", "-qm", "base"], cwd=tmp)
+
+        # = the change: the same row, plus one of each unreadable shape.
+        write_registry(registry, [
+            ("Sources/Real.swift", "Sources/Real.swift", 1),
+            ("Sources/Vendored/Manifest.swift", "Sources/Vendored/", 742),
+            ("docs/agents/a-closeout.md", "262", 190),
+            ("Sources/Gone.swift", "Sources/Gone.swift", 88),
+            ("Sources/Approx.swift", "Sources/Approx.swift", "~428"),
+            # and the table's OWN shorthand form (33 live rows use it). It contains
+            # `/` like every real path, so it is the case that used to be labelled
+            # `absent` — "the file is gone, repoint or delete" — for a row the table
+            # itself sanctions. Card t_702d729c, non-blocking 2.
+            ("Sources/AbbrevParent.swift", "Sources/.../Abbrev.swift", 99),
+        ])
+        run(["git", "add", "-A"], cwd=tmp)
+        run(["git", "commit", "-qm", "the change adds rows the gate cannot open"], cwd=tmp)
+
+        result = run([sys.executable, TOOL, "--base", "HEAD~1", "--registry", registry], cwd=tmp)
+        if result.returncode == 0:
+            print("FAILED: a row the gate cannot open left the run GREEN")
+            print(result.stdout)
+            return 1
+
+        # = each shape is NAMED, = = with the reason that tells the reader which
+        # repair applies (= the three reasons were the acceptance).
+        for needle, why in [
+            ("Sources/Vendored/", "not-a-file"),
+            ("262", "not-a-path"),
+            ("Sources/Gone.swift", "absent"),
+            ("Sources/Approx.swift", "no LITERAL LOC cell"),
+            ("Sources/.../Abbrev.swift", "shorthand"),
+        ]:
+            line = next((ln for ln in result.stdout.split("\n") if needle in ln), "")
+            if why not in line:
+                print(f"FAILED: the gate did not name {needle} as {why}: {line!r}")
+                print(result.stdout)
+                return 1
+
+        # = and the count is stated, = = so "unmeasurable" cannot read as "clean".
+        if "NOT measured" not in result.stdout or "NOT clean" not in result.stdout:
+            print("FAILED: the gate reported unreadable rows without saying they are NOT clean")
+            print(result.stdout)
+            return 1
+        if "exit 1" not in result.stdout:
+            print("FAILED: the gate's output does not state its own exit-code rule")
+            return 1
+
+        # = = ⇒ AND THE COUNT IT PRINTS IS THE COUNT IT ACTUALLY OPENED: = the
+        # only readable row in this fixture was carried by the base (= = = it is
+        # NOT an added row), = so the honest number is 0 checked against 4 named,
+        # = = and a gate that folds the rows it could not open into that count
+        # reports 4 measured when it opened none.
+        if "0 row(s) checked" not in result.stdout:
+            print("FAILED: the gate counted rows it never opened as checked")
+            print(result.stdout)
+            return 1
+        # The count and the list must AGREE, = = not merely both exist. Asserting a
+        # literal here is the same stale-number trap the closeout document names:
+        # adding one shape to this fixture silently turned `4` into `5`, and a test
+        # that only checks a hard-coded number would then fail for the wrong reason
+        # (or, worse, pass while the gate under-counts). So: the stated N must equal
+        # the number of reason lines the gate printed, AND that N must be the five
+        # shapes this fixture authors.
+        import re as _re
+        _stated = _re.search(r"(\d+) added or rewritten row\(s\) name no readable file", result.stdout)
+        _named = sum(1 for ln in result.stdout.split("\n")
+                     if _re.match(r"^  \S.*: (not-a-file|not-a-path|absent|the row carries no LITERAL)", ln))
+        if _stated is None or int(_stated.group(1)) != _named or _named != 5:
+            print(f"FAILED: the gate's count and its list disagree (stated={_stated and _stated.group(1)}, named={_named}, expected 5)")
+            print(result.stdout)
+            return 1
+
+        # = = ⇒ ⇒ ⇒ AND THE SCOPE STILL HOLDS: = a row the change did NOT add,
+        # whose key opens nowhere, must NOT be reported (= = = the table's standing
+        # debt is the census's business, = = = not every branch's red run).
+        base_only = run(
+            [sys.executable, TOOL, "--base", "HEAD", "--registry", registry], cwd=tmp
+        )
+        if "Sources/Vendored/" in base_only.stdout and "HEAD~1" not in base_only.stdout:
+            # HEAD vs HEAD = nothing added; the gate must say nothing to check.
+            if "nothing to check" not in base_only.stdout:
+                print("FAILED: the gate charged rows the change did not add")
+                print(base_only.stdout)
+                return 1
+        print("ok: an unmeasurable row is named with its reason and fails the run")
+        return 0
+
+
 if __name__ == "__main__":
     code = main()
     if code == 0:
@@ -406,4 +526,6 @@ if __name__ == "__main__":
         code = behind_main_case()
     if code == 0:
         code = no_trailing_newline_case()
+    if code == 0:
+        code = unmeasurable_row_case()
     sys.exit(code)
