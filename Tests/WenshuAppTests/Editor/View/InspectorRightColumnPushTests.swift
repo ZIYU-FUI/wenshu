@@ -15,6 +15,13 @@
 //    * the registry announces its record mutations (`changes()`),
 //    * a plan write posts `AppStateEvents.todoPlanDidChange`.
 //
+//  Being told is only half of it: the plan announcement is delivered on
+//  the thread that WROTE it (= the assistant writes through
+//  `ToolExecutor`, off the main actor) and the page's mirror holds
+//  main-actor state, so that announcement is hopped before anything
+//  draws from it. The registry's stream resumes on its consumer's own
+//  actor, so it needs no hop and carries none.
+//
 //  So a page re-reads when there is something to show, and re-reads
 //  zero times while nothing happens. These tests hold both halves of
 //  that promise, = the signal fires on a write, and the clock is gone
@@ -22,6 +29,7 @@
 //
 //
 
+import Combine
 import Foundation
 import Testing
 @testable import WenshuApp
@@ -235,5 +243,137 @@ struct InspectorRightColumnPushTests {
 
         #expect(model.isLoaded)
         #expect(model.tasks.isEmpty)
+    }
+
+    // MARK: - The announcement is answered on the main actor
+
+    /// Main-ness, read from a synchronous frame: `Thread.current` is
+    /// `noasync`, and the writer this case drives is an async task, so
+    /// the question has to be asked one call away from the `await`.
+    private nonisolated static func isCurrentThreadMain() -> Bool {
+        Thread.current.isMainThread
+    }
+
+    /// A value a test records from a closure that cannot await (= an
+    /// observer runs on whatever thread delivered to it, and the test
+    /// reads the record afterwards). The first record wins, so a write
+    /// and its delivery cannot overwrite each other's reading.
+    private final class ThreadRecord: @unchecked Sendable {
+        private let lock = NSLock()
+        private var landedOnMain: Bool?
+
+        func record(_ value: Bool) {
+            lock.withLock {
+                if landedOnMain == nil {
+                    landedOnMain = value
+                }
+            }
+        }
+
+        var value: Bool? {
+            lock.withLock { landedOnMain }
+        }
+    }
+
+    /// A consumer that is NOT main-actor-isolated, which is the whole
+    /// point of it. A closure formed inside a `@MainActor` frame inherits
+    /// that isolation, and Combine calls it on whatever thread delivered
+    /// the value, so a background post traps at the closure's own entry
+    /// (`dispatch_assert_queue`; measured: the probe version of this case
+    /// printed nothing from inside its sink and died on the post). The
+    /// page's `onReceive` action is exactly such a closure, = which is
+    /// B3. This one can stand on the delivering thread and report it.
+    private nonisolated static func deliveryRecorder(
+        deliveredOnMain: ThreadRecord,
+        draw: @escaping @MainActor @Sendable () -> Void
+    ) -> (Notification) -> Void {
+        { _ in
+            let onMain = Self.isCurrentThreadMain()
+            // The draw the page makes, made only where it may be made:
+            // with the hop removed this case reddens on the record below
+            // instead of trapping the rest of the run.
+            if onMain {
+                MainActor.assumeIsolated { draw() }
+            }
+            deliveredOnMain.record(onMain)
+        }
+    }
+
+    /// Drives the page's consumer from outside the main actor, = where
+    /// the assistant's plan write really happens (`HermesTodoTool.execute`
+    /// is `nonisolated async` behind `public actor ToolExecutor`, and
+    /// `HermesTodoStoreConcurrencyTests` already writes from a
+    /// `Task.detached`).
+    @MainActor
+    @Test("a plan written off the main actor is drawn on the main actor")
+    func offMainPlanWriteIsDrawnOnMain() async {
+        let store = HermesTodoStore()
+        let tool = HermesTodoTool(store: store)
+        let wroteOnMain = ThreadRecord()
+        let deliveredOnMain = ThreadRecord()
+        let drewOnMain = ThreadRecord()
+
+        // The read IS the draw: whatever thread runs this closure is the
+        // thread the mirror was refreshed on.
+        let model = InspectorTodoModel(
+            readPlan: {
+                drewOnMain.record(Self.isCurrentThreadMain())
+                return store.read()
+            },
+            planSource: store
+        )
+        let draw: @MainActor @Sendable () -> Void = { model.refresh() }
+
+        // The page's own subscription, through the page's own hop.
+        let subscription = InspectorTodoModel.hoppedToMain(
+            NotificationCenter.default.publisher(for: Self.planChangeName, object: store)
+        ).sink(receiveValue: Self.deliveryRecorder(
+            deliveredOnMain: deliveredOnMain, draw: draw
+        ))
+        defer { subscription.cancel() }
+
+        await Task.detached(priority: .userInitiated) {
+            wroteOnMain.record(Self.isCurrentThreadMain())
+            tool.writePlan([
+                HermesTodoItem(id: "1", content: "written off-main", status: .pending),
+            ])
+        }.value
+
+        // The premise first, so a green is not available by the test
+        // accidentally writing from the main thread.
+        #expect(wroteOnMain.value == false,
+                "the plan was written ON the main actor, so this case says nothing about the hop")
+        #expect(await Self.waitUntil { deliveredOnMain.value != nil },
+                "the page's subscription never answered a plan write made off the main actor")
+        #expect(deliveredOnMain.value == true,
+                "the plan announcement was delivered on the writing thread, not on the main actor")
+        #expect(drewOnMain.value == true,
+                "the mirror read the plan off the main actor")
+        // And the draw was the real one (= the mirror now holds the row
+        // the background write put in the store, and nothing else asked).
+        #expect(model.isLoaded)
+        #expect(model.todos.map(\.title) == ["written off-main"])
+    }
+
+    /// The other half: that the page's own source is the one that hops.
+    /// The behavioural case above drives `hoppedToMain`; this one fails
+    /// if the page stops calling it (= a hop orphaned on the model would
+    /// keep the suite green while the app stayed broken).
+    @Test("the page hops the announcement it subscribes to")
+    func pageSubscriptionHopsToMain() throws {
+        let plan = try Self.source(
+            "Sources/WenshuApp/Features/Editor/View/InspectorTodoPageView.swift"
+        )
+        // Whitespace folded, because the formatter, not the author,
+        // decides where this wraps (= what must not move is the hop
+        // sitting between the announcement and the draw).
+        let folded = plan.split(whereSeparator: \.isWhitespace).joined()
+        #expect(
+            folded.contains("InspectorTodoModel.hoppedToMain(NotificationCenter.default"
+                + ".publisher(for:.wenshuTodoPlanDidChange,object:model.planSource))"),
+            "the plan page draws the plan announcement on the writing thread again"
+        )
+        #expect(folded.contains(".receive(on:DispatchQueue.main)"),
+                "the page's announcement no longer hops to the main queue")
     }
 }

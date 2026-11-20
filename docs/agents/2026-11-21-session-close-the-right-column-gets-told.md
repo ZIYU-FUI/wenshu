@@ -9,7 +9,10 @@ the chat area at the root; if one session cannot finish it, phase it", followed 
 Branch `wt/perf-right-column-push-2026-11-21`, first round's tip `c2908a161d`,
 review round's code tip `5b6095ccda` (= every measurement below was taken on
 that tree; this closeout's own commit sits on top of it, and changes no Swift
-source), base `origin/main` = `65590f4800`.
+source), base `origin/main` = `65590f4800`. The second round's code tip is
+`a4ac974c89`, and round 3 — the delivery-thread blocker, §9 — is one commit
+stacked on it, so §§1-8 stay the readings of the trees their own lines name and
+only the numbers §9 marks as moved were re-taken.
 Worktree `/Volumes/ANAN/Engineering/wenshu/.worktrees/perf-right-column-push`.
 Nothing was merged and nothing was pushed; the review card is the next link,
 and §8 is what the first verdict changed.
@@ -48,10 +51,10 @@ because the reader paints on the subscribe signal.
 | `Sources/WenshuApp/Features/Agent/Service/HermesTodoTool.swift` (504 LOC) | `write(todos:merge:)` calls `postPlanChange()` after the serial-queue block. Posted on the writing thread, like the app's other change notifications, rather than queued to main, and POSTED WITH THE WRITING STORE AS SENDER: the app builds a second `HermesTodoStore` (= `TodoStoreTool.shared`), so an unscoped post would wake mirrors that have nothing of that write to show. `HermesTodoTool.planSender` exposes the store a reader must follow, and a debug `announcementCount` counts this store's own announcements. |
 | `Sources/WenshuApp/App/AppNotifications.swift` | `AppStateEvents.todoPlanDidChange` + the `Notification.Name.wenshuTodoPlanDidChange` accessor (one place defines the name). |
 | `Sources/WenshuApp/Features/Editor/View/InspectorStatusView.swift` (419 LOC) | `refreshLoop()` deleted; `.task(id: refreshKey) { await model.follow(scope: scope) }`. `follow` returns immediately with no subscription when there is no scope to follow; otherwise it reads on the subscribe signal (first paint does not wait out a window) and coalesces later bursts with a 250 ms quiet window. The file header's "re-reads it on a timer" was rewritten to match. |
-| `Sources/WenshuApp/Features/Editor/View/InspectorTodoPageView.swift` (375 LOC) | The same clock deleted; one-shot `.task { model.refresh() }` plus `.onReceive(...wenshuTodoPlanDidChange, object: model.planSource)` — the page follows the one store it reads, not every plan write in the process. |
+| `Sources/WenshuApp/Features/Editor/View/InspectorTodoPageView.swift` (407 LOC at round 3; 375 at round 2) | The same clock deleted; one-shot `.task { model.refresh() }` plus `.onReceive(...wenshuTodoPlanDidChange, object: model.planSource)` — the page follows the one store it reads, not every plan write in the process — and the announcement reaches the draw through `InspectorTodoModel.hoppedToMain(_:)`, so it is answered on the main actor (§9). |
 | `Tests/WenshuAppTests/Agent/Store/AsyncDelegationChangeSignalTests.swift` (new, 406 LOC, 12 tests) | see §4 |
-| `Tests/WenshuAppTests/Editor/View/InspectorRightColumnPushTests.swift` (new, 239 LOC, 8 tests) | see §4 |
-| `docs/agents/nfi.md` | 3 rows added, and the rows naming a file this change rewrote corrected (419 / 375 / 231 / 406 / 239). |
+| `Tests/WenshuAppTests/Editor/View/InspectorRightColumnPushTests.swift` (new, 379 LOC at round 3 / 239 at round 2, 10 tests / 8) | see §4 |
+| `docs/agents/nfi.md` | 3 rows added, and the rows naming a file this change rewrote corrected (419 / 407 / 231 / 406 / 379 — the 407 and 379 cells are round 3's, §9). |
 
 ## 3. Two decisions taken inside this session, both stated here because both are contestable
 
@@ -72,7 +75,7 @@ because the reader paints on the subscribe signal.
    `bufferingNewest(1)` coalescing in the stream plus the reader's 250 ms window,
    not by re-introducing latency.
 
-## 4. The 20 new tests, and what each one is for
+## 4. The 22 new tests, and what each one is for
 
 Registry announcements (12): a subscriber learns the state that already exists;
 every mutation site announces; the last change of a 40-append burst is never lost
@@ -89,7 +92,7 @@ registry's announcements are not another's**, and **the record table is written
 only by functions that announce**, which reads the source and is the test that
 makes the no-fallback-scan answer structural instead of rhetorical.
 
-Column surface (8): a plan write announces exactly once, counted on the store
+Column surface (10, was 8 — §9 adds the two delivery-thread cases): a plan write announces exactly once, counted on the store
 that wrote it and cross-checked against that store's own `announcementCount`; 20
 plan reads announce nothing; **a write to a different `HermesTodoStore` is not
 this plan's news** (the app really does build a second store, via
@@ -115,7 +118,9 @@ the first round's weakest ones.
 - Narrow suites: `swift test --filter
   'AsyncDelegationChangeSignalTests|InspectorRightColumnPushTests|InspectorTodoPageViewTests|AsyncDelegationScopeTests|AsyncDelegationOutputTailTests|SubAgentKanbanCardLifecycleTests|InspectorCardLazinessTests'`
   → `Test run with 54 tests in 7 suites passed` (was 47; +7 tests, §8). Run
-  three times in a row at the tip, rc=0 each time.
+  three times in a row at the tip, rc=0 each time. Round 3 moved this reading to
+  `56 tests in 7 suites` (= 54 + the 2 new cases, the same filter, the same
+  runner line); §9 carries it.
 - The two combined filters the reviewer measured red on `a01c919edb` are 10/10
   green each at this tip, and the assertions behind them are instance-scoped, so
   their green is no longer a fact about scheduling (§8, Blocking 1).
@@ -261,4 +266,111 @@ tip" is `5b6095ccda`.
 | positive control: delete `store()`'s announce | rc=1, 9 issues | rc=1, 11 issues |
 
 The narrow set is now `54 tests in 7 suites` (was 47), and the two suites the
-change added carry 20 tests (was 13).
+change added carry 20 tests (was 13). Round 3 carries both one step further:
+`56 tests in 7 suites`, and the two suites at 22 (= 12 + 10), because the
+announcement turned out to be answered on the wrong thread (§9).
+
+## 9. Round 3 — the announcement was answered on the writing thread
+
+Round 2's verdict (`t_92883b15`, changes_requested on `a4ac974c89`) closed B1 and
+B2 as published and opened one new blocker, quoted rather than paraphrased:
+
+> **Required.** (1) hop in the consumer: `.receive(on: DispatchQueue.main)` on the publisher, or the house `Task { @MainActor in model.refresh() }` inside the action — either is fine, pick one and make `InspectorTodoPageView.swift:45-49` match the sentence at `HermesTodoTool.swift:220-223`. (2) Add the case that drives the write from a non-main task and asserts the refresh landed on main (my probe is the shape; the assertion is `Thread.isMainThread`/main-actor-ness inside the mirror, not a count). Acceptance: published 7-suite filter still `54 tests in 7 suites passed` rc=0, the new case rc=1 with the hop removed and rc=0 with it in, and the crash gone from a run of the probe. (3) If the intent is instead that the poster must hop, the sentence at `:220-223` is a lie about the code and has to go with it — I am not accepting "post on the writing thread" plus a non-hopping consumer either way.
+
+The store's sentence is "a mirror that draws from it hops to the main actor
+itself", and at `a4ac974c89` the one real mirror did not hop: `NotificationCenter`
+calls its observers on the posting thread, the plan write happens off the main
+actor by construction: `Sources/WenshuApp/Features/Agent/Service/HermesTodoTool.swift:390`
+declares `struct HermesTodoTool: Tool, Sendable` whose `execute(input:)` is `async
+throws` at `:430`, and the file contains no `MainActor` annotation anywhere; it is
+invoked from `public actor ToolExecutor`
+(`Sources/WenshuAgent/Sources/WenshuAgent/Tool/ToolExecutor.swift:54`, which calls
+`tool.execute(input:)` at `:254`), and that actor is not the main actor.
+`onReceive` hands its action to that call. The
+page's action is main-actor-isolated because `View.body` is, so the runtime
+asserted the queue and trapped. Item (3) is answered by keeping the sentence and
+fixing the page: `HermesTodoTool.swift:220-223` is now true of the code it
+describes, the poster still speaks on its own thread, and the one real mirror is
+the thing that hops.
+
+**The fix.** `InspectorTodoModel.hoppedToMain(_:)`
+(`Sources/WenshuApp/Features/Editor/View/InspectorTodoPageView.swift:240-264`) puts
+`.receive(on: DispatchQueue.main)` on the announcement, and the page's
+`.onReceive` (`:51`) subscribes through it. The hop sits on the SUBSCRIPTION,
+inside a named function, rather than inline in the draw, and that is a test-shape
+decision, not style: a hop whose removal does not compile cannot be shown to be
+load-bearing. The app's two existing notification mirrors hop inside their action:
+`Sources/WenshuApp/Features/Editor/View/AssetsPane.swift:435-437` runs
+`Task { @MainActor in await coverNewDocuments() }` and
+`Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift:330-332` runs
+`Task { await service?.reload() }`. This page reads differently from both while
+honouring the same sentence, because neither of those hops can be removed in a
+compile-clean way (deleting the first loses the isolation the call needs,
+deleting the second leaves an `await` in a synchronous context), so neither can
+be shown load-bearing by mutation.
+
+**The mechanism, measured.** A closure formed inside a `@MainActor` frame carries
+that isolation, and Combine calls `sink`'s / `onReceive`'s action on whatever
+thread delivered, so the trap fires on the closure's ENTRY: the first version of
+the new case printed nothing from inside its own sink and SwiftPM reported
+`Process '…/swiftpm-testing-helper …' exited with unexpected signal code 5` —
+the same faulting shape the reviewer measured on the page (their
+`swiftpm-testing-helper-2026-11-21-061011.ips`). Re-taken as arm 3 below, at this
+tip, both ways round. That is why the committed case listens through
+`deliveryRecorder`, a consumer built in a `nonisolated` frame: it can stand on
+the delivering thread and report it, so a missing hop REDDENS the case instead of
+killing the run. The acceptance's "crash gone" half is read off the RUNNER, not
+off `~/Library/Logs/DiagnosticReports`: 9 runs at this tip (the seven-suite gate,
+the two-suite gate, the pairing ×3, the new case ×5) all ended
+`Test run with N tests in M suites passed` with rc=0 and no
+`exited with unexpected signal code 5` line, and that line IS the detector — two
+deliberate traps in this same session, minutes apart, wrote no `.ips` at all, so
+the newest entry there is still the reviewer's `…-061533.ips` whether the process
+dies or not. A claim that rested on the absence of a crash report would be a
+ruler that selects nothing.
+
+**The two new cases** (`Tests/WenshuAppTests/Editor/View/InspectorRightColumnPushTests.swift`):
+
+| case | what it holds |
+| --- | --- |
+| `a plan written off the main actor is drawn on the main actor` (`:307-356`) | records the thread of the write, the thread the hopped announcement is delivered on, and the thread of the mirror's own read (via the `readPlan` seam, so it is the DRAW's thread and not the notification's), then asserts `model.todos == ["written off-main"]` — the row the background write put in the store, with nothing else asking. Its first assertion is the premise (`wroteOnMain.value == false`), so the green is not available by writing from main by accident. |
+| `the page hops the announcement it subscribes to` (`:362-378`) | reads the page's own source, whitespace-folded, and requires the subscription to be `InspectorTodoModel.hoppedToMain(…publisher(for:.wenshuTodoPlanDidChange,object:model.planSource))` and the hop file to carry `.receive(on:DispatchQueue.main)`. Round 2's `object: model.planSource` assertion (its own line moved, see the shift note below) is untouched and still green. |
+
+Mutation arms, each one source edit, the narrow suite, the file restored
+byte-exactly (sha compared before and after):
+
+| arm | reading |
+| --- | --- |
+| `hoppedToMain` made the identity (`.receive(on: DispatchQueue.main)` deleted; the function, its one call site and its return type all still compile, and the page's call site is unchanged) | **rc=1** on `swift test --filter 'AsyncDelegationChangeSignalTests|InspectorRightColumnPushTests'`: `Test run with 22 tests in 2 suites failed after 0.350 seconds with 5 issues` — the behavioural case at `InspectorRightColumnPushTests.swift:348` (`deliveredOnMain.value == true`), `:350` (`drewOnMain.value == true`), `:354`, `:355`, and the structural case at `:376`. The premise `:344` and "the consumer answered" `:346` stayed green, so the red is the delivery thread and nothing else. |
+| the page's `.onReceive` unwrapped to the round-2 shape (helper intact) | **rc=1**, 1 issue — `InspectorRightColumnPushTests.swift:371` (the structural case). The seam alone does not protect the page, and only the source-reading case can see that. |
+| the consumer formed in the `@MainActor` test body instead of `deliveryRecorder`, hop deleted | **rc=1 via signal 5**, no expectation output — the trap, reproduced in-suite. With the hop restored the same edit is green (`Test run with 1 test in 1 suite passed`), which is what attributes the trap to the missing hop. |
+
+Numbers this round moved, each re-taken on the Swift this commit records. The
+seven-suite gate is `Test run with 56 tests in 7 suites passed` (0.338 seconds,
+rc=0) and the two-suite gate is `Test run with 22 tests in 2 suites passed`
+(0.345 seconds, rc=0), both at the filters §8 prints verbatim; `swift test
+--list-tests` gives the same denominators per suite (12, 10, 11, 9, 3, 3, 8 = 56
+and 12 + 10 = 22). The unit is the runner's per-target `Test run with` line, not
+the count of `@Test` declarations. The verdict's acceptance named
+`54 tests in 7 suites`, and it was written before the case it then asked for
+existed: 56 IS 54 plus that case plus the structural one that keeps it honest,
+at a byte-identical filter string. The paired run round 1 measured flaky was
+re-taken four times on this Swift (`Test run with 21 tests in 2 suites passed`,
+0.282 / 0.281 / 0.285 / 0.281 seconds), which is four runs and not twelve.
+
+`wc -l` reads 407 for `Sources/WenshuApp/Features/Editor/View/InspectorTodoPageView.swift`
+and 379 for `Tests/WenshuAppTests/Editor/View/InspectorRightColumnPushTests.swift`,
+and `docs/agents/nfi.md:352` / `:666` carry those two cells;
+`nfi-loc-check.py --base origin/main` is rc=0 at 5 rows. Both files grew above
+their old anchors, so every §8 citation inside them moves: `git diff
+a4ac974c89 HEAD` shows `import Combine` plus a 5-line comment above the page's
+subscription, which is +6 there (the subscription `:46` reads `:52`, and
+`planSource` `:224` reads `:230`), and 7 header lines plus `import Combine`
+above the test file's cases, which is +8 there (§8's `:73` / `:74` / `:119` /
+`:173` read `:81` / `:82` / `:127` / `:181`). The readings themselves are
+unchanged; only the line each sits on moved, which is the defect that cost this
+lane a round once before.
+
+The status page carries no hop and needs none: its consumer is `for await` inside
+a `@MainActor` model, and an `AsyncStream` resumes its consumer on the consumer's
+own executor, not on the thread that yielded.

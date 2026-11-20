@@ -19,6 +19,7 @@
 //
 //
 
+import Combine
 import SwiftUI
 
 /// The trailing inspector column's todo page.
@@ -42,9 +43,14 @@ struct InspectorTodoPageView: View {
         // subscription names THIS page's store: the announcement is a
         // process-wide broadcast, and a write to some other
         // `HermesTodoStore` has nothing here to draw.
-        .onReceive(NotificationCenter.default.publisher(
+        //
+        // The announcement is hopped where it is SUBSCRIBED, not where
+        // it is drawn (= `hoppedToMain` is the one line that keeps
+        // `refresh()` off the writing thread, and a hop the test can
+        // drive is a hop that can be proven load-bearing).
+        .onReceive(InspectorTodoModel.hoppedToMain(NotificationCenter.default.publisher(
             for: .wenshuTodoPlanDidChange, object: model.planSource
-        )) { _ in
+        ))) { _ in
             model.refresh()
         }
     }
@@ -229,6 +235,32 @@ final class InspectorTodoModel {
     ) {
         self.readPlan = readPlan
         self.planSource = planSource
+    }
+
+    /// Delivers a store's announcement on the main actor.
+    ///
+    /// The store posts on the thread that WROTE (= its own contract,
+    /// `HermesTodoTool.swift:220-223`: "a mirror that draws from it hops
+    /// to the main actor itself"), and that thread is not the main
+    /// actor's: the assistant's plan write reaches the store through
+    /// `ToolExecutor`, a plain actor. `NotificationCenter` calls its
+    /// observers on the posting thread, and SwiftUI hands an
+    /// `onReceive` action straight to that call, so an unhopped
+    /// subscription runs `refresh()` — main-actor state — on a
+    /// background thread, which Swift 6 traps (`dispatch_assert_queue`).
+    ///
+    /// The hop sits on the subscription rather than inside the draw
+    /// because removing it is then a compile-clean edit: the app's other
+    /// mirrors wrap the draw in `Task { @MainActor in … }`
+    /// (`Features/Editor/View/AssetsPane.swift:435-437`), a shape whose
+    /// hop cannot be taken away without the file stopping build, = so
+    /// nothing can show it is load-bearing.
+    nonisolated static func hoppedToMain(
+        _ announcements: NotificationCenter.Publisher
+    ) -> AnyPublisher<Notification, Never> {
+        announcements
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
     }
 
     /// One read of the store: the cards come from that one read, so
