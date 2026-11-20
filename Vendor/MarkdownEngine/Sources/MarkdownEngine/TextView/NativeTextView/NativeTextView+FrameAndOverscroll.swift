@@ -514,10 +514,13 @@ extension NativeTextView {
     ///   continuous interaction must not pay that per frame.
     ///
     /// `settlingFromDocumentHead: false` still walks from the head whenever it
-    /// cannot prove the prefix is settled: no recorded frontier, a jump below the
-    /// settled band (scrollbar drag, find jump, restored offset), or a visible top
-    /// whose fragment TextKit cannot name yet. Those fall back to the old
-    /// behaviour once, and the walk records the frontier it settled to.
+    /// cannot prove the prefix is settled: no recorded frontier, a frontier
+    /// proven against an older storage generation (any mutation, including the
+    /// raw-mode and Writing-Tools ones that skip a restyle — see
+    /// `settledLayoutFrontierY`), a jump below the settled band (scrollbar drag,
+    /// find jump, restored offset), or a visible top whose fragment TextKit
+    /// cannot name yet. Those fall back to the old behaviour once, and the walk
+    /// records the frontier it settled to.
     func ensureVisibleLayout(settlingFromDocumentHead: Bool) {
         guard let tlm = textLayoutManager else { return }
         let visible = visibleRect
@@ -562,7 +565,10 @@ extension NativeTextView {
     }
 
     /// The whole document is laid out: nothing above any viewport can be
-    /// estimate-only, so the next scroll tick has no prefix to settle.
+    /// estimate-only, so the next scroll tick has no prefix to settle. The claim
+    /// is stamped with the storage generation it was proven at, so the next
+    /// mutation retires it on its own — including on the paths that never
+    /// restyle (raw source mode, a Writing-Tools proofread).
     func noteDocumentLayoutSettled() {
         settledLayoutFrontierY = .greatestFiniteMagnitude
     }

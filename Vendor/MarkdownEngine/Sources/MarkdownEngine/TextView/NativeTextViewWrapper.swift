@@ -720,6 +720,16 @@ public struct NativeTextViewWrapper: NSViewRepresentable {
         context.coordinator.onInlineSelectionChange = onInlineSelectionChange
         context.coordinator.onInlinePreviewKey = onInlinePreviewKey
         context.coordinator.onCodeBlockSelectionChange = onCodeBlockSelectionChange
+        // Re-assigning the overlay callback does NOT re-publish the last
+        // description: `lastEmittedCodeBlockSelections` lives on the coordinator
+        // and survives, so a host that installs its closure on a later pass hears
+        // nothing until the description actually changes. Left as a documented
+        // window rather than cleared here — this pass runs on every SwiftUI
+        // render, so resetting the memo on each would put a publish back on the
+        // per-render path this change took it off, and Swift gives no closure
+        // identity to re-settle on. Nothing in Wenshu wires this callback (a grep
+        // over `Sources/` returns no hit); the suite nils the memo where a case
+        // needs the first publish.
         context.coordinator.didInitialFormatting = true
     }
 

@@ -71,18 +71,69 @@ final class NativeTextView: NSTextView {
     var isCursorExcluded: ((CGPoint) -> Bool)?
 
     // MARK: Visible-layout settlement state
-    /// Y (text-view coordinates) up to which TextKit's layout is KNOWN settled —
-    /// every fragment above it has its final height, so nothing at or below it can
-    /// shift when the prefix is later re-laid out. `nil` = unknown, and the next
-    /// settle has to walk from the document head (see
+    /// One proof that layout is settled: the Y (text-view coordinates) the
+    /// document is known settled TO, and the storage generation that proof was
+    /// made at. Every fragment above `settledToY` has its final height, so
+    /// nothing at or below it can shift when the prefix is later re-laid out —
+    /// but only over the storage that was walked. A mutation makes the heights
+    /// above the viewport unknown again. `nil` = unknown, and the next settle
+    /// has to walk from the document head (see
     /// `ensureVisibleLayout(settlingFromDocumentHead:)`).
+    struct SettledLayoutFrontier: Equatable {
+        var settledToY: CGFloat
+        /// The coordinator's `parseGeneration` this band was proven against.
+        var provenAtGeneration: UInt64
+    }
+
+    /// The stored proof. Ask `settledLayoutFrontierY` whether it still holds
+    /// rather than reading the band out of this directly.
+    var settledLayoutFrontier: SettledLayoutFrontier?
+
+    /// The settled band, readable only while it was proven against the CURRENT
+    /// storage generation; writing it stamps the generation of the write. So a
+    /// mutation invalidates the claim structurally, instead of relying on every
+    /// mutation path remembering to drop it.
     ///
-    /// The scroll tick is the only caller allowed to trust this: a tick with no
-    /// edit between it and the previous settle cannot have moved anything above the
-    /// viewport, so re-walking the settled prefix buys nothing. Every mutation
-    /// path in the engine ends in a restyle, and the restyle settles from the head
-    /// (it re-claims the unknown state first), which is what keeps this honest.
-    var settledLayoutFrontierY: CGFloat?
+    /// That stamp, not the shape of the restyle paths, is what keeps this
+    /// honest. The claim this file used to rest on — "every mutation path in
+    /// the engine ends in a restyle" — is FALSE for a reachable mode: raw
+    /// source mode is a Settings toggle (`SettingView` feeds
+    /// `WenshuEditorServicesFactory`), and there a keystroke returns from
+    /// `textDidChange` at its "skip the restyle" exit, `restyleTextView` returns
+    /// at its own raw-mode guard, the wrapper's rebuild early-returns at the
+    /// same-document exit of `updateNSView`, and a Writing-Tools proofread
+    /// returns from `textDidChange` even earlier — so none of those paths
+    /// re-proves the prefix it just moved, and a tick would have trusted a claim
+    /// that no longer described the document. `shouldChangeTextIn` bumps
+    /// `parseGeneration` for EVERY proposed edit before those early exits, and
+    /// `setMarkedText` bumps it for the composition that never posts
+    /// `textDidChange` (its own override above), so the stamp moves on all of
+    /// them.
+    /// Events that move text without touching storage — a re-wrap, a changed
+    /// inset, an image that just arrived — cannot be caught that way and still
+    /// drop it explicitly; `textDidChange` also drops it before its early
+    /// returns, for the mutations that reach storage without a generation bump.
+    var settledLayoutFrontierY: CGFloat? {
+        get {
+            guard let frontier = settledLayoutFrontier,
+                  frontier.provenAtGeneration == currentLayoutGenerationStamp else { return nil }
+            return frontier.settledToY
+        }
+        set {
+            settledLayoutFrontier = newValue.map {
+                SettledLayoutFrontier(settledToY: $0, provenAtGeneration: currentLayoutGenerationStamp)
+            }
+        }
+    }
+
+    /// The engine's storage-mutation counter: `parseGeneration`, which every
+    /// path that mutates the document is required to bump (its own declaration
+    /// states that contract). A view with no coordinator has no engine mutation
+    /// path to compare against either, so the stamp reads 0 and stays
+    /// comparable instead of distrusting a claim nothing can invalidate.
+    var currentLayoutGenerationStamp: UInt64 {
+        (delegate as? NativeTextViewCoordinator)?.parseGeneration ?? 0
+    }
 
     /// What the LAST visible-layout settle did: where its walk started, and how
     /// many layout fragments it visited. This is the seam the settlement suite

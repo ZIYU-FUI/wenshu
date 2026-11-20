@@ -85,6 +85,16 @@ extension NativeTextViewCoordinator {
         pendingScrollRestoreDocumentId = nil
         // Before the early returns: the first keystroke must hide the placeholder.
         (tv as? NativeTextView)?.refreshPlaceholderVisibility()
+        // And before the SAME early returns: this mutation moved text, so no
+        // band above the viewport is proven settled any more. It has to happen
+        // here rather than only in the restyle, because the two paths that
+        // return below never restyle at all — raw source mode, whose write-back
+        // also makes `updateNSView` skip the rebuild, and a Writing-Tools
+        // proofread — so neither would re-prove the prefix it just moved. A
+        // mutation that reached storage without going through
+        // `shouldChangeTextIn` (undo, a Writing-Tools batch) never bumped the
+        // generation stamp either; this is the drop that catches those.
+        (tv as? NativeTextView)?.settledLayoutFrontierY = nil
         // Raw mode: display IS storage — sync the binding, skip the restyle.
         if configuration.rawSourceMode {
             pendingEditCount = 0
