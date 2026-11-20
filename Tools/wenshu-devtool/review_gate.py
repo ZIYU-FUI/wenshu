@@ -500,6 +500,17 @@ def matching_cards(
     that covers it, where ``how`` is ``"sha"`` or ``"change"``.
     """
     history = branch_tip_history(branch) if branch else []
+    # THE BRANCH'S OWN HISTORY, not the sha being asked about, is what the
+    # sha reader uses to break a tie between several commits in one body:
+    # the branch says which of them the card reviewed. Passing the target in
+    # here would be a guess that pays for itself the wrong way (= measured
+    # on t_673fae4f, whose body cites round 1's sha before naming its own:
+    # asked about round 1's head it would have answered as though IT had
+    # reviewed round 1, and its refusal would have outranked the card that
+    # really did). Claims are resolved with one git call before the loop, so
+    # the reader can ask "is this a commit?" about every card without paying
+    # a subprocess per card.
+    _prime_review_claims(cards)
     target_cid: str | None = None
     target_cid_done = False
     found: list[tuple[str | None, str | None, str | None, str]] = []
@@ -515,10 +526,10 @@ def matching_cards(
         if card_kind(doc) != "review":
             continue
         body = card.get("body") or ""
-        sha = reviewed_sha(body)
+        sha = reviewed_sha(body, history, branch)
         if not sha:
             continue
-        if sha.startswith(target_sha) or target_sha.startswith(sha):
+        if _same_sha(sha, target_sha):
             verdict = verdict_from_doc(doc)
             found.append((
                 card.get("id"), verdict.get("status"), verdict.get("reviewer"), "sha",
@@ -528,7 +539,7 @@ def matching_cards(
         # Not the same commit id. Is it the same CHANGE? Only a sha this
         # branch used to point at can be (= the reflog), and the change
         # has to agree.
-        if not any(sha.startswith(h) or h.startswith(sha) for h in history):
+        if not any(_same_sha(sha, h) for h in history):
             continue
         if not target_cid_done:
             target_cid = change_id(target_sha)
@@ -614,10 +625,169 @@ def _git_tip(ref: str) -> str | None:
     return sha or None
 
 
-def reviewed_sha(body: str) -> str | None:
-    """The sha a review card names, read from its WHAT TO BUILD claim."""
+# The heading the sha claim has historically lived under.
+WHAT_TO_BUILD_HEADING = "what to build"
+# A sha claim is 7..40 lowercase hex characters (= a git short id is unique
+# at 7, an object id is 40). The minimum is written by repeating the
+# character class and the maximum is enforced by ``_sha_token``, so the
+# reader's bound is stated once and in words.
+SHA_TOKEN_MIN = 7
+SHA_TOKEN_MAX = 40
+_SHA_TOKEN_PATTERN = "[0-9a-f]" * (SHA_TOKEN_MIN - 1) + "[0-9a-f]+"
+
+# The words a review card uses when it states WHICH commit it reviewed.
+# Measured 2026-11-20 on board wenshu-par: the cards this reader could not
+# read all said the same thing in a line of their own (= t_673fae4f wrote
+# "Head under review: **`4044f733a9`**" under a section titled "The delta
+# under review", and t_7dc465c0 wrote the same line in a preamble), and 5 of
+# them headed that section "SHA UNDER REVIEW". A line or heading that says
+# "under review" is the card naming its SUBJECT; a bare hex run anywhere
+# else in the body is a CITATION (= the round before it, the merge base, a
+# landed sibling). Reading a citation as the subject is what lets one round's
+# verdict answer for another round's head, measured on t_673fae4f: its body
+# cites round 1's sha before naming its own, so a reader that took "the
+# first token that resolves" gave round 1's head round 2's refusal.
+_CLAIM_LABEL = "under review"
+
+
+def _sha_token(match) -> str | None:
+    """The commit id a hex run names, or None.
+
+    A run longer than an object id is cut to 40, which is exactly what the
+    reader's old quantified pattern matched, and a run shorter than a unique
+    short id names nothing.
+    """
+    if match is None:
+        return None
+    token = match.group(0)
+    if len(token) > SHA_TOKEN_MAX:
+        return token[:SHA_TOKEN_MAX]
+    return token if len(token) >= SHA_TOKEN_MIN else None
+
+
+def _first_token(text: str) -> str | None:
+    """The first sha-shaped hex run in a piece of text, or None."""
+    return _sha_token(re.search(_SHA_TOKEN_PATTERN, text))
+
+
+# A branch name: something with a slash in it, written as a word (= "wt/x",
+# "project/t_1-…", "feature/y"). An ABSOLUTE PATH also has slashes, so a
+# match preceded by "/" is not a branch (= a card's Worktree line would
+# otherwise be read as the branch it reviewed).
+_BRANCHISH_PATTERN = "[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9._/-]+"
+
+
+def _subject_branch(body: str) -> str | None:
+    """The branch this card says it reviewed, or None when it says none.
+
+    A card states its branch the way it states its sha (= "Branch
+    `wt/x`", or a section headed "The branch"), and it is the FIRST branch
+    it states: a second one is what the branch stacks on (= measured on
+    t_6f4a84c5, whose own branch is wt/inspector-9roles-2026-11-19 and whose
+    body cites wt/inspector-style-2026-11-19 as the base under it).
+    """
+    def first(line: str) -> str | None:
+        for hit in re.finditer(_BRANCHISH_PATTERN, line):
+            if hit.start() and line[hit.start() - 1] == "/":
+                continue  # an absolute path, not a branch
+            return hit.group(0)
+        return None
+
     for name, text in sections(body):
-        if normalized(name) != "what to build":
+        for line in text.splitlines():
+            if "branch" in line.lower():
+                found = first(line)
+                if found:
+                    return found
+        if "branch" in normalized(name):
+            found = first(text)
+            if found:
+                return found
+    return None
+
+
+# The fallback reads at most this many distinct hex runs out of one body. A
+# review card names the commit it reviewed in its opening lines; a body that
+# carries a hundred hex runs (= a list of landed commits, a quoted diff) is
+# not a card that names one sha, and the cap keeps a board sweep from paying
+# a git lookup for every one of them.
+_SHA_SCAN_CAP = 64
+
+# token -> does it resolve as a commit in this repository? A sweep reads
+# hundreds of bodies that repeat the same shas, so the answer is kept once.
+_COMMIT_CACHE: dict[str, bool] = {}
+
+
+def _same_sha(a: str | None, b: str | None) -> bool:
+    """Whether two hex tokens name the same commit at either length.
+
+    Bodies carry short ids and full ids, and the caller resolves refs to 40
+    characters, so a comparison that insists on equal length misses. This is
+    the same both-directions test ``matching_cards`` has always used.
+    """
+    return bool(a) and bool(b) and (a.startswith(b) or b.startswith(a))
+
+
+def _claims_commit(token: str) -> bool:
+    """Whether a hex token resolves as a commit object in this repository.
+
+    A review card body is full of hex that is NOT a commit: card ids
+    (``t_7c12b4c5`` carries 8 hex characters), the round before it, and
+    truncated transcriptions. Measured 2026-11-10 on card t_82a8a618: a body
+    that opened its WHAT TO BUILD with "Round 1 (``t_66145c1b``) found TWO
+    blocking defects" made the reader return ``66145c1b`` (= a TASK ID), and
+    the landing gate then reported a branch whose verdict existed as a branch
+    nobody had reviewed.
+    """
+    hit = _COMMIT_CACHE.get(token)
+    if hit is not None:
+        return hit
+    out = _git_out(["rev-parse", "--verify", "--quiet", f"{token}^{{commit}}"])
+    ok = bool(out) and re.fullmatch(r"[0-9a-f]{40}", (out or "").strip()) is not None
+    _COMMIT_CACHE[token] = ok
+    return ok
+
+
+def _prime_commit_cache(tokens: set[str]) -> None:
+    """Resolve a whole set of hex tokens with ONE git call, and memoize.
+
+    The reader needs "is this a commit?" for every sha claim on the board
+    (= 528 of wenshu-par's 583 review cards carry one), and a per-token
+    ``git rev-parse`` would pay one subprocess each: a ``merge-preflight``
+    sweep that asks about 40 branches would spend the run resolving shas.
+    ``cat-file --batch-check`` answers the full set in one call, and it
+    answers in input order, one line per object.
+    """
+    todo = sorted(t for t in tokens if t and t not in _COMMIT_CACHE)
+    if not todo:
+        return
+    payload = "".join(f"{t}^{{commit}}\n" for t in todo)
+    out = _git_out(
+        ["cat-file", "--batch-check=%(objectname) %(objecttype)"], stdin=payload
+    )
+    if out is None:
+        return  # git unusable: leave the tokens uncached, the slow path answers
+    answers = out.splitlines()
+    for i, token in enumerate(todo):
+        if i >= len(answers):
+            break
+        parts = answers[i].split()
+        _COMMIT_CACHE[token] = (
+            len(parts) >= 2
+            and parts[1] == "commit"
+            and re.fullmatch(r"[0-9a-f]{40}", parts[0]) is not None
+        )
+
+
+def _what_to_build_claim(body: str) -> str | None:
+    """The first hex run of the first paragraph of WHAT TO BUILD, or None.
+
+    This is the reader exactly as it stood, kept whole for back-compat: the
+    cards already on the board were written against it, and AGENTS.md 1.15
+    still asks for the heading.
+    """
+    for name, text in sections(body):
+        if normalized(name) != WHAT_TO_BUILD_HEADING:
             continue
         lines = text.splitlines()
         if lines and lines[0].lstrip().startswith("#"):
@@ -626,9 +796,231 @@ def reviewed_sha(body: str) -> str | None:
             claim = para.strip()
             if not claim:
                 continue
-            match = re.search(r"[0-9a-f]{7,40}", claim)
-            return match.group(0) if match else None
+            return _sha_token(re.search(_SHA_TOKEN_PATTERN, claim))
     return None
+
+
+def _body_sha_tokens(body: str) -> list[str]:
+    """Every distinct hex run in a body, in the order it appears."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for hit in re.finditer(_SHA_TOKEN_PATTERN, body):
+        token = _sha_token(hit)
+        if not token or token in seen:
+            continue
+        seen.add(token)
+        if len(seen) > _SHA_SCAN_CAP:
+            break
+        out.append(token)
+    return out
+
+
+def _claim_tokens(body: str) -> list[str]:
+    """The hex runs this body PRESENTS as the commit it reviewed, in order.
+
+    Two signals, in the order a reader would trust them: a line that says
+    "under review" states the subject outright, and a section whose heading
+    says the same (= "SHA UNDER REVIEW", "The delta under review") states it
+    with the first sha it carries. Everything else in the body is a citation
+    and stays out of here, because a citation is how one round of a stack
+    quotes the round before it.
+    """
+    out: list[str] = []
+
+    def add(token: str | None) -> None:
+        if token and token not in out:
+            out.append(token)
+
+    for name, text in sections(body):
+        norm = normalized(name)
+        for line in text.splitlines():
+            if _CLAIM_LABEL in line.lower():
+                add(_first_token(line))
+        if _CLAIM_LABEL in norm or "sha" in norm.split():
+            for hit in re.finditer(_SHA_TOKEN_PATTERN, text):
+                add(_sha_token(hit))
+    return out
+
+
+def reviewed_sha(
+    body: str, history: list[str] | None = None, branch: str | None = None
+) -> str | None:
+    """The sha a review card names. None never comes from a heading name.
+
+    THE ORDER (= the decision, not a preference):
+
+    1. The WHAT TO BUILD claim, exactly as the gate has always read it, when
+       that token resolves as a commit here. 528 of the board's review cards
+       are written this way and their answer must not move.
+    2. Otherwise the sha the body NAMES AS ITS SUBJECT (= ``_claim_tokens``).
+       Measured 2026-11-19 on rounds 2 and 3 of one stack (= ``t_673fae4f``,
+       ``t_7c12b4c5``): both titled that section something other than WHAT TO
+       BUILD, the old reader returned None, ``matching_cards`` skipped the
+       card in silence, and ``merge-preflight`` printed UNREVIEWED over a
+       branch whose approval was real and readable by ``--card``. A gate that
+       guards a landing must not fail open on the spelling of a heading.
+    3. When the card states no subject, the first hex run in the body that
+       resolves as a commit -- and when the body names SEVERAL, the one this
+       branch's own history contains wins (= ``history``: the shas the branch
+       has pointed at). That tie-break is the decision and it is the whole of
+       it: when the branch's history holds none of them, or holds several,
+       this tool cannot tell which sha the card reviewed, and the answer is
+       None. Guessing here is the leak that would let round 2's refusal
+       answer for round 1's head (= measured: ``t_673fae4f`` cites round 1's
+       sha in its opening paragraph before naming its own).
+       And the guess stays inside the branch the card says it reviewed
+       (= ``branch`` against ``_subject_branch``): measured on t_6f4a84c5, a
+       card for wt/inspector-9roles-2026-11-19 whose body names the sha of
+       the branch UNDER it, a fallback with no branch guard handed that
+       stacked-on sha to a lookup for a different branch, and the verdict
+       that was never about it came first.
+    4. When NOTHING in the body resolves as a commit, the WHAT TO BUILD claim
+       comes back anyway (= a card naming a sha this repository does not
+       hold: today's answer, and the right one, because that card really does
+       not cover the sha asked about). With no claim at all the answer is
+       None, which means "the gate could not read this card's sha" and NOT
+       "no card covers this sha" = see ``unread_review_cards``.
+
+    A WHAT TO BUILD claim is never overridden by another sha that merely
+    sits in the body: a card that reviewed head N and quotes head N-1 must
+    not be read as a verdict on N-1, which is how the rounds of one stack
+    differ from each other.
+    """
+    claim = _what_to_build_claim(body)
+    if claim is not None and _claims_commit(claim):
+        return claim
+    subject = [t for t in _claim_tokens(body) if _claims_commit(t)]
+    if subject:
+        return subject[0]
+    stated = _subject_branch(body)
+    if branch is None or stated is None or stated == branch:
+        loose = [t for t in _body_sha_tokens(body) if _claims_commit(t)]
+        if len(loose) == 1:
+            return loose[0]
+        if loose and history:
+            in_history = [t for t in loose if any(_same_sha(t, h) for h in history)]
+            if len(in_history) == 1:
+                return in_history[0]
+    return claim
+
+
+def unread_review_cards(cards: list[dict], branch: str | None = None) -> list[str]:
+    """Review cards whose sha the gate could not read (= the OTHER failure).
+
+    ``matching_cards`` returns an empty list both when no card covers the sha
+    and when a card covers the branch and the reader could not parse which
+    sha it named. Measured 2026-11-19: the same sentence
+    ("NO REVIEW CARD names the sha") was printed for both, so a branch with a
+    real approval looked like a branch nobody reviewed, and the first thing a
+    reader did with that answer was re-review work that was already approved.
+
+    A card counts here only when it is a review card, names no sha the gate
+    can read, and (= when a branch was asked for) names that branch in its
+    body or title. Without the branch filter every unread review card on the
+    board (= 55 on wenshu-par today) would be reported against every branch.
+    """
+    _prime_review_claims(cards)
+    # Read the sha EXACTLY the way the covering lookup reads it (= same
+    # history, same branch guard), or this list would report cards the lookup
+    # can in fact read, and the new sentence would be a new false alarm.
+    history = branch_tip_history(branch) if branch else []
+    out: list[str] = []
+    for card in cards:
+        doc = {"task": card, "runs": card.get("runs") or [], "events": []}
+        if card_kind(doc) != "review":
+            continue
+        body = card.get("body") or ""
+        if reviewed_sha(body, history, branch) is not None:
+            continue
+        # A card that says it reviewed ANOTHER branch is not unreadable here,
+        # it is simply not about this one (= t_6f4a84c5 reviews
+        # wt/inspector-9roles-2026-11-19 and cites the branch under it; the
+        # mention is a base, not a subject). Reporting it would send a reader
+        # to fix a card that is written correctly.
+        stated = _subject_branch(body)
+        if branch and stated and stated != branch:
+            continue
+        if branch:
+            haystack = f"{body}\n{card.get('title') or ''}"
+            if branch not in haystack:
+                continue
+        card_id = str(card.get("id") or "?")
+        if card_id not in out:
+            out.append(card_id)
+    return out
+
+
+def _prime_review_claims(cards: list[dict]) -> None:
+    """Resolve every sha these cards could name with ONE git call.
+
+    A card that carries a WHAT TO BUILD heading can only answer with that
+    token, so only it is worth resolving. A card without one can fall
+    through to its subject lines and then to any hex run in its body, so
+    those candidates go in as well (= the ~55 cards on wenshu-par today that
+    the heading-only reader could not read). Without this priming the same
+    sweep pays one subprocess per token, and the sweep is what a landing
+    runs on every branch it is about to merge.
+    """
+    need: set[str] = set()
+    for card in cards:
+        doc = {"task": card, "runs": card.get("runs") or [], "events": []}
+        if card_kind(doc) != "review":
+            continue
+        body = card.get("body") or ""
+        claim = _what_to_build_claim(body)
+        if claim is None:
+            # No heading to read: everything the card could answer with.
+            need.update(_claim_tokens(body))
+            need.update(_body_sha_tokens(body))
+            continue
+        need.add(claim)
+    _prime_commit_cache(need)
+    # SECOND PASS, and it is the whole reason this is not one call: a card
+    # whose WHAT TO BUILD claim does NOT resolve falls through to the tokens
+    # around it, and those were never in the first set (= measured: one
+    # lookup over wenshu-par spent 3.6 s in per-token ``git rev-parse``
+    # calls for exactly that path, against 0.3 s for everything else). The
+    # first pass makes "which claims resolve?" a cache read, so the second
+    # one can ask it and prime the remainder in one more call.
+    again: set[str] = set()
+    for card in cards:
+        doc = {"task": card, "runs": card.get("runs") or [], "events": []}
+        if card_kind(doc) != "review":
+            continue
+        body = card.get("body") or ""
+        claim = _what_to_build_claim(body)
+        if claim is None or _claims_commit(claim):
+            continue
+        again.update(t for t in _claim_tokens(body) if t not in _COMMIT_CACHE)
+        again.update(t for t in _body_sha_tokens(body) if t not in _COMMIT_CACHE)
+    _prime_commit_cache(again)
+
+
+def branch_miss_lines(
+    sha: str | None, branch: str, unread: list[str]
+) -> list[str]:
+    """What the gate prints when it found no covering card.
+
+    Two different facts, and today they must not share a sentence: the sha
+    lookup found nothing (= the work carries no verdict), and a card that
+    names the branch is unreadable (= the verdict may exist and this tool
+    cannot say). The first is a refusal, the second is a bug report.
+    """
+    if unread:
+        return [
+            f"REVIEW CARD UNREADABLE: {', '.join(unread)} names branch "
+            f"{branch} and the gate could not read its sha",
+            f"         (= the reader found no commit token the repository "
+            f"resolves; asked about sha {sha or '?'}).",
+            "         This is NOT \"no review card covers this sha\": a verdict "
+            "may exist on that card, so read it with --card <id> before "
+            "re-reviewing the branch.",
+        ]
+    return [
+        f"NO REVIEW CARD names the sha {sha or '?'} on branch {branch}",
+        "         (= no review card covers this sha: the branch carries no "
+        "verdict on this commit).",
+    ]
 
 
 def branch_of(doc: dict) -> str | None:
@@ -1091,7 +1483,14 @@ def main() -> int:
             if how == "change":
                 print("  matched by change (= the branch was rebased; the change is the same)")
         if not found:
-            print(f"NO REVIEW CARD names the sha {args.sha or '?'} on branch {args.branch}")
+            # The two ways this lookup comes back empty are NOT the same
+            # fact, and printing one sentence for both sent branches to be
+            # re-reviewed that an approving verdict already covered
+            # (= measured 2026-11-19, board wenshu-par).
+            for line in branch_miss_lines(
+                sha_filter, args.branch, unread_review_cards(cards, args.branch)
+            ):
+                print(line)
         return 0 if found else 3
 
     if args.check:

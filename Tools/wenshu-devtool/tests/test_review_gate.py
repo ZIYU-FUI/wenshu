@@ -644,6 +644,189 @@ def main() -> int:
         )
         os.chdir(cwd_before)
 
+    # ---- case 12: the sha reader does not depend on ONE heading ----
+    # Measured 2026-11-19 on board wenshu-par: rounds 2 and 3 of one stack
+    # titled the sha section "What round 2 asked and what this head does",
+    # so the reader returned None, matching_cards skipped the card in
+    # silence, and merge-preflight printed UNREVIEWED over a branch whose
+    # approval was real and readable by --card. The cases below are the
+    # reader (= no board, no card-body edit): a renamed heading is read, a
+    # citation is not mistaken for the subject, a WHAT TO BUILD claim still
+    # wins, and the two failure modes say different things.
+    def verdict_card(card_id: str, body: str, ended_at: int = 10) -> dict:
+        """A review card whose one run carries an approving verdict.
+
+        `created_by` is the implementer and `assignee` the reviewer, which is
+        the shape a REVIEW card has on the board (= it was created FOR the
+        reviewer, so its own completion is the verdict; with both set to the
+        same profile the gate reads a self-review and says so).
+        """
+        return {
+            "id": card_id,
+            "title": f"[T2][{REVIEW_TAG}] the change",
+            "body": body,
+            "assignee": "wenshu-review",
+            "created_by": "wenshu-dev",
+            "runs": [
+                {"id": ended_at, "profile": "wenshu-review",
+                 "outcome": "completed", "ended_at": ended_at,
+                 "metadata": {"review_outcome": "approved"}}
+            ],
+            "events": [],
+            "created_at": ended_at,
+        }
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        run = lambda *a: subprocess.run(
+            ["git", *a], cwd=repo, capture_output=True, text=True, check=True
+        )
+        cwd_before = Path.cwd()
+        os.chdir(repo)
+        run("init", "-q", "-b", "main")
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        (repo / "base.txt").write_text("base\n")
+        run("add", "-A")
+        run("commit", "-qm", "base")
+        run("checkout", "-qb", "feature")
+
+        def commit_file(name: str, text: str) -> str:
+            """One commit on the fixture branch, and its sha."""
+            (repo / name).write_text(text)
+            run("add", "-A")
+            run("commit", "-qm", name)
+            return run("rev-parse", "HEAD").stdout.strip()
+
+        round1 = commit_file("round1.txt", "round one\n")
+        round2 = commit_file("round2.txt", "round two\n")
+
+        # 12a. the renamed heading, in the shape the real cards use: the
+        # previous round is CITED first, the subject is stated under a
+        # heading that says "under review".
+        renamed = (
+            f"# Review round 2: the fixer\n\n"
+            f"Round 1 ({round1[:10]}) came back **changes_requested**.\n\n"
+            f"## The delta under review\n\n"
+            f"Branch `feature`. = Head under review: **`{round2}`**.\n\n"
+            f"## REVIEW HANDOFF\n\nnone\n"
+        )
+        card = verdict_card("t_renamed", renamed)
+        check(
+            "12a: a renamed heading is still read (= never None on a heading)",
+            tool.reviewed_sha(renamed),
+            round2,
+        )
+        check(
+            "12a: the renamed-heading card covers the sha it named",
+            [(f[0], f[1], f[3]) for f in
+             tool.matching_cards([card], round2, "feature")],
+            [("t_renamed", "approved", "sha")],
+        )
+        check(
+            "12a: and it does NOT cover the round it only cites",
+            tool.matching_cards([card], round1, "feature"),
+            [],
+        )
+
+        # 12b. the other real shape: the sha lives under its own heading.
+        headed = (
+            f"# Review\n\n## SHA UNDER REVIEW\n\n`{round2}` (branch `feature`).\n\n"
+            f"## REVIEW HANDOFF\n\nnone\n"
+        )
+        check("12b: a SHA UNDER REVIEW heading is read", tool.reviewed_sha(headed), round2)
+
+        # 12c. back-compat: the WHAT TO BUILD claim wins over a later sha
+        # that merely sits in the body (= a card that reviewed round 1's
+        # head and notes where the branch went after is a verdict on round 1).
+        claim = (
+            f"## WHAT TO BUILD\n\nA verdict on `{round1}` (branch `feature`).\n\n"
+            f"The head moved to `{round2}` since.\n\n## REVIEW HANDOFF\n\nnone\n"
+        )
+        check(
+            "12c: the WHAT TO BUILD claim is not overridden by another sha",
+            tool.reviewed_sha(claim, [round1, round2], "feature"),
+            round1,
+        )
+
+        # 12d. the loose fallback stays inside the branch the card reviewed:
+        # a stacked branch names the base under it, and that sha is a base,
+        # not a subject.
+        citing = (
+            f"# Review\n\n## The branch\n\n`wt/b-2`, stacked on `wt/b-1`'s "
+            f"`{round1}` (= the base under it).\n"
+        )
+        check(
+            "12d: the first branch a card states is the one it reviewed",
+            tool._subject_branch(citing),
+            "wt/b-2",
+        )
+        check(
+            "12d: another branch's lookup does not borrow that sha",
+            tool.reviewed_sha(citing, [round1], "wt/b-1"),
+            None,
+        )
+        check(
+            "12d: the branch the card states does read it",
+            tool.reviewed_sha(citing, [round1], "wt/b-2"),
+            round1,
+        )
+
+        # 12e. the two failures, in two sentences (= change B).
+        unread = verdict_card(
+            "t_unread",
+            f"# Review\n\n## The delta under review\n\nBranch `feature`. = Head "
+            f"under review: `deadbeefdeadbeefdeadbeefdeadbeefdeadbeef` (= a sha "
+            f"this repository does not hold).\n",
+        )
+        check(
+            "12e: a card naming no resolvable sha reads as None",
+            tool.reviewed_sha(unread["body"], [], "feature"),
+            None,
+        )
+        check(
+            "12e: and it is REPORTED, not skipped",
+            tool.unread_review_cards([card, unread], "feature"),
+            ["t_unread"],
+        )
+        check(
+            "12e: the unread card is named as unreadable, not as no coverage",
+            tool.branch_miss_lines(round2, "feature", ["t_unread"])[0].startswith(
+                "REVIEW CARD UNREADABLE"
+            ),
+            True,
+        )
+        check(
+            "12e: with nothing unread the answer is still no coverage",
+            tool.branch_miss_lines(round2, "feature", [])[0].startswith(
+                "NO REVIEW CARD names the sha"
+            ),
+            True,
+        )
+        check(
+            "12e: a card about another branch is not called unreadable here",
+            tool.unread_review_cards([unread], "wt/b-9"),
+            [],
+        )
+
+        # 12f. the authority order is untouched by all of this (= the verdict's
+        # own time governs; the group is only the tie-break).
+        older = verdict_card("t_older", renamed, ended_at=10)
+        newer = verdict_card(
+            "t_newer",
+            f"## WHAT TO BUILD\n\nA verdict on `{round2}` (branch `feature`).\n\n"
+            f"## REVIEW HANDOFF\n\nnone\n",
+            ended_at=20,
+        )
+        check(
+            "12f: the later verdict still governs the same sha",
+            [f[0] for f in tool.matching_cards(
+                [older, newer], round2, "feature")],
+            ["t_newer", "t_older"],
+        )
+        os.chdir(cwd_before)
+
     # ---- the three defects the review round measured on this change ----
     # D1: an OLD approval of a pre-rebase tree must not shadow a NEWER
     # refusal of the current tree (= the caller takes the first card).
