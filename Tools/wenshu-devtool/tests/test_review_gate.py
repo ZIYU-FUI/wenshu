@@ -780,10 +780,16 @@ def main() -> int:
             f"under review: `deadbeefdeadbeefdeadbeefdeadbeefdeadbeef` (= a sha "
             f"this repository does not hold).\n",
         )
+        # The dead token comes BACK (it is the card's stated subject, and
+        # nothing in the body may answer for it); it is unreadable in the
+        # other sense (= this repository cannot cite it), which is what the
+        # next case reports. Measured 2026-11-20: 233 of the board's 595
+        # review cards are in this shape, every one of them a rewritten
+        # branch, and the loose scan used to re-point 84 of them at a base.
         check(
-            "12e: a card naming no resolvable sha reads as None",
+            "12e: a card naming an unresolvable sha keeps that sha as its subject",
             tool.reviewed_sha(unread["body"], [], "feature"),
-            None,
+            "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
         )
         check(
             "12e: and it is REPORTED, not skipped",
@@ -824,6 +830,94 @@ def main() -> int:
             [f[0] for f in tool.matching_cards(
                 [older, newer], round2, "feature")],
             ["t_newer", "t_older"],
+        )
+
+        # 12g. the defect the first round measured: a card that STATES its
+        # subject and names a commit this repository no longer holds must
+        # keep that subject. Falling through to the loose scan here re-pointed
+        # 84 of the 595 review cards on wenshu-par at a base they only cite,
+        # and one real landing refusal (t_db96e32f on de4ba13b3ecb) read to
+        # the landing gate as an unrelated approval (t_fc3b6dea, whose own
+        # subject 67f27c52cacd the repository has lost).
+        gone = "a" * 40  # a sha this repository does not hold
+        stale = (
+            f"## WHAT TO BUILD\n\nA verdict on `{gone}` (branch `feature`).\n\n"
+            f"Gate: `ci_change_gate.py --base {round2[:10]}`.\n\n"
+            f"## REVIEW HANDOFF\n\nnone\n"
+        )
+        stale_card = verdict_card("t_stale", stale)
+        check(
+            "12g: a dead WHAT TO BUILD claim is still the card's subject",
+            tool.reviewed_sha(stale, [round1, round2], "feature"),
+            gone,
+        )
+        check(
+            "12g: and it does not cover the live sha the body only cites",
+            tool.matching_cards([stale_card], round2, "feature"),
+            [],
+        )
+        check(
+            "12g: a gone subject is REPORTED, not silently re-pointed",
+            tool.unread_review_cards([stale_card], "feature"),
+            ["t_stale"],
+        )
+        check(
+            "12g: the refusal on the live sha still governs the landing",
+            [f[0] for f in tool.matching_cards([stale_card, card], round2, "feature")],
+            ["t_renamed"],
+        )
+        stale_headed = (
+            f"## The delta under review\n\nBranch `feature`. Head under review: "
+            f"`{gone[:12]}` (= rewritten away).\n\nBuilt on `{round2[:12]}`.\n"
+        )
+        check(
+            "12g: a dead 'under review' subject is not replaced either",
+            tool.reviewed_sha(stale_headed, [round2], "feature"),
+            gone[:12],
+        )
+        check(
+            "12g: the two unreadable shapes share one sentence, and it is "
+            "not the no-coverage one",
+            tool.branch_miss_lines(round2, "feature", ["t_stale"])[0].startswith(
+                "REVIEW CARD UNREADABLE"
+            ),
+            True,
+        )
+
+        # 12h. `_same_sha`, pinned directly (= the first round found the
+        # extraction had no case of its own: gate 1 passed a full sha and the
+        # card answered a full sha, so no length mismatch was ever exercised).
+        full = "d05242f281e26544f67b74754d0c4cb8d5a49361"
+        check("12h: a short token equals its own 40-char form",
+              tool._same_sha(full[:10], full), True)
+        check("12h: a 40-char form equals its short prefix",
+              tool._same_sha(full, full[:10]), True)
+        check("12h: two commits do not match at either length",
+              tool._same_sha(full[:10], "ca0d3824"), False)
+        check("12h: nothing matches None or an empty token",
+              [tool._same_sha(None, full), tool._same_sha(full, None),
+               tool._same_sha("", ""), tool._same_sha(None, None)],
+              [False, False, False, False])
+
+        # 12i. a path in this tree is not a branch (= 25 of the board's 595
+        # review cards state a path where this reader wants a ref, which used
+        # to switch the branch guard off for them silently).
+        check(
+            "12i: a path under a branch heading yields the next real branch",
+            tool._subject_branch(
+                "## The branch\n\n`Tools/wenshu-devtool/review_gate.py`\n\n"
+                "Built on `wt/x-1`.\n"),
+            "wt/x-1",
+        )
+        check(
+            "12i: a path alone states no branch at all",
+            tool._subject_branch("## The branch\n\n`docs/agents/nfi.md`\n"),
+            None,
+        )
+        check(
+            "12i: and a real branch under it is still read",
+            tool._subject_branch("## The branch\n\n`project/t_c6d23305-x`\n"),
+            "project/t_c6d23305-x",
         )
         os.chdir(cwd_before)
 

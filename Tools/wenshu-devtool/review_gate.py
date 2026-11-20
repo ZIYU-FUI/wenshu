@@ -676,6 +676,30 @@ def _first_token(text: str) -> str | None:
 # otherwise be read as the branch it reviewed).
 _BRANCHISH_PATTERN = "[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9._/-]+"
 
+# A repo-relative PATH is not a branch, and reading one as a branch silently
+# turns the branch guard off. Measured 2026-11-20 over the 595 review cards on
+# wenshu-par: 25 state a path where this reader wants a branch (= this tool's
+# own card body names its tool's path, t_e6ceacaf names `docs/agents/nfi.md`,
+# t_6d04cc14 names a path under Tools), and because no asked-for branch ever
+# equals a path, `_subject_branch`
+# reported "this card reviewed some other branch" and the loose fallback was
+# skipped for all 25 -- fail-closed, but the feature off for 4% of the board.
+# No branch on this repository starts with one of its top-level directories
+# (116 local branches; first segments are project 72, wt 25, backup 3,
+# review 2, hermes-subagent 2, feature 2, and single-letter series), so the
+# list below is a guard and not a guess.
+_REPO_TOPLEVEL_DIRS = (
+    "Board", "Mobile", "Scripts", "Sources", "Tests", "Tools", "Vendor", "docs",
+)
+
+
+def _looks_like_repo_path(candidate: str) -> bool:
+    """Whether a slash-bearing name is a path in this tree, not a branch."""
+    head, _, tail = candidate.partition("/")
+    if head in _REPO_TOPLEVEL_DIRS:
+        return True
+    return re.search(r"\.[A-Za-z][A-Za-z0-9]{0,4}$", tail or candidate) is not None
+
 
 def _subject_branch(body: str) -> str | None:
     """The branch this card says it reviewed, or None when it says none.
@@ -690,6 +714,8 @@ def _subject_branch(body: str) -> str | None:
         for hit in re.finditer(_BRANCHISH_PATTERN, line):
             if hit.start() and line[hit.start() - 1] == "/":
                 continue  # an absolute path, not a branch
+            if _looks_like_repo_path(hit.group(0)):
+                continue  # a repo-relative path, not a branch
             return hit.group(0)
         return None
 
@@ -849,16 +875,24 @@ def reviewed_sha(
 
     THE ORDER (= the decision, not a preference):
 
-    1. The WHAT TO BUILD claim, exactly as the gate has always read it, when
-       that token resolves as a commit here. 528 of the board's review cards
-       are written this way and their answer must not move.
+    1. The WHAT TO BUILD claim, resolved or not. 528 of the board's review
+       cards are written this way and their answer must not move. A card that
+       states its subject here and names a commit this repository no longer
+       holds (= the branch was rewritten, rebased, garbage-collected: the
+       everyday shape here, 233 of the board's 595 review cards today) still
+       means THAT commit -- it is reported by ``unread_review_cards`` and it
+       covers nothing else. Falling through to the loose scan instead is the
+       defect the first round of this change measured (84 cards re-pointed at
+       a base they only cite, one landing refusal read as an approval).
     2. Otherwise the sha the body NAMES AS ITS SUBJECT (= ``_claim_tokens``).
        Measured 2026-11-19 on rounds 2 and 3 of one stack (= ``t_673fae4f``,
        ``t_7c12b4c5``): both titled that section something other than WHAT TO
        BUILD, the old reader returned None, ``matching_cards`` skipped the
        card in silence, and ``merge-preflight`` printed UNREVIEWED over a
        branch whose approval was real and readable by ``--card``. A gate that
-       guards a landing must not fail open on the spelling of a heading.
+       guards a landing must not fail open on the spelling of a heading. And
+       the same rule as step 1: when that stated subject does not resolve, it
+       comes back anyway rather than giving way to a citation.
     3. When the card states no subject, the first hex run in the body that
        resolves as a commit -- and when the body names SEVERAL, the one this
        branch's own history contains wins (= ``history``: the shas the branch
@@ -874,12 +908,11 @@ def reviewed_sha(
        the branch UNDER it, a fallback with no branch guard handed that
        stacked-on sha to a lookup for a different branch, and the verdict
        that was never about it came first.
-    4. When NOTHING in the body resolves as a commit, the WHAT TO BUILD claim
-       comes back anyway (= a card naming a sha this repository does not
-       hold: today's answer, and the right one, because that card really does
-       not cover the sha asked about). With no claim at all the answer is
-       None, which means "the gate could not read this card's sha" and NOT
-       "no card covers this sha" = see ``unread_review_cards``.
+    4. Otherwise None (= the card states no subject AND nothing in the body
+       resolves as a commit). None means "the gate could not read this card's
+       sha" and NOT "no card covers this sha" = see ``unread_review_cards``,
+       which reports both shapes: a card that names no commit, and a card
+       whose stated commit this repository no longer holds.
 
     A WHAT TO BUILD claim is never overridden by another sha that merely
     sits in the body: a card that reviewed head N and quotes head N-1 must
@@ -887,11 +920,28 @@ def reviewed_sha(
     differ from each other.
     """
     claim = _what_to_build_claim(body)
-    if claim is not None and _claims_commit(claim):
+    if claim is not None:
+        # Stated is stated: resolved or not, this is the card's subject and
+        # no sha that merely sits in the body may answer for it (= a dead
+        # claim returns here, at step 4, instead of falling through the loose
+        # scan). Measured 2026-11-20 over 595 review cards on wenshu-par: the
+        # fall-through re-pointed 84 of them at a base they only cite, 40 live
+        # shas gained a verdict that was never about them, and one landing
+        # refusal (t_db96e32f on de4ba13b3ecb) read to the landing gate as an
+        # unrelated approval (t_fc3b6dea, whose own subject 67f27c52cacd the
+        # repository no longer holds) -- a gate that fails open on a
+        # garbage-collected branch is worse than the heading bug this change
+        # set out to fix.
         return claim
-    subject = [t for t in _claim_tokens(body) if _claims_commit(t)]
-    if subject:
-        return subject[0]
+    # The FIRST subject the body states wins, resolved or not. Choosing the
+    # resolvable one instead is the same defect one level down: a section
+    # headed "The delta under review" carries the head it reviewed AND the
+    # base it sits on (= "Built on `<sha>`"), and when the head has been
+    # rewritten away, preferring the live token hands the base a verdict that
+    # was never about it.
+    stated_subject = _claim_tokens(body)
+    if stated_subject:
+        return stated_subject[0]
     stated = _subject_branch(body)
     if branch is None or stated is None or stated == branch:
         loose = [t for t in _body_sha_tokens(body) if _claims_commit(t)]
@@ -901,7 +951,7 @@ def reviewed_sha(
             in_history = [t for t in loose if any(_same_sha(t, h) for h in history)]
             if len(in_history) == 1:
                 return in_history[0]
-    return claim
+    return None
 
 
 def unread_review_cards(cards: list[dict], branch: str | None = None) -> list[str]:
@@ -915,9 +965,13 @@ def unread_review_cards(cards: list[dict], branch: str | None = None) -> list[st
     reader did with that answer was re-review work that was already approved.
 
     A card counts here only when it is a review card, names no sha the gate
-    can read, and (= when a branch was asked for) names that branch in its
-    body or title. Without the branch filter every unread review card on the
-    board (= 55 on wenshu-par today) would be reported against every branch.
+    can BOTH read and cite (= no commit token at all, or a stated one this
+    repository no longer holds), and (= when a branch was asked for) names
+    that branch in its body or title. Without the branch filter every unread
+    review card on the board (= 55 readable-but-unparsable, plus 233 whose
+    stated commit is gone, on wenshu-par today) would be reported against
+    every branch, which is why the branch argument is not optional in
+    practice.
     """
     _prime_review_claims(cards)
     # Read the sha EXACTLY the way the covering lookup reads it (= same
@@ -930,8 +984,15 @@ def unread_review_cards(cards: list[dict], branch: str | None = None) -> list[st
         if card_kind(doc) != "review":
             continue
         body = card.get("body") or ""
-        if reviewed_sha(body, history, branch) is not None:
+        sha = reviewed_sha(body, history, branch)
+        if sha is not None and _claims_commit(sha):
+            # Readable AND citable: this card answers for a commit that exists.
             continue
+        # Two shapes land here and both are "the verdict may exist and this
+        # tool cannot cite it": a card that names no commit the repository
+        # resolves, and a card whose STATED commit is gone (= the branch was
+        # rewritten). The second is the one that used to be silently
+        # re-pointed at some base the body happened to cite.
         # A card that says it reviewed ANOTHER branch is not unreadable here,
         # it is simply not about this one (= t_6f4a84c5 reviews
         # wt/inspector-9roles-2026-11-19 and cites the branch under it; the
@@ -1010,8 +1071,8 @@ def branch_miss_lines(
         return [
             f"REVIEW CARD UNREADABLE: {', '.join(unread)} names branch "
             f"{branch} and the gate could not read its sha",
-            f"         (= the reader found no commit token the repository "
-            f"resolves; asked about sha {sha or '?'}).",
+            f"         (= the card names either no commit token at all, or one "
+            f"this repository no longer holds; asked about sha {sha or '?'}).",
             "         This is NOT \"no review card covers this sha\": a verdict "
             "may exist on that card, so read it with --card <id> before "
             "re-reviewing the branch.",

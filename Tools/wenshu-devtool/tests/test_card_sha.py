@@ -190,21 +190,36 @@ def case_8_write_on_a_body_without_what_to_build_fails() -> None:
 
 def case_9_the_gate_reader_is_reproduced() -> None:
     """The tool must read the sha the SAME way `review_gate.reviewed_sha`
-    does (= the first paragraph of WHAT TO BUILD, its first hex run), or it
-    would check a different sha than the gate uses."""
+    does (= it CALLS that reader, so a body this tool checks is a body the
+    gate answers for). What the gate reads moved on 2026-11-20 and this case
+    moved with it: the WHAT TO BUILD first paragraph still wins, a subject
+    stated later under an "under review" line is read too, and a STATED
+    subject comes back even when the repository no longer holds the object
+    (= the landing review's blocking finding: falling through to a citation
+    re-pointed 84 of the board's 595 review cards at a base they only cite).
+    """
     body = (
         "## WHAT TO BUILD\n\n"
         "A verdict on `abcdef1234` (branch `wt/x`).\n\n"
         "The sha under review: **0123456789abcdef0123456789abcdef01234567**\n"
     )
     check("the first paragraph's sha", mod.first_paragraph_sha(body), "abcdef1234")
-    # a sha named ONLY later is invisible to the gate (= and to this tool)
+    # A sha stated only later IS read now, when the line states it as the
+    # subject (= a line "The sha under review: <40 hex>"). It is not dropped for not
+    # resolving: the gate reads it, cannot cite it, and reports the card
+    # through `unread_review_cards` -- which is the answer this tool wants
+    # too, because a card naming a 40-hex run the repository has never heard
+    # of is the 2026-11-03 failure `--check` exists to catch.
     late = (
         "## WHAT TO BUILD\n\n"
         "A verdict on the change.\n\n"
         "The sha under review: **0123456789abcdef0123456789abcdef01234567**\n"
     )
-    check("a sha named later is not read", mod.first_paragraph_sha(late), None)
+    check(
+        "a sha stated later under 'under review' is read as the subject",
+        mod.first_paragraph_sha(late),
+        "0123456789abcdef0123456789abcdef01234567",
+    )
 
 
 def case_10_an_uppercase_guess_is_caught() -> None:
