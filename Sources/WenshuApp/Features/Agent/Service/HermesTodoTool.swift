@@ -127,6 +127,18 @@ final class HermesTodoStore: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.wenshu.HermesTodoStore")
     private var items: [HermesTodoItem]
 
+    #if DEBUG
+        /// How many changes this store has announced, counted on the
+        /// writer's side of the broadcast (= a test seam).
+        ///
+        /// It exists because the notification is process-wide and a test
+        /// that only listens cannot tell THIS store's write from another
+        /// store's. The counter is per instance and taken on the store's
+        /// own serial queue, so it counts writes to this list and nothing
+        /// else, whatever else the test runner is scheduling.
+        private(set) var announcementCount = 0
+    #endif
+
     init(items: [HermesTodoItem] = []) {
         self.items = items
     }
@@ -203,7 +215,7 @@ final class HermesTodoStore: @unchecked Sendable {
         return snapshot
     }
 
-    /// Tells every mirror of the plan that its snapshot is stale.
+    /// Tells every mirror of THIS store that its snapshot is stale.
     ///
     /// Posted on the writing thread, like the app's other change
     /// notifications, and a mirror that draws from it hops to the main
@@ -211,9 +223,24 @@ final class HermesTodoStore: @unchecked Sendable {
     /// not when a queue happens to drain. The notification carries no
     /// payload, because a plan has one current state and a reader takes
     /// a fresh snapshot rather than applying a delta.
+    ///
+    /// The SENDER is the store that wrote, and that is not decoration.
+    /// The app builds more than one `HermesTodoStore`
+    /// (= `HermesTodoTool.shared` and the separate one
+    /// `TodoStoreTool.shared` owns), and a mirror follows the plan it
+    /// READS: posted with no sender, one store's write would wake every
+    /// mirror in the process (= a wake with nothing to show), and a test
+    /// that counted the announcement would be counting the whole process
+    /// (= its green would depend on which suites the runner happened to
+    /// schedule beside it). `announcementCount` is the same event seen
+    /// from the writer, so a test can assert one store's own total
+    /// without listening to the broadcast at all.
     private func postPlanChange() {
+        #if DEBUG
+            queue.sync { announcementCount += 1 }
+        #endif
         NotificationCenter.default.post(
-            name: Notification.Name.wenshuTodoPlanDidChange, object: nil
+            name: Notification.Name.wenshuTodoPlanDidChange, object: self
         )
     }
 
@@ -370,6 +397,17 @@ struct HermesTodoTool: Tool, Sendable {
 
     init(store: HermesTodoStore) {
         self.store = store
+    }
+
+    /// The object this tool's plan writes announce with (= the store
+    /// that wrote).
+    ///
+    /// A mirror passes it as the `object:` of its subscription, so it is
+    /// told about the plan it reads and about no other: the app builds a
+    /// second `HermesTodoStore` (= `TodoStoreTool.shared`), and a write
+    /// there has nothing to show on a page that reads this one.
+    var planSender: HermesTodoStore {
+        store
     }
 
     /// The plan the agent wrote (= the store's current items).

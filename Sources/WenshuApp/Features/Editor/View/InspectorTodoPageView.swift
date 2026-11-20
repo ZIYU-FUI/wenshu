@@ -38,9 +38,12 @@ struct InspectorTodoPageView: View {
         .task { model.refresh() }
         // The plan store announces its own writes (= the assistant
         // writes the plan while the user watches this page), so the page
-        // reads once per write instead of asking again on a clock.
+        // reads once per write instead of asking again on a clock. The
+        // subscription names THIS page's store: the announcement is a
+        // process-wide broadcast, and a write to some other
+        // `HermesTodoStore` has nothing here to draw.
         .onReceive(NotificationCenter.default.publisher(
-            for: .wenshuTodoPlanDidChange
+            for: .wenshuTodoPlanDidChange, object: model.planSource
         )) { _ in
             model.refresh()
         }
@@ -211,8 +214,21 @@ final class InspectorTodoModel {
     /// The store the page reads.
     private let readPlan: () throws -> [HermesTodoItem]
 
-    init(readPlan: @escaping () throws -> [HermesTodoItem] = { HermesTodoTool.shared.readPlan() }) {
+    /// The store whose writes this page is told about.
+    ///
+    /// The page listens to ONE store (= the sender half of the plan
+    /// announcement) instead of to every plan write in the process: the
+    /// app builds a second `HermesTodoStore` (= `TodoStoreTool.shared`),
+    /// and a wake caused by that one would draw this page from a plan
+    /// that has not changed.
+    let planSource: HermesTodoStore
+
+    init(
+        readPlan: @escaping () throws -> [HermesTodoItem] = { HermesTodoTool.shared.readPlan() },
+        planSource: HermesTodoStore = HermesTodoTool.shared.planSender
+    ) {
         self.readPlan = readPlan
+        self.planSource = planSource
     }
 
     /// One read of the store: the cards come from that one read, so

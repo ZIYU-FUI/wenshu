@@ -14,12 +14,18 @@
 //    1. A subscriber learns the current state at subscribe time, so it
 //       never shows an empty page for a scope that already has records.
 //    2. Every record mutation is announced, so a snapshot cannot go
-//       stale without the reader being woken.
+//       stale without the reader being woken. That includes the two
+//       paths that take a record AWAY (the LRU eviction and the
+//       retention cleanup), = asserted here at `drop`, not only at
+//       `store`, because the page's mirror must shrink when the table
+//       does.
 //    3. A registry that changes nothing announces nothing, which is the
 //       whole point of the change (= an idle column does no work).
 //
 //  A cancelled consumer is also dropped, so a closed page leaves no
-//  subscriber behind.
+//  subscriber behind, and the file's shape is pinned too: the record
+//  table is written by two functions and both of them announce (= the
+//  structural fact the refusal of a fallback scan rests on).
 //
 //
 
@@ -194,6 +200,96 @@ struct AsyncDelegationChangeSignalTests {
         await second.cancel()
     }
 
+    // MARK: - 2b. A record taken away is announced like one written
+
+    /// One registry, one subscriber: the reader's wake count is only
+    /// evidence when nothing else could have woken it, so every test
+    /// here drives ONE mutation and waits for ONE wake.
+    @Test("a retirement wakes the reader (= the mirror shrinks on its own)")
+    func retirementWakesTheReader() async {
+        let registry = AsyncDelegationRegistry()
+        // One record past the retention window, one inside it: the
+        // cleanup's only effect on the table is to take the old one away,
+        // so a wake after it can only be the retirement being announced.
+        await registry.register(handle: BackgroundDelegationHandle(
+            agentName: "researcher",
+            userMessage: "retired",
+            startedAt: Date(timeIntervalSince1970: 0),
+            scope: Self.scope()
+        ))
+        await registry.register(handle: Self.handle("kept"))
+
+        let subscriber = Subscriber(await registry.changes())
+        #expect(await arrived(subscriber, atLeast: 1))
+        let baseline = await subscriber.count
+        let kept = (await registry.handles(scope: Self.scope())).count
+
+        await registry.cleanup()
+
+        #expect(await arrived(subscriber, atLeast: baseline + 1),
+                "a record was retired and the reader was never told")
+        #expect(await registry.handles(scope: Self.scope()).count == kept - 1,
+                "the cleanup did not retire what the test put past its window")
+        await subscriber.cancel()
+    }
+
+    @Test("a retirement that retires nothing wakes nobody (= no wake with nothing to show)")
+    func aQuietRetirementIsSilent() async {
+        let registry = AsyncDelegationRegistry()
+        await registry.register(handle: Self.handle("still inside the window"))
+        let subscriber = Subscriber(await registry.changes())
+        #expect(await arrived(subscriber, atLeast: 1))
+        let baseline = await subscriber.count
+
+        await registry.cleanup()
+
+        // Nothing left the table, so no snapshot went stale, so the
+        // writer's `guard removed` says nothing (= the same promise the
+        // idle registry is tested for, at the removal path).
+        try? await Task.sleep(for: .milliseconds(300))
+        #expect(await subscriber.count == baseline)
+        await subscriber.cancel()
+    }
+
+    @Test("the eviction announces its removal, not only the write it rides in")
+    func evictionIsAnnouncedAsARemoval() async {
+        let registry = AsyncDelegationRegistry()
+        // The subscriber is NOT the witness here: the 51st completion
+        // writes a record AND evicts one inside one actor step, and the
+        // stream keeps only the newest signal, so the reader is woken
+        // either way. The writer's own count is the witness, and it says
+        // which function spoke (= delete the announce inside `drop` and
+        // this goes red; delete the announce anywhere else and the tests
+        // above do).
+        var evictedID = ""
+        for index in 0 ..< 51 {
+            let handle = Self.handle("task \(index)")
+            if index == 0 {
+                evictedID = handle.id
+            }
+            await registry.register(handle: handle)
+            await registry.markCompleted(id: handle.id, result: "done")
+        }
+
+        let counts = await registry.announcementCounts
+        #expect(counts[.dropped, default: 0] == 1,
+                "the 51st completion should have announced exactly one retirement")
+        #expect(await registry.get(id: evictedID) == nil,
+                "the LRU should have dropped the oldest record")
+    }
+
+    @Test("one registry's announcements are not another's")
+    func announcementsArePerRegistry() async {
+        let loud = AsyncDelegationRegistry()
+        let quiet = AsyncDelegationRegistry()
+
+        await loud.register(handle: Self.handle("written somewhere else"))
+
+        #expect(await quiet.announcementCounts.isEmpty,
+                "a test seam that leaks across instances cannot witness an instance")
+        #expect(await loud.announcementCounts[.stored, default: 0] == 1)
+    }
+
     // MARK: - 3. A registry that changes nothing says nothing
 
     @Test("an idle registry wakes no reader (= the clock the page used to run is gone)")
@@ -210,6 +306,63 @@ struct AsyncDelegationChangeSignalTests {
         try? await Task.sleep(for: .milliseconds(300))
         #expect(await subscriber.count == 1)
         await subscriber.cancel()
+    }
+
+    // MARK: - 4. The table cannot be written without being announced
+
+    /// The premise under the whole design: there is no fallback timer
+    /// because an unannounced mutation is not expressible. A sentence
+    /// like that is only worth what reads it, so this test reads the
+    /// source and fails if the file grows a third way to change the
+    /// table, or if either writer stops speaking.
+    @Test("the record table is written only by functions that announce")
+    func recordTableIsWrittenOnlyByAnnouncingWriters() throws {
+        let url = SourceLocator.url(
+            "Sources/WenshuApp/Features/Agent/Store/AsyncDelegation.swift"
+        )
+        let source = try String(decoding: Data(contentsOf: url), as: UTF8.self)
+
+        // A line WRITES the table when `records` is followed by `=` on
+        // that line (= subscript or whole-table), or by a mutating call.
+        // A read (`guard var handle = records[id] else`) has the `=` on
+        // the OTHER side, so it does not match, and a comment line is
+        // skipped for the same reason it is skipped everywhere.
+        var function = ""
+        var writers = Set<String>()
+        var announcers = Set<String>()
+        for raw in source.components(separatedBy: "\n") {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("//") {
+                continue
+            }
+            if let opened = line.range(of: "func ") {
+                let rest = line[opened.upperBound...]
+                let name = rest.prefix { $0.isLetter || $0 == "_" }
+                function = String(name)
+                // The declaration line names the function, so it is not
+                // evidence about what the function DOES (= its own
+                // `signalChanges(` in the text would else read as a call).
+                continue
+            }
+            guard !function.isEmpty else { continue }
+            if line.contains("signalChanges(") {
+                announcers.insert(function)
+            }
+            let mutatesRecords = (line.contains("records[") || line.hasPrefix("records "))
+                && line.contains("] = ")
+            let mutatesByCall = ["records.removeValue", "records.removeAll", "records.updateValue"]
+                .contains { line.contains($0) }
+            if mutatesRecords || mutatesByCall {
+                writers.insert(function)
+            }
+        }
+
+        // The declaration (`private var records: [...] = [:]`) sits
+        // outside any function, so `function` is still empty there.
+        #expect(writers == ["store", "drop"],
+                "the record table is written outside the announcing writers")
+        #expect(announcers == ["store", "drop"],
+                "one of the two writers no longer announces its own change")
     }
 
     // MARK: - Teardown

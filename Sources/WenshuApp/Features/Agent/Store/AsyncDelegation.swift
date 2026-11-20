@@ -24,6 +24,30 @@ actor AsyncDelegationRegistry {
 
     // MARK: - Change signal
 
+    /// Which writer spoke (= the vocabulary of the seam below).
+    enum Announcement: Hashable, Sendable {
+        /// A record was written (`store`).
+        case stored
+        /// Records were retired (`drop`: the LRU eviction and the
+        /// retention cleanup, the only two paths that remove one).
+        case dropped
+    }
+
+    #if DEBUG
+        /// How many times each writer announced, per instance
+        /// (= a test seam, and it exists for one reason: a reader that
+        /// counts its own WAKES cannot separate an eviction from the
+        /// completion it rides in, because both land in one actor step
+        /// and the stream keeps only the newest signal. The count says
+        /// which writer spoke, so "every mutation announces" stays a
+        /// fact a test reads instead of one it infers from a wake).
+        ///
+        /// A count and not a log: a log would grow with every streamed
+        /// output chunk. Neither is the signal itself - the count only
+        /// records that a writer spoke.
+        private(set) var announcementCounts: [Announcement: Int] = [:]
+    #endif
+
     /// One continuation per live consumer of "the records changed".
     ///
     /// A consumer re-reads the registry itself, so the signal carries no
@@ -59,7 +83,16 @@ actor AsyncDelegationRegistry {
     }
 
     /// Announce a record change to every live consumer.
-    private func signalChanges() {
+    ///
+    /// The ONLY place the stream yields for a mutation, and only the two
+    /// writers call it (= that is the invariant the no-fallback-scan
+    /// decision rests on: a change that reaches the table has passed
+    /// through a function that announces it).
+    /// - Parameter kind: which writer spoke (= the count only).
+    private func signalChanges(_ kind: Announcement) {
+        #if DEBUG
+            announcementCounts[kind, default: 0] += 1
+        #endif
         for continuation in changeSubscribers.values {
             continuation.yield(())
         }
@@ -67,9 +100,41 @@ actor AsyncDelegationRegistry {
 
     /// The only way a record is stored, so a change can never be written
     /// without being announced.
+    ///
+    /// The removal twin is `drop(ids:)`, and those two are the ONLY
+    /// functions in this file that write `records`
+    /// (= `recordTableIsWrittenOnlyByAnnouncingWriters` reads the source
+    /// and fails if a third appears). That structural fact, not a test,
+    /// is what the refusal of a fallback scan rests on: a mutation that
+    /// nobody announced has nowhere else to come from.
     private func store(_ handle: BackgroundDelegationHandle) {
         records[handle.id] = handle
-        signalChanges()
+        signalChanges(.stored)
+    }
+
+    /// The only way records leave the table, so a removal can never
+    /// happen without being announced either (= the removal half of the
+    /// single-writer pair above).
+    ///
+    /// A SET, not one id, because retention cleanup drops many records
+    /// in one step and a reader re-reads the whole snapshot: one signal
+    /// per step is all it needs. Ids that are not in the table are no-ops,
+    /// and a step that removes NOTHING announces nothing (= there is no
+    /// stale snapshot to retire, = and an idle column still does no work).
+    ///
+    /// It also prunes the completion queue, = a queue entry naming a
+    /// dropped record is dead the moment the record is, = and leaving it
+    /// would make `recentCompleted()` answer for a delegation the table
+    /// no longer holds.
+    private func drop(ids: Set<String>) {
+        var removed = false
+        for id in ids where records[id] != nil {
+            records[id] = nil
+            removed = true
+        }
+        guard removed else { return }
+        completionQueue.removeAll { ids.contains($0) }
+        signalChanges(.dropped)
     }
 
     /// Register a new background delegation.
@@ -220,11 +285,12 @@ actor AsyncDelegationRegistry {
             state: .completed,
             detail: nil
         ))
-        // LRU evict
-        if completionQueue.count > maxRetained {
-            let evicted = completionQueue.removeFirst()
-            records.removeValue(forKey: evicted)
-            signalChanges()
+        // LRU evict: the queue names the oldest completed record, and
+        // the removal goes through the writer (= `drop` announces and
+        // prunes the queue entry with it, so an eviction cannot happen
+        // without the reader being told).
+        if completionQueue.count > maxRetained, let evicted = completionQueue.first {
+            drop(ids: [evicted])
         }
     }
 
@@ -249,17 +315,19 @@ actor AsyncDelegationRegistry {
     }
 
     /// Cleanup old records beyond retention period.
+    ///
+    /// The registry keeps the same 7-day window hermes does, and the
+    /// records that fall outside it leave through the removal writer
+    /// (`drop`), = which announces, = so a reader is never left showing
+    /// a delegation the table has retired. A window with nothing stale
+    /// in it removes nothing and announces nothing.
     func cleanup() {
-        let now = Date()
-        let cutoff = now.addingTimeInterval(-durableRetentionSeconds)
-        records = records.filter { _, handle in
+        let cutoff = Date().addingTimeInterval(-durableRetentionSeconds)
+        let retired = records.values.filter { handle in
             let referenceDate = handle.completedAt ?? handle.startedAt
-            return referenceDate > cutoff
-        }
-        completionQueue = completionQueue.filter { id in
-            records[id] != nil
-        }
-        signalChanges()
+            return referenceDate <= cutoff
+        }.map(\.id)
+        drop(ids: Set(retired))
     }
 
     // MARK: - Progress stream (wenshu port wire-up)

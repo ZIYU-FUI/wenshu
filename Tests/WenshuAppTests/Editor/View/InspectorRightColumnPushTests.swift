@@ -39,17 +39,30 @@ struct InspectorRightColumnPushTests {
 
     // MARK: - A plan write announces itself
 
-    @Test("writing a plan announces the plan")
+    /// The observation is scoped to the SENDER, not to the notification
+    /// name alone. Posted with no sender, these two counters would see
+    /// every plan write in the process, = including the ones a
+    /// co-running suite makes, = so their green would be a fact about
+    /// which suites the runner scheduled together, and a LOST
+    /// announcement could hide behind another suite's write. Scoped to
+    /// the store this test created, a count of 1 can only be this write.
+    @Test("writing a plan announces the plan, once, from the store that wrote it")
     func planWriteIsAnnounced() {
         // A store of its own, so the test never touches the shared plan.
-        let tool = HermesTodoTool(store: HermesTodoStore())
+        let store = HermesTodoStore()
+        let tool = HermesTodoTool(store: store)
         var announced = 0
         // An observer with no queue runs on the posting thread, and the
         // write posts on the writing thread, so this needs no run loop:
         // registered before the write, removed after it.
         let token = NotificationCenter.default.addObserver(
-            forName: Self.planChangeName, object: nil, queue: nil
-        ) { _ in announced += 1 }
+            forName: Self.planChangeName, object: store, queue: nil
+        ) { notification in
+            // The sender IS the store that wrote: an observer cannot be
+            // scoped to an object the post does not name.
+            #expect(notification.object as AnyObject === store)
+            announced += 1
+        }
         defer { NotificationCenter.default.removeObserver(token) }
 
         tool.writePlan([
@@ -58,16 +71,19 @@ struct InspectorRightColumnPushTests {
         ])
 
         #expect(announced == 1)
+        #expect(store.announcementCount == 1)
     }
 
     @Test("reading a plan announces nothing (= a mirror is told, not polled)")
     func planReadIsSilent() {
-        let tool = HermesTodoTool(store: HermesTodoStore())
+        let store = HermesTodoStore()
+        let tool = HermesTodoTool(store: store)
         tool.writePlan([HermesTodoItem(id: "1", content: "seed", status: .pending)])
+        let announcedByTheWrite = store.announcementCount
 
         var announced = 0
         let token = NotificationCenter.default.addObserver(
-            forName: Self.planChangeName, object: nil, queue: nil
+            forName: Self.planChangeName, object: store, queue: nil
         ) { _ in announced += 1 }
         defer { NotificationCenter.default.removeObserver(token) }
 
@@ -75,6 +91,43 @@ struct InspectorRightColumnPushTests {
             _ = tool.readPlan()
         }
         #expect(announced == 0)
+        #expect(store.announcementCount == announcedByTheWrite)
+    }
+
+    @Test("another store's write does not announce to this store's mirror")
+    func aWriteToAnotherPlanIsNotThisPlansNews() {
+        // The app builds more than one `HermesTodoStore`
+        // (= `HermesTodoTool.shared`, and the separate one
+        // `TodoStoreTool.shared` owns). A mirror of one plan must not be
+        // woken by the other (= a wake with nothing to show), = and a
+        // test of one plan must not be paid for by the other (= the
+        // green-by-accident half of the same defect).
+        let mine = HermesTodoStore()
+        let theirs = HermesTodoStore()
+        var announced = 0
+        let token = NotificationCenter.default.addObserver(
+            forName: Self.planChangeName, object: mine, queue: nil
+        ) { _ in announced += 1 }
+        defer { NotificationCenter.default.removeObserver(token) }
+
+        HermesTodoTool(store: theirs).writePlan([
+            HermesTodoItem(id: "1", content: "some other chat's plan", status: .pending),
+        ])
+
+        #expect(announced == 0)
+        #expect(mine.announcementCount == 0)
+        #expect(theirs.announcementCount == 1)
+    }
+
+    @Test("the page's mirror follows the store it reads (= one plan, not the process)")
+    @MainActor
+    func theMirrorFollowsThePlanItReads() {
+        // The view has no other way to name its plan: if the model's
+        // sender were a different object from the store the page reads
+        // through, the `.onReceive` would be scoped to a plan nobody is
+        // drawing (= the clock's return, in a shape no test can see).
+        let model = InspectorTodoModel()
+        #expect(model.planSource === HermesTodoTool.shared.planSender)
     }
 
     // MARK: - The clock is gone from the pages that ran it
@@ -113,6 +166,12 @@ struct InspectorRightColumnPushTests {
                 "the status page no longer follows the registry's signal")
         #expect(plan.contains(".wenshuTodoPlanDidChange"),
                 "the plan page no longer follows the plan store's signal")
+        // Whitespace folded, because the formatter, not the author,
+        // decides where this call wraps (= what must not change is the
+        // subscription naming its store, not the line it sits on).
+        let foldedPlan = plan.split(whereSeparator: \.isWhitespace).joined()
+        #expect(foldedPlan.contains("for:.wenshuTodoPlanDidChange,object:model.planSource"),
+                "the plan page follows every plan write in the process again")
     }
 
     // MARK: - The mirror answers the write, not a beat
