@@ -660,5 +660,6 @@ or delete" a row the registry's own entry rule allows is a wrong repair, not jus
 | `docs/agents/2026-11-20-session-close-no-verdict-without-a-teeth-run.md` | `docs/agents/2026-11-20-session-close-dead-sweep-gate-and-blindspots.md` | 81 | the session close for the dead-code sweep scope: audit, both gate fall-throughs, the blind-spot branch at round 16, the twin-sha ledger = = and the not-mine commits named |
 | `Sources/WenshuApp/Shared/UI/LabelSegmentedControl.swift` | `Sources/WenshuApp/Shared/UI/PaneTabStripTitle.swift` | 267 | `enum PaneTabStripTitle` = the ONE title rule a pane tab strip's segment follows (= asked by the editor document strip and the chat zone session bar). |
 | `Sources/WenshuApp/Shared/UI/WenshuTabPicker.swift` | `Tests/WenshuAppTests/Shared/UI/TabPickerBandGeometryTests.swift` | 392 | the band geometry the column switcher is measured ON (= a rendered control, = not a source read). |
+| `docs/agents/2026-11-20-session-close-dead-sweep-gate-and-blindspots.md` | `docs/agents/2026-11-21-session-close-the-cap-gets-a-gate-and-the-registry-opens.md` | 116 | the session closeout of record for the 600-LOC cap gate (= and for the two registry rows that could not be opened). |
 <!-- Append new rows at the END of the table above. The key-level merge
      driver keeps both rows when two cards add one each. -->
