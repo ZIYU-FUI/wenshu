@@ -411,6 +411,40 @@ else
     fail "14b. the sides reversed did not merge cleanly (exit $MRC, edited tail: $(grep -cF "$TAIL_EDITED" merged14b.md), base tail: $(grep -cF "$TAIL_BASE_MARK" merged14b.md), rows: $(grep -cE '^\| `' merged14b.md), expected $((BASEROWS + 2)))"
 fi
 
+# 15. one side DELETES the registry's trailing newline => the merge is CLEAN
+#     (no CONFLICT), that side's tail wins, and the merged file's last byte is
+#     NOT a newline.
+#     This is the shape the three-way rule changed: under the two-way rule the
+#     two sides' tails differed, the driver named "<the file's tail>" and
+#     exited 1; now the newline-less side simply wins and the merge is SILENT
+#     about the dropped byte, so ci_change_gate.py's `markdown-newline` check
+#     is the ONLY guard for it (= = its prose says so, = = and this case pins
+#     the behaviour).
+branch v1; addrow "Sources/.../TailNewlineOne.swift" "TestTailNewlineOne.swift" 111
+python3 - "$REG" <<'PY'
+import sys
+p = sys.argv[1]
+data = open(p, "rb").read()
+if not data.endswith(b"\n"):
+    sys.exit("the fixture already lacked the trailing newline")
+open(p, "wb").write(data[:-1])
+PY
+git commit -qam "v1 adds a row and DROPS the trailing newline"
+branch v2; addrow "Sources/.../TailNewlineTwo.swift" "TestTailNewlineTwo.swift" 222; git commit -qam "v2 adds a row and keeps the trailing newline"
+MRC=0; git merge-tree --write-tree --name-only v1 v2 >/dev/null 2>&1 || MRC=$?
+TREE=$(git merge-tree --write-tree v1 v2 2>/dev/null | head -1)
+git cat-file -p "$TREE:$REG" > merged15.md 2>/dev/null
+LASTBYTE=$(tail -c 1 merged15.md 2>/dev/null | od -An -tx1 | tr -d ' \n')
+if [ "$MRC" -eq 0 ] \
+   && [ "$LASTBYTE" != "0a" ] \
+   && grep -q "TestTailNewlineOne.swift" merged15.md \
+   && grep -q "TestTailNewlineTwo.swift" merged15.md \
+   && [ "$(grep -cE '^\| `' merged15.md)" -eq "$((BASEROWS + 2))" ]; then
+    pass "15. one side drops the trailing newline => the merge is clean, that side's tail wins, and the byte is dropped in silence"
+else
+    fail "15. the newline-less side did not win silently (exit $MRC, last byte: $LASTBYTE, rows: $(grep -cE '^\| `' merged15.md), expected $((BASEROWS + 2)))"
+fi
+
 echo
 if [ "$FAILURES" -eq 0 ]; then
     echo "nfi registry: all tests passed"
