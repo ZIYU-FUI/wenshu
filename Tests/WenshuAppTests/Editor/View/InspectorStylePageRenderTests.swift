@@ -3,13 +3,13 @@
 //
 //  The inspector column's style page, rendered.
 //
-//  The style page is the BOOK's style sheet: = the eleven styles a
+//  The style page is the BOOK's style sheet: = the nine styles a
 //  novel uses, = and the five knobs the book is fine-tuned with. = This
 //  suite renders the real page and reads the rendered accessibility tree
 //  back, so the facts a source read cannot reach are measured on the
 //  page itself:
 //
-//  1. The page carries the eleven roles and the five knobs.
+//  1. The page carries the nine roles and the five knobs.
 //  2. Each row shows the face, = the size and = the leading the book's
 //     own sheet gives that role.
 //  3. The knobs show the SELECTED BOOK's positions, = and two books
@@ -22,6 +22,17 @@
 //     model's own rows (= the rows are NOT in the accessibility tree,
 //     = so they are held by the page's own source, = with two anchors:
 //     = the call site and the binding).
+//  7. Each row is shown in the VOICE the engine gives that role (= the
+//     face, = the size, = the line height), = and the voice is the
+//     engine's own arithmetic, = not the sheet's one multiple read
+//     nine times.
+//  8. The page paints each position ONCE (= the drop-down's own AppKit
+//     title is transparent: = the one thing a screenshot of the
+//     rendered page cannot see, = so it is read off the button).
+//  9. The place the book is at is lit by the switcher itself (= one
+//     segmented control over the column), = and no ink of this page's
+//     drawing marks it: = the control's own selected segment is the
+//     whole of the claim.
 //
 //  The tree is read through the ACCESSIBILITY SYSTEM (= the route the
 //  layout probe reads a running app's tree through), because a SwiftUI
@@ -40,26 +51,25 @@ import Testing
 @MainActor
 @Suite("Inspector column style page, rendered", .serialized)
 struct InspectorStylePageRenderTests {
-    /// The page carries the eleven roles and the five knobs.
-    @Test("the page carries the eleven styles and the five knobs")
+    /// The page carries the nine roles and the five knobs.
+    @Test("the page carries the nine styles and the five knobs")
     func thePageCarriesTheStylesAndTheKnobs() {
         let model = InspectorStylePageModel(sheet: .default)
         #expect(
-            model.rows.count == 11,
-            "the style table names the eleven roles a novel uses"
+            model.rows.count == 9,
+            "the style table names the nine roles a novel's text is made of"
         )
         #expect(
             model.rows.map(\.role) == [
                 .body, .quote, .note,
                 .headingOne, .headingTwo, .headingThree,
-                .figureCaption, .tableCaption,
-                .image, .rule, .monospace,
+                .figureCaption, .tableCaption, .monospace,
             ],
-            "the style table names the eleven roles in the order a book is made of"
+            "the style table names the nine roles in the order a book is made of"
         )
         #expect(
-            InspectorStyleRole.allCases.count == 11,
-            "the role enum carries the eleven roles (= the book's own name is not one of them)"
+            InspectorStyleRole.allCases.count == 9,
+            "the role enum carries the nine roles (= the book's own name is not one of them, = and neither is a picture or a rule)"
         )
         #expect(
             model.knobs.map(\.id) == [
@@ -96,11 +106,16 @@ struct InspectorStylePageRenderTests {
             "the headings follow the body's own heading face (= the sheet names it)"
         )
         #expect(heading?.size == 18, "the heading's size comes from the sheet's ladder")
-        let image = model.rows.first { $0.role == .image }
-        #expect(image?.family == nil, "the sheet names no face for the image")
+        //  The code block is the one row the sheet names no face and no
+        //  size for, = and it keeps the leading alone (= the dash that
+        //  used to stand for "nothing to name" went out with the two rows
+        //  that were its only customer).
+        let code = model.rows.first { $0.role == .monospace }
+        #expect(code?.family == nil, "the sheet names no face for the code block")
+        #expect(code?.size == nil, "the sheet names no size for the code block")
         #expect(
-            image?.cells == [InspectorAXTree.unsetName],
-            "a role the sheet names nothing for shows a dash (= the print standard's own table writes one)"
+            code?.cells.count == 1,
+            "the row the sheet names only a leading for carries that one cell"
         )
     }
 
@@ -114,9 +129,10 @@ struct InspectorStylePageRenderTests {
         defer { rendered.close() }
         let labels = rendered.menuLabels()
         #expect(
-            labels.count == 7,
-            "the page carries the five knobs (= the five a book is set with) = and the two sets: \(labels)"
+            labels.count == 5,
+            "the page carries the five knobs and nothing else drops down (= the three places are segments, = not menus): \(labels)"
         )
+        let positions = rendered.selectedPositions()
         for key in [
             "inspector.style.bodySize.medium",
             "inspector.style.lineSpacing.standard",
@@ -125,10 +141,129 @@ struct InspectorStylePageRenderTests {
             "inspector.style.family.songti",
         ] {
             #expect(
-                labels.contains(InspectorAXTree.positionName(key)),
-                "the knob for \(key) must show the book's own position"
+                positions.contains(InspectorAXTree.positionName(key)),
+                "the knob for \(key) must show the book's own position (= the button shows \(positions))"
             )
         }
+    }
+
+    /// Each position is painted by exactly one thing: = the button.
+    ///
+    /// THE DEFECT THIS HOLDS
+    ///
+    /// The knob used to be a drawn block with the position inside it and a
+    /// borderless `Menu` laid over it, = and the AppKit button under that
+    /// menu painted the same position a SECOND time (= `.opacity(0)` on the
+    /// SwiftUI layer left the button's own title at alpha 0.85, = measured
+    /// in this app's process). = The doubled words the boss sent back were
+    /// that second painter.
+    ///
+    /// THE LINE NOW HELD
+    ///
+    /// Nothing here paints a position at all: = the system's button holds
+    /// the only copy, = so its own title must be PAINTED (= a zero alpha
+    /// now means the value went invisible, = which is the other half of the
+    /// same defect), = and the knob's file must not silence a control to
+    /// make room for a drawing of one.
+    ///
+    /// WHY THIS IS NOT A PIXEL TEST
+    ///
+    /// The offscreen cache a pixel test reads does NOT contain the AppKit
+    /// title (= measured), = so a screenshot of the rendered page cannot
+    /// see either copy at all. = The guard reads the button's own title and
+    /// colour.
+    @Test("the page paints each position once")
+    func thePagePaintsEachPositionOnce() throws {
+        let (store, plain, _) = try makeStore()
+        let workspace = makeWorkspace()
+        store.selectedBookId = plain.id
+        let rendered = renderPage(store: store, workspace: workspace)
+        defer { rendered.close() }
+        let popups = rendered.popupButtons()
+        #expect(
+            popups.count == 5,
+            "the five knobs are the page's only drop-downs (= got \(popups.count))"
+        )
+        #expect(
+            Set(popups.map { String(describing: type(of: $0)) }) == ["NSPopUpButton"],
+            "the knobs are AppKit's own pop-up buttons (= got \(Set(popups.map { String(describing: type(of: $0)) })))"
+        )
+        for popup in popups {
+            let title = popup.attributedTitle
+            #expect(
+                title.length > 0,
+                "a knob whose button shows no position is a knob a reader cannot see the state of"
+            )
+            let colour = title.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
+            let alpha = colour?.usingColorSpace(.sRGB)?.alphaComponent ?? 1
+            #expect(
+                alpha > 0,
+                "the button's own title is painted out (alpha \(alpha)) (= something else is drawing it, = which is the doubled word again)"
+            )
+        }
+        let knobCode = try InspectorAXTree.code(of: String(
+            contentsOf: Self.knobSourceURL(),
+            encoding: .utf8
+        ))
+        #expect(
+            !knobCode.contains(".foregroundStyle(.clear)") && !knobCode.contains(".opacity(0)"),
+            "the knob silences a control to make room for a drawing of one (= the inversion that painted every position twice)"
+        )
+    }
+
+    /// PRESSING A SEGMENT MOVES THE BOOK, = AND THE LIT SEGMENT FOLLOWS.
+    ///
+    /// THE DEFECT THIS HOLDS
+    ///
+    /// The boss's report: = "the Print and General switch changed nothing
+    /// below it, = and the open document did not change either". = A
+    /// switcher that repaints itself and writes nothing is exactly that, =
+    /// and it is invisible to every test that only reads what the page
+    /// SHOWS (= those all pass on a control that never writes). = So this
+    /// case presses the real control and reads the real book.
+    ///
+    /// WHY THE LIT SEGMENT IS READ BACK TOO
+    ///
+    /// The segment is not stored anywhere: = it is derived from the book's
+    /// sheet (= `BookStyleSelection.select`), = so a lit segment that moved
+    /// proves the write reached the book the page is looking at, = and not
+    /// only the control's own state.
+    @Test("pressing a segment moves the book")
+    func pressingASegmentMovesTheBook() throws {
+        let (store, plain, _) = try makeStore()
+        let workspace = makeWorkspace()
+        store.selectedBookId = plain.id
+        let rendered = renderPage(store: store, workspace: workspace)
+        defer { rendered.close() }
+        let control = try #require(rendered.segmentedSwitcher())
+        let general = try #require(
+            BookStyleSelection.choices.firstIndex(of: .preset(.general))
+        )
+        #expect(
+            control.selectedSegment != general,
+            "the fixture must not already be on the segment this case presses"
+        )
+        //  The press is AppKit's own: = the control's action is what a
+        //  reader's click fires, = and the callback chain under it
+        //  (= `Binding.set` -> `onChoose` -> the write-back) is what is
+        //  being tested.
+        control.selectedSegment = general
+        let action = try #require(control.action)
+        let target = try #require(control.target)
+        #expect(
+            NSApp.sendAction(action, to: target, from: control),
+            "the switcher's control carries no action (= so a click could not reach the book)"
+        )
+        RunLoop.current.run(until: Date().addingTimeInterval(0.4))
+        let written = try #require(store.books.first { $0.id == plain.id })
+        #expect(
+            BookStyleSelection.select(sheet: written.effectiveStyleSheet) == .preset(.general),
+            "the book the page is showing must be at the set that was pressed"
+        )
+        #expect(
+            control.selectedSegment == general,
+            "the lit segment must be the one the book ended at"
+        )
     }
 
     /// Two books with different sheets show their own.
@@ -139,9 +274,9 @@ struct InspectorStylePageRenderTests {
         store.selectedBookId = plain.id
         let rendered = renderPage(store: store, workspace: workspace)
         defer { rendered.close() }
-        let plainLabels = rendered.menuLabels()
+        let plainLabels = rendered.selectedPositions()
         store.selectedBookId = other.id
-        let otherLabels = rendered.menuLabels()
+        let otherLabels = rendered.selectedPositions()
         #expect(
             plainLabels != otherLabels,
             "two books with different sheets must show their own positions: \(plainLabels) vs \(otherLabels)"
@@ -168,13 +303,13 @@ struct InspectorStylePageRenderTests {
         store.selectedBookId = plain.id
         let rendered = renderPage(store: store, workspace: workspace)
         defer { rendered.close() }
-        let before = rendered.menuLabels()
+        let before = rendered.selectedPositions()
         #expect(
             before.contains(InspectorAXTree.positionName("inspector.style.bodySize.medium")),
             "the first book's own body size must show"
         )
         store.selectedBookId = other.id
-        let after = rendered.menuLabels()
+        let after = rendered.selectedPositions()
         #expect(
             after.contains(InspectorAXTree.positionName("inspector.style.bodySize.large")),
             "the second book's own body size must show after the selection changes"
@@ -217,7 +352,7 @@ struct InspectorStylePageRenderTests {
 
     /// THE RENDERED STYLE ROWS ARE HELD.
     ///
-    /// The eleven rows are the page's other half, = and they are NOT
+    /// The nine rows are the page's other half, = and they are NOT
     /// in the accessibility tree (= a bare `Text` publishes nothing:
     /// = the reviewer measured `Text`, = `.accessibilityElement(children:
     /// .combine)` and = `.accessibilityElement(children: .ignore)` +
@@ -245,12 +380,31 @@ struct InspectorStylePageRenderTests {
             encoding: .utf8
         ))
         #expect(
-            code.contains("ForEach(model.rows)"),
+            code.contains("ForEach(Array(model.rows.enumerated())"),
             "the rendered rows must come from the model's own rows (= not a sheet of their own)"
         )
         #expect(
             code.contains("\n            stylesGroup\n"),
             "the page's body must render the style group (= not an empty view)"
+        )
+        //  The table comes LAST on the page (= see OOB.md #2026-11-19),
+        //  = because it is the group a reader looks at after they have
+        //  set the book, = and it is the long one.
+        //  The ORDER is what is asserted, not the adjacency: the groups
+        //  carry modifiers between them (= a `.disabled` for the case of
+        //  no book named), and an assertion about which line follows which
+        //  is an assertion about how the file is formatted.
+        let tuning = try #require(
+            code.firstRange(of: "tuningGroup").map { code.distance(from: code.startIndex, to: $0.lowerBound) },
+            "the page's body must render the fine tuning"
+        )
+        let table = try #require(
+            code.firstRange(of: "stylesGroup").map { code.distance(from: code.startIndex, to: $0.lowerBound) },
+            "the page's body must render the style table"
+        )
+        #expect(
+            tuning < table,
+            "the fine tuning must be rendered above the style table"
         )
     }
 
@@ -286,7 +440,7 @@ struct InspectorStylePageRenderTests {
             "inspector.style.family.pingFang",
             "inspector.style.size",
             "inspector.style.leading",
-            "inspector.style.unset",
+            "inspector.style.preview.sample",
         ] {
             missing.append(key)
         }
@@ -298,104 +452,35 @@ struct InspectorStylePageRenderTests {
 
     // MARK: - The fixture
 
-    /// A book store with two books that carry different sheets.
+    /// The fixture, = the hosted page and = the reader that walks its view
+    /// tree live in `InspectorStylePageFixture.swift` (= the suite passed
+    /// the 600-line ceiling with them inside it = AGENTS.md 6.6). = The
+    /// three calls below are the only door.
     private func makeStore() throws -> (BookStore, Book, Book) {
-        let tmpRoot = URL(
-            fileURLWithPath: "/tmp/wenshu-style-page-\(UUID().uuidString)",
-            isDirectory: true
-        )
-        try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        let shelvesRoot = tmpRoot.appendingPathComponent("shelves", isDirectory: true)
-        let referenceLibraryRoot = tmpRoot.appendingPathComponent("reference-library", isDirectory: true)
-        let stores = LibraryStores(
-            shelvesRoot: shelvesRoot,
-            referenceLibraryRoot: referenceLibraryRoot,
-            referenceStore: FileSystemReferenceStore(referenceLibraryRoot: referenceLibraryRoot)
-        )
-        let store = BookStore(stores: stores)
-        let plain = Book(
-            title: "Plain",
-            shelfId: UUID(),
-            styleSheet: BookStyleSheet(
-                bodySize: .medium,
-                lineSpacing: .standard,
-                firstLineIndent: .twoCharacters,
-                segmentSpacing: .none,
-                bodyFamily: .songti,
-                quoteFamily: .kai,
-                headingLadder: .printStandard
-            )
-        )
-        let other = Book(
-            title: "Other",
-            shelfId: UUID(),
-            styleSheet: BookStyleSheet(
-                bodySize: .large,
-                lineSpacing: .loose,
-                firstLineIndent: .none,
-                segmentSpacing: .halfCharacter,
-                bodyFamily: .kai,
-                quoteFamily: .songti,
-                headingLadder: .generous
-            )
-        )
-        store.books = [plain, other]
-        return (store, plain, other)
+        try InspectorStylePageFixture.makeStore()
     }
 
-    /// A workspace state of its own (= its own defaults, = so the
-    /// suite never touches the user's own selection).
     private func makeWorkspace() -> WorkspaceUIState {
-        let suiteName = "wenshu-style-page-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName) ?? .standard
-        return WorkspaceUIState(store: UserDefaultsStore(defaults: defaults))
+        InspectorStylePageFixture.makeWorkspace()
     }
 
-    /// The style page, rendered in a window of its own.
     private func renderPage(
         store: BookStore,
         workspace: WorkspaceUIState
     ) -> RenderedPage {
-        let host = NSHostingView(rootView: AnyView(
-            InspectorStylePageView()
-                .environment(store)
-                .environment(workspace)
-                .frame(width: 276)
-        ))
-        host.frame = NSRect(x: 0, y: 0, width: 276, height: 900)
-        let window = NSWindow(
-            contentRect: host.frame,
-            styleMask: [.titled],
-            backing: .buffered,
-            defer: false
-        )
-        window.contentView = host
-        window.makeKeyAndOrderFront(nil)
-        return RenderedPage(host: host, window: window)
+        InspectorStylePageFixture.renderPage(store: store, workspace: workspace)
     }
 
-    /// The page, rendered, and held open (= so a change can be read
-    /// back from the same window).
-    @MainActor
-    private struct RenderedPage {
-        let host: NSHostingView<AnyView>
-        let window: NSWindow
-
-        /// The menus the page paints (= the knobs, = whose label is the
-        /// book's own position).
-        func menuLabels() -> [String] {
-            host.layoutSubtreeIfNeeded()
-            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
-            host.layoutSubtreeIfNeeded()
-            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
-            return InspectorAXTree.elements(of: host)
-                .filter { $0.role == "AXMenuButton" || $0.role == "AXPopUpButton" }
-                .map(\.label)
-        }
-
-        func close() {
-            window.orderOut(nil)
-        }
+    /// The knob's own source file (= where its control is chosen).
+    private static func knobSourceURL() -> URL {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // View
+            .deletingLastPathComponent() // Editor
+            .deletingLastPathComponent() // WenshuAppTests
+            .deletingLastPathComponent() // Tests
+            .deletingLastPathComponent() // the worktree's root
+        return root
+            .appendingPathComponent("Sources/WenshuApp/Features/Editor/View/InspectorStyleKnobView.swift")
     }
 
     /// The format page's own source file (= where its rows are written).
@@ -433,49 +518,4 @@ struct InspectorStylePageRenderTests {
         return root
             .appendingPathComponent("Sources/WenshuApp/Resources/Localizable.xcstrings")
     }
-
-    /// The page marks the set the book is at.
-    ///
-    /// = The mark is in the row's OWN label, = because a SwiftUI
-    /// `Menu` publishes its label to the accessibility tree (= and a
-    /// `Text` publishes nothing), = so the reader can see where the
-    /// book stands.
-    @Test("the page marks the set the book is at")
-    func thePageMarksTheSetTheBookIsAt() throws {
-        let (store, plain, _) = try makeStore()
-        let workspace = makeWorkspace()
-        // = A book AT THE GENERAL SET, = so the page must mark THAT
-        // set (= and not the print baseline).
-        store.books = [
-            Book(
-                title: "General",
-                shelfId: plain.shelfId,
-                styleSheet: BookStylePreset.general.sheet(bodyFamily: .songti)
-            ),
-        ]
-        store.selectedBookId = store.books.first?.id
-
-        let rendered = renderPage(store: store, workspace: workspace)
-        defer { rendered.close() }
-        let labels = rendered.menuLabels()
-
-        #expect(labels.contains("通用 ✓"), "the set the book is at is marked: \(labels)")
-        #expect(!labels.contains("印刷基线 ✓"), "the set the book is NOT at is not marked: \(labels)")
-    }
 }
-
-// MARK: - The rendered tree
-
-// The rendered accessibility tree of a hosted view.
-//
-// The tree is read through the ACCESSIBILITY PROTOCOL, because a
-// SwiftUI control publishes itself there (= it never becomes an
-// AppKit view), and the walk goes all the way down (= the page's rows
-// sit under the scroll area's content).
-//
-// The measurements this rests on (= measured in the app's own
-// process): = a SwiftUI `Menu` publishes an `AXMenuButton` AND its
-// label; = a `Text` publishes NOTHING; = a `TextField` publishes an
-// `AXTextField`. = So the knobs (= the only values on the page that
-// have to be read back) = are menus, = and their labels are the
-// book's own positions.

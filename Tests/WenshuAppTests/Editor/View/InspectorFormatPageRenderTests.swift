@@ -134,24 +134,36 @@ struct InspectorFormatPageRenderTests {
             "the page must offer no heading level (= a book sets its headings once, = in its style sheet)"
         )
         #expect(
-            menus.count == 7,
-            "the page's only menus are the five knobs and the two sets (= a style is a row, = not a menu): \(menus.map(\.label))"
+            menus.count == 5,
+            "the page's only menus are the five knobs (= a style is a row, = and so is a set): \(menus.map(\.label))"
         )
     }
 
-    @Test("the page draws its related commands on one row (= Pages' shape)")
-    func thePageDrawsRelatedCommandsOnOneRow() throws {
+    /// THE GROUP THIS HOLDS GONE
+    ///
+    /// A novel marks emphasis in its own prose, = and the book's style
+    /// sheet says what that emphasis looks like. = A row of inline
+    /// character buttons asks the writer to do the sheet's job by hand on
+    /// every phrase (= and the boss's ruling: = "the character group, = and the three under
+    /// it, = bold, = italic, = underline, = are not needed. Delete them.").
+    /// The page is the book's sheet, = and nothing else.
+    @Test("the page offers no inline character commands")
+    func thePageOffersNoInlineCharacterCommands() throws {
         let code = try InspectorAXTree.code(of: String(
             contentsOf: Self.pageSourceURL(),
             encoding: .utf8
         ))
-        // Pages puts the related controls of one kind on ONE row, in one
-        // block (= its bold / italic / underline). So the character
-        // commands are one row, not three rows of one command each.
         #expect(
-            code.contains("InspectorFormatCommandStrip(actions: [.bold, .italic, .highlight])"),
-            "the character commands must share one row (= Pages draws its related controls side by side)"
+            !code.contains("InspectorFormatCommandStrip"),
+            "the character strip is back on the format page (= it was deleted, = not moved)"
         )
+        for action in [EditorFormatAction.bold, .italic, .highlight] {
+            let name = action.localizedAccessibilityLabel
+            #expect(
+                !code.contains("\(name)"),
+                "the page must not offer \(name) (= a book sets its emphasis once, = in its style sheet)"
+            )
+        }
     }
 
     @Test("the page hosts the book's style sheet")

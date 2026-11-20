@@ -17,16 +17,7 @@ extension AppState {
     /// state are runtime-only (= recreated on launch when tabs are
     /// reloaded from disk).
     func persistOpenTabs() {
-        let snapshot = openTabs.map {
-            PersistedEditorTab(
-                id: $0.id,
-                documentPath: $0.documentPath,
-                draft: $0.draft,
-                originalBody: $0.originalBody,
-                mode: $0.mode.rawValue,
-                title: $0.title
-            )
-        }
+        let snapshot = Self.snapshot(of: openTabs)
         if let data = try? JSONEncoder().encode(snapshot) {
             UserDefaultsStore.shared.setData(data, forKey: .openTabs)
         }
@@ -53,17 +44,53 @@ extension AppState {
     /// restored as before.
     func restoreOpenTabs() {
         guard let data = UserDefaultsStore.shared.data(forKey: .openTabs),
-              let snapshot = try? JSONDecoder().decode([PersistedEditorTab].self, from: data) else {
+              let persisted = try? JSONDecoder().decode([PersistedEditorTab].self, from: data)
+        else {
             return
         }
-        self.openTabs = snapshot.compactMap { p in
+        openTabs = Self.tabs(from: persisted)
+        if let activeId = UserDefaultsStore.shared.uuid(forKey: .activeTabId),
+           openTabs.contains(where: { $0.id == activeId })
+        {
+            activeTabId = activeId
+        } else if let first = openTabs.first {
+            activeTabId = first.id
+        }
+    }
+
+    /// The record the tabs' snapshot is made of: a tab to its persisted
+    /// shape.  `persistOpenTabs` writes exactly this array, so a test of
+    /// what a restart keeps can read exactly this array instead of the one
+    /// process-global defaults record every other suite also writes.
+    /// Measured 2026-11-19: the relaunch case passed alone and failed
+    /// inside a combined `--filter` run, because another suite's `closeTab`
+    /// overwrote that record between the write and the read.
+    static func snapshot(of tabs: [EditorTab]) -> [PersistedEditorTab] {
+        tabs.map {
+            PersistedEditorTab(
+                id: $0.id,
+                documentPath: $0.documentPath,
+                draft: $0.draft,
+                originalBody: $0.originalBody,
+                mode: $0.mode.rawValue,
+                title: $0.title,
+                sourceScope: $0.sourceScope
+            )
+        }
+    }
+
+    /// The record back to tabs: what `restoreOpenTabs` installs, and what a
+    /// test of the restore path can install itself (= the same production
+    /// mapping, no shared defaults in the middle).
+    static func tabs(from persisted: [PersistedEditorTab]) -> [EditorTab] {
+        persisted.compactMap { p in
             // Drop the legacy welcome/placeholder tab (= a
             // tab with no `documentPath` AND empty body; = the
             // empty-state placeholder that the boss asked
             // us to remove; = the `compactMap` here means a
             // future session with no real documents opens
             // to a truly empty editor).
-            if p.documentPath == nil && p.draft.isEmpty && p.originalBody.isEmpty {
+            if p.documentPath == nil, p.draft.isEmpty, p.originalBody.isEmpty {
                 return nil
             }
             guard let mode = EditorMode(rawValue: p.mode) else { return nil }
@@ -166,7 +193,7 @@ extension AppState {
                 // launch).
                 return (fileContent, fileContent)
             }()
-            return EditorTab(
+            let tab = EditorTab(
                 id: p.id,
                 documentPath: p.documentPath,
                 draft: restoredDraft,
@@ -174,12 +201,30 @@ extension AppState {
                 mode: mode,
                 title: p.title
             )
+            // The scope is set after init (= the same way the open paths
+            // set it, = `SidebarOpenOps` / `CardOpenOps`), so a restored
+            // tab names the SAME book its pre-relaunch self named (= the
+            // format page's target survives a restart).
+            tab.sourceScope = p.sourceScope
+            return tab
         }
-        if let activeId = UserDefaultsStore.shared.uuid(forKey: .activeTabId),
-           openTabs.contains(where: { $0.id == activeId }) {
-            self.activeTabId = activeId
-        } else if let first = openTabs.first {
-            self.activeTabId = first.id
+    }
+
+    /// The book the document in front of the user belongs to, = or nil
+    /// when the active tab is a placeholder, = a reference-library card,
+    /// or a document opened before a scope was recorded.
+    ///
+    /// This is what makes "the book" mean the same thing on the format
+    /// page and in the editor: the page and the editor both read the
+    /// store's selected book, = and the store adopts THIS on every tab
+    /// change (= `LibraryRootView`). Opening a book's document from the
+    /// card grid therefore names that book, = which the sidebar's outline
+    /// click alone never did.
+    var activeBookId: UUID? {
+        guard let tab = openTabs.first(where: { $0.id == activeTabId }) else { return nil }
+        if case let .bookScope(bookId, _) = tab.sourceScope {
+            return bookId
         }
+        return nil
     }
 }

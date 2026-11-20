@@ -309,6 +309,196 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
         XCTAssertEqual(written.effectiveStyleSheet.headingLadder, .printStandard)
     }
 
+    /// THE TUNING IS KEPT BEHIND A SET, = AND COMES BACK.
+    ///
+    /// The boss's rule (= OOB.md #2026-11-19): = a book whose knob moved
+    /// sits at Custom, = and General then Custom returns it to the tuning it
+    /// was at, = NOT to the set it passed through. = A set is a whole
+    /// sheet, = so choosing one DOES move the tuned knob back (= that is
+    /// what a set is for), = and the tuning waits in `customStyleSheet`
+    /// for the segment that can find it.
+    ///
+    /// MUTATION: = a set overwriting `customStyleSheet` (= or a knob move
+    /// that never saves the tuning) = leaves Custom a segment with nothing
+    /// to return to, = and the last assertion below fails.
+    func testTheTuningComesBackAfterTheGeneralSet() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let book = try makeBook(in: store)
+
+        _ = try BookStyleSheetWriteBack.apply(
+            knob: .bodySize,
+            position: BookBodySize.large.rawValue,
+            to: book.id,
+            store: store
+        )
+
+        var stored = try JSONDecoder().decode(Book.self, from: readBookJSON(in: store, book))
+        XCTAssertEqual(
+            stored.customStyleSheet?.bodySize,
+            .large,
+            "a move off both sets IS the book's own tuning, = and is saved as one"
+        )
+        XCTAssertEqual(
+            BookStyleSelection.select(sheet: stored.effectiveStyleSheet),
+            .custom,
+            "the page shows Custom for a book that sits at no set"
+        )
+
+        _ = try BookStyleSheetWriteBack.apply(
+            selection: .preset(.general),
+            to: book.id,
+            store: store
+        )
+        stored = try JSONDecoder().decode(Book.self, from: readBookJSON(in: store, book))
+        XCTAssertEqual(
+            stored.effectiveStyleSheet.bodySize,
+            .medium,
+            "the general set is a whole sheet, = so it puts the knob back"
+        )
+        XCTAssertEqual(
+            stored.customStyleSheet?.bodySize,
+            .large,
+            "choosing a set does not delete the book's own tuning"
+        )
+
+        _ = try BookStyleSheetWriteBack.apply(
+            selection: .custom,
+            to: book.id,
+            store: store
+        )
+        stored = try JSONDecoder().decode(Book.self, from: readBookJSON(in: store, book))
+        XCTAssertEqual(
+            stored.effectiveStyleSheet.bodySize,
+            .large,
+            "Custom returns the book to the tuning it was at (= and not to the set it passed through)"
+        )
+    }
+
+    /// CUSTOM IS A PLACE THE READER CAN ALWAYS GO TO, = AND AN UNTUNED
+    /// BOOK ENTERS IT FROM THE GENERAL SET.
+    ///
+    /// The boss's ruling (= OOB.md #2026-11-19): = Custom is entered first
+    /// and tuned afterwards. = An untuned book that is sent to Custom takes
+    /// the general set's sheet (= "reuse the general set at the start"), =
+    /// and that sheet READS as the general set, = which is exactly why the
+    /// place has to be recorded as well as derived: = reading it off the
+    /// sheet alone answers General to the click that chose Custom, = the
+    /// segment springs back under the reader's finger, = and he reports a
+    /// bug.
+    ///
+    /// MUTATION: = delete the line that records the place = the disk has no
+    /// record, = the page falls back to the sheet's own reading, = and the
+    /// third and fourth assertions below fail (= and the last one is the
+    /// one that says the fallback WOULD have lied).
+    func testEnteringCustomFromASetStaysInCustom() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let book = try makeBook(in: store)
+
+        _ = try BookStyleSheetWriteBack.apply(
+            selection: .custom,
+            to: book.id,
+            store: store
+        )
+
+        let stored = try JSONDecoder().decode(Book.self, from: readBookJSON(in: store, book))
+        XCTAssertNil(stored.customStyleSheet, "entering Custom invents no tuning")
+        XCTAssertEqual(
+            BookStylePreset.matching(stored.effectiveStyleSheet),
+            .general,
+            "an untuned book enters Custom from the general set's own values"
+        )
+        XCTAssertEqual(stored.styleSelection, .custom, "the place the reader chose is on disk")
+        XCTAssertEqual(
+            InspectorStylePageModel(
+                sheet: stored.effectiveStyleSheet,
+                recordedSelection: stored.styleSelection
+            ).currentSelection,
+            .custom,
+            "the page lights Custom for the book the reader just put there"
+        )
+        XCTAssertEqual(
+            BookStyleSelection.select(sheet: stored.effectiveStyleSheet),
+            .preset(.general),
+            "the sheet alone would answer General, = which is the spring-back this record exists to prevent"
+        )
+    }
+
+    /// A KNOB MOVED UNDER A SET RECORDS CUSTOM; = A NUDGE BACK ONTO A
+    /// SET'S VALUES RECORDS THAT SET.
+    ///
+    /// The other half of the boss's ruling: = the mechanism that switches
+    /// a book to Custom the moment one of its knobs moves is kept under
+    /// either set. = The record therefore cannot be stale in the direction
+    /// that matters: = the switcher says Custom because the book is at no
+    /// set, = and says the set again when the reader nudges it back onto
+    /// one (= while the tuning he made stays where Custom can find it).
+    ///
+    /// MUTATION: = stop recording the place on the knob path = the second
+    /// and third assertions fail; = record Custom unconditionally = the
+    /// fifth fails.
+    func testAKnobMoveRecordsThePlaceItLandsOn() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let book = try makeBook(in: store)
+
+        _ = try BookStyleSheetWriteBack.apply(
+            knob: .bodySize,
+            position: BookBodySize.large.rawValue,
+            to: book.id,
+            store: store
+        )
+        var stored = try JSONDecoder().decode(Book.self, from: readBookJSON(in: store, book))
+        XCTAssertEqual(stored.styleSelection, .custom, "a knob moved under a set IS the book's own tuning")
+        XCTAssertEqual(
+            stored.customStyleSheet?.bodySize,
+            .large,
+            "and it is saved where Custom can find it"
+        )
+
+        _ = try BookStyleSheetWriteBack.apply(
+            knob: .bodySize,
+            position: BookBodySize.medium.rawValue,
+            to: book.id,
+            store: store
+        )
+        stored = try JSONDecoder().decode(Book.self, from: readBookJSON(in: store, book))
+        XCTAssertEqual(
+            stored.styleSelection,
+            .preset(.printBaseline),
+            "nudging back onto a set's values is being at that set"
+        )
+        XCTAssertEqual(
+            stored.customStyleSheet?.bodySize,
+            .large,
+            "and the tuning meant is not thrown away by it"
+        )
+    }
+
+    /// A BOOK THAT RECORDS NOTHING IS STILL READ OFF ITS SHEET.
+    ///
+    /// Every book written before the switcher recorded places has no
+    /// record, = and the page must not land such a book on Custom or on a
+    /// set it never sat at: = for those, = the sheet's own reading is the
+    /// answer.
+    ///
+    /// MUTATION: = make the page ignore the fallback (= always derive, = or
+    /// always read the record) = this and the case above cannot both pass.
+    func testABookWithoutARecordIsReadOffItsSheet() {
+        let tuned = BookStyleSheet.default.setting(.bodySize, to: BookBodySize.large.rawValue)
+        XCTAssertEqual(
+            InspectorStylePageModel(sheet: tuned).currentSelection,
+            .custom,
+            "a sheet at no set reads as the reader's own tuning"
+        )
+        XCTAssertEqual(
+            InspectorStylePageModel(sheet: .default).currentSelection,
+            .preset(.printBaseline),
+            "a sheet that IS a set reads as that set"
+        )
+    }
+
     /// THE WRITE-BACK LETS THE SAVE'S FAILURE THROUGH.
     ///
     /// = The source-text guard (= "the file carries no `catch`") =

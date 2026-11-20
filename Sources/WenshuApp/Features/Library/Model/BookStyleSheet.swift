@@ -452,11 +452,16 @@ enum BookStylePreset: String, CaseIterable, Sendable {
     case printBaseline
     case general
 
-    /// Chinese display name (= the label a picker draws for this set).
+    /// The name the switcher draws for this set.
+    ///
+    /// The names are the catalog's (= the printed standard is Print, = the
+    /// screen's is General), = because a control's word is copy and not
+    /// logic: = a literal here would be one book's opinion about a
+    /// reader's language.
     var displayName: String {
         switch self {
-        case .printBaseline: return "印刷基线"
-        case .general: return "通用"
+        case .printBaseline: String(localized: "inspector.style.preset.print")
+        case .general: String(localized: "inspector.style.preset.general")
         }
     }
 
@@ -493,5 +498,88 @@ enum BookStylePreset: String, CaseIterable, Sendable {
             return .general
         }
         return nil
+    }
+}
+
+/// What the switcher says the book is at (= one of the two named sets, =
+/// or the book's own tuning).
+///
+/// WHY A THIRD CASE
+///
+/// A fine-tuned book sits at neither set, = and the switcher used to say
+/// so by lighting nothing (= AppKit's own unlit state, = `selectedSegment
+/// = -1`). = A reader who cannot name a state cannot choose it, = and the
+/// boss's ruling replaced that: = the state gets a segment of its own,
+/// = Custom.
+///
+/// WHY THE PLACE IS RECORDED AND NOT ONLY READ OFF THE SHEET
+///
+/// The sheet cannot tell Custom from the set it happens to look like. = A
+/// book that has never been tuned and is sent to Custom shows the general
+/// set's sheet (= the boss's ruling: = Custom starts from the general
+/// set, = and the reader tunes from there), = and a sheet that IS that
+/// set reads back as that set, = so a place read only off the sheet
+/// springs back on the click that chose it. = So the place the reader
+/// chose is written on the book (= `Book.styleSelectionIdentifier`), =
+/// and the sheet's own reading is what a book that recorded nothing falls
+/// back to.
+enum BookStyleSelection: Hashable, Sendable {
+    /// One of the two named sets.
+    case preset(BookStylePreset)
+
+    /// The book's own tuning.
+    case custom
+
+    /// Every place the switcher offers, = in the order it draws them
+    /// (= the two sets first, = because they are what a new book starts
+    /// from, = and the reader's own tuning last, = because it is where a
+    /// book ends up rather than where it begins).
+    static var choices: [BookStyleSelection] {
+        BookStylePreset.allCases.map(BookStyleSelection.preset) + [.custom]
+    }
+
+    /// The name the switcher draws for this choice.
+    var displayName: String {
+        switch self {
+        case let .preset(preset): preset.displayName
+        case .custom: String(localized: "inspector.style.preset.custom")
+        }
+    }
+
+    /// The place as the book's own record (= a string `book.json` can
+    /// hold, = and the set's half is the raw value `BookStylePreset`
+    /// already carries, = so nothing here invents a second name for a
+    /// set).
+    var persistedIdentifier: String {
+        switch self {
+        case let .preset(preset): preset.rawValue
+        case .custom: "custom"
+        }
+    }
+
+    /// The place as the book's record, = read back.
+    ///
+    /// A record naming nothing that exists decodes to nil (= and the page
+    /// then falls back to reading the sheet), = so a hand-edited or a
+    /// future book.json cannot strand a switcher on a segment that does
+    /// not exist.
+    init?(persistedIdentifier: String) {
+        if persistedIdentifier == "custom" {
+            self = .custom
+            return
+        }
+        guard let preset = BookStylePreset(rawValue: persistedIdentifier) else { return nil }
+        self = .preset(preset)
+    }
+
+    /// Where the book is, = read off the sheet it is on.
+    ///
+    /// This is the FALLBACK: = it is what a book that recorded no place
+    /// is at, = and what a knob move records. = A sheet that names one of
+    /// the sets IS that set, = and a sheet that names none is the
+    /// reader's own tuning.
+    static func select(sheet: BookStyleSheet) -> BookStyleSelection {
+        guard let preset = BookStylePreset.matching(sheet) else { return .custom }
+        return .preset(preset)
     }
 }

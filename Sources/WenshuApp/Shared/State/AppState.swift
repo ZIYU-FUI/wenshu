@@ -380,11 +380,19 @@ struct PersistedEditorTab: Codable {
     let documentPath: String?
     let draft: String
     let originalBody: String
-    let mode: String  // EditorMode.rawValue (= "preview" / "edit")
-    // Persist the card title (= 'Red Cliffs' / 'Du Fu' etc.) so the
-    // tab strip shows the real name after relaunch (= instead of
-    // 'preview-sample').
+    let mode: String // EditorMode.rawValue (= "preview" / "edit")
+    /// Persist the card title (= 'Red Cliffs' / 'Du Fu' etc.) so the
+    /// tab strip shows the real name after relaunch (= instead of
+    /// 'preview-sample').
     let title: String?
+    /// The scope the document was opened from, = carried across
+    /// relaunch. It is the tab's own record of WHICH BOOK its document
+    /// belongs to (= `PreviewScope.bookScope`), so the book a format
+    /// page edits survives a restart (= without it a restored tab shows
+    /// a document and no book, and the page has nothing to write to).
+    /// Optional (= tabs persisted before this field existed decode as
+    /// nil, which reads as "this tab names no book").
+    var sourceScope: PreviewScope?
 }
 
 // per-tab editor state. Holds all data that was previously

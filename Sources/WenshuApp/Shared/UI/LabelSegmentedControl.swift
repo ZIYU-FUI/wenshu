@@ -230,8 +230,14 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         return control
     }
 
+    /// Whether the caller's context lets the reader use this control, =
+    /// carried onto the AppKit control because a representable is not handed
+    /// it for free (= `ValuePopUpButton` records the same fact).
+    @Environment(\.isEnabled) private var isEnabled
+
     func updateNSView(_ control: NSSegmentedControl, context: Context) {
         configure(control, coordinator: context.coordinator)
+        control.isEnabled = isEnabled
     }
 
     /// The size the control is GIVEN (= the frame it is pinned to).

@@ -3,18 +3,26 @@
 //  wenshu
 //
 //  The trailing inspector column's style page: = the book's own style
-//  sheet, = as two lists.
+//  sheet, = as one choice, = five knobs, = and one table.
 //
 //  WHAT THIS PAGE IS
 //
 //  The format page stopped being a wall of commands and became the
 //  BOOK's style sheet:
 //
-//    - THIS BOOK'S STYLES: the eleven roles a novel uses (= the body,
-//      = the quote, = the note, = the three heading levels, = the two
-//      captions, = the image, = the rule, = and the monospace code), =
-//      each row naming its role and showing the face, = the size and =
-//      the leading the book's sheet gives it.
+//    - THIS BOOK'S STYLES: the nine roles a novel's TEXT is made of
+//      (= the body, = the quote, = the note, = the three heading levels,
+//      = the two captions, = and the monospace code), = each row naming
+//      its role and showing the face, = the size and = the leading the
+//      book's sheet gives it.
+//
+//      A PICTURE AND A RULE ARE NOT ROWS. = The sheet names no face, no
+//      size and no leading for them, = and the engine gives them no voice
+//      of its own, = so their two rows could only ever carry an empty
+//      cell (= the boss's ruling of 2026-11-19 off his own screenshot:
+//      the two boxed rows said nothing, = delete them; = recorded in
+//      OOB.md, = with the dash that stood for "nothing to name" deleted
+//      with them, = because no row can reach it any more).
 //
 //      THE BOOK'S OWN NAME IS NOT ONE OF THEM. = The book's title is
 //      the book's own (= it is drawn on the cover, = and it is not a
@@ -44,16 +52,66 @@
 //  book (= `BookStyleSheetWriteBack`). = So the page is the book's own
 //  sheet, = editable in place.
 //
-//  THE ACCESSIBILITY FACTS THIS PAGE IS BUILT ON
+//  EVERY CHOICE ON THIS PAGE IS THE SYSTEM'S OWN CONTROL
 //
-//  Measured in the app's own process: = a SwiftUI `Menu` publishes an
-//  `AXMenuButton` AND its label; = a `Text` publishes NOTHING; = a
-//  `TextField` publishes an `AXTextField`. = So a knob that has to be
-//  READ (= by VoiceOver, = and by the test that proves the page shows
-//  the selected book's sheet) = is a `Menu` whose label is the book's
-//  position, = laid over the drawn block that looks like Pages'
-//  drop-down. = The style table's rows are words, = and they are read
-//  from the page's own model instead.
+//  A knob is a pop-up button and the sets are one segmented control, = and
+//  NEITHER is a SwiftUI `Picker`: = the pop-up is AppKit's own
+//  `NSPopUpButton` bridged (`Shared/UI/ValuePopUpButton`), = because a
+//  `Picker` with `.menu` publishes NO accessibility element at all (= a
+//  one-off measurement in this app's own process: = the hosted view read
+//  back as one empty `AXGroup`, = and the running app carried zero
+//  `AXPopUpButton`/`AXMenuButton`), = while the page's state has to be
+//  READABLE to be tested; = and the switcher is the repo's own bridged
+//  `NSSegmentedControl` (`Shared/UI/LabelSegmentedControl`), = because the
+//  boss's ruling is that it spans the column it was given, = which needs the
+//  width negotiated in `sizeThatFits` (= SwiftUI's own segmented `Picker`,
+//  handed a 252 PT column, asked AppKit for 594 PT and laid itself over the
+//  inspector's edge). = The HIG names both kinds for exactly this place: = a
+//  pop-up button is for "a flat list of mutually exclusive options or states"
+//  = and "can update its content to indicate the current selection" (=
+//  pop-up-buttons, = alert-date 2023-10-24, = macOS), = and a segmented
+//  control belongs in "a toolbar or inspector pane" (= segmented-controls,
+//  = alert-date 2023-06-21, = macOS).
+//
+//  THE PAGE DREW ITS OWN CONTROLS UNTIL IT WAS CORRECTED. = A knob was a
+//  block of the page's own drawing, = with the position inside it, = and a
+//  borderless `Menu` laid over that block with the menu's own title painted
+//  out (= `.foregroundStyle(.clear)`) = so the block could be the only
+//  painter. = The two sets were two rows carrying a hand-drawn tick. = Both
+//  were facsimiles: = one string needed a hack to silence the control that
+//  was born to draw it, = and every measurement in the block (= its radius,
+//  = its fill, = its height) = was this app's guess at what the system
+//  already ships. = What the system ships follows the OS release, = the
+//  accent colour, = and the reader's text size; = what was drawn here
+//  followed none of them.
+//
+//  WHAT THE CONTROLS PUBLISH
+//
+//  Measured in the app's own process: = a pop-up button publishes its role
+//  and its current selection, = a `Text` on its own publishes NOTHING, = and
+//  a `TextField` publishes an `AXTextField`. = So the page's state is read
+//  out of the controls (= `InspectorAXTree`), = which is also how the tests
+//  prove the page shows the SELECTED book's sheet. = A pop-up's accessible
+//  NAME is answered by its CELL (= measured: with the control's own label
+//  set the tree still published an unnamed `AXPopUpButton`), = which is why
+//  `ValuePopUpButton` sets the name on both.
+//
+//  WHERE THE BOOK SITS AMONG THE SETS
+//
+//  The switcher is three segments: = the two sets, = and Custom. = A sheet
+//  that matches neither set is the reader's own tuning (=
+//  `BookStyleSelection.select`), = the tuning is kept on the book (=
+//  `Book.customStyleSheet`), = and choosing a set leaves it in place, = so
+//  Custom returns the book to its tuning and not to the set it passed
+//  through. = Custom is also entered with nothing behind it, = which takes
+//  the general set's values, = and a book that has never been tuned has no
+//  tuning to come back to; = so the place the reader chose is recorded on
+//  the book (= `Book.styleSelectionIdentifier`) = and the segment that
+//  stays lit is that record, = not a reading that can spring back.
+//  = (see OOB.md #2026-11-19: = the native control, = unless a business rule
+//  = the control cannot express argues otherwise; = and the same day's
+//  = ruling that a state a reader can see but cannot return to is not a
+//  = state, which is what cancelled the earlier "no third segment" scheme.)
 //
 
 import OSLog
@@ -83,9 +141,23 @@ struct InspectorStylePageView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingLoose) {
+            //  The order is the order of a reader's questions: = which
+            //  set is this book in, = what is fine-tuned off it, = and
+            //  only then what every role of the sheet actually looks
+            //  like (= the table is the LONGest group, = and it is the
+            //  one a reader scrolls to rather than starts at).
             presetsGroup
-            stylesGroup
+                // Nothing to set when no book is named. A switcher that
+                // answers a click by springing back to what it already
+                // showed tells the user his own click was imagined; = the
+                // disabled state is Apple's word for "there is no target
+                // here", = and it is the honest one (= the table below
+                // stays, = because a preview of the baseline sheet is not
+                // a claim about any book).
+                .disabled(currentBookID == nil)
             tuningGroup
+                .disabled(currentBookID == nil)
+            stylesGroup
         }
         .onChange(of: bookStore.selectedBookId, initial: true) { _, bookID in
             currentBookID = bookID
@@ -98,26 +170,25 @@ struct InspectorStylePageView: View {
     /// sheet down (= the same write-back the knobs use, = measured
     /// through the same seam).
     private var presetsGroup: some View {
-        InspectorFormatGroup(title: String(localized: "inspector.style.group.presets")) {
-            VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                ForEach(model.presets, id: \.rawValue) { preset in
-                    InspectorStylePresetView(
-                        preset: preset,
-                        isCurrent: model.currentPreset == preset
-                    ) { chosen in
-                        applyPreset(chosen)
-                    }
-                }
+        InspectorFormatGroup(
+            title: String(localized: "inspector.style.group.presets"),
+            showsDivider: false
+        ) {
+            InspectorStylePresetPicker(
+                choices: model.choices,
+                current: model.currentSelection
+            ) { chosen in
+                applySelection(chosen)
             }
         }
     }
 
-    /// Write one of the two sets onto the book, = and persist it.
-    private func applyPreset(_ preset: BookStylePreset) {
+    /// Take the book to one of the three places, = and persist it.
+    private func applySelection(_ selection: BookStyleSelection) {
         guard let bookID = currentBookID else { return }
         do {
             try BookStyleSheetWriteBack.apply(
-                preset: preset,
+                selection: selection,
                 to: bookID,
                 store: bookStore
             )
@@ -126,11 +197,19 @@ struct InspectorStylePageView: View {
         }
     }
 
-    /// The style table (= the eleven roles the book is set in).
+    /// The style table (= the nine roles the book is set in, = each
+    /// row showing that role's own voice = `InspectorStyleRowView`).
     private var stylesGroup: some View {
         InspectorFormatGroup(title: String(localized: "inspector.style.group.styles")) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                ForEach(model.rows) { row in
+                //  Nine rows of a table, = and a table of rows needs a line
+                //  BETWEEN its rows (= not above and below each one): = the
+                //  first row is separated from what it is not, = and so the
+                //  rule is drawn before every row but the first.
+                ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
+                    if index > 0 {
+                        InspectorStyleRule()
+                    }
                     InspectorStyleRowView(row: row)
                 }
             }
@@ -142,7 +221,7 @@ struct InspectorStylePageView: View {
         InspectorFormatGroup(title: String(localized: "inspector.style.group.tuning")) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                 ForEach(model.knobs) { knob in
-                    InspectorStyleKnobView(knob: knob) { position in
+                    InspectorStyleKnobView(knob: knob, columnWidth: knobColumnWidth) { position in
                         moveKnob(knob.id, to: position)
                     }
                 }
@@ -178,9 +257,29 @@ struct InspectorStylePageView: View {
         }
     }
 
-    /// What the page shows (= the selected book's own sheet).
+    /// The width one knob's pop-up is pinned to (= the widest of the five).
+    ///
+    /// MEASURED, = not guessed: = the system's own button is asked how wide
+    /// it must be for every position any of the five knobs offers, = so the
+    /// number carries the bezel, = the chevrons and = the reader's font,
+    /// = and none of them is written down here.
+    private var knobColumnWidth: CGFloat {
+        model.knobs
+            .map { ValuePopUpButton<String>.fittingWidth(forTitles: $0.positions.map(\.label)) }
+            .max() ?? 0
+    }
+
+    /// What the page shows (= the selected book's own sheet, = and the
+    /// place its switcher records).
     private var model: InspectorStylePageModel {
-        InspectorStylePageModel(sheet: sheet)
+        InspectorStylePageModel(sheet: sheet, recordedSelection: currentBook?.styleSelection)
+    }
+
+    /// The book the page is setting (= the one the editor has open, = or
+    /// nothing when no document names a book).
+    private var currentBook: Book? {
+        guard let currentBookID else { return nil }
+        return bookStore.books.first(where: { $0.id == currentBookID })
     }
 
     /// The selected book's sheet.
@@ -189,16 +288,13 @@ struct InspectorStylePageView: View {
     /// `effectiveStyleSheet`), = so the page never invents a sheet of
     /// its own.
     private var sheet: BookStyleSheet {
-        guard let currentBookID,
-              let book = bookStore.books.first(where: { $0.id == currentBookID })
-        else { return .default }
-        return book.effectiveStyleSheet
+        currentBook?.effectiveStyleSheet ?? .default
     }
 }
 
 // MARK: - The model
 
-/// What the style page shows: = the book's eleven style roles, = and
+/// What the style page shows: = the book's nine style roles, = and
 /// the five knobs it is fine-tuned with.
 struct InspectorStylePageModel: Equatable, Sendable {
     /// The style table's rows (= one per role).
@@ -207,95 +303,68 @@ struct InspectorStylePageModel: Equatable, Sendable {
     /// The fine tuning's knobs.
     let knobs: [InspectorStyleKnob]
 
-    /// The two sets a book can be set to.
-    let presets: [BookStylePreset]
+    /// The places the sheet can be set to (= Print, = General, = Custom).
+    let choices: [BookStyleSelection]
 
-    /// The set the book is at, = when it is at one of them.
-    let currentPreset: BookStylePreset?
+    /// Where the book is (= the set its sheet names, = or its own tuning
+    /// when it names none).
+    let currentSelection: BookStyleSelection
 
-    init(sheet: BookStyleSheet) {
+    /// - Parameter recordedSelection: the place the reader put the
+    ///   switcher, = as the book's own record. = nil when the book records
+    ///   nothing (= every book written before the switcher recorded places),
+    ///   = and the place is then read off the sheet.
+    init(sheet: BookStyleSheet, recordedSelection: BookStyleSelection? = nil) {
         rows = InspectorStylePageModel.styleRows(for: sheet)
         knobs = InspectorStylePageModel.fineTuningKnobs(for: sheet)
-        presets = BookStylePreset.allCases
-        currentPreset = BookStylePreset.matching(sheet)
+        choices = BookStyleSelection.choices
+        currentSelection = recordedSelection ?? BookStyleSelection.select(sheet: sheet)
     }
 
-    /// The eleven roles, as the sheet sets them.
+    /// The nine roles, as the sheet sets them.
     ///
-    /// A role the sheet names nothing for shows a dash (= the print
-    /// standard's own table writes a dash for the image and the rule),
-    /// = because a value the sheet cannot name is a value the page must
-    /// not invent.
+    /// The code block is the one row the sheet names no face and no size
+    /// for (= its voice is the highlighter's own face at the code block's
+    /// own scale, = which the sheet does not carry), = so its cells keep
+    /// the leading alone.
+    ///
+    /// WHY A ROLE WITHOUT WORDS STILL GETS A VOICE
+    ///
+    /// The face, = the size and = the leading are what the SHEET says
+    /// about a role; = the preview is what the ENGINE does with it. =
+    /// They are not the same list (= a code block has no face in the
+    /// sheet at all, = and a heading is not set on the book's multiple),
+    /// = so a row whose preview was built from its own cells would show
+    /// the sheet's words about a page the reader would never get.
     private static func styleRows(for sheet: BookStyleSheet) -> [InspectorStyleRow] {
         let heading = headingFamily(of: sheet)
         let leading = sheet.lineSpacing.multiple
+
+        func row(
+            _ role: InspectorStyleRole,
+            _ family: BookBodyFamily?,
+            _ size: Double?,
+            _ spacing: Double? = nil
+        ) -> InspectorStyleRow {
+            InspectorStyleRow(
+                role: role,
+                family: family,
+                size: size,
+                spacing: spacing,
+                preview: InspectorStylePreview.resolve(role: role, sheet: sheet)
+            )
+        }
+
         return [
-            InspectorStyleRow(
-                role: .body,
-                family: sheet.bodyFamily,
-                size: sheet.bodySize.points,
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .quote,
-                family: sheet.quoteFamily,
-                size: sheet.quoteSize,
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .note,
-                family: sheet.bodyFamily,
-                size: sheet.noteSize,
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .headingOne,
-                family: heading,
-                size: sheet.headingSize(forLevel: 1),
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .headingTwo,
-                family: heading,
-                size: sheet.headingSize(forLevel: 2),
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .headingThree,
-                family: heading,
-                size: sheet.headingSize(forLevel: 3),
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .figureCaption,
-                family: sheet.bodyFamily,
-                size: sheet.figureCaptionSize,
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .tableCaption,
-                family: sheet.bodyFamily,
-                size: sheet.tableCaptionSize,
-                spacing: leading
-            ),
-            InspectorStyleRow(
-                role: .image,
-                family: nil,
-                size: nil,
-                spacing: nil
-            ),
-            InspectorStyleRow(
-                role: .rule,
-                family: nil,
-                size: nil,
-                spacing: nil
-            ),
-            InspectorStyleRow(
-                role: .monospace,
-                family: nil,
-                size: nil,
-                spacing: leading
-            ),
+            row(.body, sheet.bodyFamily, sheet.bodySize.points, leading),
+            row(.quote, sheet.quoteFamily, sheet.quoteSize, leading),
+            row(.note, sheet.bodyFamily, sheet.noteSize, leading),
+            row(.headingOne, heading, sheet.headingSize(forLevel: 1), leading),
+            row(.headingTwo, heading, sheet.headingSize(forLevel: 2), leading),
+            row(.headingThree, heading, sheet.headingSize(forLevel: 3), leading),
+            row(.figureCaption, sheet.bodyFamily, sheet.figureCaptionSize, leading),
+            row(.tableCaption, sheet.bodyFamily, sheet.tableCaptionSize, leading),
+            row(.monospace, nil, nil, leading),
         ]
     }
 
@@ -394,10 +463,13 @@ struct InspectorStylePageModel: Equatable, Sendable {
 
 // MARK: - The role
 
-/// The eleven style roles a novel uses.
+/// The nine style roles a novel's text is made of.
 ///
 /// The roles are the book's own (= the kinds of text a book is made
-/// of), = and the sheet sets what each of them looks like.
+/// of), = and the sheet sets what each of them looks like. = A picture
+/// and a rule are NOT among them: = they are not text, = the sheet names
+/// nothing for them, = and a row that can only ever show an empty cell is
+/// a row the reader cannot act on.
 enum InspectorStyleRole: String, CaseIterable, Sendable {
     case body
     case quote
@@ -407,8 +479,6 @@ enum InspectorStyleRole: String, CaseIterable, Sendable {
     case headingThree
     case figureCaption
     case tableCaption
-    case image
-    case rule
     case monospace
 
     /// The role's name in the reader's language.
@@ -417,64 +487,6 @@ enum InspectorStyleRole: String, CaseIterable, Sendable {
             "inspector.style.role.\(rawValue)",
             comment: "The name of one style role in the book's style table"
         )
-    }
-}
-
-// MARK: - The row
-
-/// One row of the style table: = a role, = and what the book's sheet
-/// says about it.
-struct InspectorStyleRow: Identifiable, Equatable, Sendable {
-    /// The role this row names.
-    let role: InspectorStyleRole
-
-    /// The face the sheet sets the role in (= nil = the sheet names no
-    /// face for this role).
-    let family: BookBodyFamily?
-
-    /// The size in points (= nil = the sheet names no size).
-    let size: Double?
-
-    /// The leading the role runs at (= nil = the role carries no
-    /// leading of its own).
-    let spacing: Double?
-
-    var id: String {
-        role.rawValue
-    }
-
-    /// The cells the row shows at the right (= the face, = the size
-    /// and = the leading, = and a dash where the sheet names none).
-    var cells: [String] {
-        var cells: [String] = []
-        if let family {
-            cells.append(localizedFamilyName(family))
-        }
-        if let size {
-            cells.append(String.localizedStringWithFormat(
-                NSLocalizedString(
-                    "inspector.style.size",
-                    comment: "A style role's size, in points"
-                ),
-                size
-            ))
-        }
-        if let spacing {
-            cells.append(String.localizedStringWithFormat(
-                NSLocalizedString(
-                    "inspector.style.leading",
-                    comment: "A style role's line spacing, as a multiple of the body size"
-                ),
-                spacing
-            ))
-        }
-        if cells.isEmpty {
-            cells.append(NSLocalizedString(
-                "inspector.style.unset",
-                comment: "The dash that stands for a value the book's style sheet does not name"
-            ))
-        }
-        return cells
     }
 }
 
@@ -517,38 +529,5 @@ struct InspectorStylePosition: Identifiable, Equatable, Sendable {
 
     var id: String {
         rawValue
-    }
-}
-
-// MARK: - The names
-
-/// A face's name in the reader's language.
-private func localizedFamilyName(_ family: BookBodyFamily) -> String {
-    NSLocalizedString(
-        "inspector.style.family.\(family.rawValue)",
-        comment: "The name of one face a book's body can be set in"
-    )
-}
-
-// MARK: - The row view
-
-/// One row of the style table: = the role's name at the left, = and
-/// what the sheet gives it at the right.
-struct InspectorStyleRowView: View {
-    /// The row this view draws.
-    let row: InspectorStyleRow
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingTight) {
-            Text(row.role.localizedName)
-                .font(.callout)
-                .foregroundStyle(DesignTokens.textBody)
-            Spacer(minLength: DesignTokens.spacingTight)
-            ForEach(row.cells, id: \.self) { cell in
-                Text(cell)
-                    .font(.caption)
-                    .foregroundStyle(DesignTokens.textChrome)
-            }
-        }
     }
 }
