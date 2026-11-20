@@ -137,9 +137,10 @@ struct SidebarHeaderProminenceTests {
         #expect(
             strippedSrc.contains("WenshuTabPicker("),
             """
-            The sidebar's switcher must be the house's Apple tab picker (= \
-            `WenshuTabPicker` = `Picker` + `TabsPickerStyle`), = and not a \
-            hand-wrapped control.
+            The sidebar's switcher must be the house's Apple tab control (= \
+            `WenshuTabPicker` = an `NSSegmentedControl` in the macOS 27 \
+            tab role), = because SwiftUI's own `.tabs` picker sizes itself \
+            to its content and no modifier stretches it.
             """
         )
         // The band is the column's first row: the column carries no

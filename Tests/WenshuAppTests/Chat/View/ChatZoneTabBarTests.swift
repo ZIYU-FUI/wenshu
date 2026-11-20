@@ -342,9 +342,11 @@ struct ChatZoneTabBarTests {
     @Test("The bar carries one segment per page")
     func theBarCarriesOneSegmentPerPage() {
         // The switcher is Apple's own tab control (= `WenshuTabPicker` =
-        // `Picker` + `TabsPickerStyle`), = so the fact the app owns is
-        // the CONTENT of the segments: = one per page, = in page order,
-        // = with the page's title on it.
+        // an `NSSegmentedControl` in the macOS 27 tab role, = because
+        // SwiftUI's own `.tabs` picker sizes itself to its content and no
+        // modifier stretches it), = so the fact the app owns is the
+        // CONTENT of the segments: = one per page, = in page order, = with
+        // the page's title on it.
         //
         // The cells are read off the CONTROL, = because the system's tab
         // style draws more label layers than it has segments (= MEASURED
@@ -428,8 +430,9 @@ struct ChatZoneTabBarTests {
         // The clip is not decoration: = AppKit gives every cell AT LEAST
         // its title's width (= MEASURED 2026-11-19: = 12 pages in a
         // 300 PT column measured 29 PT per cell against a 25 PT share,
-        // = so the row ran 48 PT past the frame), = and a row that paints
-        // past the column would paint over the panel next door.
+        // = so the row ran 48 PT past the frame = 12 x 29 - 300), = and a
+        // row that paints past the column would paint over the panel next
+        // door.
         let columnWidth: CGFloat = 200
         let bar = measure(pages: Self.makePages(count: 3), columnWidth: columnWidth)
 

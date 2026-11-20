@@ -176,7 +176,7 @@ struct LabelSegmentedControlShapeTests {
         )
     }
 
-    @Test("The drawn bezel at the switcher's size is a capsule")
+    @Test("The drawn bezel at the toolbar's size is a capsule")
     @MainActor
     func theDrawnBezelIsACapsule() throws {
         let bezel = try #require(drawnBezel(of: try productionControl(controlSize: .small)))

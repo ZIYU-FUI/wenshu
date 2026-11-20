@@ -114,22 +114,25 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         iconStyle.fontWeight == .thin ? .thin : .regular
     }
 
-    /// macOS 27 segmented-control role. The role decides how the SELECTED
-    /// segment is drawn.
+    /// macOS 27 segmented-control role (= how the SELECTED segment is drawn).
     ///
     /// `.valueSelection` is the default, = and the reason is the WIDTH, not
-    /// the label (= the tab role paints a text label fine, measured again
-    /// 2026-11-19): the tab role will not SQUEEZE.
+    /// the label (= the tab role paints a text label fine): the tab role's
+    /// cells are WIDER, = so a strip that cannot squeeze its 12 tabs into a
+    /// narrow column overflows further.
     ///
-    /// MEASURED 2026-11-19 on macOS 27.2.1, 12 segments pinned to a 222 PT
-    /// frame: `.tabs` holds a ~33 PT floor per cell whatever the label says
-    /// (= the same 395 PT track with BLANK labels), so it paints 173 PT past
-    /// its column = Apple's tab-bar model, where a tab keeps its natural
-    /// width and the bar scrolls. `.valueSelection` lets `.fillEqually`
-    /// divide the frame (= 222 PT), which is what this strip's rule needs.
+    /// MEASURED 2026-11-19 on macOS 27.2.1, = on THIS control at THIS
+    /// strip's size (`.small`), = 12 long titles pinned to a 222 PT
+    /// column: `.tabs` draws a 299 PT track (= 25 PT per cell, = 77 PT
+    /// past the column), = where `.valueSelection` draws 240 PT (= 20 PT
+    /// per cell, = 18 PT past it) ⇒ ⇒ ⇒ so the strip's squeeze rule has
+    /// less room under the tab role, = not more.
     ///
-    /// The three column-top switchers, which may clip instead of squeeze,
-    /// wear the tab role in `WenshuTabPicker`.
+    /// The tab role's per-cell width does NOT follow the label: = the same
+    /// 299 PT track is drawn for a one-character, a three-character, a
+    /// six-character and a long title (= at `.large` it is 395 PT for 12
+    /// cells, = so the floor belongs to the SIZE). The column-top
+    /// switchers wear the tab role (`WenshuTabPicker`).
     var role: NSSegmentedControl.Role = .valueSelection
 
     /// Per-segment display strings (= the `String` shown in
@@ -437,11 +440,9 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             // on 27.2.1 with this strip's own cell the label reads normally
             // (= 1187 bright pixels on the plate, the close X above it).
             // `.tabs` draws the system's own glass plate; `.valueSelection`
-            // draws the app's accent plate and squeezes its cells into the
-            // frame. This strip keeps `.valueSelection` for the WIDTH (the
-            // tab role's ~33 PT floor overflows a narrow column - see
-            // `role`); the three column-top switchers, which may clip, wear
-            // the tab role in `WenshuTabPicker`.
+            // draws the app's accent plate. This strip keeps
+            // `.valueSelection` for the WIDTH (see `role`); the three
+            // column-top switchers wear the tab role (`WenshuTabPicker`).
             control.role = role
         } else {
             // Defensive fallback (= NSSegmentedControl.role is macOS 27

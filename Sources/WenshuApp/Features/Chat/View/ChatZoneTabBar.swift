@@ -73,11 +73,11 @@ struct ChatZoneTabBar: View {
     /// The bar's body (= the switcher in its clipping band).
     ///
     /// The scroll container is what keeps the paint inside the column: =
-    /// the switcher's frame is pinned to the column, = but AppKit gives
-    /// every cell AT LEAST its title's width (= MEASURED 2026-11-19: =
-    /// 12 pages in a 300 PT column measured 29 PT per cell, = so the row
-    /// ran 48 PT past the frame), = and a control that paints past the
-    /// column would paint over the panel next door.
+    /// the switcher's frame is pinned to the column, = but the system gives
+    /// every cell AT LEAST its own width (= MEASURED 2026-11-19: = 12
+    /// pages in a 300 PT column measured a 29 PT cell, = so the row ran
+    /// 48 PT past the frame = 12 x 29 - 300), = and a control that paints
+    /// past the column would paint over the panel next door.
     ///
     /// The width is measured OUTSIDE the container (= a geometry reader
     /// inside a horizontal scroll view reads the content's ideal width,
@@ -94,7 +94,8 @@ struct ChatZoneTabBar: View {
                 displayStrings: pages.map(\.title),
                 // The bar's drawn plate takes its height from the switcher
                 // the other columns' top bands already use (= `.small`), =
-                // so all four columns' bands draw the same plate height.
+                // so the three columns that wear the tab role draw the
+                // same plate height.
                 controlSize: .small,
                 regionWidth: columnWidth > 0 ? columnWidth : nil
             )
