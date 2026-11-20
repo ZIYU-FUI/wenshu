@@ -529,7 +529,19 @@ def matching_cards(
         sha = reviewed_sha(body, history, branch)
         if not sha:
             continue
-        if _same_sha(sha, target_sha):
+        # A CLAIM MUST NAME A COMMIT BEFORE IT CAN GOVERN A SHA. The
+        # comparison below is by string, and `_same_sha` accepts either
+        # side as the other's prefix: a token that opens like a live
+        # commit and then diverges (= padded, truncated mid-write, or a
+        # copy that lost a character) matches that commit whenever the
+        # query is shorter than the shared prefix. The landing path
+        # cannot be carried by it, because it queries a full object id,
+        # and a padded claim differs inside the first forty characters.
+        # The hand-run CLI can (= `--branch X --sha <short>`), and the
+        # damage is exact: a verdict travels onto a tree the card never
+        # named. Asking the claim to resolve is what closes that
+        # direction, and the priming above makes it a cache read.
+        if _same_sha(sha, target_sha) and _claims_commit(sha):
             verdict = verdict_from_doc(doc)
             found.append((
                 card.get("id"), verdict.get("status"), verdict.get("reviewer"), "sha",

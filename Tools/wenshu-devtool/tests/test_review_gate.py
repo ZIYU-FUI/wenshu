@@ -919,6 +919,63 @@ def main() -> int:
             tool._subject_branch("## The branch\n\n`project/t_c6d23305-x`\n"),
             "project/t_c6d23305-x",
         )
+
+        # 12j. a claim that names no commit governs no sha (= the card's
+        # stated subject is compared to the queried sha by STRING, and
+        # `_same_sha` accepts either side as the other's prefix, so a claim
+        # made of a live commit's leading characters plus padding that no
+        # object carries still matches that commit asked about shortly. The
+        # landing path cannot reach this (= it queries a full object id, so a
+        # padded claim is longer than the query and differs inside the shared
+        # prefix), so this is the hand-run CLI: `review_gate.py --branch X
+        # --sha <short>` is where a verdict can be carried onto a tree the
+        # card never named. The guard asks the claim whether it resolves
+        # before it may govern, and the cases below pin both that it bites
+        # and that the honest shapes are untouched.
+        bogus = round2[:20] + "0" * 20
+        check("12j: the live commit resolves as a commit",
+              tool._claims_commit(round2), True)
+        check("12j: the padded claim does not (= it is not a commit at all)",
+              tool._claims_commit(bogus), False)
+        check("12j: and the padded claim still matches the short query by string",
+              tool._same_sha(bogus, round2[:10]), True)
+        bogus_body = (
+            f"## WHAT TO BUILD\n\nA verdict on `{bogus}`.\n\n"
+            "## REVIEW HANDOFF\n\nnone\n"
+        )
+        live_body = (
+            f"## WHAT TO BUILD\n\nA verdict on `{round2}`.\n\n"
+            "## REVIEW HANDOFF\n\nnone\n"
+        )
+        check(
+            "12j: a short query against a claim that names no commit is not "
+            "governed by it",
+            tool.matching_cards([verdict_card("t_bogus", bogus_body)],
+                                round2[:10], "feature"),
+            [],
+        )
+        check(
+            "12j: a full query against the same bogus claim reads as no match "
+            "(= it never did, and the guard must not change that)",
+            tool.matching_cards([verdict_card("t_bogus", bogus_body)],
+                                round2, "feature"),
+            [],
+        )
+        check(
+            "12j: a short query against a claim that DOES name the commit "
+            "keeps its verdict, by sha",
+            [(row[0], row[3]) for row in tool.matching_cards(
+                [verdict_card("t_live", live_body)], round2[:10], "feature")],
+            [("t_live", "sha")],
+        )
+        check(
+            "12j: and a short CLAIM on a full query is still the same commit",
+            [(row[0], row[3]) for row in tool.matching_cards(
+                [verdict_card("t_short", f"## WHAT TO BUILD\n\nA verdict on "
+                 f"`{round2[:10]}`.\n\n## REVIEW HANDOFF\n\nnone\n")],
+                round2, "feature")],
+            [("t_short", "sha")],
+        )
         os.chdir(cwd_before)
 
     # ---- the three defects the review round measured on this change ----
@@ -1130,6 +1187,16 @@ def main() -> int:
         os.chdir(cwd_before)
 
     # ---- D5: the verdict's OWN run, not the newest ended run ----
+    # The claim here must be a COMMIT this repository holds (= the gate
+    # asks a card's stated subject whether it resolves before it may
+    # govern a queried sha, and a synthetic token resolves to nothing).
+    # What the case is about is the ORDER of the verdicts, not the shape
+    # of the token, so the real head of the running repository serves as
+    # the subject and the assertion below proves the subject resolved.
+    real_head = (tool._git_out(["rev-parse", "HEAD"]) or "").strip()
+    check("D5: the fixture repository answers with a commit the gate resolves",
+          bool(real_head) and tool._claims_commit(real_head),
+          True)
     approved_runs = [
         {"id": 1, "profile": "wenshu-review", "outcome": "completed",
          "ended_at": 100, "metadata": {"review_outcome": "approved"}},
@@ -1141,13 +1208,13 @@ def main() -> int:
     ]
     card_approved = {
         "id": "t_approval", "title": f"[T2][{REVIEW_TAG}] x",
-        "body": "## WHAT TO BUILD\n\nA verdict on `" + "a" * 40 + "`.\n\n"
+        "body": "## WHAT TO BUILD\n\nA verdict on `" + real_head + "`.\n\n"
                 "## REVIEW HANDOFF\n\nnone\n",
         "runs": approved_runs, "events": [], "created_at": 100,
     }
     card_refused = {
         "id": "t_refusal", "title": f"[T2][{REVIEW_TAG}] x",
-        "body": "## WHAT TO BUILD\n\nA verdict on `" + "a" * 40 + "`.\n\n"
+        "body": "## WHAT TO BUILD\n\nA verdict on `" + real_head + "`.\n\n"
                 "## REVIEW HANDOFF\n\nnone\n",
         "runs": [{"id": 3, "profile": "wenshu-review", "outcome": "completed",
                   "ended_at": 200, "metadata": {"review_outcome": "changes_requested"}}],
@@ -1159,7 +1226,13 @@ def main() -> int:
                             "events": []}),
         100,
     )
-    found = tool.matching_cards([card_approved, card_refused], "a" * 40, None)
+    found = tool.matching_cards([card_approved, card_refused], real_head, None)
+    check(
+        "D5: both cards govern the commit they name (= the guard let a "
+        "resolving claim through)",
+        sorted(row[0] for row in found),
+        ["t_approval", "t_refusal"],
+    )
     check(
         "D5: the later REFUSAL governs over the earlier approval",
         [f[0] for f in found][:1],
