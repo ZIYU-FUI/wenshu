@@ -8,7 +8,8 @@
 //
 //  The delegation registry is an actor, so a view cannot read it from
 //  its body. The page keeps its own snapshot of the scope's handles
-//  and re-reads it on a timer; the actor stays the source of truth.
+//  and re-reads it when the actor says a record changed; the actor
+//  stays the source of truth.
 //
 
 import SwiftUI
@@ -47,7 +48,7 @@ struct InspectorStatusView: View {
 
     var body: some View {
         content
-            .task(id: refreshKey) { await refreshLoop() }
+            .task(id: refreshKey) { await model.follow(scope: scope) }
             .sheet(item: $model.selection) { selection in
                 InspectorStatusOutputSheet(model: model, taskID: selection.id)
             }
@@ -107,17 +108,6 @@ struct InspectorStatusView: View {
             }
         }
     }
-
-    /// Re-reads the registry for this scope, then keeps re-reading it
-    /// on a timer (= the actor's records change outside the view, so
-    /// something has to ask again).
-    @MainActor
-    private func refreshLoop() async {
-        while !Task.isCancelled {
-            await model.refresh(scope: scope)
-            try? await Task.sleep(for: .seconds(1))
-        }
-    }
 }
 
 // MARK: - Mirror
@@ -157,6 +147,32 @@ final class InspectorStatusModel {
         let handles = await registry.handles(scope: scope)
         tasks = handles.map(InspectorStatusTask.init(handle:))
         isLoaded = true
+    }
+
+    /// Follows the registry for one scope: reads it once on subscribe
+    /// and then once per change the registry announces, until the
+    /// calling task is cancelled (= the view's `.task(id:)` is the only
+    /// teardown, and a page that sits idle reads nothing).
+    func follow(scope: AgentScope?) async {
+        guard let scope else {
+            // No session in focus: there is no scope to follow, so the
+            // page says it is loaded and holds no subscriber (= a page
+            // with nothing to mirror used to keep re-asking anyway).
+            tasks = []
+            isLoaded = true
+            return
+        }
+        // The first signal is the subscribe itself, so it paints at
+        // once; later ones wait out a quiet window first, so a burst of
+        // per-chunk output appends costs one read instead of one each.
+        var painted = false
+        for await _ in await registry.changes() {
+            if painted {
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+            painted = true
+            await refresh(scope: scope)
+        }
     }
 }
 
@@ -202,24 +218,24 @@ struct InspectorStatusTask: Identifiable, Equatable, Sendable {
     let currentTool: String?
 
     init(handle: BackgroundDelegationHandle) {
-        self.id = handle.id
-        self.agentName = handle.agentName
-        self.taskText = handle.userMessage
-        self.state = handle.state
-        self.startedAt = handle.startedAt
-        self.completedAt = handle.completedAt
+        id = handle.id
+        agentName = handle.agentName
+        taskText = handle.userMessage
+        state = handle.state
+        startedAt = handle.startedAt
+        completedAt = handle.completedAt
         // Only a running task is calling a tool (= a finished task's
         // last tool is history, = the card shows the present).
-        self.currentTool = handle.state == .running ? handle.currentTool : nil
+        currentTool = handle.state == .running ? handle.currentTool : nil
         switch handle.state {
         case .running:
             // A running task streams its text into the tail.
-            self.output = handle.outputTail.isEmpty ? nil : handle.outputTail
+            output = handle.outputTail.isEmpty ? nil : handle.outputTail
         case .pending:
-            self.output = nil
+            output = nil
         case .completed, .failed, .timeout:
             // A finished task carries its answer.
-            self.output = handle.result?.isEmpty == false ? handle.result : nil
+            output = handle.result?.isEmpty == false ? handle.result : nil
         }
     }
 
@@ -238,7 +254,9 @@ struct InspectorStatusTask: Identifiable, Equatable, Sendable {
     }
 
     /// Whether the card can be opened (= the task has output to read).
-    var canOpen: Bool { output != nil }
+    var canOpen: Bool {
+        output != nil
+    }
 }
 
 // MARK: - Elapsed time
@@ -349,33 +367,33 @@ enum InspectorStatusStateStyle {
     /// The state label.
     static func label(for state: BackgroundDelegationState) -> String {
         switch state {
-        case .pending:    return String(localized: "inspector.status.state.pending")
-        case .running:    return String(localized: "inspector.status.state.running")
-        case .completed:  return String(localized: "inspector.status.state.done")
-        case .failed:     return String(localized: "inspector.status.state.failed")
-        case .timeout:    return String(localized: "inspector.status.state.timeout")
+        case .pending: return String(localized: "inspector.status.state.pending")
+        case .running: return String(localized: "inspector.status.state.running")
+        case .completed: return String(localized: "inspector.status.state.done")
+        case .failed: return String(localized: "inspector.status.state.failed")
+        case .timeout: return String(localized: "inspector.status.state.timeout")
         }
     }
 
     /// The state's glyph (= the system symbol the card wears).
     static func icon(for state: BackgroundDelegationState) -> String {
         switch state {
-        case .pending:    return "clock"
-        case .running:    return "bolt.horizontal"
-        case .completed:  return "checkmark.circle"
-        case .failed:     return "xmark.circle"
-        case .timeout:    return "clock.badge.exclamationmark"
+        case .pending: return "clock"
+        case .running: return "bolt.horizontal"
+        case .completed: return "checkmark.circle"
+        case .failed: return "xmark.circle"
+        case .timeout: return "clock.badge.exclamationmark"
         }
     }
 
     /// The state's tint (= the system semantic colour the glyph wears).
     static func color(for state: BackgroundDelegationState) -> IconColor {
         switch state {
-        case .pending:    return .primary
-        case .running:    return .tint
-        case .completed:  return .green
-        case .failed:     return .red
-        case .timeout:    return .orange
+        case .pending: return .primary
+        case .running: return .tint
+        case .completed: return .green
+        case .failed: return .red
+        case .timeout: return .orange
         }
     }
 

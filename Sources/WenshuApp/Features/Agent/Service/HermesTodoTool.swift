@@ -1,22 +1,22 @@
-// 
+//
 // … (= 73 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// 
+//
 import Foundation
 import WenshuAgent
 import WenshuData
 
-// NOTE: HermesTodoTool wraps HermesTodoStore (= in-memory DispatchQueue store).
-// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / Valid status values for todo items (= mirrors Python `VALID_STATUSES`).
+/// NOTE: HermesTodoTool wraps HermesTodoStore (= in-memory DispatchQueue store).
+/// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+/// / Valid status values for todo items (= mirrors Python `VALID_STATUSES`).
 enum HermesTodoStatus: String, Codable, Sendable, CaseIterable {
     case pending
     case inProgress = "in_progress"
     case completed
     case cancelled
 
-    // / Whether this status is "active" for the post-compression
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / see Python `format_for_injection`).
+    /// / Whether this status is "active" for the post-compression
+    /// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / see Python `format_for_injection`).
     var isActive: Bool {
         switch self {
         case .pending, .inProgress: return true
@@ -27,27 +27,27 @@ enum HermesTodoStatus: String, Codable, Sendable, CaseIterable {
     /// Compact marker shown in `formatForInjection` output.
     var injectionMarker: String {
         switch self {
-        case .completed:  return "[x]"
+        case .completed: return "[x]"
         case .inProgress: return "[>]"
-        case .pending:    return "[ ]"
-        case .cancelled:  return "[~]"
+        case .pending: return "[ ]"
+        case .cancelled: return "[~]"
         }
     }
 }
 
-// / Upper bound on a single todo item's content (= mirrors
-// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / inflate the post-compression re-injection block without bound.
-let maxTodoContentChars = 4_000
+/// / Upper bound on a single todo item's content (= mirrors
+/// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+/// / inflate the post-compression re-injection block without bound.
+let maxTodoContentChars = 4000
 
-// / Upper bound on the total todo list size (= mirrors
-// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / head (= highest-priority items).
+/// / Upper bound on the total todo list size (= mirrors
+/// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+/// / head (= highest-priority items).
 let maxTodoItems = 256
 
-// / Upper bound on a single todo tool-result payload accepted during
-// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / it is parsed and re-injected (see Python comment).
+/// / Upper bound on a single todo tool-result payload accepted during
+/// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+/// / it is parsed and re-injected (see Python comment).
 let maxTodoResultChars = 512_000
 
 /// Marker appended to truncated todo content (= mirrors Python
@@ -55,14 +55,15 @@ let maxTodoResultChars = 512_000
 let truncationMarker = "… [truncated]"
 
 // MARK: - HermesTodoItem (= mirrors Python {_id, _content, _status} dict)
-// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / `HermesTodoSessionStore` is responsible for mutation.
+
+/// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+/// / `HermesTodoSessionStore` is responsible for mutation.
 struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
     var id: String
     var content: String
     var status: HermesTodoStatus
-    // / Id of the item this one belongs to (= a sub-step's parent);
-    // / nil = a top-level step.
+    /// / Id of the item this one belongs to (= a sub-step's parent);
+    /// / nil = a top-level step.
     var parent: String?
 
     init(id: String, content: String, status: HermesTodoStatus, parent: String? = nil) {
@@ -76,21 +77,23 @@ struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
     /// Any for parity with the LLM-supplied tool input).
     init(fromAny raw: Any) {
         if let d = raw as? [String: Any] {
-            self.id = HermesTodoItem.stringValue(d["id"]) ?? "?"
-            self.content = HermesTodoStore.capContent(HermesTodoItem.stringValue(d["content"]) ?? "")
-            self.status = HermesTodoStatus(rawValue: HermesTodoItem.stringValue(d["status"])?.lowercased() ?? "") ?? .pending
-            self.parent = HermesTodoItem.normalizedParent(HermesTodoItem.stringValue(d["parent"]))
+            id = HermesTodoItem.stringValue(d["id"]) ?? "?"
+            content = HermesTodoStore.capContent(HermesTodoItem.stringValue(d["content"]) ?? "")
+            status = HermesTodoStatus(rawValue: HermesTodoItem.stringValue(d["status"])?.lowercased() ?? "") ?? .pending
+            parent = HermesTodoItem.normalizedParent(HermesTodoItem.stringValue(d["parent"]))
         } else {
-            self.id = "?"
-            self.content = HermesTodoStore.capContent("")
-            self.status = .pending
-            self.parent = nil
+            id = "?"
+            content = HermesTodoStore.capContent("")
+            status = .pending
+            parent = nil
         }
     }
 
     private static func stringValue(_ v: Any?) -> String? {
         guard let v = v else { return nil }
-        if let s = v as? String { return s }
+        if let s = v as? String {
+            return s
+        }
         return "\(v)"
     }
 
@@ -108,14 +111,15 @@ struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
         [
             "id": id,
             "content": content,
-            "status": status.rawValue
+            "status": status.rawValue,
         ]
     }
 }
 
 // MARK: - HermesTodoStore (= mirrors Python TodoStore class)
-// … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// /   - status: pending | in_progress | completed | cancelled
+
+/// … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+/// /   - status: pending | in_progress | completed | cancelled
 final class HermesTodoStore: @unchecked Sendable {
     // / Serial queue protecting `items`. We use a serial queue (not a
     // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -128,11 +132,12 @@ final class HermesTodoStore: @unchecked Sendable {
     }
 
     // MARK: - write (= mirrors Python `TodoStore.write`)
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / - `merge=true`: update existing items by id and append new ones.
+
+    /// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / - `merge=true`: update existing items by id and append new ones.
     @discardableResult
     func write(todos: [HermesTodoItem], merge: Bool = false) -> [HermesTodoItem] {
-        return queue.sync {
+        let snapshot = queue.sync {
             if !merge {
                 // Replace mode: new list entirely.
                 let deduped = HermesTodoStore.dedupeByID(todos)
@@ -146,7 +151,9 @@ final class HermesTodoStore: @unchecked Sendable {
                 let deduped = HermesTodoStore.dedupeByID(todos)
                 for raw in deduped {
                     let itemId = raw.id.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if itemId.isEmpty { continue }  // can't merge without id
+                    if itemId.isEmpty {
+                        continue
+                    } // can't merge without id
 
                     if var existingItem = existing[itemId] {
                         // Update only the fields the LLM actually provided.
@@ -192,6 +199,22 @@ final class HermesTodoStore: @unchecked Sendable {
             // that bit the previous implementation).
             return items
         }
+        postPlanChange()
+        return snapshot
+    }
+
+    /// Tells every mirror of the plan that its snapshot is stale.
+    ///
+    /// Posted on the writing thread, like the app's other change
+    /// notifications, and a mirror that draws from it hops to the main
+    /// actor itself: the post must land the moment the write returns,
+    /// not when a queue happens to drain. The notification carries no
+    /// payload, because a plan has one current state and a reader takes
+    /// a fresh snapshot rather than applying a delta.
+    private func postPlanChange() {
+        NotificationCenter.default.post(
+            name: Notification.Name.wenshuTodoPlanDidChange, object: nil
+        )
     }
 
     // MARK: - read (= mirrors Python `TodoStore.read`)
@@ -207,8 +230,9 @@ final class HermesTodoStore: @unchecked Sendable {
     }
 
     // MARK: - formatForInjection (= mirrors Python)
-    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / model re-does finished work after compression).
+
+    /// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / model re-does finished work after compression).
     func formatForInjection() -> String? {
         let snapshot = queue.sync { items }
         let activeItems = snapshot.filter { $0.status.isActive }
@@ -223,11 +247,14 @@ final class HermesTodoStore: @unchecked Sendable {
     }
 
     // MARK: - validate / capContent / dedupeByID (= mirrors Python @staticmethod helpers)
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / sane defaults (= mirrors Python `_validate`).
+
+    /// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / sane defaults (= mirrors Python `_validate`).
     static func validate(_ raw: HermesTodoItem) -> HermesTodoItem {
         var id = raw.id.trimmingCharacters(in: .whitespacesAndNewlines)
-        if id.isEmpty { id = "?" }
+        if id.isEmpty {
+            id = "?"
+        }
 
         var content = raw.content.trimmingCharacters(in: .whitespacesAndNewlines)
         if content.isEmpty {
@@ -248,7 +275,7 @@ final class HermesTodoStore: @unchecked Sendable {
     }
 
     /// Truncate oversized todo content to `maxTodoContentChars`
-        /// (= mirrors Python `_cap_content`).
+    /// (= mirrors Python `_cap_content`).
     static func capContent(_ content: String) -> String {
         if content.count > maxTodoContentChars {
             let keep = maxTodoContentChars - truncationMarker.count
@@ -259,7 +286,7 @@ final class HermesTodoStore: @unchecked Sendable {
     }
 
     /// Collapse duplicate ids, keeping the last occurrence in its
-        /// position (= mirrors Python `_dedupe_by_id`).
+    /// position (= mirrors Python `_dedupe_by_id`).
     static func dedupeByID(_ todos: [HermesTodoItem]) -> [HermesTodoItem] {
         var lastIndex: [String: Int] = [:]
         for (i, item) in todos.enumerated() {
@@ -273,16 +300,12 @@ final class HermesTodoStore: @unchecked Sendable {
 }
 
 // MARK: - todoTool entry point (= mirrors Python `todo_tool`)
-// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / `json.dumps({...})` output.
+
+/// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+/// / `json.dumps({...})` output.
 struct HermesTodoToolResult: Codable, Sendable, Equatable {
     var todos: [HermesTodoItem]
     var summary: HermesTodoSummary
-
-    init(todos: [HermesTodoItem], summary: HermesTodoSummary) {
-        self.todos = todos
-        self.summary = summary
-    }
 }
 
 struct HermesTodoSummary: Codable, Sendable, Equatable {
@@ -291,19 +314,11 @@ struct HermesTodoSummary: Codable, Sendable, Equatable {
     var inProgress: Int
     var completed: Int
     var cancelled: Int
-
-    init(total: Int, pending: Int, inProgress: Int, completed: Int, cancelled: Int) {
-        self.total = total
-        self.pending = pending
-        self.inProgress = inProgress
-        self.completed = completed
-        self.cancelled = cancelled
-    }
 }
 
-// / Single entry point for the todo tool (= mirrors Python `todo_tool`).
-// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / Returns a JSON-encoded `HermesTodoToolResult`.
+/// / Single entry point for the todo tool (= mirrors Python `todo_tool`).
+/// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+/// / Returns a JSON-encoded `HermesTodoToolResult`.
 func hermesTodoTool(
     todos: [HermesTodoItem]? = nil,
     merge: Bool = false,
@@ -342,13 +357,14 @@ func hermesTodoToolJSONString(
 }
 
 // MARK: - HermesTodoTool (= Tool conformance for wenshu's ToolExecutor)
-// … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / Output: JSON-encoded `HermesTodoToolResult`.
+
+/// … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
+/// / Output: JSON-encoded `HermesTodoToolResult`.
 struct HermesTodoTool: Tool, Sendable {
-    // / Shared singleton for ToolRegistry bootstrap (= lazy in-memory
-    // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // HermesTodoTool.swift L87 #warning.
-    nonisolated static let shared: HermesTodoTool = HermesTodoTool(store: HermesTodoStore())
+    /// / Shared singleton for ToolRegistry bootstrap (= lazy in-memory
+    /// … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// HermesTodoTool.swift L87 #warning.
+    nonisolated static let shared: HermesTodoTool = .init(store: HermesTodoStore())
 
     private let store: HermesTodoStore
 
@@ -390,7 +406,8 @@ struct HermesTodoTool: Tool, Sendable {
             if let s = raw as? String {
                 guard let data = s.data(using: .utf8),
                       let decoded = try? JSONSerialization.jsonObject(with: data),
-                      let list = decoded as? [Any] else {
+                      let list = decoded as? [Any]
+                else {
                     throw ToolExecutorError.invalidInput(
                         name: "todo",
                         reason: "todos must be a list of objects, got unparseable string"
@@ -417,9 +434,9 @@ struct HermesTodoTool: Tool, Sendable {
 // MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
 
 extension HermesTodoTool {
-    // / Module-load registration with `ToolRegistry.shared` (= hermes
-    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / wenshu-side TodoStoreTool `todo` (= same domain, different layer).
+    /// / Module-load registration with `ToolRegistry.shared` (= hermes
+    /// … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / wenshu-side TodoStoreTool `todo` (= same domain, different layer).
     static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
@@ -436,7 +453,7 @@ extension HermesTodoTool {
                         "merge": ToolRegistrySchemaProperty(
                             type: "boolean",
                             description: "When true (= default false), merge by id with the existing list; when false, replace the list."
-                        )
+                        ),
                     ],
                     required: []
                 ),

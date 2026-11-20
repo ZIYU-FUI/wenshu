@@ -15,10 +15,11 @@
 import Foundation
 
 // MARK: - AppCommands
-//
-// Toolbar / menu-driven commands. Posted from .commands { Button } and
-// other AppKit menu item surfaces. Listened by views that don't share
-// a direct @Environment / @Binding with the menu source.
+
+///
+/// Toolbar / menu-driven commands. Posted from .commands { Button } and
+/// other AppKit menu item surfaces. Listened by views that don't share
+/// a direct @Environment / @Binding with the menu source.
 enum AppCommands: String, CaseIterable {
     /// Request to create a new book. Posted by the zone-header new-icon
     /// button (= AppleSidebarView bottom slot via AppleSidebarBottomNewButton). Consumed by
@@ -41,9 +42,10 @@ enum AppCommands: String, CaseIterable {
 }
 
 // MARK: - AppStateEvents
-//
-// Lifecycle events posted by core systems. Listened by views that need
-// to react when state changes happen elsewhere.
+
+///
+/// Lifecycle events posted by core systems. Listened by views that need
+/// to react when state changes happen elsewhere.
 enum AppStateEvents: String, CaseIterable {
     /// ProviderKeychain changed (= Settings save / delete a provider key).
     /// Posted after UserDefaults writes for wenshu.llm.provider /
@@ -97,13 +99,22 @@ enum AppStateEvents: String, CaseIterable {
     /// because a reply belongs to the conversation that asked for it
     /// and not to whatever session happens to be open.
     case subAgentResultDelivered = "com.wenshu.subagent.resultDelivered"
+
+    /// The assistant's plan (= the todo rows the agent writes) changed.
+    ///
+    /// Posted by `HermesTodoStore.write`, the single place a plan row
+    /// changes, so a page that mirrors the plan re-reads on the write
+    /// instead of asking again on a timer. Carries no payload: a plan
+    /// has one current state, so the reader takes a fresh snapshot.
+    case todoPlanDidChange = "com.wenshu.todoPlan.didChange"
 }
 
 // MARK: - LayoutEvents
-//
-// Layout / edit-mode state changes. Cross-instance signaling for layout
-// intents that can't share @State directly (= ( menu vs windowed view vs
-// nested view hierarchies).
+
+///
+/// Layout / edit-mode state changes. Cross-instance signaling for layout
+/// intents that can't share @State directly (= ( menu vs windowed view vs
+/// nested view hierarchies).
 enum LayoutEvents: String, CaseIterable {
     /// Reset layout to default (= NSWindow standard ⌘0-style). Posted by
     /// View menu "Reset Layout" entry. Listened by WorkspaceView +
@@ -124,52 +135,57 @@ enum LayoutEvents: String, CaseIterable {
 }
 
 // MARK: - Backward-compat accessors
-//
-// Existing callers reference these notifications as `.wenshuXxx`
-// (= the legacy `static let`s on `Notification.Name` defined here).
-// To preserve all 17 call sites without renaming them, expose
-// `static let`s on `Notification.Name` that map to the enum cases.
-//
-// New code SHOULD reference the enum case directly (= cleaner intent)
-// but the legacy path remains functional.
+
+///
+/// Existing callers reference these notifications as `.wenshuXxx`
+/// (= the legacy `static let`s on `Notification.Name` defined here).
+/// To preserve all 17 call sites without renaming them, expose
+/// `static let`s on `Notification.Name` that map to the enum cases.
+///
+/// New code SHOULD reference the enum case directly (= cleaner intent)
+/// but the legacy path remains functional.
 extension Notification.Name {
-    // AppCommands
-    // (wenshuToggleZone / wenshuNewBookRequested / wenshuNewShelfRequested /
-    //  wenshuChoiceRequested / wenshuExportRequested removed 2026-10 in
-    //  q99-spec-p0-batch2 — verify-dead.py confirmed 0 external callers;
-    //  = the corresponding AppCommands enum cases (= toggleZone /
-    //  newBookRequested / newShelfRequested / choiceRequested /
-    //  exportRequested) are the canonical notification surface now;
-    //  = callers should reference `Notification.Name.<AppCommand>.rawValue`
-    //  or the enum cases directly. The wenshuImportRequested +
-    //  wenshuProviderKeychainChanged + wenshuDefocusChatInput entries
-    //  below are still wired (= retained as the active legacy surface).
-    //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
-    //  + wenshu-dead-code-cleanup SKILL.md.)
+    /// AppCommands
+    /// (wenshuToggleZone / wenshuNewBookRequested / wenshuNewShelfRequested /
+    ///  wenshuChoiceRequested / wenshuExportRequested removed 2026-10 in
+    ///  q99-spec-p0-batch2 — verify-dead.py confirmed 0 external callers;
+    ///  = the corresponding AppCommands enum cases (= toggleZone /
+    ///  newBookRequested / newShelfRequested / choiceRequested /
+    ///  exportRequested) are the canonical notification surface now;
+    ///  = callers should reference `Notification.Name.<AppCommand>.rawValue`
+    ///  or the enum cases directly. The wenshuImportRequested +
+    ///  wenshuProviderKeychainChanged + wenshuDefocusChatInput entries
+    ///  below are still wired (= retained as the active legacy surface).
+    ///  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    ///  + wenshu-dead-code-cleanup SKILL.md.)
     static let wenshuImportRequested = Notification.Name(AppCommands.importRequested.rawValue)
 
     // AppStateEvents
     static let wenshuProviderKeychainChanged = Notification.Name(AppStateEvents.providerKeychainChanged.rawValue)
     static let wenshuDefocusChatInput = Notification.Name(AppStateEvents.defocusChatInput.rawValue)
-    // Boss 2026-10-19 mac-mini reproducer (= chat hang
-    // "AI 思考中 20s"): the chat view model subscribes
-    // to this notification in its init (= SwiftUI
-    // evaluates the chat zone body before
-    // `applicationDidFinishLaunching` publishes the
-    // conductor via `WenshuAgent.installConductorSync`;
-    // = the sync snapshot is nil at the moment the
-    // chat view model resolves it; = the chat view
-    // model stays nil forever; = the chat send
-    // collapses to the "agent 未配置" fallback).
-    // Posting the notification from both
-    // `installConductor` (= the async actor-isolated
-    // path) AND `installConductorSync` (= the sync
-    // shim) lets subscribers patch the resolved value
-    // in the moment the AppDelegate publishes the
-    // conductor (= the chat path's first
-    // `if let conductor = conductor` then takes the
-    // real branch instead of the "agent 未配置"
-    // fallback).
+
+    /// The assistant wrote its plan. Posted by the plan store's only
+    /// write path, listened by the trailing column's plan page.
+    static let wenshuTodoPlanDidChange = Notification.Name(AppStateEvents.todoPlanDidChange.rawValue)
+    /// Boss 2026-10-19 mac-mini reproducer (= chat hang
+    /// "AI 思考中 20s"): the chat view model subscribes
+    /// to this notification in its init (= SwiftUI
+    /// evaluates the chat zone body before
+    /// `applicationDidFinishLaunching` publishes the
+    /// conductor via `WenshuAgent.installConductorSync`;
+    /// = the sync snapshot is nil at the moment the
+    /// chat view model resolves it; = the chat view
+    /// model stays nil forever; = the chat send
+    /// collapses to the "agent 未配置" fallback).
+    /// Posting the notification from both
+    /// `installConductor` (= the async actor-isolated
+    /// path) AND `installConductorSync` (= the sync
+    /// shim) lets subscribers patch the resolved value
+    /// in the moment the AppDelegate publishes the
+    /// conductor (= the chat path's first
+    /// `if let conductor = conductor` then takes the
+    /// real branch instead of the "agent 未配置"
+    /// fallback).
     static let wenshuConductorInstalled = Notification.Name("wenshuConductorInstalled")
 
     /// Local symbol for `runtimeCWDDidChange` (no `wenshu` prefix to
@@ -189,9 +205,10 @@ extension Notification.Name {
 }
 
 // MARK: - Convenience factory
-//
-// Prefer these factories (= enum-driven + discovery-friendly) in NEW code.
-// Existing callers keep using .wenshuXxx until the migration window closes.
+
+///
+/// Prefer these factories (= enum-driven + discovery-friendly) in NEW code.
+/// Existing callers keep using .wenshuXxx until the migration window closes.
 extension Notification {
     /// Build a Notification.Name for the given AppCommands case.
     static func name(_ command: AppCommands) -> Notification.Name {

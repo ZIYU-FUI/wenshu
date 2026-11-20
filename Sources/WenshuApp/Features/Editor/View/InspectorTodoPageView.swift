@@ -35,7 +35,15 @@ struct InspectorTodoPageView: View {
             loadFailureLine
             content
         }
-        .task { await refreshLoop() }
+        .task { model.refresh() }
+        // The plan store announces its own writes (= the assistant
+        // writes the plan while the user watches this page), so the page
+        // reads once per write instead of asking again on a clock.
+        .onReceive(NotificationCenter.default.publisher(
+            for: .wenshuTodoPlanDidChange
+        )) { _ in
+            model.refresh()
+        }
     }
 
     /// The page's body (= the list, or the empty state).
@@ -106,17 +114,6 @@ struct InspectorTodoPageView: View {
                 .padding(.horizontal, DesignTokens.spacingStandard)
                 .padding(.bottom, DesignTokens.spacingStandard)
             }
-        }
-    }
-
-    /// Re-reads the plan store, then keeps re-reading it (= the assistant
-    /// writes the plan while the user watches the page, = the store
-    /// changes outside the view).
-    @MainActor
-    private func refreshLoop() async {
-        while !Task.isCancelled {
-            model.refresh()
-            try? await Task.sleep(for: .seconds(1))
         }
     }
 }
@@ -329,7 +326,6 @@ struct InspectorTodo: Identifiable, Equatable, Sendable {
         self.parent = parent
         self.depth = depth
     }
-
 }
 
 // MARK: - State presentation
@@ -339,10 +335,10 @@ enum InspectorTodoStateStyle {
     /// The state's tint (= the system semantic colour the glyph wears).
     static func tone(for status: HermesTodoStatus) -> IconColor {
         switch status {
-        case .pending:      return .primary
-        case .inProgress:  return .tint
-        case .completed:   return .green
-        case .cancelled:   return .tertiary
+        case .pending: return .primary
+        case .inProgress: return .tint
+        case .completed: return .green
+        case .cancelled: return .tertiary
         }
     }
 
