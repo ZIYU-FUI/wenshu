@@ -38,7 +38,7 @@ Every number below was read out of a log file, not out of a pipeline's status.
 | `python3 Tools/wenshu-devtool/ci_change_gate.py --base f697a2ced0 --check formatting` | exit 0 (= `the change adds no unformatted line (27 changed Swift file(s) checked)`) |
 | `… --check pollution` | exit 0 (= `the change adds no forbidden vocabulary`) |
 | `… --check markdown-newline` | exit 0 (= 2 changed `.md` files) |
-| `python3 Tools/wenshu-devtool/nfi-loc-check.py --base f697a2ced0` | exit 0 (= `every rewritten file's row carries its own count (11 row(s) checked)`. The count belongs to the range asked, not to the tree: the same command run at this doc's sha answers `13 row(s)` (= other lanes' rows joined `f697a2ced0..HEAD` since), `--base b48942d29f` at this doc's sha answers `2 row(s)`, and `--base main` answers `the change adds no registry row; nothing to check` -- this commit EDITS a row, and an edited row is the gate's known blind spot (`t_398b07cd` Part B), so the row's own count was checked by hand: `wc -l` of this file is 261 and the row reads 261 (= `## 8.` item 2 is the same lesson from the other side) |
+| `python3 Tools/wenshu-devtool/nfi-loc-check.py --base f697a2ced0` | exit 0 (= `every rewritten file's row carries its own count (11 row(s) checked)`. The count belongs to the range asked, not to the tree: the same command run at this doc's sha answers `13 row(s)` (= other lanes' rows joined `f697a2ced0..HEAD` since), `--base b48942d29f` at this doc's sha answers `2 row(s)`, and `--base main` answers `the change adds no registry row; nothing to check` -- this commit EDITS a row, and an edited row is the gate's known blind spot (`t_398b07cd` Part B), so the row's own count was checked by hand: `wc -l` of this file is 307 and the row reads 307 (= `## 8.` item 2 is the same lesson from the other side) |
 | the eleven inspector / style / tab suites, filtered | `Test run with 45 tests in 8 suites passed`, `Executed 25 tests, with 0 failures`, exit 0 |
 | the whole suite (= `swift test --skip CSSearchableIndexSearchTests`) | `Test run with 3830 tests in 587 suites failed after 212.882 seconds with 19 issues`; the XCTest side `Executed 12 tests, with 1 test skipped and 0 failures` |
 | CJK on added Swift lines | **0** codepoints in the 2,992 added lines (= counted by codepoint on the `+` side only) |
@@ -132,10 +132,13 @@ this session's window or a subject in another lane's vocabulary, and none does.
   `git ls-remote origin main` and `git ls-remote old-origin main`. (§2's server
   column is a measurement taken at the landing, not a standing fact.)
 - The inspector's style page is `Sources/WenshuApp/Features/Editor/View/`
-  `InspectorStylePageView.swift` (533 lines, under the 600 cap), its rows
-  `InspectorStyleRowView.swift`, its knob `InspectorStyleKnobView.swift`, its model
-  `InspectorStylePreview.swift` (243), the switcher `InspectorStylePresetPicker.swift`
-  (147).
+  `InspectorStylePageView.swift` (533 lines, `wc -l` of that path, under the 600
+  cap), its rows `InspectorStyleRowView.swift`, its knob
+  `InspectorStyleKnobView.swift`, its model
+  `Sources/WenshuApp/Features/Editor/Model/InspectorStylePreview.swift` (243 lines,
+  `wc -l` of that path), the switcher
+  `Sources/WenshuApp/Features/Editor/View/InspectorStylePresetPicker.swift` (147
+  lines, `wc -l` of that path).
 - Nine roles, and the set is exhaustive-by-construction: `InspectorStylePreview.resolve`
   switches over the enum, so an added case that is not answered breaks the build.
   Nothing was taken away from the document's rendering — images, rules and captions
@@ -246,35 +249,56 @@ def check(text, where):
 tip = open(DOC, encoding="utf8").read()
 assert "L5" in tip, "the doc read back empty -- a check on nothing must not print 0"
 here = check(tip, "this tree")
-for sha in ("a6ee591331", "b5a70cf160", "main"):
+for sha in ("a6ee591331", "b5a70cf160"):
     shown = subprocess.run(["git", "show", f"{sha}:{DOC}"], capture_output=True, text=True)
     assert shown.returncode == 0 and "L5" in shown.stdout, f"{sha}: blob not read"
     check(shown.stdout, sha)
-# The check's own teeth: a citation to a file the tree does not have must count as a
-# violation. The token is assembled at runtime (chr(58) is the colon) because a literal
-# one written here would be scanned by this very check and flagged as a defect of the
-# doc -- which is how this round's own finding arrived, in the flesh.
+# The check's own teeth: a citation the tree cannot answer must count as a violation.
+# The tokens are assembled at runtime (chr(58) is the colon) because a literal written
+# here would be scanned by this very check and flagged as a defect of the doc -- which
+# is how this round's own finding arrived, in the flesh.
 FAKE = "nope/FakeCitedFile" + ".swift" + chr(58) + "900-999"
-planted = check(tip + "\n| cites " + FAKE + " |\n", "planted fake")
-assert len(planted) == len(here) + 1, "the planted citation was NOT flagged: the check is decoration"
+# A basename the tree carries more than once (= the last line below prints how
+# many tracked paths carry it, so no count is asserted here that a later clone
+# cannot re-measure): a range against such a name belongs to no single file, and
+# the run must say so instead of quietly measuring whichever one it found first.
+DUP = "AGENTS" + ".md"
+DUP_N = len([p for p in sum(TRACKED.values(), []) if os.path.basename(p) == DUP])
+FAKE2 = "nope/nested/dir/" + DUP + chr(58) + "1-2"
+planted = check(tip + "\n| cites " + FAKE + " |\n| cites " + FAKE2 + " |\n", "planted fake")
+assert len(planted) == len(here) + 2, "a planted citation was NOT flagged: the check is decoration"
+assert any("matches" in str(r) for r in planted), "the ambiguous arm never fired"
+print(f"ambiguous arm: {DUP} is carried by {DUP_N} tracked paths")
 PY
 ```
 
-It answers **0 violations at this sha and 2 at `main` / `b5a70cf160`** (= the two ranges
-that inherited the wrong file: one pointing past a 155-line test's end, one past a
-169-line view's end). It answers **1 at the blob round 2 of its own review rejected**
-(= what `git show` of that sha carries and this tree no longer does: a harness
-read-fingerprint trailer that got committed as prose, citing a range against this doc's
-own name under a path the repository has never had).
+It answers **0 violations in this tree**, **1 at `a6ee591331`**, and **2 at
+`b5a70cf160`** (= the two ranges that inherited the wrong file: one pointing past a
+155-line test's end, one past a 169-line view's end). The `1` at `a6ee591331` is what
+round 2 of this doc's own review rejected: a harness read-fingerprint trailer that got
+committed as prose, citing a range against this doc's own name under a path the
+repository has never had. The loop names BLOBS, not refs: `main` is a moving ref, and
+round 3's run happened to print the same blob for `main` and for `b5a70cf160`, which is
+a fact about the day it ran and not something a check may rely on.
 
-Two rules were added to catch what the first version skipped, each with its own red case
-printed by the run above. A cited basename the tree does not have is now a violation; the
-first version `continue`d past it, which is why a planted citation to a file outside the
-repository answered 0. And a range cited against this doc's own name is a violation: the
-file carries its own line count in the registry, so a self-citation goes stale by
-construction -- the trailer above is the proof, and the sentence you are reading is
-deliberately a description rather than a quote, because printing the bad token re-arms the
-check that flags it.
+Three rules were added to catch what the first version skipped, each with its own red
+case printed by the run above. A cited basename the tree does not have is now a
+violation; the first version `continue`d past it, which is why a planted citation to a
+file outside the repository answered 0. A range cited against this doc's own name is a
+violation: the file carries its own line count in the registry, so a self-citation goes
+stale by construction -- the trailer above is the proof, and the sentence you are
+reading is deliberately a description rather than a quote, because printing the bad
+token re-arms the check that flags it. And a basename the tree carries more than once is
+a violation, because the range then belongs to no single file: the run plants one and
+prints how many tracked paths carry that name, so the count is measured rather than
+asserted here.
+
+One residual, stated rather than closed: the pattern captures a FILENAME, not a
+directory path, so a citation whose directories are wrong is still resolved by its
+basename and the bad prefix stays invisible (= round 3 measured it: a planted path under
+a prefix the repository does not have, naming a real basename, answered 0 violations).
+Closing it means extending the capture to the whole path and re-reading every citation in
+this doc against exact tracked paths, which is its own card and not this doc's landing.
 
 A finding about the doc's numbers is fixed by making the number a command, not by
 adding a section. A finding about its wording does not open another round. This
