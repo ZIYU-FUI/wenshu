@@ -432,7 +432,7 @@ def main():
             failures.append(("the vendored engine's suite", "the run reported no test"))
 
     # The house's own gates.
-    for check in ("formatting", "pollution"):
+    for check in ("formatting", "pollution", "loc-cap"):
         code, out = sh(f"python3 {DEVTOOL}/ci_change_gate.py --base {args.base} --check {check}")
         print(f"  ci_change_gate --check {check}: exit {code}")
         if code != 0:

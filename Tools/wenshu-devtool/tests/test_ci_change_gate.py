@@ -33,13 +33,27 @@ against the two gates' own claims:
  13. a NEW .md that never had the byte is reported.
  14. a RENAME of a byte-less .md drops nothing (= = and is green).
  15. this file itself carries no forbidden vocabulary.
+16. a NEW file over the 600-LOC cap is reported BY THE GATE (= the cap's
+    own mutation test: = a 601-line file must go red).
+17. the cap reaches the ``Tests/`` tree (= = the ruling of 2026-11-21: = =
+    AGENTS.md 6.6 exempts ``Vendor/`` alone, = = so a test file over the
+    cap is a violation like any other).
+18. an over-cap file the change GREW is reported, = and the report carries
+    its base size (= = so the ratchet's arithmetic is visible).
+19. an over-cap file the change SHRANK lands (= = the split in progress),
+    = and the report says it excused one.
+20. the VENDORED tree is exempt from the cap (= = and a vendored file over
+    the cap never reaches the report).
+21. a path with no blob at HEAD is UNMEASURABLE, = never clean.
 
 Run:  python3 Tools/wenshu-devtool/tests/test_ci_change_gate.py
 Exit: 0 = every case passed, 1 = at least one case failed.
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import shutil
 import subprocess
 import sys
@@ -152,6 +166,182 @@ def _scratch_repo(tmp: str) -> Path:
     ):
         subprocess.run(["git", *args], cwd=str(repo), check=True, capture_output=True)
     return repo
+
+
+def _swift_of(lines: int, name: str = "Subject") -> str:
+    """A Swift file of EXACTLY ``lines`` lines (= = the cap's own unit)."""
+    body = "".join(f"    let value{i} = {i}\n" for i in range(max(lines - 2, 0)))
+    return f"struct {name} {{\n{body}}}\n"
+
+
+def _scratch_repo_with_swift(tmp: str, rel: str, lines: int) -> tuple[Path, str]:
+    """A git repo whose one Swift file at ``rel`` is ``lines`` long, = = and the base sha."""
+    repo = Path(tmp) / "cap-repo"
+    target = repo / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(_swift_of(lines, target.stem), encoding="utf-8")
+    for args in (
+        ["init", "-q"],
+        ["config", "user.email", "gate@test.invalid"],
+        ["config", "user.name", "gate"],
+        ["add", "-A"],
+        ["commit", "-q", "-m", "base"],
+    ):
+        subprocess.run(["git", *args], cwd=str(repo), check=True, capture_output=True)
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True, check=True
+    ).stdout.strip()
+    return repo, base
+
+
+def _run_gate(repo: Path, base: str, check: str) -> tuple[int, str]:
+    """The gate's exit code AND its printed report (= = both are the claim)."""
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        code = gate.main(["--base", base, "--check", check, "--repo", str(repo)])
+    return code, out.getvalue()
+
+
+def case_a_new_file_one_line_over_the_cap_goes_red() -> bool:
+    """The cap's own mutation test: = a 601-line NEW file must go red.
+
+    = = This is the case the 2026-11-21 audit asked for: = = the rule
+    (AGENTS.md 6.6) had no instrument that could fail, = = so a card added a
+    1092-line test file and its run went green.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, base = _scratch_repo_with_swift(tmp, "Sources/Kept.swift", 12)
+        rel = "Sources/New.swift"
+        (repo / rel).write_text(_swift_of(gate.LOC_CAP + 1, "New"), encoding="utf-8")
+        _commit(repo, "add a file one line over the cap")
+        code, out = _run_gate(repo, base, "loc-cap")
+        named = rel in out and "NEW in this change" in out
+        return case(
+            f"a NEW file ONE LINE over the {gate.LOC_CAP}-LOC cap is reported BY THE GATE",
+            code == 1 and named,
+            f"gate_exit={code} (= 1 = the cap caught it) the report names it: {named}",
+        )
+
+
+def case_a_file_at_the_cap_is_green() -> bool:
+    """EXACTLY at the cap is inside it (= = the tree carries such a file).
+
+    = = The control for the case above: = = without it, = = a gate that
+    failed unconditionally would look like a gate that works.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, base = _scratch_repo_with_swift(tmp, "Sources/Kept.swift", 12)
+        rel = "Sources/AtTheCap.swift"
+        (repo / rel).write_text(_swift_of(gate.LOC_CAP, "AtTheCap"), encoding="utf-8")
+        _commit(repo, "add a file exactly at the cap")
+        code, out = _run_gate(repo, base, "loc-cap")
+        return case(
+            f"a file of EXACTLY {gate.LOC_CAP} LOC is green (= = the boundary is >, = = not >=)",
+            code == 0 and "within the 600-LOC cap" in out,
+            f"gate_exit={code} (= 0) report: {out.splitlines()[0][:70] if out else ''}",
+        )
+
+
+def case_the_cap_reaches_the_tests_tree() -> bool:
+    """AGENTS.md 6.6 exempts ``Vendor/`` ALONE, = so ``Tests/`` is inside the cap.
+
+    = = The boss's ruling of 2026-11-21: = = a test file is split by CONCERN
+    (one subject per file) because the judge is whether a review card can
+    read the change, = = and a 1092-line suite with 29 ``@Test`` functions
+    in one ``struct`` is not readable.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, base = _scratch_repo_with_swift(tmp, "Sources/Kept.swift", 12)
+        rel = "Tests/WenshuAppTests/Shared/UI/SubjectTests.swift"
+        target = repo / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(_swift_of(1092, "SubjectTests"), encoding="utf-8")
+        _commit(repo, "add a test file far over the cap")
+        code, out = _run_gate(repo, base, "loc-cap")
+        return case(
+            "the cap reaches the TESTS tree (= = the ruling of 2026-11-21)",
+            code == 1 and rel in out,
+            f"gate_exit={code} (= 1 = a test file over the cap is a violation like any other)",
+        )
+
+
+def case_a_grown_over_cap_file_carries_its_base_size() -> bool:
+    """An over-cap file the change GREW is charged, = with its base size shown."""
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, base = _scratch_repo_with_swift(
+            tmp, "Sources/Grown.swift", gate.LOC_CAP + 10
+        )
+        (repo / "Sources" / "Grown.swift").write_text(
+            _swift_of(gate.LOC_CAP + 11, "Grown"), encoding="utf-8"
+        )
+        _commit(repo, "grow a file that was already over the cap")
+        code, out = _run_gate(repo, base, "loc-cap")
+        shown = f"was {gate.LOC_CAP + 10}" in out
+        return case(
+            "an over-cap file the change GREW is reported WITH its base size",
+            code == 1 and shown,
+            f"gate_exit={code} the ratchet's arithmetic is visible: {shown}",
+        )
+
+
+def case_a_shrinking_over_cap_file_lands() -> bool:
+    """An over-cap file the change SHRANK lands (= = the split in progress).
+
+    = = Why a ratchet and not a state check: = = 9 files are already over
+    the cap on main, = = so a state check would turn every card that touches
+    one of them red before anybody had split anything (= = the same false
+    red the markdown-newline check measured on its own rule).
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, base = _scratch_repo_with_swift(
+            tmp, "Sources/Split.swift", gate.LOC_CAP + 100
+        )
+        (repo / "Sources" / "Split.swift").write_text(
+            _swift_of(gate.LOC_CAP + 40, "Split"), encoding="utf-8"
+        )
+        _commit(repo, "the first half of a split")
+        code, out = _run_gate(repo, base, "loc-cap")
+        return case(
+            "an over-cap file the change SHRANK lands (= = and the report says what it excused)",
+            code == 0 and "Split.swift" in out and "shrinking" in out,
+            f"gate_exit={code} (= 0 = progress lands) the excuse is printed: {'Split.swift' in out}",
+        )
+
+
+def case_the_vendored_tree_is_exempt_from_the_cap() -> bool:
+    """``Vendor/`` is the rule's ONLY exemption (= = upstream's own bytes)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, base = _scratch_repo_with_swift(tmp, "Sources/Kept.swift", 12)
+        rel = "Vendor/Engine/Upstream.swift"
+        target = repo / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(_swift_of(gate.LOC_CAP * 3, "Upstream"), encoding="utf-8")
+        _commit(repo, "vendor an upstream file far over the cap")
+        code, out = _run_gate(repo, base, "loc-cap")
+        return case(
+            "the VENDORED tree is exempt from the cap (= = and never reaches the report)",
+            code == 0 and rel not in out,
+            f"gate_exit={code} (= 0) the vendored path is absent from the report: {rel not in out}",
+        )
+
+
+def case_an_unmeasurable_path_is_never_certified_clean() -> bool:
+    """A path with no blob at HEAD is UNMEASURABLE, = never clean.
+
+    = = ``changed_paths`` drops deletions, = = so this arm is the gate's
+    refusal rather than a case the diff produces: = = a file the gate could
+    not read is not a file the gate found inside the cap.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, base = _scratch_repo_with_swift(tmp, "Sources/Kept.swift", 12)
+        offenders, shrinking, unmeasurable = gate.loc_cap_offenders(
+            base, ["Sources/Absent.swift"], repo
+        )
+        return case(
+            "a path with no blob at HEAD is UNMEASURABLE (= = never reported clean)",
+            unmeasurable == ["Sources/Absent.swift"] and not offenders and not shrinking,
+            f"unmeasurable={unmeasurable} offenders={offenders} shrinking={shrinking}",
+        )
 
 
 def case_deleted_path_never_reaches_swiftformat() -> bool:
@@ -526,6 +716,17 @@ def main() -> int:
                 f"gate_exit={exit_code} (= 0 = the rename moved the drift, = = it dropped nothing)",
             )
         )
+
+    # The 600-LOC cap (= = AGENTS.md 6.6). = = EVERY case below drives the
+    # GATE (= = `gate.main`), = = not the helper, = = so a mutation that
+    # scans the wrong file set cannot pass.
+    results.append(case_a_new_file_one_line_over_the_cap_goes_red())
+    results.append(case_a_file_at_the_cap_is_green())
+    results.append(case_the_cap_reaches_the_tests_tree())
+    results.append(case_a_grown_over_cap_file_carries_its_base_size())
+    results.append(case_a_shrinking_over_cap_file_lands())
+    results.append(case_the_vendored_tree_is_exempt_from_the_cap())
+    results.append(case_an_unmeasurable_path_is_never_certified_clean())
 
     results.append(
         case(

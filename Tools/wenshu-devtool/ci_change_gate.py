@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The CI's change gate: measure the CHANGE, not the history.
 
-Three checks, two about the lines a change ADDS and one about the bytes
+Four checks, two about the lines a change ADDS and two about the bytes
 a change leaves behind:
 
 * ``pollution``: the added lines carry no forbidden vocabulary. The
@@ -38,6 +38,29 @@ a change leaves behind:
   check went RED on 13 of main's last 300 COMMITS, = = and 11 of those 13
   were FALSE (= = the commit never touched the byte).
 
+* ``loc-cap``: the change leaves no ``.swift`` file over the 600-LOC cap
+  (AGENTS.md 6.6). = = The cap covers EVERY ``.swift`` file in this
+  repository (= = ``Vendor/`` alone is exempt, = = and ``changed_paths``
+  already drops it), = = so the top-level ``Tests/`` tree and the probes
+  under ``Tools/`` are inside it too: = = the rule's own text never exempted
+  them, = = and until this check existed nothing measured them (= = measured
+  2026-11-21 on main: 8 files under ``Tests/`` and 1 probe are over the cap,
+  = = the largest 1372 LOC, = = and the newest of them was added by a card
+  whose run went green). = = ⇒ ⇒ **⇒ IT IS A RATCHET, = = NOT A STATE CHECK**
+  (= = the delta rule the other three follow): = = a change that makes an
+  over-cap file SMALLER is the split in progress and lands, = = while a
+  change that leaves it the same size or grows it is charged.
+  = = MEASURED (the replay drives THIS tool's own functions over main's
+  last 300 COMMITS in a --shared clone): = = 81 of the 300 touched a
+  ``.swift`` file, = = the RATCHET goes RED on 17 (= = 61 green, = = 3
+  excused for shrinking), = = and both additions to the blind spot are
+  among the 17 (= = ``31b5c3929a`` added a 1092-line test file and grew
+  ``LabelSegmentedControl`` to 670, = = ``9776b4dc7c`` added the 635-line
+  probe). = = A STATE check would red 20, = = and its 3 extra are EXACTLY
+  the three splits in progress (= = ``124ce32757``, = = ``9639ff9d60``,
+  ``de3f287f4d``) = = so a state check would have punished the only commits
+  that were fixing the file.
+
 WHY THIS EXISTS. The CI used to run ``git log --all -p | grep <vocabulary>``
 for the pollution check (= 4788 hits on the repository's own history, = the
 step could never be green) and ``swiftformat --lint`` on every file a change
@@ -52,6 +75,7 @@ USAGE::
     python3 Tools/wenshu-devtool/ci_change_gate.py --base <sha> --check pollution
     python3 Tools/wenshu-devtool/ci_change_gate.py --base <sha> --check formatting
     python3 Tools/wenshu-devtool/ci_change_gate.py --base <sha> --check markdown-newline
+    python3 Tools/wenshu-devtool/ci_change_gate.py --base <sha> --check loc-cap
 
 ``--base`` is the commit the change is measured against (= the CI resolves
 it per trigger, because ``origin/main`` is the wrong base for a push to
@@ -81,6 +105,14 @@ VIOLATION = re.compile(
 
 SWIFT_SUFFIX = ".swift"
 MD_SUFFIX = ".md"
+
+#: The file-size cap of AGENTS.md 6.6, = in lines. = The count is the cap
+#: tool's own convention (= ``len(text.splitlines())``, = the way
+#: ``Tools/wenshu-devtool/inventory-measure.py`` sizes a file), = NOT the
+#: registry's ``wc -l`` column: = for a file that does not end with a
+#: newline the two differ by one, = and the question this check answers is
+#: the cap's.
+LOC_CAP = 600
 
 
 def parse_diff(diff_text: str) -> tuple[dict[str, list[tuple[int, int]]], dict[str, dict[int, str]]]:
@@ -411,12 +443,70 @@ def markdown_newline_offenders(
         # change's business.
     return offenders
 
+
+def swift_loc(rev: str, path: str, cwd: Path) -> int | None:
+    """A blob's size in lines, = or None when there is no blob at ``rev``.
+
+    None is NOT zero: = a path absent at the merge-base is NEW in this
+    change, = and a path absent at HEAD could not be measured at all (= and
+    a measurement that did not happen is never reported as a clean one).
+    """
+    data = _blob_bytes(rev, path, cwd)
+    if data is None:
+        return None
+    return len(data.decode("utf-8", errors="replace").splitlines())
+
+
+def loc_cap_offenders(
+    base: str, paths: list[str], cwd: Path
+) -> tuple[list[tuple[str, int, int | None]], list[tuple[str, int, int]], list[str]]:
+    """The changed Swift files this change leaves over the ``LOC_CAP`` cap.
+
+    Returns ``(offenders, shrinking, unmeasurable)``:
+
+    * ``offenders`` = ``(path, head_loc, base_loc)``, = and ``base_loc`` is
+      None for a file that is NEW in this change (= = so the report can say
+      which of the two it is).
+    * ``shrinking`` = ``(path, base_loc, head_loc)`` for the over-cap files
+      the ratchet lets through, = printed so the report says what it excused
+      instead of passing silently.
+    * ``unmeasurable`` = the paths with no blob at HEAD. = The caller fails
+      on these: = a file the gate could not read is not a file the gate
+      found clean.
+
+    The comparison is the DELTA (= = the blob at the merge-base against the
+    blob at HEAD, = = the rule every other check in this gate follows), = =
+    and a RENAME is charged to its source: = = a split that renames the
+    parent keeps the parent's own base size, = = so moving an over-cap file
+    is not "a new file over the cap".
+    """
+    merge_base = _git(["merge-base", base, "HEAD"], cwd).strip()
+    renames = _rename_sources(base, cwd)
+    offenders: list[tuple[str, int, int | None]] = []
+    shrinking: list[tuple[str, int, int]] = []
+    unmeasurable: list[str] = []
+    for path in paths:
+        head_loc = swift_loc("HEAD", path, cwd)
+        if head_loc is None:
+            unmeasurable.append(path)
+            continue
+        if head_loc <= LOC_CAP:
+            continue
+        source = renames.get(path)
+        base_loc = swift_loc(merge_base, source if source is not None else path, cwd)
+        if base_loc is not None and head_loc < base_loc:
+            shrinking.append((path, base_loc, head_loc))
+            continue
+        offenders.append((path, head_loc, base_loc))
+    return offenders, shrinking, unmeasurable
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="The CI's change gate")
     parser.add_argument("--base", required=True, help="the commit the change is measured against")
     parser.add_argument(
         "--check",
-        choices=["pollution", "formatting", "markdown-newline"],
+        choices=["pollution", "formatting", "markdown-newline", "loc-cap"],
         required=True,
         help="which check to run",
     )
@@ -451,6 +541,43 @@ def main(argv: list[str] | None = None) -> int:
         )
         for path, reason in offenders:
             print(f"  {path}: {reason}")
+        return 1
+
+    if args.check == "loc-cap":
+        cap_paths = [p for p in changed_paths(args.base, cwd) if p.endswith(SWIFT_SUFFIX)]
+        offenders, shrinking, unmeasurable = loc_cap_offenders(args.base, cap_paths, cwd)
+        if unmeasurable:
+            # A file this gate could not read is NOT a file it found clean.
+            print(
+                f"loc-cap: {len(unmeasurable)} changed Swift file(s) could not be measured, "
+                f"so the cap is not settled for this change"
+            )
+            for path in unmeasurable:
+                print(f"  {path}: no blob at HEAD; the measurement did not happen")
+            return 1
+        if not offenders:
+            print(
+                f"loc-cap: every changed Swift file is within the {LOC_CAP}-LOC cap "
+                f"({len(cap_paths)} file(s) checked"
+                + (f", {len(shrinking)} over the cap but shrinking" if shrinking else "")
+                + ")"
+            )
+            for path, base_loc, head_loc in shrinking:
+                print(
+                    f"  {path}: {base_loc} -> {head_loc} LOC (= still over the cap; "
+                    f"the change shrank it, = so the ratchet lets it land)"
+                )
+            return 0
+        print(
+            f"loc-cap: {len(offenders)} changed Swift file(s) over the {LOC_CAP}-LOC cap "
+            f"(AGENTS.md 6.6)"
+        )
+        for path, head_loc, base_loc in offenders:
+            origin = "NEW in this change" if base_loc is None else f"was {base_loc}"
+            print(
+                f"  {path}: {head_loc} LOC (= {origin}); split it by CONCERN "
+                f"(= one subject per file), = never by a line count"
+            )
         return 1
 
     swift_paths = [p for p in changed_paths(args.base, cwd) if p.endswith(SWIFT_SUFFIX)]

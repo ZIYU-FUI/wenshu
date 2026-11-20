@@ -142,6 +142,30 @@ jobs:
           fi
           python3 Tools/wenshu-devtool/ci_change_gate.py --base "$BASE" --check markdown-newline
 
+      # The file-size cap of AGENTS.md 6.6: no changed .swift file may be left
+      # over 600 LOC.
+      #
+      # The cap covers EVERY .swift file in this repository — `Vendor/` alone is
+      # exempt — so the top-level `Tests/` tree and the probes under `Tools/`
+      # are inside it too. The rule's text never exempted them, and until this
+      # step existed nothing measured them: measured 2026-11-21 on main, 8 files
+      # under `Tests/` and 1 probe were over the cap (the largest 1372 LOC), and
+      # the newest of them was added by a card whose run went green.
+      #
+      # It is a RATCHET, not a state check: a change that makes an over-cap file
+      # SMALLER is the split in progress and lands, while a change that leaves it
+      # the same size or grows it is charged. A state check would turn every card
+      # that touches one of those 9 files red before anybody had split anything.
+      # The tool's docstring carries the reasoning:
+      # Tools/wenshu-devtool/ci_change_gate.py, `loc_cap_offenders`.
+      - name: File-size cap gate
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="origin/main"
+          fi
+          python3 Tools/wenshu-devtool/ci_change_gate.py --base "$BASE" --check loc-cap
+
       # Source-code lint gate (batch 1 issue 08)
       # Runs SwiftLint + SwiftFormat lint on every push + PR.
       # Both tools are pinned via the Brewfile (= batch 1 issue 01) but
