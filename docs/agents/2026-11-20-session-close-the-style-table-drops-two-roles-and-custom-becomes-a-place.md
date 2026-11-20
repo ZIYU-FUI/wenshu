@@ -163,3 +163,17 @@ And one process fact worth keeping: the reviewer worked in a detached worktree a
 exact sha in both rounds, asserted `HEAD` against the sha and `git status --porcelain`
 empty before and after every mutation arm, and deleted its probe worktrees afterwards.
 That is what makes a mutation claim re-runnable by the next reader.
+
+## 9. How this doc gets reviewed, and where it stops
+
+One card reads this doc and the registry row beside it, and its job is bounded to
+three claims: every sha it cites resolves, every number it publishes is reproduced by
+the command printed next to it, and no row it names is absent from the tree. The code
+is on `main` and was reviewed twice (rounds on `t_d4552e4c`, `t_d00f50ad`); a round
+that re-reviews it is out of budget.
+
+A finding about the doc's numbers is fixed by making the number a command, not by
+adding a section. A finding about its wording does not open another round. This
+doc's own verdict lives on the board and is deliberately NOT written back here: a
+closure doc that logs its own meta-reviews becomes the defect it was written to
+report, and each such entry lengthens the file that carries its own line count.
