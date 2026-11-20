@@ -48,6 +48,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -322,6 +323,7 @@ def main() -> int:
         return 0
 
     print(f"base = {base_sha}")
+    print(f"measured at = {time.strftime('%Y-%m-%d %H:%M:%S %z')}")
     print(f"branch-backed worktrees measured = {len(measured)} "
           f"(green {len(green)}, red {len(red)})")
     print(f"red points = {sum(len(b.tip_points) for b in red)}")

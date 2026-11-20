@@ -61,9 +61,9 @@ THEY CAN DIFFER BY ONE: = = the registry's PARENT cell's prose (= "= =
 convention, = = and the LOC COLUMN = = follows `wc -l` (= = = the
 convention this gate measures, = = = and the one the registry's own
 header names). = ⇒ ⇒ ⇒ A FILE WITHOUT A TRAILING NEWLINE = = HAS
-`splitlines()` = = `wc -l` + 1, = = so for THAT FILE the two numbers
-differ by one, = = and BOTH are right (= = = each in its own
-convention). = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **⇒ THIS GATE MEASURES THE LOC COLUMN
+`splitlines()` = = `wc -l` + 1, = = so for a file that ends WITHOUT a
+trailing newline the two numbers differ by one, = = and BOTH are right
+(= = = each in its own convention). = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **⇒ THIS GATE MEASURES THE LOC COLUMN
 ONLY** (= = = the `wc -l` half), = = = and it does NOT read the parent
 cell's prose, = = = because the parent cell is a DIFFERENT FILE's count
 (= = = the parent's own, = = = under the cap tool's convention) = = = =
