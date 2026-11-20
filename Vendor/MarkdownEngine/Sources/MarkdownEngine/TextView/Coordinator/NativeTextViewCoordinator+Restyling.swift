@@ -164,6 +164,9 @@ extension NativeTextViewCoordinator {
                 tlm.invalidateLayout(for: tlm.documentRange)
             }
             tlm.ensureLayout(for: tlm.documentRange)
+            // The whole document is laid out here, so the scroll ticks that
+            // follow have no prefix left to settle from the head.
+            (textView as? NativeTextView)?.noteDocumentLayoutSettled()
         }
 
         // The re-entrant textViewDidChangeSelection was suppressed for this rebuild

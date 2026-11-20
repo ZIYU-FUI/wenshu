@@ -321,6 +321,9 @@ public struct NativeTextViewWrapper: NSViewRepresentable {
         // Force full-document layout at init so paragraph heights are known
         // upfront; otherwise TextKit 2 viewport layout causes scroll drift.
         textLayoutManager.ensureLayout(for: textLayoutManager.documentRange)
+        // That call laid out the whole document, so the scroll ticks may start
+        // their layout at the viewport instead of re-walking from the head.
+        textView.noteDocumentLayoutSettled()
 
         scrollView.contentView.scroll(to: NSPoint(x: 0, y: -scrollView.contentInsets.top))
         scrollView.clampToInsets()
@@ -348,6 +351,11 @@ public struct NativeTextViewWrapper: NSViewRepresentable {
             let newWidth = scrollView.contentView.bounds.width
             if abs(newWidth - lastObservedViewportWidth) > 0.5 {
                 lastObservedViewportWidth = newWidth
+                // The viewport width drives the wrap width, so this is the other
+                // half of the resize invalidation: the settled prefix no longer
+                // holds (the observer below re-arms the one-shot full-document
+                // layout for the same reason).
+                textView.settledLayoutFrontierY = nil
                 // Re-center the column by position (no redraw) so it stays smooth during live resize.
                 // Read readingWidth from the live textView.configuration (a class, captured by
                 // reference) instead of the struct `configuration` captured by value at
@@ -382,7 +390,10 @@ public struct NativeTextViewWrapper: NSViewRepresentable {
             scrollView.clampToInsets()
         }
         NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: nil) { _ in
-            textView.ensureVisibleLayout()
+            // A scroll tick moves the viewport, not the text: settle only what the
+            // last settle did not already cover instead of re-walking the whole
+            // document every tick.
+            textView.ensureVisibleLayout(settlingFromDocumentHead: false)
             if context.coordinator.isWritingToolsActive {
                 context.coordinator.fixWritingToolsChildWindowIfNeeded(textView: textView)
             }
@@ -532,6 +543,9 @@ public struct NativeTextViewWrapper: NSViewRepresentable {
         if abs(textView.textContainerInset.width - desiredTextInset.width) > 0.5
             || abs(textView.textContainerInset.height - desiredTextInset.height) > 0.5 {
             textView.textContainerInset = desiredTextInset
+            // The inset is subtracted from the wrap width and offsets the first
+            // line, so a changed inset moved everything: no known-settled prefix.
+            textView.settledLayoutFrontierY = nil
         }
         // Refresh services/theme when the embedder hands us a new configuration
         // (e.g. when the available wiki-link targets change). Cheap pointer-/
@@ -549,6 +563,10 @@ public struct NativeTextViewWrapper: NSViewRepresentable {
             // Only an image change needs a layout re-measure; a wiki-link rename is style-only.
             if imageChanged, let tlm = textView.textLayoutManager {
                 tlm.invalidateLayout(for: tlm.documentRange)
+                // The whole document is dirty again. The restyle below normally
+                // settles it from the head — but raw source mode skips restyling
+                // entirely, so this is the one that has to say it out loud.
+                textView.settledLayoutFrontierY = nil
             }
             // Restyle live tv content — full rebuild would clobber paste-fresh embeds when `text` binding hasn't caught up.
             let fullRange = NSRange(location: 0, length: (textView.string as NSString).length)

@@ -15,7 +15,7 @@ import AppKit
 extension NativeTextViewCoordinator {
     func updateCodeBlockSelection(textView: NSTextView, parsed: ParsedDocument? = nil) {
         guard let textContainer = textView.textContainer else {
-            onCodeBlockSelectionChange?([])
+            publishCodeBlockSelections([])
             return
         }
 
@@ -24,7 +24,10 @@ extension NativeTextViewCoordinator {
             // no per-call full-token filter.
             cachedCodeBlockTokens = parsed.codeBlockTokensWithIndices
         } else if cachedCodeBlockTokens.isEmpty {
-            onCodeBlockSelectionChange?([])
+            // The common document (no fenced block in it) lands here on EVERY
+            // scroll tick, so this early exit is where the tick's publish cost
+            // actually is.
+            publishCodeBlockSelections([])
             return
         }
 
@@ -60,6 +63,9 @@ extension NativeTextViewCoordinator {
         if !didEnsureLayoutForCurrentDocument, let tlm = textView.textLayoutManager {
             tlm.ensureLayout(for: tlm.documentRange)
             didEnsureLayoutForCurrentDocument = true
+            // That walk covered the whole document, so the scroll ticks may start
+            // their layout at the viewport instead of re-walking from the head.
+            (textView as? NativeTextView)?.noteDocumentLayoutSettled()
         }
 
         // Only on-screen code blocks have a visible copy button. Computing a
@@ -94,6 +100,21 @@ extension NativeTextViewCoordinator {
             )
         }
 
+        publishCodeBlockSelections(selections)
+    }
+
+    /// Hand the overlay description to the embedder — once, and only when it
+    /// differs from the last one handed over.
+    ///
+    /// The scroll tick re-derives this on every bounds change (the copy buttons
+    /// have to follow the text), and a re-derivation with nothing in it, or with
+    /// the same blocks in the same places, is not a change. Publishing it anyway
+    /// costs the embedder a state write and the body pass that follows it —
+    /// Wenshu wires no overlay today, so nothing listens, but the engine's own
+    /// contract should not be "shout the same answer at every tick".
+    func publishCodeBlockSelections(_ selections: [CodeBlockSelection]) {
+        if let last = lastEmittedCodeBlockSelections, last == selections { return }
+        lastEmittedCodeBlockSelections = selections
         onCodeBlockSelectionChange?(selections)
     }
 }

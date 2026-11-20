@@ -169,10 +169,13 @@ struct TextStylingService {
         )
         textView.textStorage?.endEditing()
         let attrMs = Double(DispatchTime.now().uptimeNanoseconds - attrT0) / 1_000_000
-        // No ensureLayout here:
+        // The restyle just wrote attributes across the edited paragraphs, so any
+        // fragment above the viewport may now be estimate-only: settle from the
+        // document head, the way this call always did. (The scroll tick is the
+        // caller that gets the cheap scoped walk — see `ensureVisibleLayout`.)
         let evlT0 = DispatchTime.now().uptimeNanoseconds
         textView.setNeedsDisplay(textView.visibleRect)
-        (textView as? NativeTextView)?.ensureVisibleLayout()
+        (textView as? NativeTextView)?.ensureVisibleLayout(settlingFromDocumentHead: true)
         let evlMs = Double(DispatchTime.now().uptimeNanoseconds - evlT0) / 1_000_000
         PerfTrace.note { "  restyle split: styleAttrs=\(String(format: "%.2f", styleMs))ms spell=\(String(format: "%.2f", spellMs))ms attrApply(paras=\(paragraphs.count))=\(String(format: "%.2f", attrMs))ms ensureVisLayout=\(String(format: "%.2f", evlMs))ms" }
         return wideTableAnchorRanges

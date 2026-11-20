@@ -180,6 +180,10 @@ public final class NativeTextViewCoordinator: NSObject, NSTextViewDelegate {
     /// (parse version, scroll, width, active-code set) means identical output,
     /// so the second per-keystroke invocation can skip the geometry work.
     var lastCodeSelKey: (UInt64, CGFloat, CGFloat, Set<Int>)?
+    /// The last array handed to `onCodeBlockSelectionChange`. The geometry above
+    /// still re-derives when the viewport moves (the copy buttons have to follow
+    /// the text), but an identical result is not worth a state write in the host.
+    var lastEmittedCodeBlockSelections: [CodeBlockSelection]?
     var cachedParsedText: String?
     var cachedParsedDocument: ParsedDocument?
     /// Monotonic edit counter: bumped whenever the text storage can have

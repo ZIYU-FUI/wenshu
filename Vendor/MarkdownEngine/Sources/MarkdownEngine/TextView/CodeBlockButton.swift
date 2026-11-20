@@ -14,7 +14,11 @@ import SwiftUI
 /// Delivered to embedders through
 /// ``NativeTextViewWrapper/onCodeBlockSelectionChange`` so they can overlay
 /// a copy button (see ``CodeBlockButton``) at the right place.
-public struct CodeBlockSelection: Identifiable, Sendable {
+///
+/// `Equatable` because the coordinator compares one pass's output with the
+/// last one it published: an unchanged overlay description is not worth a
+/// state write in the host (and the host's state write costs it a body pass).
+public struct CodeBlockSelection: Identifiable, Sendable, Equatable {
     /// Index of the source token, stable for as long as the block exists.
     public let id: Int
     /// Frame of the rendered code block in the text view's coordinate space.

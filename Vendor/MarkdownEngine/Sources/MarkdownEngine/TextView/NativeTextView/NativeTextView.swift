@@ -70,6 +70,28 @@ final class NativeTextView: NSTextView {
     /// Return `true` to show the arrow cursor instead of the edit-mode I-beam.
     var isCursorExcluded: ((CGPoint) -> Bool)?
 
+    // MARK: Visible-layout settlement state
+    /// Y (text-view coordinates) up to which TextKit's layout is KNOWN settled —
+    /// every fragment above it has its final height, so nothing at or below it can
+    /// shift when the prefix is later re-laid out. `nil` = unknown, and the next
+    /// settle has to walk from the document head (see
+    /// `ensureVisibleLayout(settlingFromDocumentHead:)`).
+    ///
+    /// The scroll tick is the only caller allowed to trust this: a tick with no
+    /// edit between it and the previous settle cannot have moved anything above the
+    /// viewport, so re-walking the settled prefix buys nothing. Every mutation
+    /// path in the engine ends in a restyle, and the restyle settles from the head
+    /// (it re-claims the unknown state first), which is what keeps this honest.
+    var settledLayoutFrontierY: CGFloat?
+
+    /// What the LAST visible-layout settle did: where its walk started, and how
+    /// many layout fragments it visited. This is the seam the settlement suite
+    /// reads to prove the scroll tick's scope — a tick that re-walks the document
+    /// fails on a COUNT, which is the only way to hold that claim without a
+    /// wall-clock budget. Not Debug-only on purpose: the suite must compile in any
+    /// configuration, and recording two fields costs nothing beside the walk.
+    var lastVisibleLayoutSettle: (fromDocumentHead: Bool, visitedFragments: Int)?
+
     // MARK: Wide-table overlay state
     /// Live NSScrollView per wide table; keyed by source-ID hash.
     var wideTableOverlays: [Int: WideTableOverlay] = [:]

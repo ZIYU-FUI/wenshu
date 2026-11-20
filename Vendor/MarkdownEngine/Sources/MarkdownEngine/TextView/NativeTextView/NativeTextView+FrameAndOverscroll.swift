@@ -217,6 +217,11 @@ extension NativeTextView {
             return
         }
         isApplyingManagedFrameSize = true
+        // A managed resize that moves the wrap width re-wraps the document, so the
+        // settled prefix is no longer known-settled (see `ensureVisibleLayout`'s
+        // two callers). Height-only growth does not move anything above the
+        // viewport, so the frontier survives it.
+        if abs(targetWidth - frame.size.width) > 0.5 { settledLayoutFrontierY = nil }
         super.setFrameSize(targetSize)
         isApplyingManagedFrameSize = false
         // Tell the container our height changed so it can re-stack (move us below the
@@ -270,6 +275,7 @@ extension NativeTextView {
         let widthChanged = newSize.width != frame.size.width
         if widthChanged {
             pendingFullLayoutMeasure = true   // re-wrap → re-measure height against a full layout
+            settledLayoutFrontierY = nil     // re-wrap → the prefix above the viewport moved
             isApplyingManagedFrameSize = true
             super.setFrameSize(NSSize(width: newSize.width, height: frame.size.height))
             isApplyingManagedFrameSize = false
@@ -487,18 +493,77 @@ extension NativeTextView {
         }
     }
 
-    /// Force TextKit 2 to lay out all fragments within the current visible rect.
-    /// Walks from the document head, not the viewport: a fragment's Y is the
-    /// sum of the heights above it, so leaving anything above merely estimated
-    /// shifts the visible content when it later settles. A viewport-scoped walk
-    /// (tried as a perf win) caused content shifts, spurious caret reveals, and
-    /// a bistable frame height; steady-state cost here is an enumeration over
-    /// already-laid-out fragments.
-    func ensureVisibleLayout() {
+    /// Force TextKit 2 to lay out the fragments the current visible rect needs.
+    ///
+    /// THE TWO CALLERS ARE DIFFERENT, AND THE SPLIT IS THE POINT:
+    ///
+    /// - the restyle path (`TextStylingService.restyle`) settles FROM THE DOCUMENT
+    ///   HEAD, exactly as this method always did: a fragment's Y is the sum of the
+    ///   heights above it, so after an edit (or an image that just arrived, or a
+    ///   re-wrap) anything above the viewport may still be estimate-only, and
+    ///   leaving it that way shifts the visible content later. A viewport-scoped
+    ///   walk there caused content shifts, spurious caret reveals and a bistable
+    ///   frame height. An edit is a discrete action: paying the prefix walk once
+    ///   per edit is correct.
+    /// - the scroll tick settles only what the last settle did not already cover.
+    ///   Nothing above the viewport moved between two ticks — no edit ran — so a
+    ///   walk over the already-settled prefix recomputes what it already knows.
+    ///   Measured headlessly on a laid-out 646k-character document (8,400
+    ///   fragments): the from-head walk costs 4–13 ms per call, linear in document
+    ///   length, against 0.01–0.04 ms for the scoped walk's 18 fragments. A
+    ///   continuous interaction must not pay that per frame.
+    ///
+    /// `settlingFromDocumentHead: false` still walks from the head whenever it
+    /// cannot prove the prefix is settled: no recorded frontier, a jump below the
+    /// settled band (scrollbar drag, find jump, restored offset), or a visible top
+    /// whose fragment TextKit cannot name yet. Those fall back to the old
+    /// behaviour once, and the walk records the frontier it settled to.
+    func ensureVisibleLayout(settlingFromDocumentHead: Bool) {
         guard let tlm = textLayoutManager else { return }
-        let visBot = visibleRect.maxY
-        tlm.enumerateTextLayoutFragments(from: tlm.documentRange.location, options: [.ensuresLayout]) { fragment in
-            fragment.layoutFragmentFrame.minY <= visBot
+        let visible = visibleRect
+        if settlingFromDocumentHead { settledLayoutFrontierY = nil }
+        if let frontier = settledLayoutFrontierY, frontier >= visible.maxY {
+            lastVisibleLayoutSettle = (fromDocumentHead: false, visitedFragments: 0)
+            return
         }
+
+        // Inside the settled band means the fragment at the visible top already
+        // holds its final Y, so layout can begin there. TextKit's own point lookup
+        // names it (the same call the click paths use), so this costs no walk.
+        var walkFrom = tlm.documentRange.location
+        var startedFromHead = true
+        if let frontier = settledLayoutFrontierY, frontier >= visible.minY {
+            let containerTop = CGPoint(x: visible.minX - textContainerOrigin.x,
+                                       y: visible.minY - textContainerOrigin.y)
+            if let location = tlm.textLayoutFragment(for: containerTop)?.rangeInElement.location {
+                walkFrom = location
+                startedFromHead = false
+            }
+        }
+
+        var visited = 0
+        var settledToY = visible.maxY
+        tlm.enumerateTextLayoutFragments(from: walkFrom, options: [.ensuresLayout]) { fragment in
+            visited += 1
+            // The predicate lays out the first fragment that starts below the
+            // visible bottom before it stops, so that fragment is settled too.
+            // Recording it (instead of the visible bottom) is what lets the next
+            // tick scroll one line and still count as inside the settled band:
+            // with the bottom itself, every downward tick starts one line past
+            // the frontier and falls back to the head walk.
+            settledToY = max(settledToY, fragment.layoutFragmentFrame.maxY)
+            return fragment.layoutFragmentFrame.minY <= visible.maxY
+        }
+        lastVisibleLayoutSettle = (fromDocumentHead: startedFromHead, visitedFragments: visited)
+        // Both branches settled everything up to `settledToY`: the scoped one
+        // because the prefix above it was settled and the band is now too, the
+        // head walk because it started at the head.
+        settledLayoutFrontierY = settledToY
+    }
+
+    /// The whole document is laid out: nothing above any viewport can be
+    /// estimate-only, so the next scroll tick has no prefix to settle.
+    func noteDocumentLayoutSettled() {
+        settledLayoutFrontierY = .greatestFiniteMagnitude
     }
 }
