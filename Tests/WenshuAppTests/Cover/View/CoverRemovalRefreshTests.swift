@@ -102,7 +102,7 @@ struct CoverRemovalRefreshTests {
             try store.saveVideo(Data([0x00, 0x00, 0x00, 0x18]), forKey: key)
             // The grid reads what is on the disk, not what a previous
             // test left in memory.
-            CoverEntryCache.shared.evict(forKey: key)
+            CoverEntryCache.shared.evict(forKey: key, root: CardCoverService.coversRoot)
 
             let pane = PreviewPane(
                 scope: .referenceScope(nil),
@@ -129,7 +129,7 @@ struct CoverRemovalRefreshTests {
 
             settle(host: host, window: window)
             // The card rendered, and the cover it rendered had a clip.
-            let before = CoverEntryCache.shared.entry(forKey: key)
+            let before = CoverEntryCache.shared.entry(forKey: key, root: CardCoverService.coversRoot)
             #expect(before?.videoURL != nil)
 
             // The removal, asked for through ANOTHER service than the
@@ -139,7 +139,7 @@ struct CoverRemovalRefreshTests {
             // it: the clip is gone from what the column holds at the
             // moment the write returns, and no folder had to be read to
             // find that out.
-            let published = CoverEntryCache.shared.entry(forKey: key)
+            let published = CoverEntryCache.shared.entry(forKey: key, root: CardCoverService.coversRoot)
             #expect(published?.videoURL == nil)
             #expect(published?.imageURL != nil)
 
@@ -155,7 +155,7 @@ struct CoverRemovalRefreshTests {
                 renderTally.onMainThread == 0,
                 "the render that a cover removal wakes asked the disk \(renderTally.onMainThread) time(s) on the MAIN thread"
             )
-            let after = CoverEntryCache.shared.entry(forKey: key)
+            let after = CoverEntryCache.shared.entry(forKey: key, root: CardCoverService.coversRoot)
             #expect(after?.videoURL == nil)
             // The entry holds the picture, so the answer the card got
             // was this library's cover and not a card that kept playing

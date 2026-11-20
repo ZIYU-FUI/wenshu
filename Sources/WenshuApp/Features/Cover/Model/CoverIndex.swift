@@ -39,9 +39,13 @@
 //  The walk also picks up the one job the decoded-picture cache used to
 //  do on every lookup: it notices a cover FILE whose size or date moved
 //  (= a picture replaced outside the app) and drops the picture held
-//  for it. That check is now one metadata ask per cover, on a
-//  background thread, once per library. It used to be one per card per
-//  render, on the main thread.
+//  for it. That check costs nothing of its own, because the size and
+//  the date it compares ride the folder listing the walk already took.
+//  One walk therefore asks the disk twice per cover folder it holds (=
+//  the folder's listing and that folder's record) plus one listing of
+//  the covers folder, all of it off the main thread, once per library.
+//  The picture-cache key used to ask once per card per render, on the
+//  main thread.
 //
 
 import Foundation
@@ -61,14 +65,22 @@ final class CoverIndex {
     /// `size|modification-date`.
     private var seenPictures: [String: String] = [:]
 
-    /// What this index last claimed: the library it walked and the cache
-    /// generation it walked into.
+    /// The walks this index has claimed: library path to the cache
+    /// generation it was walked at.
     ///
-    /// Both halves matter. The generation makes a cache that was cleared
-    /// re-walked; the path makes a LIBRARY SWITCH re-walked, because a
-    /// switch that did not clear the cache would otherwise leave the new
-    /// library answered from the old one's folders.
-    private var claim: (generation: Int, rootPath: String)?
+    /// A claim is per LIBRARY, not one slot for the whole app: two
+    /// libraries' walks must not fight over it, or the second claim
+    /// silently invalidates the first walk's results (= measured
+    /// 2026-11-21: a single-slot claim made this feature's own counting
+    /// suite red in a full parallel run and green alone, because any
+    /// other suite that touched the entry door under its own library
+    /// stole the claim mid-walk).
+    ///
+    /// The generation is the other half. A cache that was cleared (= a
+    /// library switch, or a cover sweep that deleted folders) moves it,
+    /// and a walk that started before the clear must not answer a
+    /// question asked after it.
+    private var walked: [String: Int] = [:]
 
     private init() {}
 
@@ -113,11 +125,11 @@ final class CoverIndex {
     /// to walk (= no library, or this one is already walked or walking).
     private func claimWalk() -> Claim? {
         guard let root = CardCoverService.coversRoot else { return nil }
-        let generation = CoverEntryCache.shared.generation
-        if let claim, claim.generation == generation, claim.rootPath == root.path {
+        let generation = CoverEntryCache.shared.generation(forRoot: root)
+        if walked[root.path] == generation {
             return nil
         }
-        claim = (generation, root.path)
+        walked[root.path] = generation
         return Claim(root: root, generation: generation)
     }
 
@@ -142,6 +154,8 @@ final class CoverIndex {
     /// task does not (= a walk that recomputed the root would read some
     /// other library, or none).
     private nonisolated static func walk(claimed: Claim, tally: CoverDiskCounting.Tally?) -> Found {
+        // One ask opens the walk: the listing of the covers folder.
+        tally?.note(.metadata)
         guard let folders = try? FileManager.default.contentsOfDirectory(
             at: claimed.root,
             includingPropertiesForKeys: nil,
@@ -169,12 +183,21 @@ final class CoverIndex {
                 switch file.lastPathComponent {
                 case CardCoverService.imageFileName: image = file
                 case CardCoverService.clipFileName: video = file
-                case CardCoverService.recordFileName: recordData = try? Data(contentsOf: file)
+                case CardCoverService.recordFileName:
+                    // The record's bytes are a real read, and the walk
+                    // counts it as one.
+                    tally?.note(.bytes)
+                    recordData = try? Data(contentsOf: file)
                 default: break
                 }
             }
             if let image {
-                tally?.note(.bytes)
+                // NOT counted as an ask, and it is not one: the size and
+                // the date this check reads came in on the folder
+                // listing above (= it was taken with [.fileSizeKey,
+                // .contentModificationDateKey]), so asking the URL for
+                // those same values reaches no disk (= the documented
+                // purpose of naming the keys to the enumeration).
                 pictures[image.path] = CoverIndex.identity(of: image)
             }
             let record = CardCoverService.record(decodedFrom: recordData)
@@ -212,10 +235,16 @@ final class CoverIndex {
     /// answer is never disturbed; what this guard refuses is a walk
     /// repopulating a hole that someone else just cleared.
     private func apply(_ found: Found) {
-        guard found.claimed.generation == CoverEntryCache.shared.generation,
+        guard walked[found.claimed.root.path] == found.claimed.generation,
+              found.claimed.generation
+              == CoverEntryCache.shared.generation(forRoot: found.claimed.root),
               CardCoverService.coversRoot?.path == found.claimed.root.path else { return }
         var learned = 0
-        for (key, entry) in found.entries where CoverEntryCache.shared.storeIfAbsent(entry, forKey: key) {
+        for (key, entry) in found.entries where CoverEntryCache.shared.storeIfAbsent(
+            entry,
+            forKey: key,
+            root: found.claimed.root
+        ) {
             learned += 1
         }
         let moved = picturePathsWhoseFileMoved(found.pictures)

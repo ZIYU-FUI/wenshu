@@ -124,10 +124,13 @@ struct CoverReconciler {
     /// - Returns: how many covers were removed.
     @discardableResult
     func sweep(liveReferenceIds: [UUID]?, shelvesRoot: URL?) -> Int {
-        // The library reload means the library may have changed on
-        // disk, so what the app remembers about its covers is dropped
-        // and read again.
-        CoverEntryCache.shared.removeAll()
+        // The sweep just deleted cover folders, so what the app
+        // remembers about THIS library's covers is dropped and read
+        // again. Another library's answers are still exactly what is on
+        // that disk, and dropping them too would send its column back to
+        // the folders for nothing (= entries are scoped by library, so
+        // one library's sweep cannot answer another library's card).
+        CoverEntryCache.shared.removeAll(forRoot: CardCoverService.coversRoot)
 
         let service = CardCoverService()
         let coverKeys = service.storedKeys()

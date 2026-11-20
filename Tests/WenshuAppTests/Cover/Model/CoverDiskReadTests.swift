@@ -10,9 +10,11 @@
 //  comes out on every machine. So the fixture is a throwaway library
 //  with N cards that each hold a cover, and the passes below are the
 //  passes the column makes: the render of a screenful, the same
-//  screenful rendered again, the appearance of each card's picture
-//  slot (= the first one, and the one after the lazy grid rebuilt the
-//  cell), and the render that follows a cover being written.
+//  screenful rendered again, a DIFFERENT screenful scrolling into view
+//  of an already-walked library, a cover arriving after the walk with
+//  no announcement, the appearance of each card's picture slot (= the
+//  first one, and the one after the lazy grid rebuilt the cell), and
+//  the render that follows a cover being written.
 //
 //  THE MEASURED READINGS, a screenful of 24 cards whose covers are all
 //  on disk (= `makeLibraryOnDisk`: the files arrive without the app's
@@ -20,24 +22,54 @@
 //  through `CardCoverService` would already be published into the cache
 //  and would measure a warm column while claiming to measure a cold one).
 //
-//  BEFORE (= origin/main `65590f4800`, 2026-11-21):
+//  BEFORE (= origin/main `65590f4800`, counted on the base itself by
+//  porting this suite and this seam into the base tree, 2026-11-21):
 //
 //    render cold      72 asks, 72 of them on the MAIN thread
-//    render refresh    0
+//    render refresh   0
+//    scroll into view 72 asks, 72 on the MAIN thread (= on the base the
+//                      library is FOREVER cold: there is no walk, so
+//                      every card that scrolls in for the first time
+//                      pays its own frame, screenful after screenful)
 //    picture slot 1   72 asks, 48 on the MAIN thread
 //    picture slot 2   24 asks, 24 on the MAIN thread
-//    after a write     3 asks, on the MAIN thread, inside the render
+//    after a write     3 asks, all 3 on the MAIN thread
 //
 //  AFTER (this change):
 //
-//    render cold      96 asks, 48 on the MAIN thread (= 2 per card: one
-//                      folder listing and that folder's record, where it
-//                      was 3 asks per card before)
-//    walk, then render 48 asks off-thread, and then 0 for the screenful
-//    render refresh    0
+//    render cold      48 asks on the MAIN thread, asserted (= 2 per
+//                      card: one folder listing and that folder's
+//                      record, where it was 3 asks per card). The pass
+//                      PRINTS a total above that because the walk it
+//                      started reads off-thread while the pass runs
+//                      (= 49 asks for this fixture: one listing of the
+//                      covers folder plus two asks per cover folder;
+//                      how much of a background walk lands before the
+//                      pass ends is the machine's business, which is
+//                      why only the main-thread half is asserted).
+//    walk-itself      49 asks, 0 on the MAIN thread (24-card library)
+//    walk, then render 0 total and 0 on the MAIN thread
+//    render refresh   0
+//    scroll into view 0 total, 0 on the MAIN thread (= 24 cards the
+//                      view has never drawn, their covers on disk, the
+//                      index warm - the pass continuous scroll pays,
+//                      and the one Apple's 5 ms ruler is about)
+//    a cover arriving AFTER the walk with no announcement (the walk is
+//      not a poll, by decision): 2 asks on the frame ONCE for that card
+//      (= the base paid 3), and 0 on every frame after that one
 //    picture slot 1   24 reads, NONE on the MAIN thread, 0 stats
 //    picture slot 2   0
 //    after a write     0
+//
+//  THE TRADE, in one honest sentence: the cold screenful asks the disk
+//  MORE times in total than the base did (the printed 97 against 72),
+//  because the walk re-lists the folders the frame just read and reads
+//  every other folder in the library too - all of it off the main
+//  thread, once per library - and it asks the MAIN THREAD fewer (48
+//  against 72); the duplication is the price of one consistent
+//  background snapshot per library, and skipping it would trade a
+//  racy hole in the walk's moved-picture check for asks no frame
+//  waits on.
 //
 //  The refresh reading is why the header says what it measures: the
 //  entry cache already answered a WARM column from memory, so "every
@@ -258,11 +290,13 @@ struct CoverDiskReadTests {
             let pane = makePane()
 
             let walkTally = CoverDiskCounting.Tally()
-            let warmed = await CoverDiskCounting.$tally.withValue(walkTally) { () -> CoverDiskCounting.Tally in
+            await CoverDiskCounting.$tally.withValue(walkTally) {
                 await CoverIndex.shared.prefillAndWait()
-                return await self.renderPass(pane: pane, targets: targets)
             }
             report("walk-itself", walkTally)
+
+            // 2b. The screenful the walk warmed.
+            let warmed = await renderPass(pane: pane, targets: targets)
             report("walk-and-render", warmed)
 
             // 3. The refresh: the same screenful rendered again.
@@ -277,7 +311,10 @@ struct CoverDiskReadTests {
                 "the walk asked the disk \(walkTally.onMainThread) time(s) on the MAIN thread"
             )
             // A column warmed by the walk asks the disk NOTHING, over the
-            // whole screenful.
+            // whole screenful - and it says so in a full parallel binary
+            // too, because an entry is kept under the library it was read
+            // from (= CoverEntryCache): another suite switching or
+            // sweeping ITS OWN library cannot empty this one.
             #expect(
                 warmed.onMainThread == 0,
                 "a warmed screenful asked the disk \(warmed.onMainThread) time(s) on the MAIN thread"
@@ -287,6 +324,89 @@ struct CoverDiskReadTests {
             #expect(refresh.total == 0, "a warm refresh asked the disk \(refresh.total) time(s)")
         }
         try? FileManager.default.removeItem(at: warmRoot)
+    }
+
+    @Test("A card scrolling into a walked column asks the disk nothing")
+    func scrollingIntoAWalkedColumnIsAnsweredFromMemory() async throws {
+        // The pass continuous scroll actually pays, and the one the
+        // 5 ms ruler is about: the column is open, the covers folder
+        // has been walked, and cards the view has NEVER drawn arrive
+        // with their covers already on disk. On the base every one of
+        // those cards paid its first frame in full (= 3 asks on the
+        // main thread); here the walk has answered the whole library,
+        // so the frame pays nothing.
+        let root = try makeLibraryRoot()
+        try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            // Two screenfuls sit on disk before anything is asked, so
+            // the walk sees cards the view has not drawn - what a walk
+            // over a real library does.
+            let firstScreenful = try makeLibraryOnDisk(count: Self.screenful)
+            let scrolledIn = try makeLibraryOnDisk(count: Self.screenful)
+            let pane = makePane()
+
+            let walkTally = CoverDiskCounting.Tally()
+            await CoverDiskCounting.$tally.withValue(walkTally) {
+                await CoverIndex.shared.prefillAndWait()
+            }
+            report("walk-two-screenfuls", walkTally)
+
+            // The screenful the open draws.
+            let first = await renderPass(pane: pane, targets: firstScreenful)
+            report("render-first-screenful", first)
+
+            // THE PASS: 24 cards the view has never drawn, the index
+            // warm. Zero asks, total and on the main thread.
+            let intoView = await renderPass(pane: pane, targets: scrolledIn)
+            report("scroll-into-view", intoView)
+
+            // The disclosed edge, named in the test so the card cannot
+            // claim zero everywhere: a cover that arrives on the disk
+            // AFTER this library's walk, with no announcement (the
+            // walk is not a poll, by decision), is answered by the
+            // cold door ONCE for that card - one listing and one
+            // record, on the frame, 2 asks per card instead of the
+            // base's 3 - and from memory every frame after.
+            let latecomers = try makeLibraryOnDisk(count: Self.screenful)
+            let lateFirst = await renderPass(pane: pane, targets: latecomers)
+            report("late-arrival-first-render", lateFirst)
+            let lateAgain = await renderPass(pane: pane, targets: latecomers)
+            report("late-arrival-second-render", lateAgain)
+
+            // THE CLAIMS.
+            // The walk read both screenfuls, and none of it on a frame:
+            // one listing of the covers folder plus two asks (= the
+            // folder's listing and its record) for every cover folder.
+            #expect(
+                walkTally.total == 1 + 2 * (2 * Self.screenful),
+                "the walk of two screenfuls asked the disk \(walkTally.total) time(s), expected \(1 + 2 * (2 * Self.screenful))"
+            )
+            #expect(
+                walkTally.onMainThread == 0,
+                "the walk asked the disk \(walkTally.onMainThread) time(s) on the MAIN thread"
+            )
+            #expect(first.total == 0, "the screenful after the open asked the disk \(first.total) time(s)")
+            // The claim this whole card stands on: a card scrolling
+            // into a warm column asks the disk NOTHING.
+            #expect(
+                intoView.total == 0,
+                "24 cards scrolling into a walked column asked the disk \(intoView.total) time(s)"
+            )
+            #expect(
+                intoView.onMainThread == 0,
+                "24 cards scrolling into a walked column asked the disk \(intoView.onMainThread) time(s) on the MAIN thread"
+            )
+            // The late edge, pinned to its real size: 2 asks per card,
+            // all on the frame, once.
+            #expect(
+                lateFirst.total == 2 * Self.screenful && lateFirst.onMainThread == 2 * Self.screenful,
+                "a screenful arriving after the walk cost \(lateFirst.total) ask(s), \(lateFirst.onMainThread) on the MAIN thread, expected 2 per card on the frame"
+            )
+            #expect(
+                lateAgain.total == 0,
+                "the second render of the late screenful asked the disk \(lateAgain.total) time(s)"
+            )
+        }
+        try? FileManager.default.removeItem(at: root)
     }
 
     @Test("A card's picture slot asks the disk nothing, on any pass")

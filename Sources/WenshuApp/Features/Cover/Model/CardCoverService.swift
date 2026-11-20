@@ -170,12 +170,13 @@ struct CardCoverService {
     /// column is read off the main thread the moment the first cold
     /// ask happens (= `CoverIndex.prefill`).
     func entry(forKey key: String) -> CoverEntry {
-        if let cached = CoverEntryCache.shared.entry(forKey: key) {
+        let root = Self.coversRoot
+        if let cached = CoverEntryCache.shared.entry(forKey: key, root: root) {
             return cached
         }
         CoverIndex.shared.prefill()
         let entry = Self.readEntry(forKey: key)
-        CoverEntryCache.shared.store(entry, forKey: key)
+        CoverEntryCache.shared.store(entry, forKey: key, root: root)
         return entry
     }
 
@@ -322,7 +323,7 @@ struct CardCoverService {
         // The writer publishes. The still is the one the entry already
         // named (= `record(forKey:)` above read it, or the door read the
         // folder and held it), and the clip is the file this call wrote.
-        let still = CoverEntryCache.shared.entry(forKey: key)?.imageURL
+        let still = CoverEntryCache.shared.entry(forKey: key, root: Self.coversRoot)?.imageURL
         publish(CoverEntry(imageURL: still, videoURL: videoURL, record: record), forKey: key)
     }
 
@@ -467,7 +468,7 @@ struct CardCoverService {
     ///
     /// A writer knows the answer without asking: it wrote the file.
     func publish(_ entry: CoverEntry, forKey key: String) {
-        CoverEntryCache.shared.store(entry, forKey: key)
+        CoverEntryCache.shared.store(entry, forKey: key, root: Self.coversRoot)
     }
 
     /// Publishes a record write over the entry the app already holds.
@@ -478,8 +479,8 @@ struct CardCoverService {
     /// a card gets a cover it does not have, and the door reads the
     /// folder once in that case, which is what it is for.
     private func publishRecord(_ record: CoverRecord, forKey key: String) {
-        guard let held = CoverEntryCache.shared.entry(forKey: key) else {
-            CoverEntryCache.shared.evict(forKey: key)
+        guard let held = CoverEntryCache.shared.entry(forKey: key, root: Self.coversRoot) else {
+            CoverEntryCache.shared.evict(forKey: key, root: Self.coversRoot)
             return
         }
         publish(

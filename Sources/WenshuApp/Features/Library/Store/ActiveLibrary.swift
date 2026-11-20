@@ -60,16 +60,21 @@ enum ActiveLibrary {
     static func setActiveLibrary(at url: URL) throws {
         let data = try LibraryBookmark.make(for: url)
         LibraryBookmark.save(data)
-        // The covers belong to the library they were read from, so a
-        // library change drops what the app remembers about them.
-        CoverEntryCache.shared.removeAll()
+        // No cover cache is dropped here. A cover answer is kept under
+        // the library it was read from (= CoverEntryCache), so the new
+        // library cannot be answered from the old one's folders, and
+        // dropping the old answers would only mean reading them again
+        // if the user switches back.
     }
 
     /// Call when the user resets the library (= moves to a different
     /// .ws bundle). Drops the bookmark; next launch will show
     /// onboarding.
     static func clear() {
+        // The library being left may have had covers deleted while the
+        // app was not looking, so its answers are the ones that are
+        // dropped; every other library's answers are still its own.
+        CoverEntryCache.shared.removeAll(forRoot: CardCoverService.coversRoot)
         LibraryBookmark.clear()
-        CoverEntryCache.shared.removeAll()
     }
 }
