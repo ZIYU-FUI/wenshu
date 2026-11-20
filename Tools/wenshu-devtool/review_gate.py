@@ -677,17 +677,19 @@ def _first_token(text: str) -> str | None:
 _BRANCHISH_PATTERN = "[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9._/-]+"
 
 # A repo-relative PATH is not a branch, and reading one as a branch silently
-# turns the branch guard off. Measured 2026-11-20 over the 595 review cards on
+# turns the branch guard off. Measured 2026-11-20 over the review cards on
 # wenshu-par: 25 state a path where this reader wants a branch (= this tool's
 # own card body names its tool's path, t_e6ceacaf names `docs/agents/nfi.md`,
 # t_6d04cc14 names a path under Tools), and because no asked-for branch ever
 # equals a path, `_subject_branch`
 # reported "this card reviewed some other branch" and the loose fallback was
 # skipped for all 25 -- fail-closed, but the feature off for 4% of the board.
-# No branch on this repository starts with one of its top-level directories
-# (116 local branches; first segments are project 72, wt 25, backup 3,
-# review 2, hermes-subagent 2, feature 2, and single-letter series), so the
-# list below is a guard and not a guess.
+# No branch on this repository starts with one of its top-level directories,
+# which is the whole reason the list below is a guard and not a guess. That
+# invariant is re-checkable in one line, and its census moves with the
+# repository, so no count is repeated here (= `git for-each-ref
+# --format='%(refname:short)' refs/heads | cut -d/ -f1 | sort -u | comm -12 -
+# <(ls -d */ | tr -d '/')` prints nothing).
 _REPO_TOPLEVEL_DIRS = (
     "Board", "Mobile", "Scripts", "Sources", "Tests", "Tools", "Vendor", "docs",
 )
@@ -875,15 +877,18 @@ def reviewed_sha(
 
     THE ORDER (= the decision, not a preference):
 
-    1. The WHAT TO BUILD claim, resolved or not. 528 of the board's review
+    1. The WHAT TO BUILD claim, resolved or not. Most of the board's review
        cards are written this way and their answer must not move. A card that
        states its subject here and names a commit this repository no longer
-       holds (= the branch was rewritten, rebased, garbage-collected: the
-       everyday shape here, 233 of the board's 595 review cards today) still
-       means THAT commit -- it is reported by ``unread_review_cards`` and it
-       covers nothing else. Falling through to the loose scan instead is the
-       defect the first round of this change measured (84 cards re-pointed at
-       a base they only cite, one landing refusal read as an approval).
+       holds (= the branch was rewritten, rebased, garbage-collected: an
+       everyday shape here, not an exotic one) still means THAT commit -- it
+       is reported by ``unread_review_cards`` and it covers nothing else.
+       Falling through to the loose scan instead is the defect the first round
+       of this change measured and quantified on its own review card
+       (`t_18a7ba30`): cards re-pointed at a base they only cite, and one
+       landing refusal read to the gate as an approval. Counts of a live board
+       are quoted there with the command that printed them, because a count
+       copied into this file stops being true the next time main moves.
     2. Otherwise the sha the body NAMES AS ITS SUBJECT (= ``_claim_tokens``).
        Measured 2026-11-19 on rounds 2 and 3 of one stack (= ``t_673fae4f``,
        ``t_7c12b4c5``): both titled that section something other than WHAT TO
@@ -924,14 +929,17 @@ def reviewed_sha(
         # Stated is stated: resolved or not, this is the card's subject and
         # no sha that merely sits in the body may answer for it (= a dead
         # claim returns here, at step 4, instead of falling through the loose
-        # scan). Measured 2026-11-20 over 595 review cards on wenshu-par: the
-        # fall-through re-pointed 84 of them at a base they only cite, 40 live
-        # shas gained a verdict that was never about them, and one landing
-        # refusal (t_db96e32f on de4ba13b3ecb) read to the landing gate as an
-        # unrelated approval (t_fc3b6dea, whose own subject 67f27c52cacd the
-        # repository no longer holds) -- a gate that fails open on a
-        # garbage-collected branch is worse than the heading bug this change
-        # set out to fix.
+        # scan). The shape, not the count: the fall-through re-pointed cards
+        # at a base they only cite and let one landing refusal (t_db96e32f on
+        # de4ba13b3ecb) read to the gate as an unrelated approval (t_fc3b6dea,
+        # whose own subject 67f27c52cacd the repository no longer holds). The
+        # measured totals are on `t_18a7ba30` beside the commands that printed
+        # them -- the number of live shas that were wrongly covered moved
+        # between that round's two readings, which is exactly why no count of
+        # it belongs in a comment: a comment cannot be re-run. This file
+        # carries the invariant and the card carries the measurement. A gate
+        # that fails open on a garbage-collected branch is worse than the
+        # heading bug this change set out to fix.
         return claim
     # The FIRST subject the body states wins, resolved or not. Choosing the
     # resolvable one instead is the same defect one level down: a section
