@@ -51,7 +51,7 @@ because the reader paints on the subscribe signal.
 | `Sources/WenshuApp/Features/Editor/View/InspectorTodoPageView.swift` (375 LOC) | The same clock deleted; one-shot `.task { model.refresh() }` plus `.onReceive(...wenshuTodoPlanDidChange, object: model.planSource)` — the page follows the one store it reads, not every plan write in the process. |
 | `Tests/WenshuAppTests/Agent/Store/AsyncDelegationChangeSignalTests.swift` (new, 406 LOC, 12 tests) | see §4 |
 | `Tests/WenshuAppTests/Editor/View/InspectorRightColumnPushTests.swift` (new, 239 LOC, 8 tests) | see §4 |
-| `docs/agents/nfi.md` | 3 rows added, and the rows naming a file this change rewrote corrected (419 / 375 / 227 / 406 / 239). |
+| `docs/agents/nfi.md` | 3 rows added, and the rows naming a file this change rewrote corrected (419 / 375 / 231 / 406 / 239). |
 
 ## 3. Two decisions taken inside this session, both stated here because both are contestable
 
