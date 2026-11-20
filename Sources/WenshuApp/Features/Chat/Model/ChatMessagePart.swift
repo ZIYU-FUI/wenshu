@@ -5,12 +5,12 @@
 //  `lib/chat-messages/parts.ts` + `tool-parts.ts` + `types.ts`).
 //
 //  Source (= hermes TypeScript; LOC counts are approximated at port time:
-    //    external reference files not present in this worktree, so numbers
-    //    are baseline figures and may drift
-    //    upstream):
-    //    - apps/desktop/src/lib/chat-messages/parts.ts (≈304 LOC)
-    //    - apps/desktop/src/lib/chat-messages/tool-parts.ts (≈855 LOC)
-    //    - apps/desktop/src/lib/chat-messages/types.ts (≈191 LOC)
+//    external reference files not present in this worktree, so numbers
+//    are baseline figures and may drift
+//    upstream):
+//    - apps/desktop/src/lib/chat-messages/parts.ts (≈304 LOC)
+//    - apps/desktop/src/lib/chat-messages/tool-parts.ts (≈855 LOC)
+//    - apps/desktop/src/lib/chat-messages/types.ts (≈191 LOC)
 //
 //  Target (= wenshu Swift):
 //    - Core/Chat/ChatMessagePart.swift (this file)
@@ -41,6 +41,19 @@
 import Foundation
 import WenshuData
 
+/// The newest thing the transcript should follow while a reply streams.
+///
+/// Three fixed-size fields stand in for the reply's whole text, because
+/// the transcript has to ask "did the newest block change?" on every frame
+/// and the asking must not cost the reply. `partID` is nil for a reply
+/// that carries no parts (= a message still queued, or a legacy row), and
+/// the byte count is the length of whatever block is newest.
+struct ChatStreamFollowKey: Equatable, Sendable {
+    let messageID: UUID
+    let partID: UUID?
+    let bytes: Int
+}
+
 /// A single content block within a chat message. Multiple parts per
 /// message (= e.g. reasoning + text + tool_use + text is the standard
 /// Hermes turn shape = narration → tool call → result narration → final
@@ -65,6 +78,21 @@ struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
     /// Unix seconds when this part stopped streaming (= hermes
     /// TimelinePartMetadata.completedAt). nil while still streaming.
     let completedAt: TimeInterval?
+    /// Whether the reader has this part's detail open.
+    ///
+    /// The answer belongs to the part rather than to the row that draws it.
+    /// The row is built again whenever the reply grows, and it is not built
+    /// at all while the transcript scrolls it out of the viewport (= a
+    /// `LazyVStack` keeps the realised rows only), so an answer kept in the
+    /// row is lost with the row (= measured: a block the reader closed
+    /// reopened itself on the next appended frame).
+    ///
+    /// The default shows the reasoning: an agent reply exposes its trace to
+    /// the reader (see OOB.md #2026-10-15), so an open block here is that
+    /// rule applied, not a state the row happens to start out in.
+    /// The reader's own collapse is what this field carries, and that choice
+    /// then survives the rebuild and the scroll.
+    var isThinkingRevealed: Bool = true
 
     /// Extend this part's own text with a streamed chunk.
     ///
@@ -101,36 +129,36 @@ struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
         /// appends a result WITHOUT a prior use (= e.g. orphan tool
         /// result surfaced for context).
         case toolResult(ToolResultPart)
-        // T22-PLAN-PART (2026-09-18): plan-mode plan part. Carries the
-        // full Plan from PlanModeEngine (= numbered steps + query +
-        // connectorID + createdAt). Rendered by ChatPlanPartView as
-        // a collapsible card with numbered steps + Approve & Run
-        // button. Codable for SwiftData persistence (= the plan
-        // travels with the ChatMessage through @Model storage).
+        /// T22-PLAN-PART (2026-09-18): plan-mode plan part. Carries the
+        /// full Plan from PlanModeEngine (= numbered steps + query +
+        /// connectorID + createdAt). Rendered by ChatPlanPartView as
+        /// a collapsible card with numbered steps + Approve & Run
+        /// button. Codable for SwiftData persistence (= the plan
+        /// travels with the ChatMessage through @Model storage).
         case plan(Plan)
     }
 
     struct ToolUsePart: Equatable, Hashable, Sendable {
-        let id: ToolCallID             // hermes `tool_call_id` (= wrapped)
-        let name: String                // hermes `name`
-        let args: String                // JSON-encoded args (= hermes args_text)
-        let context: String?           // hermes `context` (optional)
-        var status: Status              // mutable so streaming UI updates in place
-        var result: String?            // result text when status = .complete / .error
-        var errorMessage: String?       // populated when status = .error
-        var durationSeconds: Double?  // hermes duration_s
+        let id: ToolCallID // hermes `tool_call_id` (= wrapped)
+        let name: String // hermes `name`
+        let args: String // JSON-encoded args (= hermes args_text)
+        let context: String? // hermes `context` (optional)
+        var status: Status // mutable so streaming UI updates in place
+        var result: String? // result text when status = .complete / .error
+        var errorMessage: String? // populated when status = .error
+        var durationSeconds: Double? // hermes duration_s
 
         enum Status: String, Equatable, Hashable, Sendable {
-            case running    // tool.start received, no tool.complete yet
-            case complete   // tool.complete with success
-            case error      // tool.complete with error
+            case running // tool.start received, no tool.complete yet
+            case complete // tool.complete with success
+            case error // tool.complete with error
         }
     }
 
     struct ToolResultPart: Equatable, Hashable, Sendable {
-        let toolUseID: ToolCallID   // hermes `tool_use_id` (= wrapped)
-        let content: String     // result content
-        let isError: Bool       // hermes `is_error`
+        let toolUseID: ToolCallID // hermes `tool_use_id` (= wrapped)
+        let content: String // result content
+        let isError: Bool // hermes `is_error`
     }
 
     // MARK: - Factory helpers (= mirror hermes parts.ts:5-9)
@@ -188,13 +216,32 @@ struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
 }
 
 extension ChatMessagePart {
+    /// How much of this part is written, measured so it can be asked often.
+    ///
+    /// The transcript compares this between frames to see whether the
+    /// newest block grew. The UTF-8 length is the number that is free to
+    /// read; a grapheme count walks the run, which is the work the frame
+    /// is not supposed to pay for the whole reply again.
+    var streamedByteCount: Int {
+        switch kind {
+        case let .text(text):
+            return text.utf8.count
+        case let .reasoning(text):
+            return text.utf8.count
+        default:
+            return 0
+        }
+    }
+
     /// Concatenated text content (= hermes `chatMessageText` =
     /// joins all .text parts in order). Used by `ChatMessage.text`
     /// computed property and the streaming pipeline's
     /// "accumulated buffer" before `message.complete`.
     static func joinedText(_ parts: [ChatMessagePart]) -> String {
         parts.compactMap { part in
-            if case let .text(s) = part.kind { return s }
+            if case let .text(s) = part.kind {
+                return s
+            }
             return nil
         }.joined()
     }
@@ -203,7 +250,9 @@ extension ChatMessagePart {
     /// hermes only has one reasoning per turn in the typical case).
     static func joinedReasoning(_ parts: [ChatMessagePart]) -> String? {
         for part in parts {
-            if case let .reasoning(s) = part.kind { return s }
+            if case let .reasoning(s) = part.kind {
+                return s
+            }
         }
         return nil
     }
@@ -214,7 +263,9 @@ extension ChatMessagePart {
     /// how to render the non-plan fallback).
     static func joinedPlan(_ parts: [ChatMessagePart]) -> Plan? {
         for part in parts {
-            if case let .plan(p) = part.kind { return p }
+            if case let .plan(p) = part.kind {
+                return p
+            }
         }
         return nil
     }

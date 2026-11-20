@@ -12,15 +12,14 @@
 //  so future changes don't accidentally introduce inconsistency.
 //
 
-import Testing
-import WenshuData
 import Foundation
 import SwiftUI
+import Testing
 @testable import WenshuApp
+import WenshuData
 
 @Suite("ChatPartView style consistency (T5-E2E-AGENT)")
 struct ChatPartViewStyleTests {
-
     /// T5 contract: each part view has the canonical 3-arg init
     /// (= isOutgoing/isStreaming/text/etc) + is publicly accessible.
     /// Verified by reflection (= Swift Testing doesn't let us call
@@ -33,7 +32,7 @@ struct ChatPartViewStyleTests {
         // fails to compile (= type-level consistency guarantee).
         let stack = VStack(alignment: .leading) {
             ChatTextPartView(text: "text", isStreaming: false)
-            ChatReasoningPartView(text: "reasoning", isRunning: false)
+            ChatReasoningPartView(text: "reasoning", isRunning: false, isRevealed: .constant(true))
             ChatToolUsePartView(toolUse: ChatMessagePart.ToolUsePart(
                 id: ToolCallID(rawValue: "t1"), name: "read_file", args: "{}",
                 context: nil, status: .running,

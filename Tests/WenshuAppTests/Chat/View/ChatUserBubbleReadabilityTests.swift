@@ -15,17 +15,16 @@
 //  the surface colour) and on the production source, not on a screenshot.
 //
 
-import Testing
-import SwiftUI
 import AppKit
+import SwiftUI
+import Testing
 @testable import WenshuApp
 
-// The palette is MainActor-isolated (= it reads the actor-isolated
-// DesignTokens), so the suite runs on the main actor too.
+/// The palette is MainActor-isolated (= it reads the actor-isolated
+/// DesignTokens), so the suite runs on the main actor too.
 @MainActor
 @Suite("Chat user bubble readability")
 struct ChatUserBubbleReadabilityTests {
-
     /// WCAG AA minimum for body text.
     private static let minimumBodyContrast: Double = 4.5
 
@@ -73,7 +72,7 @@ struct ChatUserBubbleReadabilityTests {
     private var appearances: [(String, NSAppearance)] {
         [
             ("light", NSAppearance(named: .aqua)!),
-            ("dark", NSAppearance(named: .darkAqua)!)
+            ("dark", NSAppearance(named: .darkAqua)!),
         ]
     }
 
@@ -128,8 +127,20 @@ struct ChatUserBubbleReadabilityTests {
     /// stays flat text with no surface.
     @Test func role_distinction_survives() throws {
         #expect(ChatUserBubblePalette.inspectorOutputSurface != .clear)
+        // The distinction is driven, not grepped: a row built from the
+        // reader's own message is outgoing, and a row built from an
+        // assistant reply is not. (= This replaces a source-text assertion
+        // on the spelling of `isOutgoing`, which reddened when the
+        // expression was reformatted while the behaviour never moved.)
+        let readerRow = ChatMessageView(
+            message: ChatMessage(role: .user, source: .user, content: "what the reader asked")
+        )
+        let assistantRow = ChatMessageView(
+            message: ChatMessage(role: .agent, source: .wenshu, content: "what the assistant answered")
+        )
+        #expect(readerRow.isOutgoing, "The reader's own message did not render as outgoing")
+        #expect(!assistantRow.isOutgoing, "An assistant reply rendered as outgoing")
         let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift")
-        #expect(source.contains("private var isOutgoing: Bool { message.source == .user }"))
         #expect(source.contains(".modifier(UserGlassCardModifier(isOutgoing: isOutgoing))"))
         // The assistant row stays flat text: no bubble surface is applied
         // outside the outgoing branch.

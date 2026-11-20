@@ -33,7 +33,14 @@ struct ChatMessageView: View {
     /// produces an answer). Nil = the Approve button is hidden (= the
     /// user can still read the plan, they just can't re-invoke).
     let onApprovePlan: ((Plan) -> Void)?
-    @State private var thinkingExpanded: Bool = false
+    /// Writes the reader's choice about a thinking block back to the model.
+    ///
+    /// One copy of the choice exists, on the reply and its parts, and none
+    /// in this row: an appended token and a scroll both rebuild what is
+    /// drawn here, so a value kept in the row is the reader's choice losing
+    /// to a redraw. Writing through this closure reaches the copy that
+    /// outlives the row, which is what keeps a closed block closed.
+    let onThinkingReveal: ChatThinkingRevealWriter?
     /// T26-HOVER-TIMESTAMP: true when the user is hovering the
     /// timestamp footer (= expands the time to a full date; = Apple
     /// Messages hover affordance).
@@ -41,10 +48,21 @@ struct ChatMessageView: View {
 
     init(
         message: ChatMessage,
-        onApprovePlan: ((Plan) -> Void)? = nil
+        onApprovePlan: ((Plan) -> Void)? = nil,
+        onThinkingReveal: ChatThinkingRevealWriter? = nil
     ) {
         self.message = message
         self.onApprovePlan = onApprovePlan
+        self.onThinkingReveal = onThinkingReveal
+    }
+
+    /// The reader's own view of the legacy thinking field, read from the
+    /// reply and written back to it.
+    private var messageRevealBinding: Binding<Bool> {
+        Binding(
+            get: { message.isThinkingRevealed },
+            set: { onThinkingReveal?(message.id, nil, $0) }
+        )
     }
 
     /// Parses a message body as markdown for display.
@@ -67,6 +85,8 @@ struct ChatMessageView: View {
     }
 
     var body: some View {
+        #if DEBUG
+        #endif
         // :
         // drop the iMessage-style bubble + avatar-run-merge path (= the
         // (see OOB.md)) and render per Hermes:
@@ -81,26 +101,25 @@ struct ChatMessageView: View {
         // MC2 is the OUTER wrapper that hosts the glass card for
         // outgoing (= user) messages.
         messageContents
-                    .modifier(UserGlassCardModifier(isOutgoing: isOutgoing))
-                    // The row fills the chat column; the outgoing card
-                    // takes the trailing corner (= the side the user's
-                    // own words come from), the assistant row keeps its
-                    // flat leading text.
-                    .frame(maxWidth: .infinity, alignment: isOutgoing ? .trailing : .leading)
-                    // AI rows get a 10 PT horizontal padding (= total
-                    // 20 PT from chat column edge to AI text after the
-                    // inner card padding of 10 PT; = matches the
-                    // requested AI-row left/right gutter). User rows
-                    // pass through (= their glass-card L2 inner padding
-                    // in UserGlassCardModifier is the SOLE source of
-                    // user horizontal padding; = unchanged).
-                    .padding(.horizontal, isOutgoing ? 0 : 10)
-            }
+            .modifier(UserGlassCardModifier(isOutgoing: isOutgoing))
+            // The row fills the chat column; the outgoing card
+            // takes the trailing corner (= the side the user's
+            // own words come from), the assistant row keeps its
+            // flat leading text.
+            .frame(maxWidth: .infinity, alignment: isOutgoing ? .trailing : .leading)
+            // AI rows get a 10 PT horizontal padding (= total
+            // 20 PT from chat column edge to AI text after the
+            // inner card padding of 10 PT; = matches the
+            // requested AI-row left/right gutter). User rows
+            // pass through (= their glass-card L2 inner padding
+            // in UserGlassCardModifier is the SOLE source of
+            // user horizontal padding; = unchanged).
+            .padding(.horizontal, isOutgoing ? 0 : 10)
+    }
 
     /// The row's content (= source label row + body row + footer +
     /// attachments). Identical structure for user + assistant rows;
     /// the glass card wraps this when the row is outgoing.
-    @ViewBuilder
     private var messageContents: some View {
         // -cleanup E3: the user text inside the glass card was
         // right-aligned (= expected: left-aligned text reading like
@@ -117,212 +136,247 @@ struct ChatMessageView: View {
         // the left (= inner alignment); = matches iMessage +
         // Slack + hermes user-message.tsx).
         VStack(alignment: .leading, spacing: 4) {
-                // wenshu-side source label + icon chrome (= not in hermes):
-                //   - user-message.tsx:240-585 (= full UserMessage scan) renders
-                //     the user text with NO source label, NO avatar/icon, NO
-                //     role text — only `UserMessageText` (= pure markdown) +
-                //     the `bg-(--dt-user-bubble)` glass card wrapper.
-                //   - assistant-message.tsx:106-340 (= full AssistantMessage
-                //     scan) renders only `MESSAGE_PARTS` (= pure markdown) with
-                //     `text-foreground` — NO source label, NO avatar/icon, NO
-                //     role text.
-                //   - The 1:1 hermes distinguishes user vs assistant by
-                //     foreground color + container presence alone (= user has
-                //     `bg-(--dt-user-bubble)`, assistant has none; user has
-                //     `text-foreground/95`, assistant has `text-foreground`).
-                //   - All wenshu-side chrome (= source label row + 9 icon +
-                //     status dot + paperplane + checkmarks + PLAN badge) is
-                //     REMOVED in this commit (= C1 of the cleanup arc).
-                if message.isPlaceholder {
-                    // C-8c (refactor chat-mvvm-3layer): placeholder
-                    // row extracted to its own leaf view
-                    // (Views/Chat/ChatMessagePlaceholderRow.swift).
-                    // Contains the StatusPulse + hint text + elapsed
-                    // timer (= hermes 1:1 ResponseLoadingIndicator).
-                    // The pulse slot is generic so StatusPulse can
-                    // stay private to ChatMessageView.swift (=
-                    // hermes 1:1 leaf boundary).
-                    ChatMessagePlaceholderRow(
-                        hintText: message.content,
-                        timestamp: message.timestamp
+            // wenshu-side source label + icon chrome (= not in hermes):
+            //   - user-message.tsx:240-585 (= full UserMessage scan) renders
+            //     the user text with NO source label, NO avatar/icon, NO
+            //     role text — only `UserMessageText` (= pure markdown) +
+            //     the `bg-(--dt-user-bubble)` glass card wrapper.
+            //   - assistant-message.tsx:106-340 (= full AssistantMessage
+            //     scan) renders only `MESSAGE_PARTS` (= pure markdown) with
+            //     `text-foreground` — NO source label, NO avatar/icon, NO
+            //     role text.
+            //   - The 1:1 hermes distinguishes user vs assistant by
+            //     foreground color + container presence alone (= user has
+            //     `bg-(--dt-user-bubble)`, assistant has none; user has
+            //     `text-foreground/95`, assistant has `text-foreground`).
+            //   - All wenshu-side chrome (= source label row + 9 icon +
+            //     status dot + paperplane + checkmarks + PLAN badge) is
+            //     REMOVED in this commit (= C1 of the cleanup arc).
+            if message.isPlaceholder {
+                // C-8c (refactor chat-mvvm-3layer): placeholder
+                // row extracted to its own leaf view
+                // (Views/Chat/ChatMessagePlaceholderRow.swift).
+                // Contains the StatusPulse + hint text + elapsed
+                // timer (= hermes 1:1 ResponseLoadingIndicator).
+                // The pulse slot is generic so StatusPulse can
+                // stay private to ChatMessageView.swift (=
+                // hermes 1:1 leaf boundary).
+                ChatMessagePlaceholderRow(
+                    hintText: message.content,
+                    timestamp: message.timestamp
+                ) {
+                    StatusPulse()
+                }
+            } else {
+                //
+                // zone isn't implemented... port the whole thing from hermes... The editor uses SM,
+                // a third-party Markdown editor we brought in'): the canonical
+                // 1:1 Hermes streaming UI. Renders message.parts[]
+                // (= the Hermes canonical state) via ChatMessageBodyView
+                // (= text / reasoning / tool_use / tool_result each
+                // have their own inline render).
+                //
+                // ChatMessageBodyView wraps each part in the bubble
+                // background (= Apple HIG iMessage-style) and applies
+                // the streaming contentTransition to the text parts
+                // only (= the canonical SwiftUI "no flicker" pattern
+                //
+                // When parts is empty (= back-compat with previous
+                // messages that didn't carry parts), ChatMessageBodyView
+                // falls back to rendering message.content as a single
+                // text part (= the same Text(Self.markdown(...)) path
+                // we had before).
+                //
+                // The thinking DisclosureGroup + image thumbnail stay
+                // outside ChatMessageBodyView (= they're rendered
+                // above the parts array, = the conventional Apple
+                // HIG pattern of "supplementary content above the main
+                // content").
+                //
+                // Thinking collapsed: rendered as a DisclosureGroup
+                // (= Apple HIG footnote; = collapses by default;
+                // = expands on click). When parts[] is non-empty,
+                // the reasoning parts render via ChatReasoningPartView
+                // (= each part is its own collapsible block) — so we
+                // hide the legacy DisclosureGroup to avoid duplication.
+                // T1-THINKING-VISIBLE (2026-09-18): also hide when ANY .reasoning
+                // part is present in message.parts (= the new
+                // ChatReasoningPartView renders the reasoning as
+                // its own collapsible block; = legacy
+                // DisclosureGroup would render the same content
+                // a 2nd time as a duplicate).
+                let hasReasoningPart = message.parts.contains { part in
+                    if case .reasoning = part.kind {
+                        return true
+                    }
+                    return false
+                }
+                if message.parts.isEmpty && !hasReasoningPart, let thinking = message.thinking, !thinking.isEmpty, message.source == .wenshu {
+                    // C-8b (refactor chat-mvvm-3layer): thinking
+                    // DisclosureGroup extracted to its own leaf view
+                    // (Views/Chat/ChatMessageThinkingDisclosure.swift).
+                    // The collapse state lives on the reply
+                    // (= ChatMessage.isThinkingRevealed), not on this
+                    // row, so the reader's choice outlives the row that
+                    // draws it.
+                    // The collapsed-label slot is generic (any View)
+                    // because StatusPulse is a private nested type
+                    // in ChatMessageView.swift and stays there (=
+                    // hermes 1:1 thinking identity).
+                    ChatMessageThinkingDisclosure(
+                        thinking: thinking,
+                        isExpanded: messageRevealBinding
                     ) {
+                        // hermes = NO icon, NO 'chatview.ai_thinking'
+                        // label, just the 3×3 PT StatusPulse square.
                         StatusPulse()
                     }
-                } else {
-                    // 
-                    // zone isn't implemented... port the whole thing from hermes... The editor uses SM,
-                    // a third-party Markdown editor we brought in'): the canonical
-                    // 1:1 Hermes streaming UI. Renders message.parts[]
-                    // (= the Hermes canonical state) via ChatMessageBodyView
-                    // (= text / reasoning / tool_use / tool_result each
-                    // have their own inline render).
-                    //
-                    // ChatMessageBodyView wraps each part in the bubble
-                    // background (= Apple HIG iMessage-style) and applies
-                    // the streaming contentTransition to the text parts
-                    // only (= the canonical SwiftUI "no flicker" pattern
-                    //
-                    // When parts is empty (= back-compat with previous
-                    // messages that didn't carry parts), ChatMessageBodyView
-                    // falls back to rendering message.content as a single
-                    // text part (= the same Text(Self.markdown(...)) path
-                    // we had before).
-                    //
-                    // The thinking DisclosureGroup + image thumbnail stay
-                    // outside ChatMessageBodyView (= they're rendered
-                    // above the parts array, = the conventional Apple
-                    // HIG pattern of "supplementary content above the main
-                    // content").
-                    //
-                    // Thinking collapsed: rendered as a DisclosureGroup
-                    // (= Apple HIG footnote; = collapses by default;
-                    // = expands on click). When parts[] is non-empty,
-                    // the reasoning parts render via ChatReasoningPartView
-                    // (= each part is its own collapsible block) — so we
-                    // hide the legacy DisclosureGroup to avoid duplication.
-                    // T1-THINKING-VISIBLE (2026-09-18): also hide when ANY .reasoning
-                    // part is present in message.parts (= the new
-                    // ChatReasoningPartView renders the reasoning as
-                    // its own collapsible block; = legacy
-                    // DisclosureGroup would render the same content
-                    // a 2nd time as a duplicate).
-                    let hasReasoningPart = message.parts.contains { part in
-                        if case .reasoning = part.kind { return true }
-                        return false
-                    }
-                    if message.parts.isEmpty && !hasReasoningPart, let thinking = message.thinking, !thinking.isEmpty, message.source == .wenshu {
-                        // C-8b (refactor chat-mvvm-3layer): thinking
-                        // DisclosureGroup extracted to its own leaf view
-                        // (Views/Chat/ChatMessageThinkingDisclosure.swift).
-                        // The collapse state stays on ChatMessageView's
-                        // @State (= each message owns its own collapse).
-                        // The collapsed-label slot is generic (any View)
-                        // because StatusPulse is a private nested type
-                        // in ChatMessageView.swift and stays there (=
-                        // hermes 1:1 thinking identity).
-                        ChatMessageThinkingDisclosure(
-                            thinking: thinking,
-                            isExpanded: $thinkingExpanded
-                        ) {
-                            // hermes = NO icon, NO 'chatview.ai_thinking'
-                            // label, just the 3×3 PT StatusPulse square.
-                            StatusPulse()
-                        }
-                    }
-                    // CHATIMG-001: render attached image thumbnail above the parts.
-                    // (= unchanged structure; = C2 dropped
-                    // the wenshu-side Reveal-in-Finder button (= T34 +
-                    // T35 i18n) — a macOS-specific add-on; = hermes
-                    // has attachment directive chips inline with the
-                    // bubble surface (= per user-message.tsx:415
-                    // attachmentRefs.map). The thumbnail click now opens
-                    // Preview directly without a separate reveal
-                    // affordance; = the macro-free Mac-side reveal
-                    // affordance is dropped, matching hermes.)
-                    // C-8a (refactor chat-mvvm-3layer): image
-                    // attachment preview extracted to its own leaf
-                    // view (Views/Chat/ChatMessageAttachmentPreview.swift).
-                    if let imagePath = message.imagePath {
-                        ChatMessageAttachmentPreview(imagePath: imagePath)
-                    }
-                    // ChatMessageBodyView (= the
-                    // Hermes-style per-part renderer) wraps each part
-                    // in the bubble background. Falls back to the
-                    // single-text rendering for legacy messages with no
-                    // parts.
-                    //
-                    // 
-                    // for OUTGOING messages (= user-sent), overlay
-                    // ChatMessageHoverActions (= copy + delete buttons
-                    // that fade in on hover = the Hermes MessageActions
-                    // pattern). Agent messages don't get hover actions
-                    // (= matches Hermes = the agent-side is read-only
-                    // in the chat transcript = actions live on the
-                    // user's own messages only).
-                    ChatMessageBodyView(
-                        message: message,
-                        // MC2.1 streaming fix: `isStreaming` stays true
-                        // for the full streaming lifecycle (= .streaming
-                        // state) AND the initial placeholder. The
-                        // previous `message.isPlaceholder` only was
-                        // true during the placeholder row (= flipped
-                        // off the instant the first streamCallback
-                        // replaced the placeholder with the real
-                        // message). After that flip ChatTextPartView's
-                        // `.contentTransition` degraded from
-                        // `.interpolate` to `.identity` AND the
-                        // streaming cursor wasn't drawn. Combined: the
-                        // user saw the text appear in one render
-                        // (= the user's '' report).
-                        //
-                        // Hermes: assistant-message.tsx:346
-                        // checks `s.message.status?.type === 'running'`
-                        // = the same gate (= true for the entire
-                        // active turn, not just the initial
-                        // placeholder).
-                        isStreaming: message.streamState == .streaming || message.isPlaceholder,
-                        onApprovePlan: onApprovePlan
-                    )
-                    // -cleanup E6: dropped the inline `.padding(.horizontal, 12)`
-                    // (= L1 in ChatView.swift is now the single source
-                    // of truth for chat-column horizontal padding; =
-                    // maintenance = one place to change). Kept the
-                    // vertical chromePaddingVertical (= 8 PT; = row
-                    // vertical breathing room; = matches Apple HIG
-                    // py-2 vertical row gap convention).
-                    .padding(.vertical, DesignTokens.spacingStandard)
-                    .wenshuChatHover()
                 }
-                // T19-MESSAGE-TIMESTAMP (2026-09-18): render a small
-                // timestamp footer below sealed assistant messages
-                // (= same Apple HIG footer pattern as Apple Messages
-                // = small monospaced text below the bubble showing
-                // the time). Hidden for:
-                //   - user messages (= iMessage doesn't show timestamps
-                //     on user-sent bubbles; = the pattern lives below
-                //     the bubble row in the conversation, not per-message)
-                //   - streaming messages (= the cursor + shimmer
-                //     communicate activity; = adding a stale timestamp
-                //     here would be misleading)
-                //   - system messages (= too noisy; = the bubble
-                //     already includes the error icon)
-                // C-8e (refactor chat-mvvm-3layer): sealed-message footer
-                // extracted to its own leaf view
-                // (Views/Chat/ChatMessageFooter.swift). Owns the
-                // timestamp + token count + cost + NEW chip + divider
-                // rendering, plus the 5 formatting helpers
-                // (formatTokenCount / formatTokenCost /
-                // fullTokenCountTooltip / fullTimestampTooltip /
-                // comboFooterTooltip). Hover-state binding stays on
-                // ChatMessageView's @State (= each message tracks
-                // its own footer hover independently).
-                if message.source == .wenshu && message.streamState == .sealed {
-                    ChatMessageFooter(
-                        timestamp: message.timestamp,
-                        tokens: message.tokens,
-                        isSealed: message.streamState == .sealed,
-                        isTimestampHovered: $isTimestampHovered
-                    )
+                // CHATIMG-001: render attached image thumbnail above the parts.
+                // (= unchanged structure; = C2 dropped
+                // the wenshu-side Reveal-in-Finder button (= T34 +
+                // T35 i18n) — a macOS-specific add-on; = hermes
+                // has attachment directive chips inline with the
+                // bubble surface (= per user-message.tsx:415
+                // attachmentRefs.map). The thumbnail click now opens
+                // Preview directly without a separate reveal
+                // affordance; = the macro-free Mac-side reveal
+                // affordance is dropped, matching hermes.)
+                // C-8a (refactor chat-mvvm-3layer): image
+                // attachment preview extracted to its own leaf
+                // view (Views/Chat/ChatMessageAttachmentPreview.swift).
+                if let imagePath = message.imagePath {
+                    ChatMessageAttachmentPreview(imagePath: imagePath)
                 }
+                // ChatMessageBodyView (= the
+                // Hermes-style per-part renderer) wraps each part
+                // in the bubble background. Falls back to the
+                // single-text rendering for legacy messages with no
+                // parts.
+                //
+                //
+                // for OUTGOING messages (= user-sent), overlay
+                // ChatMessageHoverActions (= copy + delete buttons
+                // that fade in on hover = the Hermes MessageActions
+                // pattern). Agent messages don't get hover actions
+                // (= matches Hermes = the agent-side is read-only
+                // in the chat transcript = actions live on the
+                // user's own messages only).
+                ChatMessageBodyView(
+                    message: message,
+                    // MC2.1 streaming fix: `isStreaming` stays true
+                    // for the full streaming lifecycle (= .streaming
+                    // state) AND the initial placeholder. The
+                    // previous `message.isPlaceholder` only was
+                    // true during the placeholder row (= flipped
+                    // off the instant the first streamCallback
+                    // replaced the placeholder with the real
+                    // message). After that flip ChatTextPartView's
+                    // `.contentTransition` degraded from
+                    // `.interpolate` to `.identity` AND the
+                    // streaming cursor wasn't drawn. Combined: the
+                    // user saw the text appear in one render
+                    // (= the user's '' report).
+                    //
+                    // Hermes: assistant-message.tsx:346
+                    // checks `s.message.status?.type === 'running'`
+                    // = the same gate (= true for the entire
+                    // active turn, not just the initial
+                    // placeholder).
+                    isStreaming: message.streamState == .streaming || message.isPlaceholder,
+                    onApprovePlan: onApprovePlan,
+                    onThinkingReveal: onThinkingReveal
+                )
+                // The reply's body is the same body when the reply is
+                // the same reply. Without this, an appended token to
+                // one row is handed to every row in the transcript as
+                // a new value (= the closure inputs make every row
+                // differ, and a row that differs is a row that is
+                // built again), and the whole transcript is laid out
+                // once per token.
+                .equatable()
+                // -cleanup E6: dropped the inline `.padding(.horizontal, 12)`
+                // (= L1 in ChatView.swift is now the single source
+                // of truth for chat-column horizontal padding; =
+                // maintenance = one place to change). Kept the
+                // vertical chromePaddingVertical (= 8 PT; = row
+                // vertical breathing room; = matches Apple HIG
+                // py-2 vertical row gap convention).
+                .padding(.vertical, DesignTokens.spacingStandard)
+                .wenshuChatHover()
             }
-            // Right-side spacer removed: with the left-gutter glyph
-            // column above, every row is full-width from the avatar to
-            // the right edge (= the Hermes `ROLE` glyph + flat body
-            // pattern; = no right-edge trailing space).
-            // L818: extra } removed (= previous HStack wrapper gone).
-            // The assistant row fills the chat column (= its text
-            // wraps at the column's trailing edge). The outgoing row
-            // stays at its content's intrinsic width (= the bubble
-            // takes its width from the words it carries).
-            .frame(maxWidth: isOutgoing ? nil : .infinity, alignment: .leading)
+            // T19-MESSAGE-TIMESTAMP (2026-09-18): render a small
+            // timestamp footer below sealed assistant messages
+            // (= same Apple HIG footer pattern as Apple Messages
+            // = small monospaced text below the bubble showing
+            // the time). Hidden for:
+            //   - user messages (= iMessage doesn't show timestamps
+            //     on user-sent bubbles; = the pattern lives below
+            //     the bubble row in the conversation, not per-message)
+            //   - streaming messages (= the cursor + shimmer
+            //     communicate activity; = adding a stale timestamp
+            //     here would be misleading)
+            //   - system messages (= too noisy; = the bubble
+            //     already includes the error icon)
+            // C-8e (refactor chat-mvvm-3layer): sealed-message footer
+            // extracted to its own leaf view
+            // (Views/Chat/ChatMessageFooter.swift). Owns the
+            // timestamp + token count + cost + NEW chip + divider
+            // rendering, plus the 5 formatting helpers
+            // (formatTokenCount / formatTokenCost /
+            // fullTokenCountTooltip / fullTimestampTooltip /
+            // comboFooterTooltip). Hover-state binding stays on
+            // ChatMessageView's @State (= each message tracks
+            // its own footer hover independently).
+            if message.source == .wenshu && message.streamState == .sealed {
+                ChatMessageFooter(
+                    timestamp: message.timestamp,
+                    tokens: message.tokens,
+                    isSealed: message.streamState == .sealed,
+                    isTimestampHovered: $isTimestampHovered
+                )
+            }
+        }
+        // Right-side spacer removed: with the left-gutter glyph
+        // column above, every row is full-width from the avatar to
+        // the right edge (= the Hermes `ROLE` glyph + flat body
+        // pattern; = no right-edge trailing space).
+        // L818: extra } removed (= previous HStack wrapper gone).
+        // The assistant row fills the chat column (= its text
+        // wraps at the column's trailing edge). The outgoing row
+        // stays at its content's intrinsic width (= the bubble
+        // takes its width from the words it carries).
+        .frame(maxWidth: isOutgoing ? nil : .infinity, alignment: .leading)
     }
 
     /// Outgoing messages are the ones this person sent, which iMessage puts
     /// on the trailing side in the accent colour.
-    private var isOutgoing: Bool { message.source == .user }
+    ///
+    /// Internal rather than private, so the row's own behaviour can be
+    /// asserted instead of grepping the source for this expression (= a
+    /// source-text assertion is a placeholder for a behaviour, and it
+    /// reddens when the expression is only reformatted).
+    var isOutgoing: Bool {
+        message.source == .user
+    }
 
-    /// T23-PLAN-BADGE: true when the message carries at
-    /// least one Plan card.
+    // T23-PLAN-BADGE: true when the message carries at
+    // least one Plan card.
+}
+
+/// A reply's row is the same row when the reply is the same reply.
+///
+/// `onApprovePlan` and `onThinkingReveal` are left out on purpose: they are
+/// the parent's own actions, rebuilt with the parent's body, and the model
+/// they reach is the same model. Comparing them would make every row in the
+/// transcript differ on every frame, which is exactly the comparison the
+/// transcript is being spared (= Apple, on `EquatableView`: "SwiftUI will
+/// compare the two views, and only update the view hierarchy if the values
+/// are different").
+extension ChatMessageView: Equatable {
+    nonisolated static func == (lhs: ChatMessageView, rhs: ChatMessageView) -> Bool {
+        lhs.message == rhs.message
+    }
 }
 
 /// Hermes user bubble surface per `apps/desktop/src/components/
@@ -355,7 +409,7 @@ struct ChatMessageView: View {
 /// height instead of padding itself taller; = the band matches the
 /// composer field and grows with its own text).
 ///
-/// 
+///
 /// remove the broken `.frame(maxWidth: 0.95, alignment: .trailing)` line.
 /// Root cause: `maxWidth: 0.95` was treated as 0.95 PT (= less than 1 PT,
 /// = essentially zero usable width); = the user card collapsed to a
@@ -427,7 +481,6 @@ private struct UserGlassCardModifier: ViewModifier {
 }
 
 // MARK: - Hermes user bubble surface per `apps/desktop/src/components/
-
 
 // StatusPulse (= hermes `.tsx status-pulse.tsx` PULSE_DURATION_MS=400 +
 // PULSE_PERIOD_MS=5000).

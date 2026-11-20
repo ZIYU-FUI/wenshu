@@ -39,6 +39,36 @@ struct ChatMessage: Equatable, Identifiable, Sendable {
     var tokens: Int?
     var thinking: String?
     var imagePath: String?
+    /// Whether the reader has this reply's thinking block open, for the
+    /// replies that carry their thinking as a field rather than as a part.
+    ///
+    /// Same reason as `ChatMessagePart.isThinkingRevealed`: the choice
+    /// belongs to the reply, because the row that shows it does not
+    /// outlive the append or the scroll. Replies whose thinking IS a part
+    /// carry the answer on the part instead, so the two blocks the reader
+    /// can open in one reply keep their own state.
+    ///
+    /// The default is closed, as this path's disclosure has always been:
+    /// the legacy field is an aside about an older reply, not the trace of
+    /// the answer the reader is waiting for (see OOB.md #2026-10-15): the
+    /// rule reserves an open block for a trace that is still arriving.
+    var isThinkingRevealed: Bool
+
+    /// What the transcript follows while a reply streams.
+    ///
+    /// The newest block the reply carries, named by identity and measured
+    /// by how much of it is written. This is the whole answer's text
+    /// reduced to three cheap fields: reading the text instead would copy
+    /// and compare the reply once per appended token, which costs the
+    /// transcript rather than the append (= the reply only ever grows at
+    /// its end, so the tail's length says everything a comparison of the
+    /// whole run could say).
+    var streamFollowKey: ChatStreamFollowKey? {
+        guard let tail = parts.last else {
+            return ChatStreamFollowKey(messageID: id, partID: nil, bytes: content.utf8.count)
+        }
+        return ChatStreamFollowKey(messageID: id, partID: tail.id, bytes: tail.streamedByteCount)
+    }
 
     /// The text block the streaming cursor belongs to.
     ///
@@ -48,7 +78,9 @@ struct ChatMessage: Equatable, Identifiable, Sendable {
     /// read as several models writing at once.)
     var trailingTextPartID: UUID? {
         parts.last { part in
-            if case .text = part.kind { return true }
+            if case .text = part.kind {
+                return true
+            }
             return false
         }?.id
     }
@@ -58,10 +90,10 @@ struct ChatMessage: Equatable, Identifiable, Sendable {
     /// `use-message-stream/index.ts` (`mutateStream` decides when
     /// to seal a pending bubble into a permanent one).
     enum StreamState: String, Equatable, Sendable {
-        case idle             // not yet streaming (= legacy ChatMessage)
-        case streaming        // actively receiving LLMBlock events
-        case sealed           // stream.complete fired; content is final
-        case error            // stream terminated with error
+        case idle // not yet streaming (= legacy ChatMessage)
+        case streaming // actively receiving LLMBlock events
+        case sealed // stream.complete fired; content is final
+        case error // stream terminated with error
     }
 
     init(
@@ -74,6 +106,7 @@ struct ChatMessage: Equatable, Identifiable, Sendable {
         tokens: Int? = nil,
         thinking: String? = nil,
         imagePath: String? = nil,
+        isThinkingRevealed: Bool = false,
         parts: [ChatMessagePart] = [],
         streamState: StreamState = .idle
     ) {
@@ -84,7 +117,7 @@ struct ChatMessage: Equatable, Identifiable, Sendable {
         // Mirror the legacy ChatMessageBody.init: synthesize a
         // single .text part when caller gives plain content + empty
         // parts (= the streaming UI sees consistent parts[] state).
-        if parts.isEmpty && !content.isEmpty {
+        if parts.isEmpty, !content.isEmpty {
             let ts = timestamp.timeIntervalSinceReferenceDate
             var synth = [ChatMessagePart.text(content, timestamp: ts)]
             if let thinking, !thinking.isEmpty {
@@ -100,6 +133,7 @@ struct ChatMessage: Equatable, Identifiable, Sendable {
         self.tokens = tokens
         self.thinking = thinking
         self.imagePath = imagePath
+        self.isThinkingRevealed = isThinkingRevealed
     }
 }
 

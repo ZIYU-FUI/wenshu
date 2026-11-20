@@ -95,15 +95,30 @@ final class StreamingAccumulator: @unchecked Sendable {
         guard !trace.thinking.isEmpty || !trace.steps.isEmpty else { return }
 
         // The trace becomes a reasoning part; the answer stays a text part.
-        _parts.remove(at: textIndex)
+        //
+        // The text part is not removed and put back. Its id is what the
+        // transcript row is keyed on, so removing it tore down the answer
+        // the reader is watching and built a different row in its place,
+        // mid-sentence, and the reader's own choice about the block went
+        // with it. The part that carried the marker keeps its id and
+        // changes kind into the answer again; the only part minted is the
+        // block that genuinely appeared.
         var content = trace.thinking
         if !trace.steps.isEmpty {
             content += (content.isEmpty ? "" : "\n") + trace.steps
         }
-        _parts.insert(.reasoning(content), at: textIndex)
         let remainder = trace.cleaned
-        if !remainder.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            _parts.insert(.text(remainder), at: textIndex + 1)
+        let hasAnswer = !remainder.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        var carrier = _parts[textIndex]
+        if hasAnswer {
+            carrier.kind = .text(remainder)
+            _parts[textIndex] = ChatMessagePart.reasoning(content)
+            _parts.insert(carrier, at: textIndex + 1)
+        } else {
+            // Nothing of the answer is left in the run, so the run itself
+            // becomes the block instead of being replaced by one.
+            carrier.kind = .reasoning(content)
+            _parts[textIndex] = carrier
         }
     }
 

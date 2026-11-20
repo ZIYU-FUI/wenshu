@@ -36,20 +36,33 @@ struct ChatReasoningPartView: View {
     let isRunning: Bool
     /// The steps the assistant performed, when the reply performed any.
     let activity: [ToolActivity]
-    // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI ' (= the
-    // thinking content was collapsed by default; = the user could see
-    // only the brain-head-profile icon and the "AI thought for Xs"
-    // label, = effectively no visible thinking content). Default to
-    // expanded so the reasoning text is always visible (= matches
-    // hermes assistant-message.tsx: where the reasoning block sits
-    // inline with the message body, = visible by default). The user
-    // can collapse it manually via the disclosure chevron.
-    @State private var isExpanded: Bool = true
+    /// Whether the block's own text is showing.
+    ///
+    /// The state arrives as a binding into the part this block belongs to
+    /// and is written straight back. It is not `@State`: the row that draws
+    /// a thinking block is built again when the reply grows and is not
+    /// built at all while the transcript scrolls it out of the viewport, so
+    /// state kept here would be the reader's choice losing to a token.
+    ///
+    /// -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI ' (= the
+    /// thinking content was collapsed by default; = the user could see
+    /// only the brain-head-profile icon and the "AI thought for Xs"
+    /// label, = effectively no visible thinking content). The value the
+    /// model hands over opens the block (= ChatMessagePart keeps it open
+    /// until the reader closes it), so the reasoning text is visible
+    /// without a click and the reader's own collapse is what changes it.
+    @Binding var isRevealed: Bool
 
-    init(text: String, isRunning: Bool = false, activity: [ToolActivity] = []) {
+    init(
+        text: String,
+        isRunning: Bool = false,
+        activity: [ToolActivity] = [],
+        isRevealed: Binding<Bool>
+    ) {
         self.text = text
         self.isRunning = isRunning
         self.activity = activity
+        _isRevealed = isRevealed
     }
 
     var body: some View {
@@ -57,7 +70,7 @@ struct ChatReasoningPartView: View {
         // canonical SwiftUI collapse/expand control = identical to
         // Mail / Notes "Show Details" toggles). Renders a label +
         // chevron that the user clicks to expand.
-        DisclosureGroup(isExpanded: $isExpanded) {
+        DisclosureGroup(isExpanded: $isRevealed) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                 ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
                     ReasoningSegmentView(segment: segment)
@@ -78,19 +91,19 @@ struct ChatReasoningPartView: View {
             // (= the Hermes `thoughtFor` / `thoughtBriefly` / `thought`
             // state machine = simplified to a 2-state label here).
             Text(isRunning
-                 ? String(localized: "chatview.ai_thinking")
-                 : String(localized: "chatview.ai_thought"))
+                ? String(localized: "chatview.ai_thinking")
+                : String(localized: "chatview.ai_thought"))
                 .font(.caption)
         }
-        .animation(.default, value: isExpanded)
+        .animation(.default, value: isRevealed)
     }
 
-    /// T17: opacity value driven by a TimelineView so the pulse
-    /// animates without needing external state mutation. Starts at
-    /// 1.0 (= visible) and animates to 0.4 and back (= subtler than
-    /// going fully invisible). `private` so the view body can read
-    /// it directly without exposing the TimelineView as part of the
-    /// public surface.
+    // T17: opacity value driven by a TimelineView so the pulse
+    // animates without needing external state mutation. Starts at
+    // 1.0 (= visible) and animates to 0.4 and back (= subtler than
+    // going fully invisible). `private` so the view body can read
+    // it directly without exposing the TimelineView as part of the
+    // public surface.
     // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI ': removed
     // the brain-head-profile icon + the runningOpacity pulse animation
     // (= was driving the icon's 0.4 -> 1.0 -> 0.4 oscillation). The
@@ -130,7 +143,7 @@ private struct ReasoningSegmentView: View {
             MarkdownBlocksView(text: text, baseFont: .caption)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
-        case .action(let text), .result(let text):
+        case let .action(text), let .result(text):
             // A step the assistant took, labelled so the reader can tell
             // an attempt from an outcome. The label is what makes the
             // difference: without it, "reading the outline" and "the
@@ -164,8 +177,8 @@ private struct ToolActivityList: View {
             ForEach(activity) { step in
                 HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingTight) {
                     Text(step.kind == .action
-                         ? String(localized: "chatview.reasoning.action")
-                         : String(localized: "chatview.reasoning.result"))
+                        ? String(localized: "chatview.reasoning.action")
+                        : String(localized: "chatview.reasoning.result"))
                         .font(.caption.monospaced())
                         .foregroundStyle(.tertiary)
                     Text(step.text)
@@ -177,10 +190,10 @@ private struct ToolActivityList: View {
     }
 }
 
-// T40-THINKING-FADEIN (2026-09-18): a static helper that produces
-// the standard fade-in transition for a reasoning part. Used by
-// the ChatPartRow container when it inserts / removes a
-// ChatReasoningPartView in response to streaming events.
+/// T40-THINKING-FADEIN (2026-09-18): a static helper that produces
+/// the standard fade-in transition for a reasoning part. Used by
+/// the ChatPartRow container when it inserts / removes a
+/// ChatReasoningPartView in response to streaming events.
 extension AnyTransition {
     /// T40 standard transition (= fade-in + small upward slide,
     /// = Apple HIG "appear from above" affordance).
@@ -207,12 +220,12 @@ extension AnyTransition {
 
 // MARK: - Tool-use part (= hermes ToolCallMessagePart)
 
-/// Render a `.toolUse(ToolUsePart)` part (= the model invokes a tool
-/// = Hermes ToolCallMessagePart = wenshu's internal `toolUse` from
-/// `LLMBlock.toolUse`).
-///
-/// Rendered as an inline card (= Apple Mail / Notes "block quote"
-/// style = a thin left border + lighter background + small status
-/// dot + tool name + collapsed args). Click to expand the JSON args.
-/// Mirrors the Hermes `ToolFallback` component (= wenshu's
-/// generalized fallback for any tool call = since v0.71 P1 batch 2
+// Render a `.toolUse(ToolUsePart)` part (= the model invokes a tool
+// = Hermes ToolCallMessagePart = wenshu's internal `toolUse` from
+// `LLMBlock.toolUse`).
+//
+// Rendered as an inline card (= Apple Mail / Notes "block quote"
+// style = a thin left border + lighter background + small status
+// dot + tool name + collapsed args). Click to expand the JSON args.
+// Mirrors the Hermes `ToolFallback` component (= wenshu's
+// generalized fallback for any tool call, whatever the model names).

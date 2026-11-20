@@ -80,8 +80,40 @@ extension ChatViewModel {
         // the row's identity, so only the text is drawn again.
         messages[idx].content = ChatMessagePart.joinedText(accumulator.parts)
         messages[idx].thinking = accumulator.snapshotThinking()
-        messages[idx].parts = accumulator.snapshotParts()
+        messages[idx].parts = Self.carryingReaderChoices(
+            accumulator.snapshotParts(),
+            over: messages[idx].parts
+        )
         messages[idx].streamState = .streaming
+    }
+
+    /// Puts the reader's own choices back on the parts a stream frame
+    /// produced.
+    ///
+    /// A frame replaces the parts array with the accumulator's copy, and
+    /// that copy is built from the stream: it knows nothing about what the
+    /// reader opened or closed. Apple's rule for a scrolling list is not to
+    /// "depend on view state for data that needs to be kept alive after
+    /// scrolling", and the same rule applies to a list that is rewritten
+    /// every frame: a choice that belongs to the reader has to be carried
+    /// across the rewrite, or the next token undoes it. The choice is
+    /// matched by part id, which is what the row is keyed on, so a part
+    /// that kept its identity keeps the reader's answer about it.
+    static func carryingReaderChoices(
+        _ incoming: [ChatMessagePart],
+        over previous: [ChatMessagePart]
+    ) -> [ChatMessagePart] {
+        let closed = Set(previous.filter { !$0.isThinkingRevealed }.map(\.id))
+        // Nothing was closed, so there is nothing to carry: the frame's own
+        // parts are returned untouched, which keeps the common case (= a
+        // reader who never collapsed a block) free of the copy below.
+        guard !closed.isEmpty else { return incoming }
+        return incoming.map { part in
+            guard closed.contains(part.id) else { return part }
+            var carried = part
+            carried.isThinkingRevealed = false
+            return carried
+        }
     }
 
     /// Cancels the streaming reply (= the ⌘. handler). It is a no-op when
@@ -120,5 +152,28 @@ extension ChatViewModel {
     /// on the preview chip, or after the send).
     func clearAttachedImage() {
         attachedImagePath = nil
+    }
+
+    // MARK: - What the reader opened
+
+    /// Records whether the reader has a thinking block open.
+    ///
+    /// The answer goes into the model, not into the row that drew it. The
+    /// row is built again whenever the reply grows and is not built at all
+    /// while the transcript scrolls it out of the viewport (= a
+    /// `LazyVStack` realises the rows near the visible band only), so an
+    /// answer kept in the row is lost with the row. `partID` names the
+    /// block when the reply carries parts; nil is a legacy reply that keeps
+    /// its thinking text on the message instead.
+    func setThinkingRevealed(_ revealed: Bool, messageID: UUID, partID: UUID?) {
+        guard let messageIndex = messages.firstIndex(where: { $0.id == messageID }) else { return }
+        guard let partID else {
+            messages[messageIndex].isThinkingRevealed = revealed
+            return
+        }
+        guard let partIndex = messages[messageIndex].parts.firstIndex(where: { $0.id == partID }) else {
+            return
+        }
+        messages[messageIndex].parts[partIndex].isThinkingRevealed = revealed
     }
 }

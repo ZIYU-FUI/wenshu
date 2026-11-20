@@ -135,8 +135,20 @@ struct ChatView: View {
             onApprovePlan: { plan in
                 vm.inputText = plan.query
                 Task { await vm.send() }
+            },
+            // The reader's collapse of a thinking block goes back into the
+            // message and the part it belongs to (= the writer is the
+            // model's own, held here because this is where the model is in
+            // scope). Nothing in the transcript keeps that answer in a
+            // view.
+            onThinkingReveal: { messageID, partID, revealed in
+                vm.setThinkingRevealed(revealed, messageID: messageID, partID: partID)
             }
         )
+        // A row for a reply the frame did not touch is the same row it was
+        // a moment ago. The comparison is what stops one appended token
+        // from being laid out through every row of the conversation.
+        .equatable()
         .id(message.id)
         if message.source == .user {
             row.padding(.vertical, DesignTokens.spacingStandard)
@@ -180,22 +192,28 @@ struct ChatView: View {
                     // flat fill painted under the scrolling content.
                     .scrollContentBackground(.hidden)
                     .defaultScrollAnchor(.bottom)
-                    // OnChange of lastContent, not just count placeholder create
-                    // content="AI in progress…" (15 chars), reply replace
-                    // content= reply (~hundreds chars) content change onChange,
-                    // scrollTo last.id
-                    .onChange(of: vm.messages.last?.content ?? "") { _, _ in
+                    // The transcript follows the newest content: when the
+                    // newest block of the last message changes (= the
+                    // assistant's streaming reply growing), the viewport
+                    // scrolls to that message's bottom. There is no second
+                    // trigger that jumps the viewport to the newest user row:
+                    // the conversation is one list, so every message scrolls
+                    // with the rest of it.
+                    //
+                    // The key is the newest block's identity and length, not
+                    // the reply's whole text. Reading the whole text made the
+                    // frame compare the entire answer against what it was a
+                    // moment ago (= an O(reply) copy and comparison per
+                    // token), which is the cost this card exists to remove.
+                    // Following the newest block rather than only the answer
+                    // text also means a tool card that lands at the end of a
+                    // reply is scrolled to, which is what "follow the newest
+                    // content" says it should do.
+                    .onChange(of: vm.messages.last?.streamFollowKey) { _, _ in
                         if let last = vm.messages.last {
                             proxy.scrollTo(last.id, anchor: .bottom)
                         }
                     }
-                // The transcript follows the newest content: when the
-                // last message's content changes (= the assistant's
-                // streaming reply), the viewport scrolls to that
-                // message's bottom. There is no second trigger that
-                // jumps the viewport to the newest user row: the
-                // conversation is one list, so every message scrolls
-                // with the rest of it.
             }
             // Chat input bar (= the top layer of the 3-layer UI split per the
             // spec) floats over this ScrollView via.safeAreaInset(edge:.bottom);
