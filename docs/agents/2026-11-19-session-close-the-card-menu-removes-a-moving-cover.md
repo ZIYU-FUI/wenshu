@@ -215,9 +215,96 @@ build in person. **The owner's verdict on the running build is GIVEN**
 independently of the owner's word.
 
 - **Which build**: `/Volumes/ANAN/Engineering/wenshu/build/Wenshu.app`,
-  rebuilt from the merged `main` with `bash Scripts/build-app.sh` (= exit
-  0), adhoc-signed, launched with a plain `open` (= never `open -n`: a
-  second instance of the same bundle id aborts BOTH processes).
+  rebuilt with `bash Scripts/build-app.sh` (= exit 0), adhoc-signed,
+  launched with a plain `open` (= never `open -n`: a second instance of
+  the same bundle id aborts BOTH processes). ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+  ⇒ ⇒ ⇒ AND THE CONFIGURATION IS NAMED, = = BECAUSE A BUNDLE WITHOUT IT
+  IS NOT A BUILD**: `build-app.sh` copies the release executable at
+  `:50` and then **overwrites it with the debug one** at `:89` (= = = =
+  `cp .build/debug/$BIN_NAME`), so the bytes that ship are the debug
+  build, and the owner looked at the development build. ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+  ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE SIZE PROVES WHICH ONE SURVIVED, = = BECAUSE THE
+  TWO ARE NOT THE SAME SIZE**: the debug executable is `36883520` bytes
+  and the release one `20811480` (= = = = the release is 43.6 % smaller
+  = = = = not the same build), and the bundle's own executable is
+  `36906976`), so the bundle holds the debug build and not the release
+  one. ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE SIGNATURE'S
+  OWN SIZE IS PUBLISHED, = = = = BECAUSE A DIFFERENCE IS NOT A SIZE**: the
+  bundle's executable carries a `LC_CODE_SIGNATURE` load command whose
+  `datasize` is `72240` bytes (= = = = = = = = = `otool -l` prints it), so
+  the embedded signature is 72240 bytes and NOT the 23456-byte difference
+  between the bundle's size and the shared `.build/debug` one's (= = = =
+  = = that difference also carries the later rebuild, = = = = = = and a
+  difference between two files that are not the same build is not a
+  measurement of anything inside either of them). ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+  ⇒ ⇒ ⇒ **THE SHA IT WAS REBUILT FROM IS NAMED, = = AND IT IS NAMED IN
+  A FORM THAT SURVIVES.** The build ran in the shared checkout, whose
+  `HEAD` at that minute was `28e68e659d` (= = the editor-tab-strip
+  scope's round-4 record commit, = = NOT this record's). ⇒ **⇒ ⇒ ⇒ ⇒ ⇒
+  ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ THAT ID IS NOT THE COORDINATE, = = AND SAYING WHY IS
+  THE POINT**: it was amended at `2026-11-19 18:07:06` (= = after the
+  link) into `8dbaa97058`, and the pre-amend id is reachable from no ref
+  (= = `git branch -a --contains 28e68e659d` prints nothing = = = = and
+  the reflog that still names it is a LOCAL artifact = = = = so a reader
+  on another machine cannot resolve it). ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+  ⇒ ⇒ ⇒ THE COORDINATE IS THE PAIR THAT SURVIVES, = = AND IT PROVES
+  THE SAME THING**: `8dbaa97058` is on `main` and on both remotes, and
+  BOTH it and the pre-amend id carry `Sources/` and `Tests/` byte-identical
+  to the landed commit's (= = = = so the amend that followed could not
+  have changed what was compiled = = = = it touched `docs/agents/` only).
+  The reader's commands:
+
+  ```
+  git merge-base --is-ancestor 8dbaa97058 main && echo YES
+  git diff --stat b5f34f59e0 8dbaa97058 -- Sources Tests
+  ```
+
+  ⇒ The first prints **YES**, the second prints **nothing**. ⇒ **⇒ ⇒ ⇒ ⇒
+  ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE WORKING TREE WAS NOT DIRTY
+  WHERE IT COUNTS, = = BECAUSE A COMMIT SAYS WHAT WAS COMMITTED AND
+  NOT WHAT WAS COMPILED**: the scope's Swift files carry the mtime of
+  the minute the landed commit merged in (= = = = `2026-11-19
+  17:40:54`), and **no** Swift file was touched between that minute and
+  the link (= = = = `find Sources Tests -name '*.swift' -newermt
+  '2026-11-19 17:41:00' ! -newermt '2026-11-19 18:04:28'` prints
+  nothing), so the Swift that was compiled is the landed commit's Swift
+  (= = = = the two agree, = = = = and the second one is what makes the
+  first one true of the WORKING TREE). ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+  ⇒ ⇒ ⇒ AND THE BUNDLE'S OWN BYTES CARRY THE DATE, = = BECAUSE THE
+  BINARY IS STAMPED BY WHEN IT WAS LINKED**: the shipped executable's
+  mtime is `2026-11-19 18:04:27` (= = = = between the two commits'
+  committer dates), so a reader can ask which build it is without
+  asking git anything. ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND
+  "NOT REBUILT SINCE" IS A CLAIM WITH A COMMAND, = = = = NOT A CLAIM
+  WITH A PARENTHESIS**: the bundle has not been rebuilt since that
+  minute, and the reader's command prints it:
+
+  ```
+  find build/Wenshu.app -newermt '2026-11-19 18:04:28'
+  ```
+
+  ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ It prints **nothing**,
+  = = = = = = = = so every file under the bundle is older than the link
+  minute, = = = = = = = = and the bundle is still the one that was
+  looked at. ⇒ **⇒ ⇒ ⇒ ⇒ ⇒
+  ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE BUNDLE IS A LOCAL
+  ARTIFACT, = = = = SO THE COORDINATES ABOVE ARE OF TWO KINDS, = = = =
+  AND THE RECORD SAYS WHICH IS WHICH**: `build/` is gitignored, so the
+  bundle's own mtime and hash are facts about THIS machine (= = = =
+  = = and they are reprinted below), while the shas are facts that
+  travel (= = = = = = and the reader's commands above are the ones that
+  travel). ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE FILESYSTEM
+  COMMANDS BELOW BELONG TO THE SHARED CHECKOUT, = = = = BECAUSE THEY
+  ASK A QUESTION ABOUT THE TREE THE BUILD RAN IN**: a fresh worktree
+  has no `build/` (= = = = it is gitignored) and its checkout resets
+  the mtimes, so **every command in this section that reads the
+  filesystem** = = = = = = the `find` over the working tree, the `find`
+  over the bundle, the `strings` and `plutil` over the bundle's own
+  bytes, and the `shasum` and `stat` over its executable = = = = = = =
+  answers truthfully **only when run in
+  `/Volumes/ANAN/Engineering/wenshu`** (= = = = = = the checkout the
+  build ran in, = = = = = = named above as the absolute bundle path's
+  parent).
 - **What the owner did**: right-clicked a card that carried a moving cover,
   chose the removal item, and confirmed the card changed immediately and
   did not spring back. The owner then **reports** regenerating a cover
@@ -301,9 +388,46 @@ plutil -extract 'cover_context_menu_remove_dynamic' raw \
   build/Wenshu.app/Contents/Resources/zh-Hans.lproj/Localizable.strings
 ```
 
-⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **APP LEFT RUNNING: yes**, from the merged build. The
-instance was restarted after the owner's session ended it, so the app the
-owner can still open is the landed one.
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **APP LEFT RUNNING: yes**, at the moment of this closeout,
+from the build named above. The instance was restarted after the owner's
+session ended it, so the app the owner could still open was the landed
+one. ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THAT IS A FACT ABOUT THE
+CLOSURE, = = NOT A PROMISE ABOUT A PROCESS**: the instance has since
+exited (= = = = and a later scope rebuilt the shared checkout's own
+`.build/` for its own purposes = = = = which is why the shared
+`.build/debug/WenshuApp` is no longer the bundle's binary = = = = = the
+bundle's own copy is what was looked at), so "the app the owner can
+still open" is true of the BUNDLE (= = = = whose bytes are the ones the
+three commands above print) and not of a running pid. ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **THE BUNDLE IS THE SURVIVING ARTIFACT, = = AND IT IS
+STILL THE ONE THAT WAS LOOKED AT**: every file under `build/Wenshu.app`
+is older than the link minute, and its identity is printable:
+
+```
+shasum -a 256 build/Wenshu.app/Contents/MacOS/WenshuApp
+stat -f '%Sm' -t '%Y-%m-%d %H:%M:%S' \
+  build/Wenshu.app/Contents/MacOS/WenshuApp
+```
+
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ The first prints
+`38b2e5e1a4ced3f0bcdae20d4a8d293370aed8ba4358e9e0330a0b107fb687c4` and
+the second prints `2026-11-19 18:04:27`, = = = = and both are properties
+of the FILE, = = = = so they survive the process that looked at it. ⇒ ⇒
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **AND THE HASH IS NOT THE BUILD
+OUTPUT'S HASH, = = = = AND SAYING WHY IS WHAT MAKES IT READABLE**: the
+bundle's executable is the debug build plus an **embedded adhoc
+signature** (= = = = `codesign -dv` prints `flags=0x2(adhoc)`), so the
+hash above identifies THE SIGNED BUNDLE, = = = = not the raw compiler
+output. ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE COMPARISON
+OBJECT IS NAMED AS WHAT IT IS, = = = = BECAUSE IT IS NO LONGER THE SAME
+FILE**: the shared `.build/debug/WenshuApp` is **itself signed** (= = = =
+= `codesign -dv` prints `flags=0x2(adhoc)` on it too) and is a **later
+build** (= = = = its mtime is `2026-11-19 19:05:25`, = = = = after the
+link minute), so it is neither the unsigned output nor the file of that
+minute, and a reader comparing against it compares two DIFFERENT builds.
+⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ The bundle's own bytes are the
+one coordinate that needs no comparison object: its hash and its mtime
+both print, and both are properties of the file that was looked at.
 
 ## 8. What this scope cost on the board
 
