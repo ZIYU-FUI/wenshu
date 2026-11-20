@@ -97,14 +97,27 @@ paragraph spacing none, body face Song). What it does not settle: L1's trigger r
    `(now N LOC, under cap)` suffix), so the fix has to widen both readers.
 3. **`t_247eff53` / `be6504688f`** (= the `split_pre_check.py` §6 row gate) are
    approved and still unlanded; they ride their own branch, and `main` has moved
-   twice under them since the approval.
-4. **`t_c6d23305`** (= name the reviewed sha from any heading) is unlanded too:
-   round 1 of this closeout hit the defect it fixes (= `merge-preflight.sh` called an
-   approved branch UNREVIEWED because the sha sat outside `## WHAT TO BUILD`).
+   under them since the approval.
+4. **`t_c6d23305`** (= name the reviewed sha from any heading) is unlanded, and the
+   defect it fixes was hit inside this closeout, before the rebase:
+   `merge-preflight.sh` called an approved style-branch tip UNREVIEWED because the sha
+   sat outside `## WHAT TO BUILD`. This landing avoided it only because both review
+   cards happened to keep their sha in that one heading. Its dispatcher run also timed
+   out (`elapsed 1550s > limit 1500s`) and the card is back in `ready`.
 
 ## 6. The commits this session pushed that are NOT this session's
 
-None. This session pushed `b48942d29f` and nothing but the stack it landed.
+None, and the check is a command, not a recollection:
+
+```
+git log --format="%h authored=%ad committed=%cd %s" --date=iso f697a2ced0..b48942d29f
+```
+
+Seventeen commits, one author, all of them this lane's inspector work (= the format
+page, Custom's entry, the two dropped roles, the registry cells, the rebase). The
+rebase's committer stamp sits at `2026-11-20 07:35:24` on all sixteen rebased ones and
+the seventeenth is the F1 docs fix; an unrelated ride would show an author date outside
+this session's window or a subject in another lane's vocabulary, and none does.
 
 ## 7. The next session's starting point
 
