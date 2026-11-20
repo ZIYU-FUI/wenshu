@@ -21,8 +21,9 @@ rewrites the file, so a row can come back (= this session's own row
 went stale and was corrected twice). They are measured AT a tree for
 that reason: the day before, at a tree one commit earlier, the same
 measurement read 75 stale and a 38/37 split (counted with
-`splitlines()`, which is one higher than `wc -l` for the one file in the
-table that ends without a trailing newline). A NEW row carries the file's count as it stands
+`splitlines()`, which is one higher than `wc -l` for ANY file that ends
+without a trailing newline = = = = and at this tree no row in the table is
+one). A NEW row carries the file's count as it stands
 when the row is written (= the one exception: a row for a file this change
 ADDED is written with that file's count, and the row is corrected if the
 same change rewrites it).
