@@ -187,14 +187,13 @@ struct AppleSidebarView: View {
                         horizontalPadding: DesignTokens.spacingRelaxed,
                         usesMaterial: false
                     ) {
-                        LabelSegmentedControl(
+                        WenshuTabPicker(
                             selection: Binding(
                                 get: { workspaceUI.currentSidebarPart },
                                 set: { newValue in workspaceUI.currentSidebarPart = newValue }
                             ),
                             labels: SidebarPart.allCases,
                             displayStrings: SidebarPart.allCases.map(\.displayName),
-                            iconStyle: .paneTab,
                             // The switcher is a column-top chrome
                             // control, not a body tab strip: it takes
                             // AppKit's `.small` size (= 20 PT; = the
@@ -206,15 +205,10 @@ struct AppleSidebarView: View {
                             // control inside it is shorter.
                             controlSize: .small
                         )
-                        // `fixedSize` keeps the control at its own
-                        // height (= 20 PT) instead of letting the band
-                        // row's height stretch it (= AppKit draws the
-                        // capsule to fill the control's height; = a
-                        // stretched control = a full-height bar with
-                        // no air). The row below centers it, so the
-                        // band keeps its 28 PT height with air above
-                        // and below the capsule.
-                        .fixedSize(horizontal: false, vertical: true)
+                        // The switcher divides the band's width, = and
+                        // keeps the system's own height (= 20 PT), = so
+                        // the band keeps its 28 PT height with air
+                        // above and below the plate.
                         .frame(maxWidth: .infinity)
                         .frame(height: DesignTokens.paneTabHotArea)
                     }

@@ -59,14 +59,12 @@ struct InspectorView: View {
                     horizontalPadding: DesignTokens.spacingRelaxed,
                     usesMaterial: false
                 ) {
-                    LabelSegmentedControl(
+                    WenshuTabPicker(
                         selection: $workspaceUI.inspectorPage,
                         labels: InspectorPage.allCases,
                         displayStrings: InspectorPage.allCases.map(\.localizedTitle),
-                        iconStyle: .paneTab,
                         controlSize: .small
                     )
-                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity)
                     .frame(height: DesignTokens.paneTabHotArea)
                 }

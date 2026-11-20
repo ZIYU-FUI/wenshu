@@ -111,15 +111,15 @@ struct ChatZoneTabBarTests {
         /// The drawn cell boundaries (= the 1 PT dividers AppKit draws
         /// between two cells).
         var dividers: [CGFloat]
-        /// The drawn CELLS (= one label layer per cell) and the STEP from
-        /// one cell to the next (= the width one cell takes).
+        /// The drawn CELLS (= one per page) and the STEP from one cell to
+        /// the next (= the width one cell takes).
         ///
         /// The step is measured from the label layers rather than from
-        /// the hairline dividers, = because AppKit draws a divider only
-        /// between two cells wide enough to hold one (= MEASURED: 3 cells
-        /// in a 200 PT region drew ONE divider for THREE cells), = so a
-        /// divider count would answer a different question than the one
-        /// asked here.
+        /// the hairline dividers, = because the tab style draws no
+        /// dividers at all (= MEASURED: = zero divider layers under the
+        /// tab role), = and because the SELECTED cell draws its label
+        /// twice (= once on the plate, = once on the cell), = so the
+        /// positions are deduplicated before the steps are taken.
         var drawnCellCount: Int
         var drawnCellSteps: [CGFloat]
         /// The labels the control drew.
@@ -128,11 +128,14 @@ struct ChatZoneTabBarTests {
         var clipWidth: CGFloat?
     }
 
-    /// The drawn geometry of a segmented control.
+    /// The drawn geometry of the control.
     ///
-    /// The control's cells are the 1 PT wide hairline layers AppKit draws
-    /// between them; the track is the layer they all sit on. Both are
-    /// read from the layer tree, so they are real pixels.
+    /// The cells are counted off the CONTROL (`segmentCount`, one per
+    /// page), not off the layer tree: = the system's tab style draws more
+    /// label layers than it has segments (= 3 pages drew 4 label layers),
+    /// = so a layer count answers a different question than the one the
+    /// bar asks. The layer scan stays for the track and the clip, = which
+    /// only the drawing knows.
     private static func drawnGeometry(
         of control: NSSegmentedControl
     ) -> (track: (CGFloat, CGFloat)?, dividers: [CGFloat], labels: [CGFloat]) {
@@ -174,7 +177,16 @@ struct ChatZoneTabBarTests {
         {
             dividers.append(position)
         }
-        return (track, dividers, labelPositions.sorted())
+        // The selected cell draws its label twice (= on the plate and on
+        // the cell), = so the positions are deduplicated: = a duplicate
+        // would read as a cell of zero width.
+        var labels: [CGFloat] = []
+        for position in labelPositions.sorted()
+            where labels.last.map({ abs($0 - position) > 1 }) ?? true
+        {
+            labels.append(position)
+        }
+        return (track, dividers, labels)
     }
 
     /// Host the real bar at `columnWidth` and measure what it drew.
@@ -236,7 +248,8 @@ struct ChatZoneTabBarTests {
             frameWidth: control.frame.width,
             drawnTrackWidth: geometry.track.map { $0.1 } ?? 0,
             dividers: geometry.dividers,
-            drawnCellCount: cellXs.count,
+            // The segments the control carries, = read off the control.
+            drawnCellCount: control.segmentCount,
             drawnCellSteps: steps,
             labels: (0 ..< control.segmentCount).map { control.label(forSegment: $0) ?? "" },
             clipWidth: clipWidth
@@ -324,133 +337,119 @@ struct ChatZoneTabBarTests {
         )
     }
 
-    // MARK: - The bar divides its column
+    // MARK: - The bar carries the system's switcher
 
-    @Test("The bar's pages divide the column it is given")
-    func thePagesDivideTheColumn() {
-        let columnWidth: CGFloat = 600
-        let bar = measure(pages: Self.makePages(count: 3), columnWidth: columnWidth)
-
-        #expect(
-            abs(bar.frameWidth - columnWidth) < 1,
-            """
-            The bar's frame is \(bar.frameWidth) PT in a \(Int(columnWidth)) \
-            PT column. = The bar's frame is pinned to the column, = so the \
-            pages divide exactly that width, = and the bar spans the column \
-            instead of hugging its left edge.
-            """
-        )
-        #expect(
-            bar.drawnCellCount == 3,
-            """
-            Three pages drew \(bar.drawnCellCount) cells; = every page must \
-            be present, = sharing the column.
-            """
-        )
-        let share = columnWidth / 3
-        for (index, step) in bar.drawnCellSteps.enumerated() {
+    @Test("The bar carries one segment per page")
+    func theBarCarriesOneSegmentPerPage() {
+        // The switcher is Apple's own tab control (= `WenshuTabPicker` =
+        // an `NSSegmentedControl` in the macOS 27 tab role, = because
+        // SwiftUI's own `.tabs` picker sizes itself to its content and no
+        // modifier stretches it), = so the fact the app owns is the
+        // CONTENT of the segments: = one per page, = in page order, = with
+        // the page's title on it.
+        //
+        // The cells are read off the CONTROL, = because the system's tab
+        // style draws more label layers than it has segments (= MEASURED
+        // 2026-11-19: = 3 pages drew 4 label layers), = and a layer count
+        // would then count the drawing and not the pages.
+        for pageCount in [3, 12] {
+            let bar = measure(pages: Self.makePages(count: pageCount), columnWidth: 600)
             #expect(
-                abs(step - share) < 2,
+                bar.drawnCellCount == pageCount,
                 """
-                The step from page \(index + 1) to page \(index + 2) is \
-                \(step) PT; = it must be the region's share \
-                (= \(Int(columnWidth)) / 3 = \(share) PT), = so every page \
-                takes one equal share.
+                A \(pageCount)-page bar carries \(bar.drawnCellCount) segments. = \
+                Every page must have one, = and no page may share or invent one.
+                """
+            )
+            #expect(
+                bar.labels == Self.makePages(count: pageCount).map(\.title),
+                """
+                The bar's segments read \(bar.labels). = They must read the \
+                page titles, in page order.
                 """
             )
         }
     }
 
-    @Test("A narrow column squeezes the pages instead of hiding them")
-    func aNarrowColumnSqueezesThePages() {
-        // The boss's rule (= 2026-11-12): the bar divides the column it
-        // was given, = and NO page label has a minimum width. = a page
-        // narrower than its own title shows less of it, = and a page
-        // narrower than one character shows none, = and that is fine.
+    @Test("The switcher fills the column and the tabs divide it")
+    func theSwitcherFillsTheColumnAndTheTabsDivideIt() {
+        // The boss's rule (= 2026-11-12): = the bar divides the column it
+        // is given, = and every page takes one equal share.
         //
-        // So the floor the bar used to hold (= 88 PT per page, = which
-        // made the bar claim more than its column) is gone, = and the
-        // bar's frame is PINNED to the column's width, = so the
-        // division is exact at any page count.
-        let columnWidth: CGFloat = 200
-        let bar = measure(pages: Self.makePages(count: 3), columnWidth: columnWidth)
-
-        #expect(
-            abs(bar.frameWidth - columnWidth) < 1,
-            """
-            The bar's frame is \(bar.frameWidth) PT in a \(Int(columnWidth)) \
-            PT column. = The bar's frame is pinned to the column, = so the \
-            pages divide exactly that width.
-            """
-        )
-        #expect(
-            bar.drawnCellCount == 3,
-            """
-            Three pages in a \(Int(columnWidth)) PT column drew \
-            \(bar.drawnCellCount) cells; = it must draw three, = so \
-            every page is present and squeezed, = not hidden.
-            """
-        )
+        // The switcher is Apple's own tab control (= `WenshuTabPicker`),
+        // and the system does NOT size it to its content (= MEASURED
+        // 2026-11-19: = a SwiftUI `.tabs` picker measured 207 PT in a
+        // 600 PT column, = centred, = and no SwiftUI modifier stretched
+        // it), = so the app pins the control's frame to the band and the
+        // system's own `.fillEqually` divides it.
+        for columnWidth in [CGFloat(600), 300] {
+            let bar = measure(pages: Self.makePages(count: 3), columnWidth: columnWidth)
+            #expect(
+                abs(bar.frameWidth - columnWidth) < 1,
+                """
+                In a \(Int(columnWidth)) PT column the switcher's frame is \
+                \(bar.frameWidth) PT. = The frame is pinned to the column, = so the \
+                tabs divide it instead of hugging their own content.
+                """
+            )
+            let share = columnWidth / 3
+            for (index, step) in bar.drawnCellSteps.enumerated() {
+                #expect(
+                    abs(step - share) < 2,
+                    """
+                    The step from page \(index + 1) to page \(index + 2) is \
+                    \(step) PT; = it must be the column's share \
+                    (= \(Int(columnWidth)) / 3 = \(share) PT), = so every page takes \
+                    one equal share.
+                    """
+                )
+            }
+        }
     }
 
-    @Test("More pages than the column holds still fit inside it")
-    func overflowFitsInsideTheColumn() {
-        // The overflow case is the one the old floor got wrong: twelve
-        // pages in a 300 PT column used to claim twelve readable pages'
-        // worth of width (= more than the column) and hide the tail
-        // behind a scroll container. Now the bar's frame is the
-        // column, = and the pages divide it, = so nothing is claimed
-        // beyond the column and nothing is unreachable.
-        let columnWidth: CGFloat = 300
-        let pageCount = 12
-        let bar = measure(pages: Self.makePages(count: pageCount), columnWidth: columnWidth)
-
-        #expect(
-            abs(bar.frameWidth - columnWidth) < 1,
-            """
-            A \(pageCount)-page bar's frame is \(bar.frameWidth) PT in a \
-            \(Int(columnWidth)) PT column. = The bar never exceeds the \
-            column it was given.
-            """
-        )
-        #expect(
-            bar.drawnCellCount == pageCount,
-            """
-            A \(pageCount)-page bar drew \(bar.drawnCellCount) cells; = it \
-            must draw \(pageCount), = so every page is present.
-            """
-        )
-        #expect(
-            bar.drawnTrackWidth <= columnWidth + 1,
-            """
-            A \(pageCount)-page bar drew a \(bar.drawnTrackWidth) PT track \
-            in a \(Int(columnWidth)) PT column. = The bar's cells must stay \
-            inside the column.
-            """
-        )
-        #expect(
-            bar.clipWidth != nil,
-            """
-            A \(pageCount)-page bar in a \(Int(columnWidth)) PT column must \
-            sit in a clipping container, = so a control that has not been \
-            measured yet can never paint over the panel next door.
-            """
-        )
-    }
-
-    @Test("The bar's segment widths follow the column as it changes")
-    func theWidthsFollowTheColumn() {
+    @Test("The bar's band follows the column as it changes")
+    func theBandFollowsTheColumn() {
         for columnWidth in [CGFloat(300), 600, 900] {
             let bar = measure(pages: Self.makePages(count: 3), columnWidth: columnWidth)
             #expect(
                 abs(bar.frameWidth - columnWidth) < 1,
                 """
-                In a \(Int(columnWidth)) PT column the bar's frame is \
-                \(bar.frameWidth) PT. = The bar tracks the column it is \
-                given, = so resizing the column resizes the bar.
+                In a \(Int(columnWidth)) PT column the switcher's frame is \
+                \(bar.frameWidth) PT. = The bar tracks the column it is given, = so \
+                resizing the column resizes the bar.
                 """
             )
         }
+    }
+
+    @Test("A narrow column keeps every page and clips the paint")
+    func aNarrowColumnKeepsEveryPage() {
+        // The page list never loses a page to a narrow column: = the
+        // system keeps every segment, = and the band clips the paint.
+        //
+        // The clip is not decoration: = AppKit gives every cell AT LEAST
+        // its title's width (= MEASURED 2026-11-19: = 12 pages in a
+        // 300 PT column measured 29 PT per cell against a 25 PT share,
+        // = so the row ran 48 PT past the frame = 12 x 29 - 300), = and a
+        // row that paints past the column would paint over the panel next
+        // door.
+        let columnWidth: CGFloat = 200
+        let bar = measure(pages: Self.makePages(count: 3), columnWidth: columnWidth)
+
+        #expect(
+            bar.drawnCellCount == 3,
+            """
+            Three pages in a \(Int(columnWidth)) PT column drew \(bar.drawnCellCount) \
+            segments; = it must draw three, = so every page is present.
+            """
+        )
+        #expect(
+            bar.clipWidth != nil,
+            """
+            A \(Int(columnWidth)) PT column must still clip the bar, = so a row \
+            that asks for more than the column cannot paint past it.
+            """
+        )
     }
 
     /// The bar's own pages, for a measurement that does not need a

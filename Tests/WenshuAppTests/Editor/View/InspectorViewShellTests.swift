@@ -165,7 +165,7 @@ struct InspectorViewShellTests {
     @Test("the column carries the switcher and both new pages")
     func theColumnCarriesTheSwitcherAndBothPages() throws {
         let source = try String(contentsOfFile: inspectorPath, encoding: .utf8)
-        #expect(source.contains("LabelSegmentedControl("),
+        #expect(source.contains("WenshuTabPicker("),
                 "the column's chrome band carries the shared segmented control")
         #expect(source.contains("InspectorTodoPageView("),
                 "the todos page renders from its own file")
@@ -215,7 +215,7 @@ struct InspectorViewShellTests {
         // form SwiftUI registers as a REAL toolbar item (= the only way
         // to get the toolbar's OWN segmented shape, = which is what
         // Apple's own right-column switch is).
-        #expect(source.contains("LabelSegmentedControl("),
+        #expect(source.contains("WenshuTabPicker("),
                 "the dynamic section's page switcher must be the native segmented control")
         #expect(source.contains(".pickerStyle(.segmented)"),
                 "the section switch is a segmented picker in a toolbar item")

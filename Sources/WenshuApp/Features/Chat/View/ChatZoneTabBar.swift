@@ -11,10 +11,10 @@
 // (= `workspaceUI.sidebarSelection`), so clicking a page selects the
 // matching tree row and clicking a tree row selects the matching page.
 //
-// The control is the house's `LabelSegmentedControl` (= an AppKit
-// `NSSegmentedControl` in the `.valueSelection` role), inside a horizontal
-// scroll view: that is the same shape the editor's tab strip uses, and the
-// scroll is what keeps a growing page list inside the chat column.
+// The control is Apple's own tab switcher (= `WenshuTabPicker`, = the
+// macOS 27 tab role), inside a horizontal scroll view: the scroll is what
+// keeps a growing page list inside the chat column, and the system owns
+// the selected plate and how it moves.
 //
 // One view per file (per Apple HIG).
 
@@ -70,52 +70,43 @@ struct ChatZoneTabBar: View {
         content
     }
 
-    /// The bar's body (= the scroll container + the control).
+    /// The bar's body (= the switcher in its clipping band).
+    ///
+    /// The scroll container is what keeps the paint inside the column: =
+    /// the switcher's frame is pinned to the column, = but the system gives
+    /// every cell AT LEAST its own width (= MEASURED 2026-11-19: = 12
+    /// pages in a 300 PT column measured a 29 PT cell, = so the row ran
+    /// 48 PT past the frame = 12 x 29 - 300), = and a control that paints
+    /// past the column would paint over the panel next door.
+    ///
+    /// The width is measured OUTSIDE the container (= a geometry reader
+    /// inside a horizontal scroll view reads the content's ideal width,
+    /// = not the viewport's), = so the switcher divides the column it is
+    /// given (= the 2026-11-12 ruling).
     private var content: some View {
         ScrollView(.horizontal) {
-            LabelSegmentedControl(
+            WenshuTabPicker(
                 selection: Binding(
                     get: { selectedScope },
                     set: { newScope in onSelect(newScope) }
                 ),
                 labels: pages.map(\.scope),
                 displayStrings: pages.map(\.title),
-                iconStyle: .paneTab,
-                // The bar divides the column it was given: every page
-                // takes one equal share of the measured column width, so
-                // the bar's total width tracks the column the writer
-                // dragged instead of the number of open pages.
-                //
-                // The region is what the control's frame is PINNED to
-                // (= `LabelSegmentedControl.sizeThatFits`), = and
-                // AppKit's `.fillEqually` then divides that frame
-                // exactly, at any page count, with no per-cell minimum.
-                // A zero width means the column has not been measured
-                // yet, so the bar takes its own fitting width until the
-                // first measurement lands.
-                regionWidth: columnWidth,
-                role: .valueSelection,
-                // The bar's drawn capsule takes its height from the
-                // segmented control the left and right columns already
-                // use (= `.small`), = so all four columns' top bands
-                // draw the same capsule height.
-                controlSize: .small
+                // The bar's drawn plate takes its height from the switcher
+                // the other columns' top bands already use (= `.small`), =
+                // so the three columns that wear the tab role draw the
+                // same plate height.
+                controlSize: .small,
+                regionWidth: columnWidth > 0 ? columnWidth : nil
             )
-            // The control keeps its own height (= the `.small` capsule's
-            // 20 PT), = the same way the sidebar's and the inspector's
-            // switchers keep theirs: AppKit draws the capsule to fill the
-            // control's height, = so a control stretched to the band row's
-            // height would draw a full-height pill with no air.
-            .fixedSize(horizontal: false, vertical: true)
         }
         // Apple's own tab bars scroll the overflow without an indicator,
-        // and a floating scroll bar is the one part of this bar that is not
-        // a page name. Only the drawing goes: the container still scrolls
-        // and still clips.
+        // and a floating scroll bar is the one part of this bar that is
+        // not a page name. Only the drawing goes: the container still
+        // scrolls and still clips.
         .scrollIndicators(.hidden, axes: .horizontal)
-        // The bar fills the width it is given, and measures it. The
-        // measurement feeds the segment widths above, so the bar tracks
-        // the column when the writer resizes it.
+        // The band fills the width it is given, = and measures it: = the
+        // measurement feeds the switcher's pinned width above.
         .frame(maxWidth: .infinity, alignment: .leading)
         .onGeometryChange(for: CGFloat.self) { proxy in
             proxy.size.width
