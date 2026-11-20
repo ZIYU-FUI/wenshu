@@ -129,28 +129,49 @@ final class AppState {
             // chat-switch path triggers it there); = we simply clear
             // activeTabId so the active-tab lookup below returns
             // nil (= focusedChapterPath becomes nil on next read).
-            // The activeTabId rewrite is the durable clear: re-using
-            // the same UUID does nothing (= oldValue == newValue), so
-            // we swap to a fresh UUID to force a no-match. This is
-            // idempotent because activeTabId is just an index into
-            // openTabs (= the editor zone reads activeTab to find the
-            // visible tab; = nil = placeholder preview).
+            // The activeTabId rewrite here is a DEFERRED clear, not
+            // the durable one `closeTab` asks for: re-using the same
+            // UUID does nothing (= oldValue == newValue), so we swap
+            // to a fresh UUID to force a no-match and the hop writes
+            // it a turn later. No flush here (= the tab stays open,
+            // so an unwritten swap names a document still open).
             activeTabId = UUID()
         }
     }
+
+    /// Where this session's tab state reaches disk (= the `openTabs`
+    /// snapshot + the active-tab id pair; = the two keys
+    /// `WenshuDefaultsKey.openTabs` / `.activeTabId`). Production
+    /// passes nothing (= `UserDefaultsStore.shared`, = same record as
+    /// before). The parameter exists because that pair used to be
+    /// readable only from one process-global record that every suite
+    /// opening a tab also wrote, which is what made a relaunch case
+    /// measure whoever wrote last (= the ActiveBookIdentityTests row in
+    /// docs/agents/nfi.md; = measured 2026-11-19). A case that owns its
+    /// own suite can assert the whole write-and-restore contract
+    /// without that race, = and nothing about a real launch changes.
+    let tabDefaults: UserDefaultsStore
+
+    /// The writer `activeTabId` hands its value to (= the persisted id
+    /// is no longer written by the property itself; = see
+    /// ActiveTabPersistence.swift for why, and for the two paths that
+    /// flush the value early instead of waiting for the hop).
+    let activeTabPersistence: ActiveTabPersistence
+
     var activeTabId: UUID = UUID() {
         didSet {
-            // 
-            // the audit's concern about "activeTabId.didSet not going through
-            // the same `.constant(nil)` reset guard" doesn't apply here (=
-            // `activeTabId` is `UUID` non-optional; = there's no nil
-            // reset path). The early-exit guard for duplicate writes is
-            // correct (= prevents redundant UserDefaults writes when
-            // openTabs persistence calls `self.activeTabId = activeId`
-            // during init, even though didSet is suppressed during init
-            // per Swift property wrapper semantics, = safety belt).
+            // P2 root fix (= plan 2026-11-21 §1.5): this block used to
+            // run `UserDefaultsStore.shared.setUUID(activeTabId, forKey:
+            // .activeTabId)` (= = a defaults write inside the frame of a
+            // discrete interaction; = every tab-strip click / Cmd-Shift-
+            // Bracket paid it). The duplicate guard below is unchanged
+            // (= a switch to the tab already active still owes nothing);
+            // what a switch now owes is ONE write of the newest id,
+            // outside its own frame (= `markSwitched` coalesces a burst
+            // into a single pending value; = no clock involved), and the
+            // close path asks for its write by name.
             guard oldValue != activeTabId else { return }
-            UserDefaultsStore.shared.setUUID(activeTabId, forKey: .activeTabId)
+            activeTabPersistence.markSwitched(to: activeTabId)
         }
     }
 
@@ -313,10 +334,11 @@ final class AppState {
                 // So the id is REWRITTEN to a fresh UUID (= a value that
                 // names no open document, = the same "no match" idiom the
                 // `focusedChapterPath` setter already uses for exactly
-                // this purpose). The rewrite is durable: the `didSet`
-                // persists it, so the next launch restores an id that
-                // names nothing rather than one that names a closed
-                // document.
+                // this purpose). The rewrite is durable: the close path
+                // flushes it before it returns (= the `flush` at the end of
+                // this method, = not the switch path's coalesced write), so
+                // the next launch restores an id that names nothing rather
+                // than one that names a closed document.
                 activeTabId = UUID()
             } else if idx < openTabs.count {
                 // Closed a non-last tab = next tab in the list wins.
@@ -327,6 +349,14 @@ final class AppState {
                 activeTabId = openTabs[idx - 1].id
             }
         }
+        // Closing is a durability point, not a switch. The id rewritten
+        // just above must not be left pending: a record that still names
+        // a document the user has closed is a correctness bug, not a
+        // stale one (= the next launch would try to restore it), and this
+        // path has already paid for the draft flush and the snapshot write
+        // in the same click, so asking for the one scalar now costs no
+        // frame the user is waiting on.
+        activeTabPersistence.flush()
     }
 
     // Single owner of the active LLM model id (= was previously
@@ -346,7 +376,9 @@ final class AppState {
         }
     }
 
-    init() {
+    init(tabDefaults: UserDefaultsStore = .shared) {
+        self.tabDefaults = tabDefaults
+        activeTabPersistence = ActiveTabPersistence(store: tabDefaults)
         // useThreeColumnSplit seed block removed (= P2-06 audit 2026-09-24):
         // AppState no longer owns this flag. LayoutTreeState owns the
         // canonical flag (= Codable + UserDefaults-backed). The seed

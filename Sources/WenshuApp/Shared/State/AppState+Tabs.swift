@@ -1,12 +1,19 @@
 //
 //  AppState+Tabs.swift · Wenshu
 //
-//  Extension on `AppState` (= 56 LOC of openTabs persistence / restore).
+//  Extension on `AppState` (= 237 LOC of openTabs persistence / restore).
 //  `openTabs` / `activeTabId` vars (= the @Observable state itself)
 //  stay in AppState (= the `didSet` body calls `self.persistOpenTabs()`
 //  which lives here in the extension — Swift allows this because
 //  methods declared in extensions on the same module + target are
 //  visible to the class's own didSet body).
+//
+//  The tab pair is persisted here and nowhere else: `persistOpenTabs`
+//  writes the list, and the ACTIVE id is written by
+//  `ActiveTabPersistence` (= AppState.activeTabId's didSet hands it the
+//  value instead of writing defaults inside the interaction frame), so
+//  a switch costs this path nothing. Both read and write go through
+//  `tabDefaults`, so a session can be pointed at its own suite.
 //
 
 import Foundation
@@ -19,7 +26,7 @@ extension AppState {
     func persistOpenTabs() {
         let snapshot = Self.snapshot(of: openTabs)
         if let data = try? JSONEncoder().encode(snapshot) {
-            UserDefaultsStore.shared.setData(data, forKey: .openTabs)
+            tabDefaults.setData(data, forKey: .openTabs)
         }
     }
 
@@ -43,13 +50,13 @@ extension AppState {
     /// documents (= `documentPath != nil`) are
     /// restored as before.
     func restoreOpenTabs() {
-        guard let data = UserDefaultsStore.shared.data(forKey: .openTabs),
+        guard let data = tabDefaults.data(forKey: .openTabs),
               let persisted = try? JSONDecoder().decode([PersistedEditorTab].self, from: data)
         else {
             return
         }
         openTabs = Self.tabs(from: persisted)
-        if let activeId = UserDefaultsStore.shared.uuid(forKey: .activeTabId),
+        if let activeId = tabDefaults.uuid(forKey: .activeTabId),
            openTabs.contains(where: { $0.id == activeId })
         {
             activeTabId = activeId
