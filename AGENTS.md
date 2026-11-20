@@ -33,11 +33,11 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 
 | #   | Rule | Enforcement |
 | --- | ---- | ----------- |
-| 1.1 | English-only in code, comments, commits, prompts, all .md. No CJK characters. | CI lint-commits job (no CJK in the subject); the xianxia family by commit_filter.py + SwiftLint. Comment-level CJK is manual. |
+| 1.1 | English-only in code, comments, commits, prompts, all .md. No CJK characters. Exempt: CJK that IS the data (= a user-facing string, a localization catalog's value, a test fixture that must read like the user's own Chinese text, a probe's label), and the boss's quoted words inside `OOB.md` (= that file's whole purpose). Never exempt: prose a writer chose (= a comment, a commit message, a doc's own sentence). | CI lint-commits job (no CJK in the subject); the xianxia family by commit_filter.py + SwiftLint. Comment-level CJK is manual. |
 | 1.2 | Sole address for the user = "老板". No other forms. | Manual. commit_filter.py permits the project literals (老板 / 文枢 / 拍 / 拍板 / ※). |
 | 1.3 | Forbidden hedges (replace with yes/no/yes-yes): 可 / 应当 / 或许 / 可能 / 应该 / 建议 / 考虑 / 试图 / 尽量 / 大概 / 也许 / 或 / 任意 / 大概率 / 通常 / 一般来说. | Manual (= no machine gate). |
 | 1.4 | Forbidden xianxia vocabulary (replace with 修 / 改 / fix / 替换 / 调整): 修真 / 渡劫 / 筑基 / 返虚 / 结丹 / 金丹 / 元婴 / 飞升 / 天劫 / 雷劫 / 心魔 / 魔障. | commit_filter.py (pre-commit + commit-msg + pre-push hooks in .git/hooks/) + .swiftlint.yml xianxia_forbidden_vocab (severity error) + CI Pollution check. |
-| 1.5 | Comment policy: engineering intent only. Forbidden: boss directive text, ticket IDs, Q-numbers, version narratives, phase numbering, refactor history, ticket lineage. | Manual. |
+| 1.5 | Comment policy: engineering intent only. Forbidden: boss directive text, ticket IDs, Q-numbers, version narratives, phase numbering, refactor history, ticket lineage. Carve-out: the tree's own review machinery (= `Tools/wenshu-devtool/` and `Scripts/`) = where the card and the round that built a gate ARE its engineering intent (= a gate whose provenance is stripped cannot be audited). The ban holds in full under `Sources/` and `Tests/`. | Manual. |
 | 1.6 | OOB references in code: only (see OOB.md #YYYY-MM-DD). Never directive text inline. | Manual. |
 | 1.7 | NFI registration: every extracted or added file MUST be registered in `docs/agents/nfi.md` with parent ref + LOC + content tag. Discoverable < 5s by name. Register a new row there, not here. | Manual. |
 | 1.8 | High information density. One line per argument. No narrative paragraphs. | Manual; shape = to-spec. |
@@ -114,7 +114,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | #   | Fact | Reference |
 | --- | ---- | --------- |
 | 6.1 | Sources/ = 3 SwiftPM targets: WenshuApp/ (executable: App/ + Features/<Name>/ + Shared/), plus 2 local path packages WenshuData/ (store) and WenshuAgent/ (agent runtime). | Package.swift |
-| 6.2 | A feature folder uses up to 4 slots: Model/ + Service/ + Store/ + View/. A feature carries only the slots it needs (Kanban = no Store/, Outline = no Service/ or Store/). The 5-slot form in the standards doc is deferred (ADR-0025). | Sources/WenshuApp/Features |
+| 6.2 | A feature folder uses up to 4 slots: Model/ + Service/ + Store/ + View/. A feature carries only the slots it needs (Kanban = no Store/, Outline = no Service/ or Store/). The 5-slot form in the standards doc is DEFERRED (ADR-0025). | Sources/WenshuApp/Features |
 | 6.3 | A migration arc (>=5 tickets) renames top-level dirs feature-by-feature, one feature + one commit per ticket. | universal-pocock-workflow. |
 | 6.4 | Cross-feature code lives in Sources/WenshuApp/Shared/<Name>/ (inside the app package). The package boundary is the 3 local targets, not a Shared package. | Shared/. |
 | 6.5 | File naming suffix by role: <Xxx>View / <Xxx>Ops / <Xxx>Service / <Xxx>State .swift. One concern per file. | wenshu-swift-standards.md §1.2. |
@@ -136,7 +136,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | 7.2 | swift test exits 0. No skipped test without // TODO + tracker id. | CI (swift test). |
 | 7.3 | 9-grep design sweep (the greps are listed in the reference). Each must return 0 on the changed view files. Enforced by 22 sweep suites in Tests/WenshuAppTests/UI/DesignSystem (swift test), never by the pre-commit hook. | wenshu-pocock-workflow/references/v3.0-design-system-rule.md |
 | 7.4 | Dual-axis audit: Standards axis (code-review + codebase-design) + Spec axis (.scratch/<date>-<topic>/spec.md). Both read-only, parallel. | docs/agents/parallel-development.md; wenshu-parallel-dev. |
-| 7.5 | CJK comment audit: zero new CJK in the modified file. Manual: CI checks the commit subject only; no comment-level CJK gate ships in the tree. | CI lint-commits job |
+| 7.5 | CJK comment audit: zero new CJK in a comment or a commit message of a modified file (= the 1.1 data exemption applies = CJK that IS the data is not a violation). Manual: CI checks the commit subject only; no comment-level CJK gate ships in the tree. | CI lint-commits job |
 | 7.6 | No dead code. | verify-dead.py. |
 | 7.7 | UI-touching ticket: the boss looks at the running build in person. A screenshot is evidence only when asked. The worker's GUI drive = the `computer_use` tool in background delivery: never synthetic events, never the user's cursor or foreground. | wenshu_devtool.py. |
 | 7.8 | Commit hygiene: 1 commit per ticket, conventional prefix, English subject, body explains WHY. | CI lint-commits job (prefix + no CJK in the subject); commit_filter.py commit-msg hook. |
@@ -189,7 +189,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | Mobile client SSOT | Mobile/AGENTS.md |
 | Domain glossary | docs/agents/domain.md |
 | ADRs (0000-0033) | docs/adr/ |
-| Deferred standards (6.2 + 6.6) | docs/adr/0025-*.md |
+| Deferred standards (6.2 only; = 6.6 left the deferral when `ci_change_gate.py --check loc-cap` became a per-change ratchet) | docs/adr/0025-*.md |
 | Unchecked-Sendable audit | docs/adr/0027-*.md |
 
 ## §10 Change protocol for THIS file
