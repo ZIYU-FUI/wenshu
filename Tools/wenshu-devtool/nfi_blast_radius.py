@@ -64,7 +64,12 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-REPO_DEFAULT = "/Volumes/ANAN/Engineering/wenshu"
+# = = ⇒ ⇒ ⇒ THE DEFAULT REPO IS THIS SCRIPT'S OWN TREE, = = DERIVED FROM THE
+# = = SCRIPT'S PATH. = = A hard-coded machine path (= = the main checkout)
+# = = made the sweep measure OTHER lanes with THAT checkout's ruler, = = and
+# = = that is a silent false green: = = the sweep printed a clean repo while
+# = = measuring with a gate that is not the one shipping beside it.
+REPO_DEFAULT = str(Path(__file__).resolve().parents[2])
 
 
 def git(*args: str, cwd: str | None = None) -> str:
@@ -316,9 +321,23 @@ def main() -> int:
     if args.gate:
         gate = Path(args.gate).resolve()
     else:
-        own = Path(repo) / "Tools/wenshu-devtool/nfi-loc-check.py"
+        # = = ⇒ ⇒ ⇒ THE DEFAULT GATE IS THE ONE BESIDE THIS SCRIPT, = = NOT
+        # = = THE ONE IN `--repo`'s TREE. = = The two are different files when
+        # = = the sweep runs from a worktree, = = and measuring with the other
+        # = = tree's gate is a SILENT FALSE GREEN: = = the old ruler charges
+        # = = only a brand-new row, = = so every rewritten-row point vanished
+        # = = and the sweep printed a clean repo.
+        own = Path(__file__).resolve().parent / "nfi-loc-check.py"
         if own.exists():
             gate = own
+    gate_blob = ""
+    if gate is not None:
+        blob = subprocess.run(
+            ["git", "hash-object", str(gate)], capture_output=True, text=True
+        ).stdout.strip()
+        gate_blob = blob
+    else:
+        gate = None
 
     keep = Path(tempfile.mkdtemp(prefix="nfi-blast-", dir="/tmp"))
     try:
@@ -336,6 +355,7 @@ def main() -> int:
     if args.json:
         print(json.dumps({
             "base": base_sha,
+            "gate": {"path": str(gate) if gate else None, "blob": gate_blob},
             "branches_measured": len(measured),
             "red_branches": len(red),
             "green_branches": len(green),
@@ -356,6 +376,7 @@ def main() -> int:
         return 0
 
     print(f"base = {base_sha}")
+    print(f"gate = {gate if gate else '(no gate)'} {gate_blob}".rstrip())
     print(f"measured at = {time.strftime('%Y-%m-%d %H:%M:%S %z')}")
     print(f"branch-backed worktrees measured = {len(measured)} "
           f"(green {len(green)}, red {len(red)})")

@@ -299,6 +299,68 @@ def case_g3_clean_refusal(tool, tmp):
     return 0
 
 
+def case_g5_own_tree_gate(tool, tmp):
+    """G5: the DEFAULT gate is the gate BESIDE THE SWEEP.
+
+    = = The sweep runs from a tree of its own, = = beside a gate that is NOT
+    the main checkout's.  = = If the default resolved through `--repo` (= =
+    the hard-coded main checkout, = = in the old code), = = the lane would be
+    measured with the MAIN checkout's ruler, = = and this case would see a
+    green lane.  = = So the lane is measured with the sweep's own gate, = =
+    and the sweep's header must NAME the ruler it used.
+    """
+    tree = os.path.join(tmp, "g5tree")
+    tool_dir = os.path.join(tree, "Tools", "wenshu-devtool")
+    os.makedirs(tool_dir, exist_ok=True)
+    local_tool = os.path.join(tool_dir, "nfi_blast_radius.py")
+    shutil.copyfile(TOOL, local_tool)
+    # = = The mutant ruler: = = it always reports one red point, = = so the
+    # = = lane is RED under it and GREEN under any other gate.
+    mutant_gate = os.path.join(tool_dir, "nfi-loc-check.py")
+    with open(mutant_gate, "w", encoding="utf-8") as h:
+        h.write(
+            "# a gate that always reports one violation\n"
+            "print('  Sources/Tracked.swift: the row says 1, the file is 2')\n"
+            "raise SystemExit(1)\n"
+        )
+    repo = make_repo(tmp, "g5repo")
+    tip = run(["git", "rev-parse", "HEAD"], cwd=repo).stdout.strip()
+    lane_wt = os.path.join(tmp, "g5lane")
+    run(["git", "worktree", "add", "-q", "-b", "g5lane", lane_wt, tip], cwd=repo)
+    result = run(
+        [
+            sys.executable, local_tool,
+            "--base", tip,
+            "--repo", repo,
+            "--only", "g5lane",
+        ],
+        cwd=tree,
+    )
+    out = result.stdout + result.stderr
+    if result.returncode != 0:
+        print("FAILED: the sweep exited non-zero")
+        print(out)
+        return 1
+    if "gate = " not in out:
+        print("FAILED: the sweep did not print which gate it used")
+        print(out)
+        return 1
+    if mutant_gate not in out:
+        print("FAILED: the sweep did not name the gate BESIDE ITSELF")
+        print(out)
+        return 1
+    if "red points = 0" in out:
+        print("FAILED: the lane was measured with ANOTHER tree's gate")
+        print(out)
+        return 1
+    if "Sources/Tracked.swift 1->2" not in out:
+        print("FAILED: the lane's red point is missing (= the mutant ruler did not run)")
+        print(out)
+        return 1
+    print("  G5: the default gate is the gate BESIDE THE SWEEP, = = and the header names it")
+    return 0
+
+
 def main():
     tool = load_tool()
     failures = 0
@@ -308,6 +370,7 @@ def main():
             ("G2 the HEAD refusal", case_g2_head_refusal),
             ("G3 the cleanliness refusal", case_g3_clean_refusal),
             ("G4 the directory the sweep made", case_g4_made_directory),
+            ("G5 the sweep's own tree's gate", case_g5_own_tree_gate),
         ):
             rc = case(tool, tmp)
             if rc != 0:
@@ -316,7 +379,7 @@ def main():
     if failures:
         print(f"FAILED: {failures} guard(s) did not hold")
         return 1
-    print("blast radius: the sweep's four guards hold")
+    print("blast radius: the sweep's five guards hold")
     return 0
 
 
