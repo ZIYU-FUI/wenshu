@@ -28,6 +28,16 @@ if [ "${1:-}" = "--resolve-only" ]; then
   RESOLVE_ONLY=1
   shift
 fi
+# = = ⇒ THE SAME DOOR, = = = = ONE STEP LATER. = = ⇒ Step 1 below is the ONLY thing in this script
+# = = = = that decides whether a branch may reach main, = = = = and running the script end to end to
+# = = = = test it would rebase, = = = = merge and PUSH. = = ⇒ So the veto can be asked for on its
+# = = = = own, = = = = and an acceptance harness runs the SHELL'S OWN decision instead of a copy of
+# = = = = it (= = the reason the door above exists at all).
+PREFLIGHT_ONLY=0
+if [ "${1:-}" = "--preflight-only" ]; then
+  PREFLIGHT_ONLY=1
+  shift
+fi
 CARD="${1:-}"; BRANCH="${2:-}"; shift 2
 # = = ⇒ AND THE WORKTREE IS THE ONE THE CARD NAMES, = = = = not one
 # = = = = guessed from the card's id. = = = = The convention that the
@@ -63,11 +73,27 @@ echo "##### BRANCH $BRANCH"
 
 echo "--- step 1: preflight"
 cd "$REPO" || exit 2
-pf="$(bash Scripts/merge-preflight.sh "$BRANCH" 2>&1)"
+pf="$(bash Scripts/merge-preflight.sh "$BRANCH" 2>&1)"; pfc=$?
 echo "$pf"
+# = = ⇒ THE VETO COMES FROM THE EXIT CODE, = = = = NOT FROM A SENTENCE. = = ⇒ merge-preflight exits
+# = = = = 3 when a branch carries no approving verdict, = = = = and the SAME refused output also
+# = = = = starts with a `CLEAN …` line, = = = = so the three text tests below were never a safety
+# = = = = property: = = = = the veto survived only while one English sentence kept its exact
+# = = = = wording. = = ⇒ Before this change `$?` was read ZERO TIMES in this segment, = = = = so
+# = = = = rewording or deleting that sentence (the kind of edit any future message change makes)
+# = = = = silently turned the board's last review gate into a no-op that rebases, = = = = merges and
+# = = = = pushes UNREVIEWED code onto main (= = finding B6, = = card t_2699b55c). = = ⇒ The text
+# = = = = tests stay for their better error strings; = = = = the refusal itself now comes from rc,
+# = = = = which a reword cannot move.
 if echo "$pf" | grep -q 'CONFLICT'; then echo "RESULT: SKIP ($CARD) reason=CONFLICT"; exit 10; fi
+if [ "$pfc" -eq 3 ]; then echo "RESULT: SKIP ($CARD) reason=NO_VERDICT (merge-preflight rc=3)"; exit 11; fi
+if [ "$pfc" -ne 0 ]; then echo "RESULT: SKIP ($CARD) reason=PREFLIGHT_FAILED (merge-preflight rc=$pfc)"; exit 12; fi
 if echo "$pf" | grep -q 'a card that writes code needs one approving verdict'; then echo "RESULT: SKIP ($CARD) reason=NO_VERDICT"; exit 11; fi
 if ! echo "$pf" | grep -q '^CLEAN'; then echo "RESULT: SKIP ($CARD) reason=PREFLIGHT_NOT_CLEAN"; exit 12; fi
+if [ "$PREFLIGHT_ONLY" = "1" ]; then
+  echo "RESULT: PREFLIGHT_ONLY ($BRANCH) pfrc=$pfc decision=PROCEED"
+  exit 0
+fi
 
 echo "--- step 2: worktree status"
 st="$(git -C "$WT" status --porcelain)"

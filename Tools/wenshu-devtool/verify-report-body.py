@@ -6,6 +6,16 @@
                [--command-contains SUBSTR --expect-output N]  # run the command the body publishes
                [--pandoc]                              # render it and look for stray emphasis
 
+--pattern IS MATCHED LITERALLY, = = NOT AS A REGEX: = = count_occurrences wraps it in re.escape,
+so 'rule[ ]6\.5' counts the BRACKETED TEXT and a regex-shaped string that the body never printed
+measures 0. = = The bracket spelling is deliberate in this repo's report bodies; = = a caller who
+passes a real regex gets a confident 0 (finding B9 on card t_2699b55c, = = stated here so a caller
+learns it from the tool and not from a card body that gets pruned).
+
+The two selectors are PAIRS. = = A selector with no expectation is a usage error (exit 2) and never
+reaches a check, = = because "no claim to test" printed as PASS is how the tool used to reward the
+missing ruler (finding B4) and to compare stdout against None (finding B5).
+
 WHY THIS FILE EXISTS. Round 11's acceptance script printed
 
     the ONE census pattern appears 3 time(s) in the body (header + gate 7 = 2 expected)
@@ -22,8 +32,21 @@ class: a transcription that looks right and measures nothing).
 Nothing here is report-round-specific; a round card passes its own pattern, command and expectation.
 """
 import argparse, re, shutil, subprocess, sys
+from pathlib import Path
 
 FAILS = []
+
+# THE COMMAND ARM NEEDS A TREE. = = The body's own `git show <sha>:<path> | wc -l` resolves against
+# a repository or it resolves to NOTHING, = = and "nothing" prints 0, = = which PASSed a claim of 0
+# and FAILed a claim of 139 from the same body: = = one missing cwd= broke the gate in BOTH
+# directions depending on where the reader happened to stand (finding B2+). = = So the tree is
+# pinned to the repo this tool lives in (= = this file is <root>/Tools/wenshu-devtool/this.py) and
+# the root is printed with every run, = = so the provenance carries its own tree.
+_HERE = Path(__file__).resolve()
+# <root>/Tools/wenshu-devtool/this.py = = three levels up. = = A copy of this tool parked somewhere
+# shallower has no repo above it at all, = = and the refusal in main() is what says so out loud
+# instead of a traceback.
+REPO_ROOT = _HERE.parents[2] if len(_HERE.parents) >= 3 else _HERE.parent
 
 
 def check(name, ok, detail):
@@ -89,6 +112,29 @@ def main():
     ap.add_argument("--pandoc", action="store_true")
     a = ap.parse_args()
 
+    # THE SELECTORS ARE PAIRS (= = findings B4 and B5). = = Before this, `--pattern` with no
+    # `--occurrences` called check("pattern-count", True, ...) with a LITERAL True, = = so any
+    # pattern against any body exited green while printing the count 0 in its own message, = = and
+    # `--command-contains` with no `--expect-output` compared stdout to None and printed
+    # "body claims None". = = A file whose whole premise is that a published number must ship its
+    # ruler cannot reward the missing ruler; = = and a usage error must be rc=2 BEFORE any check
+    # runs, = = not a PASS with a note after it.
+    unpaired = []
+    if (a.pattern is None) != (a.occurrences is None):
+        unpaired.append("--pattern and --occurrences are ONE claim: a selector with no expectation "
+                        "tests nothing, so it is refused rather than passed")
+    if bool(a.command_contains) != (a.expect_output is not None):
+        unpaired.append("--command-contains and --expect-output are ONE claim: with no claimed "
+                        "value there is nothing to compare the command's stdout against")
+    if unpaired:
+        for msg in unpaired:
+            print("usage error: " + msg, file=sys.stderr)
+        return 2
+    if not (REPO_ROOT / ".git").exists():
+        print(f"usage error: this tool is not inside a git repository (resolved root "
+              f"{REPO_ROOT}), so the command arm has no tree to run in", file=sys.stderr)
+        return 2
+
     text = read_body(a.body)
     lines = text.split("\n")
 
@@ -98,11 +144,9 @@ def main():
 
     if a.pattern is not None:
         n, lns = count_occurrences(text, a.pattern)
-        if a.occurrences is None:
-            check("pattern-count", True, f"{a.pattern!r} occurs {n} time(s) on lines {lns} (no --occurrences given: no claim to test)")
-        else:
-            check("pattern-count", n == a.occurrences,
-                  f"{a.pattern!r} occurs {n} time(s) on lines {lns}; body claims {a.occurrences}")
+        check("pattern-count", n == a.occurrences,
+              f"{a.pattern!r} occurs {n} time(s) on lines {lns}; body claims {a.occurrences}"
+              " [--pattern is a LITERAL, re.escape'd]")
 
     if a.command_contains:
         cmd, cands = extract_command(text, a.command_contains)
@@ -110,25 +154,49 @@ def main():
             check("command-extract", False,
                   f"{len(cands)} spans contain {a.command_contains!r}, need exactly 1: {cands}")
         else:
-            r = subprocess.run(["/bin/sh", "-c", cmd], capture_output=True, text=True)
+            # BASH + PIPEFAIL (= = finding B2). = = `/bin/sh -c "a | b"` reports the LAST stage,
+            # so a dead `git show` upstream exited 0 through `wc -l` and the rc guard below never
+            # fired while stderr held "fatal: invalid object name". = = And printing rc and stderr
+            # and then walking into check() anyway is the second half of the same bug: = = a report
+            # of a death is not a refusal of it.
+            r = subprocess.run(["/bin/bash", "-o", "pipefail", "-c", cmd],
+                               capture_output=True, text=True, cwd=str(REPO_ROOT))
             out = r.stdout.strip()
-            print(f"      ran verbatim: {cmd[:150]}")
-            if r.returncode != 0:
-                print(f"      rc={r.returncode} stderr={r.stderr.strip()[:150]}")
-            check("command-output", out == a.expect_output,
-                  f"printed {out!r}, body claims {a.expect_output!r}")
+            print(f"      ran verbatim in {REPO_ROOT}: {cmd[:150]}")
+            if r.returncode != 0 or r.stderr.strip():
+                check("command-output", False,
+                      f"the command the body publishes did not complete (rc={r.returncode}, "
+                      f"stderr={r.stderr.strip()[:200]!r}); no comparison is scored from a run "
+                      "that died")
+            else:
+                check("command-output", out == a.expect_output,
+                      f"printed {out!r}, body claims {a.expect_output!r}")
 
     if a.pandoc:
         if not shutil.which("pandoc"):
             check("render", False, "pandoc not on PATH (the renderer of record; not substituting a guess)")
         else:
             r = subprocess.run(["pandoc", "-f", "gfm", "-t", "plain", a.body],
-                               capture_output=True, text=True)
-            stray = [i for i, ln in enumerate(r.stdout.split("\n"), 1) if "**" in ln]
-            check("render-no-stray-emphasis", not stray,
-                  f"{len(stray)} rendered lines still carry a literal '**'"
-                  + (f" e.g. {stray[:8]}" if stray else "")
-                  + " (= emphasis opened and never closed; gate 8 counts backticks and cannot see it)")
+                               capture_output=True, text=True, cwd=str(REPO_ROOT))
+            # (= = finding B3). = = This block scored r.stdout without ever reading r.returncode,
+            # so a pandoc that printed nothing and exited 6 certified "0 rendered lines carry **"
+            # on the body whose true render holds 7. = = Absence was refused (:122) but FAILURE was
+            # not, = = and an empty render is not the same fact as a clean one.
+            if r.returncode != 0:
+                check("render-no-stray-emphasis", False,
+                      f"pandoc did not render (rc={r.returncode}, "
+                      f"stderr={r.stderr.strip()[:200]!r}); no stray count is scored from a "
+                      "render that died")
+            elif not r.stdout.strip():
+                check("render-no-stray-emphasis", False,
+                      "pandoc exited 0 and produced NO output: an empty render is not the "
+                      "same fact as a clean one")
+            else:
+                stray = [i for i, ln in enumerate(r.stdout.split("\n"), 1) if "**" in ln]
+                check("render-no-stray-emphasis", not stray,
+                      f"{len(stray)} rendered lines still carry a literal '**'"
+                      + (f" e.g. {stray[:8]}" if stray else "")
+                      + " (= emphasis opened and never closed; gate 8 counts backticks and cannot see it)")
 
     print(f"\nverify-report-body: {len(FAILS)} failing check(s)"
           + (f" -> {FAILS}" if FAILS else ""))

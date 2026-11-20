@@ -2,9 +2,17 @@
 # ⇒ ⇒ ⇒ COMMITTED INTO THE REPO BY round 11 OF THE STANDARDS-AXIS REPORT (R10-B4, = = board
 # comment 2163): = = this gate used to live only in the implementer's profile scratch
 # (`cache/scratch/t2/`), = which is idle-pruned at 24h, = so the claim it backed could
-# outlive the instrument. = = Provenance: = carried over BYTE-IDENTICAL below this header
-# from that path; = = the reason for the move is that a gate which can be garbage-collected
-# is not a gate.
+# outlive the instrument. = = Provenance, = = SCOPED (finding N1, = = verdict comment 2205): = =
+# the body below this header was carried over BYTE-IDENTICAL from that scratch path AT THE
+# CARRY-IN COMMIT, = = identified by its message ("tools(devtool): commit the three instruments
+# the standards-axis report's closure claims rest on"; = = its sha moves on every rebase, = = so
+# the message is the durable name). = = THE CLAIM STOPPED BEING TRUE OF THE FILE AS IT NOW STANDS
+# in the very next commit on this branch, = = which inserted the WHAT IT ACTUALLY DOES limits block
+# above this docstring and corrected the crashed / ran-but-found-nothing lists to print the
+# EXECUTED command instead of the template (91 lines became 122). = = So a substring audit against
+# the scratch original fails HERE by design; = = it passing anyway would mean the correction was
+# lost (= = the same audit still passes for row-integrity.py). = = The reason for the original move
+# stands: = = a gate which can be garbage-collected is not a gate.
 # ⇒ ⇒ ⇒ WHAT IT SEES AND WHAT IT CANNOT: = = it extracts the `grep` commands naming
 # this body and the unbalanced-backtick scan. = = It does NOT reach a `git show`
 # provenance command or a property-count gate, = = so a clean report from it is not
