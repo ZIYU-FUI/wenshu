@@ -23,11 +23,11 @@ Delivered as a seventeen-commit stack landed on `main` at `b48942d29f`, from
 
 | # | The line, in his words (= rendered) | The commit that carries it | The independent verdict | Server proof |
 |---|---|---|---|---|
-| L1 | "Adjust how Custom is entered (= the current way reads as a bug): it must be switchable into from the start, begin by reusing the general set, and then the user fine-tunes by hand" | `b4b4280f76` (= `fix(inspector): Custom is entered, not earned`), on top of `4d3bceed8d` which replaced the hand-rolled switcher with Apple's own controls | `t_7c12b4c5` approved the behaviour at `d05242f281`; the stack was rebased four times since, and every later claim was re-measured at the new tip (`t_d4552e4c`, then `t_d00f50ad` approved) | both remotes ANSWERED `b48942d29f…` for `refs/heads/main` at the landing (`git ls-remote`, not a local ref); they now carry this doc's commit on top (§7) |
+| L1 | "Adjust how Custom is entered (= the current way reads as a bug): it must be switchable into from the start, begin by reusing the general set, and then the user fine-tunes by hand" | `b4b4280f76` (= `fix(inspector): Custom is entered, not earned`), on `35810deeb0`, with `4d3bceed8d` an ancestor two steps under it (= `git log --format='%h %p' -1 b4b4280f76` answers `b4b4280f76 35810deeb0`, and `git merge-base --is-ancestor 4d3bceed8d b4b4280f76` answers 0), which replaced the hand-rolled switcher with Apple's own controls | `t_7c12b4c5` approved the behaviour at `d05242f281`; the stack was rebased four times since, and every later claim was re-measured at the new tip (`t_d4552e4c`, then `t_d00f50ad` approved) | both remotes ANSWERED `b48942d29f…` for `refs/heads/main` at the landing (`git ls-remote`, not a local ref); they now carry this doc's commit on top (§7) |
 | L2 | "And keep the existing rule: change a fine-tune under either print or general and the book moves onto Custom" | same commit; pinned by `InspectorStylePresetPickerTests` (the picker suite) and `BookStyleSheetWriteBackTests` | the picker suite ran green at every tip; `t_d4552e4c` re-ran the filtered block at `4241b259fa` | ditto |
-| L3 | "The two boxed in red are useless (= delete them)" | `20afb54373` (= `feat(inspector): the style table drops the picture and the rule`), then `df196df334` for the files that still counted eleven, then `b48942d29f` for the registry rows the stack left lying | `t_d4552e4c` P1-P3 at `4241b259fa`: nine cases, nine rows, nine catalog keys, zero hits for the deleted roles, and the mutation measured both ways (= re-adding the two cases reddens `InspectorStylePageRenderTests.swift:58`, `:62`, `:70` and `InspectorStylePreviewVoiceTests.swift:115`; withholding the catalog keys adds `:447`); its F1 (the registry) was closed and re-approved by `t_d00f50ad` | ditto |
-| L4 | "Give me a screenshot, I want to see the final effect" | no commit (= an observation, not an edit) | n/a | `look9_preset.png`, 2904×1952, the app's own window at 2x, captured by the app's own screenshot hook against an isolated clone (§4) |
-| L5 | "It looks as though the body should sit vertically centred between its two dashed rules" | `35810deeb0` centres the row and its role name (`InspectorStyleRowView.swift:122`; the dashes are drawn between rows at `:209-213`) | UNRESOLVED — no test measures the ink, and the boss's eye is the acceptance (§5) | — |
+| L3 | "The two boxed in red are useless (= delete them)" | `20afb54373` (= `feat(inspector): the style table drops the picture and the rule`), then `df196df334` for the files that still counted eleven, then `b48942d29f` for the registry rows the stack left lying | `t_d4552e4c` P1-P3 at `4241b259fa`: nine cases, nine rows, nine catalog keys, zero hits for the deleted roles, and the mutation measured both ways (= re-adding the two cases reddens `InspectorStylePageRenderTests.swift:58`, `:62`, `:70` and `InspectorStylePreviewVoiceTests.swift:115`; withholding the catalog keys adds `InspectorStylePageRenderTests.swift:447` (= the catalog assertion, in a 521-line file; the number once sat there with no file of its own and inherited `InspectorStylePreviewVoiceTests.swift`, which ends at 155 lines, so the citation pointed past the end of the file it appeared to name -- what round 1 of this doc's own review caught. That broken form is described here rather than printed, because quoting a range with no file name re-arms the very check that catches it.); its F1 (the registry) was closed and re-approved by `t_d00f50ad` | ditto |
+| L4 | "Give me a screenshot, I want to see the final effect" | no commit (= an observation, not an edit) | n/a | `look9_preset.png`, 2904×1952, the app's own window at 2x, captured by the app's own screenshot hook against an isolated clone (§4). It sits at `/tmp/look9_preset.png`, outside the tree and untracked: a reader cloning `main` cannot check it, so it is evidence of the ask being answered, not of the ink being right |
+| L5 | "It looks as though the body should sit vertically centred between its two dashed rules" | `35810deeb0` centres the row and its role name (`InspectorStyleRowView.swift:122`; the dashes are drawn between rows at `InspectorStylePageView.swift:209-213`, the row's own file ends at 169 lines) | UNRESOLVED — no test measures the ink, and the boss's eye is the acceptance (§5) | — |
 
 ## 3. The gates, on the tree this doc names (= `b48942d29f`, which is `main`)
 
@@ -38,7 +38,7 @@ Every number below was read out of a log file, not out of a pipeline's status.
 | `python3 Tools/wenshu-devtool/ci_change_gate.py --base f697a2ced0 --check formatting` | exit 0 (= `the change adds no unformatted line (27 changed Swift file(s) checked)`) |
 | `… --check pollution` | exit 0 (= `the change adds no forbidden vocabulary`) |
 | `… --check markdown-newline` | exit 0 (= 2 changed `.md` files) |
-| `python3 Tools/wenshu-devtool/nfi-loc-check.py --base f697a2ced0` | exit 0 (= `every rewritten file's row carries its own count (11 row(s) checked)`) |
+| `python3 Tools/wenshu-devtool/nfi-loc-check.py --base f697a2ced0` | exit 0 (= `every rewritten file's row carries its own count (11 row(s) checked)`. The count belongs to the range asked, not to the tree: the same command run at this doc's sha answers `13 row(s)` (= other lanes' rows joined `f697a2ced0..HEAD` since), `--base b48942d29f` at this doc's sha answers `2 row(s)`, and `--base main` answers `the change adds no registry row; nothing to check` -- this commit EDITS a row, and an edited row is the gate's known blind spot (`t_398b07cd` Part B), so the row's own count was checked by hand: `wc -l` of this file is 261 and the row reads 261 (= `## 8.` item 2 is the same lesson from the other side) |
 | the eleven inspector / style / tab suites, filtered | `Test run with 45 tests in 8 suites passed`, `Executed 25 tests, with 0 failures`, exit 0 |
 | the whole suite (= `swift test --skip CSSearchableIndexSearchTests`) | `Test run with 3830 tests in 587 suites failed after 212.882 seconds with 19 issues`; the XCTest side `Executed 12 tests, with 1 test skipped and 0 failures` |
 | CJK on added Swift lines | **0** codepoints in the 2,992 added lines (= counted by codepoint on the `+` side only) |
@@ -105,8 +105,11 @@ paragraph spacing none, body face Song). What it does not settle: L1's trigger r
    defect it fixes was hit inside this closeout, before the rebase:
    `merge-preflight.sh` called an approved style-branch tip UNREVIEWED because the sha
    sat outside `## WHAT TO BUILD`. This landing avoided it only because both review
-   cards happened to keep their sha in that one heading. Its dispatcher run also timed
-   out (`elapsed 1550s > limit 1500s`) and the card is back in `ready`.
+   cards happened to keep their sha in that one heading. Its dispatcher history is on
+   the board (`hermes kanban runs t_c6d23305`): run 4642 crashed (pid exit 130), run 4680
+   timed out (`elapsed 1550s > limit 1500s`), and run 4687 carries the result of the work
+   finished by hand off that residue. The card is `done` with `landed: false`; the branch
+   waits on its second review round (`t_7cabb456`, on `90dbda01cf`).
 
 ## 6. The commits this session pushed that are NOT this session's
 
@@ -162,9 +165,16 @@ the next reader does not repeat them:
    ```bash
    git worktree add --detach /tmp/tree-tip  b48942d29f
    git worktree add --detach /tmp/tree-base f697a2ced0
-   (cd /tmp/tree-tip  && python3 <sweep> docs/agents/nfi.md | sed -n '1,4p')
-   (cd /tmp/tree-base && python3 <sweep> docs/agents/nfi.md | sed -n '1,4p')
+   for T in /tmp/tree-tip /tmp/tree-base; do (cd $T && /usr/bin/awk -F'|' 'function clean(s){gsub(/^ +| +$/,"",s);return s} function ispath(s){return s ~ /^`(Sources|Tests)\/[^`]+`$/} function path(s){return substr(s,2,length(s)-2)} /^\|/{ if(split($0,a,"|")<5) next; c1=clean(a[2]); if(!ispath(c1)) next; c2=clean(a[3]); rows++; if(!index(path(c1),"...") && system("test -e \"" path(c1) "\"")) d1++; if(ispath(c2) && !index(path(c2),"...") && system("test -e \"" path(c2) "\"")) d2++ } END{print "rows",rows,"dead1",d1,"dead2",d2}' docs/agents/nfi.md); done
    ```
+
+   One program per line, and awk rather than Python, because the block sits inside a list
+   item: shell and awk tolerate the leading indent, a Python heredoc does not (= uniformly
+   indented module code is an `IndentationError` on its first statement, measured; the
+   first version of this block was published broken and was caught by running it back out
+   of the doc). No registry tool ships this selector: `dead-sweep-measure.py` rejects a
+   positional registry path, and neither `nfi-loc-check.py` nor `verify-dead.py` prints
+   these four numbers, so the selector is written out here rather than pointed at a tool.
 
    Both trees answer the same: **252 guard-table rows at the parent against 251 at the
    tip** (= the stack's net −1 row), **2 dead column-2 rows at each**, **6 dead
@@ -189,8 +199,63 @@ the command printed next to it, and no row it names is absent from the tree. The
 is on `main` and was reviewed twice (rounds on `t_d4552e4c`, `t_d00f50ad`); a round
 that re-reviews it is out of budget.
 
+Two invariants the doc holds itself to, each a command: for every `file:N` citation it
+prints, `N` is at most `wc -l file` in the tree it names (= the check that caught this
+doc's only blocking finding, a range that inherited the wrong file's name), and every
+number is reproduced by the command printed beside it.
+
+The first invariant as a command, run from inside a checkout of the sha under review.
+It reads a bare range against the last file named in the SAME table cell, which is how
+the range went wrong here, and it refuses to answer 0 when the blob it was handed is
+empty (= a check on nothing prints a clean number otherwise):
+
+```bash
+python3 - <<'PY'
+import os, re, subprocess
+DOC = "docs/agents/2026-11-20-session-close-the-style-table-drops-two-roles-and-custom-becomes-a-place.md"
+NAMED = re.compile(r"([A-Za-z0-9_][\w.\-]*\.(?:swift|py|md|sh)):(\d+)(?:-(\d+))?")
+BARE = re.compile(r"(?<![\w.]):(\d+)(?:-(\d+))?(?!\d)")
+TRACKED = {}
+for path in subprocess.run(["git", "ls-files"], capture_output=True, text=True).stdout.split("\n"):
+    if path.endswith((".swift", ".py", ".md", ".sh")) and os.path.isfile(path):
+        TRACKED.setdefault(os.path.basename(path), []).append(path)
+def check(text, where):
+    bad = []
+    for number, line in enumerate(text.split("\n"), 1):
+        for cell in (c.strip() for c in line.split("|")):
+            named = list(NAMED.finditer(cell))
+            refs = [(m.group(0), named[-1] if named else None) for m in BARE.finditer(cell)
+                    if not any(n.start() < m.end() and n.end() > m.start() for n in named)]
+            refs += [(m.group(0), m) for m in named]
+            for token, anchor in refs:
+                if anchor is None:
+                    bad.append((number, "range with no file in its own cell", token)); continue
+                cands = TRACKED.get(os.path.basename(anchor.group(1)), [])
+                if len(cands) != 1: continue
+                n = sum(1 for _ in open(cands[0], encoding="utf8", errors="replace"))
+                hi = max(int(g) for g in token.split(":")[-1].split("-") if g.isdigit())
+                if hi > n: bad.append((number, "past EOF", token, cands[0], n))
+    print(f"{where}: {len(bad)} violation(s)")
+    for row in bad: print("   ", row)
+    return bad
+tip = open(DOC, encoding="utf8").read()
+assert "L5" in tip, "the doc read back empty -- a check on nothing must not print 0"
+check(tip, "this tree")
+for sha in ("b5a70cf160", "main"):
+    shown = subprocess.run(["git", "show", f"{sha}:{DOC}"], capture_output=True, text=True)
+    assert shown.returncode == 0 and "L5" in shown.stdout, f"{sha}: blob not read"
+    check(shown.stdout, sha)
+PY
+```
+
+It answers **0 violations at this sha and 2 at `main` / `b5a70cf160`** (= the two ranges
+that inherited the wrong file: one pointing past a 155-line test's end, one past a
+169-line view's end).
+
 A finding about the doc's numbers is fixed by making the number a command, not by
 adding a section. A finding about its wording does not open another round. This
 doc's own verdict lives on the board and is deliberately NOT written back here: a
 closure doc that logs its own meta-reviews becomes the defect it was written to
 report, and each such entry lengthens the file that carries its own line count.
+
+[read-fingerprint] /Volumes/ANAN/.hermes/hermes-agent/docs/agents/2026-11-20-session-close-the-style-table-drops-two-roles-and-custom-becomes-a-place.md:1-196 — content 9c82c19fa6f0. Cite this range instead of re-reading the file.
