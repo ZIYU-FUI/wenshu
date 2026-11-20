@@ -1,27 +1,46 @@
 //
 //  CoverRemovalRefreshTests.swift · Wenshu
 //
-//  Proves that a card ASKS THE DISK AGAIN after its cover is removed.
+//  Proves that a card is TOLD its cover changed, and asks the disk
+//  nothing when it does.
 //
 //  The removal itself is proved elsewhere (= `CardCoverServiceTests`:
 //  the clip goes and the picture stays). What was missing is the
 //  other half, and it is what the boss met on 2026-11-19: the file
 //  went away and the card went on showing the motion, because nothing
-//  told the card to ask again. Making a clip has an in-flight phase a
-//  card watches (= `isMakingVideo`); removing one has none.
+//  told the card. Making a clip has an in-flight phase a card watches
+//  (= `isMakingVideo`); removing one has none.
+//
+//  WHAT THE TELLING USED TO BE. b5f34f59e0 made a removal DROP the
+//  card's held answer, so the next render went to the disk and got the
+//  truth there. That fixed 2026-11-19 and cost the material column a
+//  folder read on the main thread, once per changed card, on the very
+//  frame the announcement woke (= the reading `CoverDiskReadTests`
+//  carries: 3 asks on the main thread). The write that removed the
+//  clip already knows the folder's new state, so it can say it:
+//  `CardCoverService.removeVideo` now PUBLISHES the recomputed entry
+//  instead of dropping it, and the card that wakes up is answered from
+//  memory. This suite is the witness that the new shape still removes
+//  the clip from what the card shows.
 //
 //  Method: the real grid is hosted in a real `NSHostingView`, over a
 //  throwaway library whose cover holds a picture and a clip. ⇒ The
-//  witness is the cover cache: a card that renders reads its entry
-//  and the entry is then held, so an entry that is held AGAIN after
-//  the removal evicted it is a card that asked the disk again. ⇒ A
-//  property assertion would not prove the claim: the defect was a
-//  behaviour of the view, and a behaviour is measured on the view
+//  witness is the held entry plus the counting seam: after the removal
+//  the entry holds no clip and still holds the picture, and the render
+//  that the announcement wakes asks the MAIN THREAD nothing at all. ⇒
+//  A property assertion alone would not prove the claim: the defect was
+//  a behaviour of the view, and a behaviour is measured on the view
 //  that has it.
 //
+//  The render half waits on a run-loop pump (= `settle`), because a
+//  hosted view decides when its body runs and nothing else in the tree
+//  can be told to render. The pump is not a clock budget: the counts it
+//  returns are the same on a loaded machine and an idle one, since what
+//  is asserted is that the number is zero, not that a wall appeared.
+//
 //  The removal is asked for through ANOTHER service than the pane
-//  holds, on purpose: the card that has to ask again is not the one
-//  that asked for the removal, so a signal that lived on one service
+//  holds, on purpose: the card that has to be told is not the one
+//  that was asked to remove, so a signal that lived on one service
 //  instance would pass only by an accident of wiring.
 //
 
@@ -64,8 +83,8 @@ struct CoverRemovalRefreshTests {
         RunLoop.main.run(until: Date().addingTimeInterval(0.2))
     }
 
-    @Test("The card asks the disk again after its moving cover is removed")
-    func theCardAsksAgainAfterTheClipIsRemoved() async throws {
+    @Test("The card is told its moving cover is gone, and asks the disk nothing")
+    func theCardIsToldTheClipIsGone() async throws {
         let root = try makeLibraryRoot()
         let reference = Reference(title: "A card with a moving cover")
         let target = CardCoverTarget.reference(reference.id)
@@ -116,19 +135,31 @@ struct CoverRemovalRefreshTests {
             // The removal, asked for through ANOTHER service than the
             // pane's own.
             CoverVideoService.live().removeVideo(for: target)
-            // The removal dropped the held entry: the next question
-            // goes to the disk.
-            #expect(CoverEntryCache.shared.entry(forKey: key) == nil)
+            // The removal REPLACED the held answer rather than dropping
+            // it: the clip is gone from what the column holds at the
+            // moment the write returns, and no folder had to be read to
+            // find that out.
+            let published = CoverEntryCache.shared.entry(forKey: key)
+            #expect(published?.videoURL == nil)
+            #expect(published?.imageURL != nil)
 
-            settle(host: host, window: window)
-            // THE WITNESS: the entry is held again, so the card asked
-            // the disk again, and the answer it got has no clip in it.
+            // THE WITNESS: the row wakes up, the card renders, and the
+            // render asks the MAIN THREAD nothing. Before the fix this
+            // same render knocked on the folder twice for this card, on
+            // the main thread.
+            let renderTally = CoverDiskCounting.Tally()
+            CoverDiskCounting.$tally.withValue(renderTally) {
+                settle(host: host, window: window)
+            }
+            #expect(
+                renderTally.onMainThread == 0,
+                "the render that a cover removal wakes asked the disk \(renderTally.onMainThread) time(s) on the MAIN thread"
+            )
             let after = CoverEntryCache.shared.entry(forKey: key)
-            #expect(after != nil)
             #expect(after?.videoURL == nil)
-            // The entry holds the picture, so the re-read happened
-            // against the library: a card that asked the disk again
-            // got the cover that is still there.
+            // The entry holds the picture, so the answer the card got
+            // was this library's cover and not a card that kept playing
+            // a file that is already gone.
             #expect(after?.imageURL != nil)
             // The picture the user liked is still on the disk: the
             // removal took the motion, not the cover.

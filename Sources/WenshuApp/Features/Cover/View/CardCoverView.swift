@@ -4,15 +4,25 @@
 //   : CardCoverView.
 //  Draws one card's stored picture in the card's cover slot.
 //
-//  The picture is a local file in the library, so it is loaded with
-//  `NSImage(contentsOfFile:)`. No image-loading library: the project
-//  is Apple-frameworks-only, and a local file needs no cache.
+//  The picture is a local file in the library. It is NEVER read from
+//  here: the ask goes to `CoverImageCache.decodedImage(for:)`, which
+//  answers a warm cover out of memory and reads and decodes a cold one
+//  on a background task. No image-loading library: the project is
+//  Apple-frameworks-only, and the cache this file needs is 100 lines.
 //
 //  The load is ASYNCHRONOUS, and that is not a nicety. The material
 //  zone is a LazyVGrid that can hold dozens of cards, and a
-//  synchronous disk read per card in the view body makes scrolling
-//  stutter. So the view asks for the file in a Task and shows the
-//  fallback until the bytes arrive.
+//  synchronous disk read per card makes scrolling stutter. So the view
+//  asks for the file and shows the fallback until the bytes arrive —
+//  and a card that scrolls back into sight is answered from memory,
+//  which is the half this file used to get wrong: the cache lookup
+//  itself stat'd the file, so every card asked the disk something on
+//  every appearance.
+//
+//  A card whose cover appears or changes on the disk is TOLD, not
+//  re-polled: `CoverChangeSignal` is read where the grid resolves a
+//  card's cover (= `PreviewPane.coverEntry`), and the picture cache is
+//  dropped by the write that replaced it.
 //
 //  The slot is a wide banner: 100pt tall and 216-316pt wide
 //  depending on the pane's width, so the stored 768x320 (2.40:1)
@@ -80,11 +90,18 @@ struct CardCoverView: View {
 
     /// Loads the file off the main actor.
     ///
-    /// The decoded picture is held in a cache, because a lazy grid
-    /// builds a new view for every card that scrolls back into sight,
-    /// and decoding the same picture again for every one of them is
-    /// work the app has already done.
-    private func load() async {
+    /// Internal, and not private: the claim the column makes is a COUNT
+    /// of the disk asks one screenful of cards makes, and a count is
+    /// read at the door the view opens. The test opens THIS door (= not
+    /// a copy of it), so the number it reports is the number the view
+    /// pays.
+    ///
+    /// The whole of it is one call: the cache answers a cover it holds
+    /// from memory, joins the read already running for a cover it does
+    /// not, and decodes on a background task. A lazy grid builds a new
+    /// view for every card that scrolls back into sight, and the new
+    /// view must pay NOTHING for that.
+    func load() async {
         // An injected picture is the whole answer: there is nothing to
         // load, and nothing to clear.
         guard image == nil else { return }
@@ -92,19 +109,9 @@ struct CardCoverView: View {
             loaded = nil
             return
         }
-        if let cached = CoverImageCache.shared.image(for: imageURL) {
-            loaded = cached
-            return
-        }
-        let loadedImage = await Task.detached(priority: .userInitiated) { () -> NSImage? in
-            NSImage(contentsOfFile: imageURL.path)
-        }.value
-        if let loadedImage {
-            CoverImageCache.shared.store(loadedImage, for: imageURL)
-        }
-        // A file that was deleted between the lookup and the load must
-        // degrade to the empty state, not crash and not show a broken
-        // image.
-        loaded = loadedImage
+        // A file that was deleted between the entry's answer and this
+        // read degrades to the empty state: no crash, no broken image,
+        // and the card keeps the gradient and symbol it drew before.
+        loaded = await CoverImageCache.shared.decodedImage(for: imageURL)
     }
 }

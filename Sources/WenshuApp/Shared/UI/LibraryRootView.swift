@@ -193,6 +193,12 @@ struct LibraryRootView: View {
             // Populate the reactive `books` mirror at launch so
             // bookStore.books.count is correct on the first render.
             self.bookStore?.reloadAllBooks()
+            // The material column answers a card's cover from memory, so
+            // the covers folder is read ONCE here, before a single card
+            // asks (= `CoverIndex`). What a frame then pays for a cover
+            // is nothing, and the ask that does happen in the column's
+            // own path is a background one.
+            await CoverIndex.shared.prefillAndWait()
         } catch {
             // A launch failure must not leave the app spinning: the error is logged
             // here so a stalled UI is attributable to the step that failed, not to
