@@ -156,8 +156,8 @@ def wc_lines(path):
     trailing newline counts ONE LESS than the number of lines it holds.
     = = The registry's own header says so (= = "counting a file's lines the
     way `wc -l` does (= = newline-terminated lines, = = so a file that ends
-    WITHOUT a trailing newline counts one less)"), = = and the header even
-    names the one file in the table where the two counts differ.
+    WITHOUT a trailing newline counts one less), = = and the header is the
+    source of that convention.
 
     = = ⇒ ⇒ ⇒ AND THE IMPLEMENTATION MUST MATCH THAT: = = counting the
     ITERATIONS of a binary file handle (= = `sum(1 for _ in handle)`) counts

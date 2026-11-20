@@ -29,13 +29,25 @@ dirty buffer is reported in its OWN column, labelled as not committed.
 USAGE
 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-    python3 Tools/wenshu-devtool/nfi_blast_radius.py --base origin/main
-    python3 Tools/wenshu-devtool/nfi_blast_radius.py --base origin/main \\
+    python3 Tools/wenshu-devtool/nfi_blast_radius.py --base <a-named-sha>
+    python3 Tools/wenshu-devtool/nfi_blast_radius.py --base <a-named-sha> \\
         --json
 
-= = ⇒ It PRINTS the table and, on every red point, the command that
-reproduces it. = = A number whose reproduction is not printed is a number
-the next reader cannot take.
+= = ⇒ ⇒ **⇒ NAME THE BASE, = = DO NOT WRITE `origin/main`** (= = the branch
+moves, = = and every number this script prints belongs to a snapshot): = = the
+run prints its own `base = <sha>` and its own `measured at = <when>`, = = so
+the table says which snapshot it is.
+
+= = ⇒ It PRINTS the table and, on every red point, the branch and the tip it
+was measured at (= = `### `<branch>` at <full tip sha>`, = = followed by the
+point). = = ⇒ ⇒ **⇒ AND THE COMMAND THAT REPRODUCES A POINT** (= = the gate,
+= = in that tree, = = against that base) = = = =
+`python3 Tools/wenshu-devtool/nfi-loc-check.py --base <the sweep's base>`,
+= = run in a detached worktree at that tip; = = the header above each point
+names the branch and the tip, = = so the point is reproducible. = = ⇒ ⇒ **⇒
+(At this tree the sweep does NOT print the point's own gate command line by
+line; = = it prints what the point is, = = where it is, = = and the base, = =
+= = and this sentence is the promise the tool actually keeps.)**
 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 """
 from __future__ import annotations
@@ -137,9 +149,15 @@ def run_gate_at(
     dest = Path(wt) / "Tools/wenshu-devtool/nfi-loc-check.py"
     injected = False
     saved: bytes | None = None
+    # = = ⇒ ⇒ ⇒ THE TREE MUST COME BACK EXACTLY AS IT WAS FOUND, = = AND A
+    # = = DIRECTORY THE SWEEP CREATED IS PART OF "AS IT WAS FOUND": = = so
+    # = = remember whether the directory existed, = = and remove it again if
+    # = = the sweep made it.
+    made_parent = False
     if gate is not None:
         if not dest.parent.exists():
             dest.parent.mkdir(parents=True, exist_ok=True)
+            made_parent = True
         if dest.exists() and dest.resolve() == gate.resolve():
             # = = The tree already carries THIS gate: = = nothing to inject
             # = = and nothing to restore.
@@ -173,6 +191,13 @@ def run_gate_at(
                 dest.unlink()
             else:
                 dest.write_bytes(saved)
+            if made_parent:
+                # = = The directory the sweep made, = = and nothing else in
+                # = = it (= = the gate is already gone), = = so it goes too.
+                try:
+                    dest.parent.rmdir()
+                except OSError:
+                    pass
         except OSError:
             pass
     return r.returncode, r.stdout + r.stderr

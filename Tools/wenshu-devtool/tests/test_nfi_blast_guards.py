@@ -11,9 +11,12 @@ why (= = measured, not argued): = = that file has **no `--gate` argument
 anywhere** (`grep -c -- '--gate'` on it = = 0), = = so it runs the sweep on the
 default gate, = = which resolves to the very file being injected (= = the
 bytes already equal), = = so `injected` is ALWAYS False there, = = so the
-restore branch (`nfi_blast_radius.py:165`) is NEVER entered, = = and the two
-refusals (`:225` head != tip, = = `:228` the tree is not clean) are never
-reached. = = ⇒ ⇒ ⇒ Three mutations of the guards = = = `if injected:` -> `if
+restore branch (= = the `if injected:` guard) is NEVER entered, = = and the
+two refusals (= = the `if head != b.tip:` guard, = = and the `if
+status.strip():` guard) are never reached. = = ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ **⇒ ⇒ AND THE
+GUARDS ARE NAMED, = = NOT NUMBERED**: = = a line number moves the moment
+anything is inserted above it, = = and round 4's own edit moved four of them
+(= = 165 / 225 / 228 / 242 became 166 / 226 / 229 / 243). = = ⇒ ⇒ ⇒ Three mutations of the guards = = = `if injected:` -> `if
 injected and False:`, = = `if head != b.tip:` -> `if False:`, = = `if
 status.strip():` -> `if False:` = = = = all leave that suite rc=0.
 
@@ -31,15 +34,15 @@ bytes DIFFER from the lane's own (= = so the injection really happens).
 THE THREE GUARDS, AND WHAT EACH TEST ASSERTS
 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-  G1  the injection/restore (`:165`) = = the sweep puts the injected gate
+  G1  the injection/restore (= = the `if injected:` guard) = = the sweep puts the injected gate
       back (= = the tree's own bytes, = = or nothing at all). = = A test that
       only ever injects the SAME bytes can never see a clobber, = = so this
       test uses a `--gate` whose bytes DIFFER from the lane's tracked gate,
       and asserts afterwards that the lane's gate bytes and
       `status --porcelain` are EXACTLY as they were.
-  G2  the HEAD refusal (`:225`) = = a detached worktree whose HEAD is not the
+  G2  the HEAD refusal (= = the `if head != b.tip:` guard) = = a detached worktree whose HEAD is not the
       tip it names is NOT MEASURED.
-  G3  the cleanliness refusal (`:228`) = = a detached worktree that is not
+  G3  the cleanliness refusal (= = the `if status.strip():` guard) = = a detached worktree that is not
       clean is NOT MEASURED.
 
 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -74,10 +77,16 @@ def run(args, cwd=None):
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
 
 
-def make_repo(tmp, name):
-    """A repo with a tracked gate, a registry, and one green tip."""
+def make_repo(tmp, name, with_gate_dir=True):
+    """A repo with a tracked gate, a registry, and one green tip.
+
+    = = `with_gate_dir=False` builds a tree that has NO
+    = = `Tools/wenshu-devtool/` at all, = = which is what G4 needs (= = the
+    = = sweep then MAKES that directory when it injects the gate).
+    """
     repo = os.path.join(tmp, name)
-    os.makedirs(os.path.join(repo, "Tools", "wenshu-devtool"), exist_ok=True)
+    if with_gate_dir:
+        os.makedirs(os.path.join(repo, "Tools", "wenshu-devtool"), exist_ok=True)
     os.makedirs(os.path.join(repo, "docs", "agents"), exist_ok=True)
     os.makedirs(os.path.join(repo, "Sources"), exist_ok=True)
     with open(os.path.join(repo, "Sources", "Tracked.swift"), "w", encoding="utf-8") as h:
@@ -90,11 +99,6 @@ def make_repo(tmp, name):
     run(["git", "add", "-A"], cwd=repo)
     run(["git", "commit", "-qm", "the tip"], cwd=repo)
     return repo
-
-
-def gate_bytes(tool):
-    with open(str(Path(tool).parent / "nfi-loc-check.py"), "r", encoding="utf-8") as h:
-        return h.read()
 
 
 def case_g1_injection_restore(tool, tmp):
@@ -201,6 +205,58 @@ def case_g2_head_refusal(tool, tmp):
     return 0
 
 
+def case_g4_made_directory(tool, tmp):
+    """G4: a DIRECTORY the sweep made must be gone again (= = the tree comes
+    back EXACTLY as it was found, = = and a directory is part of that)."""
+    repo = make_repo(tmp, "g4repo", with_gate_dir=False)
+    # = = ⇒ ⇒ ⇒ THIS TREE HAS NO `Tools/wenshu-devtool/` AT ALL, = = so the
+    # = = sweep MAKES the directory when it injects the gate, = = and must
+    # = = take it away again.
+    made_dir = os.path.join(repo, "Tools", "wenshu-devtool")
+    if os.path.exists(made_dir):
+        print("FAILED: the fixture's tree already carries the directory")
+        return 1
+    tip = run(["git", "rev-parse", "HEAD"], cwd=repo).stdout.strip()
+
+    other_gate = os.path.join(tmp, "g4-gate.py")
+    with open(other_gate, "w", encoding="utf-8") as h:
+        h.write("# a gate\nprint('g4')\n")
+
+    # = = The lane must be dirty, = = or the sweep never measures its buffer
+    # = = and never injects there.
+    with open(os.path.join(repo, "docs", "agents", "nfi.md"), "a", encoding="utf-8") as h:
+        h.write("| `Sources/Tracked.swift` | `Sources/Tracked.swift` | 1 | ours |\n")
+    if not run(["git", "status", "--porcelain"], cwd=repo).stdout.strip():
+        print("FAILED: the fixture's lane is not dirty")
+        return 1
+
+    result = run(
+        [
+            sys.executable, TOOL,
+            "--base", tip,
+            "--repo", repo,
+            "--only", "main",
+            "--gate", other_gate,
+        ],
+        cwd=tmp,
+    )
+    out = result.stdout + result.stderr
+    if result.returncode != 0:
+        print("FAILED: the sweep exited non-zero")
+        print(out)
+        return 1
+    if os.path.exists(made_dir):
+        print("FAILED: the sweep left the directory it made (= = the tree is not as it was found)")
+        return 1
+    status_after = run(["git", "status", "--porcelain"], cwd=repo).stdout
+    if "wenshu-devtool" in status_after:
+        print("FAILED: the sweep left the tree dirty in the directory it made")
+        print(status_after)
+        return 1
+    print("  G4: the directory the sweep made is gone again (= = the tree is as it was found)")
+    return 0
+
+
 def case_g3_clean_refusal(tool, tmp):
     """G3: a detached worktree that is not clean is NOT MEASURED."""
     repo = make_repo(tmp, "g3repo")
@@ -240,6 +296,7 @@ def main():
             ("G1 the injection/restore", case_g1_injection_restore),
             ("G2 the HEAD refusal", case_g2_head_refusal),
             ("G3 the cleanliness refusal", case_g3_clean_refusal),
+            ("G4 the directory the sweep made", case_g4_made_directory),
         ):
             rc = case(tool, tmp)
             if rc != 0:
@@ -248,7 +305,7 @@ def main():
     if failures:
         print(f"FAILED: {failures} guard(s) did not hold")
         return 1
-    print("blast radius: the sweep's three guards hold")
+    print("blast radius: the sweep's four guards hold")
     return 0
 
 
