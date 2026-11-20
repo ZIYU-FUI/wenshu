@@ -23,7 +23,7 @@ Delivered as a seventeen-commit stack landed on `main` at `b48942d29f`, from
 
 | # | The line, in his words (= rendered) | The commit that carries it | The independent verdict | Server proof |
 |---|---|---|---|---|
-| L1 | "Adjust how Custom is entered (= the current way reads as a bug): it must be switchable into from the start, begin by reusing the general set, and then the user fine-tunes by hand" | `b4b4280f76` (= `fix(inspector): Custom is entered, not earned`), on top of `4d3bceed8d` which replaced the hand-rolled switcher with Apple's own controls | `t_7c12b4c5` approved the behaviour at `d05242f281`; the stack was rebased four times since, and every later claim was re-measured at the new tip (`t_d4552e4c`, then `t_d00f50ad` approved) | both remotes answer `b48942d29f…` for `refs/heads/main` (§3) |
+| L1 | "Adjust how Custom is entered (= the current way reads as a bug): it must be switchable into from the start, begin by reusing the general set, and then the user fine-tunes by hand" | `b4b4280f76` (= `fix(inspector): Custom is entered, not earned`), on top of `4d3bceed8d` which replaced the hand-rolled switcher with Apple's own controls | `t_7c12b4c5` approved the behaviour at `d05242f281`; the stack was rebased four times since, and every later claim was re-measured at the new tip (`t_d4552e4c`, then `t_d00f50ad` approved) | both remotes ANSWERED `b48942d29f…` for `refs/heads/main` at the landing (`git ls-remote`, not a local ref); they now carry this doc's commit on top (§7) |
 | L2 | "And keep the existing rule: change a fine-tune under either print or general and the book moves onto Custom" | same commit; pinned by `InspectorStylePresetPickerTests` (the picker suite) and `BookStyleSheetWriteBackTests` | the picker suite ran green at every tip; `t_d4552e4c` re-ran the filtered block at `4241b259fa` | ditto |
 | L3 | "The two boxed in red are useless (= delete them)" | `20afb54373` (= `feat(inspector): the style table drops the picture and the rule`), then `df196df334` for the files that still counted eleven, then `b48942d29f` for the registry rows the stack left lying | `t_d4552e4c` P1-P3 at `4241b259fa`: nine cases, nine rows, nine catalog keys, zero hits for the deleted roles, and the mutation measured both ways (= re-adding the two cases reddens `InspectorStylePageRenderTests.swift:58`, `:62`, `:70` and `InspectorStylePreviewVoiceTests.swift:115`; withholding the catalog keys adds `:447`); its F1 (the registry) was closed and re-approved by `t_d00f50ad` | ditto |
 | L4 | "Give me a screenshot, I want to see the final effect" | no commit (= an observation, not an edit) | n/a | `look9_preset.png`, 2904×1952, the app's own window at 2x, captured by the app's own screenshot hook against an isolated clone (§4) |
@@ -108,8 +108,9 @@ None. This session pushed `b48942d29f` and nothing but the stack it landed.
 
 ## 7. The next session's starting point
 
-- `main` = `origin/main` = `old-origin/main` = `b48942d29f` (read from the servers,
-  not from a local ref).
+- `main` carries the stack tip `b48942d29f` and this doc's own commit on top of it;
+  both remotes answered the same sha when it was pushed (read from the servers with
+  `git ls-remote <remote> main`, not from a local ref — see §2's server column).
 - The inspector's style page is `Sources/WenshuApp/Features/Editor/View/`
   `InspectorStylePageView.swift` (533 lines, under the 600 cap), its rows
   `InspectorStyleRowView.swift`, its knob `InspectorStyleKnobView.swift`, its model
