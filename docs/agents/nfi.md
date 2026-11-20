@@ -39,6 +39,21 @@ two different contents) still conflicts with the key named.
 extracted or added file MUST be registered in this table, with parent
 reference, LOC, and content tag.
 
+**WHAT THE LOC GATE CAN AND CANNOT READ.** `Tools/wenshu-devtool/nfi-loc-check.py`
+charges a change only for the registered files that change ADDS or REWRITES, and
+it measures them the way `wc -l` does. A row whose extracted-file key the gate
+cannot open is a row the gate cannot measure at all — it neither passes nor fails.
+Two keys in this table are not files at all: one names a DIRECTORY
+(`Vendor/MarkdownEngine/`), one is a BARE NUMBER with no path in it (`262`). That
+pair is a property of the table's shape, not a number to re-take each round — any
+future row written with a key that is not a file joins it. The counts beside it
+are a snapshot AT A TREE: measured at the tip this paragraph was written at, the
+table had 463 data rows, the gate opened 423 of them, and the 40 it could not open
+were 35 keys abbreviated with `...`, these 2 keys that are not files, and 3 keys
+whose path is absent from the tree. Of every file the gate could open, none ended
+without a trailing newline — so on any row the gate actually measures, `wc -l` and
+a reader's `splitlines()` cannot disagree.
+
 | Parent (god-class) | Extracted file | LOC | Content tag |
 | ------------------ | -------------- | --- | ----------- |
 | `Sources/.../ImportService.swift` (now 444 LOC, under cap) | `Sources/.../ImportServiceCancellation.swift` | 129 | `extension ImportService { cancel() rollback() resetRollbackTrail() snapshotReferenceLibraryIndex() }` = the cancel + rollback surface. |
