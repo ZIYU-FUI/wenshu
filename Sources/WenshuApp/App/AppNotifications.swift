@@ -104,8 +104,9 @@ enum AppStateEvents: String, CaseIterable {
     ///
     /// Posted by `HermesTodoStore.write`, the single place a plan row
     /// changes, so a page that mirrors the plan re-reads on the write
-    /// instead of asking again on a timer. Carries no payload: a plan
-    /// has one current state, so the reader takes a fresh snapshot.
+    /// instead of asking again on a timer. The `object` is the writing
+    /// store and the `userInfo` is empty: a plan has one current state,
+    /// so the reader takes a fresh snapshot rather than a delta.
     case todoPlanDidChange = "com.wenshu.todoPlan.didChange"
 }
 
@@ -164,11 +165,14 @@ extension Notification.Name {
     static let wenshuProviderKeychainChanged = Notification.Name(AppStateEvents.providerKeychainChanged.rawValue)
     static let wenshuDefocusChatInput = Notification.Name(AppStateEvents.defocusChatInput.rawValue)
 
-    /// The assistant wrote its plan. Posted by the plan store's only
-    /// write path, listened by the trailing column's plan page.
+    /// The assistant wrote its plan. Posted by `HermesTodoStore.write`,
+    /// the plan's only write path, with the WRITING store as the
+    /// notification's `object`, = a reader that mirrors one store can
+    /// filter on the sender instead of waking on every plan write in the
+    /// process. Listened by the trailing column's plan page.
     static let wenshuTodoPlanDidChange = Notification.Name(AppStateEvents.todoPlanDidChange.rawValue)
     /// Boss 2026-10-19 mac-mini reproducer (= chat hang
-    /// "AI 思考中 20s"): the chat view model subscribes
+    /// stuck on the "AI thinking, 20s" placeholder): the chat view model subscribes
     /// to this notification in its init (= SwiftUI
     /// evaluates the chat zone body before
     /// `applicationDidFinishLaunching` publishes the
@@ -176,7 +180,7 @@ extension Notification.Name {
     /// = the sync snapshot is nil at the moment the
     /// chat view model resolves it; = the chat view
     /// model stays nil forever; = the chat send
-    /// collapses to the "agent 未配置" fallback).
+    /// collapses to the "agent not configured" fallback reply).
     /// Posting the notification from both
     /// `installConductor` (= the async actor-isolated
     /// path) AND `installConductorSync` (= the sync
@@ -184,7 +188,7 @@ extension Notification.Name {
     /// in the moment the AppDelegate publishes the
     /// conductor (= the chat path's first
     /// `if let conductor = conductor` then takes the
-    /// real branch instead of the "agent 未配置"
+    /// real branch instead of the "agent not configured"
     /// fallback).
     static let wenshuConductorInstalled = Notification.Name("wenshuConductorInstalled")
 
