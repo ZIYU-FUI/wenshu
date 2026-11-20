@@ -42,7 +42,7 @@ Every number below was read out of a log file, not out of a pipeline's status.
 | the eleven inspector / style / tab suites, filtered | `Test run with 45 tests in 8 suites passed`, `Executed 25 tests, with 0 failures`, exit 0 |
 | the whole suite (= `swift test --skip CSSearchableIndexSearchTests`) | `Test run with 3830 tests in 587 suites failed after 212.882 seconds with 19 issues`; the XCTest side `Executed 12 tests, with 1 test skipped and 0 failures` |
 | CJK on added Swift lines | **0** codepoints in the 2,992 added lines (= counted by codepoint on the `+` side only) |
-| the role set | 9 enum cases, 9 `row(` calls, 9 `inspector.style.role.` catalog keys, 0 hits for the two deleted roles anywhere in `Sources/` or `Tests/` |
+| the role set | 9 enum cases; 9 `row(` calls, counted with `grep -cE '^ *row\('` — a bare `grep -c 'row('` answers 10 because the local `func row(` declaration at `InspectorStylePageView.swift:343` is caught by it too; 9 `inspector.style.role.` catalog keys; 0 hits for either deleted role anywhere in `Sources/` or `Tests/` |
 
 **The 19 issues are not this stack's.** The suites that produce them were run as a
 filter, once at `f697a2ced0` (the `main` this stack landed on top of) and once at
