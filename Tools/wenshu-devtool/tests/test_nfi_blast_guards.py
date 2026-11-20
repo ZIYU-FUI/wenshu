@@ -446,7 +446,24 @@ def case_g7_sweep_without_a_ruler(tool, tmp):
 def main():
     tool = load_tool()
     failures = 0
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory() as tmp_raw:
+        # ⇒ ⇒ CANONICALISE THE ROOT ONCE, so the suite and the tool speak ONE
+        # path language. `tempfile` hands back `$TMPDIR` as the OS mounted it, and
+        # on this machine that is a symlink: `/Users/anbaiqiang/.hermes/profiles/
+        # pocock/cache/scratch` → `/Volumes/ANAN/.hermes/profiles/pocock/cache/
+        # scratch`. `nfi_blast_radius.py:375` builds its default ruler from
+        # `Path(__file__).resolve()` and prints the RESOLVED path at `:420`, so a
+        # case that compares an UNRESOLVED path against the tool's output fails
+        # wherever `TMPDIR` is a symlink — and passes wherever it is not, which is
+        # why this suite was green in the lane worktree and red on `main`.
+        # Measured 2026-11-20 at b96d3f7cb5: G5 printed
+        #   gate = /Volumes/ANAN/…/g5tree/Tools/wenshu-devtool/nfi-loc-check.py
+        #   branch-backed worktrees measured = 1 (green 0, red 1) / red points = 1
+        # and still failed `mutant_gate not in out` at :348, because the expected
+        # string began `/Users/…`. The GUARD'S BEHAVIOUR WAS RIGHT (the lane went
+        # red under the mutant ruler, and `Sources/Tracked.swift 1->2` was
+        # reported); only the string comparison was environment-dependent.
+        tmp = str(Path(tmp_raw).resolve())
         for name, case in (
             ("G1 the injection/restore", case_g1_injection_restore),
             ("G2 the HEAD refusal", case_g2_head_refusal),
