@@ -27,9 +27,16 @@
 #   8. DIFFERENT tails on both sides => CONFLICT, and the tail is named
 #   9. the SAME tail on both sides => merged (a fix that flags every tail
 #      as a disagreement would trade a silent loss for a false conflict)
-#  10. a REAL `git merge` with a tail on one side only => the tail survives
+#   10. a REAL `git merge` with a tail on one side only => the tail survives
 #      on disk (merge-tree covers the merge itself; this covers the path a
 #      developer actually runs)
+#  11. a branch that edits ONLY the header prose => the edit SURVIVES the
+#      merge (= taking the header from "ours" alone dropped it, so a rebase
+#      discarded a branch's prose edit and git dropped the commit as
+#      "patch contents already upstream")
+#  12. DIFFERENT headers on both sides => CONFLICT, and the header is named
+#  13. the SAME header edit on both sides => merged (= a false conflict on a
+#      header the two sides agree on would be a false alarm)
 set -uo pipefail
 
 SCRIPT_PATH="${BASH_SOURCE[0]}"
@@ -98,6 +105,12 @@ elif cmd == "striptail":
 elif cmd == "chgrow":
     fname, loc = args
     out = re.sub(rf"(\| `{re.escape(fname)}` \| )\d+( \|)", rf"\g<1>{loc}\g<2>", text)
+elif cmd == "chdr":
+    old, new = args
+    header = "\n".join(before)
+    if header.count(old) != 1 or text.count(old) != 1:
+        sys.exit(f"the header phrase is not unique in the header: {old}")
+    out = text.replace(old, new, 1)
 else:
     sys.exit(f"unknown fixture command: {cmd}")
 
@@ -114,6 +127,10 @@ addtail() { reg addtail "$1"; }
 striptail() { reg striptail; }
 # chgrow <file> <newloc>  = change an existing row's LOC
 chgrow() { reg chgrow "$1" "$2"; }
+# chdr <old> <new>  = change ONE phrase of the header (= the prose above the
+# table). The fixture refuses a phrase that is not unique in the header, so
+# a case cannot silently edit a row instead.
+chdr() { reg chdr "$1" "$2"; }
 branch() { git checkout -q -B "$1" "$BASE"; }
 
 echo "nfi registry key-level merge tests (base rows = $BASEROWS)"
@@ -277,6 +294,74 @@ else
     fail "10. a real git merge dropped the tail (exit $MRC): $(cat realmerge.log)"
 fi
 git merge --abort 2>/dev/null || true
+
+# 11. a branch that edits ONLY the header prose => the edit SURVIVES
+#     The header (= everything above the table, prose included) belongs to
+#     the FILE, not to one side. Taking it from "ours" alone dropped the
+#     other side's edit to it: in a rebase "ours" is the side being rebased
+#     ONTO, so the branch's prose edit was discarded silently and the
+#     cherry-pick came out empty (= git printed "patch contents already
+#     upstream"). Here one side adds a row (= so the driver runs) and the
+#     other edits only the prose.
+HDR_OLD="next reader finds the file by concern in under five seconds"
+HDR_A="next reader finds the file by concern in under five minutes"
+HDR_B="next reader finds the file by concern in under one minute"
+branch h1; addrow "Sources/.../HdrOne.swift" "TestHdrOne.swift" 111; git commit -qam "h1 adds a row and leaves the header alone"
+branch h2; chdr "$HDR_OLD" "$HDR_A"; git commit -qam "h2 edits only the header prose"
+MRC=0; git merge-tree --write-tree --name-only h1 h2 >/dev/null 2>&1 || MRC=$?
+if [ "$MRC" -eq 0 ]; then
+    pass "11. a header-only edit merges cleanly"
+else
+    fail "11. a header-only edit conflicted"
+fi
+TREE=$(git merge-tree --write-tree h1 h2 2>/dev/null | head -1)
+git cat-file -p "$TREE:$REG" > merged11.md 2>/dev/null
+if grep -qF "$HDR_A" merged11.md && ! grep -qF "$HDR_OLD" merged11.md; then
+    pass "11b. the merged registry KEEPS the header edit"
+else
+    fail "11b. the merge dropped the header edit"
+fi
+if grep -q "TestHdrOne.swift" merged11.md; then
+    pass "11c. the row merge still works beside the header merge"
+else
+    fail "11c. the row from the other side was lost"
+fi
+
+# 12. DIFFERENT headers on both sides => CONFLICT, and the header is named
+#     A silent pick would trade a silent loss for a silent override.
+branch h3; chdr "$HDR_OLD" "$HDR_A"; git commit -qam "h3 edits the header"
+branch h4; chdr "$HDR_OLD" "$HDR_B"; git commit -qam "h4 edits the header differently"
+OUT=$(git merge-tree --write-tree --name-only --messages h3 h4 2>&1 || true)
+if echo "$OUT" | grep -qF "<the file's header>"; then
+    pass "12. two different headers conflict AND name the header"
+else
+    fail "12. the two different headers did not conflict, or did not name the header (output: $OUT)"
+fi
+MRC=0; git merge-tree --write-tree --name-only h3 h4 >/dev/null 2>&1 || MRC=$?
+if [ "$MRC" -ne 0 ]; then
+    pass "12b. the driver exits non-zero on two different headers"
+else
+    fail "12b. the driver exited 0 on two different headers (= a silent override)"
+fi
+
+# 13. the SAME header edit on both sides => merged
+#     Two cards that made the same prose edit must not conflict with each
+#     other: the headers agree, so there is nothing to disagree about.
+branch h5; chdr "$HDR_OLD" "$HDR_A"; addrow "Sources/.../HdrFive.swift" "TestHdrFive.swift" 555; git commit -qam "h5 edits the header and adds a row"
+branch h6; chdr "$HDR_OLD" "$HDR_A"; addrow "Sources/.../HdrSix.swift" "TestHdrSix.swift" 666; git commit -qam "h6 edits the header the same way and adds a row"
+MRC=0; git merge-tree --write-tree --name-only h5 h6 >/dev/null 2>&1 || MRC=$?
+if [ "$MRC" -eq 0 ]; then
+    pass "13. the same header edit on both sides merges cleanly"
+else
+    fail "13. the same header edit on both sides conflicted (= a false disagreement)"
+fi
+TREE=$(git merge-tree --write-tree h5 h6 2>/dev/null | head -1)
+git cat-file -p "$TREE:$REG" > merged13.md 2>/dev/null
+if grep -qF "$HDR_A" merged13.md; then
+    pass "13b. the merged registry carries the agreed header"
+else
+    fail "13b. the merged registry lost the agreed header"
+fi
 
 echo
 if [ "$FAILURES" -eq 0 ]; then

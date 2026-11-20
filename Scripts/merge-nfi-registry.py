@@ -28,6 +28,23 @@ the string catalog's driver:
     the driver NAMES the key
   - a key deleted on one side, changed on the other -> CONFLICT, named
 
+THE FILE'S HEADER
+
+The registry is a table PLUS a header: everything above the table (= the LOC
+convention prose). The header belongs to the file, not to one side, so the
+driver merges it like a row:
+
+  - a header changed on ONE side only      -> that side's header
+  - a header changed on BOTH sides to the
+    SAME text                              -> that text
+  - DIFFERENT headers on both sides        -> CONFLICT, named
+                                             "<the file's header>"
+
+Taking the header from "ours" alone dropped the other side's edit to it: in a
+rebase "ours" is the side being rebased ONTO, so a branch that edited the
+prose had its edit discarded silently, and the cherry-pick came out EMPTY
+(= git printed "patch contents already upstream"). Measured 2026-11-20.
+
 THE FILE'S TAIL
 
 The registry is a table PLUS a tail: everything after the LAST table row. The
@@ -119,9 +136,9 @@ def has_tail(tail: list[str]) -> bool:
 
 def merge_docs(base: str, ours: str, theirs: str) -> tuple[str, list[str]]:
     """Merge two registry files at the key level. Returns (merged, conflicted)."""
-    _, base_rows, _ = split_rows(base)
-    _, our_rows, _ = split_rows(ours)
-    _, their_rows, _ = split_rows(theirs)
+    base_before, base_rows, base_after = split_rows(base)
+    our_before, our_rows, our_after = split_rows(ours)
+    their_before, their_rows, their_after = split_rows(theirs)
 
     base_by_key = {key_of(r): r for r in base_rows if key_of(r)}
     our_by_key = {key_of(r): r for r in our_rows if key_of(r)}
@@ -164,10 +181,26 @@ def merge_docs(base: str, ours: str, theirs: str) -> tuple[str, list[str]]:
         # Deleted on both sides: nothing to keep.
         continue
 
-    before, _, our_after = split_rows(ours)
-    if not before:
-        before, _, our_after = split_rows(base)
-    _, _, their_after = split_rows(theirs)
+    if not our_before:
+        our_before, our_after = base_before, base_after
+
+    # The header (= everything above the table, prose included) belongs to
+    # the file, not to one side: the side that changed it keeps it, two
+    # sides that changed it the same way agree, and two sides that changed
+    # it differently disagree the way two rows disagree.
+    #
+    # Taking it from "ours" alone dropped the other side's edit to it: in a
+    # rebase "ours" is the side being rebased ONTO, so a branch that edited
+    # the prose lost the edit silently and the cherry-pick came out empty.
+    if our_before == their_before:
+        before = our_before
+    elif our_before == base_before:
+        before = their_before
+    elif their_before == base_before:
+        before = our_before
+    else:
+        conflicted.append("<the file's header>")
+        before = our_before
 
     # The tail (= everything after the last table row) belongs to the file,
     # not to one side: the side that has one keeps it, and two sides with
