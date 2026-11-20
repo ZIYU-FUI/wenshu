@@ -314,6 +314,21 @@ actor AsyncDelegationRegistry {
         ))
     }
 
+    // How many consumers the change stream holds right now (= a test
+    // seam for the teardown half of `changes()`).
+    //
+    // A subscriber that leaves without deregistering is not harmless
+    // here: `InspectorStatusView.follow` subscribes once per window
+    // re-focus, so a leak grows with the user's clicks and the registry
+    // keeps yielding to continuations nobody reads. A cancelled
+    // reader's `onTermination` runs on the task that held it, so the
+    // test reads this by condition rather than by sleeping for it.
+    #if DEBUG
+        var debugChangeSubscriberCount: Int {
+            changeSubscribers.count
+        }
+    #endif
+
     /// Cleanup old records beyond retention period.
     ///
     /// The registry keeps the same 7-day window hermes does, and the
@@ -321,6 +336,13 @@ actor AsyncDelegationRegistry {
     /// (`drop`), = which announces, = so a reader is never left showing
     /// a delegation the table has retired. A window with nothing stale
     /// in it removes nothing and announces nothing.
+    ///
+    /// Who calls it, stated so the next reader does not have to grep:
+    /// NOTHING in `Sources/` does yet (= `SubAgentRunner.swift:337` drives
+    /// the OTHER removal path, the eviction inside `markCompleted`, on
+    /// every finished run). This is the retention half of `drop`'s
+    /// contract, held for the caller that arrives later, and the tests
+    /// drive it directly because there is no production beat to wait on.
     func cleanup() {
         let cutoff = Date().addingTimeInterval(-durableRetentionSeconds)
         let retired = records.values.filter { handle in

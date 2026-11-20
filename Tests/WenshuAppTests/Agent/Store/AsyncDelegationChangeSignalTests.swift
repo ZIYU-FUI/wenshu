@@ -27,7 +27,6 @@
 //  table is written by two functions and both of them announce (= the
 //  structural fact the refusal of a fallback scan rests on).
 //
-//
 
 import Foundation
 import Testing
@@ -376,7 +375,30 @@ struct AsyncDelegationChangeSignalTests {
         #expect(await arrived(staying, atLeast: 1))
         let baseline = await staying.count
 
+        // BOTH consumers are registered while they are live, so the count
+        // is 2 (= one registry, and this test's registry is its own).
+        #expect(await registry.debugChangeSubscriberCount == 2)
+
         await leaving.cancel()
+
+        // The half the first round only inferred: the reader that left is
+        // GONE from the registry, not merely quiet. `onTermination` runs
+        // on the task that held the subscription, so it lands a moment
+        // after the cancel; this waits for the CONDITION (= a count that
+        // settles is a deregistration, and a test that slept for a fixed
+        // time would be measuring the machine).
+        var remaining = await registry.debugChangeSubscriberCount
+        for _ in 0 ..< 100 where remaining > 1 {
+            try? await Task.sleep(for: .milliseconds(5))
+            remaining = await registry.debugChangeSubscriberCount
+        }
+        #expect(
+            remaining == 1,
+            "the reader that left is still a consumer of the stream (= `onTermination` did not deregister it)"
+        )
+
+        // And the reader that stayed is still told, on the registry that
+        // now holds only it.
         await registry.register(handle: Self.handle("after a reader left"))
         #expect(await arrived(staying, atLeast: baseline + 1))
         await staying.cancel()
