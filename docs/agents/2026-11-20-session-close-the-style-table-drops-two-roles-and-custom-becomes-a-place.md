@@ -29,7 +29,7 @@ Delivered as a seventeen-commit stack landed on `main` at `b48942d29f`, from
 | L4 | "Give me a screenshot, I want to see the final effect" | no commit (= an observation, not an edit) | n/a | `look9_preset.png`, 2904×1952 (= `sips -g pixelWidth -g pixelHeight /tmp/look9_preset.png` answers 2904 and 1952), the app's own window at 2x, captured by the app's own screenshot hook against an isolated clone (§4). It sits at `/tmp/look9_preset.png`, outside the tree and untracked: a reader cloning `main` cannot check it, so it is evidence of the ask being answered, not of the ink being right |
 | L5 | "It looks as though the body should sit vertically centred between its two dashed rules" | `35810deeb0` centres the row and its role name (`InspectorStyleRowView.swift:122`; the dashes are drawn between rows at `InspectorStylePageView.swift:209-213`, the row's own file ends at 169 lines, the page's at 533 (= `wc -l Sources/WenshuApp/Features/Editor/View/InspectorStylePageView.swift`)) | UNRESOLVED — no test measures the ink, and the boss's eye is the acceptance (§5) | — |
 
-## 3. The gates, on the tree this doc names (= `b48942d29f`, which is `main`)
+## 3. The gates, on the tree this doc names (= `b48942d29f`, which was `main` as they ran)
 
 Every number below was read out of a log file, not out of a pipeline's status.
 
@@ -92,7 +92,7 @@ paragraph spacing none, body face Song). What it does not settle: L1's trigger r
    re-capture.
 2. **`t_398b07cd`** still owes its Part B: the registry gate cannot see a row whose
    file is absent — in `Tools/wenshu-devtool/nfi-loc-check.py`, the row loop's
-   `if actual is None: continue` (measured still present at `main`'s tip) exempts
+   `if actual is None: continue` (measured still present at `4afeb8e41d`) exempts
    exactly the lying rows, which is how F1 survived to a review round. The sweep that
    found F1 is blind the same way from the other side: it reads only rows whose FIRST
    cell is a bare backticked path, so a row whose first cell carries a trailing
@@ -273,13 +273,13 @@ PY
 ```
 
 It answers **0 violations in this tree**, **1 at `a6ee591331`**, and **2 at
-`b5a70cf160`** (= the two ranges that inherited the wrong file: one pointing past a
-155-line test's end, one past a 169-line view's end). The `1` at `a6ee591331` is what
-round 2 of this doc's own review rejected: a harness read-fingerprint trailer that got
-committed as prose, citing a range against this doc's own name under a path the
-repository has never had. The loop names BLOBS, not refs: `main` is a moving ref, and
-round 3's run happened to print the same blob for `main` and for `b5a70cf160`, which is
-a fact about the day it ran and not something a check may rely on.
+`b5a70cf160`** (= two ranges that inherited the wrong file, one past a 155-line test's
+end, one past a 169-line view's end). The `1` at `a6ee591331` is what round 2 rejected: a
+harness read-fingerprint trailer committed as prose, citing a range under a path the
+repository never had. Only `a6ee591331` is pre-rebase: it reaches a landed line as the
+`review/` refs of the reviewing clone, while `b5a70cf160` is an ancestor of `main`. The
+loop runs a6ee first, so a `--no-local` clone dies on its "blob not read" assert before
+the second (= loud, as this section requires). The loop names BLOBS, not refs: `main` moves.
 
 Three rules were added to catch what the first version skipped, each with its own red
 case printed by the run above. A cited basename the tree does not have is now a
