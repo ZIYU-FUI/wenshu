@@ -311,7 +311,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
 
     /// THE TUNING IS KEPT BEHIND A SET, = AND COMES BACK.
     ///
-    /// The boss's rule (= OOB.md #2026-11-19): = a book whose knob moved
+    /// The line (see OOB.md #2026-11-19): = a book whose knob moved
     /// sits at Custom, = and General then Custom returns it to the tuning it
     /// was at, = NOT to the set it passed through. = A set is a whole
     /// sheet, = so choosing one DOES move the tuned knob back (= that is
@@ -378,7 +378,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
     /// CUSTOM IS A PLACE THE READER CAN ALWAYS GO TO, = AND AN UNTUNED
     /// BOOK ENTERS IT FROM THE GENERAL SET.
     ///
-    /// The boss's ruling (= OOB.md #2026-11-19): = Custom is entered first
+    /// The line (see OOB.md #2026-11-19): = Custom is entered first
     /// and tuned afterwards. = An untuned book that is sent to Custom takes
     /// the general set's sheet (= "reuse the general set at the start"), =
     /// and that sheet READS as the general set, = which is exactly why the
@@ -428,7 +428,7 @@ final class BookStyleSheetWriteBackTests: XCTestCase {
     /// A KNOB MOVED UNDER A SET RECORDS CUSTOM; = A NUDGE BACK ONTO A
     /// SET'S VALUES RECORDS THAT SET.
     ///
-    /// The other half of the boss's ruling: = the mechanism that switches
+    /// The other half of the same line: = the mechanism that switches
     /// a book to Custom the moment one of its knobs moves is kept under
     /// either set. = The record therefore cannot be stale in the direction
     /// that matters: = the switcher says Custom because the book is at no

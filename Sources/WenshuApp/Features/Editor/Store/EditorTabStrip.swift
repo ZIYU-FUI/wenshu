@@ -60,8 +60,8 @@ struct EditorTabStrip: View {
     /// The width one tab takes (= the region's share).
     ///
     /// The tab strip divides the column it was given: every tab takes one
-    /// equal share, and the share is NOT floored. The boss's rule (=
-    /// 2026-11-12) is the browser's mechanism: the region is divided into
+    /// equal share, and the share is NOT floored. The mechanism is the
+    /// browser's own: the region is divided into
     /// as many equal shares as there are tabs, the strip never exceeds the
     /// region, and a tab label has no minimum width (= a tab may end up
     /// showing not one character, = and that is fine).
@@ -78,8 +78,8 @@ struct EditorTabStrip: View {
 
     /// Every tab's own width (= the collapse model's answer).
     ///
-    /// ⇒ ⇒ ⇒ AND THE SELECTED TAB TAKES THE ROOM: = the boss's ruling (=
-    /// the selected tab takes the room and the others fold), and the scroll
+    /// ⇒ ⇒ ⇒ AND THE SELECTED TAB TAKES THE ROOM: = the selected tab takes
+    /// the room and the others fold, and the scroll
     /// has to know where each tab really is (= so the scroll lands ON the
     /// tab, = and not near it).
     private var tabWidths: [CGFloat] {
@@ -152,9 +152,8 @@ struct EditorTabStrip: View {
                     guard segmentIndex >= 0, segmentIndex < displayOrder.count else { return }
                     onClose(displayOrder[segmentIndex])
                 },
-                // ⇒ ⇒ ⇒ The right-click menu: = the boss's own ruling (=
-                // every editor tab closes from the menu, = so a writer
-                // never has to switch to a tab first to close it), = and
+                // ⇒ ⇒ ⇒ The right-click menu closes every editor tab, = so a writer
+                // never has to switch to a tab first to close it, = and
                 // the menu's close is the X's own close (= the same
                 // callback, = the same tab).
                 showsContextMenu: true,

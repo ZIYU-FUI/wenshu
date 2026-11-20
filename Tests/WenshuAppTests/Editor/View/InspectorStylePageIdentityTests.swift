@@ -31,8 +31,7 @@ struct InspectorStylePageIdentityTests {
     /// a session that opened a manuscript from the card grid (= or one that
     /// merely restarted) had a format page with no target: = every click
     /// returned early, = nothing was written, = and the switcher sprang back
-    /// to the set it was already showing. = The boss's words were that the
-    /// preset switch would not hold and sprang back to Print on every click.
+    /// to the set it was already showing.
     ///
     /// WHY IT GOES THROUGH THE REAL OPEN PATH
     ///
@@ -114,12 +113,12 @@ struct InspectorStylePageIdentityTests {
     ///
     /// THE DEFECT THIS HOLDS
     ///
-    /// The place a book sits used to be read off its sheet alone. = A book
-    /// at the general set HAS the general set's sheet, = so a click on
-    /// Custom was answered "General", = the segment went back under the
-    /// finger, = and the reader had no door into his own tuning at all. =
-    /// The boss's ruling of 2026-11-19 is the opposite shape: = Custom is
-    /// entered first, = and tuned afterwards.
+    /// A sheet cannot tell Custom from the set it happens to look like. = A
+    /// book at the general set HAS the general set's sheet, = so a click on
+    /// Custom answers "General", = the segment goes back under the finger, =
+    /// and the reader has no door into his own tuning at all. = So the shape
+    /// is the opposite: = Custom is entered first, = and tuned afterwards
+    /// (see OOB.md #2026-11-19).
     ///
     /// WHY THE CLICK IS FIRED AT THE CONTROL
     ///

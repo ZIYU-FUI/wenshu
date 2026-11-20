@@ -7,14 +7,14 @@
 //
 //  WHY A SAMPLE LINE AND NOT A NUMBER
 //
-//  The style table used to state each role in words: = the face's name, =
-//  the size, = and the book's multiple, = three numbers that show none
-//  of them: = a face cannot be seen in
+//  A role cannot be stated in words: = the face's name, = the size and =
+//  the book's multiple are three numbers that show none of them: = a face
+//  cannot be seen in
 //  the word for it, = 13 pt cannot be told from 14 pt by reading, =
 //  and a leading is invisible in a multiple (= it only exists as the
 //  gap between two lines). = So the row shows the role's own voice, =
 //  set the way the book sets it, = and keeps its numbers for the
-//  pointer (= the row's help, = and see OOB.md #2026-11-19).
+//  pointer, = the row's help (see OOB.md #2026-11-19).
 //
 //  WHY IT READS THE MAPPED SHEET, = AND NOT THE SHEET
 //

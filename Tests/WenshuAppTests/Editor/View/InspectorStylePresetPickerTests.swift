@@ -17,11 +17,11 @@
 //
 //  WHY CUSTOM IS MEASURED AS A SEGMENT
 //
-//  A book fine-tuned off both sets used to be shown by lighting nothing
-//  (= `selectedSegment == -1`). = That state had no door: = a reader could
-//  see it and could not return to it. = The ruling this file holds the line
-//  on (= OOB.md #2026-11-19): = Custom is a segment, = the fine-tuned book
-//  lights it, = and nothing else is lit. = The same ruling has it entered
+//  A book fine-tuned off both sets CAN be shown by lighting nothing
+//  (= `selectedSegment == -1`). = That state has no door: = a reader can
+//  see it and cannot return to it. = So this file holds the line
+//  (see OOB.md #2026-11-19): = Custom is a segment, = the fine-tuned book
+//  lights it, = and nothing else is lit, = and Custom is entered
 //  from a set as well (= an untuned book takes the general set's values),
 //  = which is why the place a book is at is recorded on the book and not
 //  only read off its sheet: = a sheet that IS the general set reads back as

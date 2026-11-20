@@ -27,18 +27,18 @@
 //  `NSPopUpButton` (= `ValuePopUpButton`) = and the page invents no
 //  control of its own.
 //
-//  THE FACSIMILE THIS REPLACED
+//  WHY NOT A DRAWN FACSIMILE
 //
-//  The knob used to draw its own block (= a rounded rectangle, = the
-//  position at its left, = a chevron at its right) = and lay a borderless
-//  `Menu` over it with the menu's own title painted out
-//  (`.foregroundStyle(.clear)`). = That inversion existed only because
-//  the drawn block wanted the position at its LEFT and the system button
-//  paints it in its CENTRE. = It cost the page a second painter for every
-//  position, = a hack to silence the first one, = a hand-drawn chevron, =
-//  and a control that no longer followed the system's own size, = tint,
-//  = or focus ring. = The position now rides in the system's button, = at
-//  the system's own position. = (see OOB.md #2026-11-19.)
+//  A knob can be a block of the app's own drawing (= a rounded rectangle,
+//  the position at its left, = a chevron at its right) with a borderless
+//  `Menu` laid over it and the menu's own title painted out
+//  (`.foregroundStyle(.clear)`). = That inversion exists only because a
+//  drawn block wants the position at its LEFT and the system button paints
+//  it in its CENTRE. = It costs a second painter for every position, = a
+//  hack to silence the first one, = a hand-drawn chevron, = and a control
+//  that stops following the system's own size, = tint, = or focus ring.
+//  The position rides in the system's button, = at the system's own
+//  position (see OOB.md #2026-11-19).
 //
 
 import SwiftUI

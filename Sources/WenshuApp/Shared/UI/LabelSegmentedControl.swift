@@ -160,8 +160,8 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// region step by 12.5 PT (= 200 / 16), 30 tabs in a 120 PT region step
     /// by 4.0 PT (= 120 / 30), 16 tabs in a 40 PT region step by 2.5 PT (=
     /// 40 / 16). The division is unbounded, = and a tab label below its own
-    /// fitting width is simply not drawn (= which the boss's rule allows:
-    /// "a tab may end up showing not one character").
+    /// fitting width is simply not drawn (= a tab may end up showing not one
+    /// character).
     var regionWidth: CGFloat = 0
     /// The AppKit control size (= the segment's own height and hit area; =
     /// `NSControl.ControlSize`).
@@ -190,7 +190,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     ///
     /// ⇒ ⇒ ⇒ AND IT IS OPT-IN PER CALL SITE: = the editor's tab strip asks
     /// for it, = and the chat zone's session bar and the inspector's
-    /// switcher do not (= the boss's own ruling: = the editor's area only).
+    /// switcher do not (= the editor's area only).
     var showsContextMenu: Bool = false
 
     init(
@@ -354,7 +354,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
                     )
             )
             // ⇒ ⇒ ⇒ AND THE SELECTED TAB IS THE ONE THAT CARRIES THE X: =
-            // the boss's ruling (= only the SELECTED tab carries the X), =
+            // the X is not drawn on the unselected tabs, =
             // so the control is told which segment the selection names.
             let selected = LabelSegmentedControl.selectedSegmentIndex(
                 for: selection.wrappedValue,
@@ -381,8 +381,8 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             // AppKit truncates a title that does not fit (= it keeps the
             // start of it and adds an ellipsis, = and when even the
             // ellipsis does not fit it draws the lone ellipsis, = which the
-            // boss ruled out: = "缩到一定程度，那个...就没有意义
-            // 了，不如只能显示...的时候，连...都不显示"). = So the app decides the title
+            // control must never paint (= an ellipsis is not information, = it is
+            // the absence of room). = So the app decides the title
             // itself, = and `PaneTabStripTitle` is the one place that
             // decision is made (= one door per question = the editor's
             // strip and the chat zone's bar cannot drift).
@@ -526,9 +526,9 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         //
         // The bound value names NO segment (= the segment was closed, the
         // caller's "nothing is selected" value): the control must have NO
-        // selection either. It used to keep whatever segment it had, which
-        // was the segment of a DIFFERENT value: the bound value said one
-        // thing and the drawn selection said another. AppKit clamps the
+        // selection either: = the segment that stays lit has to be the segment
+        // the bound value names, = or the control shows a selection the value
+        // does not claim. AppKit clamps the
         // index to -1 when the segment COUNT shrinks (measured 2026-10-27),
         // so the out-of-range case never survived the shrink; but the count
         // does not have to shrink for the bound value to stop naming a

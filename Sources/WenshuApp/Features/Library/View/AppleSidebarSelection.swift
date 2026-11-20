@@ -167,21 +167,18 @@ extension AppleSidebarView {
             // THE LIBRARY ROOT NAMES ITSELF. = The row is the container
             // the tag rows hang under, = and the value the click writes
             // is what the highlight and the reveal read back, = so it
-            // has to be an id the tree can resolve. = The value this
-            // case used to write (= a category-shaped key built from the
-            // row's TITLE) matched no row at all, = so clicking the root
-            // selected nothing.
+            // has to be an id the tree can resolve: = a category-shaped key built
+            // from the row's TITLE matches no row at all, = and clicking the root
+            // would then select nothing.
             return SidebarClickWrites(selection: .referenceLibraryRoot, selectedBookId: nil)
         case .tag:
             // A tag leaf routes by the tag string (= the material zone's
-            // grid filters on it). = It was routed through the
-            // category-shaped key once, = and the filter was silently
-            // unreachable.
+            // grid filters on it), = and a category-shaped key is not the tag
+            // string, = which leaves the filter silently unreachable.
             return SidebarClickWrites(selection: .tag(node.title), selectedBookId: nil)
         case .divider:
-            // Divider rows are non-interactive (= see OOB.md
-            // #2026-09-23): = forwarding a selection here would corrupt
-            // the discriminator, = so nothing is written.
+            // Divider rows are non-interactive: = forwarding a selection here would
+            // corrupt the discriminator, = so nothing is written.
             return SidebarClickWrites(selection: nil, selectedBookId: nil)
         }
     }

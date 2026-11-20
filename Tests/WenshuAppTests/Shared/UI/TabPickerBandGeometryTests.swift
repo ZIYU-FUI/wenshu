@@ -6,20 +6,20 @@
 //
 //  Three rulings, one per fact:
 //
-//  1. THE BAND'S PADDING IS ON PURPOSE. = (2026-11-19 老板:
-//     「内边距不要删，那个是有意留的」.) = The switcher starts
-//     `spacingRelaxed` in from the column's edge, = and the tree's rows
+//  1. THE BAND'S PADDING IS ON PURPOSE (see OOB.md #2026-11-19). = The
+//     switcher starts `spacingRelaxed` in from the column's edge, = and
+//     the tree's rows
 //     below it line up on the same inset.
 //  2. THE SWITCHER FILLS WHAT THE PADDING LEAVES, = AND THE TABS DIVIDE
-//     THAT WIDTH EQUALLY. = (the 2026-11-12 ruling, = restated 2026-11-19
-//     as 「和聊天区一样就行」.) = The band proposes its own width and the
+//     THAT WIDTH EQUALLY (see OOB.md #2026-11-19). = The band proposes
+//     its own width and the
 //     control's frame is pinned to that proposal, = so `.fillEqually`
 //     divides the band instead of hugging the labels.
 //  3. THE PLATE IS CENTRED IN THE BAND'S 28 PT ROW, = AND EVERY COLUMN
-//     DRAWS THAT PLATE ON ONE LINE. = (2026-11-19 老板: 「上下的位置有
-//     差异，那个也一并改」.) = A component that measured its width with a
-//     `GeometryReader` also took the band's whole HEIGHT and placed the
-//     control at its top, = which lifted the two side columns' plate 2 PT
+//     DRAWS THAT PLATE ON ONE LINE (see OOB.md #2026-11-19). = A
+//     component that measures its width with a `GeometryReader` also
+//     takes the band's whole HEIGHT and places the control at its top, =
+//     which lifts the two side columns' plate 2 PT
 //     off the chat zone's line. = The control's height is now the system's
 //     own, = so every band centres the same plate on the same line.
 //
@@ -41,9 +41,9 @@
 //  `ChatZoneTabBar` the app draws, = in the app's own scroll container)
 //  is measured here too, = and the two bands' plates are compared.
 //
-//  ⇒ ⇒ ⇒ AND THE SIDE COLUMNS ARE THE CHAT ZONE'S REFERENCE. = The
-//  boss ruled the chat zone's bar the correct one (= 「聊天区的最正确」),
-//  = so the line to hit is the chat zone's, = and the two side columns
+//  ⇒ ⇒ ⇒ AND THE SIDE COLUMNS ARE THE CHAT ZONE'S REFERENCE. = The chat
+//  zone's bar is the correct one, = so the line to hit is the chat
+//  zone's, = and the two side columns
 //  are measured against it.
 //
 //  swift test --filter TabPickerBandGeometryTests
@@ -241,7 +241,8 @@ struct TabPickerBandGeometryTests {
     ///
     /// = A cell CENTRES its label, = so the label's CENTRE is the cell's
     /// centre whatever the title's width (= its left edge is not: =
-    /// measured 6 PT off on 书房 / 资料库). = The tab role draws no hairline
+    /// measured 6 PT off on the two- and three-character titles this file
+    /// feeds it). = The tab role draws no hairline
     /// between its cells, = so this is where the cells are.
     ///
     /// The selected cell draws its label twice (= once on the glass plate,
@@ -343,15 +344,15 @@ struct TabPickerBandGeometryTests {
 
     @Test("the chat zone's band draws its plate on the same line as the side columns'")
     func theChatBandDrawsTheSameLine() {
-        // The chat zone's bar is the reference: = the boss ruled it the
-        // correct one (= 「聊天区的最正确」).
+        // The chat zone's bar is the reference: = it is the line the side
+        // columns are measured against (see OOB.md #2026-11-19).
         let chat = renderChatBand(column: Self.column, pages: 3)
         let side = render(column: Self.column)
         #expect(chat.plateFrame.height > 0, "the chat zone's band drew no glass plate")
         #expect(side.plateFrame.height > 0, "the side band drew no glass plate")
         // The two bands sit at different heights in the window, = so the
         // line that matters is the plate's offset from ITS OWN band's
-        // middle. = The boss's ruling is that the two are the same.
+        // middle, = and the two offsets answer to one line.
         let chatOffset = chat.plateFrame.midY - chat.bandHeight / 2
         let sideOffset = side.plateFrame.midY - side.bandHeight / 2
         // The measured deltas are PRINTED, = not only reported on failure:

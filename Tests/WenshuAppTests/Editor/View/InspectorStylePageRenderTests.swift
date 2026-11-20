@@ -107,9 +107,9 @@ struct InspectorStylePageRenderTests {
         )
         #expect(heading?.size == 18, "the heading's size comes from the sheet's ladder")
         //  The code block is the one row the sheet names no face and no
-        //  size for, = and it keeps the leading alone (= the dash that
-        //  used to stand for "nothing to name" went out with the two rows
-        //  that were its only customer).
+        //  size for, = and it keeps the leading alone (= no dash stands for
+        //  "nothing to name", = because the two rows that were its only
+        //  customer are gone).
         let code = model.rows.first { $0.role == .monospace }
         #expect(code?.family == nil, "the sheet names no face for the code block")
         #expect(code?.size == nil, "the sheet names no size for the code block")
@@ -151,12 +151,12 @@ struct InspectorStylePageRenderTests {
     ///
     /// THE DEFECT THIS HOLDS
     ///
-    /// The knob used to be a drawn block with the position inside it and a
-    /// borderless `Menu` laid over it, = and the AppKit button under that
-    /// menu painted the same position a SECOND time (= `.opacity(0)` on the
-    /// SwiftUI layer left the button's own title at alpha 0.85, = measured
-    /// in this app's process). = The doubled words the boss sent back were
-    /// that second painter.
+    /// A drawn block with the position inside it and a borderless `Menu` laid
+    /// over it leaves the AppKit button under that menu to paint the same
+    /// position a SECOND time (= `.opacity(0)` on the SwiftUI layer left the
+    /// button's own title at alpha 0.85, = measured in this app's process). =
+    /// The doubled words are that second painter, = and the pixel test could
+    /// not see them, = because `cacheDisplay` does not contain the title.
     ///
     /// THE LINE NOW HELD
     ///
@@ -387,7 +387,7 @@ struct InspectorStylePageRenderTests {
             code.contains("\n            stylesGroup\n"),
             "the page's body must render the style group (= not an empty view)"
         )
-        //  The table comes LAST on the page (= see OOB.md #2026-11-19),
+        //  The table comes LAST on the page (see OOB.md #2026-11-19),
         //  = because it is the group a reader looks at after they have
         //  set the book, = and it is the long one.
         //  The ORDER is what is asserted, not the adjacency: the groups

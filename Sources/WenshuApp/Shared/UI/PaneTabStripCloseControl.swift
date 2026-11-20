@@ -31,8 +31,8 @@ import AppKit
 final class PaneTabStripCloseCell: NSSegmentedCell {
     /// The segment the X is drawn in (= -1 = no segment).
     ///
-    /// ⇒ ⇒ ⇒ AND IT IS THE SELECTED ONE: = the boss's ruling (= only the
-    /// SELECTED tab carries the X), = so the X follows the selection (= and
+    /// ⇒ ⇒ ⇒ AND IT IS THE SELECTED ONE: = only the SELECTED tab carries the
+    /// X, = so the X follows the selection (= and
     /// NOT the pointer).
     ///
     /// ⇒ ⇒ ⇒ AND IT CARRIES ITS OWN NAME: = AppKit's own control already
@@ -65,9 +65,8 @@ final class PaneTabStripCloseCell: NSSegmentedCell {
     }
 
     /// ⇒ ⇒ ⇒ The Swift name is `drawSegment(_:inFrame:with:)`: = the
-    /// Objective-C selector's `withView:` was renamed in Swift 3, = and the
-    /// OLD label compiles as a method of its own, = which would never be
-    /// called (= and the X would never be drawn).
+    /// Objective-C label `withView:` compiles as a method of its own, = which
+    /// is then never called (= and the X is never drawn).
     override func drawSegment(_ segment: Int, inFrame frame: NSRect, with controlView: NSView) {
         // ⇒ ⇒ ⇒ AND THE FRAME LANDS AT ITS OWN INDEX: = appending would put
         // a segment's frame at the END (= when the hook fires out of
@@ -181,8 +180,7 @@ final class PaneTabStripCloseControl: NSSegmentedControl {
     ///
     /// ⇒ ⇒ ⇒ AND IT IS OPT-IN: = the editor's tab strip asks for it (= and
     /// only it does), = and the chat zone's session bar and the inspector's
-    /// switcher keep their own shape (= the boss's own ruling: = the
-    /// editor's area only).
+    /// switcher keep their own shape (= the editor's area only).
     var showsContextMenu: Bool = false
 
     /// The tracking area that watches the X (= nil = none yet).
@@ -256,7 +254,7 @@ final class PaneTabStripCloseControl: NSSegmentedControl {
     /// ⇒ ⇒ ⇒ AND THE LADDER IS THE ONE THAT NARROWS A TITLE: =
     /// `PaneTabStripTitle.fitted` (= it keeps the start of the title, = and
     /// when even the ellipsis does not fit, = it shows the FIRST CHARACTER
-    /// (= the boss's own rule), = so a narrow tab shows its first character
+    /// of its title, = so a narrow tab shows its first character
     /// on its own, = and no separate rule is needed here.
     func drawnTitle(forSegment segment: Int) -> String {
         guard segment >= 0, segment < displayStrings.count else { return "" }
@@ -273,8 +271,8 @@ final class PaneTabStripCloseControl: NSSegmentedControl {
 
     /// The width one segment takes (= POINTS).
     ///
-    /// ⇒ ⇒ ⇒ AND THE SELECTED TAB TAKES THE ROOM: = the collapse (the
-    /// boss's ruling), = so each segment's own width is read from the
+    /// ⇒ ⇒ ⇒ AND THE SELECTED TAB TAKES THE ROOM: = the collapse gives the
+    /// selected tab the room, = so each segment's own width is read from the
     /// collapse model.
     private func share(forSegment segment: Int) -> CGFloat {
         guard segment >= 0, segment < segmentWidths.count else { return share }

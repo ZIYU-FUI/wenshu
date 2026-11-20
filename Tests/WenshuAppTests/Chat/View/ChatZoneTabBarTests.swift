@@ -373,8 +373,8 @@ struct ChatZoneTabBarTests {
 
     @Test("The switcher fills the column and the tabs divide it")
     func theSwitcherFillsTheColumnAndTheTabsDivideIt() {
-        // The boss's rule (= 2026-11-12): = the bar divides the column it
-        // is given, = and every page takes one equal share.
+        // The bar divides the column it is given, = and every page takes one
+        // equal share.
         //
         // The switcher is Apple's own tab control (= `WenshuTabPicker`),
         // and the system does NOT size it to its content (= MEASURED

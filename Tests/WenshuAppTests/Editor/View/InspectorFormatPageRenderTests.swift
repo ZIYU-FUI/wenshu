@@ -144,8 +144,8 @@ struct InspectorFormatPageRenderTests {
     /// A novel marks emphasis in its own prose, = and the book's style
     /// sheet says what that emphasis looks like. = A row of inline
     /// character buttons asks the writer to do the sheet's job by hand on
-    /// every phrase (= and the boss's ruling: = "the character group, = and the three under
-    /// it, = bold, = italic, = underline, = are not needed. Delete them.").
+    /// every phrase. = The character group and the three commands under it
+    /// (= bold, = italic, = underline) are not the sheet's business.
     /// The page is the book's sheet, = and nothing else.
     @Test("the page offers no inline character commands")
     func thePageOffersNoInlineCharacterCommands() throws {

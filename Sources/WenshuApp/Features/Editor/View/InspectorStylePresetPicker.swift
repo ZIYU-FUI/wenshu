@@ -36,13 +36,12 @@
 //
 //  WHY Custom IS A SEGMENT AND NOT AN ABSENCE
 //
-//  A book fine-tuned off both sets used to be shown by lighting NOTHING
-//  (= measured: = AppKit reports `selectedSegment` as -1, = so the state
-//  was expressible, = and it was the honest one). = It was also a state
-//  the reader could only read and never choose: = the tuning had no door,
-//  = and a reader who had gone to General and wanted their own settings back
-//  had nothing to press. = The boss's ruling: = the state gets its own
-//  segment, = the page lands on it by itself whenever the book's sheet
+//  A book fine-tuned off both sets CAN be shown by lighting NOTHING
+//  (= measured: = AppKit reports `selectedSegment` as -1). = That is a
+//  state the reader can only read and never choose: = a reader who has
+//  gone to General and wants his own settings back has nothing to press.
+//  = So the state gets a segment of its own, = and the page lands on it
+//  by itself whenever the book's sheet
 //  matches no set, = and the tuning is the book's own record
 //  (= `Book.customStyleSheet`), = so General and back to Custom returns what
 //  the reader had tuned, = not what the set in between said.
@@ -59,7 +58,7 @@
 //  reader chose is therefore recorded on the book (=
 //  `Book.styleSelectionIdentifier`), = and the sheet's own reading is only
 //  what a book that recorded nothing falls back to.
-//  = (see OOB.md #2026-11-19.)
+//  (see OOB.md #2026-11-19).
 //
 //  WHY THE DROP-DOWN AND THE MARKED ROWS ARE BOTH GONE
 //

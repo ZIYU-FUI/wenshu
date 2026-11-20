@@ -87,9 +87,9 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     /// position the reader had moved. = The reader's own tuning therefore
     /// needs a place of its own: = it is written whenever the sheet sits
     /// at none of the sets (= `BookStyleSheetWriteBack`), = and it comes
-    /// back when the reader chooses Custom again (= the boss's rule: = a
-    /// book tuned, = set to General, = then set back to Custom reads the
-    /// tuning it had, = not the set it passed through).
+    /// back when the reader chooses Custom again: = a book tuned, = set to
+    /// General, = then set back to Custom reads the tuning it had, = not the
+    /// set it passed through.
     var customStyleSheet: BookStyleSheet?
     /// The place the reader put the switcher (= a `BookStyleSelection`'s
     /// own identifier, = or nil when the reader never touched it).
@@ -98,7 +98,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     ///
     /// The sheet cannot tell Custom from the set it happens to look like:
     /// = a book with no tuning sent to Custom is shown the general set's
-    /// sheet (= the boss's ruling of 2026-11-19), = and reading the place
+    /// sheet (see OOB.md #2026-11-19), = and reading the place
     /// off that sheet answers "General", = so the segment springs back on
     /// the click that chose Custom. = The click has to stick, = because a
     /// control that refuses to move is what a reader calls a bug.

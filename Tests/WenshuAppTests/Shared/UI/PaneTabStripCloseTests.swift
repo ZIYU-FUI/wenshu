@@ -397,7 +397,7 @@ struct PaneTabStripCloseTests {
         control.applyCollapse(columnWidth: 240, selectedSegment: 1)
 
         // ⇒ ⇒ ⇒ ③ AND THE X SITS AT THE SEGMENT'S LEADING EDGE: = ③ = the
-        // boss's own ruling (= the capsule sits at the left), = ③ = so the
+        // capsule sits at the left, = and so the
         // X's ink is at the LEFT of the ③ = segment, = ③ = and the
         // segment's own divider (= ③ = the grey line between the segments)
         // ③ = is at its RIGHT edge.
@@ -559,8 +559,8 @@ struct PaneTabStripCloseTests {
 
     @Test("The pointer is not involved: the X follows the selection")
     func thePointerIsNotInvolved() {
-        // ⇒ ⇒ ⇒ AND THE X FOLLOWS THE SELECTION: = the boss's ruling (=
-        // only the SELECTED tab carries the X), = so the control carries NO
+        // ⇒ ⇒ ⇒ AND THE X FOLLOWS THE SELECTION: = only the SELECTED tab carries
+        // the X, = so the control carries NO
         // tracking area (= and the pointer cannot move the X, = and the
         // geometry can not go stale).
         let (control, window) = makeControl()
@@ -573,12 +573,12 @@ struct PaneTabStripCloseTests {
 
     @Test("The selected tab takes the room, and the others collapse to one character")
     func theSelectedTabTakesTheRoom() {
-        // ⇒ ⇒ ⇒ AND THE SELECTED TAB IS WIDE: = the boss's ruling (= the
-        // selected tab takes the room and the others fold).
+        // ⇒ ⇒ ⇒ AND THE SELECTED TAB IS WIDE: = the selected tab takes the room
+        // and the others fold.
         //
         // ⇒ ⇒ ⇒ AND THE COLUMN IS TOO NARROW FOR THE TITLES: = the collapse
-        // fires only when a title does NOT fit (= the boss's own ruling), =
-        // and these titles do not fit in 240 / 3 = 80 PT.
+        // fires only when a title does NOT fit, = and these titles do
+        // not fit in 240 / 3 = 80 PT.
         let (control, window) = makeControl(title: "十二三四五六七八九十")
         defer { window.orderOut(nil) }
         control.applyCollapse(columnWidth: 240, selectedSegment: 1)
@@ -642,9 +642,8 @@ struct PaneTabStripCloseTests {
         // measuring nothing otherwise).
         #expect(control.width(forSegment: 0) < 80)
 
-        // ⇒ ⇒ ⇒ The collapsed tab shows ONE character (= the boss's
-        // choice). AND A NARROW TAB SHOWS ITS FIRST CHARACTER: = the
-        // ladder's own rule (= the boss's 2026-11-16 rule), = so the narrow
+        // ⇒ ⇒ ⇒ The collapsed tab shows ONE character. AND A NARROW TAB SHOWS ITS
+        // FIRST CHARACTER: = the ladder's own rule, = so the narrow
         // tab still names its document.
         #expect(control.drawnTitle(forSegment: 0) == "十")
         // The selected tab shows its whole title (= so the reader can name
@@ -901,7 +900,7 @@ struct PaneTabStripCloseTests {
 
     /// The strip has no double-click close.
     ///
-    /// The boss's own ruling: a double-click close is not wanted. The X
+    /// A double-click close is not wanted: the X
     /// closes the selected tab and the right-click menu closes the tab
     /// under the pointer, so a third close path only duplicates them.
     @Test("The strip carries no double-click close")
@@ -953,8 +952,8 @@ struct PaneTabStripCloseTests {
     @Test("After the column is too narrow, the drawn cells stay inside it")
     func afterTheColumnIsTooNarrowTheCellsStayInside() throws {
         // ⇒ ⇒ ⇒ AND THE TITLES DO NOT FIT THE EQUAL SHARE: = the collapse
-        // fires only when a title does NOT fit (= the boss's own ruling),
-        // = = and this title does not fit in 240 / 3 = 80 PT.
+        // fires only when a title does NOT fit, = and this title does
+        // not fit in 240 / 3 = 80 PT.
         let (control, window) = makeControl(title: "十二三四五六七八九十")
         defer { window.orderOut(nil) }
         control.setSelectedSegment(1)

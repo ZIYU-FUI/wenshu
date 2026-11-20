@@ -111,8 +111,8 @@ enum PaneTabStripClose {
     /// The share a title is fitted against (= the segment's own share,
     /// minus the X's room when the X is drawn in that segment).
     ///
-    /// ⇒ ⇒ ⇒ AND THE X IS IN THE SELECTED SEGMENT: = the boss's ruling (=
-    /// only the SELECTED tab carries the X), = so the room comes from the
+    /// ⇒ ⇒ ⇒ AND THE X IS IN THE SELECTED SEGMENT: = only the SELECTED tab
+    /// carries the X, = so the room comes from the
     /// selected tab.
     static func titleShare(share: CGFloat, selected: Bool) -> CGFloat {
         selected ? share - room : share
@@ -136,7 +136,7 @@ enum PaneTabStripClose {
     /// and the strip overflows the column it was given), =
     ///
     /// ⇒ ⇒ ⇒ AND THE LABEL IS ONE CHARACTER: = the narrowest tab shows its
-    /// document's FIRST character (= the boss's own rule), = AND IT IS THE
+    /// document's FIRST character, = AND IT IS THE
     /// LADDER'S OWN MEASUREMENT: = the character a collapsed tab draws (=
     /// the ladder's own width and not a number of its own), = so the floor
     /// a collapsed tab sits on is the width its own character holds.
@@ -261,8 +261,8 @@ enum PaneTabStripClose {
         return widths
     }
 
-    /// ⇒ ⇒ ⇒ AND THE STRIP COLLAPSES ONLY WHEN IT MUST: = the boss's ruling
-    /// (= the strip folds only when it must), and so the equal share is
+    /// ⇒ ⇒ ⇒ AND THE STRIP COLLAPSES ONLY WHEN IT MUST: = a strip that folded
+    /// whenever it could would waste the room it was given, and so the equal share is
     /// kept as long as the SELECTED tab's title fits in it (= and the
     /// selected tab is the one that needs the room, = because it carries
     /// the X).

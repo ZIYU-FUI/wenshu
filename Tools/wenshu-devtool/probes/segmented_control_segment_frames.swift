@@ -33,7 +33,7 @@
 //    control_role             .valueSelection
 //    control_style            .roundRect
 //    segment_distribution     .fillEqually
-//    labels                   标签1 / 标签2 / 标签3
+//    labels                   the three CJK labels the probe builds below
 //
 //  Read-only: the probe renders into memory and prints to stdout. = It
 //  creates, moves and deletes no file.

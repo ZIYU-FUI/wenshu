@@ -506,18 +506,17 @@ enum BookStylePreset: String, CaseIterable, Sendable {
 ///
 /// WHY A THIRD CASE
 ///
-/// A fine-tuned book sits at neither set, = and the switcher used to say
-/// so by lighting nothing (= AppKit's own unlit state, = `selectedSegment
-/// = -1`). = A reader who cannot name a state cannot choose it, = and the
-/// boss's ruling replaced that: = the state gets a segment of its own,
-/// = Custom.
+/// A fine-tuned book sits at neither set. = AppKit can show that by
+/// lighting nothing (= its own unlit state, = `selectedSegment = -1`), =
+/// but a reader who cannot name a state cannot choose it, = so the state
+/// gets a segment of its own, = Custom.
 ///
 /// WHY THE PLACE IS RECORDED AND NOT ONLY READ OFF THE SHEET
 ///
 /// The sheet cannot tell Custom from the set it happens to look like. = A
 /// book that has never been tuned and is sent to Custom shows the general
-/// set's sheet (= the boss's ruling: = Custom starts from the general
-/// set, = and the reader tunes from there), = and a sheet that IS that
+/// set's sheet (= Custom starts from the general set, = and the reader
+/// tunes from there) (see OOB.md #2026-11-19), = and a sheet that IS that
 /// set reads back as that set, = so a place read only off the sheet
 /// springs back on the click that chose it. = So the place the reader
 /// chose is written on the book (= `Book.styleSelectionIdentifier`), =

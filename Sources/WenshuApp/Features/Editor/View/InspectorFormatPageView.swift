@@ -7,19 +7,19 @@
 //  WHAT THIS PAGE IS
 //
 //  The book's own style sheet (= `InspectorStylePageView`), = and nothing
-//  else. = The page used to carry this app's copy of Pages' inspector: = a
-//  font menu, = three groups of format commands, = a heading menu and a
-//  link field. = It is now the sheet a book is written in, = because a
+//  else. = A copy of Pages' inspector (= a font menu, = three groups of
+//  format commands, = a heading menu, = a link field) is not what a book
+//  needs: = the page is the sheet a book is written in, = because a
 //  novel sets its types once, = in its sheet, = rather than one selection
 //  at a time.
 //
 //  WHY THE CHARACTER GROUP IS GONE
 //
-//  Bold, = italic and = the underline sat here as three glyph buttons in
-//  one rounded block. = The boss's ruling removed them (= 2026-11-19): =
-//  those three commands were the least of what the page had to say, = the
-//  manuscript's own markdown carries them, = and the editor's selection
-//  toolbar already offers them where the selection is. = A control that
+//  Bold, = italic and = the underline are not this page's business. = The
+//  manuscript's own markdown carries the emphasis, = and the editor's
+//  selection toolbar offers the three commands where the selection is, =
+//  so a second pair of buttons on the sheet's page only asks the reader to
+//  do the sheet's job by hand (see OOB.md #2026-11-19). = A control that
 //  changes what the reader is looking at without being asked is a control
 //  the reader has to ignore every time the panel opens.
 //
@@ -42,11 +42,11 @@
 //    2. A LABEL SITS AT THE LEFT OF ITS CONTROL, = and the control sits at
 //       the right edge of the column.
 //
-//  What did not survive is the drawn control surface: Pages draws a
-//  pop-up, = this app used to draw a rounded block with a `Menu` inside
-//  it, = and the second is a facsimile of the first (= see
-//  `InspectorStyleKnobView` and `ValuePopUpButton` for the ruling and the
-//  measurement that replaced it).
+//  The drawn control surface is what the page had to lose: = Pages draws a
+//  pop-up, = and a rounded block with a `Menu` inside it is a facsimile of
+//  a pop-up and not one (= see `InspectorStyleKnobView` and
+//  `ValuePopUpButton` for the control the page uses and for the
+//  measurement that decided it).
 //
 
 import SwiftUI

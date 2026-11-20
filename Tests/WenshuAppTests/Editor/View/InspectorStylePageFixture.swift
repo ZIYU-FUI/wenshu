@@ -197,7 +197,7 @@ struct RenderedPage {
     /// The AppKit buttons the page's drop-downs are drawn by.
     ///
     /// `NSPopUpButton` and nothing looser: = the type is searched by
-    /// name in the tree below, = and the name that used to match was
+    /// name in the tree below, = and the name to reject here is
     /// `SwiftUIPopupButton` (= the button a SwiftUI `Menu` becomes
     /// under the hosting view), = whose spelling the class this page
     /// now uses does NOT share: = `NSPopUpButton` has a capital U. =

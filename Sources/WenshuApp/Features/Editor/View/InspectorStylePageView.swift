@@ -19,10 +19,10 @@
 //      A PICTURE AND A RULE ARE NOT ROWS. = The sheet names no face, no
 //      size and no leading for them, = and the engine gives them no voice
 //      of its own, = so their two rows could only ever carry an empty
-//      cell (= the boss's ruling of 2026-11-19 off his own screenshot:
-//      the two boxed rows said nothing, = delete them; = recorded in
-//      OOB.md, = with the dash that stood for "nothing to name" deleted
-//      with them, = because no row can reach it any more).
+//      cell. = A row that can only ever paint an empty cell is not a row,
+//      = so the two boxed rows are gone, = and the dash that stood for
+//      "nothing to name" went out with them, = because no row can reach it
+//      any more (see OOB.md #2026-11-19).
 //
 //      THE BOOK'S OWN NAME IS NOT ONE OF THEM. = The book's title is
 //      the book's own (= it is drawn on the cover, = and it is not a
@@ -63,7 +63,7 @@
 //  `AXPopUpButton`/`AXMenuButton`), = while the page's state has to be
 //  READABLE to be tested; = and the switcher is the repo's own bridged
 //  `NSSegmentedControl` (`Shared/UI/LabelSegmentedControl`), = because the
-//  boss's ruling is that it spans the column it was given, = which needs the
+//  control has to span the column it was given, = which needs the
 //  width negotiated in `sizeThatFits` (= SwiftUI's own segmented `Picker`,
 //  handed a 252 PT column, asked AppKit for 594 PT and laid itself over the
 //  inspector's edge). = The HIG names both kinds for exactly this place: = a
@@ -73,17 +73,17 @@
 //  control belongs in "a toolbar or inspector pane" (= segmented-controls,
 //  = alert-date 2023-06-21, = macOS).
 //
-//  THE PAGE DREW ITS OWN CONTROLS UNTIL IT WAS CORRECTED. = A knob was a
-//  block of the page's own drawing, = with the position inside it, = and a
-//  borderless `Menu` laid over that block with the menu's own title painted
-//  out (= `.foregroundStyle(.clear)`) = so the block could be the only
-//  painter. = The two sets were two rows carrying a hand-drawn tick. = Both
-//  were facsimiles: = one string needed a hack to silence the control that
-//  was born to draw it, = and every measurement in the block (= its radius,
-//  = its fill, = its height) = was this app's guess at what the system
-//  already ships. = What the system ships follows the OS release, = the
-//  accent colour, = and the reader's text size; = what was drawn here
-//  followed none of them.
+//  A FACSIMILE SILENCES THE CONTROL IT COPIES
+//
+//  A knob can be a block of the page's own drawing, = with the position
+//  inside it, = and a borderless `Menu` laid over that block with the
+//  menu's own title painted out (= `.foregroundStyle(.clear)`) = so the
+//  block can be the only painter. = The two sets can be two rows carrying
+//  a hand-drawn tick. = Both are facsimiles: = one string needs a hack to
+//  silence the control that was born to draw it, = and every measurement
+//  in the block (= its radius, = its fill, = its height) = is this app's
+//  guess at what the system already ships. = What the system ships follows
+//  the OS release, = the accent colour, = and the reader's text size.
 //
 //  WHAT THE CONTROLS PUBLISH
 //
@@ -108,10 +108,9 @@
 //  tuning to come back to; = so the place the reader chose is recorded on
 //  the book (= `Book.styleSelectionIdentifier`) = and the segment that
 //  stays lit is that record, = not a reading that can spring back.
-//  = (see OOB.md #2026-11-19: = the native control, = unless a business rule
-//  = the control cannot express argues otherwise; = and the same day's
-//  = ruling that a state a reader can see but cannot return to is not a
-//  = state, which is what cancelled the earlier "no third segment" scheme.)
+//  (see OOB.md #2026-11-19). = The native control is the rule unless a
+//  business rule the control cannot express argues otherwise, = and a
+//  state a reader can see but cannot return to is not a state.
 //
 
 import OSLog

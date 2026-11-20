@@ -48,15 +48,14 @@ enum BookStyleSheetWriteBack {
             sheet = preset.sheet(bodyFamily: book.effectiveStyleSheet.bodyFamily)
         //  A set is chosen OVER the tuning, = and the tuning is not
         //  deleted by it: = `customStyleSheet` keeps what the reader
-        //  had (= the boss's rule: = General and back to Custom returns the
-        //  book to the tuning it was at, = not to the set it passed
-        //  through).
+        //  had (= General and back to Custom returns the book to the tuning it
+        //  was at, = not to the set it passed through).
         case .custom:
             //  Custom is the book's own saved tuning when it has one. = A
             //  book that has never been tuned has nothing to come back to,
-            //  = and starts from the general set (= the boss's ruling of
-            //  = 2026-11-19: = Custom is entered, = then tuned by hand), =
-            //  so the segment is always reachable and never a dead click.
+            //  = and starts from the general set (= Custom is entered, = then tuned
+            //  by hand) (see OOB.md #2026-11-19), = so the segment is always
+            //  reachable and never a dead click.
             sheet = book.customStyleSheet
                 ?? BookStylePreset.general.sheet(bodyFamily: book.effectiveStyleSheet.bodyFamily)
         }

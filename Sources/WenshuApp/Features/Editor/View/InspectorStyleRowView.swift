@@ -13,9 +13,9 @@
 //
 //  WHY THE RIGHT-HAND CELL IS A SAMPLE LINE
 //
-//  It used to be words: = the face, = the size and = the multiple, =
-//  three numbers about a role that show none of them. = The
-//  row now sets a couple of words the way the BOOK sets that role
+//  Words about a role show none of it: = the face's name, = the size and =
+//  the multiple are three numbers, = not the voice. = The row sets a
+//  couple of words the way the BOOK sets that role
 //  (= `InspectorStylePreview`), = so the table reads as the book's own
 //  type specimen from the first line to the last: = the title heavy and
 //  tight, = the body on the book's grid, = the note small, = the code
