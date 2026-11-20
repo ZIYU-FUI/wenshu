@@ -49,15 +49,21 @@ THE FILE'S TAIL
 
 The registry is a table PLUS a tail: everything after the LAST table row. The
 tail is not decoration (= it is the marker that says where a new row goes),
-so the driver merges it like a row:
+so the driver merges it like a row, THREE WAYS against base (= the same rule
+the header above follows):
 
-  - a tail on one side only        -> that side's tail
-  - DIFFERENT tails on both sides -> CONFLICT, named "<the file's tail>"
+  - a tail on one side only          -> that side's tail
+  - the SAME tail on both sides      -> that tail
+  - a tail changed on ONE side only  -> that side's tail
+  - DIFFERENT tails on both sides    -> CONFLICT, named "<the file's tail>"
 
 A tail is present when the text after the last table row is not only
 whitespace. Taking the tail from one side alone dropped the tail whenever
 that side had none, so a rebase onto a base without the tail silently
-deleted it.
+deleted it. And comparing the two tails alone called every difference a
+disagreement, so a branch that EDITED the tail collided with a sibling that
+merely re-landed it: the driver named "<the file's tail>" and exited 1
+although only one side had changed anything.
 
 The output preserves the base file's row order and appends the new keys, so a
 row that only one card added lands at the end (= the append-only convention
@@ -203,11 +209,29 @@ def merge_docs(base: str, ours: str, theirs: str) -> tuple[str, list[str]]:
         before = our_before
 
     # The tail (= everything after the last table row) belongs to the file,
-    # not to one side: the side that has one keeps it, and two sides with
-    # DIFFERENT tails disagree the way two rows disagree.
-    if has_tail(our_after) and has_tail(their_after) and our_after != their_after:
-        conflicted.append("<the file's tail>")
-        after = our_after
+    # not to one side: the driver merges it THREE WAYS against base, the
+    # way it merges the header above.
+    #
+    # Comparing the two sides alone made a branch that EDITED the tail
+    # collide with a sibling that merely re-landed it: the two-way rule
+    # called that a disagreement, named "<the file's tail>" and exited 1,
+    # even though only one side had changed anything. So when both sides
+    # have a tail, the side that did NOT change it loses (= the other
+    # side's edit wins), and only two DIFFERENT edits disagree.
+    #
+    # The three-way comparison applies ONLY when both sides have a tail:
+    # a side that DELETED the tail while the other kept it keeps it (= the
+    # tail is the marker that says where a new row goes).
+    if has_tail(our_after) and has_tail(their_after):
+        if our_after == their_after:
+            after = our_after
+        elif our_after == base_after:
+            after = their_after
+        elif their_after == base_after:
+            after = our_after
+        else:
+            conflicted.append("<the file's tail>")
+            after = our_after
     elif has_tail(our_after):
         after = our_after
     elif has_tail(their_after):
