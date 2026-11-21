@@ -8,7 +8,7 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuappd
 
 /// AppDelegate: WenshuCore runtime + macOS app init
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
-    // wenshu-verification-fix ((see OOB.md #2026-08-25) Spec axis GAP): one-time
+    // wenshu-verification-fix ( Spec axis GAP): one-time
     // migration from legacy chat.sqlite to warehouse. Preserves chat history when
     // user first picks a .ws warehouse in onboarding (= avoids silent data loss).
     // Idempotent: if legacy file doesn't exist or new file already exists, skip.
@@ -179,7 +179,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // buttons next to traffic lights = matches Apple Pages / Xcode / Mail
         // etc.). ( removed ChatSessionStore from this bootstrap)
         // unsafeMutablePointer / instance var — static let yes immutable,
-// wenshu-verification-fix ((see OOB.md #2026-08-24) — 'chat,'):
+// wenshu-verification-fix (= 'chat,'):
         // add NSLog for chat store init + bootstrap errors (silent catch makes debugging
         // hard), and post .wenshuChatStoreReady notification so ChatView can
         // retry load when store becomes available. SwiftData migration history
@@ -196,7 +196,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // left; = the entire legacy-import mechanism is deleted alongside the
         // file removal).
 
-        // wenshu-verification-fix ((see OOB.md #2026-08-25) — 'yes .ws file'): Chat
+        // wenshu-verification-fix (= 'yes.ws file'): Chat
         // persistence location = wenshu warehouse (anbaiqiang.ws/) if set,
         // else fall back to legacy ~/Library/Application
         // Support/wenshu/chat.sqlite. chat data must be part of the warehouse
@@ -212,7 +212,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // sub-task 1b.3: activate the warehouse ModelContainer. When the warehouse URL is
         // set (= UserDefaults "wenshu.libraryPath"), makeContainerForWarehouse
         // tries to build a SwiftData ModelContainer inside that warehouse
-        // directory ((see OOB.md #2026-08-25) — 'chat data must live in .ws
+        // directory (= 'chat data must live in.ws
         // warehouse' rule). On success: all Repository.shared singletons (=
         // WSChatRepository, WSKanbanRepository, etc.) will read from the
         // warehouse container. On failure: activateWarehouseContainer(nil)
@@ -244,7 +244,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             WSPersistenceContainer.activateWarehouseContainer(nil)
         }
 
-        // wenshu-verification-fix ((see OOB.md #2026-08-25) Spec axis GAP): one-time
+        // wenshu-verification-fix ( Spec axis GAP): one-time
         // migration from legacy chat.sqlite to warehouse (preserves chat
         // history when user first picks a .ws warehouse in onboarding).
         if let warehouse = warehousePath {

@@ -76,7 +76,7 @@ struct AppRootScene: Scene {
             // … (= 31 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // submenu + Import at ⇧⌘I) is preserved.
             CommandGroup(after: .newItem) {
-                // macOS-standard cross-component sync ((see OOB.md #2026-08-27)):
+                // macOS-standard cross-component sync:
                 // … (= 30 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // triggered flow).
                 Menu(String(localized: "menu.file.new_project")) {
@@ -88,7 +88,7 @@ struct AppRootScene: Scene {
                         sheetRequests.newShelf += 1
                     }
                 }
-                // (see OOB.md #2026-08-27) — menu-sync toolbar 'import'
+                //  — menu-sync toolbar 'import'
                 // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // listen + implement.
                 Button(String(localized: "menu.file.import")) {

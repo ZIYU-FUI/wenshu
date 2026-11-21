@@ -119,7 +119,7 @@ struct LibraryMigrator: Sendable {
         }
     }
 
-    // / Always-run-on-launch housekeeping ((see OOB.md #2026-08-27)
+    // / Always-run-on-launch housekeeping (
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / every launch).
     private func alwaysRunOnLaunch(fm: FileManager) throws {

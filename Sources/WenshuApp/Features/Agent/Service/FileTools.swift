@@ -86,7 +86,7 @@ struct FileTools: Tool, Sendable {
         return (try? read(path: path)) ?? ""
     }
 
-    /// pathDenied: path deny-list check ((see OOB.md #2026-08-23) — user cannot change code/config via chat).
+    /// pathDenied: path deny-list check (= user cannot change code/config via chat).
     /// Returns true if the path matches project code / config / scratch / system files.
     /// Uses (path as NSString).standardizingPath to normalize symlinks / . / ..
     /// .002: hermes _is_blocked_device parity.
@@ -146,7 +146,7 @@ struct FileTools: Tool, Sendable {
         return false
     }
 
-    /// pathHasBlockedSymlink: hermes symlink-hop defense ((see OOB.md #2026-08-23)).
+    /// pathHasBlockedSymlink: hermes symlink-hop defense.
     /// Resolves symlinks and verifies no hop leads to a blocked device.
     /// Returns true if ANY hop in the chain points to /dev/* or /proc/*.
     func pathHasBlockedSymlink(_ path: String) -> Bool {

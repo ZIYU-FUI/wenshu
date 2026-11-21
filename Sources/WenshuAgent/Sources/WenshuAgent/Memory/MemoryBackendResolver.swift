@@ -1,7 +1,7 @@
 // MemoryBackendResolver.swift
 //
 // Choosing between the two memory backends a user can pick from (= the
-// MemoryBackend case added in AgentSettings, see OOB.md #2026-10-20).
+// MemoryBackend case added in AgentSettings).
 //
 // The choice is a user decision, not ours, and the two options answer
 // different questions:

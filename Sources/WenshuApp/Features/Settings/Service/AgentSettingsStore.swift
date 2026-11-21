@@ -1,6 +1,6 @@
 // AgentSettingsStore.swift
 //
-// Persistence for the agent settings (= the app half of OOB.md #2026-10-20:
+// Persistence for the agent settings (= the app half of:
 // the package owns the values, the app owns where they are stored).
 //
 // AgentSettings is a plain value with no UserDefaults anywhere in the package,

@@ -36,7 +36,7 @@ extension PreviewPane {
     @ViewBuilder
 
     func referenceScopeView(category: EntityCategory?, tagOverride: String? = nil) -> some View {
-        // (see OOB.md #2026-09-07) — 'search,': apply the search filter (=
+        //  — 'search,': apply the search filter (=
         // previewSearchQuery) on top of the category filter. Both filters
         // compose (= all entities → search filter → category filter).
         let searched = PreviewPaneOps.searchFilteredEntities(PreviewPaneOps.loadAllEntities(bookStore: bookStore).entities, query: resolvedSearchQuery)

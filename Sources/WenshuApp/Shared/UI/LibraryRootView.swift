@@ -307,12 +307,12 @@ struct LibraryOnboardingView: View {
         VStack(spacing: DesignTokens.spacingSection) {
             Spacer()
 
-// wenshu-verification-fix ((see OOB.md #2026-08-24)):
+// wenshu-verification-fix:
 // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // to load PNG from absolute path inside .app bundle.
 Group {
     if let nsImage = loadWenshuLogo(named: WenshuWordmark.assetName(for: colorScheme)) {
-        // wenshu-verification-fix ((see OOB.md #2026-08-24)):
+        // wenshu-verification-fix:
         // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // (consistent across light/dark mode).
         Image(nsImage: nsImage)
@@ -321,7 +321,7 @@ Group {
             .frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)
     } else {
         // Fallback: SF Symbols 6 canonical 'text.book.closed' if PNG load fails
-        // ((see OOB.md #2026-09-02): SF Symbol fully replaced).
+        // (: SF Symbol fully replaced).
         SFIcon("text.book.closed", style: .inlineSmall, color: .white)
     }
 }
@@ -373,7 +373,7 @@ Group {
 
             Spacer()
         }
-        // (see OOB.md #2026-09-10) — `.windowResizability(.contentSize)`
+        //  — `.windowResizability(.contentSize)`
         // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // maxHeight:) is just a starting size, not a hard cap).
         .frame(minWidth: 640, idealWidth: DesignTokens.onboardingWindowSize.width, maxWidth: 800, minHeight: 720, idealHeight: DesignTokens.onboardingWindowSize.height, maxHeight: 900)
@@ -403,7 +403,7 @@ Group {
         }
     }
 
-    // MARK: - Bundle creation helper ((see OOB.md #2026-08-24) fix)
+    // MARK: - Bundle creation helper ( fix)
 
 }  // close LibraryOnboardingView struct
 
@@ -441,7 +441,7 @@ extension LibraryOnboardingView {
                 try? data.write(to: infoPlistURL)
             }
         }
-        // wenshu-verification-fix ((see OOB.md #2026-08-24) —
+        // wenshu-verification-fix (=
         // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // Render SF Symbol to NSImage at 1024x1024, then setIcon.
         if let symbolImage = renderSFSymbol("book", size: 1024) {

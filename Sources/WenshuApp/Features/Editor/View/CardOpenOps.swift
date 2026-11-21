@@ -100,7 +100,7 @@ enum CardOpenOps {
     ///   (id:)` (= falls back to `reference.summary`).
     /// - `.bookScope(bookId, folderName)` → if the caller passed a
     ///   `.bookDoc(source)` use its doc (= correct book doc per
-    ///   (see OOB.md #2026-09-08) — fix; otherwise return a deferred triad (=
+    ///  — fix; otherwise return a deferred triad (=
     ///   empty content). The preview pane's view-local file-scan
     ///   overrides this triad before calling `openTab`.
     /// - `.shelfScope` / `.empty` → empty triad.
@@ -116,7 +116,7 @@ enum CardOpenOps {
                 entity.layer == .layerEntities
                     && (category == nil || entity.category == category)
             }
-            // (see OOB.md #2026-09-08) — fix: if the caller passed the actually- clicked
+            //  — fix: if the caller passed the actually- clicked
             // CardSource, use its entity (= correct card). Otherwise fall
             // back to filtered.first (= legacy behavior for callers that
             // don't pass source).
@@ -182,7 +182,7 @@ enum CardOpenOps {
             // source of truth for bookDoc discovery; = WorkspaceView
             // doesn't share it. fallback = silent no-op (= no .alert, no
             // popup = user feedback comes from PreviewPane being empty).
-            // (see OOB.md #2026-09-08) — fix: if the caller passed a
+            //  — fix: if the caller passed a
             // .bookDoc source, use its doc (= correct book doc).
             if case .bookDoc(let doc) = source {
                 // (= boss 2026-10-10 "指 定目录 实现 了 ， 但 导 入 的 内 容 少 了 好 我" feedback): the
@@ -278,7 +278,7 @@ enum CardOpenOps {
     ///    OOB 'tab title didn't go to the document name bug' =
     ///    pass title so tab strip shows the real card name instead
     ///    of 'preview-sample') + set `newTab.sourceScope =
-    ///    previewScope` ((see OOB.md #2026-09-07) — 'card zone should show
+    ///  previewScope` (= 'card zone should show
     ///    in progress card' = drives sidebar selection on restore)
     ///    + append to `appState.openTabs` + set `appState.activeTabId
     ///    = newTab.id` (= Safari multi-tab strip behavior per

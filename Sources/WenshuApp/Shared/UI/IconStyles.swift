@@ -1,5 +1,5 @@
 // IconStyles.swift · Wenshu Central SF Symbols 6 icon factory + Apple HIG walk for wenshu
-// icon and text sizing (= (see OOB.md #2026-10-01): merge icon + font under one file;
+// icon and text sizing (=: merge icon + font under one file;
 // every token name = Apple HIG official terminology; every point value = Apple-default
 // or Apple-shipped app default; zero ad-hoc numbers). ============================ WHY
 // THIS FILE EXISTS ============================ Pre-v3.0 wenshu had 13 icon-size
@@ -25,7 +25,7 @@
 // Apple-default (= Apple-shipped apps) values, not wenshu-invented numbers. Empty-
 // state = 76 (= Apple ContentUnavailableView default). paneTab = 18 (= Apple NSToolbar
 // item macOS 14+ default). toolbar = 22 (= .controlSize (.small)). hero / cover /
-// avatar = .thin weight (= (see OOB.md #2026-09-17) SF Symbols 6 weight split rule for
+// avatar =.thin weight (= SF Symbols 6 weight split rule for
 // the ≥38 PT zone). 4. font styles walk Apple HIG text-style APIs (= .body, .callout,
 // .caption). Status font = .body (= 13 PT). Hotkey font = .callout + monospaced. Tab
 // title font = .callout + monospaced. Each IconStyle case carries a doc-comment that
@@ -75,7 +75,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// item icon on macOS 14+ when paired with regular toolbar density; =
     /// measured on Mail / Safari / Xcode).
     /// Apple HIG source: `NSToolbar > Toolbar item > Default icon = 18 PT`
-    /// ((see OOB.md #2026-10-01)).
+    /// .
     /// Used by: pane tab bars, pane close-button glyph, font-format
     /// toolbar buttons (= FormatToolbarButtons), inline format toolbar (=
     /// ParagraphAIToolbarButtons). Weight: .regular.
@@ -115,7 +115,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     case hitArea
 
     /// ContentUnavailableView default icon size (= the empty-state hero zone).
-    /// Thin weight per (see OOB.md #2026-09-17) SF Symbols 6 weight split rule
+    /// Thin weight per SF Symbols 6 weight split rule
     /// for the ≥38 PT zone.
     /// Apple HIG source: `ContentUnavailableView > Default icon zone = 76 PT`
     /// (= Apple's documented default for the "no content here" affordance).
@@ -125,7 +125,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     case emptyStateHero
 
     /// List row avatar / thumbnail size (= NSTableView thumbnail row standard).
-    /// Thin weight per (see OOB.md #2026-09-17) rule.
+    /// Thin weight per rule.
     /// Apple HIG source: `NSTableView > Row thumbnail size = 64 PT` (= Apple's
     /// default for list-row thumbnails; = Mail / Finder row icon zone).
     /// Used by: book cover thumbnails in PlaceholderView, character portrait
@@ -133,7 +133,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     case avatar
 
     /// CoverFlow thumbnail size (= Apple-shipped Finder cover preview
-    /// standard). Thin weight per (see OOB.md #2026-09-17) rule.
+    /// standard). Thin weight per rule.
     /// Apple HIG source: `Finder > CoverFlow preview = 192 PT`.
     /// Used by: onboarding cover preview (= LibraryRootView). Weight: .thin.
     case cover
@@ -209,7 +209,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     }
 
     /// Apple HIG weight for this case. The ≥38 PT zone (= emptyStateHero /
-    /// avatar / cover) uses .thin per (see OOB.md #2026-09-17) SF Symbols 6
+    /// avatar / cover) uses.thin per SF Symbols 6
     /// weight split rule. Smaller zones use .regular (= (see OOB.md
     /// #2026-09-15)" canonical macOS toolbar weight).
     var fontWeight: Font.Weight {
@@ -326,7 +326,7 @@ enum IconRendering: Sendable, Equatable {
 /// Central SF Symbols 6 icon factory. All wenshu icons go through this View (=
 /// `Image(systemName:)` directly is anti-pattern for new code; legacy call
 /// sites migrate via per-surface sweep PRs).
-/// Apple HIG rationale ((see OOB.md #2026-10-01)): one factory enforces one
+/// Apple HIG rationale: one factory enforces one
 /// weight + one color strategy per surface; 166 call sites can't drift because
 /// the factory pins it.
 /// ```swift SFIcon("magnifyingglass", style: .small) SFIcon("paperplane",

@@ -1,6 +1,6 @@
 // AgentSettings.swift
 //
-// One settings surface for every agent behaviour knob (see OOB.md #2026-10-20).
+// One settings surface for every agent behaviour knob.
 //
 // Two rules shape this file. First, the defaults in each initialiser ARE the
 // hermes defaults: there is no parallel constants table to drift against.

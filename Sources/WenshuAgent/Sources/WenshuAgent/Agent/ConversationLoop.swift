@@ -72,7 +72,7 @@ public actor ConversationLoop {
     private let conversationCompression: ConversationCompression
     /// Reduces the transcript before the provider call. Injected so the
     /// budget is a construction-time decision rather than a constant read
-    /// here (= see OOB.md #2026-10-20 on agent settings).
+    /// here (= on agent settings).
     let historyCompressor: HistoryCompressor
 
     /// The agent progress tracker. Default = `.noop`, so the OpenBox panel shows

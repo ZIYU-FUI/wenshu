@@ -27,14 +27,14 @@ import Foundation
 /// both selection kinds into one Hashable enum.
 enum SidebarItem: Hashable, Codable {
     case book(UUID)
-    /// (see OOB.md #2026-08-31) (sidebar feedback bundle #1+2): shelf
+    ///  (sidebar feedback bundle #1+2): shelf
     /// (= first tree level) is now a clickable tree row, not just a
     /// SwiftUI Section header. Tagging it with .shelf(UUID) lets
     /// the user select a shelf directly (= will eventually scope preview
     /// pane to the shelf; for now it just keeps the shelf row
     /// highlighted when selected).
     case shelf(UUID)
-    // (see OOB.md #2026-08-31) (sidebar feedback bundle #3): folder row
+    //  (sidebar feedback bundle #3): folder row
     // (= third tree level, e.g. Worldview / Characters / Chapter Outline / Novel Body /
     // Novel Drafts). Tagging with .folder(bookId, folderName) lets
     // the user select a folder directly; preview pane will scope to

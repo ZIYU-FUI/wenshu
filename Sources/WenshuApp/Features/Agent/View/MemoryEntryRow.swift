@@ -91,7 +91,7 @@ struct MemoryEntryRow: View {
         // the same root cause.
         .fixedSize(horizontal: false, vertical: true)
         .background(
-            // macOS 27 doc-alignment ((see OOB.md #2026-09-18) —
+            // macOS 27 doc-alignment (=
             // '', ): HierarchicalShapeStyle.tertiary
             // (= Apple semantic ShapeStyle = auto-adapts to dark
             // mode + Liquid Glass). Color.secondary.opacity(N)

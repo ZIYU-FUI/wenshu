@@ -106,7 +106,7 @@ struct EditorView: View {
     /// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
     /// / external FS events auto-reload the draft.
     private func onEditorAppear() {
-        // (see OOB.md #2026-09-07): do NOT seed a placeholder tab when
+        // : do NOT seed a placeholder tab when
         // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
         // surface).
         for idx in appState.openTabs.indices {
@@ -218,7 +218,7 @@ struct EditorView: View {
                                 ChapterFocusLockBadge()
                             }
                             if mode == .preview {
-                                // (see OOB.md #2026-09-07) — 'editor, yes,
+                                //  — 'editor, yes,
                                 // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
                                 // action).
                                 // The reading view shows the cards of the
@@ -328,7 +328,7 @@ struct EditorView: View {
     }
 
     var draft: String {
-        // (see OOB.md #2026-09-07): when no tab is open, return empty string (=
+        // : when no tab is open, return empty string (=
         // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
         // EditorView's nil-activeTab branch.
         get { activeTab?.draft ?? "" }

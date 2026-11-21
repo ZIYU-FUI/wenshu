@@ -53,7 +53,7 @@ struct ProcessTools: Tool, Sendable {
     /// Tool-protocol adapter (= MIGRATE-TOOLREGISTRY-002): shell
     /// execution via the existing ProcessTools surface. Mirrors
     /// `WenshuConductor.invokeTool(name: "process", ...)` which
-    /// is deny-all (= chat-triggered shell blocked per (see OOB.md #2026-08-23)
+    /// is deny-all (= chat-triggered shell blocked per
     /// rule: user cannot change system via chat).
     func execute(input: String) async throws -> String {
         // Deny-all for chat-triggered shell (= matches the legacy
@@ -213,7 +213,7 @@ extension ProcessTools {
     /// `register(...)` call off the init thread.
     ///
     /// Registered as a stub schema because chat-triggered shell is
-    /// deny-all per (see OOB.md #2026-08-23) (= the `execute(input:)` adapter always
+    /// deny-all per (= the `execute(input:)` adapter always
     /// throws `ProcessToolError.chatShellDenied`). The schema is here
     /// so the LLM knows the tool name exists and that it is
     /// permanently blocked from chat; use wenshu-devtool CLI for

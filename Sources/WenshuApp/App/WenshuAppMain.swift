@@ -129,7 +129,7 @@ struct WenshuApp: App {
 
     /// option A for cross-zone communication
     /// (= global @Observable store). Per-window @State (= each
-    /// WindowGroup instance gets its own AppState ((see OOB.md #2026-08-27))
+    /// WindowGroup instance gets its own AppState
     /// multi-window future-proofing). Currently hosts the
     /// `llmModel` + `openTabs` signals (= the persistence-pair
     /// from commit 4b5d94f1f).

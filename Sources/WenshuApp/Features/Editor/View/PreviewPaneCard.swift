@@ -36,7 +36,7 @@ import os
     /// one component for both Reference (reference library) and BookDoc (bookshelf).
 /// Data extraction lives INSIDE the view; no per-source adapter structs.
 /// CardSource = the only "data shape" the card knows. Adding a new source type
-/// = one new case + one computed-property branch. (see OOB.md #2026-09-08) —
+/// = one new case + one computed-property branch. —
 /// 'clicking the Dufu card opens a tab with wrong name' (= clicking the card
 /// opened a new tab named 'preview-sample'): the source value is now passed
 /// from PreviewPane.Card's onDoubleClick closure to WorkspaceView's
@@ -74,7 +74,7 @@ internal enum CardSource {
         }
     }
 
-    /// One-line summary ((see OOB.md #2026-08-26) — 'card style = document key-summary excerpt').
+    /// One-line summary (= 'card style = document key-summary excerpt').
     var summary: String {
         switch self {
         case .reference(let r): return r.summary

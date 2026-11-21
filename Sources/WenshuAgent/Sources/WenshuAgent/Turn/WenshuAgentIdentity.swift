@@ -21,7 +21,7 @@ public enum WenshuConductorIdentity {
     // 
     // User address is read from UserDefaults 'wenshu.userAddress' at call
     // time (= dynamic per-chat). Default = 'user' (= the project's design decision: default is 'user', not 'the-legacy-term-for-project-owner').
-    // (see OOB.md #2026-08-24) — clarification: 'the-legacy-term-for-project-owner' is hermes-side convention (= used by
+    //  — clarification: 'the-legacy-term-for-project-owner' is hermes-side convention (= used by
     // pocock agent in this terminal session), NOT wenshu product default.
     public static var userAddress: String {
         UserDefaults.standard.string(forKey: "wenshu.userAddress") ?? "用户"

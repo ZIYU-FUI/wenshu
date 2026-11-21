@@ -375,7 +375,7 @@ enum EditorPersistence {
         )
     }
 
-    /// Dirty-state machine (= the spec (see OOB.md #2026-09-02)).
+    /// Dirty-state machine (= the spec).
     ///
     /// - `dirty = true`: start ONE 3-second Task. The Task fires
     ///   `EditorPersistence.save(tab:bookStore:)` (= writes to
@@ -387,7 +387,7 @@ enum EditorPersistence {
     ///   more writes).
     ///
     /// Result: at most 1 active Task per tab (= matches the
-    /// (see OOB.md #2026-09-02)no wasteful Task creation per char' spec).
+    /// no wasteful Task creation per char' spec).
     static func handleDirtyTransition(
         _ isDirty: Bool,
         tab: EditorTab,
@@ -401,7 +401,7 @@ enum EditorPersistence {
             // = 1 active Task).
             if tab.autoSaveTask == nil {
                 tab.autoSaveTask = Task {
-                    // 3-second debounce (= (see OOB.md #2026-09-02)auto-save, 3 seconds
+                    // 3-second debounce (= auto-save, 3 seconds
                     // after stopping'). Apple HIG doesn't define a canonical
                     // duration; = matches macOS TextEdit / Pages default.
                     try? await Task.sleep(for: .seconds(3))

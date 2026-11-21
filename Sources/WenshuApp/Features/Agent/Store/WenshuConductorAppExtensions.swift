@@ -106,7 +106,7 @@ extension WenshuConductor {
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / input = text → speaks aloud (fire-and-forget)
     func invokeTool(name: String, input: String, caller: AgentCaller = .main) async -> String {
-        // hermes DELEGATE_BLOCKED_TOOLS parity ((see OOB.md #2026-08-23)).
+        // hermes DELEGATE_BLOCKED_TOOLS parity.
         // … (= 1 rationale line collapsed; = A112 docblock collapse per §1.8)
         // Sub-agents can call memory but only for read ops (no add/delete).
         if caller.isSubAgent {
@@ -116,7 +116,7 @@ extension WenshuConductor {
                 return reason
             }
         }
-        // .003: tool-level allowlist ((see OOB.md #2026-08-23) — user cannot change system via chat).
+        // .003: tool-level allowlist (= user cannot change system via chat).
         // … (= 1 rationale line collapsed; = A112 docblock collapse per §1.8)
         // Unknown op = blocked (per-tool allowlist below).
         let parts = input.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)

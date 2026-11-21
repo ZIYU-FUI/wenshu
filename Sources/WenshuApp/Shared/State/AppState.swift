@@ -154,7 +154,7 @@ final class AppState {
         }
     }
 
-    /// UserDefaults keys for openTabs persistence (= (see OOB.md #2026-09-07)).
+    /// UserDefaults keys for openTabs persistence.
     /// Mirrors the existing llmModel / sidebarSelection pattern in
     /// this same file (= small JSON-blob pattern; no SQLite needed
     /// since openTabs is bounded to the editor-zone session state).
@@ -356,7 +356,7 @@ final class AppState {
         // so this assignment does NOT trigger a write back to
         // UserDefaults on launch (= pure read-side migration).
         self.llmModel = UserDefaultsStore.shared.string(forKey: .llmModel)
-        // (see OOB.md #2026-09-07) — restore persisted open tabs BEFORE
+        //  — restore persisted open tabs BEFORE
         // any view reads appState.openTabs (= EditorView's
         // .onAppear reads it). Sets openTabs via the regular
         // assignment (= triggers didSet → persistOpenTabs = write
@@ -399,7 +399,7 @@ struct PersistedEditorTab: Codable {
 // View-local @State on EditorView (= draft, originalBody,
 // mode, documentPath, autoSaveTask, fileWatcher). Each tab = one open
 // document with independent state; = when the user opens a 2nd
-// document via double-click (= (see OOB.md #2026-09-02) scenario),
+// document via double-click (= scenario),
 // it creates a new tab without disturbing the current tab's
 // in-progress edits.
 //

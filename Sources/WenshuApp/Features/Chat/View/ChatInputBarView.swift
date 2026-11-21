@@ -28,7 +28,7 @@
 // (2026-09-23): restored the token-usage bottom bar (= the
 //  2026-09-23 ' token ，，。
 //  '). Did NOT restore the manual compress button (= confirmed
-//  automatic via ConversationLoop.swift:512; = (see OOB.md #2026-09-23) '
+//  automatic via ConversationLoop.swift:512; = '
 //  ，').
 //
 // (2026-09-23): spec = chat column bottom = single input row +

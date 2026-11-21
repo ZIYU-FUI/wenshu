@@ -301,7 +301,7 @@ extension PreviewPane {
             ScrollView {
                 LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                     ForEach(inCategory) { entity in
-                        // (see OOB.md #2026-09-08) — 'card, show': the trailing closure
+                        //  — 'card, show': the trailing closure
                         // here IS Card's onDoubleClick (= now
                         // takes the CardSource as a
                         // parameter). Forward that source to
@@ -338,7 +338,7 @@ extension PreviewPane {
                 // extra gap). Previously
                 // (.contentInsetStyle(.standard, edges: .vertical) =
                 // 18 PT) created a 35 PT inconsistency vs zone 1
-                // sidebar / zone 3 editor ((see OOB.md #2026-09-07) —
+                // sidebar / zone 3 editor (=
                 // round 5 'region, ' = all 6 zones should share the
                 // same chrome-tier-to-content-tier inset). The
                 // previous 18 PT was Apple's .defaultContentMargins (=
@@ -490,7 +490,7 @@ extension PreviewPane {
     /// missing folders, permission denied, etc.) are silently skipped so a
     /// single bad folder doesn't break the whole view (= partial load is more
     /// useful than nothing). Sort book docs by the current sort order (= same
-    /// menu as entity scope, but applied to BookDoc). (see OOB.md #2026-08-31)
+    /// menu as entity scope, but applied to BookDoc).
     /// — sort still defaults to .pinyinFirstLetter so docs in Chinese filenames
     /// also flow alphabetically. Sort entities by the selected sort order ((see
     /// OOB.md #2026-08-30)). Returns a NEW array (doesn't mutate input). Stable

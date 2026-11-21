@@ -9,7 +9,7 @@
 //  contract without needing test fixtures that mutate user state).
 //
 //  Why source-level (= not XCTest fixtures with live FS): per
-//  the standing rule (see OOB.md #2026-09-08) the test suite must
+//  the standing rule the test suite must
 //  not write to the user's real library. The export engine's happy
 //  path runs against a synthetic directory (= see the
 //  LibraryExportEngine source); the structural tests here verify

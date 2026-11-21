@@ -202,14 +202,14 @@ public enum WSPersistenceContainer {
     /// MemoryStore + LinkIndex + ChatSessionStore + BookmarkStore +
     /// WenshuWorkspace). The phase 5 spec is 100% complete; new
     /// chat/kanban/toDo/memory/bookmark/workspace data flows exclusively
-    /// through the warehouse container (= per (see OOB.md #2026-08-25)).
+    /// through the warehouse container (= per).
     @MainActor
     public static var current: ModelContainer {
         activeWarehouseContainer ?? shared
     }
 
     /// Make a file-backed container at a custom URL (= warehouse path for
-    /// (see OOB.md #2026-08-25) "chat.sqlite must live in .ws warehouse" rule).
+    ///  "chat.sqlite must live in.ws warehouse" rule).
     ///
     ///  sub-task 1a (= SwiftData warehouse path support).
     /// Replaces the per-file SQLite Actor pattern (= all 7 of the planned
@@ -252,7 +252,7 @@ public enum WSPersistenceContainer {
     ///
     /// Logic:
     ///   1. If warehouse URL provided (= from UserDefaults "wenshu.libraryPath"),
-    ///      try to make a container at that URL (= (see OOB.md #2026-08-25) rule).
+    ///  try to make a container at that URL (= rule).
     ///   2. If that fails OR no warehouse URL, fall back to Application Support
     ///      (= current `shared` behavior).
     ///   3. If both fail, fall back to in-memory (= tests survive).

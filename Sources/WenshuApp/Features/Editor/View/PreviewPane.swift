@@ -249,7 +249,7 @@ struct PreviewPane: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 Spacer(minLength: 0)
             }
-            // The body's horizontal padding (see OOB.md #2026-09-08).
+            // The body's horizontal padding.
             .padding(.horizontal, DesignTokens.spacingModerate)
         }
         .onReceive(NotificationCenter.default.publisher(for: .wenshuLibraryDidChange)) { _ in

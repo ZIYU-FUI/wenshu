@@ -47,7 +47,7 @@ extension LibraryMigrator {
         // book.json (= the book metadata).
         let defaultBook = Book(
             id: defaultBookId,
-            // (see OOB.md #2026-08-31) (sidebar feedback bundle #1):
+            //  (sidebar feedback bundle #1):
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // descriptive).
             title: String(localized: "library.default.book_title"),
