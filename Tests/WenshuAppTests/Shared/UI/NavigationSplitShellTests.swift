@@ -72,8 +72,7 @@ final class NavigationSplitShellTests: XCTestCase {
             store: FileSystemLibraryStore(rootURL: URL(fileURLWithPath: "/tmp/wenshu-test"))
         )
         let root = LibraryRootView(
-            library: library,
-            appearanceMode: .system
+            library: library
         )
         _ = root
         XCTAssertNoThrow(

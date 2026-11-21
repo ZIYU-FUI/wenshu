@@ -288,7 +288,7 @@ struct SettingViewTests {
                 "refreshProviderStatus must delegate to SettingsOps.refreshProviderStatus (= single source of truth via MVVM Ops layer per v1.72)")
     }
 
-    @Test("generalTab uses .formStyle(.grouped) + .radioGroup for appearance picker")
+    @Test("appearance override is gone (craft audit B4, 2026-11-21)")
     func generalTabUsesFormStyleGroupedAndRadioGroup() throws {
         let source = try readSettingViewSource()
         let section = settingViewSection(source)
@@ -299,8 +299,15 @@ struct SettingViewTests {
 
         #expect(codeRegion.contains(".formStyle(.grouped)"),
                 "generalTab must use .formStyle(.grouped) (= Apple HIG)")
-        #expect(codeRegion.contains(".pickerStyle(.radioGroup)"),
-                "generalTab appearance picker must use .pickerStyle(.radioGroup) (= Apple HIG)")
+        // Craft audit B4 deleted the app-level system/dark/light picker
+        // and the .preferredColorScheme override it drove: the override
+        // repainted the backing of every chrome material. This test now
+        // pins the ABSENCE of the picker (= the boss's product ruling:
+        // the app follows the system appearance, like every Apple app).
+        #expect(!codeRegion.contains("appearanceMode"),
+                "SettingView must not offer an app-level appearance override (= craft audit B4)")
+        #expect(!source.contains("preferredColorScheme"),
+                "the app must not force a ColorScheme (= craft audit B4)")
     }
 
     @Test("providerApiTab uses .searchable with placement .toolbar (= v0.40 HIG absent batch)")

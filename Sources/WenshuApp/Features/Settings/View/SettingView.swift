@@ -11,7 +11,6 @@ struct SettingView: View {
 
     // MARK: - Persistence bindings (unchanged keys; = no user-state migration)
 
-    @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.provider") var providerSlug: String = Provider.minimaxCn.slug
     @AppStorage("wenshu.useKeychainForProviderKeys") var useKeychainForProviderKeys: Bool = true
     /// / Single-owner centralization: AppState.llmModel (= v1.72 T3b).
@@ -277,14 +276,9 @@ struct SettingView: View {
 
     private var appearancePane: some View {
         Form {
-            Section {
-                Picker(String(localized: "settings.general.appearance"), selection: $appearanceMode) {
-                    ForEach(AppearanceMode.allCases) { mode in
-                        Text(mode.label).tag(mode)
-                    }
-                }
-                .pickerStyle(.radioGroup)
-            }
+            // Craft audit B4 (2026-11-21): the appearance radio-group is
+            // removed with the override it drove (= the app follows the
+            // system appearance; = the pane keeps only the language row).
             Section {
                 Picker(String(localized: "settings.appearance.appLanguage_label"), selection: Binding(
                     get: { appLanguage },

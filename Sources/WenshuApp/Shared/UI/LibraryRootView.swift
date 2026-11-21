@@ -17,7 +17,6 @@ struct LibraryRootView: View {
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // WindowGroup (= single source of truth = AppRootScene).
     let library: WenshuLibrary
-    let appearanceMode: AppearanceMode
 
     // Active library path (= canonical single source of truth via
     // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -26,9 +25,8 @@ struct LibraryRootView: View {
         activeLibrarySelection ?? ActiveLibrary.path
     }
 
-    init(library: WenshuLibrary, appearanceMode: AppearanceMode) {
+    init(library: WenshuLibrary) {
         self.library = library
-        self.appearanceMode = appearanceMode
     }
 
     private var shouldShowOnboarding: Bool {
@@ -73,7 +71,16 @@ struct LibraryRootView: View {
         // while `Group { ... }` is a real View in the hierarchy.
         content
             .environment(library)
-            .preferredColorScheme(appearanceMode.colorScheme)
+            // Craft audit B4 (2026-11-21): the app-level appearance picker
+            // (= system/dark/light, persisted as "appearanceMode") is gone,
+            // and with it this `.preferredColorScheme` override. The
+            // override repainted the whole window behind the materials:
+            // when it disagreed with the OS appearance, every vibrancy
+            // layer (the window containerBackground, the toolbar material,
+            // the sidebar) read a backing that did not match the desktop
+            // (= the "dirty gray" drift ruled out on 2026-11-12). Following
+            // the system appearance is the only mode that keeps the chrome
+            // materials honest; macOS itself offers no per-app override.
             // macOS 27 doc-alignment for the window's chrome: the material comes
             // from the window itself (see the pattern note in
             // `pane-chrome-canonic-pattern.md`).

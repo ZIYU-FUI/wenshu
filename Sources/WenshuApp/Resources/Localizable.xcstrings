@@ -2585,23 +2585,6 @@
         }
       }
     },
-    "settings.general.appearance": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Appearance"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "外观"
-          }
-        }
-      }
-    },
     "settings.general.liquidGlass": {
       "extractionState": "manual",
       "localizations": {

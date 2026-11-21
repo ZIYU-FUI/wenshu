@@ -93,28 +93,11 @@ enum SelfScreenshot {
 
 // MARK: - App entry
 
-// wenshu (system / dark / light), Settings + @AppStorage
-enum AppearanceMode: String, CaseIterable, Identifiable {
-    case system
-    case dark
-    case light
-    var id: String { rawValue }
-    var label: String {
-        switch self {
-        case .system: return "跟随系统"
-        case .dark:   return "深色"
-        case .light:  return "浅色"
-        }
-    }
-    /// SwiftUI ColorScheme (system nil SwiftUI)
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .system: return nil
-        case .dark:   return .dark
-        case .light:  return .light
-        }
-    }
-}
+// Craft audit B4 (2026-11-21): the AppearanceMode enum (= the app-level
+// system/dark/light picker) is deleted; the app follows the system
+// appearance, same as every Apple app, because the override broke the
+// chrome materials' backing. The "appearanceMode" UserDefaults key is
+// left to age out (no migration code for a value nothing reads).
 
 @main
 struct WenshuApp: App {
@@ -123,9 +106,6 @@ struct WenshuApp: App {
     @State private var library = WenshuLibrary(
         store: FileSystemLibraryStore(rootURL: LibraryRoot.ensureDefault())
     )
-    // (Standards sub-agent report H3): preferredColorScheme UserDefaults.standard.string, SettingView $appearanceMode yes binding source-of-truth
-    // commit 4ef3e2e77 UserDefaults.standard.string, change @AppStorage (SettingView key)
-    @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
 
     /// option A for cross-zone communication
     /// (= global @Observable store). Per-window @State (= each
@@ -188,7 +168,7 @@ struct WenshuApp: App {
     var body: some Scene {
         // apple canonical scene composition: Scene composition (= WindowGroup +
         // .commands + Settings) is now in AppRootScene. WenshuApp stays as the
-        // composition root that owns the state (`library` / `appearanceMode`
+        // composition root that owns the state (`library`
         // / `appState`) and forwards it into AppRootScene as constructor
         // parameters. The state owner is WenshuApp (= cannot move because
         // @State + @AppStorage require the @main App struct), so AppRootScene
@@ -196,7 +176,6 @@ struct WenshuApp: App {
         // scene tree.
         AppRootScene(
             library: library,
-            appearanceMode: $appearanceMode,
             appState: appState,
             workspaceUI: workspaceUI,
             sheetRequests: sheetRequests,

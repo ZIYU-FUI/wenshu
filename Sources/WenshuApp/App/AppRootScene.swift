@@ -20,7 +20,6 @@ enum WindowID {
 
 struct AppRootScene: Scene {
     let library: WenshuLibrary
-    @Binding var appearanceMode: AppearanceMode
     let appState: AppState
     // / ShellState was removed in 2026-10-03 overabstraction cleanup
     // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -44,7 +43,7 @@ struct AppRootScene: Scene {
             // dropped SettingsEnvironmentCapturer
             // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // view layers total = Apple canonical).
-            LibraryRootView(library: library, appearanceMode: appearanceMode)
+            LibraryRootView(library: library)
                 .environment(appState)
                 .environment(workspaceUI)
                 .environment(sheetRequests)
