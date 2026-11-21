@@ -26,6 +26,7 @@ struct ChatToolUsePartView: View {
     let isOutgoing: Bool
 
     @State private var isArgsExpanded: Bool = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(toolUse: ChatMessagePart.ToolUsePart, isOutgoing: Bool) {
         self.toolUse = toolUse
@@ -60,7 +61,7 @@ struct ChatToolUsePartView: View {
                     .foregroundStyle(statusColor)
                     .opacity(isRunningStatus ? runningStatusOpacity : 1.0)
                     .animation(
-                        isRunningStatus
+                        isRunningStatus && !reduceMotion
                             ? .easeInOut(duration: 1.2).repeatForever(autoreverses: true)
                             : .default,
                         value: runningStatusOpacity

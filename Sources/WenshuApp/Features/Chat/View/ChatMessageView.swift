@@ -499,6 +499,8 @@ private struct StatusPulse: View {
     /// 400 ms opacity transition (= matches hermes PULSE_DURATION_MS).
     private static let pulseDuration: Double = 0.4
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var isPulsing: Bool = false
     @State private var nextPulseAt: Date = .now.addingTimeInterval(pulsePeriod)
 
@@ -532,7 +534,13 @@ private struct StatusPulse: View {
                         .onChange(of: context.date) { _, now in
                             if now >= nextPulseAt {
                                 nextPulseAt = now.addingTimeInterval(Self.pulsePeriod)
-                                isPulsing.toggle()
+                                // Craft audit O4: with Reduce Motion the
+                                // breath is dropped entirely (= the dot
+                                // stays a static mark, = hermes honors
+                                // prefers-reduced-motion the same way).
+                                if !reduceMotion {
+                                    isPulsing.toggle()
+                                }
                             }
                         }
                 }

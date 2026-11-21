@@ -330,17 +330,38 @@ struct ChatInputBarView: View {
     }
 
     private var sendButton: some View {
-        GlassIconButton(systemName: "paperplane", help: "发送 (⌘↩)") {
-            Task {
-                await vm.routeInput()
-                // FOCUS-RETENTION: re-assert focus after the send
-                // button is pressed (= the click moves keyboard focus
-                // to the button; = the user expects the input to
-                // reclaim focus so they can type the next message).
-                reassertFocus()
+        // Craft audit O4 (progress honesty + discoverability): the only
+        // control that could stop an unbounded reply was the hidden ⌘.
+        // carrier below; while a reply streams, this button becomes the
+        // stop button visibly (= the standard macOS one-button shape:
+        // its glyph follows the operation in flight; = ⌘. stays defined
+        // once on the hidden carrier, the visible button never re-registers
+        // it, and ⌘↩ follows the same click-vs-send split).
+        Group {
+            if isReplyStreaming {
+                GlassIconButton(systemName: "stop.fill", help: "停止生成 (⌘.)") {
+                    vm.cancelStreaming()
+                }
+            } else {
+                GlassIconButton(systemName: "paperplane", help: "发送 (⌘↩)") {
+                    Task {
+                        await vm.routeInput()
+                        // FOCUS-RETENTION: re-assert focus after the send
+                        // button is pressed (= the click moves keyboard focus
+                        // to the button; = the user expects the input to
+                        // reclaim focus so they can type the next message).
+                        reassertFocus()
+                    }
+                }
+                .keyboardShortcut(.return, modifiers: [.command])
             }
         }
-        .keyboardShortcut(.return, modifiers: [.command])
+    }
+
+    /// True while an assistant reply is in flight (= a message streams,
+    /// or its placeholder has not received its first event yet).
+    private var isReplyStreaming: Bool {
+        vm.messages.contains { $0.streamState == .streaming || $0.isPlaceholder }
     }
 
     // MARK: - Text field

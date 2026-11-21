@@ -134,6 +134,16 @@ struct ChatMessageBodyView: View {
                     // append at the leaf that grew.
                     .equatable()
                 }
+                // O3 driver for the four .transition(.wenshuThinkingAppear())
+                // sites in ChatPartRow.body: the transitions existed since
+                // T40/T41/T49 (2026-09-18) but no animation ever observed
+                // the insertion, so every part landed as a hard jump. The
+                // value is the parts' identities, so an edit in place (the
+                // StreamingAccumulator appending text to an existing part)
+                // animates nothing (= the stable-identity rule the audit's
+                // info row names), while an added or removed part row runs
+                // the appear transition. Craft audit 2026-11-21.
+                .animation(.default, value: message.parts.map(\.id))
             }
         }
         .foregroundStyle(roleForeground)
