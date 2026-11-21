@@ -278,16 +278,15 @@ struct SidebarRowView: View {
             // for downstream consumers; = `SidebarRowView` opts into
             // the new behaviour via this rendering path.
             HStack(spacing: DesignTokens.spacingIconic) {
-                // Per boss 2026-10-16 OOB "目录树的 ICON, 没有用 SF
-                // 符号的纤细体, 就是倒数第二个细的选项": the
-                // sidebar pinyin letter icons render with SF
-                // Symbols `.thin` weight, as an EXPLICIT call-site
-                // override (= the central factory went uniform
-                // `.regular` on the 2026-11-21 craft audit, T4/X7,
-                // and this caller keeps its ordered weight on
-                // purpose; = the old comment's "thin is the canonical
-                // Apple HIG body-content weight" claim was not from
-                // the HIG and is dropped; = the OOB quote stands).
+                // The sidebar pinyin letter icons render with SF Symbols
+                // `.thin` weight as an EXPLICIT call-site override, per the
+                // ordered letter-icon weight (see OOB.md #2026-10-16)
+                // (= the letter-circle glyph needs the thin weight to read
+                // as a letter at all at this size).
+                // The central factory rule is uniform `.regular`
+                // (2026-11-21 craft audit T4/X7); this caller keeps its
+                // ordered weight on purpose, and nothing about it comes
+                // from the HIG.
                 //
                 // The glyph goes through the central factory (= a
                 // naked `Image(systemName:)` is the blocked form).

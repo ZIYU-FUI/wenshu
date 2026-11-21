@@ -277,8 +277,9 @@ private struct OnboardingAwareToolbar: ViewModifier {
             // / behind the strip, so the strip carries the window's depth
             // / instead of a painted band).
             //
-            // B6 CLOSURE (craft audit 2026-11-21, boss ruling "chrome
-            // should be glass"). The ruling was tested against the SDK
+            // B6 CLOSURE (craft audit 2026-11-21; the product ruling is
+            // that chrome should read as Liquid Glass). The ruling was
+            // tested against the SDK
             // and the live window server, and the strip cannot be Liquid
             // Glass through any published API:
             //   * `Glass` (SwiftUICore interface:7422) is NOT a

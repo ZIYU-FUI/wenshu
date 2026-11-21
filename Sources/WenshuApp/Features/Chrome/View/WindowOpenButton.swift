@@ -82,13 +82,11 @@ struct WindowOpenButton: View {
             openWindow(id: id)
         } label: {
             // Apple-canonical SF Symbols 6 path. The font + color pair is
-            // the boss's own ruling, OOB.md 2026-10-16: retract the
-            // SFIcon wrapper for toolbar buttons and apply
-            // Image(systemName:) with font 14 PT .regular + .secondary
-            // directly. (The old comment's "NSToolbar default font size"
-            // framing was never measured and is dropped, craft audit
-            // T1 2026-11-21; the VALUES stand because they are the
-            // ruling, not because they match the system.)
+            // ordered as such (see OOB.md #2026-10-16): Image(systemName:)
+            // with font 14 PT .regular + .secondary, applied here in one
+            // place (= the one source of truth for the toolbar button icon
+            // font + color; = the values are the ruling, no system default
+            // is claimed for them, craft audit T1 2026-11-21).
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(.secondary)

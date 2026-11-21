@@ -302,8 +302,9 @@ struct SettingViewTests {
         // Craft audit B4 deleted the app-level system/dark/light picker
         // and the .preferredColorScheme override it drove: the override
         // repainted the backing of every chrome material. This test now
-        // pins the ABSENCE of the picker (= the boss's product ruling:
-        // the app follows the system appearance, like every Apple app).
+        // pins the ABSENCE of the picker (= the product ruling of the
+        // 2026-11-21 craft batch: the app follows the system appearance,
+        // like every Apple app).
         #expect(!codeRegion.contains("appearanceMode"),
                 "SettingView must not offer an app-level appearance override (= craft audit B4)")
         #expect(!source.contains("preferredColorScheme"),

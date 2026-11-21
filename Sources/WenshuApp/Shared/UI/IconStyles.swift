@@ -48,10 +48,10 @@ import SwiftUI
 import AppKit
 // MARK: - IconStyle
 
-/// Apple HIG / Apple-shipped app icon-style enum. Each case carries the point
-/// size + a uniform `.regular` weight (= the old `.thin` split for the ≥38 PT
-/// zone cited "(see OOB.md #2026-09-17)", a row OOB.md does not carry; the
-/// split was withdrawn by the 2026-11-21 craft audit, rule T4/X7).
+/// Apple HIG / Apple-shipped app icon-style enum. Each case carries the
+/// point size + a uniform `.regular` weight (= the factory rule of the
+/// 2026-11-21 craft audit, T4/X7; a call-site that wants another weight
+/// carries its own ordered override).
 /// The case names walk Apple HIG official terminology (= `hitArea` for macOS
 /// HIG minimum hit area; `paneTab` for NSToolbar item default; `toolbar` for
 /// `.controlSize(.small)`; etc.).
@@ -207,12 +207,10 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
         }
     }
 
-    /// Symbol weight = uniform .regular across every zone. The old split
-    /// (.thin for the ≥38 PT hero / avatar / cover zone) cited "OOB.md
-    /// #2026-09-17", which is not a row in OOB.md (#2026-09-15 is the
-    /// palette-rendering canonical, not a weight rule), and the HIG bans the
-    /// weight outright for labels and thin strokes on dark grounds.
-    /// Craft audit 2026-11-21, rule T4/X7.
+    /// Symbol weight = uniform `.regular` across every zone: the HIG keeps
+    /// label and dark-ground glyph weights at regular (= thin strokes on a
+    /// dark ground smear; = the 2026-11-21 craft audit rule T4/X7). A zone
+    /// that wants another weight orders it at its own call site.
     var fontWeight: Font.Weight { .regular }
 
     /// Whether this case is a hit-area tier (= glyph is invisible; caller

@@ -91,9 +91,9 @@ struct IconStylesTests {
         #expect(IconStyle.sidebar.pointSize == 16)
     }
 
-    // MARK: - IconStyle.fontWeight (uniform .regular; the old ≥38 PT .thin
-    // tier cited "boss 2026-09-17 SF Symbols 6 rule", a row that does not
-    // exist in OOB.md, and HIG bans thin labels — craft audit 2026-11-21 T4/X7)
+    // MARK: - IconStyle.fontWeight (uniform .regular across every zone; a
+    // per-tier weight split has no register row and HIG bans thin labels —
+    // craft audit 2026-11-21 T4/X7)
 
     @Test("IconStyle.fontWeight = .regular for the >=38 PT zone (= hero / avatar / cover)")
     func fontWeightRegularForLargeZones() {

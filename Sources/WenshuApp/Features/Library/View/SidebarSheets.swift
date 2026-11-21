@@ -392,8 +392,7 @@ struct NewBookSheet: View {
                                 // picking) and carries the selection trait
                                 // so the chosen cell is announced as such.
                                 .accessibilityLabel(iconName)
-                                .accessibilityAddTraits(
-                                    selectedIcon == iconName ? .isSelected : [])
+                                .accessibilityAddTraits(selectedIcon == iconName ? .isSelected : [])
                             }
                         }
                         .padding(.vertical, DesignTokens.spacingIconic)
