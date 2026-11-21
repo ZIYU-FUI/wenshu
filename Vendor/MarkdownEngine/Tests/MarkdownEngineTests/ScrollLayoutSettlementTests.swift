@@ -258,10 +258,10 @@ struct ScrollLayoutSettlementTests {
     }
 
     /// An edit is not a tick. The restyle settles from the head and pays for the
-    /// whole prefix, exactly as before this fix — the guarantee the engine
+    /// whole prefix — exactly the guarantee the engine
     /// documents (a fragment's Y is the sum of the heights above it). The band
     /// at the TOP of the document has no prefix, so this asks from the bottom,
-    /// where the walk that used to run on every tick still has to run once.
+    /// where the head walk still has to run once: on an edit, not on a tick.
     @Test func anEditStillSettlesTheWholePrefixFromTheHead() {
         let (scrollView, textView, _) = Self.makeEditor(paragraphs: Self.paragraphs)
         let total = Self.fragmentCount(textView)
@@ -317,8 +317,8 @@ struct ScrollLayoutSettlementTests {
         }
 
         #expect(headWalks == 0)
-        // Each tick stayed inside its own band: the walk that used to run here
-        // visited every fragment up to the visible bottom, i.e. up to `total`.
+        // Each tick stayed inside its own band: a head walk here would cover
+        // every fragment up to the visible bottom, i.e. up to `total`.
         #expect(worstTick * 8 < total)
     }
 
@@ -342,7 +342,7 @@ struct ScrollLayoutSettlementTests {
         #expect(pass.visited > total / 2)
     }
 
-    /// The other half of the tick: the code-block overlay used to publish a
+    /// The other half of the tick: the code-block overlay does not publish a
     /// freshly-built array on every call. Same output is not a change.
     @Test func identicalCodeBlockOverlayIsPublishedOnce() {
         let (scrollView, textView, coordinator) = Self.makeEditor(paragraphs: 120)
@@ -375,7 +375,7 @@ struct ScrollLayoutSettlementTests {
     }
 
     /// A document with no fenced block in it — the common one — takes the early
-    /// exit on every tick, and that exit used to publish `[]` every time too.
+    /// exit on every tick, and that exit publishes `[]` once, not on each call.
     @Test func anEmptyOverlayIsPublishedOnceAcrossTicks() {
         let (scrollView, textView, coordinator) = Self.makeEditor(paragraphs: 60)
         Self.scroll(scrollView, to: 0)
@@ -395,12 +395,12 @@ struct ScrollLayoutSettlementTests {
     // MARK: - An edit that never restyles still retires the claim
     //
     // The tick is allowed to trust the claim because a mutation cannot leave one
-    // standing. That used to rest on "every mutation path ends in a restyle", and
+    // standing. It cannot rest on "every mutation path ends in a restyle", and
     // it does not: raw source mode is a Settings toggle, and in it a keystroke
     // returns from `textDidChange` ("skip the restyle") and out of
     // `restyleTextView`; a Writing-Tools proofread returns even earlier; and a
     // composition posts no `textDidChange` at all. These three are the paths that
-    // used to keep a claim that no longer described the document, and they pin
+    // would strand a stale claim without the stamp, and they pin
     // the two halves of the rule separately: the drop on the paths that reach the
     // delegate, and the generation stamp on the ones that never do.
 

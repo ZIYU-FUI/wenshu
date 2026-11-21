@@ -95,7 +95,7 @@ final class NativeTextView: NSTextView {
     /// mutation path remembering to drop it.
     ///
     /// That stamp, not the shape of the restyle paths, is what keeps this
-    /// honest. The claim this file used to rest on — "every mutation path in
+    /// honest. The claim that no edit escapes a restyle — "every mutation path in
     /// the engine ends in a restyle" — is FALSE for a reachable mode: raw
     /// source mode is a Settings toggle (`SettingView` feeds
     /// `WenshuEditorServicesFactory`), and there a keystroke returns from
