@@ -179,7 +179,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // buttons next to traffic lights = matches Apple Pages / Xcode / Mail
         // etc.). ( removed ChatSessionStore from this bootstrap)
         // unsafeMutablePointer / instance var — static let yes immutable,
-// wenshu-verification-fix (= 'chat,'):
+        // wenshu-verification-fix (= 'chat,'):
         // add NSLog for chat store init + bootstrap errors (silent catch makes debugging
         // hard), and post .wenshuChatStoreReady notification so ChatView can
         // retry load when store becomes available. SwiftData migration history

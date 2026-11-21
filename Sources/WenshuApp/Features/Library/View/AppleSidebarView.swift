@@ -221,8 +221,8 @@ struct AppleSidebarView: View {
                     .frame(height: DesignTokens.paneTabHotArea)
                     partContent
 
-                // Right-clicking the empty area below the rows opens the same New
-                // choice the bottom "+" button does (= the flags below are the sheet
+                        // Right-clicking the empty area below the rows opens the same New
+                        // choice the bottom "+" button does (= the flags below are the sheet
                 // counters; = the sidebar body observes and presents).
                 .modifier(EmptyAreaContextMenu(
                     newLabel: String(localized: "sidebar_context_menu_new"),

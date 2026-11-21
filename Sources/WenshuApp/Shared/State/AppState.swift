@@ -395,17 +395,14 @@ struct PersistedEditorTab: Codable {
     var sourceScope: PreviewScope?
 }
 
-// per-tab editor state. Holds all data that was previously
-// View-local @State on EditorView (= draft, originalBody,
-// mode, documentPath, autoSaveTask, fileWatcher). Each tab = one open
-// document with independent state; = when the user opens a 2nd
-// document via double-click (= scenario),
-// it creates a new tab without disturbing the current tab's
-// in-progress edits.
-//
-// Lives in AppState (= @Observable); = cross-view reactivity without
-// @Binding plumbing. SwiftUI redraws the editor zone whenever any
-// field on the active tab changes (= @Observable per-property tracking).
+/// Per-tab editor state: the data a tab needs (= draft, originalBody, mode,
+/// documentPath, autoSaveTask, fileWatcher) lives here rather than in EditorView's
+/// own `@State`, so opening a second document gives it its own tab and leaves the
+/// first tab's in-progress edits untouched.
+///
+/// Lives in AppState (= @Observable); = cross-view reactivity without
+/// @Binding plumbing. SwiftUI redraws the editor zone whenever any
+/// field on the active tab changes (= @Observable per-property tracking).
 @MainActor
 @Observable
 final class EditorTab: Identifiable {

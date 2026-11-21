@@ -119,9 +119,8 @@ struct LibraryMigrator: Sendable {
         }
     }
 
-    // / Always-run-on-launch housekeeping (
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / every launch).
+    /// Housekeeping that runs on every launch (= the shelf roots are created if
+    /// absent and the default layout is seeded before anything reads them).
     private func alwaysRunOnLaunch(fm: FileManager) throws {
         // 1. Compute the default shelf dir (= all-zeros UUID).
         let shelvesRoot = wsRoot.appendingPathComponent("shelves", isDirectory: true)

@@ -18,11 +18,10 @@ public enum WenshuConductorIdentity {
     /// Full system prompt (~700 tokens target). Prepended to every LLM call in WenshuConductor.
     /// Use case: L1 (intent classify) + L3 (synthesis) call sites in handle().
     /// L2 (sub-agent content) is user-driven and does NOT prepend this.
-    // 
-    // User address is read from UserDefaults 'wenshu.userAddress' at call
-    // time (= dynamic per-chat). Default = 'user' (= the project's design decision: default is 'user', not 'the-legacy-term-for-project-owner').
-    //  — clarification: 'the-legacy-term-for-project-owner' is hermes-side convention (= used by
-    // pocock agent in this terminal session), NOT wenshu product default.
+    /// The user address is read from UserDefaults `wenshu.userAddress` at call time,
+    /// so it can differ per chat. The fallback is the product's own address term.
+    /// `the-legacy-term-for-project-owner` is what the hermes-side tooling calls the
+    /// same person, and that string is not a product default.
     public static var userAddress: String {
         UserDefaults.standard.string(forKey: "wenshu.userAddress") ?? "用户"
     }

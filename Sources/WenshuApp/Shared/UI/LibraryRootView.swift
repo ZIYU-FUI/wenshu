@@ -307,12 +307,12 @@ struct LibraryOnboardingView: View {
         VStack(spacing: DesignTokens.spacingSection) {
             Spacer()
 
-// wenshu-verification-fix:
+            // wenshu-verification-fix:
 // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // to load PNG from absolute path inside .app bundle.
 Group {
     if let nsImage = loadWenshuLogo(named: WenshuWordmark.assetName(for: colorScheme)) {
-        // wenshu-verification-fix:
+                    // wenshu-verification-fix:
         // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // (consistent across light/dark mode).
         Image(nsImage: nsImage)
@@ -321,7 +321,7 @@ Group {
             .frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)
     } else {
         // Fallback: SF Symbols 6 canonical 'text.book.closed' if PNG load fails
-        // (: SF Symbol fully replaced).
+                    // (: SF Symbol fully replaced).
         SFIcon("text.book.closed", style: .inlineSmall, color: .white)
     }
 }
