@@ -217,8 +217,12 @@ for "is this rehearsal disposable", because each rehearsal base predates every o
 every landed lane shows up as a deletion — restrict the diff to the paths that rehearsal
 itself staged. The four `land2-*` rehearsals held pre-review drafts of the same features (a
 different cover-cache API, a notification-based plan announce instead of the clock that landed);
-those diffs are archived as four patch files under this session's scratch dir rather than
-thrown away, since "why not the other design" is a question a later session will ask.
+those diffs are NOT thrown away and NOT left in a scratch directory either (= `cache/scratch`
+entries idle 24h are pruned, so a scratch path is not an archive): they are board attachments
+`land2-cover-cache.patch`, `land2-editor-scroll.patch`, `land2-right-column.patch`,
+`land2-tab-switch.patch` on the landing card `t_872bbafb`, listed by `hermes kanban attachments
+t_872bbafb`, because "why not the other design" is a question a later session will ask and the
+answer has to outlive this conversation.
 
 ## 6. Open items this closeout leaves, and who owns them
 
