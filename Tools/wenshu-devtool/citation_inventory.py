@@ -31,11 +31,11 @@ import re
 import subprocess
 
 CITE = re.compile(r"OOB\.md\s*#(\d{4}-\d{2}-\d{2})")
-# A dated row's key cell carries the date AND may carry a tag after it (= the register's
-# oldest rows write `| 2026-07-23 (v0.74 boss OOB) |`). Requiring the date to fill the whole
-# cell made that row invisible: its date was counted as a MISSING row, 5 live citations to it
-# were inventoried as dangling, and a repair then deleted pointers that had a real target.
-# The date must still START the cell, so prose that merely mentions a date stays unmatched.
+# A dated row's key cell carries the date AND may carry a version tag after it inside the same
+# cell (= the register's oldest dated row does). Requiring the date to fill the whole cell made
+# that row invisible: its date counted as a MISSING row, five live citations to it were
+# inventoried as dangling, and a repair then deleted pointers that had a real target. The date
+# must still START the cell, so prose that merely mentions a date stays unmatched.
 ROW = re.compile(r"^\|\s*(\d{4}-\d{2}-\d{2})\b[^|]*\|(.*)$", re.M)
 STOP = set("""the a and or of to in for on with that this it is as by at from see oob md date
 line rules rule not but all its if then than into onto over under more most same other

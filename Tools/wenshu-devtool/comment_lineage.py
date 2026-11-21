@@ -76,10 +76,11 @@ NOT_HISTORY = [
      "not a claim about what the code once did"),
 ]
 
-# The register's key cell starts with the date and may carry a tag after it (= `| 2026-07-23
-# (v0.74 boss OOB) |`). Requiring the date to fill the cell hid that row, so a citation to it
-# charged P1 for a decision the register does carry. Same rule as citation_inventory.ROW: the
-# date must START the cell; prose that only mentions a date stays unmatched.
+# The register's key cell starts with the date and may carry a version tag after it in the same
+# cell. Requiring the date to fill the cell hid the register's oldest dated row, so a citation
+# to it charged P1 for a decision the register does carry. Same rule as
+# citation_inventory.ROW: the date must START the cell; prose that only mentions a date stays
+# unmatched.
 ROW_KEY = re.compile(r"^\|\s*(\d{4}-\d{2}-\d{2})\b[^|]*\|", re.M)
 CITED_DATE = re.compile(r"OOB\.md\s*#(\d{4}-\d{2}-\d{2})")
 
