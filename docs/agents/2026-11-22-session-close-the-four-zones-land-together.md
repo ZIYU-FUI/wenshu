@@ -49,8 +49,10 @@ and this machine's proxy closes that socket: three retries returned the identica
 `Connection closed by 198.18.0.26 port 22`. Port 443 is the same repository through a different
 door, and it succeeded first try. **An ssh failure on one port is not a credentials problem and
 not a missing repository** — the read-back over https showed the repo and its sha, which is how I
-knew to retry the transport rather than escalate the blocker. Both remotes now answer
-`6f278cd1e34d370d94f94d711de557dedb960f0d`.
+knew to retry the transport rather than escalate the blocker. Both remotes answer the SAME sha,
+and the way to read that is the two `git ls-remote` lines in the block above, not a literal
+copied from this doc: a doc that publishes the sha of its own commit is wrong the moment it
+grows.
 
 | zone | lane | commits it contributed | range on `main` | lane head | approving card |
 | --- | --- | --- | --- | --- | --- |
@@ -59,6 +61,7 @@ knew to retry the transport rather than escalate the blocker. Both remotes now a
 | editor scroll | scroll settle | 3 | `53749d9612..a20b7284d3` | `a20b7284d3` | `t_f49ed531` |
 | asset column | cover reads | 5 | `a20b7284d3..bfa90cdeab` | `bfa90cdeab` | `t_b39e2ea6` |
 | right column | announce instead of poll | 9 | `bfa90cdeab..3c9747b63a` | `3c9747b63a` | `t_19781743` |
+| this doc's correction landings | 2 | the FIRST push's non-scope set is the five shas named above; every later push answers to `git log --oneline <the remote's old tip>..main`, the command two lines above | that command, on the remote you are checking | the boss's closeout order |
 
 `1 + 2 + 3 + 5 + 9 = 20`, which is the count `git rev-list --count origin/main..main` prints at
 the tip before this doc's commit, and it is how the table is checked rather than trusted.
@@ -180,11 +183,48 @@ decision: `SELECT task_id FROM task_runs WHERE outcome IS NULL` joined to `tasks
 with the same burden as a gate output. The correct form was the span in §2, which takes one
 command per lane, and which I should have run before writing the sentence rather than after.
 
+**Cleaning my own residue made seven commits citation-less, and how to not do that.**
+
+Removing a rehearsal worktree is not free. `git worktree remove --force` deletes the only ref
+that pointed at its detached HEAD, and a detached HEAD **is** a ref: twenty-two of my worktrees
+went away and seven of my own commits — including the ones earlier review cards quote — were
+left reachable only from the reflog, which expires. That is the dangling-citation defect,
+manufactured by the cleanup step itself.
+
+The order that is safe, and that the next closer should copy:
+
+```bash
+cd /Volumes/ANAN/Engineering/wenshu
+# = = what every worktree HEAD was BEFORE anything was removed (the list this cleanup worked from)
+git worktree list --porcelain | awk '/^worktree/{p=$2} /^HEAD/{print $2, p}'
+# = = the parking that was actually done here: nine reviewed shas plus seven orphans
+git for-each-ref --format='%(refname:short) %(objectname:short)' refs/keep/
+# = = the proof a cited sha still has a pointer = = a non-empty answer means it is still referenced
+git for-each-ref --contains 476aaa7aba --format='%(refname)'
+# SKIP: these three ran during this closeout and the third is the re-check a reader can run now;
+# SKIP: removing worktrees is deliberately NOT reproduced here, it is what the section warns about.
+```
+
+`SKIP: the parking was done while writing this section (nine reviewed shas plus seven orphans
+are under refs/keep/ now); re-running the loop over an already-clean tree lists nothing and the
+update-ref line is a template, not a command.`
+
+Two measurements came out of this. First: every one of the seven no-ref commits was this
+session's own work (subjects: streamed-reply segments, the comment-lineage satisfaction commit,
+the second grid door, the re-measured registry, the active-tab defaults removal) — no other
+session lost anything. Second: `git diff main` run against a whole worktree is the wrong test
+for "is this rehearsal disposable", because each rehearsal base predates every other lane, so
+every landed lane shows up as a deletion — restrict the diff to the paths that rehearsal
+itself staged. The four `land2-*` rehearsals held pre-review drafts of the same features (a
+different cover-cache API, a notification-based plan announce instead of the clock that landed);
+those diffs are archived as four patch files under this session's scratch dir rather than
+thrown away, since "why not the other design" is a question a later session will ask.
+
 ## 6. Open items this closeout leaves, and who owns them
 
 | item | state | owner |
 | --- | --- | --- |
-| the push of `main` at this tip | the boss's own step, and the one thing this scope cannot do without him | `t_781e32bb` |
+| ~~the push of `main`~~ | **CLOSED** — the closeout order was the go-ahead, and the remote that looked blocked was reachable over ssh-443; both remotes answer the same sha, printed by the two commands in the push section | `t_781e32bb` (closed) |
 | asset column cold-open: the first screenful still asks the disk inside the render body | card written, tier checked, unclaimed | `t_833e98d9` |
 | four landed instruments have teeth but no committed suite | card written | `t_0cdf0000` |
 | `merge-nfi-registry.py` silently drops an unbackticked-key row | card written | `t_274cdbe7` |
