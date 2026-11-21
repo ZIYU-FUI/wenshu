@@ -289,7 +289,9 @@ struct WizardStepIndicator: View {
     }
 
     private func connectorColor(for step: ImportSheet.WizardStep) -> Color {
-        if step.rawValue < currentStep.rawValue { return .green }
+        if step.rawValue < currentStep.rawValue {
+            return .green
+        }
         return Color(nsColor: .tertiaryLabelColor)
     }
 }

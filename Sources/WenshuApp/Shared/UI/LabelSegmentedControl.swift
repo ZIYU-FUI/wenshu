@@ -108,9 +108,8 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// `NSImage(systemSymbolName:)` defaults.
     let iconStyle: IconStyle
 
-    /// AppKit weight counterpart used to configure `NSImage` symbols before
-    /// they enter `NSSegmentedControl`. Always `.regular` (= the factory
-    /// rule, 2026-11-21 craft audit T4/X7).
+    /// AppKit weight counterpart for `NSImage` symbols entering
+    /// `NSSegmentedControl`; always `.regular` (craft audit T4/X7).
     var symbolWeight: NSFont.Weight {
         .regular
     }
