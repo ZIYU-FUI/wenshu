@@ -7,7 +7,7 @@ machine"), and on 2026-11-22 his two closing instructions, recorded in English h
 1.1 keeps this file English: the review is finished, and the standard eight-step closeout runs
 with no further review round opened.
 
-Base both halves of the range: `origin/main` = `10ef4216be88cbaee9ec76660e4f40d1d88151c0`.
+Base both halves of the range: `origin/main` — `10ef4216be88cbaee9ec76660e4f40d1d88151c0`.
 The five lanes landed onto local `main` as `3c9747b63a368cab4fa9032872eda51e1e39dee0`,
 20 commits ahead of the remote, lanes landed cheapest-first, each rebased onto `main`'s
 then-current tip and fast-forwarded only after its own gates.
@@ -61,10 +61,26 @@ grows.
 | editor scroll | scroll settle | 3 | `53749d9612..a20b7284d3` | `a20b7284d3` | `t_f49ed531` |
 | asset column | cover reads | 5 | `a20b7284d3..bfa90cdeab` | `bfa90cdeab` | `t_b39e2ea6` |
 | right column | announce instead of poll | 9 | `bfa90cdeab..3c9747b63a` | `3c9747b63a` | `t_19781743` |
-| this doc's correction landings | 2 | the FIRST push's non-scope set is the five shas named above; every later push answers to `git log --oneline <the remote's old tip>..main`, the command two lines above | that command, on the remote you are checking | the boss's closeout order |
+| this doc's corrections | record only, no code | **not counted here** — 6f278cd1e3 onward, measure `git rev-list --count --no-merges 3c9747b63a..HEAD` | `3c9747b63a..HEAD` | this row's own command | the boss's closeout order |
 
-`1 + 2 + 3 + 5 + 9 = 20`, which is the count `git rev-list --count origin/main..main` prints at
-the tip before this doc's commit, and it is how the table is checked rather than trusted.
+The five lane rows sum to `1 + 2 + 3 + 5 + 9 — 20`, and the record row above is deliberately
+outside that sum — it would move every time the record itself is corrected, which is exactly the
+self-counting trap this doc names in section 5. The identity a reader can re-print instead:
+
+```bash
+cd /Volumes/ANAN/Engineering/wenshu
+git rev-list --count 10ef4216be..HEAD
+git rev-list --count --no-merges 3c9747b63a..HEAD
+git rev-list --count --merges 3c9747b63a..HEAD
+# SKIP: safe and cheap to run; the equality under it is stated as an invariant, not as a reading.
+```
+
+20 lane commits + the record commits + the one merge must equal the first number. That is the
+invariant, and it is stated as an invariant rather than as a reading: `HEAD` moves every time the
+record is corrected, so any literal count in this row would be false the moment it was printed. If
+the equality does not hold on the reader's machine, the landing table is stale — fix the table, not
+the number. The second and third commands split everything after the last lane head into "this
+doc's record commits" and "the one merge that carried the sibling's record rewrite".
 
 ## 1. The root cause the four zones share
 
@@ -172,7 +188,7 @@ root package does not select it and reports success anyway. A filter that matche
 reports success, so the number of suites exercised has to be read from the run's own
 `Suite "…" passed` lines rather than inferred from the exit code.
 
-## 5. The two process faults this landing produced, and what they cost
+## 5. The process faults this landing produced, and what they cost
 
 **Moving `main` under a live run.** `t_3bb0aeed`'s run 4829 started at 23:42:00 and the five
 fast-forwards moved `main` at 23:45:20. My "nothing is running" check had been taken ten minutes
@@ -182,6 +198,30 @@ decision: `SELECT task_id FROM task_runs WHERE outcome IS NULL` joined to `tasks
 **Publishing an unproven negative.** A decision card that says a thing does not exist is a claim
 with the same burden as a gate output. The correct form was the span in §2, which takes one
 command per lane, and which I should have run before writing the sentence rather than after.
+
+**Three more faults, all of them mine, all found by reading the artifact back.**
+
+(a) *An archive the machine deletes.* The four superseded rehearsal diffs were first described as
+"archived under this session's scratch dir". A scratch directory is pruned after 24 idle hours, so
+that sentence promised durability it did not have, and this repo's own closeout rule already says
+proof artifacts belong somewhere that outlives the session. They are attachments 119-122 on the
+landing card now (`hermes kanban attachments t_872bbafb`), which is the answer to "where is the
+evidence".
+
+(b) *A table row that stopped being a table.* The row I added to the landing table carried 5 cells
+against a 6-column header, and asserted the record contributed 2 commits when the record had by then
+contributed five. Both halves are the same mistake: a number that the row's own existence increments
+is not a reading to publish, it is a command to hand over. The identity in section 0 is now stated
+that way, and the cell count is stated by the row.
+
+(c) *A reused commit message.* Two pushed commits carry one subject, because after a later edit I
+re-ran the same commit script instead of writing the message fresh, so the second commit inherited a
+sentence describing the first. Both shas are pushed, so the history is not repaired; the correction
+is this paragraph, and the rule is that a commit script writes its subject for the commit in front of
+it and is invoked once.
+
+The cost of all three is the same and it is small: re-grepping and re-counting the artifact after
+writing it, which is three commands and did not need a review round.
 
 **Cleaning my own residue made seven commits citation-less, and how to not do that.**
 
