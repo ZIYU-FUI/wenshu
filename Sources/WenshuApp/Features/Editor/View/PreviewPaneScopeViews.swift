@@ -172,14 +172,18 @@ extension PreviewPane {
     /// "上下结构" the boss's rule removes), = = and the cards flow in the
     /// list's order (= = the 资料库's documents, = = then each book's).
     func libraryDocumentGrid(documents: [LibraryDocument]) -> some View {
-        GeometryReader { geometry in
+        // ONE covers folder for the whole pass (= the ForEach below asks
+        // every card's cover); resolving it per card is work the frame
+        // must not do.
+        let coversRoot = CardCoverService.coversRoot
+        return GeometryReader { geometry in
             ScrollView {
                 LazyVGrid(
                     columns: adaptiveColumns(width: geometry.size.width),
                     spacing: 16
                 ) {
                     ForEach(documents) { document in
-                        card(for: document)
+                        card(for: document, root: coversRoot)
                             // per-card transition (= see the scope grids'
                             // rationale).
                             .transition(.opacity.combined(with: .scale(scale: 0.96)))
@@ -257,7 +261,7 @@ extension PreviewPane {
     /// (= = a reference renames as a reference, = = a book document as a
     /// book document), = = because the two kinds have two different
     /// flows (= = `beginReferenceRename` vs `beginBookDocRename`).
-    func card(for document: LibraryDocument) -> Card {
+    func card(for document: LibraryDocument, root: URL?) -> Card {
         let source = document.source
         let target: CardCoverTarget
         switch source {
@@ -266,7 +270,7 @@ extension PreviewPane {
         case let .bookDoc(doc):
             target = coverTarget(forBookDoc: doc.id)
         }
-        let cover = coverEntry(for: target)
+        let cover = coverEntry(for: target, root: root)
         return Card(
             source: source,
             onDoubleClick: { source in

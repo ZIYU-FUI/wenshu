@@ -46,7 +46,6 @@ import WenshuData
 /// The cover directory and the cover record.
 @MainActor
 struct CardCoverService {
-
     init() {}
 
     // MARK: - Keys
@@ -151,7 +150,7 @@ struct CardCoverService {
 
     // MARK: - Reading
 
-    /// Everything one card's cover currently holds.
+    /// Everything one card's cover currently holds, in ONE library.
     ///
     /// The picture's own file decides whether there is a cover: a
     /// cover whose file is gone is no cover, and the card falls back
@@ -169,15 +168,62 @@ struct CardCoverService {
     /// whole column instead of once per card, and that the rest of the
     /// column is read off the main thread the moment the first cold
     /// ask happens (= `CoverIndex.prefill`).
-    func entry(forKey key: String) -> CoverEntry {
-        let root = Self.coversRoot
+    ///
+    /// THE ROOT IS A PARAMETER, NOT SOMETHING THIS LOOKUP FETCHES. A
+    /// warm column answers from memory, and if the lookup also had to
+    /// ask which library is active it would pay a UserDefaults read
+    /// plus a bookmark decode per card, per render, on the drawing
+    /// thread - preparation, which Apple says the draw must not do:
+    /// "Rely on previously prepared data in draw(_:), don't perform
+    /// I/O or complex calculations in this method". So a column resolves
+    /// the covers folder ONCE for the pass and hands the same value to
+    /// every card. The root-resolving form below exists for a SINGLE
+    /// ask and is not this door's shape (= a column that loops it pays
+    /// twenty-four decodes where it owes one).
+    func entry(forKey key: String, root: URL?) -> CoverEntry {
         if let cached = CoverEntryCache.shared.entry(forKey: key, root: root) {
             return cached
         }
+        return readCold(forKey: key, root: root)
+    }
+
+    /// Every card of one column, from ONE covers folder.
+    ///
+    /// The shape a grid's body pays once per render instead of once per
+    /// card, and the shape the counting suite drives because it is the
+    /// only one whose library lookups can be bounded: twenty-four cards
+    /// answered from memory cost ONE lookup and zero disk asks.
+    func entries(forKeys keys: [String], root: URL?) -> [CoverEntry] {
+        let held = CoverEntryCache.shared.entries(forKeys: keys, root: root)
+        var answers: [CoverEntry] = []
+        answers.reserveCapacity(keys.count)
+        for (key, cached) in zip(keys, held) {
+            answers.append(cached ?? readCold(forKey: key, root: root))
+        }
+        return answers
+    }
+
+    /// The cold half of the door: ask the folder, hold the answer, and
+    /// kick the walk that keeps the rest of the column off the frame.
+    ///
+    /// Reachable only when nothing holds the key, which is once per card
+    /// per library per cache generation, and never on a warm pass.
+    private func readCold(forKey key: String, root: URL?) -> CoverEntry {
         CoverIndex.shared.prefill()
         let entry = Self.readEntry(forKey: key)
         CoverEntryCache.shared.store(entry, forKey: key, root: root)
         return entry
+    }
+
+    /// The stored answer for one card in the active library.
+    ///
+    /// The single-ask door, for the callers that ask about ONE card (a
+    /// generation, a removal, a menu), where one lookup of the library
+    /// is neither a frame's cost nor avoidable. A loop over this is the
+    /// defect: a column asks `entries(forKeys:root:)` or resolves the
+    /// root once and calls `entry(forKey:root:)`.
+    func entry(forKey key: String) -> CoverEntry {
+        entry(forKey: key, root: Self.coversRoot)
     }
 
     /// The stored banner for a card, or nil when the card has no
@@ -210,7 +256,8 @@ struct CardCoverService {
               let source = CGImageSourceCreateWithURL(file as CFURL, nil),
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any],
               let width = properties[kCGImagePropertyPixelWidth as String] as? Int,
-              let height = properties[kCGImagePropertyPixelHeight as String] as? Int else {
+              let height = properties[kCGImagePropertyPixelHeight as String] as? Int
+        else {
             return false
         }
         return width == CardCoverImageEncoder.bannerWidth
@@ -257,7 +304,8 @@ struct CardCoverService {
         motifs: CoverMotifs? = nil
     ) throws {
         guard let directory = Self.directory(forKey: key),
-              let imageURL = Self.imageURL(forKey: key) else {
+              let imageURL = Self.imageURL(forKey: key)
+        else {
             throw CardCoverError.noLibrary
         }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -274,7 +322,8 @@ struct CardCoverService {
         // that cannot play its own cover until something re-reads it.
         var clip: URL?
         if let videoURL = Self.videoURL(forKey: key),
-           FileManager.default.fileExists(atPath: videoURL.path) {
+           FileManager.default.fileExists(atPath: videoURL.path)
+        {
             try? FileManager.default.removeItem(at: videoURL)
             if FileManager.default.fileExists(atPath: videoURL.path) {
                 clip = videoURL
@@ -305,7 +354,8 @@ struct CardCoverService {
     /// Stores a card's clip and writes its record.
     func saveVideo(_ data: Data, forKey key: String) throws {
         guard let directory = Self.directory(forKey: key),
-              let videoURL = Self.videoURL(forKey: key) else {
+              let videoURL = Self.videoURL(forKey: key)
+        else {
             throw CardCoverError.noLibrary
         }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -330,7 +380,8 @@ struct CardCoverService {
     /// Writes a card's record.
     func writeRecord(_ record: CoverRecord, forKey key: String) throws {
         guard let directory = Self.directory(forKey: key),
-              let recordURL = Self.recordURL(forKey: key) else {
+              let recordURL = Self.recordURL(forKey: key)
+        else {
             throw CardCoverError.noLibrary
         }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

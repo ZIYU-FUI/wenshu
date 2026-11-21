@@ -25,7 +25,6 @@ import SwiftUI
 import WenshuData
 
 extension PreviewPane {
-
     /// The stored cover CLIP for a reference card, or nil when it has
     /// no moving cover.
     func coverVideoURL(forReference id: UUID) -> URL? {
@@ -69,13 +68,28 @@ extension PreviewPane {
         CardCoverService().coverImageURL(for: key)
     }
 
-    /// Everything one card's cover holds, read once.
+    /// The cover entries for a whole column, from ONE library lookup.
+    ///
+    /// The door a grid's body uses. A grid asks about every card it
+    /// draws, so the library the cards' cover folders live in is
+    /// resolved ONCE here and handed down; asking per card is the cost
+    /// Apple's rule puts outside the draw (= `CardCoverService.entry`
+    /// taking its root as a value), and this is the one place a caller
+    /// can bound it.
+    func coverEntries(for targets: [CardCoverTarget]) -> [CoverEntry] {
+        let root = CardCoverService.coversRoot
+        return CardCoverService().entries(forKeys: targets.map(\.coverKey), root: root)
+    }
+
+    /// Everything one card's cover holds, read once, in ONE library.
     ///
     /// The grid asks about a card on every render, and it needs three
     /// answers (= the picture, the clip and the record). One entry
     /// answers all three, so the card is read once rather than three
-    /// times.
-    func coverEntry(for target: CardCoverTarget) -> CoverEntry {
+    /// times. The root arrives from the caller (= `coverEntries(for:)`,
+    /// or the grid that hoisted one covers folder for its whole pass),
+    /// so a warm card costs neither a disk ask nor a bookmark decode.
+    func coverEntry(for target: CardCoverTarget, root: URL?) -> CoverEntry {
         // The signal is read here, and not in the card, because this
         // is the ONE door every card's cover goes through: a view
         // that reads the signal renders again when a cover changes on
@@ -84,7 +98,16 @@ extension PreviewPane {
         // state, so without this read the card keeps the cover it was
         // handed before the removal.
         _ = CoverChangeSignal.shared.revision
-        return CardCoverService().entry(forKey: target.coverKey)
+        return CardCoverService().entry(forKey: target.coverKey, root: root)
+    }
+
+    /// Everything one card's cover holds, asking which library it is in.
+    ///
+    /// One card, one lookup: the shape for a single ask, not for a
+    /// column (= `coverEntries(for:)`, or pass the hoisted folder to
+    /// `coverEntry(for:root:)`).
+    func coverEntry(for target: CardCoverTarget) -> CoverEntry {
+        coverEntry(for: target, root: CardCoverService.coversRoot)
     }
 
     /// The service that draws a card's cover.
@@ -145,9 +168,14 @@ extension PreviewPane {
         coverVideoService.removeVideo(for: target)
     }
 
-    func referenceCategoryCard(_ entity: Reference) -> some View {
+    /// The card for one reference in the category grids.
+    ///
+    /// The covers folder arrives from the grid that draws the column, so
+    /// the whole pass resolves the library once instead of once per card
+    /// (= `coverEntries(for:)` for the shape).
+    func referenceCategoryCard(_ entity: Reference, root: URL?) -> some View {
         let target = coverTarget(forReference: entity.id)
-        let cover = coverEntry(for: target)
+        let cover = coverEntry(for: target, root: root)
         return Card(
             source: .reference(entity),
             onDoubleClick: { source in
@@ -165,13 +193,11 @@ extension PreviewPane {
                 )
             },
             onMakeDynamicCover: {
-
                 makeVideo(for: target)
 
             },
 
             onRemoveCover: {
-
                 removeCover(for: target)
 
             },
@@ -230,9 +256,6 @@ extension PreviewPane {
         )
     }
 
-
-
-    @ViewBuilder
     func emptyScopeView() -> some View {
         emptyState(
             icon: "book.pages",
@@ -240,8 +263,6 @@ extension PreviewPane {
             bodyKey: "preview.empty.scope_hint"
         )
     }
-
-
 
     // MARK: - 3 view modes
 
@@ -284,7 +305,6 @@ extension PreviewPane {
         }
     }
 
-
     /// Non-empty branch of categoryGrid (= the GeometryReader + ScrollView +
     /// LazyVGrid + animations + contentInset pipeline). Apple HIG canonical
     /// pattern: when an if/else has a heavy non-empty branch (= 5 nested view
@@ -295,9 +315,13 @@ extension PreviewPane {
     /// in the parent body; = the parent categoryGrid body becomes: VStack →
     /// if/else → emptyState/categoryGridContent = 4 frames; = the deepest path
     /// through the file is now 5 = the per-helper's internal nesting).
-    @ViewBuilder
     func categoryGridContent(inCategory: [Reference]) -> some View {
-        GeometryReader { geometry in
+        // ONE covers folder for the whole pass (= the ForEach below draws
+        // a card per entity and every card asks its cover): the library
+        // is a bookmark, and resolving it per card is work the frame must
+        // not do.
+        let coversRoot = CardCoverService.coversRoot
+        return GeometryReader { geometry in
             ScrollView {
                 LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                     ForEach(inCategory) { entity in
@@ -309,7 +333,7 @@ extension PreviewPane {
                         // opens THIS specific card in the
                         // editor, not the topmost card = the
                         // previous filtered.first bug).
-                        referenceCategoryCard(entity)
+                        referenceCategoryCard(entity, root: coversRoot)
                             // Cards fade in on sidebar tap: individual Card gets an
                             // opacity + scale entry
                             // transition. When the user
@@ -375,23 +399,21 @@ extension PreviewPane {
         }
     }
 
-
-    /// Single Reference card for a category grid (= extracted from
-    /// categoryGrid's nested ForEach + Card trailing closure). Apple HIG
-    /// canonical pattern for deep view hierarchies (= extract nested trailing
-    /// closures into named @ViewBuilder helpers; = one less view layer; =
-    /// categoryGrid goes from 8 nested views to 7). The body contains the
-    /// Card's onDoubleClick (= the Card source argument; = forwards to
-    /// PreviewPane's `onDoubleClick`, which opens THIS specific card in the
-    /// editor; = the previous filtered.first bug). the single-card render
-    /// helper for the per-category grid (= the per-card `onRename` / `onDelete`
-    /// closures are wired here). Extracted from the inline ForEach body so the
-    /// closures can capture `entity` (= the right-clicked card's reference; =
-    /// the closures set `cardRenaming` / `cardPendingDelete` to that specific
-    /// entity; = the user sees a rename / delete flow for the exact card they
-    /// right-clicked).
+    // Single Reference card for a category grid (= extracted from
+    // categoryGrid's nested ForEach + Card trailing closure). Apple HIG
+    // canonical pattern for deep view hierarchies (= extract nested trailing
+    // closures into named @ViewBuilder helpers; = one less view layer; =
+    // categoryGrid goes from 8 nested views to 7). The body contains the
+    // Card's onDoubleClick (= the Card source argument; = forwards to
+    // PreviewPane's `onDoubleClick`, which opens THIS specific card in the
+    // editor; = the previous filtered.first bug). the single-card render
+    // helper for the per-category grid (= the per-card `onRename` / `onDelete`
+    // closures are wired here). Extracted from the inline ForEach body so the
+    // closures can capture `entity` (= the right-clicked card's reference; =
+    // the closures set `cardRenaming` / `cardPendingDelete` to that specific
+    // entity; = the user sees a rename / delete flow for the exact card they
+    // right-clicked).
     // (referenceCategoryCard extracted to PreviewPaneGrids.swift in A79; = see that file)
-
 
     /// Mode 3: all-entities overview grid (= group by category inline).
     @ViewBuilder
@@ -414,12 +436,16 @@ extension PreviewPane {
             // pick creation time or modification time via top-right sort
             // menu icon).
             let sorted = PreviewPaneOps.sortEntities(allEntities, by: previewSortOrder)
+            // ONE covers folder for the whole pass (= the ForEach below
+            // asks every card's cover); resolving it per card is work the
+            // frame must not do.
+            let coversRoot = CardCoverService.coversRoot
             GeometryReader { geometry in
                 ScrollView {
                     LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                         ForEach(sorted) { entity in
                             let target = coverTarget(forReference: entity.id)
-                            let cover = coverEntry(for: target)
+                            let cover = coverEntry(for: target, root: coversRoot)
                             Card(
                                 source: .reference(entity),
                                 onDoubleClick: { source in
@@ -437,13 +463,11 @@ extension PreviewPane {
                                     )
                                 },
                                 onMakeDynamicCover: {
-
                                     makeVideo(for: target)
 
                                 },
 
                                 onRemoveCover: {
-
                                     removeCover(for: target)
 
                                 },
@@ -483,7 +507,6 @@ extension PreviewPane {
 
     // (loadShelfBooksAsync extracted to PreviewPaneDataAccess.swift in A83; = see that file)
 
-
     /// load .md files from a book folder on the filesystem. Walks all shelves
     /// (= shelves/<shelf>/books/<book>/) to find the matching bookId, then
     /// scans one or more of the standard folders for .md files. Errors (=
@@ -501,6 +524,10 @@ extension PreviewPane {
     @ViewBuilder
     func bookDocsGrid(docs: [BookDoc]) -> some View {
         let sorted = PreviewPaneOps.sortBookDocs(docs, by: previewSortOrder)
+        // ONE covers folder for the whole pass (= the ForEach below asks
+        // every card's cover); resolving it per card is work the frame
+        // must not do.
+        let coversRoot = CardCoverService.coversRoot
         GeometryReader { geometry in
             ScrollView {
                 LazyVGrid(
@@ -509,7 +536,7 @@ extension PreviewPane {
                 ) {
                     ForEach(sorted) { doc in
                         let target = coverTarget(forBookDoc: doc.id)
-                        let cover = coverEntry(for: target)
+                        let cover = coverEntry(for: target, root: coversRoot)
                         Card(
                             source: .bookDoc(doc),
                             onDoubleClick: { source in
@@ -527,13 +554,11 @@ extension PreviewPane {
                                 )
                             },
                             onMakeDynamicCover: {
-
                                 makeVideo(for: target)
 
                             },
 
                             onRemoveCover: {
-
                                 removeCover(for: target)
 
                             },
@@ -561,6 +586,5 @@ extension PreviewPane {
             }
             .scrollIndicators(.hidden, axes: .vertical)
         }
-}
-
+    }
 }

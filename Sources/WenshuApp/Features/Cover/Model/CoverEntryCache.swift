@@ -26,6 +26,16 @@
 //  library's answer cannot answer another library's card, so a switch has
 //  nothing to drop and a sweep drops only what it swept.
 //
+//  Why the ROOT ARRIVES AS A VALUE and is never looked up here: the
+//  scope is the library's covers folder, and obtaining one means asking
+//  which library is active (= a UserDefaults read plus a bookmark
+//  decode). The cache is read once per card per render, so a lookup
+//  inside `entry` would put that cost on every frame, for an answer the
+//  caller already had. The CALLER resolves it once for the column it is
+//  drawing and hands the same folder down (= `PreviewPane.coverEntries`
+//  and the grid doors), and the absence of a root-free overload is the
+//  rule: a door cannot silently decide to pay for one.
+//
 
 import Foundation
 
@@ -78,6 +88,21 @@ final class CoverEntryCache: @unchecked Sendable {
     /// never read there.
     func entry(forKey key: String, root: URL?) -> CoverEntry? {
         lock.withLock { entries[scoped(key, root)] }
+    }
+
+    /// The entries for a whole column of card keys, in the order asked,
+    /// from ONE lookup of the covers folder.
+    ///
+    /// The batch is the shape, not an optimisation: a caller that loops
+    /// over `entry(forKey:root:)` with a root it resolved per key is
+    /// back to paying a library lookup per card, which is the cost this
+    /// file exists to remove. A nil answer means that key has never been
+    /// read in THAT library, which is the caller's cold door, not an
+    /// error.
+    func entries(forKeys keys: [String], root: URL?) -> [CoverEntry?] {
+        lock.withLock {
+            keys.map { entries[scoped($0, root)] }
+        }
     }
 
     /// Holds an entry.

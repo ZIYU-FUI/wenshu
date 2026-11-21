@@ -18,14 +18,18 @@ import WenshuAgent
 /// bookmark is the SOLE persistence. Consumers call `ActiveLibrary.path`
 /// instead of `UserDefaults.standard.string(forKey: "wenshu.libraryPath")`.
 enum ActiveLibrary {
-
     /// The active .ws library path string (= the bookmark-resolved
     /// path). Returns nil when no library has been picked yet (= the
     /// onboarding picker will be shown) or when the persisted
     /// bookmark cannot be decoded (= the folder moved/deleted; = the
     /// user has to pick again).
     ///
-    /// Pure read; no I/O. Callers that need the security-scoped grant
+    /// Pure read of what the app already holds; no file is opened. It
+    /// is NOT free (= the bookmark decode is a UserDefaults read plus
+    /// `URL(resolvingBookmarkData:)`), and it is now COUNTED, because a
+    /// frame may not pay it per card (= CoverDiskCounting, counted by
+    /// the cover suite that measures lookups per pass). Callers that
+    /// need the security-scoped grant
     /// (= sandboxed builds only) must additionally call
     /// `url.startAccessingSecurityScopedResource()` around their
     /// file I/O. Today wenshu is non-sandboxed (= every existing
@@ -44,11 +48,18 @@ enum ActiveLibrary {
     /// a task local's storage is per-module, so the package cannot
     /// read one the app declares. Tests scope it with
     /// `PathGuard.$libraryRootOverride.withValue(root) { ... }`.
-    static nonisolated var path: String? {
+    nonisolated static var path: String? {
+        // The visit is counted BEFORE either branch answers it, and that
+        // placement is the whole point: under DEBUG the override returns
+        // first and `LibraryBookmark.resolve()` is never reached, so a
+        // counter sitting behind this line would prove nothing in the
+        // test binary about a cost production pays on every card
+        // (= CoverDiskCounting).
+        CoverDiskCounting.noteLibraryLookup()
         #if DEBUG
-        if let testOverride = PathGuard.libraryRootOverride {
-            return testOverride
-        }
+            if let testOverride = PathGuard.libraryRootOverride {
+                return testOverride
+            }
         #endif
         return LibraryBookmark.resolve()?.path
     }
