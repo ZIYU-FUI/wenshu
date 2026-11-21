@@ -277,17 +277,27 @@ Both remotes were pushed and read back separately, because a push that reported 
 remote says nothing about the other:
 
 ```
-SKIP: pushing. This scope's pushes were: origin at 10:19, 12:39, 15:34, 15:44, 16:11 and
-old-origin at 12:42, 15:34, 15:44, 16:11.
+SKIP: pushing, and a push writes to a remote the reader may not own. The timeline below was read
+from `git reflog show --date=format:'%H:%M' origin/main` and the same command for
+`old-origin/main`, where each entry is the sha that arrival carried. An earlier version of this
+block listed 16:11 twice; nothing was pushed at 16:11 — the two arrivals were 16:04 and 16:51, and
+the wrong pair had been written from memory rather than from the reflog.
+  origin      10:19 a28cc8be80, 12:39 437eb698bf, 15:34 1d1d7c937b, 15:44 8e7481ff8f,
+              16:04 6747dd2229, 16:51 e1b231525a, 17:36 fc18fcc692
+  old-origin  10:19 a28cc8be80, 12:42 437eb698bf, 15:34 1d1d7c937b, 15:44 8e7481ff8f,
+              16:04 6747dd2229, 16:51 e1b231525a
 git ls-remote origin refs/heads/main
-git ls-remote old-origin refs/heads/main
-#  6747dd22295a3847e2d68b6a3b4120d7e9d5a062   (both, and git rev-parse main locally)
+#  fc18fcc692391255090e5abb3e8889dfb0943503   (= git rev-parse main)
 ```
 
-A record cannot print the sha of its own commit, so the correction this round ships under is
-verified the same way rather than pasted here: after it lands, `git ls-remote origin
-refs/heads/main` and `git ls-remote old-origin refs/heads/main` must both equal
-`git rev-parse main`.
+`old-origin` is not in that read-back because it could not be reached for this commit, and the
+probes say it is the path and not the permission: `git push old-origin main` closed on the wire,
+`ssh -T git@github.com` returns `Connection closed by 198.18.0.26 port 22`, and HTTPS fails at the
+handshake (`curl https://api.github.com` -> `LibreSSL SSL_connect: SSL_ERROR_SYSCALL`, http_code
+`000`). So the second remote sits at `e1b231525a`, one commit behind, and "both remotes carry this
+head" is **false** for the head this record ships under — which is why it is not asserted anywhere in
+it. Section 10 item 5 is the open line; a reader checks it with `git ls-remote old-origin
+refs/heads/main`.
 
 ## 10. Left open on purpose
 
@@ -310,6 +320,11 @@ refs/heads/main` and `git ls-remote old-origin refs/heads/main` must both equal
    `2026-10-01`). Widening the scan surface to `.md` is a tool change with findings of its own, not a
    documentation fix, and it belongs to the owner of the census. The record's own text is written to
    avoid the pointer form for dates the register does not carry, because the tool will not catch it.
+5. The second remote is one commit behind. `old-origin` (the GitHub mirror) could not be reached for
+   the head this record ships under — the network path closes SSH on 22 and fails TLS on 443, so it is
+   a wall and not a missing key. `git ls-remote old-origin refs/heads/main` equal to
+   `git rev-parse main` is the check; until it passes, the closeout's push step is half done, and this
+   item rather than a claim of symmetry is where that fact lives.
 
 ## 11. This record's own rounds
 
@@ -363,3 +378,9 @@ stored its metadata under `review_outcome_details` instead of the top-level `rev
 `changes_requested`, and `merge-preflight.sh` refused the branch for the right reason with the wrong
 word. The reviewer re-stamped the run's own metadata row, with a DB snapshot beside it, without
 touching the tree or the sha.
+
+While re-measuring for this round the reflog caught a fifth figure of the same kind, in section 9 and
+not in the reviewer's findings: the push timeline had listed `16:11` twice, and no push happened at
+16:11 — the two arrivals were 16:04 and 16:51. It had been written from the session's memory of when
+the pushes felt like they happened. Section 9 now prints the reflog's own values, including the fact
+that the second remote is behind (section 10, item 5).
