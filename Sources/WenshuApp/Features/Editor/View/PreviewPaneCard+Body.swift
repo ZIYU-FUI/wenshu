@@ -268,8 +268,8 @@ extension Card {
         // longer needed).
         .simultaneousGesture(
             TapGesture(count: 2).onEnded { _ in
-                // Why every double tap is logged: the gesture sometimes does not
-                // reach the Card; = the user can see the card
+                // Why every double tap is logged (see OOB.md #2026-07-23): the gesture
+                // sometimes does not reach the Card; = the user can see the card
                 // highlight, the tap lands, but neither the onTap path
                 // nor the onDoubleClick path fires; = the gesture is
                 // eaten somewhere upstream). Log every double tap (=

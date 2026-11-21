@@ -206,7 +206,7 @@ struct AssetsPane: View {
     /// / throwaway).
     private func openCardInEditor(source: CardSource?) {
         let scope = previewScope()
-        // Every entry into the open path is logged, so a double-click that
+        // Every entry into the open path is logged (see OOB.md #2026-07-23), so a double-click that
         // produces no tab is visible in Console rather than silent.
         os_log("[wenshu.assets] v0.74 openCardInEditor entry source=%{public}@ scope=%{public}@",
                source.map { String(describing: $0) } ?? "nil",
