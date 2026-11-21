@@ -230,6 +230,7 @@ thrown away, since "why not the other design" is a question a later session will
 | `merge-nfi-registry.py` silently drops an unbackticked-key row | card written | `t_274cdbe7` |
 | the registry merge driver is declared in `.gitattributes` and not wired in this machine's `.git/config` | needs a human decision | `t_8da639db` |
 | shared skill files over the 100,000-character cap | needs a human decision | `t_9a40ea5f` |
+| the shared checkout's commit identity | **OPEN**: `git config user.name` reads `review` (`.git/config` mtime 00:50 on 2026-11-22, and no command in this closeout wrote it), so every commit landed from the shared checkout while it is set carries the reviewer as author, including the commits this closeout itself lands. Pushed shas are never rewritten, so the drift is not repaired here; a committer either passes `-c user.name=… -c user.email=…` explicitly or lands from their own worktree | this closeout's follow-up card |
 
 ## 7. Where this round stops
 
