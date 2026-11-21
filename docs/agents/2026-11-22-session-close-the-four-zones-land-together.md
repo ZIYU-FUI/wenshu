@@ -28,6 +28,30 @@ and that the push will nevertheless carry, are the sibling session's record-rewr
 Pushing them is maintenance of the shared server state, not authorship; they are named here so a
 reader of the landing table knows which rows belong to whom.
 
+**The push, and the two transports it needed.** `main` was pushed to BOTH remotes and read back
+from the server, not from a local ref:
+
+```bash
+cd /Volumes/ANAN/Engineering/wenshu
+git push origin main
+git push ssh://git@ssh.github.com:443/ZIYU-FUI/wenshu.git main
+git ls-remote origin main
+git ls-remote ssh://git@ssh.github.com:443/ZIYU-FUI/wenshu.git main
+```
+
+`SKIP: both remotes already carry the sha this doc's commit is on; re-running the two pushes is a
+no-op that costs a network round trip, and on this machine the ssh-22 socket to github is closed
+by a local proxy (198.18.0.0/15 is a benchmark range), so the 443 form is the transport that
+works.`
+
+The remote named `old-origin` is configured as `git@github.com:…`, which routes through port 22,
+and this machine's proxy closes that socket: three retries returned the identical
+`Connection closed by 198.18.0.26 port 22`. Port 443 is the same repository through a different
+door, and it succeeded first try. **An ssh failure on one port is not a credentials problem and
+not a missing repository** — the read-back over https showed the repo and its sha, which is how I
+knew to retry the transport rather than escalate the blocker. Both remotes now answer
+`6f278cd1e34d370d94f94d711de557dedb960f0d`.
+
 | zone | lane | commits it contributed | range on `main` | lane head | approving card |
 | --- | --- | --- | --- | --- | --- |
 | chat area | stream identity | 1 | `10ef4216be..59a02f37b5` | `59a02f37b5` | none at code level |
