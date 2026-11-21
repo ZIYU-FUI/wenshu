@@ -282,9 +282,15 @@ struct WizardStepIndicator: View {
         // than a step that is just "future from the current". System label
         // ink, not a hand-rolled alpha: tertiaryLabel resolves to α 0.26 and
         // adapts to appearance and increase contrast (craft audit C2).
-        if !reachable { return Color(nsColor: .tertiaryLabelColor) }
-        if step == currentStep { return .accentColor }
-        if step.rawValue < currentStep.rawValue { return .green }
+        if !reachable {
+            return Color(nsColor: .tertiaryLabelColor)
+        }
+        if step == currentStep {
+            return .accentColor
+        }
+        if step.rawValue < currentStep.rawValue {
+            return .green
+        }
         return .secondary
     }
 
