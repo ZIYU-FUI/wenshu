@@ -22,7 +22,7 @@
 //    - Summary: loadSummary, saveSummary
 //    - SubAgentRuns: loadSubAgentRuns, recordSubAgentRun
 //
-// chat-by-book row-level split ((see OOB.md #2026-09-24) OOB):
+// Chat storage is split per book:
 //  All session-scoped methods now accept an Optional `bookID` filter.
 //    - bookID == nil  = "global un-attached" (= legacy behavior;
 //      = matches the previous default; = callers that haven't been

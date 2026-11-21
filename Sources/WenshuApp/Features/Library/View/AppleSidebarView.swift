@@ -35,9 +35,9 @@ struct AppleSidebarView: View {
         Self.node(for: workspaceUI.sidebarSelection, in: service?.nodes ?? [])
     }
 
-    // y (see OOB.md #2026-09-23) OOB ', ':
-    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // counter; = the sidebar body observes and presents).
+    // The flags below are the sidebar's create flows: each is a boolean that a
+    // menu item or the empty-area context menu sets, and the
+    // sidebar body observes and presents.
     @State private var showNewChoiceSheet = false
     @State private var showNewShelfSheet = false
     @State private var showNewBookSheet = false
@@ -221,8 +221,8 @@ struct AppleSidebarView: View {
                     .frame(height: DesignTokens.paneTabHotArea)
                     partContent
 
-                // y (see OOB.md #2026-09-23) OOB ', ':
-                // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // Right-clicking the empty area below the rows opens the same New
+                // choice the bottom "+" button does (= the flags below are the sheet
                 // counters; = the sidebar body observes and presents).
                 .modifier(EmptyAreaContextMenu(
                     newLabel: String(localized: "sidebar_context_menu_new"),
@@ -306,8 +306,8 @@ struct AppleSidebarView: View {
         .onChange(of: workspaceUI.currentSidebarPart) { _, _ in
             revealFirstLevel()
         }
-        // y (see OOB.md #2026-09-23) OOB ', ':
-        // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // Each request is observed here and turned into the flag the sidebar's
+        // body reads (= the requests and the flags are the sheet
         // counters; = the sidebar body observes and presents).
         .onChange(of: sheetRequests.choice) { _, _ in
             showNewChoiceSheet = true

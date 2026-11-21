@@ -249,10 +249,9 @@ enum AuxTask: String, CaseIterable, Identifiable {
 
 
 // ZoneSlot -> TabKind rename: the zone enum was duplicate-
-// defined here. Per (see OOB.md #2026-10-03) '' OOB (= strip
-// wenshu-summary layers that conflate with the Apple-canonical
-// shape), the duplicate is removed and callers use the
-// canonical TabKind (= declared in LayoutTreeState.swift).
+// defined here. Callers use the canonical TabKind instead (= declared in
+// LayoutTreeState.swift), which keeps one zone shape and drops the
+// wenshu-summary layers that conflated with it.
 // TabKind has the same 6 cases (= projectSidebar / projectPreview
 // / editor / specializedTools / aiChat / aiDynamic) so the
 // duplicate was always dead code.

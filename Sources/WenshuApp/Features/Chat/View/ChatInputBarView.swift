@@ -89,13 +89,12 @@ struct ChatInputBarView: View {
 
     var body: some View {
         // 2026-09-23: restored the token-usage bottom bar
-        // (= (see OOB.md #2026-09-23) ' token ，，
-        // 。'). Manual compress button is NOT restored
-        // (= ConversationLoop.swift:512 runs ConversationCompression.
+        // (= the token line stays under the input bar). The manual compress button
+        // is NOT restored (= ConversationLoop.swift:512 runs ConversationCompression.
         // historyAfterCompression on every turn = automatic compression;
-        // = no production caller for manualTrigger anymore; = the
-        // 2026-09-23 '，，，。
-        // ，').
+        // = no production caller for manualTrigger, so the bar has no
+        // manual trigger of its own.
+        //
         //
         // Structure (top to bottom):
         //   1. attachmentPreviewChip (= conditional; = nothing when no image)

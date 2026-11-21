@@ -201,8 +201,7 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         /// PreviewPane filters its card grid by
         /// `tags.contains(<tag>)`).
         case tag
-        // bb (see OOB.md #2026-09-23) OOB '
-        // ': non-interactive row that renders a horizontal
+        // A non-interactive row that renders a horizontal
         // Divider (= the Apple HIG section separator idiom; =
         // same role as the section header divider at the
         // top of the sidebar). Inserted between the shelves

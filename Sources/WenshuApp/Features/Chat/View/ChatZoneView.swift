@@ -5,10 +5,8 @@
 // ChatZoneView = the chat-zone root container (= AI provider model
 // selector + ChatView + HelpTextOverlay).
 //
-// -m1-shell (see OOB.md #2026-09-10) OOB 'drop the chat zone's top bar entirely, including the archive
-// icon button and the tabs — basically the whole top bar. For the zone's internal padding, if the API
-// provides one, let the API handle the defaults':
-// the chat zone no longer hosts any top-bar chrome (= no top
+// The zone's internal padding comes from the APIs that provide defaults.
+// The chat zone owns no top-bar chrome (= no top
 // tab bar, no 3-tab HStack, no archive icon, no TEB). The
 // body of the chat zone = bare ChatView (= the chat history +
 // input field). Per Apple HIG TabViews docs 'if you only need
@@ -93,8 +91,8 @@ struct ChatZoneView: View {
         // actions delegate back to the presenter (= the view layer
         // is dumb; = no business logic here).
         //
-        // -m1-shell (see OOB.md #2026-09-10) OOB 'chat zone doesn't fill the width':
-        // apply `.frame(maxWidth: .infinity, maxHeight: .infinity)` to
+        // The zone fills its split-view slot: `.frame(maxWidth: .infinity,
+        // maxHeight: .infinity)` on
         // the outer VStack so the chat zone fills the full width
         // and height of its NSSplitViewItem slot.
         VStack(spacing: 0) {

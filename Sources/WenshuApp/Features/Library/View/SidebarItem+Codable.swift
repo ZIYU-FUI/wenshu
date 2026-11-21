@@ -16,7 +16,7 @@
 import Foundation
 
 extension SidebarItem {
-    // MARK: - v0.30 (see OOB.md #2026-08-31): Codable for AppStorage persistence
+        // MARK: - Codable for AppStorage persistence
 
     //
     // Custom JSON encode/decode for @AppStorage (= AppStorage uses

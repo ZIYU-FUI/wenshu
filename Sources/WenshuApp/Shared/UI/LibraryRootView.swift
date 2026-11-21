@@ -74,8 +74,8 @@ struct LibraryRootView: View {
         content
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
-            // macOS 27 doc-alignment (see OOB.md #2026-09-18) OOB '',
-            // … (= 20 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // macOS 27 doc-alignment for the window's chrome: the material comes
+            // from the window itself (see the pattern note in
             // `pane-chrome-canonic-pattern.md`).
             .containerBackground(.regularMaterial, for: .window)
             // s filename shouldn't be shown either':
@@ -194,9 +194,9 @@ struct LibraryRootView: View {
             // bookStore.books.count is correct on the first render.
             self.bookStore?.reloadAllBooks()
         } catch {
-            // -m1-shell (see OOB.md #2026-09-10) OOB 'UI doesn't load, just spins forever':
-            // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // the 2026-09-10 audit).
+            // A launch failure must not leave the app spinning: the error is logged
+            // here so a stalled UI is attributable to the step that failed, not to
+            // the view that never appeared.
             wenshuLogger.info("[wenshu.library.lifecycle] runLaunch failed: \(String(describing: error))")
         }
     }

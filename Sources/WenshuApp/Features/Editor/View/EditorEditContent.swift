@@ -14,7 +14,7 @@
 //  This struct is intentionally minimal (= all persistence /
 //  routing / auto-save Task management lives in the host
 //  WorkspaceView, which passes the let callbacks as the seam).
-//  Per v0.34 B-22 decision (= (see OOB.md #2026-09-02)), the host owns Task
+//  The seam is deliberate: the host owns Task
 //  internals; EditorEditContent is decoupled from Task.
 //
 //  Only call site = WorkspaceView's editor pane edit mode;

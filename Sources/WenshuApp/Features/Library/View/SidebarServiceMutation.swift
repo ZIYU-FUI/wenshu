@@ -2,10 +2,10 @@
 //  SidebarServiceMutation.swift
 //
 //  Mutation business layer for SidebarService (= the create / delete / rename
-//  operations on shelves + books + references; = the v1.69y (= boss
-//  2026-09-23 (see OOB.md #2026-09-23) OOB ', ') restoration that was
-//  recovered from the deleted NewLibraryOutlineView.swift (2366 LOC) after
-//  `git rm`'d it without re-wiring).
+//  operations on shelves + books + references). The mutation surface lives
+//  here: persistence, the reserved-name and duplicate-name guards, and
+//  validation. The UI lives in SidebarSheets.swift and
+//  SidebarContextMenu.swift.
 //
 //  Why extracted (= §6.6 god-class split): the main SidebarService class
 //  (= 440 LOC) handles the sidebar tree state (= the `nodes` array +
@@ -31,11 +31,11 @@
 
 import Foundation
 
-// MARK: - v1.69y (see OOB.md #2026-09-23) OOB ', '
+// MARK: - Sidebar mutation business layer
 
-/// Create + delete + rename business layer for the sidebar. Restored from the deleted
-/// NewLibraryOutlineView.swift (2366 LOC) after `git rm`'d it without re-wiring (= per
-/// (see OOB.md #2026-09-23) OOB '，'). What lives here: - persistence surface (=
+/// Create + delete + rename business layer for the sidebar (= the tree's
+/// mutation surface, kept apart from the tree state SidebarService owns).
+/// What lives here: - persistence surface (=
 /// FileManager + JSONEncoder/Decoder for shelvesRoot/, books/<bookId>/book.json,
 /// shelf.json). - reserved-name guard (= rejects "" / "Reference Library" legacy
 /// system-shelf names; = (see OOB.md #2026-09-20) OOB). - default-shelf-RENAME guard (=

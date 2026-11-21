@@ -124,8 +124,8 @@ enum CardOpenOps {
                 if case .reference(let r) = source { return r }
                 return filtered.first
             }()
-            // "多次双击"清明"，没有打开" — log (see OOB.md #2026-07-23) the picked reference's body
-            // + summary so the boss can grep whether the body came back
+            // The picked reference's body
+            // + summary are logged here, so a Console grep shows whether the body came back
             // empty (= the silent no-op in openTab fires when
             // triad.content = "" and no tab is appended).
             if let first = pickedReference {
@@ -349,7 +349,7 @@ enum CardOpenOps {
             // sample'.
             title: title.isEmpty ? nil : title
         )
-        // "多次双击"清明"，没有打开" (= the (see OOB.md #2026-07-23) double-click fires
+        // The double-click fires
         // onDoubleClick on the Card, but the tab never appears in the strip; =
         // either the append hits an exception, or activeTabId is not set, or
         // SwiftUI doesn't re-render the strip). Log every successful open so
