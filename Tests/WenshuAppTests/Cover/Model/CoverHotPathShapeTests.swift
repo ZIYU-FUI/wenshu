@@ -73,18 +73,40 @@ struct CoverHotPathShapeTests {
             "the entry door went back to resolving the library itself (= B1): \(hitBody)"
         )
 
-        // 3. NO GRID BODY asks the root-free door. A grid draws a column,
-        // so the single-ask form inside a grid's body is a bookmark decode
-        // per card, which is what this round removed.
-        for grid in ["PreviewPaneGrids.swift", "PreviewPaneScopeViews.swift"] {
-            let source = try SourceLocator.readSource(named: grid)
-            let perCardAsks = [
+        // 3. NO GRID FILE THIS GUARD READS asks the root-free cover
+        // door in its per-card path. The list names EVERY file the rule
+        // reads (= the material column's two grid files and the
+        // linked-document board, the second grid door B1 was found
+        // behind), and the literals name the spellings each file is
+        // read for; the rule is NOT a claim about any file outside the
+        // list. A root-free ask inside a per-card path is a bookmark
+        // decode per card, which is what this lane removed from the
+        // column and then from the board.
+        let guardedGrids: [(file: String, rootFreeAsks: [String])] = [
+            ("PreviewPaneGrids.swift", [
                 "coverEntry(for: target)",
                 "CardCoverService().entry(forKey: target.coverKey)",
-            ].filter { source.contains($0) }
+                "CardCoverService().coverImageURL(",
+                "CardCoverService().coverVideoURL(",
+            ]),
+            ("PreviewPaneScopeViews.swift", [
+                "coverEntry(for: target)",
+                "CardCoverService().entry(forKey: target.coverKey)",
+                "CardCoverService().coverImageURL(",
+                "CardCoverService().coverVideoURL(",
+            ]),
+            ("LinkedDocumentCardBoard.swift", [
+                "CardCoverService().coverImageURL(",
+                "CardCoverService().coverVideoURL(",
+                "root: CardCoverService.coversRoot",
+            ]),
+        ]
+        for guarded in guardedGrids {
+            let source = try SourceLocator.readSource(named: guarded.file)
+            let perCardAsks = guarded.rootFreeAsks.filter { source.contains($0) }
             #expect(
                 perCardAsks.isEmpty,
-                "\(grid) calls the root-resolving cover door per card again: \(perCardAsks.joined(separator: ", ")) (= hoist `CardCoverService.coversRoot` once for the pass and thread it in)"
+                "\(guarded.file) asks the root-free cover door in its per-card path again: \(perCardAsks.joined(separator: ", ")) (= hoist `CardCoverService.coversRoot` once in `body` and thread the value into the per-card door)"
             )
         }
 

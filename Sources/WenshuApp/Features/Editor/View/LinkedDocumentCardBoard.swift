@@ -15,7 +15,6 @@
 import SwiftUI
 
 struct LinkedDocumentCardBoard: View {
-
     /// The documents the board shows.
     let documents: [BookDoc]
 
@@ -31,14 +30,32 @@ struct LinkedDocumentCardBoard: View {
     }
 
     /// The stored picture of one card (= the same cover the material
-    /// column shows; = the key namespaces the two card kinds apart).
-    private func coverURL(for document: BookDoc) -> URL? {
-        CardCoverService().coverImageURL(
-            for: CardCoverService.key(forBookDoc: document.id)
-        )
+    /// column shows; = the key namespaces the two card kinds apart),
+    /// answered in ONE covers folder that arrives as a VALUE.
+    ///
+    /// THE ROOT ARRIVES, IT IS NOT FETCHED HERE. This board is the
+    /// second grid door: `EditorView` renders `LinkedDocumentBoardSection`,
+    /// which builds this board, and its `ForEach` used to ask the
+    /// root-resolving door per card - a UserDefaults read plus a
+    /// bookmark decode inside the draw, once per card per pass (= B1's
+    /// cost, met through a different grid than the material column's).
+    /// The pass is bounded at ONE library visit by a counted row in
+    /// `CoverLibraryLookupCountingTests`, which drives THIS door, and
+    /// the shape is held by `CoverHotPathShapeTests` rule 3, which
+    /// reads this file for the root-free door's name.
+    func coverURL(for document: BookDoc, root: URL?) -> URL? {
+        CardCoverService().entry(
+            forKey: CardCoverService.key(forBookDoc: document.id),
+            root: root
+        ).imageURL
     }
 
     var body: some View {
+        // ONE covers folder for the whole pass (= the same hoist the
+        // material column got): the ForEach below draws a card per
+        // document and every card asks its cover, so resolving the
+        // library per card is preparation the frame must not do.
+        let coversRoot = CardCoverService.coversRoot
         LazyVGrid(columns: columns, alignment: .leading, spacing: DesignTokens.spacingModerate) {
             ForEach(documents) { document in
                 Card(
@@ -50,7 +67,7 @@ struct LinkedDocumentCardBoard: View {
                     onDelete: {},
                     // The picture is the card (= the boss: only the
                     // picture, = no moving cover on a board of nine).
-                    coverImageURL: coverURL(for: document)
+                    coverImageURL: coverURL(for: document, root: coversRoot)
                 )
                 .frame(
                     width: Self.cardWidth,

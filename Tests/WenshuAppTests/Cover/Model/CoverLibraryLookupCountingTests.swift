@@ -32,15 +32,18 @@
 //  THE SHAPE THAT BUYS IT: a column resolves the covers folder ONCE and
 //  hands the same value to every card (= `PreviewPane.coverEntries(for:)`
 //  for a whole column, `coverEntry(for:root:)` for the grid bodies that
-//  build one card at a time), and the cache scope stays the covers
+//  build one card at a time, and `LinkedDocumentCardBoard.coverURL(for:root:)`
+//  for the board that B1 was found behind - the SECOND grid door, bounded
+//  by a row below), and the cache scope stays the covers
 //  FOLDER plus the card key (= `CoverEntryCache`), which is what keeps
 //  one library's answer from ever answering another library's card. The
 //  scoping is proven here, not assumed: two libraries in one process are
 //  measured side by side, and each is answered from its own folders.
 //
-//  The passes are driven through the doors the column itself opens, all
-//  of them synchronous or awaited to completion, and no run loop is
-//  pumped and no clock is waited on. Every phase builds its OWN library
+//  The passes are driven through the doors the column and the board
+//  themselves open, all of them synchronous or awaited to completion,
+//  and no run loop is pumped and no clock is waited on. Every phase
+//  builds its OWN library
 //  and its OWN card keys, so no phase clears a process-global cache and
 //  reaches into whatever other suite is in flight.
 //
@@ -119,6 +122,42 @@ struct CoverLibraryLookupCountingTests {
         return targets
     }
 
+    /// Book cards whose covers are ON THE DISK and unknown to this
+    /// process, written like `makeLibraryOnDisk` writes the column's:
+    /// straight to disk, through no service, so the pass is warm. The
+    /// board draws `BookDoc`s: the OTHER cover-key kind.
+    private func makeBookDocsOnDisk(count: Int) throws -> [BookDoc] {
+        let picture = pictureBytes()
+        let recordData = try CardCoverService.encoder.encode(
+            CoverRecord(cardKind: WSCardCoverKind.bookDoc)
+        )
+        var documents: [BookDoc] = []
+        for index in 0 ..< count {
+            let document = BookDoc(
+                id: UUID(),
+                bookId: UUID(),
+                folderName: "board",
+                fileName: "card-\(index).md",
+                modifiedAt: .now,
+                createdAt: .now,
+                tags: [],
+                body: ""
+            )
+            let key = CardCoverService.key(forBookDoc: document.id)
+            guard let directory = CardCoverService.directory(forKey: key),
+                  let imageURL = CardCoverService.imageURL(forKey: key),
+                  let recordURL = CardCoverService.recordURL(forKey: key)
+            else {
+                throw CardCoverError.noLibrary
+            }
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try picture.write(to: imageURL, options: .atomic)
+            try recordData.write(to: recordURL, options: .atomic)
+            documents.append(document)
+        }
+        return documents
+    }
+
     /// The pane whose grid the column renders.
     private func makePane() -> PreviewPane {
         PreviewPane(
@@ -169,6 +208,38 @@ struct CoverLibraryLookupCountingTests {
         await CoverDiskCounting.$tally.withValue(tally) {
             for target in targets {
                 _ = pane.coverEntry(for: target)
+            }
+        }
+        return tally
+    }
+
+    /// One board pass drawn the way `LinkedDocumentCardBoard.body`
+    /// draws it: ONE covers folder hoisted for the pass, then the
+    /// board's own per-card door (the second grid door B1 found).
+    private func hoistedBoardPass(
+        board: LinkedDocumentCardBoard,
+        documents: [BookDoc]
+    ) async -> CoverDiskCounting.Tally {
+        let tally = CoverDiskCounting.Tally()
+        await CoverDiskCounting.$tally.withValue(tally) {
+            let coversRoot = CardCoverService.coversRoot
+            for document in documents {
+                _ = board.coverURL(for: document, root: coversRoot)
+            }
+        }
+        return tally
+    }
+
+    /// The SAME board pass with the hoist removed at the call site:
+    /// the folder re-derived per card, the shape the bound forbids.
+    private func perCardRootBoardPass(
+        board: LinkedDocumentCardBoard,
+        documents: [BookDoc]
+    ) async -> CoverDiskCounting.Tally {
+        let tally = CoverDiskCounting.Tally()
+        await CoverDiskCounting.$tally.withValue(tally) {
+            for document in documents {
+                _ = board.coverURL(for: document, root: CardCoverService.coversRoot)
             }
         }
         return tally
@@ -275,6 +346,51 @@ struct CoverLibraryLookupCountingTests {
             report("grid-pass-of-first-screenful", drawn)
             #expect(drawn.lookupsTotal == 1, "the open's first screenful asked the library \(drawn.lookupsTotal) time(s), expected one for the pass")
             #expect(drawn.total == 0, "the open's first screenful asked the disk \(drawn.total) time(s)")
+        }
+        try? FileManager.default.removeItem(at: root)
+    }
+
+    @Test("The linked-document board draws a warm screenful asking the LIBRARY once for the pass")
+    func theLinkedBoardPassResolvesTheLibraryOnceForTheWholeBoard() async throws {
+        let root = try makeLibraryRoot()
+        try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            let documents = try makeBookDocsOnDisk(count: Self.screenful)
+
+            // The walk awaited: after this every board card's folder
+            // is in memory, so the measured window is a warm column.
+            await CoverIndex.shared.prefillAndWait()
+            let board = LinkedDocumentCardBoard(documents: documents, onOpen: { _ in })
+
+            // THE PASS: 24 book cards, warm, drawn the way THIS board's
+            // body draws it - one hoisted folder, the board's own door
+            // per card (the door B1 was found behind).
+            let hoisted = await hoistedBoardPass(board: board, documents: documents)
+            report("linked-board-pass-of-24-warm-cards", hoisted)
+            #expect(
+                hoisted.total == 0,
+                "a warmed board of \(Self.screenful) cards asked the disk \(hoisted.total) time(s) through the board's own door"
+            )
+            #expect(
+                hoisted.lookupsTotal == 1,
+                "one board pass over \(Self.screenful) warm cards asked which library it is in \(hoisted.lookupsTotal) time(s), expected exactly one for the pass (= the covers folder must be hoisted ONCE in `body` and handed to `coverURL(for:root:)`; re-deriving it inside the door puts a bookmark decode per card back into the draw)"
+            )
+            #expect(
+                hoisted.lookupsOnMainThread == 1,
+                "one board pass asked which library it is in \(hoisted.lookupsOnMainThread) time(s) on the MAIN thread, expected the pass's single one"
+            )
+
+            // THE ARM THAT SAYS THIS IS A BOUND AND NOT AN ACCIDENT:
+            // the same door and cards, the folder re-derived per call.
+            let perCard = await perCardRootBoardPass(board: board, documents: documents)
+            report("linked-board-per-card-root-of-24-warm-cards", perCard)
+            #expect(
+                perCard.lookupsTotal == Self.screenful,
+                "the board door with the folder re-derived per card recorded \(perCard.lookupsTotal) visit(s) for \(Self.screenful) cards; the hoisted pass costs 1 - if these agree, the pass stopped measuring the hoist"
+            )
+            #expect(
+                perCard.total == 0,
+                "the per-card-root board pass asked the disk \(perCard.total) time(s), so this arm measures lookups and not reads"
+            )
         }
         try? FileManager.default.removeItem(at: root)
     }

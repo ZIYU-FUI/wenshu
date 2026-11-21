@@ -25,49 +25,6 @@ import SwiftUI
 import WenshuData
 
 extension PreviewPane {
-    /// The stored cover CLIP for a reference card, or nil when it has
-    /// no moving cover.
-    func coverVideoURL(forReference id: UUID) -> URL? {
-        coverVideoURL(forKey: CardCoverService.key(forReference: id))
-    }
-
-    /// The stored cover CLIP for a book-doc card, or nil.
-    func coverVideoURL(forBookDoc id: UUID) -> URL? {
-        coverVideoURL(forKey: CardCoverService.key(forBookDoc: id))
-    }
-
-    /// The stored cover clip under a key, or nil.
-    private func coverVideoURL(forKey key: String) -> URL? {
-        CardCoverService().coverVideoURL(for: key)
-    }
-
-    /// The stored cover picture for a reference card, or nil when it
-    /// has no cover.
-    ///
-    /// The key comes from `CardCoverService`, which namespaces the two
-    /// card kinds apart, so a reference card and a book card can
-    /// never land on one cover.
-    func coverImageURL(forReference id: UUID) -> URL? {
-        coverImageURL(forKey: CardCoverService.key(forReference: id))
-    }
-
-    /// The stored cover picture for a book-doc card, or nil when it
-    /// has no cover.
-    func coverImageURL(forBookDoc id: UUID) -> URL? {
-        coverImageURL(forKey: CardCoverService.key(forBookDoc: id))
-    }
-
-    /// The stored cover picture under a key, or nil.
-    ///
-    /// The service owns the lookup, because the cover files are the
-    /// source of truth. A card whose cover folder is not there has no
-    /// cover, and a card whose picture is gone has no cover either
-    /// (= the cover was deleted outside the app, so the card falls
-    /// back to its gradient and symbol).
-    private func coverImageURL(forKey key: String) -> URL? {
-        CardCoverService().coverImageURL(for: key)
-    }
-
     /// The cover entries for a whole column, from ONE library lookup.
     ///
     /// The door a grid's body uses. A grid asks about every card it
