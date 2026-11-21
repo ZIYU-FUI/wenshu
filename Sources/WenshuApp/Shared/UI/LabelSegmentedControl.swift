@@ -111,7 +111,9 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// AppKit weight counterpart used to configure `NSImage` symbols before
     /// they enter `NSSegmentedControl`. Always `.regular` (= the factory
     /// rule, 2026-11-21 craft audit T4/X7).
-    var symbolWeight: NSFont.Weight { .regular }
+    var symbolWeight: NSFont.Weight {
+        .regular
+    }
 
     /// macOS 27 segmented-control role (= how the SELECTED segment is drawn).
     ///
