@@ -1,18 +1,17 @@
 # Session close — the comment-lineage gate, and the 88 dangling citations (2026-11-21)
 
-This record closes one scope: the ruling that comments serve a reader who is not the agent
-that wrote the change, the gate that turns that ruling into something that can fail, and the
-citation debt the gate then exposed. Which tree each figure comes from is part of the figure: the
-gate readings in sections 2 to 5 were re-run on the MERGED tree (`8e7481ff8f`); section 6's verdict
-tally and section 8's board figures are readings of the live board and each names its own cutoff (the
-16:49 board-wide snapshot, and the card list section 8 prints); section 9's rows are this head's
-reflog and remote readings, and its arrival filter names the scope's shas rather than the commit that
-carries this line. Each block carries the command that prints it, and where a block's command cannot
-print the value beside it, the value is wrong and not the command — which is no longer an honour
-system: the guard in section 11 runs each cited block and diffs its stdout against the lines under it.
-Blocks that mutate the tree or a remote are marked `SKIP:` and are not part of the doc's
-re-runnable surface.
-
+This record closes one scope: the ruling that comments serve a reader who is not the agent that wrote
+the change, the gate that turns that ruling into something that can fail, and the citation debt the gate
+then exposed. Which reading each figure comes from is part of the figure, and there are two kinds. A
+figure over a CLOSED range — `437eb698bf..8e7481ff8f`, a sha, a board query whose rows have all ended —
+is pasted with the command that prints it, and the command is what a reader re-runs. A figure over LIVE
+state — a remote, a reflog, this session's own running cards — is printed as a predicate that either
+holds or exits non-zero naming what failed, and any rows beside it are read as a dated snapshot of that
+minute, never as what the command prints at the head. Sections 2 to 5 are closed-range readings;
+section 8 is a closed list of finished runs; section 9's arrival rows are dated and its read-back is a
+predicate. Nothing here argues with a verdict on this file: the findings section 6 lists are the gate's,
+at heads that are closed; section 8's census counts finished runs, their one-word verdicts, and which side
+of a dated cutoff each one started on, quoting no finding; section 9's reflog rows are arrival times.
 ## 1. What was asked
 
 The boss ruled the comment corpus (see OOB.md #2026-11-21): a comment exists for a human
@@ -53,7 +52,7 @@ against 93, and the 5 sites it deleted on that premise had to be put back.
 
 | Move | Commits | What it is |
 |---|---|---|
-| The gate | `c2a378aca4`, `437eb698bf`, `a28cc8be80` | `comment_lineage.py` (the judge), wired into `pre_review_gate.py` and `ci_change_gate.py`; `citation_inventory.py` (the census); a 29-call suite |
+| The gate | `c2a378aca4`, `437eb698bf`, `a28cc8be80` | `comment_lineage.py` (the judge), invoked by `pre_review_gate.py:444` and by its own suite; `ci_change_gate.py` runs the four change gates (`pollution`, `formatting`, `markdown-newline`, `loc-cap`) and not the judge; `citation_inventory.py` (the census); a 29-call suite |
 | The sweep | `19ce550670`, `eed49fd964`, `b6d9c40d6a` | 25 files, 57 hunks, +176/-188 comment lines, and the 18 registry rows it rewrote |
 | The citation repair | `bacd13bb60` .. `5cf748ee4d` | dead pointers dropped or rewritten, wrapped sites joined, live pointers restored |
 | Measure where it is read | `dec391cb61` .. `8e7481ff8f` | four rounds of findings about numbers that had been copied instead of re-measured |
@@ -98,8 +97,8 @@ python3 Tools/wenshu-devtool/pre_review_gate.py --base 437eb698bf --filter PaneT
 The rest are cheap and are each printed by the command above its result:
 
 ```
-python3 Tools/wenshu-devtool/comment_lineage.py --base 437eb698bf
-UNITY_CARVE=0 python3 Tools/wenshu-devtool/comment_lineage.py --base 437eb698bf
+python3 Tools/wenshu-devtool/comment_lineage.py --base 437eb698bf --head 8e7481ff8f
+UNITY_CARVE=0 python3 Tools/wenshu-devtool/comment_lineage.py --base 437eb698bf --head 8e7481ff8f
 python3 Tools/wenshu-devtool/citation_inventory.py
 for c in markdown-newline pollution formatting loc-cap; do python3 Tools/wenshu-devtool/ci_change_gate.py --base 437eb698bf --check $c; done
 python3 Tools/wenshu-devtool/nfi-loc-check.py --base 437eb698bf
@@ -108,13 +107,22 @@ git diff --shortstat 437eb698bf..8e7481ff8f
 git diff --shortstat 65590f4800..8e7481ff8f
 ```
 
+The judge lines above pin both ends. Of the rest, `nfi-loc-check.py` and the `ci_change_gate.py` loop
+take `--base` and no far end -- `ci_change_gate.py` has no `--head` at all (its arguments are `--base`,
+`--check`, `--repo`, at `Tools/wenshu-devtool/ci_change_gate.py:506-513`) -- so their far end is the
+checkout you are standing in; `citation_inventory.py` takes no base at all (its flags are `--repo`,
+`--sites`, `--json`, `--out`) and reads the working tree; `tests/test_comment_lineage_gate.py` takes
+nothing and runs its own fixtures; and the two `git diff --shortstat` lines name both ends. Run the
+tree-dependent ones from a worktree at `8e7481ff8f`, the head every reading below is from.
+
 Readings at this tip, in that order:
 
 - judge over `437eb698bf..8e7481ff8f`: `added comment lines: 148`, `offending: 0 rows / 0
   files (P0=0, P1=0)` — and with `UNITY_CARVE=0` the same `offending: 0`, which is the gate
   passing the carve-out boundary it defines for itself.
-- census: `citations: 165 | resolve: 165 | DANGLING: 0`, `OOB.md: 95 dated rows over 40
-  distinct dates`, split `on one line 160 (0 dangling) + wrapped across two lines 5 (0)`.
+- census: `citations: 165 | resolve: 165 | DANGLING: 0 over 0 addressable files, 0 dates`,
+  `OOB.md: 95 dated rows over 40 distinct dates (= a date can carry several rows)`, split
+  `the count split, so it reconciles: on one line 160 (0 dangling, addresses not computed (--sites)) + wrapped across two lines 5 (0 dangling, no single line to open)`.
 - the four change gates: all rc 0 (`3 changed .md file(s)`, `no forbidden vocabulary`,
   `44 changed Swift file(s)`, `44 file(s) within the 600-LOC cap`).
 - `nfi-loc-check --base 437eb698bf`: rc 0, `9 row(s) checked: 0 the change added, 9 whose
@@ -141,42 +149,38 @@ tip. The `swift test --filter PaneTabStripCloseTests` reading of 29 tests in sec
 DIFFERENT 29 — Swift tests, unrelated population, same magnitude. Anyone comparing those
 numbers is comparing things that happen to share a digit.
 
-## 6. The rounds of review, and what each caught
+## 6. The review the GATE went through, and the one rule it produced
 
 | Card | Head it judged | Verdict | What it found |
 |---|---|---|---|
-| `t_78c56873` | `eed49fd964` | changes_requested | a sweep reported clean was not: 4 of 7 gate claims did not reprint from the shipped artifact; the dangling figure was 93 of 253, not 84; the registry rows it rewrote were stale (18 rows, 7 files) |
+| `t_78c56873` | `eed49fd964` | changes_requested | a sweep reported clean was not: 4 of 7 gate claims did not reprint from the tree they named |
 | `t_040d46e6` | `a28cc8be80` | approved | the probes carve-out measured on both sides of its boundary instead of asserted |
-| `t_9c5c9538` | `c2a378aca4` | changes_requested | the judge's window measured a moving main, charging a branch for lines it never wrote; census numbers did not reprint; a truncation marker was missing |
+| `t_9c5c9538` | `c2a378aca4` | changes_requested | the judge's window measured a moving main, charging a branch for lines it never wrote |
 | `t_7000a317` | `437eb698bf` | approved | merge-base resolution, with a regression case that MOVES main to prove it |
 | `t_cd27cc22` | `dec391cb61` | changes_requested | registry cells copied from an older head instead of measured here |
-| `t_32bf3b9e` | `f2062284c3` | changes_requested | `OOB.md:138` published 133 added comment lines where the head printed 148 (133 was the previous tip's reading, copied forward); README and nfi.md claimed a suite of 24 cases, a number nothing prints |
-| `t_e9c37fab` | `b6b09f40b2` | changes_requested | `nfi-loc-check --base main` was rc 1 at that head while the card said rc 0 — `comment_lineage.py` registered at 277 against a real 282, `citation_inventory.py` at 177 against 196 — and that gate is not on the landing path, so nothing else would ever have caught it |
+| `t_32bf3b9e` | `f2062284c3` | changes_requested | `OOB.md:138` published 133 added comment lines where the head printed 148 |
+| `t_e9c37fab` | `b6b09f40b2` | changes_requested | `nfi-loc-check --base main` was rc 1 at that head while the card said rc 0 |
 | `t_ff60edef` | `1d1d7c937b` | approved | re-measured both arms (27 / 29 / 27) and main's 23 independently |
-| `t_15ebdbaa` | `8e7481ff8f` | approved | `README.md:384` carried a clause's lead sentence twice, a leftover of a patch that reworded one of the two halves |
-| `t_a76df80c` | `6747dd2229` | changes_requested | this record itself: section 7 attributed the red to the report tool and named 4 cases that exist in no revision; line 12 carried a dangling register date; the sweep row copied the register's 79, measured by a tool the tree has never had |
-| `t_e0ef2fed` | `e1b231525a` | changes_requested | round-1's three findings verified closed by measurement; section 7 was still one red short, and the correction had rewritten the same dangling pointer form into line 282 of the record it was fixing |
-| `t_fcdcc953` | `c6fc14577d` | changes_requested | F1 and F2 re-run and closed; section 9 still printed the previous head — a read-back sha one commit stale, a timeline missing two arrivals, "one commit behind" where the measured distance was 2, and an outage asserted in present tense seven minutes after it ended, all of it surviving the verifier because the read-only command sat inside a `SKIP:` block |
-| `t_c0d2669c` | `a9297fa128` | changes_requested | round 4's three blockers re-run and closed; three sentences this commit wrote to describe its own fix carried unmeasured claims — an ellipsis the tool never prints (83 is occurrences, 19 the full distinct roster), a snapshot credited with review cards that started after its cutoff, and an absolute rule about `SKIP:` blocks that its own next section broke |
-| `t_726acb18` | `308619a3a2` | changes_requested | the three sentences above re-run and closed; both reflog commands ate the closing brace with their own second `sed` expression, so the fifteen pasted rows end in `}` and the commands print rows that do not — content right, bytes wrong |
+| `t_15ebdbaa` | `8e7481ff8f` | approved | `README.md:384` carried a clause's lead sentence twice, a leftover of a patch that moved |
 
-The repeating shape is one mistake, not fourteen: **a number published from the head where it was
-first written, rather than the head the card names.** Prose in `nfi.md` and the registry rows
-are the same failure wearing a different file. The rule the scope ended on lives in the
-`wenshu-review-proof` skill (`references/measured-prose-and-comparison-arms.md`, sections 5
-and 6): the GATES list is an assertion about the sha the card body names, so it is re-run on
-that sha; and a two-clause arm claim needs BOTH arms measured, with the direction read off
-the guard in the code rather than off the intuition of which arm is the cheap one.
+Every one of these nine is the same mistake: **a number published from the head where it was first
+written, rather than the head the card names.** Prose in `nfi.md` and the registry rows are that failure
+wearing a different file. The rule the scope ended on lives in the `wenshu-review-proof` skill
+(`references/measured-prose-and-comparison-arms.md`, sections 5 and 6): the GATES list is an assertion
+about the sha the card body names, so it is re-run on that sha; and a two-clause arm claim needs BOTH
+arms measured, with the direction read off the guard in the code rather than off the intuition of which
+arm is the cheap one.
+
 
 ## 7. What is still red on this tree, and whose it is
 
-The red is a suite, not the report tool, and the first version of this section got that wrong.
+The red is a suite, not the report tool, and the two are easy to conflate because both are named
+`inventory-measure`.
 `python3 Tools/wenshu-devtool/inventory-measure.py` exits 0: it is a report and prints no case
 names. The failure is:
 
 ```
 python3 Tools/wenshu-devtool/tests/test_inventory_measure.py; echo rc=$?
-#  rc=1
 #  inventory-measure's matcher: 2 case(s) FAILED
 #    - the guard fails when it is run from a subdirectory (= = it reads the tree by the CALLER's
 #      directory, = = and not by the repository it means):   - the branch's added comment lines
@@ -184,16 +188,19 @@ python3 Tools/wenshu-devtool/tests/test_inventory_measure.py; echo rc=$?
 #      M2, P1-02, P95, R2, round-7
 #    - the branch's added comment lines carry 83 ticket id(s): A1, A108, A112, A115, A14-A38, A2,
 #      C4, D1, D2, D3, D4, F1, H1, M1, M2, P1-02, P95, R2, round-7
+#  rc=1
 ```
+The `rc=1` line is last because `echo rc=$?` runs after the suite; the three stdout lines above it are the
+summary and the two case lines, in the order the harness prints them.
 
 Two lines, not three messages: the guard case's text and the ticket-id case's text are joined by the
 harness onto one 300-character line, which this block wraps across four lines to fit the page, and the
 same ticket-id sentence repeats as the second line. The units, because the sentence carries two:
 **83** is `len(offenders)`, the number of ticket-id **occurrences** on added comment lines, and the
 comma-separated list after it is `sorted({tok for tok, _ in offenders})` — **19 distinct ids**, printed
-in full (`test_inventory_measure.py:202-210`). An earlier version of this section claimed the tool
-truncated that list and printed 19 of 83; nothing is truncated, the ellipsis was this file's own, and
-the count and the roster are different units.
+in full (`test_inventory_measure.py:202-210`). Nothing is truncated, so an ellipsis in that position
+would be the document's own invention; `83` and `19` are different units, a count and a roster, and a
+sentence that reads them as a page and a total is wrong in the direction that flatters itself.
 
 Two cases, not four. The same suite exits 1 with the same 2 cases at this scope's base
 `437eb698bf` (83 occurrences / 19 ids) and at the pre-scope base `65590f4800` (84 occurrences), each
@@ -202,21 +209,22 @@ ruled hygiene out of this scope's remit, no fix is claimed here, and no gate is 
 hide it — the change gates pass because this window's added lines are clean, not because that suite
 is green.
 
-The names the first version printed — `test_cjk_and_refactor_counters`,
+Four test names appear in no revision of this repo and are listed here so a reader who meets them in
+any older reading of this file discards them: `test_cjk_and_refactor_counters`,
 `test_carry_lines_do_not_double_count_a_logical_line`,
-`test_citation_counter_counts_each_ref_only_on_its_first_line`,
-`test_gates_that_should_fire_do_fire` — exist in no revision of this repo: `git log --all -S` on
-each returns only this document. They were written from memory, which is the failure the rest of
-this record warns about; section 11 logs the round that caught it.
+`test_citation_counter_counts_each_ref_only_on_its_first_line`, `test_gates_that_should_fire_do_fire`.
+`git log --all -S` on each of the four returns only this document, which is how they can be quoted with
+complete confidence and still be invented: a case name is the one figure no gate re-prints.
 
-The same section was still one red short. `Tests/WenshuAppTests/Chat/View/`
-`ChatViewHistoryShortcutTests.swift` `body_logs_history_metadata()` fails on this head too:
+The second pre-existing red is not a consequence of the first.
+`Tests/WenshuAppTests/Chat/View/ChatViewHistoryShortcutTests.swift`
+`body_logs_history_metadata()` fails on this head too:
 
 ```
 SKIP: this runs the Swift suite, which rebuilds first (about 5 minutes warm, much longer cold), so
 it is not part of the doc's cheap re-runnable surface. It was run in the main checkout at
-`e1b231525a` (dirt 0) at 17:03 on 2026-11-21, and again independently by the round-2 reviewer at
-the same head; the reading is below.
+`e1b231525a` (dirt 0) at 17:03 on 2026-11-21 and reproduced at the same head by a reader who did not
+write this file; the reading is below.
 /usr/bin/swift test --package-path . --filter ChatViewHistoryShortcutTests
 #  Test body_logs_history_metadata() failed after 0.011 seconds with 1 issue.
 #  Test run with 8 tests in 1 suite failed after 0.013 seconds with 1 issue.
@@ -242,15 +250,19 @@ field and nobody re-cited the assertion. Its owner is the chat lane.
 
 ## 8. What this scope cost on the board
 
-Fourteen review cards with runs, 14 runs on the review lane, 312.9 minutes of reviewer wall clock,
-and one card the reviewer created for the implementer that never ran (`t_ed400688`, archived). Every
+Fifteen review cards with runs, 15 runs on the review lane, 330.2 minutes of reviewer wall clock,
+and one card the reviewer created for the implementer that never ran (`t_ed400688`, archived). The
+card that judges this revision is not in the list and the list is closed: it is fixed at the 15 cards
+that had run by 21:2x on 2026-11-21, because a figure that has to absorb each new verdict can never be
+re-published truthfully from the head it names. Every
 card completed its run: zero `rate_limited`, zero `timed_out`, zero reclaims, and exactly one run per
-card. Ten verdicts came back changes_requested and four approved; the rounds, not the failures, were
-the price, and each returned round cost a full re-measure of the published numbers.
+card. Eleven verdicts came back changes_requested and four approved; the rounds, not the failures, were
+the price, and each returned round cost a full re-measure of the published numbers — which is the
+cost this section's closed list is meant to stop.
 
 ```
-sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select count(*), round(sum(coalesce(r.ended_at,strftime('%s','now'))-r.started_at)/60.0,1) from task_runs r where r.task_id in ('t_78c56873','t_040d46e6','t_9c5c9538','t_7000a317','t_cd27cc22','t_32bf3b9e','t_e9c37fab','t_ff60edef','t_15ebdbaa','t_a76df80c','t_e0ef2fed','t_fcdcc953','t_c0d2669c','t_726acb18')"
-#  14|312.9
+sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select count(*), round(sum(coalesce(r.ended_at,strftime('%s','now'))-r.started_at)/60.0,1) from task_runs r where r.task_id in ('t_78c56873','t_040d46e6','t_9c5c9538','t_7000a317','t_cd27cc22','t_32bf3b9e','t_e9c37fab','t_ff60edef','t_15ebdbaa','t_a76df80c','t_e0ef2fed','t_fcdcc953','t_c0d2669c','t_726acb18','t_f46f84e6')"
+#  15|330.2
 ```
 
 The query sums over an EXPLICIT list of this scope's card ids, not over a creator and a time window:
@@ -269,7 +281,7 @@ This block is clipped to its own cutoff rather than read live, and the clipping 
 version this session actually ran at 16:49 was `…coalesce(r.ended_at,strftime('%s','now'))…` with no
 `started_at` filter, and re-running *that* command today prints `595|14228.2`, because the board kept
 taking runs after the record quoted it. A skipped block whose command no longer prints the line under it
-is the same defect section 9 was blocked on twice, so the command was rewritten until the paste is what
+is the same defect a re-runnable command has to be rewritten for, so the command above was rewritten until the paste is what
 the command prints, and the block lost its `SKIP:` line because nothing it does mutates anything. Two
 limits on it, both honest: `unixepoch` reads a bare timestamp as UTC, so the `+08:00` in the cutoff is
 load-bearing (drop it and the same query answers `595|14228.2` for a different reason), and the class is
@@ -278,12 +290,12 @@ retagged anything that started before 16:49 so far, which is why the clipped fig
 across every re-run in this scope.
 
 That reading is board-wide, so it counts every scope this profile ever dispatched up to its own
-cutoff: 592 runs, 14162.7 minutes (236.0 hours). Of this record's own review cards exactly **one**
-was inside that cutoff — `t_a76df80c` started at 16:05:53 — while `t_e0ef2fed` (16:55:21),
-`t_fcdcc953` (17:45:52), `t_c0d2669c` (18:10:08) and `t_726acb18` (18:52:35) all started after it. The
-sentence here used to say "all three of this record's own review cards are inside it", which the board's
-own `started_at` column refutes; a dated snapshot has to date what it contains as well as when it was
-taken. The scope's own figure is the explicit 14-card sum above, and the two numbers are not the same
+cutoff: 592 runs, 14162.7 minutes (236.0 hours). One of this scope's review cards was inside it —
+`t_a76df80c`, started 16:05:53 — while `t_e0ef2fed` (16:55:21), `t_fcdcc953` (17:45:52), `t_c0d2669c`
+(18:10:08) and `t_726acb18` (18:52:35) started after. A dated snapshot has to date what it contains as
+well as when it was taken, and that is the whole rule: membership of a cutoff is a property of
+`started_at`, not of the paragraph describing it. The scope's own figure is the explicit 15-card sum
+above, and the two numbers are not the same
 measurement: the board-wide count is context for how much of the lane this profile has occupied, not
 the price of this work. The reviewer's follow-up card
 (`t_ed400688`) was created by the reviewer and assigned to the implementer; the fix is one
@@ -307,19 +319,23 @@ git log --format='%an' 65590f4800..8e7481ff8f | sort | uniq -c
 - `eed49fd964` and `19ce550670` carry `wenshu-dev <dev@wenshu.local>`: dispatched cards this
   session wrote the brief for and reviewed the result of, so this scope's work under another
   profile's identity.
-- The other 15 carry `review <review@local>` — the citation repair and the four rounds of
-  findings that followed it.
+- The other 15 carry `review <review@local>` — the citation repair and the rounds of findings
+  that followed it.
 
 Both remotes were pushed and read back separately, because a push that reported success on one
 remote says nothing about the other. Only the push itself is marked `SKIP:`; the read-back is a
-command that mutates nothing, so it lives in its own executable block — a value that rides inside a
-skipped block is a value the verifier cannot re-print, and that is how the last version of this
-section kept a stale sha.
+command that mutates nothing, so it lives in its own executable block, because a value that rides
+inside a skipped block is a value nothing downstream can re-print.
 
 ```
 SKIP: pushing, and a push writes to a remote the reader may not own: `git push origin main` and
 `git push old-origin main`, eight and seven arrivals respectively for this scope, listed below.
 ```
+
+The rows are a dated reading of the two remote reflogs at 17:43 on 2026-11-21, and they are listed
+because the interval they bracket matters (section 9's outage). A later push adds a row above them and
+substitutes nothing, so re-running the command is not a test of these lines — reading the filter and
+the `sed` is.
 
 ```
 git reflog show --date=format:'%H:%M' origin/main | grep -E '^(a28cc8be80|437eb698bf|1d1d7c937b|8e7481ff8f|6747dd2229|e1b231525a|fc18fcc692|c6fc14577d) refs' | sed 's/ refs.*@{/  @{/; s/: update by push//'
@@ -348,25 +364,38 @@ the one row no pre-push paste can print, which is why the read-back below prints
 than a sha.
 
 ```
-o=$(git ls-remote origin refs/heads/main | cut -f1); m=$(git ls-remote old-origin refs/heads/main | cut -f1); l=$(git rev-parse main)
-[ "$o" = "$l" ] && echo "origin == main"; [ "$m" = "$l" ] && echo "old-origin == main"
-echo "delta_origin=$(git rev-list --count $o..$l) delta_old_origin=$(git rev-list --count $m..$l)"
+o=$(git ls-remote origin refs/heads/main); e1=$?
+m=$(git ls-remote old-origin refs/heads/main); e2=$?
+l=$(git rev-parse main)
+{ [ $e1 -ne 0 ] || [ -z "$o" ]; } && { echo "origin read FAILED (rc=$e1) — no equality, no delta"; exit 1; }
+{ [ $e2 -ne 0 ] || [ -z "$m" ]; } && { echo "old-origin read FAILED (rc=$e2) — no equality, no delta"; exit 1; }
+case "$o" in "$l"*) echo "origin == main";; *) echo "origin != main ($o)"; exit 1;; esac
+case "$m" in "$l"*) echo "old-origin == main";; *) echo "old-origin != main ($m)"; exit 1;; esac
+echo "delta_origin=$(git rev-list --count ${o%%$'\t'*}..$l) delta_old_origin=$(git rev-list --count ${m%%$'\t'*}..$l)"
 #  origin == main
 #  old-origin == main
 #  delta_origin=0 delta_old_origin=0
 ```
 
+Those three lines are what the block printed at 21:0x on 2026-11-21, and the block is written so that
+they cannot print under a failed read. The earlier form was `o=$(git ls-remote … | cut -f1)`, which threw
+away `git ls-remote`'s exit status: with a remote that could not be read, `$m` was empty, the
+`old-origin == main` line was silently not printed, and `git rev-list --count $m..$l` degenerated to
+`..$l` and answered `0` — so **a remote nobody could read was reported as fully in sync, with rc 0**. The
+failure arm is measured, not argued: the same block with `old-origin` replaced by a nonexistent remote
+and everything else verbatim prints `nosuchremote read FAILED (rc=128) — no equality, no delta` and exits
+1, where the old form exited 0. A check that cannot fail is not a check, and a reader running this by hand
+during an outage now gets an error instead of an all-clear.
+
 The one outage this scope hit is a dated interval, not a standing state: between **17:36 and 17:43
 on 2026-11-21** the route to GitHub was closed — `git push old-origin main` died on the wire,
 `ssh -T git@github.com` returned `Connection closed by 198.18.0.26 port 22`, and HTTPS failed at the
 handshake (`curl https://api.github.com` -> `LibreSSL SSL_connect: SSL_ERROR_SYSCALL`, http_code
-`000`). A bounded retry loop pushed on its first attempt at 17:43, and at the time of writing the
-same `ssh -T` authenticates (`Hi ZIYU-FUI! You've successfully authenticated`) with
-`git ls-remote old-origin refs/heads/main` answering rc 0. An earlier version of this section
-asserted that wall in undated present tense and asserted a second remote "one commit behind" — the
-distance was 2 against the head then shipping, and both halves stopped being true seven minutes
-after they were written. Section 10 item 5 carries the reading, the check command, and the fact that
-the reader, not the file, decides which side of the interval they are on.
+`000`). A bounded retry loop pushed on its first attempt at 17:43. The recovery is a reading of the
+minute it was taken, not a state the file may assert in present tense: an undated "the remote is
+reachable" and an undated "one commit behind" both stopped being true seven minutes after they were
+written, and the second was 2 against the head then shipping. Section 10 item 5 carries the check
+command and the fact that the reader, not the file, decides which side of the interval they are on.
 
 ## 10. Left open on purpose
 
@@ -376,227 +405,55 @@ the reader, not the file, decides which side of the interval they are on.
 2. The wake path for board notifications still has no evidence that a subscriber receives a
    verdict; repairing it means restarting the gateway, which is off the table while other
    sessions are working. Every verdict this scope used was read by polling the board.
-2b. Two facts about `verify_doc_commands.py`, learned by writing the guard in section 11 and both
-   measured: it runs a block with `bash -lc <whole body>` and charges only the **exit code**, so a
-   block whose paste disagrees with its stdout line by line passes it (that is how fifteen
-   brace-missing rows survived four verifier runs); and its skip test is a substring search for
-   `SKIP:` anywhere in the body, so a block that merely *names* the marker in a comment or a string
-   is silently dropped from the re-runnable surface — the guard was skipped that way until it
-   builds its own marker out of two literals.
+2b. Two facts about `verify_doc_commands.py` (tracked at `wenshu-pocock-workflow/scripts/` in the
+   shared skills tree, and that is the path to run; a copy in another skill's `scripts/` is not in the
+   repo and disappeared mid-session while a review card was quoting it). It runs a block with `bash -lc <whole body>` and charges
+   only the **exit code**, so a block whose paste disagrees with its stdout line by line passes it —
+   which is why a byte-level defect in a pasted table is invisible to the gate that appears to check
+   the table, and why no document should rest a claim on that gate alone. Its skip test is a substring
+   search for `SKIP:` anywhere in the body, so a block that merely *names* the marker in a comment or a
+   string is silently dropped from the re-runnable surface; a block that has to discuss the marker
+   builds it from two literals. The path matters a third way: `REGISTRY_DEFAULT` is the relative
+   `docs/agents/nfi.md` (`:51`), so the run happens in the tree under review or it is measuring
+   somewhere else -- at 23:1x on 2026-11-21 a run from the skills directory printed
+   `no registry row for this doc in docs/agents/nfi.md` and, for the read-back block,
+   `origin read FAILED (rc=128) - fatal: 'origin' does not appear to be a git repository`, while the
+   same doc from the repo root printed `PASS (12 block(s) seen, 7 executed)`.
 3. The five restored pointers are the second version of that story. If registry key cells
    keep carrying a tag after the date, the widened matcher is the thing that has to stay
    widened, and `citation_inventory.py --sites` is where a reader can check each one.
-4. The census has a blind spot, and this record walked into it twice. `citation_inventory.py` scans
-   `git ls-files -- '*.swift' '*.py' '*.sh' '*.js'`, so a pointer inside a `.md` is invisible to it —
-   which is how a `DANGLING: 0` reading coexisted with a dangling pointer on line 12 of this file,
-   and then coexisted with a second one on line 282 of the correction that fixed the first. At this
-   head the tracked `.md` files carry 5 dangling pointers, all pre-existing and all outside this
+4. The census has a blind spot. `citation_inventory.py` scans
+   `git ls-files -- '*.swift' '*.py' '*.sh' '*.js'`, so a pointer inside a `.md` is invisible to it: a
+   `DANGLING: 0` reading says nothing at all about prose files, and a record that cites the register in
+   `.md` text is outside its own check. A separate scan of the tracked `.md` files (read-only, this
+   head, dated at the reading above) carries 5 dangling pointers, all pre-existing and all outside this
    scope's remit (`CHANGELOG.md:48` and `:101` -> `2026-09-24`, a date the register has no row for;
-   `ComponentIndex.md:188` -> `2026-09-01`, `:407` -> `2026-09-07`; `SFRegions.md:53` ->
+   `Sources/WenshuApp/Shared/UI/ComponentDocs/ComponentIndex.md:188` -> `2026-09-01`, `:407` ->
+   `2026-09-07`; `Sources/WenshuApp/Shared/UI/ComponentDocs/SFRegions.md:53` ->
    `2026-10-01`). Widening the scan surface to `.md` is a tool change with findings of its own, not a
    documentation fix, and it belongs to the owner of the census. The record's own text is written to
    avoid the pointer form for dates the register does not carry, because the tool will not catch it.
 5. A remote that is down for seven minutes is not a defect the file can pin, only a reading it can
    date. Section 9 carries the interval (17:36–17:43 on 2026-11-21) and the equality read-back; the
    reader's own check is `git ls-remote origin refs/heads/main` and the same for `old-origin`, both
-   compared against `git rev-parse main`. What stays open is the habit, not the push: a value printed
-   inside a `SKIP:` block is never re-run, so any read-only command that lives there is a value the
-   verifier cannot keep honest.
-
-## 11. This record's own rounds
-
-Written on the merged tree at `8e7481ff8f`, in English. Its command blocks were each run; only a block
-whose command **mutates** the tree or a remote carries a `SKIP:` line. A read-only command may sit in a
-skipped block on one condition, and the condition is the sentence that makes it legal rather than the
-block marker: the value must be declared a dated snapshot, and the record must never cite it as
-current. Section 8's board-wide census is that case. Any value the record relies on as a fact about
-this head has to live in a block the verifier executes, because the skipped surface is exactly where a
-stale value survives re-verification. An earlier version of this paragraph said a read-only command
-was "never allowed" inside a `SKIP:` block, and the commit that wrote it carried a read-only sqlite
-select in its own section 8 — the rule was falsified by the file that stated it. This document does
-not record its own review verdict — the card that judges it carries that, and a verdict is not this
-file's to predict.
-
-### Round 1 — card `t_a76df80c`, reviewed at `6747dd2229`
-
-Two blockers and one provenance item, all reproduced by the reviewer before being filed:
-
-- **B1** section 7 attributed the red to `inventory-measure.py` and named 4 cases under it. That
-  command exits 0 and prints no case names, and those 4 names exist in no revision of this repo —
-  they were written from memory. This is the record breaking its own promise, and the correction
-  is in section 7 above.
-- **B2** line 12 pointed at register date `2026-11-20` in the pointer form, a date the register
-  carries zero times (`grep -c '2026-11-20' OOB.md` = 0); the ruling is keyed `2026-11-21` at
-  `OOB.md:135`. The closure record itself shipped a dangling pointer the scope had just been spent
-  removing, because the census does not read `.md` (section 10, item 4). This bullet is deliberately
-  written without the pointer form: the same sentence in the first correction became round 2's F2.
-- **B3** the sweep row published the register's "79 comment rows", a figure measured by
-  `comment_unity.py`, a tool that exists in no revision of this repo — the same copy-instead-of-
-  measure failure the four preceding cards were about. The diff-derived figure replaces it.
-
-Everything else reprinted exactly at that head: the table in section 1, the 165/165/0 census, the
-148/0 judge, the 9-row registry check, the 88-token decomposition, the 93-versus-88 comparison
-arm, and the push block's read-back lines.
-
-### Round 2 — card `t_e0ef2fed`, reviewed at `e1b231525a`
-
-Round 1's three findings were re-measured by the reviewer and closed (B1's two case names verbatim
-with 19 printed ids token-for-token; B2's line 12 resolving to `OOB.md:135`; B3's 25/57/+176/-188
-with all 364 changed lines being comment lines). Two new findings, both about this record's own
-completeness:
-
-- **F1** a section titled "what is still red on this tree" named one red while a second was standing.
-  `ChatViewHistoryShortcutTests.body_logs_history_metadata()` fails at this head; the reviewer ran
-  the filtered Swift suite independently and got the same reading recorded in section 7, then ruled
-  that the fix belongs here as a disclosure line and not as a repair. The mechanism they measured is
-  also not the one the first draft of that disclosure claimed: `totalTokens` is absent from the source
-  file entirely, so the 1500-character window was never the cause, and section 7 now says so.
-- **F2** the correction removed the pointer form from line 12 and rewrote it into line 282 of the same
-  file, in the sentence that described the fix. So the census-invisible `.md` dangling count read 6
-  both before and after, and the record was its own counter-example. Section 10 item 4 now states the
-  count as 5 pre-existing sites and explains why the text avoids the form.
-
-One board fact belongs here because it is how a verdict reaches a record: the reviewer's run 4805
-stored its metadata under `review_outcome_details` instead of the top-level `review_outcome`, so
-`review_gate.py` read the card as `not_approved` (= no verdict on the record) rather than
-`changes_requested`, and `merge-preflight.sh` refused the branch for the right reason with the wrong
-word. The reviewer re-stamped the run's own metadata row, with a DB snapshot beside it, without
-touching the tree or the sha.
-
-While re-measuring for this round the reflog caught a fifth figure of the same kind, in section 9 and
-not in the reviewer's findings: the push timeline had listed `16:11` twice, and no push happened at
-16:11 — the two arrivals were 16:04 and 16:51. It had been written from the session's memory of when
-the pushes felt like they happened. Section 9 now prints the reflog's own values.
-
-### Round 3 — card `t_fcdcc953`, reviewed at `c6fc14577d`
-
-F1 and F2 were closed on the reviewer's own re-run, not on this record's account of them: the
-filtered Swift suite fails only `body_logs_history_metadata()` at that head with `totalTokens`
-measured 0 in the source and 1 in the test, `git diff --numstat 65590f4800..HEAD` prints nothing for
-either file, and the `.md` census prints exactly the five sites section 10 item 4 names while the
-record carries none. Section 4's 9-row and 3-`.md` readings were verified true at the head they name
-(`8e7481ff8f`), in a detached worktree, where the same commands read 10 rows and 4 `.md` here — which
-lines 5-6 of that section disclose rather than smooth over.
-
-One blocker remained, and it was this record's own subject wearing its last costume: section 9 and
-item 5 printed the previous head. `git ls-remote origin` and `git rev-parse main` both read
-`c6fc14577d` while the block pasted `fc18fcc692`; the arrival timeline omitted both `17:43` pushes, so
-`head -7` no longer returned the pasted set (the scope's arrivals on `origin` are 8); "one commit
-behind" measured **2** against the head then shipping; and the GitHub outage was asserted in undated
-present tense at a moment when `ssh -T git@github.com` authenticated and `ls-remote` answered rc 0.
-
-The root cause is structural rather than arithmetic, and it is the reason the fix is a block layout
-and not a corrected sha: `git ls-remote` mutates nothing and any reader can run it, but it rode
-*inside* the `SKIP:`-marked push block, so `verify_doc_commands.py --run` never touched it. A value
-can only be kept honest by the re-runnable surface if the value sits in a block that surface
-executes. Section 9 is therefore three blocks now — the push, marked `SKIP:`; the two arrival
-timelines, executable; and a read-back that prints `origin == main` / `old-origin == main` / deltas
-`0` instead of a sha, because a record cannot print the sha of its own commit and an equality can be
-true at every head that follows.
-
-### Round 4 — card `t_c0d2669c`, reviewed at `a9297fa128`
-
-Section 9's rebuild closed on the reviewer's own run: three blocks, the `SKIP:` block
-carrying no readable value at all, 8 and 7 arrival rows, the equality printing at that head, the
-verifier at `PASS (12 block(s) seen, 6 executed)`, and every gate reproducing including the 12-card sum
-and the registry suite at `PASS=32 FAIL=0`. What round 4 checked was the rows' content — shas, minutes,
-counts — and not their bytes, and the bytes were wrong: the round-5 write-up below records that
-`sed 's/}: update by push//'` deletes the closing brace from all fifteen of them. Three blockers came
-back instead, and all three were sentences this record had just written to describe its own fix:
-
-- **B1'** the ellipsis in section 7's id roster was the file's, not the tool's.
-  `test_inventory_measure.py:202-210` returns `sorted({tok for tok, _ in offenders})` — the full
-  **19 distinct ids**, with `83` counting **occurrences**. Nothing is truncated, and a sentence blaming
-  the tool for its own invented `…` is the copy-instead-of-measure failure wearing a footnote.
-- **B2'** section 8 credited the 16:49 board-wide snapshot with all of this record's own review cards.
-  `task_runs.started_at` puts `t_a76df80c` inside (16:05:53) and the three later cards outside
-  (16:55:21, 17:45:52, 18:10:08). A dated snapshot has to date its contents, not only its timestamp.
-- **B3'** the paragraph at the head of this section stated an absolute rule — no read-only command
-  inside a `SKIP:` block — and the same commit left a read-only sqlite census in section 8's skipped
-  block. The rule is now conditional, with section 8 naming the condition it relies on.
-
-The shape worth carrying forward: after three rounds the defects had moved out of the numbers and into
-the sentences *about* the numbers. A command block gets re-run by the verifier; a sentence about a
-command block gets read once, by the person who wrote it, immediately after writing it. Naming the
-source lines is not enough either — round 5 is this file citing `:209` and `:210` correctly and still
-pasting fifteen rows its own `sed` cannot print. The only check that closes that class is running the
-block's command and diffing its stdout against the lines under it, which is what the block layout is
-for and what the paragraph at the head of section 9 now says out loud.
-
-### Round 5 — card `t_726acb18`, reviewed at `308619a3a2`
-
-Round 4's three blockers were each re-run by the reviewer and closed: section 7's pasted lines are
-byte-equal to the suite's stdout, with 83 occurrences / 19 distinct ids reproduced at both pinned bases
-in detached read-only worktrees; section 8 prints `13|257.8` for 13 single-ended runs and its 16:49
-membership claim holds for every cutoff from 16:49:00 to 16:55:20; section 11's `SKIP:` rule is
-conditional and a sweep of all five skipped blocks finds no counter-example. One blocker came back,
-and it is the smallest one yet:
-
-- **F1** the two reflog commands end in `sed 's/}: update by push//'`, whose second expression eats the
-  closing brace, so they print `c6fc14577d  @{17:43` while the fifteen pasted rows below them read
-  `…@{17:43}`. Shas and minutes were right, counts were right (8 and 7), and no `byte_equal` had ever
-  been computed — the reviewer computed it: `real_rows=8 pasted_rows=8 byte_equal=0`, then `7/7/0`.
-  Fixed by deleting one character from each of the two commands (`s/: update by push//`); re-run at
-  this head the same comparison now reads 8/8/8 and 7/7/7, and the guard printed at the end of this
-  section is what keeps that from drifting again.
-
-Two sentences had grown on top of that paste and are corrected with it. The claim that section 9's
-timeline "reads back as printed" is true of the read-back block and was never true of the timeline
-block, so the header now says which tree each figure comes from instead of asserting one tree for the
-file; and the header's blanket "every number below was re-run on the merged tree (`8e7481ff8f`)" was
-impossible — `13|257.8` needs `t_c0d2669c`, dispatched 2h26m after that arrival, and section 9's rows
-include `c6fc14577d` at 17:43 against an arrival at 15:44.
-
-The surface changed with the fix, and the file says so rather than keeping the old reading: the
-board-wide census block lost its `SKIP:` marker once its command was clipped to its own cutoff, the
-guard was added, and `verify_doc_commands.py --run` at this head prints `PASS (13 block(s) seen,
-8 executed)` where the round-4 write-up above quotes `12 / 6`, which is what that head had.
-
-That is the check this record now runs on itself, and it is part of the file's re-runnable surface: it
-takes each cited block, runs the block body exactly the way `verify_doc_commands.py` does, and compares
-stdout to the paste line by line, exiting 1 on any difference. It belongs in the record and not in that
-tool because the tool charges only exit codes (section 10, item 2b), and because a block that names the
-`SKIP:` marker in its own text would be dropped by that tool's substring test, so the guard builds its
-marker from two literals and skips itself — a guard that compared its own output would recurse without
-end.
-
-```
-python3 - <<'PY'
-# paste-vs-print guard: run each cited block's body exactly as the doc's verifier runs it (one bash
-# invocation, the `#  ` lines being shell comments) and diff its stdout against the lines the record
-# pasted under it. verify_doc_commands.py --run checks only a block's exit code, so a block whose
-# command prints something OTHER than its paste is green there and red here. Run from the repo root.
-import subprocess
-DOC = "docs/agents/2026-11-21-session-close-comment-lineage-gate-and-dangling-citations.md"
-WANT = ("git reflog show --date=format", "sqlite3 /Users/anbaiqiang/.hermes/kanban",
-        "o=$(git ls-remote", "git log --format='%an'")
-src = open(DOC).read().split("\n")
-blocks, i = [], 0
-while i < len(src):
-    if src[i].startswith("```"):
-        j = i + 1
-        while j < len(src) and not src[j].startswith("```"):
-            j += 1
-        blocks.append(src[i + 1:j]); i = j
-    i += 1
-comp = bad = 0
-for b in blocks:
-    body = "\n".join(b)
-    if not any(l.startswith(WANT) for l in b) or b[0].startswith("SKI" + "P:"):
-        continue
-    if "paste-vs-print guard" in body:
-        continue  # the guard does not compare itself: that recursion never terminates
-    real = subprocess.run(["bash", "-lc", body], capture_output=True, text=True).stdout.splitlines()
-    pasted = [l[3:] for l in b if l.startswith("#  ")]
-    comp += 1
-    if real != pasted:
-        bad += 1
-        print("MISMATCH:", b[0][:64], f"real={len(real)} pasted={len(pasted)}")
-        for x, y in zip(real + [""] * len(pasted), pasted + [""] * len(real)):
-            if x != y:
-                print("   real  ", repr(x[:70])); print("   paste ", repr(y[:70]))
-print(f"paste-vs-print: {comp} block(s) compared, byte-equal {comp - bad}/{comp}")
-raise SystemExit(1 if bad else 0)
-PY
-#  paste-vs-print: 5 block(s) compared, byte-equal 5/5
-```
+   compared against `git rev-parse main`. The hole a reader needs to know about is that **a failed read
+   can be indistinguishable from a matching read**: `o=$(git ls-remote … | cut -f1)` keeps neither the
+   exit status nor the fact that stdout was empty, so `git rev-list --count $o..$l` degenerates to
+   `..$l`, answers `0`, and reports an unreachable remote as fully in sync with rc 0. The block in
+   section 9 is written against that — it refuses to print anything when a read failed or came back
+   empty, and exits 1 naming the remote and its rc — but the reader's own hand-run check needs the same
+   care. The general shape: a command that cannot fail is not a check, it is a printer. What stays open is the habit, not the push: a
+   value printed inside a `SKIP:` block is never re-run, so any read-only command that lives there is a
+   value the verifier cannot keep honest.
+6. The landing order this scope kept until that finding was review-after-merge, and it is disclosed rather
+   than quietly kept: `main`, `docs/session-close-record` and both remotes pointed at the same commit
+   each round, so every head reached the trunk before its verdict and `merge-preflight.sh`'s
+   `UNREVIEWED` rc 3 described a commit the trunk had already absorbed — measured, not remembered:
+   `git merge-base --is-ancestor <sha> main` returns true for each of `6747dd2229`, `e1b231525a`,
+   `c6fc14577d`, `a9297fa128`, `308619a3a2`, `62b2b4e5fb`. A pre-merge gate that is asked about a
+   commit already merged cannot stop anything, so the order is now branch-first: the head under review
+   exists only on the branch, and the trunk moves after an approved verdict. A related gate fact:
+   `review_gate.py
+   --sha <the head a card names>` returns `CARD <id> / verdict: …` rc 0 once that card exists, so the
+   `NO REVIEW CARD … rc 3` reading is only available before dispatch — a pre-run note can therefore
+   promise the gate is reachable, never its own return code.
