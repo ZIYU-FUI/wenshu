@@ -48,9 +48,68 @@ enum SelfScreenshot {
         let path = env["WS_SCREENSHOT_PATH"] ?? "/tmp/wenshu-selfshot.png"
         let delay = Double(env["WS_SCREENSHOT_DELAY"] ?? "5.0") ?? 5.0  // 5s layout race condition (debug-only)
         let shouldExit = env["WS_SCREENSHOT_EXIT"] != "0"
+        // Craft audit B6 experiment: `cacheDisplay` is an OFFSCREEN draw
+        // and the window server does not composite MATERIAL or Glass
+        // surfaces into it (measured 2026-11-18, re-confirmed 2026-11-21:
+        // a chrome strip that visibly carries material on screen renders
+        // flat in the cacheDisplay PNG). This mode asks the window server
+        // for the COMPOSITED image of this app's own window (= the same
+        // pixels `screencapture -l` reads, = for OWN windows the call
+        // needs no Screen Recording grant, which is what is being tested
+        // here). WS_SCREENSHOT_MODE=windowserver
+        let windowServerMode = env["WS_SCREENSHOT_MODE"] == "windowserver"
 
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            captureOnce(path: path, exitAfter: shouldExit)
+            if windowServerMode {
+                captureComposited(path: path, exitAfter: shouldExit)
+            } else {
+                captureOnce(path: path, exitAfter: shouldExit)
+            }
+        }
+    }
+
+    @MainActor
+    private static func captureComposited(path: String, exitAfter: Bool) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            guard
+                let window = NSApp.keyWindow
+                    ?? NSApp.windows.first(where: { $0.contentViewController != nil })
+            else {
+                if exitAfter { exit(2) }
+                return
+            }
+            // The macOS 27 SDK marks CGWindowListCreateImage unavailable
+            // (= ScreenCaptureKit is the sanctioned route, = it needs a
+            // Screen Recording TCC grant that this dev hook must not
+            // force on the boss). The runtime symbol is still exported
+            // (dlsym-probed on this machine before writing this), so the
+            // experiment resolves it by name. DELETE-LEVEL code: this
+            // whole mode exists to settle craft-audit B6 and goes with
+            // the experiment.
+            typealias WindowImageFn = @convention(c) (
+                CGRect, UInt32, UInt32, UInt32) -> Unmanaged<CGImage>?
+            guard let sym = dlsym(dlopen(nil, RTLD_NOW), "CGWindowListCreateImage")
+            else {
+                if exitAfter { exit(4) }
+                return
+            }
+            let fn = unsafeBitCast(sym, to: WindowImageFn.self)
+            let number = UInt32(truncatingIfNeeded: window.windowNumber)
+            let optionBoundsIgnoreFraming: UInt32 = 1 << 0   // kCGWindowImageBoundsIgnoreFraming
+            let optionBestResolution: UInt32 = 1 << 3        // kCGWindowImageBestResolution
+            // kCGWindowListOptionIncludingWindow = (1 << 3), read from
+            // CoreGraphics.framework/Headers/CGWindow.h:157 on this SDK.
+            let listOptionIncludingWindow: UInt32 = 1 << 3
+            guard let ref = fn(.null, listOptionIncludingWindow, number,
+                               optionBoundsIgnoreFraming | optionBestResolution),
+                  let image = NSBitmapImageRep(cgImage: ref.takeUnretainedValue())
+                    .representation(using: .png, properties: [:])
+            else {
+                if exitAfter { exit(3) }
+                return
+            }
+            try? image.write(to: URL(fileURLWithPath: path))
+            if exitAfter { exit(0) }
         }
     }
 
