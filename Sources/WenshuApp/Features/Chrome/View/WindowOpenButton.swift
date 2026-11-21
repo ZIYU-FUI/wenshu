@@ -25,9 +25,9 @@
 //  enforced size / weight / color / rendering mode consistency;
 //  = overkill for a toolbar button where the icon style is
 //  already pinned by the toolbar's ControlSize + Apple's
-//  NSToolbar defaults). The toolbar's icon font size follows
-//  the unified macOS toolbar's default 14 PT .regular (= matches
-//  Apple HIG `NSToolbar > Default icon size`).
+//  NSToolbar defaults). The icon font is the semantic body font
+//  (the literal 14 PT this file once carried was superseded by the
+//  ruling of (see OOB.md #2026-11-22)).
 //
 //  Why a single file (= and not a ViewModel / Store entry): the
 //  button format is a pure visual concern (= the Image +
@@ -41,18 +41,21 @@ import SwiftUI
 
 /// Reusable button for opening an independent macOS window.
 ///
-/// Used by:
-/// - `Features/Chrome/View/ChromeMainToolbar.swift` (= the main
-///   window's title bar; = 11 window buttons at .primaryAction =
-///   the canonical full set).
-/// - the editor's secondary toolbar (the
-///   own inspector-specific controls, NOT the 9 duplicate window
-///   buttons that lived there pre-A96).
-/// - `Sources/WenshuApp/App/WenshuAppDelegateSwiftDataMigration.swift`
-///   (the app startup bridge for the libraryMigration window).
+/// CURRENTLY ORPHANED. It has no production caller at this tip
+/// (`git grep "WindowOpenButton("` hits only this declaration and
+/// `ComponentIndex.md`): the eleven window buttons left the main
+/// title bar on 2026-10-21, and the repo already records the fact
+/// in `docs/agents/2026-10-30-trailing-column-and-the-mac-companion.md`
+/// ("no production caller left") and the 2026-11-16 session close
+/// (`verify-dead.py --ui-components` names this file as the single
+/// repo-wide candidate). Its removal is a separate dead-code ticket
+/// (tracked as row 20 of `docs/agents/2026-11-12-the-macos27-ui-defaults-todo-list.md`).
 ///
-/// All call sites use the same `Image(systemName:) + .help +
-/// openWindow` shape via this view.
+/// The format consolidation this view was created for (see OOB.md #2026-10-16)
+/// is why the icon font and ink live in exactly one place here; the
+/// toolbar-icon ruling of (see OOB.md #2026-11-22) moved that font from
+/// a literal 14 PT to the semantic body font.
+///
 struct WindowOpenButton: View {
     /// The window's stable identifier (= used for openWindow(id:) and
     /// the `.help(...)` tooltip lookup). See `WindowID` in

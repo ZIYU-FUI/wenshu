@@ -329,37 +329,44 @@ struct ChatInputBarView: View {
         .keyboardShortcut("g", modifiers: [.command, .shift])
     }
 
-    @ViewBuilder
     private var sendButton: some View {
-        // Craft audit O4 (progress honesty + discoverability): the only
-        // control that could stop an unbounded reply was the hidden ⌘.
-        // carrier below; while a reply streams, this button becomes the
-        // stop button visibly (= the standard macOS one-button shape:
-        // its glyph follows the operation in flight). The KEY paths do
-        // not follow the glyph: ⌘. lives once on the hidden carrier in
-        // ChatView+KeyboardShortcuts, and ⌘↩ lives once on the hidden
-        // carrier below, mounted unconditionally (= the base registered
-        // ⌘↩ in every state, and a shortcut buried in one branch of the
-        // glyph swap would leave ⌘↩ dead during a reply while bare
-        // Return still sent).
-        if isReplyStreaming {
-            GlassIconButton(systemName: "stop.fill", help: "停止生成 (⌘.)") {
-                vm.cancelStreaming()
+        // One layout leaf on purpose: the input row is an HStack with
+        // spacing 10 (the row's own printed spec above, from the
+        // 2026-09-23 ordering), and two sibling leaves here would buy
+        // a 10 PT gap the spec does not have — the glyph branch and
+        // the carrier are therefore contained in one ZStack, the
+        // carrier being zero-sized and invisible inside it.
+        ZStack {
+            // Craft audit O4 (progress honesty + discoverability): the only
+            // control that could stop an unbounded reply was the hidden ⌘.
+            // carrier below; while a reply streams, this button becomes the
+            // stop button visibly (= the standard macOS one-button shape:
+            // its glyph follows the operation in flight). The KEY paths do
+            // not follow the glyph: ⌘. lives once on the hidden carrier in
+            // ChatView+KeyboardShortcuts, and ⌘↩ lives once on the hidden
+            // carrier below, mounted unconditionally (= the base registered
+            // ⌘↩ in every state, and a shortcut buried in one branch of the
+            // glyph swap would leave ⌘↩ dead during a reply while bare
+            // Return still sent).
+            if isReplyStreaming {
+                GlassIconButton(systemName: "stop.fill", help: "停止生成 (⌘.)") {
+                    vm.cancelStreaming()
+                }
+            } else {
+                GlassIconButton(systemName: "paperplane", help: "发送 (⌘↩)") {
+                    sendNow()
+                }
             }
-        } else {
-            GlassIconButton(systemName: "paperplane", help: "发送 (⌘↩)") {
+            // The ⌘↩ carrier: state-independent, zero-sized, invisible —
+            // the same hidden-Button shape as the ⌘. carrier.
+            Button("Send shortcut carrier") {
                 sendNow()
             }
+            .keyboardShortcut(.return, modifiers: [.command])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
         }
-        // The ⌘↩ carrier: state-independent, zero-sized, invisible —
-        // the same hidden-Button shape as the ⌘. carrier.
-        Button("Send shortcut carrier") {
-            sendNow()
-        }
-        .keyboardShortcut(.return, modifiers: [.command])
-        .frame(width: 0, height: 0)
-        .opacity(0)
-        .accessibilityHidden(true)
     }
 
     /// The one send path shared by the visible paperplane click and the
@@ -419,15 +426,9 @@ struct ChatInputBarView: View {
         .disabled(!hasUsableKey)
         .focused(inputFocused)
         .onSubmit {
-            Task {
-                await vm.routeInput()
-                // FOCUS-RETENTION: re-assert focus after pressing
-                // Enter inside the TextField. Without this, the
-                // SwiftUI `onSubmit` semantics drop focus once the
-                // submit handler runs (= the user has to click the
-                // input again before they can type the next message).
-                reassertFocus()
-            }
+            // The third doorway to the same action (bare Return; = the
+            // one call keeps click, ⌘↩ and Return from fork-drifting).
+            sendNow()
         }
         .help(String(localized: "chat.input.help"))
         // Shared chat-surface outline (= ChatSurfaceShape; = the same

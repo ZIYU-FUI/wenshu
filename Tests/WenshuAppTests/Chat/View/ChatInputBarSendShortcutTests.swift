@@ -62,4 +62,20 @@ struct ChatInputBarSendShortcutTests {
         #expect(streaming.upperBound < carrier.lowerBound)
         #expect(src[carrier.lowerBound...].contains(".accessibilityHidden(true)"))
     }
+
+    /// 4. One layout leaf: the glyph branch and the carrier are contained
+    ///    (ZStack), not siblings — the input row is an HStack with spacing
+    ///    10, and a sibling carrier would buy a 10 PT gap the row's
+    ///    printed spec does not have (measured: siblings made the row
+    ///    160→170 PT wide; the ZStack shape restores 160).
+    @Test func sendButtonIsOneLayoutLeaf() throws {
+        let src = try SourceLocator.read(Self.relativePath)
+        let start = try #require(src.range(of: "private var sendButton: some View {"))
+        let head = src[start.upperBound ..< src.index(start.upperBound, offsetBy: 600)]
+        #expect(head.contains("ZStack {"),
+                "carrier and glyph branches must be contained in one leaf")
+        let carrier = try #require(src.range(of: "Button(\"Send shortcut carrier\")"))
+        #expect(carrier.lowerBound > start.upperBound)
+        #expect(src[start.upperBound ..< carrier.lowerBound].contains("ZStack {"))
+    }
 }
