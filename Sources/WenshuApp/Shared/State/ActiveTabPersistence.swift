@@ -4,14 +4,14 @@
 //  Shared/State · the writer the editor's tab-switch path hands its
 //  value to, instead of doing the write itself.
 //
-//  WHY THIS FILE EXISTS. `AppState.activeTabId`'s `didSet` used to call
-//  `UserDefaultsStore.shared.setUUID(_:forKey:)` on the spot (= the P2
-//  finding in the 2026-11-21 root-cause plan, §1.5), so every click on
-//  the tab strip / Cmd-Shift-Bracket ran a defaults write inside the
-//  same frame the editor zone had to produce its first frame in. A
-//  discrete user interaction gets no I/O in its frame. The write is
-//  still owed (= a launch must reopen the tab the user left on); this
-//  type is where it went instead.
+//  WHY THIS FILE EXISTS. A discrete user interaction gets no I/O in
+//  its own frame, so `AppState.activeTabId`'s `didSet` hands its value
+//  here instead of calling `UserDefaultsStore.shared.setUUID(_:forKey:)`
+//  on the spot: a click on the tab strip / Cmd-Shift-Bracket would
+//  otherwise pay a defaults write inside the same frame the editor zone
+//  has to produce its first frame in. The write is owed either way (= a
+//  launch must reopen the tab the user left on); this type is where a
+//  switch's write lands, outside the frame that asked for it.
 //
 //  THE SHAPE: one pending value, one flush outside the frame that set
 //  it. `markSwitched(to:)` overwrites the slot (= coalescing, not

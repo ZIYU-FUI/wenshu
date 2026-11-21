@@ -142,14 +142,14 @@ final class AppState {
     /// Where this session's tab state reaches disk (= the `openTabs`
     /// snapshot + the active-tab id pair; = the two keys
     /// `WenshuDefaultsKey.openTabs` / `.activeTabId`). Production
-    /// passes nothing (= `UserDefaultsStore.shared`, = same record as
-    /// before). The parameter exists because that pair used to be
-    /// readable only from one process-global record that every suite
-    /// opening a tab also wrote, which is what made a relaunch case
-    /// measure whoever wrote last (= the ActiveBookIdentityTests row in
-    /// docs/agents/nfi.md; = measured 2026-11-19). A case that owns its
-    /// own suite can assert the whole write-and-restore contract
-    /// without that race, = and nothing about a real launch changes.
+    /// passes nothing (= `UserDefaultsStore.shared`, the one record a
+    /// real launch reads). The parameter exists because one
+    /// process-global record is written by every suite that opens a tab,
+    /// so a relaunch case reading it measures whoever wrote last (= the
+    /// ActiveBookIdentityTests row in docs/agents/nfi.md; = measured
+    /// 2026-11-19). A case that owns its own suite holds the whole
+    /// write-and-restore contract without that race, and nothing about
+    /// a real launch changes (= the same record, the same two keys).
     let tabDefaults: UserDefaultsStore
 
     /// The writer `activeTabId` hands its value to (= the persisted id
@@ -160,13 +160,13 @@ final class AppState {
 
     var activeTabId: UUID = UUID() {
         didSet {
-            // P2 root fix (= plan 2026-11-21 §1.5): this block used to
-            // run `UserDefaultsStore.shared.setUUID(activeTabId, forKey:
-            // .activeTabId)` (= = a defaults write inside the frame of a
-            // discrete interaction; = every tab-strip click / Cmd-Shift-
-            // Bracket paid it). The duplicate guard below is unchanged
-            // (= a switch to the tab already active still owes nothing);
-            // what a switch now owes is ONE write of the newest id,
+            // A discrete interaction gets no I/O in its own frame: this
+            // block hands the id to `activeTabPersistence` and writes
+            // nothing itself (= no `UserDefaultsStore.shared.setUUID` in
+            // this block, so a tab-strip click / Cmd-Shift-Bracket pays
+            // no defaults write in the click's own frame). The duplicate
+            // guard below keeps a switch to the tab already active owing
+            // nothing; any other switch owes ONE write of the newest id,
             // outside its own frame (= `markSwitched` coalesces a burst
             // into a single pending value; = no clock involved), and the
             // close path asks for its write by name.

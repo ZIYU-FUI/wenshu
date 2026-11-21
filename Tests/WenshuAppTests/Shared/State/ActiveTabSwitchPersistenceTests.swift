@@ -247,9 +247,9 @@ struct ActiveTabSwitchPersistenceTests {
 
     /// The source with every full-line comment dropped.
     ///
-    /// WHY: the claim this case makes is about the CODE, and the code is
-    /// allowed to be documented with the name of the call that used to
-    /// sit there (= the observer's own comment records what was removed).
+    /// WHY: the claim this case makes is about the CODE, and a comment
+    /// naming a call is prose, not a call (= the observer documents
+    /// itself in words), so every full-line comment comes off first.
     private func codeOnly(_ source: String) -> String {
         source
             .split(whereSeparator: \.isNewline)
