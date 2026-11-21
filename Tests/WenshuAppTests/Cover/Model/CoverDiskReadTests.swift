@@ -89,9 +89,9 @@
 //  the only way to wait for it is a wall-clock budget (= the pattern
 //  `CoverRemovalRefreshTests` carries).
 //
-//  The main-thread half is the half Apple's rule is about: "Rely on
-//  previously prepared data in draw(_:), don't perform I/O or complex
-//  calculations in this method".
+//  The main-thread half is the half Apple's rule is about: the
+//  drawing path reads data that is already prepared there, and
+//  performs no I/O and no complex calculation in it.
 //
 
 import AppKit
@@ -426,15 +426,15 @@ struct CoverDiskReadTests {
             let again = await appearancePass(pictures: pictures)
             report("slot-warm", again)
 
-            // Every byte read was read OFF the main thread, and no metadata
-            // question was asked at all (= the key does not consult the
-            // file), on either pass.
+            // Every byte read is read OFF the main thread, and the
+            // disk answers no metadata question at all (= the key consults
+            // nothing), on either pass.
             #expect(first.count(.bytes, onMainThread: true) == 0)
             #expect(first.count(.metadata) == 0, "a cold slot asked the disk \(first.count(.metadata)) metadata question(s)")
             #expect(first.count(.bytes) == Self.screenful)
             // And the pass a scroll makes costs NOTHING at all: not one
-            // stat per card, which is what the picture cache used to pay
-            // for a key that carried the file's size and date.
+            // stat per card, which is what a key carrying the file's size
+            // and date would pay on every pass over the slot.
             #expect(again.total == 0, "a warm slot asked the disk \(again.total) time(s)")
         }
         try? FileManager.default.removeItem(at: root)
@@ -448,9 +448,9 @@ struct CoverDiskReadTests {
             let pane = makePane()
             _ = await renderPass(pane: pane, targets: targets)
 
-            // The door b5f34f59e0 named: a cover changes on the disk,
-            // the change is announced, and the render the announcement
-            // wakes up used to go and read the folder back.
+            // The behaviour the test's own name states: a cover changes
+            // on the disk, the change is announced, and the render the
+            // announcement wakes is answered from memory.
             let service = CardCoverService()
             let changed = targets[3]
             try service.saveImage(

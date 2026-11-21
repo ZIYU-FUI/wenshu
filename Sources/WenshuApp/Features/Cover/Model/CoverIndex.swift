@@ -36,16 +36,16 @@
 //  question asked after it, and publishing one anyway is how a
 //  background read puts a card back to yesterday's disk.
 //
-//  The walk also picks up the one job the decoded-picture cache used to
-//  do on every lookup: it notices a cover FILE whose size or date moved
-//  (= a picture replaced outside the app) and drops the picture held
-//  for it. That check costs nothing of its own, because the size and
-//  the date it compares ride the folder listing the walk already took.
+//  The walk also carries the decoded-picture cache's staleness check:
+//  it notices a cover FILE whose size or date moved (= a picture
+//  replaced outside the app) and drops the picture held for it. That
+//  check costs nothing of its own, because the size and the date it
+//  compares ride the folder listing the walk already took.
 //  One walk therefore asks the disk twice per cover folder it holds (=
 //  the folder's listing and that folder's record) plus one listing of
 //  the covers folder, all of it off the main thread, once per library.
-//  The picture-cache key used to ask once per card per render, on the
-//  main thread.
+//  The alternative is a size-and-date key asked on every lookup: one
+//  ask per card per render, on the main thread.
 //
 
 import Foundation

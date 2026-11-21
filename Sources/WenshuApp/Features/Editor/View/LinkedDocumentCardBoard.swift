@@ -35,8 +35,8 @@ struct LinkedDocumentCardBoard: View {
     ///
     /// THE ROOT ARRIVES, IT IS NOT FETCHED HERE. This board is the
     /// second grid door: `EditorView` renders `LinkedDocumentBoardSection`,
-    /// which builds this board, and its `ForEach` used to ask the
-    /// root-resolving door per card - a UserDefaults read plus a
+    /// which builds this board, and a `ForEach` that asked the
+    /// root-resolving door per card would pay a UserDefaults read plus a
     /// bookmark decode inside the draw, once per card per pass (= B1's
     /// cost, met through a different grid than the material column's).
     /// The pass is bounded at ONE library visit by a counted row in

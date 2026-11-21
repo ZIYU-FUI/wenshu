@@ -15,9 +15,9 @@
 //  The thread is half of what is counted, and the half that decides
 //  whether the user sees it. A cover read on a background thread is a
 //  cost; the same read on the main thread is a hitch in the material
-//  column's frame (= Apple: "Rely on previously prepared data in
-//  draw(_:), don't perform I/O or complex calculations in this
-//  method").
+//  column's frame. Apple's rule for `draw(_:)` is what the count is
+//  measured against: the drawing path reads data that is already
+//  prepared there and does no I/O and no complex calculation in it.
 //
 //  A tally is a class, not a value, because a detached read has to
 //  report into the test that started it: a task local is NOT inherited
@@ -50,7 +50,7 @@ import Foundation
 
 /// Counts the disk touches one cover lookup asks for.
 enum CoverDiskCounting {
-    /// What was asked of the disk.
+    /// The kinds of ask a cover read can make.
     enum Kind: Hashable, Sendable {
         /// A file's metadata (= does it exist, how big is it, when was
         /// it written). The cheap ask, unless it is asked a hundred

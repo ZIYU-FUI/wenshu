@@ -14,17 +14,17 @@
 //  past it and re-read the folder instead.
 //
 //  Why an entry is scoped by LIBRARY: a cover belongs to the library it
-//  was read from, and this cache used to enforce that by demolition - a
-//  library switch dropped every answer it held. Demolition is expensive
-//  and it is also leaky: switching back to a library re-read every cover
-//  folder it had already read, and one library's business was visible to
-//  another's, so any reader could be emptied by a switch that happened
-//  somewhere else (= measured 2026-11-21 in a full parallel test binary:
-//  43 cache clears landed inside one run of the cover counting suite,
-//  each one sending the column back to the disk). Scoping the key by the
-//  covers folder the entry was read from makes the rule structural: one
-//  library's answer cannot answer another library's card, so a switch has
-//  nothing to drop and a sweep drops only what it swept.
+//  was read from, and the key is what enforces it. A key without the
+//  library in it lets one library's answer serve another library's card,
+//  and keeping them apart by demolition - dropping every held answer on
+//  a library switch - is expensive as well as leaky: switching back
+//  re-reads every folder it had, and any reader can be emptied by a
+//  switch that happens elsewhere (= measured 2026-11-21 in a full
+//  parallel test binary: 43 cache clears in one run of the cover
+//  counting suite, each one sending the column back to the disk).
+//  Scoping the key by the covers folder the entry was read from makes
+//  the rule structural: a switch has nothing to drop, and a sweep
+//  drops only what it swept.
 //
 //  Why the ROOT ARRIVES AS A VALUE and is never looked up here: the
 //  scope is the library's covers folder, and obtaining one means asking

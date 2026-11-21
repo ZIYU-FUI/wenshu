@@ -173,9 +173,9 @@ struct CardCoverService {
     /// warm column answers from memory, and if the lookup also had to
     /// ask which library is active it would pay a UserDefaults read
     /// plus a bookmark decode per card, per render, on the drawing
-    /// thread - preparation, which Apple says the draw must not do:
-    /// "Rely on previously prepared data in draw(_:), don't perform
-    /// I/O or complex calculations in this method". So a column resolves
+    /// thread - the preparation Apple's `draw(_:)` rule forbids there:
+    /// the drawing path reads data that is already prepared and does no
+    /// I/O and no complex calculation. So a column resolves
     /// the covers folder ONCE for the pass and hands the same value to
     /// every card. The root-resolving form below exists for a SINGLE
     /// ask and is not this door's shape (= a column that loops it pays
@@ -461,11 +461,11 @@ struct CardCoverService {
 
     /// Reads one card's cover from the disk: ONE listing of its folder.
     ///
-    /// It used to be three asks (= an existence check per file, plus a
-    /// read of the record whether or not the folder was even there), and
-    /// every one of them was paid on whichever thread asked, which for
-    /// the material column is the main thread. A listing answers all
-    /// three questions at once: which files this cover folder holds.
+    /// One listing answers every question the read has, at once: which
+    /// files this cover folder holds. Three asks (= an existence check
+    /// per file, plus a record read whether or not the folder is even
+    /// there) would each be paid on whichever thread asked, which for
+    /// the material column is the main thread.
     ///
     /// `nonisolated` because `CoverIndex` reads the same way for a whole
     /// library on a background task, and two readers of one folder
@@ -508,14 +508,14 @@ struct CardCoverService {
 
     // MARK: - Publishing
 
-    /// Publishes what a write left on the disk, so the next card that
-    /// asks is answered from memory.
+    /// Publishes the answer a write just produced, so a card asked
+    /// after it is answered from memory.
     ///
-    /// The OLD shape was `evict`: drop the held answer and let the next
-    /// render go and read the folder back. That is a disk read inside
-    /// the view body, on the main thread, and it landed on exactly the
-    /// frame the cover's own announcement had just woken up (= the
-    /// symptom commit b5f34f59e0 named: "the card asks the disk again").
+    /// Dropping the held answer here instead would send the render that
+    /// follows to go and read the folder back: a disk read inside the
+    /// view body, on the main thread, on exactly the frame the cover's
+    /// own announcement has just woken up (= the cost
+    /// `CoverDiskReadTests` and `CoverRemovalRefreshTests` hold at zero).
     ///
     /// A writer knows the answer without asking: it wrote the file.
     func publish(_ entry: CoverEntry, forKey key: String) {

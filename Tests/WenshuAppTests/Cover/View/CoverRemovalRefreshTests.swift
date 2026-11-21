@@ -11,17 +11,17 @@
 //  told the card. Making a clip has an in-flight phase a card watches
 //  (= `isMakingVideo`); removing one has none.
 //
-//  WHAT THE TELLING USED TO BE. b5f34f59e0 made a removal DROP the
-//  card's held answer, so the next render went to the disk and got the
-//  truth there. That fixed 2026-11-19 and cost the material column a
-//  folder read on the main thread, once per changed card, on the very
-//  frame the announcement woke (= the reading `CoverDiskReadTests`
-//  carries: 3 asks on the main thread). The write that removed the
-//  clip already knows the folder's new state, so it can say it:
-//  `CardCoverService.removeVideo` now PUBLISHES the recomputed entry
-//  instead of dropping it, and the card that wakes up is answered from
-//  memory. This suite is the witness that the new shape still removes
-//  the clip from what the card shows.
+//  HOW THE TELLING WORKS. A removal could DROP the card's held answer
+//  and leave the render that follows to go to the disk for the truth.
+//  That does answer the defect dated 2026-11-19, and it costs the
+//  material column a folder read on the main thread, once per changed
+//  card, on the very frame the announcement woke (= the reading
+//  `CoverDiskReadTests` carries: 3 asks on the main thread). The
+//  write that removed the clip already knows the folder's new state,
+//  and says it: `CardCoverService.removeVideo` PUBLISHES the
+//  recomputed entry instead of dropping it, and the card that wakes
+//  up is answered from memory. This suite is the witness that the
+//  published shape still removes the clip from what the card shows.
 //
 //  Method: the real grid is hosted in a real `NSHostingView`, over a
 //  throwaway library whose cover holds a picture and a clip. ⇒ The
@@ -40,7 +40,7 @@
 //
 //  The removal is asked for through ANOTHER service than the pane
 //  holds, on purpose: the card that has to be told is not the one
-//  that was asked to remove, so a signal that lived on one service
+//  that issues the removal, so a signal that lived on one service
 //  instance would pass only by an accident of wiring.
 //
 

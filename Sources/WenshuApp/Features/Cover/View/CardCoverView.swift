@@ -14,10 +14,10 @@
 //  zone is a LazyVGrid that can hold dozens of cards, and a
 //  synchronous disk read per card makes scrolling stutter. So the view
 //  asks for the file and shows the fallback until the bytes arrive —
-//  and a card that scrolls back into sight is answered from memory,
-//  which is the half this file used to get wrong: the cache lookup
-//  itself stat'd the file, so every card asked the disk something on
-//  every appearance.
+//  and a card that scrolls back into sight is answered from memory.
+//  A lookup whose key asks the file for its size and date gives that
+//  back: every card pays a metadata ask on every appearance, warm
+//  or cold, which is the cost the path-only key removes.
 //
 //  A card whose cover appears or changes on the disk is TOLD, not
 //  re-polled: `CoverChangeSignal` is read where the grid resolves a

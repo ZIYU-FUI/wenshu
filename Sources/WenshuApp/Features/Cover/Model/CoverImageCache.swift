@@ -12,22 +12,22 @@
 //  scrolling is exactly when the app must not do work it has already
 //  done.
 //
-//  THE KEY IS THE PATH, AND NOTHING ELSE. It used to carry the file's
-//  size and modification date too, and the cost of that was measured
-//  (2026-11-21, `CoverDiskReadTests`): the key is computed on every
-//  `image(for:)` and on every `store(_:for:)`, so a screenful of 24
-//  cards stat'd the disk 24 times on the MAIN THREAD for each pass the
-//  column made over it, and 48 on the pass that missed. A stat is
-//  cheap once and is a hitch at 60 frames a second, and Apple's rule
-//  for this zone is that prepared data is what a draw may read.
+//  THE KEY IS THE PATH, AND NOTHING ELSE. The key is computed on
+//  every `image(for:)` and on every `store(_:for:)`, so a key that
+//  also carried the file's size and modification date pays one
+//  metadata ask per card per pass: 24 cards stat the disk 24 times
+//  on the MAIN THREAD for each pass the column makes over them, and
+//  48 on the pass that misses (= measured 2026-11-21,
+//  `CoverDiskReadTests`). A stat is cheap once and is a hitch at 60
+//  frames a second, and Apple's rule here is prepared data for a draw.
 //
-//  What replaced the stat is the ANNOUNCEMENT, which already exists:
+//  What invalidates a picture is the ANNOUNCEMENT, which exists:
 //  the only writer of a cover picture in the app is
 //  `CardCoverService.saveImage`, and it evicts the picture it
 //  overwrites (= and `removeCover` evicts the one it deletes), so the
 //  day the picture at a path is a different picture is the day this
 //  cache is told about it. A cover written by hand outside the app is
-//  the case the date used to catch, and `CoverIndex` catches it now:
+//  the case a path-only key cannot see, and `CoverIndex` sees it:
 //  the walk reads each cover folder's size and date OFF THE MAIN
 //  THREAD and evicts the picture whose file it says is new.
 //

@@ -20,8 +20,8 @@
 //  fires on the shape production takes.
 //
 //  WHAT IS MEASURED, and the ruler it is measured against. Apple's rule
-//  for this zone is "Rely on previously prepared data in draw(_:), don't
-//  perform I/O or complex calculations in this method", and resolving a
+//  for this zone is that the drawing path reads data already prepared
+//  for it and performs no I/O and no complex calculation, and resolving a
 //  security-scoped bookmark IS preparation. So the claim is a COUNT, per
 //  PASS and not per CARD: one grid pass over 24 warm cards costs ONE
 //  library lookup, and a library lookup never rides a warm pass at all
@@ -198,8 +198,8 @@ struct CoverLibraryLookupCountingTests {
 
     /// One grid pass drawn the WRONG way on purpose, as an arm: a card
     /// at a time through the door that resolves the library itself
-    /// (= the shape every card paid before this fix, and the shape the
-    /// grid no longer uses).
+    /// (= the shape a per-card door pays once per card, and the shape
+    /// this arm exists to measure against the grid's own door).
     private func perCardDoorPass(
         pane: PreviewPane,
         targets: [CardCoverTarget]
