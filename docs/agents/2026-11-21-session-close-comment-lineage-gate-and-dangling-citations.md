@@ -9,7 +9,9 @@ state — a remote, a reflog, this session's own running cards — is printed as
 holds or exits non-zero naming what failed, and any rows beside it are read as a dated snapshot of that
 minute, never as what the command prints at the head. Sections 2 to 5 are closed-range readings;
 section 8 is a closed list of finished runs; section 9's arrival rows are dated and its read-back is a
-predicate. Nothing in here claims to describe the review it is under: section 6 says why.
+predicate. Nothing here argues with a verdict on this file: the findings section 6 lists are the gate's,
+at heads that are closed; section 8's census counts finished runs and their one-word verdicts, quoting no
+finding; section 9 places runs inside a dated interval by `started_at` and nothing else.
 ## 1. What was asked
 
 The boss ruled the comment corpus (see OOB.md #2026-11-21): a comment exists for a human
@@ -50,7 +52,7 @@ against 93, and the 5 sites it deleted on that premise had to be put back.
 
 | Move | Commits | What it is |
 |---|---|---|
-| The gate | `c2a378aca4`, `437eb698bf`, `a28cc8be80` | `comment_lineage.py` (the judge), wired into `pre_review_gate.py` and `ci_change_gate.py`; `citation_inventory.py` (the census); a 29-call suite |
+| The gate | `c2a378aca4`, `437eb698bf`, `a28cc8be80` | `comment_lineage.py` (the judge), invoked by `pre_review_gate.py:444` and by its own suite; `ci_change_gate.py` runs the four change gates (`pollution`, `formatting`, `markdown-newline`, `loc-cap`) and not the judge; `citation_inventory.py` (the census); a 29-call suite |
 | The sweep | `19ce550670`, `eed49fd964`, `b6d9c40d6a` | 25 files, 57 hunks, +176/-188 comment lines, and the 18 registry rows it rewrote |
 | The citation repair | `bacd13bb60` .. `5cf748ee4d` | dead pointers dropped or rewritten, wrapped sites joined, live pointers restored |
 | Measure where it is read | `dec391cb61` .. `8e7481ff8f` | four rounds of findings about numbers that had been copied instead of re-measured |
@@ -95,8 +97,8 @@ python3 Tools/wenshu-devtool/pre_review_gate.py --base 437eb698bf --filter PaneT
 The rest are cheap and are each printed by the command above its result:
 
 ```
-python3 Tools/wenshu-devtool/comment_lineage.py --base 437eb698bf
-UNITY_CARVE=0 python3 Tools/wenshu-devtool/comment_lineage.py --base 437eb698bf
+python3 Tools/wenshu-devtool/comment_lineage.py --base 437eb698bf --head 8e7481ff8f
+UNITY_CARVE=0 python3 Tools/wenshu-devtool/comment_lineage.py --base 437eb698bf --head 8e7481ff8f
 python3 Tools/wenshu-devtool/citation_inventory.py
 for c in markdown-newline pollution formatting loc-cap; do python3 Tools/wenshu-devtool/ci_change_gate.py --base 437eb698bf --check $c; done
 python3 Tools/wenshu-devtool/nfi-loc-check.py --base 437eb698bf
@@ -104,6 +106,11 @@ python3 Tools/wenshu-devtool/tests/test_comment_lineage_gate.py
 git diff --shortstat 437eb698bf..8e7481ff8f
 git diff --shortstat 65590f4800..8e7481ff8f
 ```
+
+The judge lines above pin both ends. The rest take `--base` only, and `ci_change_gate.py` has no
+`--head` at all (its arguments are `--base`, `--check`, `--repo`, at
+`Tools/wenshu-devtool/ci_change_gate.py:506-513`), so their far end is the checkout you are standing
+in: run them from a worktree at `8e7481ff8f`, the head every reading below is from.
 
 Readings at this tip, in that order:
 
@@ -161,16 +168,6 @@ about the sha the card body names, so it is re-run on that sha; and a two-clause
 arms measured, with the direction read off the guard in the code rather than off the intuition of which
 arm is the cheap one.
 
-**What is deliberately not in this artifact: its own review.** The nine rows above are history that
-cannot move, because the gate shipped and the heads it was judged at are behind it. A closeout record
-that also narrates the rounds it takes to review itself does move: every verdict rewrites the section
-the next verdict reads, and each round's fix adds the sentence that the next round blocks on. That loop
-ran six times here, and five of its blockers were sentences written by the previous round's fix. The
-history of those rounds is on the board, where it belongs and where it is already dated and attributable
-(`t_a76df80c`, `t_e0ef2fed`, `t_fcdcc953`, `t_c0d2669c`, `t_726acb18`, `t_f46f84e6`); it is not a
-section of the document under review. Two durable lessons from that loop were kept where they can be
-reused: the exit-status rule (`wenshu-review-proof`, `references/measured-prose-and-comparison-arms.md`
-section 10) and the landing-order rule (same file, section 11).
 
 ## 7. What is still red on this tree, and whose it is
 
@@ -403,14 +400,20 @@ command and the fact that the reader, not the file, decides which side of the in
 2. The wake path for board notifications still has no evidence that a subscriber receives a
    verdict; repairing it means restarting the gateway, which is off the table while other
    sessions are working. Every verdict this scope used was read by polling the board.
-2b. Two facts about `verify_doc_commands.py`, both measured by writing a paste-vs-print guard for
-   this file and then taking it out again. It runs a block with `bash -lc <whole body>` and charges
+2b. Two facts about `verify_doc_commands.py` (tracked at `wenshu-pocock-workflow/scripts/` in the
+   shared skills tree, and that is the path to run; a copy in another skill's `scripts/` is not in the
+   repo and disappeared mid-session while a review card was quoting it). It runs a block with `bash -lc <whole body>` and charges
    only the **exit code**, so a block whose paste disagrees with its stdout line by line passes it —
    which is why a byte-level defect in a pasted table is invisible to the gate that appears to check
    the table, and why no document should rest a claim on that gate alone. Its skip test is a substring
    search for `SKIP:` anywhere in the body, so a block that merely *names* the marker in a comment or a
    string is silently dropped from the re-runnable surface; a block that has to discuss the marker
-   builds it from two literals.
+   builds it from two literals. The path matters a third way: `REGISTRY_DEFAULT` is the relative
+   `docs/agents/nfi.md` (`:51`), so the run happens in the tree under review or it is measuring
+   somewhere else -- at 23:1x on 2026-11-21 a run from the skills directory printed
+   `no registry row for this doc in docs/agents/nfi.md` and, for the read-back block,
+   `origin read FAILED (rc=128) - fatal: 'origin' does not appear to be a git repository`, while the
+   same doc from the repo root printed `PASS (12 block(s) seen, 7 executed)`.
 3. The five restored pointers are the second version of that story. If registry key cells
    keep carrying a tag after the date, the widened matcher is the thing that has to stay
    widened, and `citation_inventory.py --sites` is where a reader can check each one.
@@ -420,7 +423,8 @@ command and the fact that the reader, not the file, decides which side of the in
    `.md` text is outside its own check. A separate scan of the tracked `.md` files (read-only, this
    head, dated at the reading above) carries 5 dangling pointers, all pre-existing and all outside this
    scope's remit (`CHANGELOG.md:48` and `:101` -> `2026-09-24`, a date the register has no row for;
-   `ComponentIndex.md:188` -> `2026-09-01`, `:407` -> `2026-09-07`; `SFRegions.md:53` ->
+   `Sources/WenshuApp/Shared/UI/ComponentDocs/ComponentIndex.md:188` -> `2026-09-01`, `:407` ->
+   `2026-09-07`; `Sources/WenshuApp/Shared/UI/ComponentDocs/SFRegions.md:53` ->
    `2026-10-01`). Widening the scan surface to `.md` is a tool change with findings of its own, not a
    documentation fix, and it belongs to the owner of the census. The record's own text is written to
    avoid the pointer form for dates the register does not carry, because the tool will not catch it.
@@ -436,7 +440,7 @@ command and the fact that the reader, not the file, decides which side of the in
    care. The general shape: a command that cannot fail is not a check, it is a printer. What stays open is the habit, not the push: a
    value printed inside a `SKIP:` block is never re-run, so any read-only command that lives there is a
    value the verifier cannot keep honest.
-6. The landing order this scope ran for six rounds was review-after-merge, and it is disclosed rather
+6. The landing order this scope kept until that finding was review-after-merge, and it is disclosed rather
    than quietly kept: `main`, `docs/session-close-record` and both remotes pointed at the same commit
    each round, so every head reached the trunk before its verdict and `merge-preflight.sh`'s
    `UNREVIEWED` rc 3 described a commit the trunk had already absorbed — measured, not remembered:
