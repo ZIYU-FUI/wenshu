@@ -1,17 +1,13 @@
-// Sources/WenshuApp/DesignTokens.swift (= canonical dimensions for the unified
-// Wenshu per-region chrome; = matches Apple HIG 30 PT toolbar standard, Apple
-// Pages / Mail / Xcode toolbar layout)': Single source of truth for all chrome
+// Sources/WenshuApp/DesignTokens.swift: Single source of truth for all chrome
 // dimensions, paddings, font sizes, dividers, tab metrics (= extracted from
 // LayoutTokens + 16 files of inline literals). Listed in ComponentIndex.md Level
-// 1.1. = canonical dimensions for the unified Wenshu per-region chrome (= matches
-// Apple HIG 30 PT toolbar standard, Apple Pages / Mail / Xcode toolbar layout).
-// Use these constants instead of inline numbers. Dual-axis audit found: - chrome
-// height 30 PT in 3 different places (= LayoutTokens + PaneTabBar) - chrome
-// padding 18 PT in 5 different places (LayoutTokens + inline)
-// -.font(.system(size:13)) in 10 files (= status bar text)
-// -.foregroundStyle(.tertiary) in 16 files (= status bar text) - chatTabHotArea
-// (= 28 PT) named after chat but used by ALL pane tabs - divider 1 PT in 5 inline
-// places (= no constant)
+// 1.1. The old header cited an "Apple HIG 30 PT toolbar standard" and an
+// "18 PT padding in 5 places"; neither figure exists in the HIG or in this
+// file (grep '= 30' = 0 hits; the only bar height HIG publishes is the menu
+// bar's 24 pt) (= the 2026-11-21 craft audit, rule C3/X12). Values below are
+// the product's; where one coincides with a system measurement, the doc
+// comment names the measurement instead of a citation.
+// Use these constants instead of inline numbers.
 import SwiftUI
 
 // MARK: - DesignTokens namespace
@@ -64,18 +60,24 @@ enum DesignTokens {
     /// caption row gap.
     static let spacingCaption: CGFloat = 2
 
-    /// Apple HIG icon-to-label gap (= 4 PT). The canonical tight inset: the
+    /// Product icon-to-label gap (= 4 PT, the tightest rung): the
     /// ChapterFocusLockBadge row gap and the chat tool-part row gap.
+    /// The system's own HStack icon-text gap measures 8 PT (= this rung is
+    /// deliberately tighter, a product choice, not a HIG figure).
     static let spacingIconic: CGFloat = 4
 
-    /// Relaxed stack spacing (= 10 PT, the Apple HIG `.relaxed` stack spacing).
+    /// Product mid-step stack spacing (= 10 PT). The old comment cited an
+    /// "Apple HIG `.relaxed` stack spacing"; no such SDK value exists (audit C3).
     static let spacingRelaxed: CGFloat = 10
 
     /// Apple HIG tight inter-row gap (= 6 PT). The canonical tight padding:
     /// the EmptyStateView row gap.
     static let spacingTight: CGFloat = 6
 
-    /// Apple HIG standard spacing (= 8 PT). The Touch Bar default row gap.
+    /// The grid's base step (= 8 PT): measured as SwiftUI's default HStack
+    /// spacing on macOS 27.2 (= the old "Touch Bar default row gap" provenance
+    /// is withdrawn; the Touch Bar is discontinued and the HIG publishes no
+    /// such figure, audit C3).
     static let spacingStandard: CGFloat = 8
 
     /// Apple HIG moderate spacing (= 12 PT). The canonical
@@ -83,7 +85,9 @@ enum DesignTokens {
     /// row gap.
     static let spacingModerate: CGFloat = 12
 
-    /// Apple HIG loose spacing (= 16 PT). The Touch Bar small fixed space.
+    /// The window's default inset (= 16 PT): measured as the default inset of
+    /// `.padding()` on macOS 27.2 (= the old "Touch Bar small fixed space"
+    /// provenance is withdrawn, audit C3).
     static let spacingLoose: CGFloat = 16
 
     /// Apple HIG hero / window content margin (= 20 PT). The canonical macOS
@@ -91,8 +95,11 @@ enum DesignTokens {
     /// body.
     static let spacingHero: CGFloat = 20
 
-    /// Apple HIG section white-space maximum (= 24 PT). The Touch Bar large gap
-    /// and the EmptyStateView icon-to-text gap.
+    /// Product section gap (= 24 PT): the EmptyStateView icon-to-text gap and
+    /// the chrome section runs. NOTE the system's own Form inter-section gap
+    /// measures 32 PT on macOS 27.2 (= this rung is deliberately tighter, a
+    /// product choice; the old "Touch Bar large gap" provenance is withdrawn,
+    /// audit C3/X12).
     static let spacingSection: CGFloat = 24
 
     // MARK: - Tab metrics
@@ -294,8 +301,10 @@ enum DesignTokens {
     /// radius).
     static let surfaceShadowRadiusWindow: CGFloat = 12
 
-    /// Liquid Glass separator thickness (= 0.5 PT, the Apple HIG macOS 26+
-    /// hairline).
+    /// The hairline rungs (= 0.5 PT): one device pixel at 2x, the thickness
+    /// measured on the app's own window capture (the old "Apple HIG macOS 26+
+    /// hairline" citation published no number; audit C3). The system `Divider`
+    /// itself measures 1.0 PT.
     static let separatorThicknessHairline: CGFloat = 0.5
 
     /// Emphasis border thickness (= 2 PT, the Apple HIG selected/active border
@@ -442,9 +451,12 @@ enum DesignTokens {
     /// agent's message visible above it.
     static let chatInputBarHeight: CGFloat = 80
 
-    /// Large control height (= 36 PT, the Apple HIG macOS control standard).
-    /// The chat input uses it to keep a stable height even when the user types
-    /// longer text.
+    /// Large control height (= 36 PT). The old comment cited "the Apple HIG
+    /// macOS control standard"; no 36 PT figure exists in the HIG and the
+    /// system's own large bordered control measures 28 PT (= audit C3/X12).
+    /// The value stays as the product's stable composer height; controls must
+    /// take density from `.controlSize(.large)`, not from a frame on this
+    /// token (audit K2/X13).
     static let controlHeightLarge: CGFloat = 36
 
     /// Pages-style picker card row height (= 32 PT). The Apple HIG source is
