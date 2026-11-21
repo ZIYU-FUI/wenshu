@@ -121,7 +121,9 @@ struct ChatToolDiffPreview: View {
     /// Color for a diff line (Apple HIG semantic colors, light + dark).
     nonisolated static func color(for line: String) -> Color {
         if line.hasPrefix("@@") { return .secondary }
-        if line.hasPrefix("+++") || line.hasPrefix("---") { return Color(nsColor: .tertiaryLabelColor) }
+        if line.hasPrefix("+++") || line.hasPrefix("---") {
+            return Color(nsColor: .tertiaryLabelColor)
+        }
         if line.hasPrefix("+") { return .green }
         if line.hasPrefix("-") { return .red }
         return .primary

@@ -9,35 +9,36 @@ import SwiftUI
 import WenshuData
 
 // MARK: - Apple recommended approach
-/// Per Apple SwiftUI docs (developer.apple.com/documentation/swiftui/buttonstyle
-/// + developer.apple.com/documentation/swiftui/primitivebuttonstyle/plain),
-/// the canonical way to extend a plain-style button's hit area (= Apple
-/// "How do I make icon buttons easier to click on macOS?") is to implement
-/// `IconButtonStyle` REMOVED in the Apple-API-first pass.
-/// Was a pass-through `makeBody { configuration.label }` (= no-op);
-/// the previous call site + outer Button style (formerly App.swift
-/// L1820 + L1839 before the legacy code split moved those features out
-/// of App.swift) is now superseded by the canonical Apple
-/// `.buttonStyle(.plain)` + `Color.clear.frame(28,28).contentShape(...)`
-/// pattern (= Apple HIG hot-area convention).
-/// SwiftUI button-style precedence = outer-wins, so the inner style was
-/// always superseded. Use Apple `.buttonStyle(.plain)` directly with
-/// `Color.clear.frame(28,28).contentShape(Rectangle())` inside the label
-/// closure (= Apple HIG canonical hot-area pattern).
+
+// Per Apple SwiftUI docs (developer.apple.com/documentation/swiftui/buttonstyle
+// + developer.apple.com/documentation/swiftui/primitivebuttonstyle/plain),
+// the canonical way to extend a plain-style button's hit area (= Apple
+// "How do I make icon buttons easier to click on macOS?") is to implement
+// `IconButtonStyle` REMOVED in the Apple-API-first pass.
+// Was a pass-through `makeBody { configuration.label }` (= no-op);
+// the previous call site + outer Button style (formerly App.swift
+// L1820 + L1839 before the legacy code split moved those features out
+// of App.swift) is now superseded by the canonical Apple
+// `.buttonStyle(.plain)` + `Color.clear.frame(28,28).contentShape(...)`
+// pattern (= Apple HIG hot-area convention).
+// SwiftUI button-style precedence = outer-wins, so the inner style was
+// always superseded. Use Apple `.buttonStyle(.plain)` directly with
+// `Color.clear.frame(28,28).contentShape(Rectangle())` inside the label
+// closure (= Apple HIG canonical hot-area pattern).
 
 // "reset layout" notification bridge (AppRootScene uses @State private vm,
 // top-level .commands can't access vm instance, routed via NotificationCenter)
 
-// name for menu bar zone toggle buttons (= CommandGroup can't directly
-// access vm instance, so menu items post notification, vm listens).
-// all Notification.Name
-// definitions moved to Sources/WenshuApp/Core/Notifications/AppNotifications.swift
-// (= single source of truth, grouped into AppCommands / AppStateEvents /
-// LayoutEvents enums, unified to "com.wenshu.X" naming per Apple
-// Notification Programming Topics reverse-DNS convention). Backward-compat
-// accessors (= .wenshuXxx on Notification.Name) live in that file for
-// the migration window so the 17 existing call sites compile unchanged.
-extension Notification.Name {}  // placeholder; all members moved to AppNotifications.swift
+/// name for menu bar zone toggle buttons (= CommandGroup can't directly
+/// access vm instance, so menu items post notification, vm listens).
+/// all Notification.Name
+/// definitions moved to Sources/WenshuApp/Core/Notifications/AppNotifications.swift
+/// (= single source of truth, grouped into AppCommands / AppStateEvents /
+/// LayoutEvents enums, unified to "com.wenshu.X" naming per Apple
+/// Notification Programming Topics reverse-DNS convention). Backward-compat
+/// accessors (= .wenshuXxx on Notification.Name) live in that file for
+/// the migration window so the 17 existing call sites compile unchanged.
+extension Notification.Name {} // placeholder; all members moved to AppNotifications.swift
 
 // MARK: - Self screenshot (= the canonical practice: screenshot after every code change)
 
@@ -46,7 +47,7 @@ enum SelfScreenshot {
     static func run() {
         let env = ProcessInfo.processInfo.environment
         let path = env["WS_SCREENSHOT_PATH"] ?? "/tmp/wenshu-selfshot.png"
-        let delay = Double(env["WS_SCREENSHOT_DELAY"] ?? "5.0") ?? 5.0  // 5s layout race condition (debug-only)
+        let delay = Double(env["WS_SCREENSHOT_DELAY"] ?? "5.0") ?? 5.0 // 5s layout race condition (debug-only)
         let shouldExit = env["WS_SCREENSHOT_EXIT"] != "0"
         // Craft audit B6 experiment: `cacheDisplay` is an OFFSCREEN draw
         // and the window server does not composite MATERIAL or Glass
@@ -73,9 +74,11 @@ enum SelfScreenshot {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             guard
                 let window = NSApp.keyWindow
-                    ?? NSApp.windows.first(where: { $0.contentViewController != nil })
+                ?? NSApp.windows.first(where: { $0.contentViewController != nil })
             else {
-                if exitAfter { exit(2) }
+                if exitAfter {
+                    exit(2)
+                }
                 return
             }
             // The macOS 27 SDK marks CGWindowListCreateImage unavailable
@@ -87,29 +90,36 @@ enum SelfScreenshot {
             // whole mode exists to settle craft-audit B6 and goes with
             // the experiment.
             typealias WindowImageFn = @convention(c) (
-                CGRect, UInt32, UInt32, UInt32) -> Unmanaged<CGImage>?
+                CGRect, UInt32, UInt32, UInt32
+            ) -> Unmanaged<CGImage>?
             guard let sym = dlsym(dlopen(nil, RTLD_NOW), "CGWindowListCreateImage")
             else {
-                if exitAfter { exit(4) }
+                if exitAfter {
+                    exit(4)
+                }
                 return
             }
             let fn = unsafeBitCast(sym, to: WindowImageFn.self)
             let number = UInt32(truncatingIfNeeded: window.windowNumber)
-            let optionBoundsIgnoreFraming: UInt32 = 1 << 0   // kCGWindowImageBoundsIgnoreFraming
-            let optionBestResolution: UInt32 = 1 << 3        // kCGWindowImageBestResolution
+            let optionBoundsIgnoreFraming: UInt32 = 1 << 0 // kCGWindowImageBoundsIgnoreFraming
+            let optionBestResolution: UInt32 = 1 << 3 // kCGWindowImageBestResolution
             // kCGWindowListOptionIncludingWindow = (1 << 3), read from
             // CoreGraphics.framework/Headers/CGWindow.h:157 on this SDK.
             let listOptionIncludingWindow: UInt32 = 1 << 3
             guard let ref = fn(.null, listOptionIncludingWindow, number,
                                optionBoundsIgnoreFraming | optionBestResolution),
-                  let image = NSBitmapImageRep(cgImage: ref.takeUnretainedValue())
-                    .representation(using: .png, properties: [:])
+                let image = NSBitmapImageRep(cgImage: ref.takeUnretainedValue())
+                .representation(using: .png, properties: [:])
             else {
-                if exitAfter { exit(3) }
+                if exitAfter {
+                    exit(3)
+                }
                 return
             }
             try? image.write(to: URL(fileURLWithPath: path))
-            if exitAfter { exit(0) }
+            if exitAfter {
+                exit(0)
+            }
         }
     }
 
@@ -118,10 +128,12 @@ enum SelfScreenshot {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             guard
                 let window = NSApp.keyWindow
-                    ?? NSApp.windows.first(where: { $0.contentViewController != nil }),
+                ?? NSApp.windows.first(where: { $0.contentViewController != nil }),
                 let contentView = window.contentView
             else {
-                if exitAfter { exit(2) }
+                if exitAfter {
+                    exit(2)
+                }
                 return
             }
             window.layoutIfNeeded()
@@ -130,7 +142,9 @@ enum SelfScreenshot {
             guard bounds.width > 0, bounds.height > 0,
                   let bitmap = contentView.bitmapImageRepForCachingDisplay(in: bounds)
             else {
-                if exitAfter { exit(2) }
+                if exitAfter {
+                    exit(2)
+                }
                 return
             }
             bitmap.size = bounds.size
@@ -141,11 +155,15 @@ enum SelfScreenshot {
             NSGraphicsContext.restoreGraphicsState()
             contentView.cacheDisplay(in: bounds, to: bitmap)
             guard let png = bitmap.representation(using: .png, properties: [:]) else {
-                if exitAfter { exit(3) }
+                if exitAfter {
+                    exit(3)
+                }
                 return
             }
             try? png.write(to: URL(fileURLWithPath: path))
-            if exitAfter { exit(0) }
+            if exitAfter {
+                exit(0)
+            }
         }
     }
 }
@@ -246,15 +264,17 @@ struct WenshuApp: App {
 
 /// task (Hermes AUX_TASKS: vision/web_extract/compression/approval/mcp/title_generation/curator)
 enum AuxTask: String, CaseIterable, Identifiable {
-    case vision = "vision"
+    case vision
     case webExtract = "web_extract"
-    case compression = "compression"
-    case approval = "approval"
-    case mcp = "mcp"
+    case compression
+    case approval
+    case mcp
     case titleGeneration = "title_generation"
-    case curator = "curator"
+    case curator
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var label: String {
         switch self {
@@ -281,10 +301,8 @@ enum AuxTask: String, CaseIterable, Identifiable {
     }
 }
 
-
 // Spec sub-agent (deleg_10289a6b): installMainMenu 6 + create NSWindow SettingView =
 // Settings { } Scene ( Picker, 8/21 "show")
-
 
 // ZoneSlot -> TabKind rename: the zone enum was duplicate-
 // defined here. Callers use the canonical TabKind instead (= declared in
@@ -295,6 +313,7 @@ enum AuxTask: String, CaseIterable, Identifiable {
 // duplicate was always dead code.
 
 // MARK: - Library outline (sidebar)
+
 //
 // sidebar MVVM cleanup: `LibraryOutlineViewContent` was a
 // wiring wrapper that rendered the legacy
