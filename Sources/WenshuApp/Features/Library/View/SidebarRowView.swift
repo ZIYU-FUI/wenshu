@@ -281,20 +281,21 @@ struct SidebarRowView: View {
                 // Per boss 2026-10-16 OOB "目录树的 ICON, 没有用 SF
                 // 符号的纤细体, 就是倒数第二个细的选项": the
                 // sidebar pinyin letter icons render with SF
-                // Symbols `.thin` weight (= the second-thinnest
-                // weight Apple ships in the SF Symbols 6 picker
-                // above `.ultraLight`; = thin is the canonical
-                // Apple HIG body-content weight for 16-24 PT icons
-                // per the SF Symbols 6 weight-split rule for
-                // reading-heavy surfaces like sidebar monograms).
+                // Symbols `.thin` weight, as an EXPLICIT call-site
+                // override (= the central factory went uniform
+                // `.regular` on the 2026-11-21 craft audit, T4/X7,
+                // and this caller keeps its ordered weight on
+                // purpose; = the old comment's "thin is the canonical
+                // Apple HIG body-content weight" claim was not from
+                // the HIG and is dropped; = the OOB quote stands).
                 //
                 // The glyph goes through the central factory (= a
                 // naked `Image(systemName:)` is the blocked form).
                 // The `.sidebarTree` tier is the library tree's own
                 // row-icon tier, and the call carries the two values
-                // the tier alone cannot: the `.thin` weight (= the
-                // letter glyph's optical weight; = no sub-38 PT tier
-                // offers it) and an explicit `.monochrome` rendering
+                // the tier alone cannot: the `.thin` weight (the
+                // letter glyph's optical weight the boss ordered) and
+                // an explicit `.monochrome` rendering
                 // (= the factory's default below 38 PT is
                 // `.hierarchical`, and a hierarchical
                 // `IconColor.primary` resolves to the accent tint

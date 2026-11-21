@@ -91,16 +91,18 @@ struct IconStylesTests {
         #expect(IconStyle.sidebar.pointSize == 16)
     }
 
-    // MARK: - IconStyle.fontWeight split (boss 2026-09-17 SF Symbols 6 rule)
+    // MARK: - IconStyle.fontWeight (uniform .regular; the old ≥38 PT .thin
+    // tier cited "boss 2026-09-17 SF Symbols 6 rule", a row that does not
+    // exist in OOB.md, and HIG bans thin labels — craft audit 2026-11-21 T4/X7)
 
-    @Test("IconStyle.fontWeight = .thin for the >=38 PT zone (= hero / avatar / cover)")
-    func fontWeightThinForLargeZones() {
-        #expect(IconStyle.emptyStateHero.fontWeight == .thin)
-        #expect(IconStyle.avatar.fontWeight == .thin)
-        #expect(IconStyle.cover.fontWeight == .thin)
+    @Test("IconStyle.fontWeight = .regular for the >=38 PT zone (= hero / avatar / cover)")
+    func fontWeightRegularForLargeZones() {
+        #expect(IconStyle.emptyStateHero.fontWeight == .regular)
+        #expect(IconStyle.avatar.fontWeight == .regular)
+        #expect(IconStyle.cover.fontWeight == .regular)
     }
 
-    @Test("IconStyle.fontWeight = .regular for the <38 PT zone (= boss 9/15 thin canonical)")
+    @Test("IconStyle.fontWeight = .regular for the <38 PT zone")
     func fontWeightRegularForSmallZones() {
         #expect(IconStyle.inlineSmall.fontWeight == .regular)
         #expect(IconStyle.small.fontWeight == .regular)

@@ -279,10 +279,10 @@ struct WizardStepIndicator: View {
 
     private func dotColor(for step: ImportSheet.WizardStep, reachable: Bool) -> Color {
         // a step that is NOT reachable (= the user hasn't reached it yet) is dimmed more
-        // than a step that is just "future from the current" (= .secondary
-        // .opacity(0.4) = the visual reads as "disabled"; = the user
-        // understands "I can't click this yet").
-        if !reachable { return .secondary.opacity(0.4) }
+        // than a step that is just "future from the current". System label
+        // ink, not a hand-rolled alpha: tertiaryLabel resolves to α 0.26 and
+        // adapts to appearance and increase contrast (craft audit C2).
+        if !reachable { return Color(nsColor: .tertiaryLabelColor) }
         if step == currentStep { return .accentColor }
         if step.rawValue < currentStep.rawValue { return .green }
         return .secondary
@@ -290,7 +290,7 @@ struct WizardStepIndicator: View {
 
     private func connectorColor(for step: ImportSheet.WizardStep) -> Color {
         if step.rawValue < currentStep.rawValue { return .green }
-        return .secondary.opacity(0.3)
+        return Color(nsColor: .tertiaryLabelColor)
     }
 }
 

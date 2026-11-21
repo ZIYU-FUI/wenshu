@@ -109,10 +109,10 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     let iconStyle: IconStyle
 
     /// AppKit weight counterpart used to configure `NSImage` symbols before
-    /// they enter `NSSegmentedControl`.
-    var symbolWeight: NSFont.Weight {
-        iconStyle.fontWeight == .thin ? .thin : .regular
-    }
+    /// they enter `NSSegmentedControl`. Always `.regular`: the mirror's old
+    /// `.thin` branch propagated the factory's withdrawn large-zone `.thin`
+    /// (ghost-cited "OOB.md #2026-09-17"), craft audit 2026-11-21 rule T4/X7.
+    var symbolWeight: NSFont.Weight { .regular }
 
     /// macOS 27 segmented-control role (= how the SELECTED segment is drawn).
     ///

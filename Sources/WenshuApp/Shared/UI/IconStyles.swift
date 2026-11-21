@@ -49,8 +49,9 @@ import AppKit
 // MARK: - IconStyle
 
 /// Apple HIG / Apple-shipped app icon-style enum. Each case carries the point
-/// size + the weight (= the .thin split for the ≥38 PT zone, following the
-/// SF Symbols 6 weight rule).
+/// size + a uniform `.regular` weight (= the old `.thin` split for the ≥38 PT
+/// zone cited "(see OOB.md #2026-09-17)", a row OOB.md does not carry; the
+/// split was withdrawn by the 2026-11-21 craft audit, rule T4/X7).
 /// The case names walk Apple HIG official terminology (= `hitArea` for macOS
 /// HIG minimum hit area; `paneTab` for NSToolbar item default; `toolbar` for
 /// `.controlSize(.small)`; etc.).
@@ -121,21 +122,19 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// (= Apple's documented default for the "no content here" affordance).
     /// Used by: EmptyStateView (the canonical wenshu empty state across all 12
     /// specialized tools + editor zone + PreviewPane + ChatView chat-zone
-    /// "configure LLM" empty state). Weight: .thin.
+    /// "configure LLM" empty state). Weight: .regular (T4/X7).
     case emptyStateHero
 
     /// List row avatar / thumbnail size (= NSTableView thumbnail row standard).
-    /// Thin weight per rule.
     /// Apple HIG source: `NSTableView > Row thumbnail size = 64 PT` (= Apple's
     /// default for list-row thumbnails; = Mail / Finder row icon zone).
     /// Used by: book cover thumbnails in PlaceholderView, character portrait
-    /// icons, kanban card hero. Weight: .thin.
+    /// icons, kanban card hero. Weight: .regular (T4/X7).
     case avatar
 
     /// CoverFlow thumbnail size (= Apple-shipped Finder cover preview
-    /// standard). Thin weight per rule.
-    /// Apple HIG source: `Finder > CoverFlow preview = 192 PT`.
-    /// Used by: onboarding cover preview (= LibraryRootView). Weight: .thin.
+    /// standard). Apple HIG source: `Finder > CoverFlow preview = 192 PT`.
+    /// Used by: onboarding cover preview (= LibraryRootView). Weight: .regular (T4/X7).
     case cover
 
     /// Toolbar button hot area (= `.controlSize(.regular)` = 32 PT).
@@ -208,16 +207,13 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
         }
     }
 
-    /// Apple HIG weight for this case. The ≥38 PT zone (= emptyStateHero /
-    /// avatar / cover) uses.thin per SF Symbols 6
-    /// weight split rule. Smaller zones use .regular (= (see OOB.md
-    /// #2026-09-15)" canonical macOS toolbar weight).
-    var fontWeight: Font.Weight {
-        switch self {
-        case .emptyStateHero, .avatar, .cover: .thin
-        default: .regular
-        }
-    }
+    /// Symbol weight = uniform .regular across every zone. The old split
+    /// (.thin for the ≥38 PT hero / avatar / cover zone) cited "OOB.md
+    /// #2026-09-17", which is not a row in OOB.md (#2026-09-15 is the
+    /// palette-rendering canonical, not a weight rule), and the HIG bans the
+    /// weight outright for labels and thin strokes on dark grounds.
+    /// Craft audit 2026-11-21, rule T4/X7.
+    var fontWeight: Font.Weight { .regular }
 
     /// Whether this case is a hit-area tier (= glyph is invisible; caller
     /// overlays an actual icon inside the hit zone). Affects SFIcon rendering:
@@ -229,12 +225,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// AppKit counterpart used at NSImage boundaries. Apple keeps the symbol's
     /// intrinsic optical bounds; the factory normalizes only the shared point
     /// size, weight, and scale.
-    var symbolWeight: NSFont.Weight {
-        switch self {
-        case .emptyStateHero, .avatar, .cover: .thin
-        default: .regular
-        }
-    }
+    var symbolWeight: NSFont.Weight { .regular }  // AppKit mirror of fontWeight (T4/X7)
 }
 
 // MARK: - Sidebar slot (only meaningful on .sidebar)
@@ -269,15 +260,18 @@ enum IconColor: Sendable, Equatable {
     case red, green, orange, blue
 
     /// SwiftUI semantic color resolver (= `Color` to be passed to
-    /// `.foregroundStyle(_:)`). HIG quaternary = primary with 0.15 alpha (=
-    /// SwiftUI `.quaternary` resolves internally to `HierarchyShape`.
-    /// quaternary`; we use the explicit alpha for stability across macOS SDKs).
+    /// `.foregroundStyle(_:)`). The tertiary / quaternary rungs are the
+    /// system label colors themselves. Measured on this machine 2026-11-21:
+    /// tertiaryLabel = α 0.26, quaternaryLabel = α 0.10 (= the old hand-rolled
+    /// `primary.opacity(0.45 / 0.15)` matched neither value, and raw opacity
+    /// on primary ignores dark mode, increase contrast, and every appearance
+    /// override). Craft audit rule C2.
     var style: Color {
         switch self {
         case .primary: Color.primary
         case .secondary: Color.secondary
-        case .tertiary: Color.primary.opacity(0.45)
-        case .quaternary: Color.primary.opacity(0.15)
+        case .tertiary: Color(nsColor: .tertiaryLabelColor)
+        case .quaternary: Color(nsColor: .quaternaryLabelColor)
         case .accent: Color.accentColor
         case .tint: Color.accentColor
         case .red: Color(nsColor: .systemRed)
