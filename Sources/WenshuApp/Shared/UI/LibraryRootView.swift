@@ -276,6 +276,33 @@ private struct OnboardingAwareToolbar: ViewModifier {
             // / The material is the window chrome's own (= it reads what is
             // / behind the strip, so the strip carries the window's depth
             // / instead of a painted band).
+            //
+            // B6 CLOSURE (craft audit 2026-11-21, boss ruling "chrome
+            // should be glass"). The ruling was tested against the SDK
+            // and the live window server, and the strip cannot be Liquid
+            // Glass through any published API:
+            //   * `Glass` (SwiftUICore interface:7422) is NOT a
+            //     ShapeStyle — `toolbarBackground(_:for:)` only takes
+            //     ShapeStyle, so no API paints glass into this surface.
+            //   * Dropping the override does NOT hand the strip to a
+            //     glass-drawing system: A/B captures of this exact window
+            //     (strip-ab/, composites read with the app's own
+            //     windowserver screenshot mode) show the un-overridden
+            //     strip painting per-column plates in light appearance
+            //     (sidebar band 231, editor paper a 255 white slab,
+            //     colour carried 0.7% = the pre-fix state 3682f88ed3
+            //     measured), and NSWindow.toolbarStyle `.automatic` is
+            //     pixel-identical to `.unified` there (0 of 100672 px).
+            //   * The glass the ruling asks for IS in this chrome where
+            //     Apple exposes it: the toolbar's own buttons run on
+            //     NSButton bezelStyle `.glass` (NSButtonCell.h:67,
+            //     macos 26.0; see GlassIconButton.swift).
+            // So the strip stays the one-material surface and the
+            // controls stay glass bezels; a live-glass strip would mean
+            // content under the titlebar (= a layout redesign, not this
+            // batch). The A/B evidence lives under the craft-audit
+            // scratch dir (strip-ab/strip-{glassless,material,
+            // light-glassless,light-material,light-autoglass}.png).
             .toolbarBackground(.ultraThinMaterial, for: .windowToolbar)
             // The window's titlebar strip closes with the SHARED hairline,
             // = so the strip reads as chrome above the columns and not as
