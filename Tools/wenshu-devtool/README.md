@@ -381,7 +381,7 @@ Four things the gate must state rather than imply:
    never given a file it does not have, and a date that dangles only in wrapped text still
    counts.
 
-`tests/test_comment_lineage_gate.py` holds 29 `check()` calls and EXECUTES 27 of them at a head whose tree carries no dangling citation (= cases 8d/8e are gated on `rep["dangling"]`, so the executed count follows the tree: 23 at a head with dangling citations, 27 without); it runs those over the 37 arms plus a fixture git repo
+`tests/test_comment_lineage_gate.py` holds 29 `check()` calls and EXECUTES 27 of them at a head whose tree carries no dangling citation (so the executed count follows the tree: the executed count follows the tree: 27 where it carries no dangling citation and 29 where it carries one (= test_comment_lineage_gate.py:233 is `if rep["dangling"]:`, which ADDS cases 8d and 8e, measured in a throwaway worktree: control 27 PASS without them, one planted dangling citation 29 PASS with both printed; the 23 some earlier text called a low arm is main's OWN call count, 24 `check(` tokens minus its `def check(`, every one of which fires on main's tree)); it runs those over the 37 arms plus a fixture git repo
 it builds in a temp directory: the gate is shown FAILING a violating window
 and green on a compliant one that actually added a comment line. `pre_review_gate.py`
 runs the judge on every card, which is where it stops being an instrument
