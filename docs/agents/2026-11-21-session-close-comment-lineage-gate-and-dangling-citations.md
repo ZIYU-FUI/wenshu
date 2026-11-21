@@ -2,8 +2,14 @@
 
 This record closes one scope: the ruling that comments serve a reader who is not the agent
 that wrote the change, the gate that turns that ruling into something that can fail, and the
-citation debt the gate then exposed. Every number below was re-run on the MERGED tree
-(`8e7481ff8f`) unless a pair is named, and each block carries the command that prints it.
+citation debt the gate then exposed. Which tree each figure comes from is part of the figure: the
+gate readings in sections 2 to 5 were re-run on the MERGED tree (`8e7481ff8f`); section 6's verdict
+tally and section 8's board figures are readings of the live board and each names its own cutoff (the
+16:49 board-wide snapshot, and the card list section 8 prints); section 9's rows are this head's
+reflog and remote readings, and its arrival filter names the scope's shas rather than the commit that
+carries this line. Each block carries the command that prints it, and where a block's command cannot
+print the value beside it, the value is wrong and not the command — which is no longer an honour
+system: the guard in section 11 runs each cited block and diffs its stdout against the lines under it.
 Blocks that mutate the tree or a remote are marked `SKIP:` and are not part of the doc's
 re-runnable surface.
 
@@ -151,9 +157,10 @@ numbers is comparing things that happen to share a digit.
 | `t_a76df80c` | `6747dd2229` | changes_requested | this record itself: section 7 attributed the red to the report tool and named 4 cases that exist in no revision; line 12 carried a dangling register date; the sweep row copied the register's 79, measured by a tool the tree has never had |
 | `t_e0ef2fed` | `e1b231525a` | changes_requested | round-1's three findings verified closed by measurement; section 7 was still one red short, and the correction had rewritten the same dangling pointer form into line 282 of the record it was fixing |
 | `t_fcdcc953` | `c6fc14577d` | changes_requested | F1 and F2 re-run and closed; section 9 still printed the previous head — a read-back sha one commit stale, a timeline missing two arrivals, "one commit behind" where the measured distance was 2, and an outage asserted in present tense seven minutes after it ended, all of it surviving the verifier because the read-only command sat inside a `SKIP:` block |
-| `t_c0d2669c` | `a9297fa128` | changes_requested | section 9's rebuild confirmed byte-exact; three sentences this commit wrote to describe its own fix carried unmeasured claims — an ellipsis the tool never prints (83 is occurrences, 19 the full distinct roster), a snapshot credited with review cards that started after its cutoff, and an absolute rule about `SKIP:` blocks that its own next section broke |
+| `t_c0d2669c` | `a9297fa128` | changes_requested | round 4's three blockers re-run and closed; three sentences this commit wrote to describe its own fix carried unmeasured claims — an ellipsis the tool never prints (83 is occurrences, 19 the full distinct roster), a snapshot credited with review cards that started after its cutoff, and an absolute rule about `SKIP:` blocks that its own next section broke |
+| `t_726acb18` | `308619a3a2` | changes_requested | the three sentences above re-run and closed; both reflog commands ate the closing brace with their own second `sed` expression, so the fifteen pasted rows end in `}` and the commands print rows that do not — content right, bytes wrong |
 
-The repeating shape is one mistake, not thirteen: **a number published from the head where it was
+The repeating shape is one mistake, not fourteen: **a number published from the head where it was
 first written, rather than the head the card names.** Prose in `nfi.md` and the registry rows
 are the same failure wearing a different file. The rule the scope ended on lives in the
 `wenshu-review-proof` skill (`references/measured-prose-and-comparison-arms.md`, sections 5
@@ -235,15 +242,15 @@ field and nobody re-cited the assertion. Its owner is the chat lane.
 
 ## 8. What this scope cost on the board
 
-Thirteen review cards with runs, 13 runs on the review lane, 257.8 minutes of reviewer wall clock,
+Fourteen review cards with runs, 14 runs on the review lane, 312.9 minutes of reviewer wall clock,
 and one card the reviewer created for the implementer that never ran (`t_ed400688`, archived). Every
-card completed its run: zero `rate_limited`, zero `timed_out`, zero reclaims. Nine verdicts came
-back changes_requested and four approved; the rounds, not the failures, were the price, and each
-returned round cost a full re-measure of the published numbers.
+card completed its run: zero `rate_limited`, zero `timed_out`, zero reclaims, and exactly one run per
+card. Ten verdicts came back changes_requested and four approved; the rounds, not the failures, were
+the price, and each returned round cost a full re-measure of the published numbers.
 
 ```
-sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select count(*), round(sum(coalesce(r.ended_at,strftime('%s','now'))-r.started_at)/60.0,1) from task_runs r where r.task_id in ('t_78c56873','t_040d46e6','t_9c5c9538','t_7000a317','t_cd27cc22','t_32bf3b9e','t_e9c37fab','t_ff60edef','t_15ebdbaa','t_a76df80c','t_e0ef2fed','t_fcdcc953','t_c0d2669c')"
-#  13|257.8
+sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select count(*), round(sum(coalesce(r.ended_at,strftime('%s','now'))-r.started_at)/60.0,1) from task_runs r where r.task_id in ('t_78c56873','t_040d46e6','t_9c5c9538','t_7000a317','t_cd27cc22','t_32bf3b9e','t_e9c37fab','t_ff60edef','t_15ebdbaa','t_a76df80c','t_e0ef2fed','t_fcdcc953','t_c0d2669c','t_726acb18')"
+#  14|312.9
 ```
 
 The query sums over an EXPLICIT list of this scope's card ids, not over a creator and a time window:
@@ -254,22 +261,29 @@ who re-runs the query after that card has run will get a larger number, and that
 reading, not a contradiction of this one.
 
 ```
-SKIP: this query reads the live board, so its result moves with every run anyone dispatches;
-pasting it as an executable assertion would be a claim about the future. The reading below is a
-snapshot, taken at 16:49 on 2026-11-21 in the session that wrote this record, and the record cites
-it only as that moment's reading — never as a current fact. Section 11 states the rule this
-exception is subject to.
-sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select count(*), round(sum(coalesce(r.ended_at,strftime('%s','now'))-r.started_at)/60.0,1) from task_runs r join tasks t on t.id=r.task_id where t.created_by='pocock' and t.title like '%[T%'"
-#  592 | 14162.7
+sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select count(*), round(sum(min(coalesce(r.ended_at,unixepoch('2026-11-21 16:49:00 +08:00')),unixepoch('2026-11-21 16:49:00 +08:00'))-r.started_at)/60.0,1) from task_runs r join tasks t on t.id=r.task_id where t.created_by='pocock' and t.title like '%[T%' and r.started_at < unixepoch('2026-11-21 16:49:00 +08:00')"
+#  592|14162.7
 ```
+
+This block is clipped to its own cutoff rather than read live, and the clipping is the whole point: the
+version this session actually ran at 16:49 was `…coalesce(r.ended_at,strftime('%s','now'))…` with no
+`started_at` filter, and re-running *that* command today prints `595|14228.2`, because the board kept
+taking runs after the record quoted it. A skipped block whose command no longer prints the line under it
+is the same defect section 9 was blocked on twice, so the command was rewritten until the paste is what
+the command prints, and the block lost its `SKIP:` line because nothing it does mutates anything. Two
+limits on it, both honest: `unixepoch` reads a bare timestamp as UTC, so the `+08:00` in the cutoff is
+load-bearing (drop it and the same query answers `595|14228.2` for a different reason), and the class is
+selected by `title like '%[T%'`, so a title edit on an old card would move the count — nothing has
+retagged anything that started before 16:49 so far, which is why the clipped figure has been stable
+across every re-run in this scope.
 
 That reading is board-wide, so it counts every scope this profile ever dispatched up to its own
 cutoff: 592 runs, 14162.7 minutes (236.0 hours). Of this record's own review cards exactly **one**
 was inside that cutoff — `t_a76df80c` started at 16:05:53 — while `t_e0ef2fed` (16:55:21),
-`t_fcdcc953` (17:45:52) and `t_c0d2669c` (18:10:08) all started after it. The sentence here used to
-say "all three of this record's own review cards are inside it", which the board's own `started_at`
-column refutes; a dated snapshot has to date what it contains as well as when it was taken. The
-scope's own figure is the explicit 13-card sum above, and the two numbers are not the same
+`t_fcdcc953` (17:45:52), `t_c0d2669c` (18:10:08) and `t_726acb18` (18:52:35) all started after it. The
+sentence here used to say "all three of this record's own review cards are inside it", which the board's
+own `started_at` column refutes; a dated snapshot has to date what it contains as well as when it was
+taken. The scope's own figure is the explicit 14-card sum above, and the two numbers are not the same
 measurement: the board-wide count is context for how much of the lane this profile has occupied, not
 the price of this work. The reviewer's follow-up card
 (`t_ed400688`) was created by the reviewer and assigned to the implementer; the fix is one
@@ -308,7 +322,7 @@ SKIP: pushing, and a push writes to a remote the reader may not own: `git push o
 ```
 
 ```
-git reflog show --date=format:'%H:%M' origin/main | grep -E '^(a28cc8be80|437eb698bf|1d1d7c937b|8e7481ff8f|6747dd2229|e1b231525a|fc18fcc692|c6fc14577d) refs' | sed 's/ refs.*@{/  @{/; s/}: update by push//'
+git reflog show --date=format:'%H:%M' origin/main | grep -E '^(a28cc8be80|437eb698bf|1d1d7c937b|8e7481ff8f|6747dd2229|e1b231525a|fc18fcc692|c6fc14577d) refs' | sed 's/ refs.*@{/  @{/; s/: update by push//'
 #  c6fc14577d  @{17:43}
 #  fc18fcc692  @{17:36}
 #  e1b231525a  @{16:51}
@@ -317,7 +331,7 @@ git reflog show --date=format:'%H:%M' origin/main | grep -E '^(a28cc8be80|437eb6
 #  1d1d7c937b  @{15:34}
 #  437eb698bf  @{12:39}
 #  a28cc8be80  @{10:19}
-git reflog show --date=format:'%H:%M' old-origin/main | grep -E '^(a28cc8be80|437eb698bf|1d1d7c937b|8e7481ff8f|6747dd2229|e1b231525a|fc18fcc692|c6fc14577d) refs' | sed 's/ refs.*@{/  @{/; s/}: update by push//'
+git reflog show --date=format:'%H:%M' old-origin/main | grep -E '^(a28cc8be80|437eb698bf|1d1d7c937b|8e7481ff8f|6747dd2229|e1b231525a|fc18fcc692|c6fc14577d) refs' | sed 's/ refs.*@{/  @{/; s/: update by push//'
 #  c6fc14577d  @{17:43}
 #  e1b231525a  @{16:51}
 #  6747dd2229  @{16:04}
@@ -362,6 +376,13 @@ the reader, not the file, decides which side of the interval they are on.
 2. The wake path for board notifications still has no evidence that a subscriber receives a
    verdict; repairing it means restarting the gateway, which is off the table while other
    sessions are working. Every verdict this scope used was read by polling the board.
+2b. Two facts about `verify_doc_commands.py`, learned by writing the guard in section 11 and both
+   measured: it runs a block with `bash -lc <whole body>` and charges only the **exit code**, so a
+   block whose paste disagrees with its stdout line by line passes it (that is how fifteen
+   brace-missing rows survived four verifier runs); and its skip test is a substring search for
+   `SKIP:` anywhere in the body, so a block that merely *names* the marker in a comment or a string
+   is silently dropped from the re-runnable surface — the guard was skipped that way until it
+   builds its own marker out of two literals.
 3. The five restored pointers are the second version of that story. If registry key cells
    keep carrying a tag after the date, the widened matcher is the thing that has to stay
    widened, and `citation_inventory.py --sites` is where a reader can check each one.
@@ -475,11 +496,13 @@ true at every head that follows.
 
 ### Round 4 — card `t_c0d2669c`, reviewed at `a9297fa128`
 
-Section 9's rebuild closed byte-exact on the reviewer's own run: three blocks, the `SKIP:` block
+Section 9's rebuild closed on the reviewer's own run: three blocks, the `SKIP:` block
 carrying no readable value at all, 8 and 7 arrival rows, the equality printing at that head, the
 verifier at `PASS (12 block(s) seen, 6 executed)`, and every gate reproducing including the 12-card sum
-and the registry suite at `PASS=32 FAIL=0`. Three blockers came back instead, and all three were
-sentences this record had just written to describe its own fix:
+and the registry suite at `PASS=32 FAIL=0`. What round 4 checked was the rows' content — shas, minutes,
+counts — and not their bytes, and the bytes were wrong: the round-5 write-up below records that
+`sed 's/}: update by push//'` deletes the closing brace from all fifteen of them. Three blockers came
+back instead, and all three were sentences this record had just written to describe its own fix:
 
 - **B1'** the ellipsis in section 7's id roster was the file's, not the tool's.
   `test_inventory_measure.py:202-210` returns `sorted({tok for tok, _ in offenders})` — the full
@@ -494,6 +517,86 @@ sentences this record had just written to describe its own fix:
 
 The shape worth carrying forward: after three rounds the defects had moved out of the numbers and into
 the sentences *about* the numbers. A command block gets re-run by the verifier; a sentence about a
-command block gets read once, by the person who wrote it, immediately after writing it. Every figure in
-this record now names the command that prints it, and every sentence that characterises a command names
-the source lines it read to learn that.
+command block gets read once, by the person who wrote it, immediately after writing it. Naming the
+source lines is not enough either — round 5 is this file citing `:209` and `:210` correctly and still
+pasting fifteen rows its own `sed` cannot print. The only check that closes that class is running the
+block's command and diffing its stdout against the lines under it, which is what the block layout is
+for and what the paragraph at the head of section 9 now says out loud.
+
+### Round 5 — card `t_726acb18`, reviewed at `308619a3a2`
+
+Round 4's three blockers were each re-run by the reviewer and closed: section 7's pasted lines are
+byte-equal to the suite's stdout, with 83 occurrences / 19 distinct ids reproduced at both pinned bases
+in detached read-only worktrees; section 8 prints `13|257.8` for 13 single-ended runs and its 16:49
+membership claim holds for every cutoff from 16:49:00 to 16:55:20; section 11's `SKIP:` rule is
+conditional and a sweep of all five skipped blocks finds no counter-example. One blocker came back,
+and it is the smallest one yet:
+
+- **F1** the two reflog commands end in `sed 's/}: update by push//'`, whose second expression eats the
+  closing brace, so they print `c6fc14577d  @{17:43` while the fifteen pasted rows below them read
+  `…@{17:43}`. Shas and minutes were right, counts were right (8 and 7), and no `byte_equal` had ever
+  been computed — the reviewer computed it: `real_rows=8 pasted_rows=8 byte_equal=0`, then `7/7/0`.
+  Fixed by deleting one character from each of the two commands (`s/: update by push//`); re-run at
+  this head the same comparison now reads 8/8/8 and 7/7/7, and the guard printed at the end of this
+  section is what keeps that from drifting again.
+
+Two sentences had grown on top of that paste and are corrected with it. The claim that section 9's
+timeline "reads back as printed" is true of the read-back block and was never true of the timeline
+block, so the header now says which tree each figure comes from instead of asserting one tree for the
+file; and the header's blanket "every number below was re-run on the merged tree (`8e7481ff8f`)" was
+impossible — `13|257.8` needs `t_c0d2669c`, dispatched 2h26m after that arrival, and section 9's rows
+include `c6fc14577d` at 17:43 against an arrival at 15:44.
+
+The surface changed with the fix, and the file says so rather than keeping the old reading: the
+board-wide census block lost its `SKIP:` marker once its command was clipped to its own cutoff, the
+guard was added, and `verify_doc_commands.py --run` at this head prints `PASS (13 block(s) seen,
+8 executed)` where the round-4 write-up above quotes `12 / 6`, which is what that head had.
+
+That is the check this record now runs on itself, and it is part of the file's re-runnable surface: it
+takes each cited block, runs the block body exactly the way `verify_doc_commands.py` does, and compares
+stdout to the paste line by line, exiting 1 on any difference. It belongs in the record and not in that
+tool because the tool charges only exit codes (section 10, item 2b), and because a block that names the
+`SKIP:` marker in its own text would be dropped by that tool's substring test, so the guard builds its
+marker from two literals and skips itself — a guard that compared its own output would recurse without
+end.
+
+```
+python3 - <<'PY'
+# paste-vs-print guard: run each cited block's body exactly as the doc's verifier runs it (one bash
+# invocation, the `#  ` lines being shell comments) and diff its stdout against the lines the record
+# pasted under it. verify_doc_commands.py --run checks only a block's exit code, so a block whose
+# command prints something OTHER than its paste is green there and red here. Run from the repo root.
+import subprocess
+DOC = "docs/agents/2026-11-21-session-close-comment-lineage-gate-and-dangling-citations.md"
+WANT = ("git reflog show --date=format", "sqlite3 /Users/anbaiqiang/.hermes/kanban",
+        "o=$(git ls-remote", "git log --format='%an'")
+src = open(DOC).read().split("\n")
+blocks, i = [], 0
+while i < len(src):
+    if src[i].startswith("```"):
+        j = i + 1
+        while j < len(src) and not src[j].startswith("```"):
+            j += 1
+        blocks.append(src[i + 1:j]); i = j
+    i += 1
+comp = bad = 0
+for b in blocks:
+    body = "\n".join(b)
+    if not any(l.startswith(WANT) for l in b) or b[0].startswith("SKI" + "P:"):
+        continue
+    if "paste-vs-print guard" in body:
+        continue  # the guard does not compare itself: that recursion never terminates
+    real = subprocess.run(["bash", "-lc", body], capture_output=True, text=True).stdout.splitlines()
+    pasted = [l[3:] for l in b if l.startswith("#  ")]
+    comp += 1
+    if real != pasted:
+        bad += 1
+        print("MISMATCH:", b[0][:64], f"real={len(real)} pasted={len(pasted)}")
+        for x, y in zip(real + [""] * len(pasted), pasted + [""] * len(real)):
+            if x != y:
+                print("   real  ", repr(x[:70])); print("   paste ", repr(y[:70]))
+print(f"paste-vs-print: {comp} block(s) compared, byte-equal {comp - bad}/{comp}")
+raise SystemExit(1 if bad else 0)
+PY
+#  paste-vs-print: 5 block(s) compared, byte-equal 5/5
+```
