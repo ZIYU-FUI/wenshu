@@ -339,6 +339,43 @@ python3 Tools/wenshu-devtool/tests/test_pre_review_gate.py
 Exit code: 0 = every gate measured and green, 1 = a gate failed, or the
 tree is dirty, or a gate could not run.
 
+## Comment-lineage judge
+
+A separate tool, because the rule it holds was enforced by hand and a
+hand-enforced rule has no bad day: `AGENTS.md` 1.5/1.6/7.5 ban lineage in a
+comment (a card id, a review round, what the code used to do, what a reviewer
+asked, a directive's words) and require OOB citations in one form. A ban on
+ADDING is a delta rule, so it is measured as a delta:
+
+```bash
+python3 Tools/wenshu-devtool/comment_lineage.py --base main        # exit 1 = the change adds one
+python3 Tools/wenshu-devtool/comment_lineage.py --base main --json # the rows, with attribution
+python3 Tools/wenshu-devtool/citation_inventory.py --sites         # the register's own integrity
+```
+
+Four things the gate must state rather than imply:
+
+1. **its unit** — comment lines the window ADDS, not the tree's whole comment
+   census, so two numbers are never compared across different windows;
+2. **its carve-out** — under `Tools/wenshu-devtool/` and `Scripts/` a gate may
+   name the card and round that built it, because that provenance is the
+   engineering intent. The boundary is drawn in code and tested: it does not
+   reach `Tools/wenshu-devtool/probes/`, and it never reaches the 1.1 CJK ban.
+   `UNITY_CARVE=0` reprints the census the carve-out excludes;
+3. **an empty window is not a pass** — a change that added no comment line
+   prints that nothing was measured, since a green that saw nothing is how a
+   renamed collector hides for years;
+4. **the citation report reconciles** — the headline count is the sum of the
+   citations that sit on one line (each with a `file:line` a reader can open)
+   and the ones wrapped across two lines (which have no line to open), so a
+   dangling citation is never counted without an address.
+
+`tests/test_comment_lineage_gate.py` runs the 37 arms plus a fixture git repo
+it builds in a temp directory: the gate is shown FAILING a violating window
+and green on a compliant one that actually added a comment line. `pre_review_gate.py`
+runs the judge on every card, which is where it stops being an instrument
+somebody may remember to point.
+
 ## Review-lane cost meter
 
 A separate tool, because it reads the BOARD and the REVIEWER PROFILE rather

@@ -1,0 +1,39 @@
+R:|1.1|// 内边距不要删，那个是有意留的
+R:|1.1|// boss ruled out: "缩到一定程度，那个...就没有意义
+R:|1.5|// card t_2699b55c refused a sha this branch no longer carries
+R:|1.5|// = = Card `t_702d729c`, = = non-blocking 2.
+R:|1.5|// this used to draw a rounded block
+R:|1.5|// THE BRANCH NAME IS NO LONGER ASKED. It used to be read for a
+R:|1.5|// Origin: v2.7 round-63 (= the boss's directive of 2026-10-10
+R:|1.5|// TODO next card handles the rename
+R:|1.5|// Q3 answered by the second sweep
+R:|1.5|// Phase 2 of the arc lands here
+R:|1.5|// boss ruled the chat zone's bar the correct one
+R:|1.5|// 2026-11-19 老板 ruled the plate belongs on one line
+R:|1.5|// CORRECTED after the reviewer's verdict on R11-B6
+R:|1.5|// the defect was that the verdict was read as the claim
+R:|1.5|// `7e3878dcdc` printed a bare CLEAN over a tip whose newest verdict was
+R:|1.5|// the third pass at one defect
+R:|1.6|// The boss's rule (= OOB.md #2026-11-19): a book whose knob moved
+R:|1.6|//  on (= OOB.md #2026-11-19): Custom is a segment
+R:|1.6|//  = (see OOB.md #2026-11-19.) The system's own position
+G:|1.6|//  (see OOB.md #2026-11-19)
+G:|1.6|// One door per question (see OOB.md #2026-10-12)
+G:|1.1|// Wenshu draws the page, and the boss is addressed as 老板 only
+G:|1.5|// the row's help text names the face, the size and the leading
+G:|1.5|// @MainActor: the panel reads AppState, so the body must not hop threads
+G:|1.5|// 600 LOC is the cap; this file is 429 and the split is registered
+G:|1.5|// the picker writes the key, the engine reads it, the preview shows it
+G:|1.5|// HIG `searching`: content reachable from the app's own search field
+G:|1.5|// measured 12 PT on the current build: the band, not the window
+G:|1.5|// returns nil, not an empty string, when the row has no selection
+G:|1.5|    /// AppKit weight counterpart used to configure `NSImage` symbols before
+G:|1.5|        // MEASURED: = the editor's strip read `fittingSize` (0, 0) at the moment this method was called
+G:|1.5|/// and these titles fit, so no fold is asked for
+
+# --- the 1.5 carve-out, tested on the same words on both sides ---
+R|1.5|//  ONE more, = `project/t_393cc135-…`, = by a claim answering `contract_error`.@path:Sources/WenshuApp/Demo.swift
+G|1.5|//  ONE more, = `project/t_393cc135-…`, = by a claim answering `contract_error`.@path:Scripts/merge-preflight.sh
+R|1.5|//  ONE more, = `project/t_393cc135-…`, = by a claim answering `contract_error`.@path:Tools/wenshu-devtool/probes/demo.swift
+R|1.1|# 这个门禁只读散文，不看代码 @path:Scripts/merge-preflight.sh
+G|1.1|# the gate reads the prose, not the code @path:Scripts/merge-preflight.sh

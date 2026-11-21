@@ -438,6 +438,17 @@ def main():
         if code != 0:
             failures.append((f"ci_change_gate --check {check}", out[-800:]))
 
+    # The comment-lineage judge, over the same window as the checks above. 1.5/1.6
+    # were a `Manual.` row, and a hand-enforced ban on ADDING a lineage line has no
+    # bad day: a swept tree rots quietly and every new card is the moment it breaks.
+    code, out = sh(f"python3 {DEVTOOL}/comment_lineage.py --base {args.base}")
+    verdict = [l for l in out.splitlines() if "offending" in l]
+    print(f"  comment-lineage: exit {code} ({verdict[0].strip() if verdict else out[:120]})")
+    if code != 0:
+        failures.append(("comment-lineage", out[-800:]))
+    elif "not a pass" in out:
+        print("    this window added no comment line, = the rule was NOT measured here")
+
     code, out = cjk_audit(args.base)
     print(f"  the CJK audit: exit {code} ({out.splitlines()[0] if out else ''})")
     if code != 0:
