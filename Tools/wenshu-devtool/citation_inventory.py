@@ -8,17 +8,20 @@ reports BOTH the per-line sites (= what a reader can go and edit) and the count 
 wrapped-only citations, and the two add up to the total, so no count in its output is
 left unreconciled.
 
-The register's dates are the `| YYYY-MM-DD |` row keys of OOB.md. A date with no row
+The register's dates are the row keys of OOB.md that START with `YYYY-MM-DD` in the first
+cell; a tag may follow the date inside that cell. A date with no row
 means one of two things and the tool does not guess which: the decision was never
 registered, or the citation names a register that lived outside the tree. Either way a
 reader following the citation finds nothing, which is why a dangling citation is a defect
 even when the decision it names is real.
 
-`--sites` prints a worklist: for each dangling site, the enclosing comment line, the
-best-matching real row by shared significant tokens, and the recommended action — REPOINT
-when a row carries the same claim, DROP when nothing registers it (a citation is a claim
-that the register carries it, so an unsupported one cannot be repaired by inventing a
-row).
+`--sites` prints a worklist: for each dangling site, the enclosing comment line, the rows
+that share the most significant WORDS with it, and an action. The action and the rows are
+ADVICE, NOT EVIDENCE: "shares >= 3 words with a row" is a word count, not a finding that the
+row carries the same claim, and a reader who re-points on the score alone will re-point at
+unrelated decisions. READ the row before acting. DROP is the default when nothing registers
+the date, because a citation is a claim that the register carries it and an unsupported one
+cannot be repaired by inventing a row.
 """
 import argparse
 import collections
@@ -28,7 +31,12 @@ import re
 import subprocess
 
 CITE = re.compile(r"OOB\.md\s*#(\d{4}-\d{2}-\d{2})")
-ROW = re.compile(r"^\|\s*(\d{4}-\d{2}-\d{2})\s*\|(.*)$", re.M)
+# A dated row's key cell carries the date AND may carry a tag after it (= the register's
+# oldest rows write `| 2026-07-23 (v0.74 boss OOB) |`). Requiring the date to fill the whole
+# cell made that row invisible: its date was counted as a MISSING row, 5 live citations to it
+# were inventoried as dangling, and a repair then deleted pointers that had a real target.
+# The date must still START the cell, so prose that merely mentions a date stays unmatched.
+ROW = re.compile(r"^\|\s*(\d{4}-\d{2}-\d{2})\b[^|]*\|(.*)$", re.M)
 STOP = set("""the a and or of to in for on with that this it is as by at from see oob md date
 line rules rule not but all its if then than into onto over under more most same other
 such very which while when where are been being have has had do does""".split())
@@ -85,13 +93,17 @@ def inventory(repo, with_sites=False):
     files = git(repo, "ls-files", "--", "*.swift", "*.py", "*.sh", "*.js").split()
     total = resolved = 0
     by_date, by_file, sites = collections.Counter(), collections.Counter(), []
+    wrapped_by_date = collections.Counter()
     joined_total = joined_dangling = 0
     for f in files:
         blob = git(repo, "show", f"HEAD:{f}")
         joined = comment_text(f, blob)
         j_dates = CITE.findall(joined)
         joined_total += len(j_dates)
-        joined_dangling += sum(1 for d in j_dates if d not in real)
+        for d in j_dates:
+            if d not in real:
+                joined_dangling += 1
+                wrapped_by_date[d] += 1
         n_lines = 0
         for i, line in enumerate(blob.split("\n"), 1):
             st = line.strip()
@@ -126,8 +138,11 @@ def inventory(repo, with_sites=False):
     return {"register_dated_rows": dated_row_lines, "register_dates": len(real),
             "total_citations": joined_total, "resolve": joined_total - joined_dangling,
             "dangling": joined_dangling,
-            "dangling_files": len(by_file) + (1 if wrapped_dangling else 0),
-            "dangling_dates": len(set(by_date) | set()),
+            # addressable = a site with a file:line a reader can open. A wrapped site has no
+            # line to open and is NOT a file: adding one to this count invented a file.
+            "dangling_files": len(by_file),
+            # a date can dangle ONLY in wrapped text, so on_one_line's dates alone undercount.
+            "dangling_dates": len(set(by_date) | set(wrapped_by_date)),
             "on_one_line": {"citations": total, "dangling": dangling, "sites": len(sites)},
             "wrapped_across_lines": {"citations": wrapped_total, "dangling": wrapped_dangling},
             "by_date": dict(by_date.most_common()), "by_file": dict(by_file.most_common()),
@@ -158,11 +173,15 @@ def main(argv=None):
     print(f"   the count split, so it reconciles: on one line {o['citations']} "
           f"({o['dangling']} dangling, {addr}) + wrapped across "
           f"two lines {w['citations']} ({w['dangling']} dangling, no single line to open)")
-    for d, n in sorted(rep["by_date"].items(), key=lambda kv: (-kv[1], kv[0]))[:12]:
+    dates = sorted(rep["by_date"].items(), key=lambda kv: (-kv[1], kv[0]))
+    for d, n in dates[:12]:
         print(f"   {d}  {n}")
+    if len(dates) > 12:
+        print(f"   … top 12 of {len(dates)} dangling dates (the count above is the count)")
     if args.sites:
         rp = sum(1 for s in rep["sites"] if s["action"] == "repoint")
-        print(f"sites: {len(rep['sites'])} -> repoint {rp}, drop {len(rep['sites']) - rp}")
+        print(f"sites: {len(rep['sites'])} -> repoint {rp}, drop {len(rep['sites']) - rp} "
+              "(candidate rows are word-overlap ADVICE; read them before acting)")
         for s in rep["sites"][:40]:  # capped: the marker below says it is capped
             b = s["candidates"][0] if s["candidates"] else None
             print(f"   {s['action']:7s} {s['file']}:{s['line']} #{s['cited_date']} "

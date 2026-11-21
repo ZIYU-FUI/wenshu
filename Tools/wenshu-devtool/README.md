@@ -373,9 +373,15 @@ Four things the gate must state rather than imply:
    explicit marker when the printed list is capped) and the ones wrapped across two
    lines (which have no line to open), so a dangling citation is never counted without
    an address; and the register's DATED ROWS and its DISTINCT DATES print as the two
-   quantities they are, because a date can carry several rows.
+   quantities they are, because a date can carry several rows. A row's key cell starts with the
+   date and may carry a tag after it (= `| 2026-07-23 (v0.74 boss OOB) |`); requiring the date
+   to fill the cell hid that row, so citations to it were inventoried as dangling and a repair
+   deleted pointers that had a real target. The census and the judge match the key the same
+   way, and a date that only appears inside a row's body is still not a key. A wrapped site is
+   never given a file it does not have, and a date that dangles only in wrapped text still
+   counts.
 
-`tests/test_comment_lineage_gate.py` runs its 23 cases over the 37 arms plus a fixture git repo
+`tests/test_comment_lineage_gate.py` runs its 24 cases over the 37 arms plus a fixture git repo
 it builds in a temp directory: the gate is shown FAILING a violating window
 and green on a compliant one that actually added a comment line. `pre_review_gate.py`
 runs the judge on every card, which is where it stops being an instrument

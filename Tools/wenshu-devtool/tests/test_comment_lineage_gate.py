@@ -28,6 +28,14 @@ happened to a gate in this repo:
      site it prints has a line that really carries the date it reports).
   9. a citation naming a date the register has no row for is charged by name,
      and a citation naming a date the register does carry is clean.
+ 11. a register row keyed `| 2026-01-01 (v0.74 boss OOB) |` is a row: the date need not fill
+     the key cell on its own (= a tag after the date used to hide the row, and five live
+     citations to it were inventoried as dangling). The widening is bounded too: a date that
+     only appears in a row's body is not a key. The same case pins that a wrapped site adds no
+     phantom `dangling_files`, that a wrapped-only date still counts as dangling in the census,
+     and that the judge charges that same site as a FORM violation rather than a dangling date
+     (= one site, two defect names, because the judge reads a physical line and the census
+     joins them).
  10. the window resolves against the MERGE-BASE, not the base's tip (= with a
      two-dot window a moving base drops somebody else's deletion into the delta
      as an addition, and a clean branch gets charged for a lineage line it never
@@ -318,6 +326,86 @@ def case_moving_base():
               f'added={rep2["added_comment_lines"]} offending={rep2["offending"]}')
 
 
+def case_tagged_row_key():
+    """A register row whose key cell carries a TAG after the date is still a row.
+
+    Both tools used to match the key cell only when the date filled it
+    (`^\\|\\s*(\\d{4}-\\d{2}-\\d{2})\\s*\\|`). The register's oldest row is keyed
+    `| 2026-07-23 (v0.74 boss OOB) |`, so that date was invisible: five live citations to it
+    were inventoried as DANGLING and a repair deleted pointers that had a real target. The
+    widening must not over-reach either: a date that appears only inside a row's BODY is not a
+    key, and a citation to it stays dangling.
+
+    Pinned here, each one a way the count went wrong:
+      a) the judge's `register_dates` sees the tagged key and not the prose date;
+      b) the census resolves a citation to the tagged key (= 0 dangling for it);
+      c) a site wrapped across two lines is counted as wrapped and gets NO file — the old
+         `dangling_files` added 1 whenever a wrapped site existed, naming an addressable file
+         that does not exist;
+      d) `dangling_dates` counts a date that dangles ONLY in wrapped text;
+      e) a wrapped pointer is charged, but NOT as a dangling citation: the judge reads one
+         physical line, so the fragment `OOB.md` with no `#date` after it is charged under the
+         canonical-FORM rule while the register rule never sees the date. The two tools
+         therefore call the same site two different defects — the census counts it as
+         wrapped-and-dangling and the judge calls it a form violation.
+    """
+    import tempfile, os, subprocess as sp
+    from citation_inventory import inventory
+    env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
+               GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
+
+    def sh(root, *a):
+        sp.run(a, cwd=root, check=True, capture_output=True, env=env)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        sh(tmp, "git", "init", "-q", "-b", "main")
+        open(os.path.join(tmp, "OOB.md"), "w").write(
+            "| date | decision |\n| --- | --- |\n"
+            "| 2026-01-01 (v0.74 boss OOB) | the row keyed with a tag after the date |\n"
+            "| note | a body that mentions 2026-01-02 in prose only |\n")
+        open(os.path.join(tmp, "Demo.swift"), "w").write("// base\nstruct Demo { }\n")
+        sh(tmp, "git", "add", "-A")
+        sh(tmp, "git", "commit", "-qm", "base")
+        base = sp.run(["git", "-C", tmp, "rev-parse", "HEAD"], capture_output=True,
+                      text=True).stdout.strip()
+        open(os.path.join(tmp, "Demo.swift"), "w").write(
+            "// base\n"
+            "// a tagged row is a row (see OOB.md #2026-01-01)\n"
+            "// a prose date is not a row (see OOB.md\n"
+            "// #2026-01-02)\n"
+            "struct Demo { }\n")
+        sh(tmp, "git", "add", "-A")
+        sh(tmp, "git", "commit", "-qm", "change")
+
+        rep = measure(tmp, base, "HEAD")
+        check("case 11: the judge reads a tagged key cell as a date the register carries",
+              rep["register_dates"] == 1, f'dates={rep["register_dates"]}')
+        labs = [(r["line"], r["labels"]) for r in rep["rows"]]
+        check("case 11b: the tagged key itself is clean, and the split pointer is charged "
+              "for its FORM, not as a dangling date",
+              rep["offending"] == 1 and rep["P1"] == 1
+              and labs == [(3, ["OOB.md citation not in the canonical form"])],
+              f'offending={rep["offending"]} rows={labs}')
+
+        inv = inventory(tmp)
+        check("case 11c: the census counts one dated row, not two",
+              inv["register_dated_rows"] == 1 and inv["register_dates"] == 1,
+              f'rows={inv["register_dated_rows"]} dates={inv["register_dates"]}')
+        check("case 11d: the tagged key resolves and the prose date dangles",
+              inv["total_citations"] == 2 and inv["resolve"] == 1
+              and inv["dangling"] == 1,
+              f'total={inv["total_citations"]} resolve={inv["resolve"]} '
+              f'dangling={inv["dangling"]}')
+        check("case 11e: a wrapped site is not an addressable file",
+              inv["wrapped_across_lines"]["dangling"] == 1
+              and inv["on_one_line"]["dangling"] == 0
+              and inv["dangling_files"] == 0,
+              f'files={inv["dangling_files"]}')
+        check("case 11f: and its date still counts as a dangling date",
+              inv["dangling_dates"] == 1 and inv["by_date"] == {},
+              f'dates={inv["dangling_dates"]} by_date={inv["by_date"]}')
+
+
 def run():
     print(f"comment_lineage_arms.txt: {len(parse_arms())} arms")
     arms = case_arms()
@@ -328,6 +416,7 @@ def run():
     case_citation_inventory()
     case_dangling_citation()
     case_moving_base()
+    case_tagged_row_key()
     if FAILURES:
         print(f"\nFAIL {len(FAILURES)} case(s): {FAILURES}")
         return 1
