@@ -227,6 +227,35 @@ Its test suite runs on a fixture tree:
 python3 Tools/wenshu-devtool/tests/test_nfi_loc_check.py
 ```
 
+## Merge-driver wiring check
+
+Another separate tool, because a merge driver has TWO homes and only one of
+them is tracked. `.gitattributes` NAMES the driver
+(`docs/agents/nfi.md merge=nfi-registry`); `.git/config` DEFINES it, and that
+file is local and written by `Scripts/setup-dev-env.sh`. Git never reports the
+mismatch: when the attribute names a driver it cannot find, git uses its
+built-in text merge and prints nothing, so the key-level merge that lets two
+cards each keep their own registry row simply does not happen.
+
+So this module reads both halves and the instruments that ask about a driver
+ask it: `nfi-split.py --check` FAILs on a declared-but-undefined driver (a
+fresh clone, a worktree added before the installer ran, a machine that skipped
+it), and `wave_gate.py` stops calling an overlap on such a file handled. The
+remedy it prints is the installer's own line, read out of
+`Scripts/setup-dev-env.sh`, so the command shown is the one the repo ships.
+
+```bash
+# = = every driver .gitattributes declares must be defined in git config = =
+python3 Tools/wenshu-devtool/merge_drivers.py
+```
+
+Its arms live in the gate's own suite, on a fixture repo that owns both
+halves, so neither arm depends on which machine runs the file:
+
+```bash
+python3 Tools/wenshu-devtool/tests/test_wave_gate.py
+```
+
 ## Independent-review gate
 
 Another separate tool, because it reads the BOARD instead of the source tree.

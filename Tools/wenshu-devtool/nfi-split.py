@@ -47,6 +47,9 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import merge_drivers  # noqa: E402  (sibling module, same directory)
+
 AGENTS = REPO / "AGENTS.md"
 NFI = REPO / "docs" / "agents" / "nfi.md"
 MERGE_DRIVER = REPO / "Scripts" / "merge-nfi-registry.py"
@@ -295,6 +298,38 @@ def main() -> int:
             ok = False
         else:
             print("      the registry's merge driver exists")
+        # The attribute NAMES the driver and .git/config DEFINES it. Only the
+        # first half is tracked, so a checkout where the installer never ran
+        # (= a fresh clone, a worktree added before it, a machine that skipped
+        # Scripts/setup-dev-env.sh) has the attribute and no driver, and git
+        # answers by using its text merge with no message at all. Checking the
+        # attribute alone therefore passes on the tree where the key-level
+        # merge does not happen. Measured at 62b2b4e5fb: this check printed
+        # ".gitattributes has the key-level rule" and PASS while
+        # `git config --get merge.nfi-registry.driver` was empty.
+        try:
+            declared = merge_drivers.declared_rules(REPO)
+            unwired = merge_drivers.unwired_rules(REPO)
+        except merge_drivers.WiringError as exc:
+            print(f"FAIL  the merge-driver config cannot be read: {exc}")
+            ok = False
+        else:
+            if not declared:
+                print("FAIL  .gitattributes declares no merge driver at all")
+                ok = False
+            for rule in unwired:
+                print(f"FAIL  {rule.config_key} is not set, though "
+                      f".gitattributes:{rule.lineno} declares merge={rule.name} "
+                      f"for {rule.pattern}")
+                print("        git falls back to its text merge for that file and "
+                      "says nothing (= the key-level merge never runs)")
+                for line in merge_drivers.remedy(REPO, rule):
+                    print(f"        {line}")
+            if unwired:
+                ok = False
+            elif declared:
+                print(f"      {len(declared)} merge driver(s) declared, each "
+                      f"defined in git config")
         print("nfi-split:", "PASS" if ok else "FAIL")
         return 0 if ok else 1
 

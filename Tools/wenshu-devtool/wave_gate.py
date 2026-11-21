@@ -76,13 +76,13 @@ from __future__ import annotations
 
 import argparse
 import collections
-import fnmatch
 import re
 import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import merge_drivers  # noqa: E402  (sibling module: the two halves of a merge driver)
 import product_lines  # noqa: E402  (sibling module, same directory)
 
 # The repo root, derived from this file's own location, so the tool works
@@ -461,35 +461,101 @@ def kanban(*args: str) -> str:
     return out.stdout
 
 
+def driver_declared(path: str) -> str | None:
+    """The driver .gitattributes NAMES for a path (the tracked half), or None."""
+    rule = merge_drivers.rule_for(REPO, path)
+    return rule.name if rule else None
+
+
+def driver_setting(name: str) -> str | None:
+    """The command git config DEFINES for that driver name (the local half)."""
+    return merge_drivers.driver_setting(REPO, name)
+
+
 def driver_for(path: str) -> str | None:
-    """The merge driver git uses for a path, or None.
+    """The merge driver git would ACTUALLY run for this path, or None.
 
-    A file with a merge driver is NOT a collision that needs serializing: the
-    driver merges the file at the key level, so two cards that each add one
-    row both keep theirs. The gate reports the driver so the boss knows the
-    overlap is already handled, instead of serializing cards for nothing.
+    A file whose driver runs is not a collision that needs serializing: the
+    driver merges it at the key level, so two cards that each add one row both
+    keep theirs, and the gate says so instead of serializing cards for nothing.
 
-    The driver name comes from .gitattributes (tracked), and the driver
-    itself is a local git config (= .git/config), so the gate reads the
-    attributes file and not the config.
+    Two halves decide it, and the gate reads both. .gitattributes (tracked)
+    NAMES the driver; .git/config (local, written by
+    Scripts/setup-dev-env.sh) DEFINES it. An attribute that names a driver git
+    cannot find is no driver at all: git falls back to its built-in text merge
+    and prints nothing. Measured at 62b2b4e5fb, where docs/agents/nfi.md
+    carried merge=nfi-registry and `git config --get
+    merge.nfi-registry.driver` was empty, this function returned
+    "nfi-registry" and the gate reported a registry overlap as handled.
     """
-    attrs = Path(REPO) / ".gitattributes"
-    if not attrs.exists():
+    name = driver_declared(path)
+    if name is None:
         return None
-    name = Path(path).name
-    for line in attrs.read_text(encoding="utf-8").split("\n"):
-        line = line.strip()
-        if not line or line.startswith("#"):
+    return name if driver_setting(name) else None
+
+
+def driver_unwired(path: str) -> str | None:
+    """A driver .gitattributes names for this path but git config does not define."""
+    name = driver_declared(path)
+    if name is None:
+        return None
+    return None if driver_setting(name) else name
+
+
+def driver_note(path: str) -> str:
+    """How a shared file's merge is handled, in the words the boss reads.
+
+    Three states, and they are not the same sentence: handled by a driver,
+    declared but not wired (= NOT handled, and an overlap on it is a
+    collision), and no driver at all.
+    """
+    name = driver_for(path)
+    if name:
+        return f"   (= merges by key, driver '{name}')"
+    name = driver_unwired(path)
+    if name:
+        rule = merge_drivers.rule_for(REPO, path)
+        where = f".gitattributes:{rule.lineno}" if rule else ".gitattributes"
+        key = rule.config_key if rule else f"merge.{name}.driver"
+        return (
+            f"   (NOT handled: {where} declares "
+            f"merge={name} but git config defines no {key}, so git "
+            f"text-merges this file and its key-level merge never runs)"
+        )
+    return ""
+
+
+def driver_wiring_lines() -> list[str]:
+    """Every driver the repo declares, and whether this checkout defines it.
+
+    Printed before the cards are read: the state of the local half does not
+    depend on what is on the board, and an unwired driver changes how every
+    overlap below is classified.
+    """
+    rules = merge_drivers.declared_rules(REPO)
+    out = ["merge drivers declared in .gitattributes (tracked) vs git config (local):"]
+    if not rules:
+        out.append("  none (= nothing declares a driver in this repo)")
+        return out
+    for rule in rules:
+        value = merge_drivers.driver_setting(REPO, rule.name)
+        if value:
+            out.append(
+                f"  WIRED    {rule.pattern}  .gitattributes:{rule.lineno}  "
+                f"merge={rule.name}"
+            )
             continue
-        parts = line.split()
-        if len(parts) < 2:
-            continue
-        pattern, attr = parts[0], parts[1]
-        if not attr.startswith("merge="):
-            continue
-        if fnmatch.fnmatch(name, pattern) or fnmatch.fnmatch(path, pattern):
-            return attr[len("merge=") :]
-    return None
+        out.append(
+            f"  UNWIRED  {rule.pattern}  .gitattributes:{rule.lineno}  "
+            f"merge={rule.name}  ->  git config --get {rule.config_key} is EMPTY"
+        )
+        out.append(
+            "           git uses its built-in text merge for that file and says "
+            "nothing; an overlap on it is a COLLISION, not a handled merge"
+        )
+        for line in merge_drivers.remedy(REPO, rule):
+            out.append(f"           {line}")
+    return out
 
 
 def card_ids() -> list[tuple[str, str]]:
@@ -536,6 +602,10 @@ def main() -> int:
     ap.add_argument("--plan", action="store_true", help="print the serialization order")
     args = ap.parse_args()
 
+    for line in driver_wiring_lines():
+        print(line)
+    print()
+
     wanted = set(args.cards)
     cards: dict[str, dict] = {}
     parsed: dict[str, int] = {}
@@ -556,9 +626,11 @@ def main() -> int:
     ids = sorted(cards)
 
     # --- collisions: two cards writing the same file -------------------
-    # A file with a merge driver is not a collision to serialize: the driver
-    # merges it at the key level, so both cards keep their row. Those are
-    # reported separately, as "handled by the driver".
+    # A file whose merge driver actually runs is not a collision to
+    # serialize: the driver merges it at the key level, so both cards keep
+    # their row. A file whose driver is only DECLARED is not either: git has
+    # no driver to run there, so the overlap is a collision, and it is
+    # reported as one and labelled with the missing config key.
     collisions = []
     driver_managed = []
     for i, a in enumerate(ids):
@@ -567,9 +639,16 @@ def main() -> int:
             if not shared:
                 continue
             driven = [f for f in sorted(shared) if driver_for(f)]
-            plain = [f for f in sorted(shared) if not driver_for(f)]
-            if plain:
-                collisions.append((len(plain), a, b, plain))
+            unwired = [f for f in sorted(shared) if driver_unwired(f)]
+            plain = [
+                f
+                for f in sorted(shared)
+                if not driver_for(f) and not driver_unwired(f)
+            ]
+            if plain or unwired:
+                collisions.append(
+                    (len(plain) + len(unwired), a, b, sorted(plain + unwired))
+                )
             if driven:
                 driver_managed.append((len(driven), a, b, driven))
 
@@ -631,7 +710,7 @@ def main() -> int:
         for n, a, b, shared in sorted(collisions, reverse=True):
             print(f"\n  {a} [{cards[a]['status']}] vs {b} [{cards[b]['status']}]")
             for f in shared:
-                print(f"      {f}")
+                print(f"      {f}{driver_note(f)}")
         print()
 
     if driver_managed:
@@ -639,7 +718,7 @@ def main() -> int:
         for n, a, b, shared in sorted(driver_managed, reverse=True):
             print(f"\n  {a} [{cards[a]['status']}] vs {b} [{cards[b]['status']}]")
             for f in shared:
-                print(f"      {f}   (= merges by key, driver '{driver_for(f)}')")
+                print(f"      {f}{driver_note(f)}")
         print()
 
     if stale:
@@ -647,9 +726,7 @@ def main() -> int:
         for n, a, b, shared in sorted(stale, reverse=True):
             print(f"\n  {a} vs {b}")
             for f in shared:
-                d = driver_for(f)
-                note = f"   (= merges by key, driver '{d}')" if d else ""
-                print(f"      {f}{note}")
+                print(f"      {f}{driver_note(f)}")
         print()
 
     if scoped:
@@ -657,9 +734,7 @@ def main() -> int:
         for n, a, b, shared in sorted(scoped, reverse=True):
             print(f"\n  {a} vs {b}")
             for f in shared:
-                d = driver_for(f)
-                note = f"   (= merges by key, driver '{d}')" if d else ""
-                print(f"      {f}{note}")
+                print(f"      {f}{driver_note(f)}")
         print()
 
     if args.plan:

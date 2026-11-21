@@ -160,22 +160,156 @@ check(
 )
 
 # --------------------------------------------------------------------------
-# 4. the merge driver is read from .gitattributes
+# 4. a merge driver has TWO halves, and the gate reads both
+#
+# .gitattributes (tracked) NAMES the driver; git config (local, written by
+# Scripts/setup-dev-env.sh) DEFINES it. Asked about a real checkout whose
+# config has no `merge.nfi-registry.driver`, these functions used to answer
+# "nfi-registry", and a registry overlap was printed under "HANDLED BY A
+# MERGE DRIVER". The arms below therefore run against a FIXTURE repo with its
+# own git config, in both states, so the answer is pinned to the state and
+# not to whichever machine runs the file.
 # --------------------------------------------------------------------------
 check(
-    "4. the registry's driver is found",
-    wg.driver_for("docs/agents/nfi.md") == "nfi-registry",
-    f"got {wg.driver_for('docs/agents/nfi.md')!r}",
+    "4. the registry's driver is declared in .gitattributes",
+    wg.driver_declared("docs/agents/nfi.md") == "nfi-registry",
+    f"got {wg.driver_declared('docs/agents/nfi.md')!r}",
 )
 check(
-    "4b. the catalog's driver is found",
-    wg.driver_for("Sources/WenshuApp/Resources/Localizable.xcstrings")
+    "4b. the catalog's driver is declared in .gitattributes",
+    wg.driver_declared("Sources/WenshuApp/Resources/Localizable.xcstrings")
     == "xcstrings",
-    f"got {wg.driver_for('Sources/WenshuApp/Resources/Localizable.xcstrings')!r}",
+    f"got {wg.driver_declared('Sources/WenshuApp/Resources/Localizable.xcstrings')!r}",
 )
 check(
     "4c. a file with no driver has none",
-    wg.driver_for("Sources/App/Thing.swift") is None,
+    wg.driver_declared("Sources/App/Thing.swift") is None,
+)
+
+import contextlib  # noqa: E402
+import io  # noqa: E402
+import subprocess  # noqa: E402
+import tempfile  # noqa: E402
+
+FIXED_ATTRIBUTES = (
+    "*.xcstrings merge=xcstrings\n"
+    "docs/agents/nfi.md merge=nfi-registry\n"
+)
+REAL_REPO = wg.REPO
+
+
+def fixture_repo(root: Path, name: str, wired: list[str]) -> Path:
+    """A repo declaring both drivers and defining only the ones in `wired`."""
+    d = root / name
+    d.mkdir(parents=True)
+    subprocess.run(["git", "init", "-q", str(d)], check=True)
+    (d / ".gitattributes").write_text(FIXED_ATTRIBUTES, encoding="utf-8")
+    for name in wired:
+        subprocess.run(
+            ["git", "-C", str(d), "config", f"merge.{name}.driver",
+             f"python3 Scripts/merge-{name}.py %O %A %B"],
+            check=True,
+        )
+    return d
+
+
+def gate_report(repo: Path) -> str:
+    """What the gate prints for two cards that both write the registry."""
+    old_repo, old_argv = wg.REPO, sys.argv
+    old_ids, old_body = wg.card_ids, wg.card_body
+    wg.REPO = str(repo)
+    wg.card_ids = lambda: [("t_aaaaaaaa", "running"), ("t_bbbbbbbb", "running")]
+    wg.card_body = lambda cid: (
+        "WHAT TO BUILD\n\n- `docs/agents/nfi.md`. Add one row for the file "
+        "this card moves.\n"
+    )
+    sys.argv = ["wave_gate.py"]
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            wg.main()
+    finally:
+        wg.REPO, sys.argv = old_repo, old_argv
+        wg.card_ids, wg.card_body = old_ids, old_body
+    return buf.getvalue()
+
+
+def report_section(report: str, title: str) -> str:
+    """The body of one `=== TITLE ... ===` block, or "" when it is absent."""
+    head = f"=== {title}"
+    if head not in report:
+        return ""
+    rest = report.split(head, 1)[1]
+    return rest.split("\n=", 1)[0]
+
+
+with tempfile.TemporaryDirectory() as _td:
+    _bare = fixture_repo(Path(_td), "bare", wired=[])
+    _wired = fixture_repo(Path(_td), "wired", wired=["nfi-registry", "xcstrings"])
+
+    # The fixture's own control: with an empty config nothing is defined, so a
+    # value leaking in from a global config would be visible here instead of
+    # silently turning the unwired arm green.
+    check(
+        "4d. control: the fixture repo's config defines neither driver",
+        wg.merge_drivers.driver_setting(_bare, "nfi-registry") is None
+        and wg.merge_drivers.driver_setting(_bare, "xcstrings") is None,
+        f"nfi={wg.merge_drivers.driver_setting(_bare, 'nfi-registry')!r} "
+        f"xcstrings={wg.merge_drivers.driver_setting(_bare, 'xcstrings')!r}",
+    )
+    wg.REPO = str(_bare)
+    check(
+        "4e. declared-but-unwired: the gate finds no driver to run",
+        wg.driver_for("docs/agents/nfi.md") is None,
+        f"got {wg.driver_for('docs/agents/nfi.md')!r}",
+    )
+    check(
+        "4f. declared-but-unwired is named as its own state",
+        wg.driver_unwired("docs/agents/nfi.md") == "nfi-registry",
+        f"got {wg.driver_unwired('docs/agents/nfi.md')!r}",
+    )
+    _note = wg.driver_note("docs/agents/nfi.md")
+    check(
+        "4g. the sentence the boss reads says NOT handled and names the key",
+        "NOT handled" in _note and "merge.nfi-registry.driver" in _note,
+        f"note={_note!r}",
+    )
+    _unwired_report = gate_report(_bare)
+    check(
+        "4h. an overlap on an unwired driver is listed as a COLLISION",
+        "docs/agents/nfi.md" in report_section(_unwired_report, "COLLISIONS"),
+        f"report={_unwired_report!r}",
+    )
+    check(
+        "4i. and the gate does not also call that overlap handled",
+        not report_section(_unwired_report, "HANDLED BY A MERGE DRIVER")
+        and "merge.nfi-registry.driver" in _unwired_report,
+        f"report={_unwired_report!r}",
+    )
+    wg.REPO = str(_wired)
+    check(
+        "4j. declared-and-wired: the gate finds the driver",
+        wg.driver_for("docs/agents/nfi.md") == "nfi-registry",
+        f"got {wg.driver_for('docs/agents/nfi.md')!r}",
+    )
+    _wired_report = gate_report(_wired)
+    check(
+        "4k. the same two cards are handled by the driver, not a collision",
+        "docs/agents/nfi.md" in report_section(_wired_report, "HANDLED BY A MERGE DRIVER")
+        and not report_section(_wired_report, "COLLISIONS"),
+        f"report={_wired_report!r}",
+    )
+    check(
+        "4l. and the wiring section says WIRED, not UNWIRED",
+        "UNWIRED" not in _wired_report
+        and "WIRED    docs/agents/nfi.md" in _wired_report,
+        f"report={_wired_report!r}",
+    )
+    wg.REPO = REAL_REPO
+check(
+    "4m. the real tree is restored, and it answers for itself",
+    wg.REPO == REAL_REPO,
+    f"REPO={wg.REPO!r}",
 )
 
 # --------------------------------------------------------------------------
