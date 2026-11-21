@@ -157,7 +157,7 @@ final class InspectorStatusModel {
         guard let scope else {
             // No session in focus: there is no scope to follow, so the
             // page says it is loaded and holds no subscriber (= a page
-            // with nothing to mirror used to keep re-asking anyway).
+            // with nothing to mirror has no reason to keep asking).
             tasks = []
             isLoaded = true
             return

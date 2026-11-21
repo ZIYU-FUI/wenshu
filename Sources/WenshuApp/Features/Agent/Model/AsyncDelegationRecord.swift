@@ -38,7 +38,7 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
     /// `AgentLifecycleTrackerDesign.md`). Set via
     /// `AsyncDelegationRegistry.attachTrackerSpawnID(handleID:spawnID:)`
     /// immediately after `registerSpawn(...)`. Nil = no tracker record
-    /// (= for handles created before v0.74 or in tests that don't
+    /// (= a handle registered without the tracker, or a test that does not
     /// exercise the tracker path).
     var trackerSpawnID: UUID?
 
@@ -55,7 +55,7 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
     ///
     /// Nil = no card was made for this delegation (= most delegations
     /// are not research nouns, = and a card for each of them would be
-    /// noise). The card used to be created and then never touched
+    /// noise). A card created here and never touched
     /// again, = so it sat in "pending" forever while the research it
     /// named finished or failed. = The runner reads this id when the
     /// run ends, = and moves the card to where the run actually got

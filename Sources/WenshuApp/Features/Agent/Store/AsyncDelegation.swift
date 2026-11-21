@@ -185,7 +185,7 @@ actor AsyncDelegationRegistry {
 
     // Replace a record wholesale.
     //
-    // = This used to be the production way to move a handle to
+    // = A wholesale write can move a handle to
     // "running", = and it was how the kanban card's id was lost: = a
     // caller took a snapshot when the run started, = and wrote that
     // snapshot back, = and the write erased every field the record

@@ -3,7 +3,7 @@
 //
 //  The registry announces its own record changes.
 //
-//  The sub-agent status page used to ask the registry once a second
+//  A page that polls the registry once a second can only ask
 //  whether anything had happened, because nothing told it when a record
 //  moved. That clock is gone: a reader subscribes to `changes()` and
 //  reads again when the registry says a record changed.
@@ -300,7 +300,7 @@ struct AsyncDelegationChangeSignalTests {
 
         // The only way to prove "nothing happened" is to watch a window
         // in which something could have happened: 300 ms is longer than
-        // the old page's whole beat, and the old code woke three times
+        // the page's 250 ms settle window, so a self-driven wake lands
         // inside it.
         try? await Task.sleep(for: .milliseconds(300))
         #expect(await subscriber.count == 1)

@@ -25,7 +25,7 @@
 //  So a page re-reads when there is something to show, and re-reads
 //  zero times while nothing happens. These tests hold both halves of
 //  that promise, = the signal fires on a write, and the clock is gone
-//  from the source that used to run it.
+//  from the two page sources, where a grep proves it.
 //
 //
 
@@ -214,7 +214,7 @@ struct InspectorRightColumnPushTests {
         defer { follow.cancel() }
 
         // The subscribe read lands first: an empty scope is loaded, not
-        // spinner-forever (= the page used to wait up to a second here).
+        // spinner-forever (= nothing here waits for a clock to tick).
         #expect(await Self.waitUntil { model.isLoaded })
         #expect(model.tasks.isEmpty)
 

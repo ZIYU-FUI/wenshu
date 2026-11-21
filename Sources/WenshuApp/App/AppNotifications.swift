@@ -157,7 +157,7 @@ extension Notification.Name {
     ///  or the enum cases directly. The wenshuImportRequested +
     ///  wenshuProviderKeychainChanged + wenshuDefocusChatInput entries
     ///  below are still wired (= retained as the active legacy surface).
-    ///  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
+    ///  See the design-system rule in wenshu-pocock-workflow's references
     ///  + wenshu-dead-code-cleanup SKILL.md.)
     static let wenshuImportRequested = Notification.Name(AppCommands.importRequested.rawValue)
 
@@ -171,7 +171,7 @@ extension Notification.Name {
     /// filter on the sender instead of waking on every plan write in the
     /// process. Listened by the trailing column's plan page.
     static let wenshuTodoPlanDidChange = Notification.Name(AppStateEvents.todoPlanDidChange.rawValue)
-    /// Boss 2026-10-19 mac-mini reproducer (= chat hang
+    /// The failure this accessor exists for (= a chat that hangs
     /// stuck on the "AI thinking, 20s" placeholder): the chat view model subscribes
     /// to this notification in its init (= SwiftUI
     /// evaluates the chat zone body before
