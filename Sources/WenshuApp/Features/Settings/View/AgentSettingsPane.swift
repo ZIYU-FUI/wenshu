@@ -1,10 +1,9 @@
 //
 // AgentSettingsPane.swift · Wenshu
 //
-// Which tools the agent may use, and how it should behave (see OOB.md
-// #2026-10-20: give users at different levels of comfort with AI different
-// choices, keep the third-party options, recommend what is reachable from
-// here).
+// Which tools the agent may use, and how it should behave. Users at different
+// levels of comfort with AI get different choices, the third-party options
+// stay, and the pane recommends what is reachable from here.
 //
 // Layout is Apple HIG macOS Settings: a grouped Form, one Section per
 // question, each with a header and a footer that says what the choice costs.

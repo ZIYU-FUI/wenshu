@@ -148,8 +148,7 @@ struct PreviewPane: View {
     }
 
     var body: some View {
-        // The search and the toolbar sit in one top bar (see OOB.md
-        // #2026-09-07).
+// The search and the toolbar sit in one top bar.
         VStack(spacing: 0) {
             // The column's top row is the search band: the column carries
             // no title row above it.

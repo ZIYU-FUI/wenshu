@@ -49,8 +49,8 @@ import AppKit
 // MARK: - IconStyle
 
 /// Apple HIG / Apple-shipped app icon-style enum. Each case carries the point
-/// size + the weight (= the .thin split for the ≥38 PT zone per (see OOB.md
-/// #2026-09-17) SF Symbols 6 weight rule).
+/// size + the weight (= the .thin split for the ≥38 PT zone, following the
+/// SF Symbols 6 weight rule).
 /// The case names walk Apple HIG official terminology (= `hitArea` for macOS
 /// HIG minimum hit area; `paneTab` for NSToolbar item default; `toolbar` for
 /// `.controlSize(.small)`; etc.).
