@@ -225,7 +225,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// size, weight, and scale.
     var symbolWeight: NSFont.Weight {
         .regular
-    }  // AppKit mirror of fontWeight (T4/X7)
+    } // AppKit mirror of fontWeight (T4/X7)
 }
 
 // MARK: - Sidebar slot (only meaningful on .sidebar)
