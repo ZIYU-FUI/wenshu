@@ -9,7 +9,7 @@ re-runnable surface.
 
 ## 1. What was asked
 
-The boss ruled the comment corpus (see OOB.md #2026-11-20): a comment exists for a human
+The boss ruled the comment corpus (see OOB.md #2026-11-21): a comment exists for a human
 reader, and two obligations followed — 1.5 (no refactor or lineage narrative in comments)
 and 1.6 (an out-of-band reference is only a pointer, never the directive's own words) —
 written into `AGENTS.md` as Manual prose. Prose does not stop a tree from drifting, so the
@@ -48,9 +48,14 @@ against 93, and the 5 sites it deleted on that premise had to be put back.
 | Move | Commits | What it is |
 |---|---|---|
 | The gate | `c2a378aca4`, `437eb698bf`, `a28cc8be80` | `comment_lineage.py` (the judge), wired into `pre_review_gate.py` and `ci_change_gate.py`; `citation_inventory.py` (the census); a 29-call suite |
-| The sweep | `19ce550670`, `eed49fd964`, `b6d9c40d6a` | the 79 comment rows the ruling left violating, and the 18 registry rows that sweep rewrote |
+| The sweep | `19ce550670`, `eed49fd964`, `b6d9c40d6a` | 25 files, 57 hunks, +176/-188 comment lines, and the 18 registry rows it rewrote |
 | The citation repair | `bacd13bb60` .. `5cf748ee4d` | dead pointers dropped or rewritten, wrapped sites joined, live pointers restored |
 | Measure where it is read | `dec391cb61` .. `8e7481ff8f` | four rounds of findings about numbers that had been copied instead of re-measured |
+
+The sweep row follows the same rule. The register's ruling row (`OOB.md #2026-11-21`) records
+79 violating rows measured by `comment_unity.py` — a tool that exists in no revision of this
+repo, so the tree cannot reprint 79. What `git show --format= 19ce550670` prints is 25 files,
+57 hunks, +176/-188 comment lines, and that is the figure above.
 
 The repair is counted off each commit's own diff, not off its subject:
 
@@ -154,14 +159,32 @@ the guard in the code rather than off the intuition of which arm is the cheap on
 
 ## 7. What is still red on this tree, and whose it is
 
-`python3 Tools/wenshu-devtool/inventory-measure.py` fails 4 cases
-(`test_cjk_and_refactor_counters`, `test_carry_lines_do_not_double_count_a_logical_line`,
+The red is a suite, not the report tool, and the first version of this section got that wrong.
+`python3 Tools/wenshu-devtool/inventory-measure.py` exits 0: it is a report and prints no case
+names. The failure is:
+
+```
+python3 Tools/wenshu-devtool/tests/test_inventory_measure.py; echo rc=$?
+#  rc=1
+#  inventory-measure's matcher: 2 case(s) FAILED
+#    - the guard fails when it is run from a subdirectory (= = it reads the tree by the CALLER's
+#      directory, = = and not by the repository it means)
+#    - the branch's added comment lines carry 83 ticket id(s): A1, A108, A112, A115, A14-A38,
+#      A2, C4, D1, D2, D3, D4, F1, H1, M1, M2, P1-02, P95, R2, round-7 … (83 ids printed)
+```
+
+Two cases, not four. The same suite exits 1 with the same 2 cases at this scope's base
+`437eb698bf` (83 ids) and at the pre-scope base `65590f4800` (84 ids), each measured in its own
+detached worktree, so the debt predates this scope and is left standing: the boss ruled hygiene
+out of this scope's remit, no fix is claimed here, and no gate is asserted that would hide it —
+the change gates pass because this window's added lines are clean, not because that suite is green.
+
+The names the first version printed — `test_cjk_and_refactor_counters`,
+`test_carry_lines_do_not_double_count_a_logical_line`,
 `test_citation_counter_counts_each_ref_only_on_its_first_line`,
-`test_gates_that_should_fire_do_fire`). It fails identically at this scope's base — measured
-in a detached worktree at `437eb698bf`, the same 4 cases, and none of the 4 files sits in
-this scope's diff. It is pre-existing debt, left standing: the boss ruled hygiene out of this
-scope's remit, so no fix is claimed here, and no gate is asserted that would hide it — the
-change gates pass because this window's added lines are clean, not because that tool is green.
+`test_gates_that_should_fire_do_fire` — exist in no revision of this repo: `git log --all -S` on
+each returns only this document. They were written from memory, which is the failure the rest of
+this record warns about; section 11 logs the round that caught it.
 
 ## 8. What this scope cost on the board
 
@@ -171,13 +194,17 @@ failures, were the price — five verdicts came back changes_requested and each 
 re-measure of the published numbers.
 
 ```
+SKIP: this query reads the live board, so its result moves with every run anyone dispatches;
+pasting it as an executable assertion would be a claim about the future. The reading below was
+taken at 16:49 on 2026-11-21, in the session that wrote this record.
 sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select count(*), round(sum(coalesce(r.ended_at,strftime('%s','now'))-r.started_at)/60.0,1) from task_runs r join tasks t on t.id=r.task_id where t.created_by='pocock' and t.title like '%[T%'"
-#  591 | 14138.8
+#  592 | 14162.7
 ```
 
-That reading is board-wide, so it counts every scope this profile ever dispatched (591 runs,
-235.6 hours). The 9-card subset is listed in section 6, and its 168.4 minutes are the sum of
-the same table filtered to the card ids named there. The reviewer's follow-up card
+That reading is board-wide, so it counts every scope this profile ever dispatched (592 runs,
+236.0 hours), and it grows on every re-run — the round-1 card itself is inside it. The 9-card
+subset is listed in section 6, and its 168.4 minutes are the sum of the same table filtered to
+the card ids named there. The reviewer's follow-up card
 (`t_ed400688`) was created by the reviewer and assigned to the implementer; the fix is one
 sentence and a reviewer does not dispatch implementation work to itself, so it was executed in
 this scope and the card archived.
@@ -206,28 +233,60 @@ Both remotes were pushed and read back separately, because a push that reported 
 remote says nothing about the other:
 
 ```
-SKIP: pushing. This scope's pushes were: origin at 10:19, 12:39, 15:34, 15:44 and old-origin
-at 12:42, 15:34, 15:44; the read-back after each is the sha below.
+SKIP: pushing. This scope's pushes were: origin at 10:19, 12:39, 15:34, 15:44, 16:11 and
+old-origin at 12:42, 15:34, 15:44, 16:11.
 git ls-remote origin refs/heads/main
 git ls-remote old-origin refs/heads/main
-#  8e7481ff8fddc80d6202d2b3546e0953191a243f   (both, and git rev-parse main locally)
+#  6747dd22295a3847e2d68b6a3b4120d7e9d5a062   (both, and git rev-parse main locally)
 ```
+
+A record cannot print the sha of its own commit, so the correction this round ships under is
+verified the same way rather than pasted here: after it lands, `git ls-remote origin
+refs/heads/main` and `git ls-remote old-origin refs/heads/main` must both equal
+`git rev-parse main`.
 
 ## 10. Left open on purpose
 
-1. The `inventory-measure` failures in section 7 (pre-existing, hygiene, not this scope's
-   remit).
+1. The 2 failing cases in `Tools/wenshu-devtool/tests/test_inventory_measure.py` (section 7:
+   pre-existing, hygiene, not this scope's remit).
 2. The wake path for board notifications still has no evidence that a subscriber receives a
    verdict; repairing it means restarting the gateway, which is off the table while other
    sessions are working. Every verdict this scope used was read by polling the board.
 3. The five restored pointers are the second version of that story. If registry key cells
    keep carrying a tag after the date, the widened matcher is the thing that has to stay
    widened, and `citation_inventory.py --sites` is where a reader can check each one.
+4. The census has a blind spot, and this record walked into it. `citation_inventory.py` scans
+   `git ls-files -- '*.swift' '*.py' '*.sh' '*.js'`, so a pointer inside a `.md` is invisible to
+   it — which is how a `DANGLING: 0` reading coexisted with a dangling pointer on line 12 of this
+   file. At `6747dd2229` the tracked `.md` files carry 6 dangling pointers, 5 of them pre-existing
+   (`CHANGELOG.md:48` and `:101` -> a date the register has no row for, `2026-09-24`;
+   `ComponentIndex.md:188` -> `2026-09-01`, `:407` -> `2026-09-07`; `SFRegions.md:53` ->
+   `2026-10-01`), left standing as hygiene. Widening the scan surface to `.md` is a tool change
+   with findings of its own, not a documentation fix, and it belongs to the owner of the census.
 
 ## 11. This record's own rounds
 
-Written on the merged tree at `8e7481ff8f`, in English. Its command blocks were each run, and
-the results are pasted from output rather than from memory; blocks that mutate the tree or a
-remote carry a `SKIP:` line and are excluded from the re-runnable surface. This document does
-not record its own review verdict — the card that judges it carries that, and a verdict is not
-this file's to predict.
+Written on the merged tree at `8e7481ff8f`, in English. Its command blocks were each run; blocks
+that mutate the tree or a remote carry a `SKIP:` line and are excluded from the re-runnable
+surface. This document does not record its own review verdict — the card that judges it carries
+that, and a verdict is not this file's to predict.
+
+### Round 1 — card `t_a76df80c`, reviewed at `6747dd2229`
+
+Two blockers and one provenance item, all reproduced by the reviewer before being filed:
+
+- **B1** section 7 attributed the red to `inventory-measure.py` and named 4 cases under it. That
+  command exits 0 and prints no case names, and those 4 names exist in no revision of this repo —
+  they were written from memory. This is the record breaking its own promise, and the correction
+  is in section 7 above.
+- **B2** line 12 cited `OOB.md #2026-11-20`, a date the register carries zero times
+  (`grep -c '2026-11-20' OOB.md` = 0); the ruling is keyed `2026-11-21` at `OOB.md:135`. The
+  closure record itself shipped a dangling pointer the scope had just been spent removing, because
+  the census does not read `.md` (section 10, item 4).
+- **B3** the sweep row published the register's "79 comment rows", a figure measured by
+  `comment_unity.py`, a tool that exists in no revision of this repo — the same copy-instead-of-
+  measure failure the four preceding cards were about. The diff-derived figure replaces it.
+
+Everything else reprinted exactly at that head: the table in section 1, the 165/165/0 census, the
+148/0 judge, the 9-row registry check, the 88-token decomposition, the 93-versus-88 comparison
+arm, and the push block's read-back lines.
