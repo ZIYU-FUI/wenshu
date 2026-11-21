@@ -352,7 +352,7 @@ struct NewBookSheet: View {
                                 .frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)
                             SFIcon(selectedIcon, style: .toolbarButton, color: IconColor.accent)
                         }
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: DesignTokens.spacingCaption) {
                             Text(String(localized: "new_book_sheet_icon_label"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)

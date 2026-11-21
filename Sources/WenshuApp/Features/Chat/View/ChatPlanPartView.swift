@@ -180,7 +180,7 @@ struct ChatPlanPartView: View {
                 .font(.caption.monospaced().bold())
                 .foregroundStyle(Color.accentColor)
                 .frame(width: DesignTokens.stepNumberColumnWidth, alignment: .trailing)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingCaption) {
                 Text(step.title)
                     .font(.caption.monospaced().bold())
                     .foregroundStyle(.primary)

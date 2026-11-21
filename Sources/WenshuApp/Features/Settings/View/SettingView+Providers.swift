@@ -167,7 +167,7 @@ extension SettingView {
         let hasKey = providersWithKeys.contains(p.slug)
         return HStack {
             SFIcon("key", style: .inlineSmall, color: hasKey ? IconColor.green : IconColor.secondary)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingCaption) {
                 Text(p.name)
                     .font(.body)
                 // RATIONALE: distinguish the two MiniMax siblings

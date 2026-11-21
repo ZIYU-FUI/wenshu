@@ -349,9 +349,10 @@ struct ChatInputBarView: View {
     /// Single-line (= axis: .horizontal) with `.lineLimit(1)` per
     /// input is a single horizontal row; = multi-line editing
     /// uses ⌘↩ for newline if ever needed).
-    /// Auto-grow input field. The TextField starts at the canonical
-    /// chat-input height (= `DesignTokens.controlHeightLarge` = 36 PT;
-    /// = the same chat-input row height Apple Messages uses) and grows
+    /// Auto-grow input field. The TextField starts at the product's stable
+    /// chat-input height (= `DesignTokens.controlHeightLarge` = 36 PT; the
+    /// old "same row height Apple Messages uses" equivalence was never
+    /// measured and is dropped, audit C3) and grows
     /// vertically with content, up to a 5-line cap (= beyond that, the
     /// field scrolls internally; = the input bar does NOT push the
     /// chat transcript off-screen). Switch axis from `.horizontal` to

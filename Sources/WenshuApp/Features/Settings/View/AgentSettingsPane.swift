@@ -65,7 +65,7 @@ struct AgentSettingsPane: View {
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
                         Image(systemName: isPresetOn(preset.id) ? "checkmark.circle.fill" : "circle")
                             .foregroundStyle(isPresetOn(preset.id) ? Color.accentColor : .secondary)
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: DesignTokens.spacingCaption) {
                             Text(preset.title)
                                 .foregroundStyle(.primary)
                             Text(preset.summary)

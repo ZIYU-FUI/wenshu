@@ -173,7 +173,7 @@ struct LibraryFullTextSearchView: View {
             onOpen(hit.reference)
         } label: {
             HStack(alignment: .top, spacing: DesignTokens.spacingIconic) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DesignTokens.spacingCaption) {
                     Text(hit.reference.title)
                         .font(.callout)
                         .foregroundStyle(.primary)
