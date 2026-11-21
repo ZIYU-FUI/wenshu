@@ -223,7 +223,9 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// AppKit counterpart used at NSImage boundaries. Apple keeps the symbol's
     /// intrinsic optical bounds; the factory normalizes only the shared point
     /// size, weight, and scale.
-    var symbolWeight: NSFont.Weight { .regular }  // AppKit mirror of fontWeight (T4/X7)
+    var symbolWeight: NSFont.Weight {
+        .regular
+    }  // AppKit mirror of fontWeight (T4/X7)
 }
 
 // MARK: - Sidebar slot (only meaningful on .sidebar)
