@@ -72,10 +72,9 @@ struct LibraryRootView: View {
         content
             .environment(library)
             // Craft audit B4 (2026-11-21): the app-level appearance picker
-            // (= system/dark/light, persisted as "appearanceMode") is gone,
-            // and with it this `.preferredColorScheme` override. The
-            // override repainted the whole window behind the materials:
-            // when it disagreed with the OS appearance, every vibrancy
+            // (= system/dark/light) and the color-scheme override it drove
+            // are gone. The override repainted the whole window behind the
+            // materials: when it disagreed with the OS appearance, every vibrancy
             // layer (the window containerBackground, the toolbar material,
             // the sidebar) read a backing that did not match the desktop
             // (= the "dirty gray" drift ruled out on 2026-11-12). Following
@@ -277,33 +276,39 @@ private struct OnboardingAwareToolbar: ViewModifier {
             // / behind the strip, so the strip carries the window's depth
             // / instead of a painted band).
             //
-            // B6 CLOSURE (craft audit 2026-11-21; the product ruling is
-            // that chrome should read as Liquid Glass). The ruling was
-            // tested against the SDK
-            // and the live window server, and the strip cannot be Liquid
-            // Glass through any published API:
-            //   * `Glass` (SwiftUICore interface:7422) is NOT a
-            //     ShapeStyle — `toolbarBackground(_:for:)` only takes
-            //     ShapeStyle, so no API paints glass into this surface.
-            //   * Dropping the override does NOT hand the strip to a
-            //     glass-drawing system: A/B captures of this exact window
-            //     (strip-ab/, composites read with the app's own
-            //     windowserver screenshot mode) show the un-overridden
-            //     strip painting per-column plates in light appearance
-            //     (sidebar band 231, editor paper a 255 white slab,
-            //     colour carried 0.7% = the pre-fix state 3682f88ed3
-            //     measured), and NSWindow.toolbarStyle `.automatic` is
-            //     pixel-identical to `.unified` there (0 of 100672 px).
+            // B6 CLOSURE (craft audit 2026-11-21, closed by the ruling
+            // of (see OOB.md #2026-11-22) = keep the material fill,
+            // open no real-glass layout ticket). The audit asked for
+            // Liquid Glass in this strip; the ruling stands because the
+            // strip CANNOT be glass through any published API:
+            //   * `Glass` is NOT a ShapeStyle (reprintable compile probe:
+            //     a minimal file with `func check<S: ShapeStyle>(_: S.Type)`
+            //     called as `check(Glass.self)` fails typecheck with
+            //     'Glass' does not conform to ShapeStyle), and
+            //     `toolbarBackground(_:for:)` only takes a ShapeStyle.
+            //   * The system paints no glass here either, measured on
+            //     windowserver-composited captures of this exact window
+            //     (five arms, strip band rows 0-110, sampled every 3 px,
+            //     difference threshold 8/765 — reprint with measure.py in
+            //     the craft-audit scratch dir, strip-ab/):
+            //       light, fill removed vs `.toolbarBackground(.automatic)`
+            //       → 0/106480 px differ (max 0); dark → 0/106480. The
+            //       "drop it and the system gives glass" hypothesis is
+            //       dead: `.automatic` IS the flat per-column composite.
+            //       The material fill vs removed: light 97923/106480 px
+            //       differ (the fill is load-bearing), dark 2565/106480
+            //       (max 88). Colour share 0.7% light / 0.6% dark in
+            //       every arm (= the pre-fix per-column plates state
+            //       3682f88ed3 measured, unchanged by dropping a fill
+            //       that was never there).
             //   * The glass the ruling asks for IS in this chrome where
             //     Apple exposes it: the toolbar's own buttons run on
             //     NSButton bezelStyle `.glass` (NSButtonCell.h:67,
             //     macos 26.0; see GlassIconButton.swift).
             // So the strip stays the one-material surface and the
             // controls stay glass bezels; a live-glass strip would mean
-            // content under the titlebar (= a layout redesign, not this
-            // batch). The A/B evidence lives under the craft-audit
-            // scratch dir (strip-ab/strip-{glassless,material,
-            // light-glassless,light-material,light-autoglass}.png).
+            // content under the titlebar (= a layout redesign, which the
+            // boss declined).
             .toolbarBackground(.ultraThinMaterial, for: .windowToolbar)
             // The window's titlebar strip closes with the SHARED hairline,
             // = so the strip reads as chrome above the columns and not as

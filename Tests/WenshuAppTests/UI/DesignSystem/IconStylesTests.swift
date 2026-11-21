@@ -9,7 +9,7 @@
 //
 //  Coverage:
 //      1. IconStyle.pointSize = Apple-default (= not wenshu-invented)
-//      2. IconStyle.fontWeight = .thin for ≥38 PT zone, .regular otherwise
+//      2. IconStyle.fontWeight = .regular everywhere (no .thin anywhere)
 //      3. IconStyle.isHitArea = true for .hitArea / .toolbarButton
 //      4. IconStyle.allCases = 11 (= 1:1 with the Apple-HIG surface list)
 //      5. WenshuTextStyle.font = SwiftUI text-style API verbatim

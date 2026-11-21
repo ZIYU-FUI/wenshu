@@ -81,14 +81,13 @@ struct WindowOpenButton: View {
         Button {
             openWindow(id: id)
         } label: {
-            // Apple-canonical SF Symbols 6 path. The font + color pair is
-            // ordered as such (see OOB.md #2026-10-16): Image(systemName:)
-            // with font 14 PT .regular + .secondary, applied here in one
-            // place (= the one source of truth for the toolbar button icon
-            // font + color; = the values are the ruling, no system default
-            // is claimed for them, craft audit T1 2026-11-21).
+            // The icon rides the semantic body font so Dynamic Type
+            // controls size AND weight (= craft audit T1 closed with
+            // the ruling of (see OOB.md #2026-11-22), which supersedes
+            // the literal 14 PT of the 2026-10-16 row; the .secondary
+            // ink from that row stays).
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .regular))
+                .font(.body)
                 .foregroundStyle(.secondary)
         }
         .help(title)

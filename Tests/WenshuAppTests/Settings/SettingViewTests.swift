@@ -55,12 +55,15 @@ struct SettingViewTests {
     /// Package.swift probe), so this test keeps working wherever they sit
     /// in the tree.
     ///
-    /// The view's provider pane, model pane and SettingsOps plumbing live
-    /// in their own file, so an assertion about the view reads both.
+    /// The view's provider pane, model pane, and the root surface it
+    /// renders into (its `preferredColorScheme` overlay lives there) all
+    /// sit in separate files, so an assertion about the view reads all
+    /// three.
     private static var settingViewPaths: [String] {
         [
             SourceLocator.path("Sources/WenshuApp/Features/Settings/View/SettingView.swift"),
             SourceLocator.path("Sources/WenshuApp/Features/Settings/View/SettingView+Providers.swift"),
+            SourceLocator.path("Sources/WenshuApp/Shared/UI/LibraryRootView.swift"),
         ]
     }
 

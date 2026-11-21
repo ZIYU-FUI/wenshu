@@ -302,7 +302,7 @@ struct NewBookSheet: View {
 
     /// curated SF Symbols 6 names (= the v1.0.0-m1
     /// legacy NewBookSheet's `allSFSymbols` list; = same
-    /// ~150-icon subset covering all 16 SF Symbols 6 categories
+    /// ~90-icon subset covering all 16 SF Symbols 6 categories
     /// = book / folder / arrow / etc.).
     private var allSFSymbols: [String] {
         [
@@ -384,7 +384,7 @@ struct NewBookSheet: View {
                                 }
                                 .buttonStyle(.plain)
                                 // Craft audit B7 (accessibility): this grid
-                                // was ~24 icon-only cells announcing NOTHING
+                                // was 90 icon-only cells announcing NOTHING
                                 // under VoiceOver (= no label, and the
                                 // selection was only a painted plate). The
                                 // cell now names the symbol it shows (=

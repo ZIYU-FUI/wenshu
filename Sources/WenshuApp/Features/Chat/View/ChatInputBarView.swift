@@ -72,7 +72,7 @@ struct ChatInputBarView: View {
     // FOCUS-RETENTION (boss 2026-10-16 OOB "现在打字说完一句话，聊天区
     // 的文本框会失去焦点"; = Apple HIG canonical Messages / Slack
     // pattern: focus stays in the input after a send). The TextField's
-    // `.onSubmit` + the send button's `keyboardShortcut(.return)` both
+    // `.onSubmit` + the ⌘↩ carrier's `keyboardShortcut(.return)` both
     // drop focus when the send completes. We surface an `onSent` callback
     // (= a thin wrapper around `inputFocused = true`) so ChatView can
     // re-assert focus after each send path. The user explicitly chose
@@ -335,25 +335,44 @@ struct ChatInputBarView: View {
         // control that could stop an unbounded reply was the hidden ⌘.
         // carrier below; while a reply streams, this button becomes the
         // stop button visibly (= the standard macOS one-button shape:
-        // its glyph follows the operation in flight; = ⌘. stays defined
-        // once on the hidden carrier, the visible button never re-registers
-        // it, and ⌘↩ follows the same click-vs-send split).
+        // its glyph follows the operation in flight). The KEY paths do
+        // not follow the glyph: ⌘. lives once on the hidden carrier in
+        // ChatView+KeyboardShortcuts, and ⌘↩ lives once on the hidden
+        // carrier below, mounted unconditionally (= the base registered
+        // ⌘↩ in every state, and a shortcut buried in one branch of the
+        // glyph swap would leave ⌘↩ dead during a reply while bare
+        // Return still sent).
         if isReplyStreaming {
             GlassIconButton(systemName: "stop.fill", help: "停止生成 (⌘.)") {
                 vm.cancelStreaming()
             }
         } else {
             GlassIconButton(systemName: "paperplane", help: "发送 (⌘↩)") {
-                Task {
-                    await vm.routeInput()
-                    // FOCUS-RETENTION: re-assert focus after the send
-                    // button is pressed (= the click moves keyboard focus
-                    // to the button; = the user expects the input to
-                    // reclaim focus so they can type the next message).
-                    reassertFocus()
-                }
+                sendNow()
             }
-            .keyboardShortcut(.return, modifiers: [.command])
+        }
+        // The ⌘↩ carrier: state-independent, zero-sized, invisible —
+        // the same hidden-Button shape as the ⌘. carrier.
+        Button("Send shortcut carrier") {
+            sendNow()
+        }
+        .keyboardShortcut(.return, modifiers: [.command])
+        .frame(width: 0, height: 0)
+        .opacity(0)
+        .accessibilityHidden(true)
+    }
+
+    /// The one send path shared by the visible paperplane click and the
+    /// hidden ⌘↩ carrier (= one action, two doorways; the glyph swap
+    /// during streaming must not fork the key path).
+    private func sendNow() {
+        Task {
+            await vm.routeInput()
+            // FOCUS-RETENTION: re-assert focus after the send
+            // button is pressed (= the click moves keyboard focus
+            // to the button; = the user expects the input to
+            // reclaim focus so they can type the next message).
+            reassertFocus()
         }
     }
 
