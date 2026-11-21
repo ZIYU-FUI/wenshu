@@ -135,7 +135,7 @@ tip. The `swift test --filter PaneTabStripCloseTests` reading of 29 tests in sec
 DIFFERENT 29 — Swift tests, unrelated population, same magnitude. Anyone comparing those
 numbers is comparing things that happen to share a digit.
 
-## 6. Four rounds of review, and what each caught
+## 6. The rounds of review, and what each caught
 
 | Card | Head it judged | Verdict | What it found |
 |---|---|---|---|
@@ -148,8 +148,10 @@ numbers is comparing things that happen to share a digit.
 | `t_e9c37fab` | `b6b09f40b2` | changes_requested | `nfi-loc-check --base main` was rc 1 at that head while the card said rc 0 — `comment_lineage.py` registered at 277 against a real 282, `citation_inventory.py` at 177 against 196 — and that gate is not on the landing path, so nothing else would ever have caught it |
 | `t_ff60edef` | `1d1d7c937b` | approved | re-measured both arms (27 / 29 / 27) and main's 23 independently |
 | `t_15ebdbaa` | `8e7481ff8f` | approved | `README.md:384` carried a clause's lead sentence twice, a leftover of a patch that reworded one of the two halves |
+| `t_a76df80c` | `6747dd2229` | changes_requested | this record itself: section 7 attributed the red to the report tool and named 4 cases that exist in no revision; line 12 carried a dangling register date; the sweep row copied the register's 79, measured by a tool the tree has never had |
+| `t_e0ef2fed` | `e1b231525a` | changes_requested | round-1's three findings verified closed by measurement; section 7 was still one red short, and the correction had rewritten the same dangling pointer form into line 282 of the record it was fixing |
 
-The repeating shape is one mistake, not nine: **a number published from the head where it was
+The repeating shape is one mistake, not eleven: **a number published from the head where it was
 first written, rather than the head the card names.** Prose in `nfi.md` and the registry rows
 are the same failure wearing a different file. The rule the scope ended on lives in the
 `wenshu-review-proof` skill (`references/measured-prose-and-comparison-arms.md`, sections 5
@@ -186,12 +188,53 @@ The names the first version printed — `test_cjk_and_refactor_counters`,
 each returns only this document. They were written from memory, which is the failure the rest of
 this record warns about; section 11 logs the round that caught it.
 
+The same section was still one red short. `Tests/WenshuAppTests/Chat/View/`
+`ChatViewHistoryShortcutTests.swift` `body_logs_history_metadata()` fails on this head too:
+
+```
+SKIP: this runs the Swift suite, which rebuilds first (about 5 minutes warm, much longer cold), so
+it is not part of the doc's cheap re-runnable surface. It was run in the main checkout at
+`e1b231525a` (dirt 0) at 17:03 on 2026-11-21, and again independently by the round-2 reviewer at
+the same head; the reading is below.
+/usr/bin/swift test --package-path . --filter ChatViewHistoryShortcutTests
+#  Test body_logs_history_metadata() failed after 0.011 seconds with 1 issue.
+#  Test run with 8 tests in 1 suite failed after 0.013 seconds with 1 issue.
+```
+
+The failing assertion is line 35, `#expect(block.contains("totalTokens"))`. The mechanism is not the
+window: `totalTokens` appears **0 times** in `Sources/WenshuApp/Features/Chat/View/`
+`ChatView+KeyboardShortcuts.swift`, the file whose button the case reads, and **1 time** in the test
+file itself — the assertion. No window over that source could contain it, whatever its length.
+
+That red is not this scope's, and it is proved by invariance rather than by argument. Over
+`65590f4800..HEAD` — the pre-scope base to the head this record ships under — `git diff --numstat`
+prints nothing for either of those two files: neither was touched. The chat directories as a whole
+did change, 5 files and 44 lines, and `git diff --unified=0` over that range filtered to non-comment
+lines prints **0 lines**: the citation repair edited comments there and nothing else. So the scope
+can neither have caused it nor fixed it, and the boss ruled hygiene out of its remit: this is a
+disclosure, not a repair.
+
+The case itself is a lesson the record keeps rather than quietly repeats: it reads source text and
+asserts over a fixed 1500-character window, so it measures file layout, not behaviour — it would
+break on an unrelated line inserted above the button, and it broke here because a log line lost a
+field and nobody re-cited the assertion. Its owner is the chat lane.
+
 ## 8. What this scope cost on the board
 
-Ten review cards, 9 runs on the review lane, 168.4 minutes of reviewer wall clock. Every card
-completed its run: zero `rate_limited`, zero `timed_out`, zero reclaims. The rounds, not the
-failures, were the price — five verdicts came back changes_requested and each cost a full
-re-measure of the published numbers.
+Eleven review cards with runs, 11 runs on the review lane, 217.2 minutes of reviewer wall clock,
+and one card the reviewer created for the implementer that never ran (`t_ed400688`, archived). Every
+card completed its run: zero `rate_limited`, zero `timed_out`, zero reclaims. Seven verdicts came
+back changes_requested and four approved; the rounds, not the failures, were the price, and each
+returned round cost a full re-measure of the published numbers.
+
+```
+sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select count(*), round(sum(coalesce(r.ended_at,strftime('%s','now'))-r.started_at)/60.0,1) from task_runs r where r.task_id in ('t_78c56873','t_040d46e6','t_9c5c9538','t_7000a317','t_cd27cc22','t_32bf3b9e','t_e9c37fab','t_ff60edef','t_15ebdbaa','t_a76df80c','t_e0ef2fed')"
+#  11|217.2
+```
+
+The query sums over an EXPLICIT list of this scope's card ids, not over a creator and a time window:
+every run in the list has ended, so the figure is fixed, and a filter on `created_by` would silently
+price this scope with every other scope the profile ever dispatched.
 
 ```
 SKIP: this query reads the live board, so its result moves with every run anyone dispatches;
@@ -202,9 +245,10 @@ sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select cou
 ```
 
 That reading is board-wide, so it counts every scope this profile ever dispatched (592 runs,
-236.0 hours), and it grows on every re-run — the round-1 card itself is inside it. The 9-card
-subset is listed in section 6, and its 168.4 minutes are the sum of the same table filtered to
-the card ids named there. The reviewer's follow-up card
+236.0 hours at the moment it was taken), and it grows on every re-run — both of this record's own
+review cards are inside it. The scope's own figure is the explicit 11-card sum above, and the two
+numbers are not the same measurement: the board-wide count is context for how much of the lane this
+profile has occupied, not the price of this work. The reviewer's follow-up card
 (`t_ed400688`) was created by the reviewer and assigned to the implementer; the fix is one
 sentence and a reviewer does not dispatch implementation work to itself, so it was executed in
 this scope and the card archived.
@@ -247,7 +291,8 @@ refs/heads/main` and `git ls-remote old-origin refs/heads/main` must both equal
 
 ## 10. Left open on purpose
 
-1. The 2 failing cases in `Tools/wenshu-devtool/tests/test_inventory_measure.py` (section 7:
+1. The 2 failing cases in `Tools/wenshu-devtool/tests/test_inventory_measure.py`, and the chat
+   lane's `ChatViewHistoryShortcutTests.body_logs_history_metadata()` (both in section 7:
    pre-existing, hygiene, not this scope's remit).
 2. The wake path for board notifications still has no evidence that a subscriber receives a
    verdict; repairing it means restarting the gateway, which is off the table while other
@@ -255,14 +300,16 @@ refs/heads/main` and `git ls-remote old-origin refs/heads/main` must both equal
 3. The five restored pointers are the second version of that story. If registry key cells
    keep carrying a tag after the date, the widened matcher is the thing that has to stay
    widened, and `citation_inventory.py --sites` is where a reader can check each one.
-4. The census has a blind spot, and this record walked into it. `citation_inventory.py` scans
-   `git ls-files -- '*.swift' '*.py' '*.sh' '*.js'`, so a pointer inside a `.md` is invisible to
-   it — which is how a `DANGLING: 0` reading coexisted with a dangling pointer on line 12 of this
-   file. At `6747dd2229` the tracked `.md` files carry 6 dangling pointers, 5 of them pre-existing
-   (`CHANGELOG.md:48` and `:101` -> a date the register has no row for, `2026-09-24`;
+4. The census has a blind spot, and this record walked into it twice. `citation_inventory.py` scans
+   `git ls-files -- '*.swift' '*.py' '*.sh' '*.js'`, so a pointer inside a `.md` is invisible to it —
+   which is how a `DANGLING: 0` reading coexisted with a dangling pointer on line 12 of this file,
+   and then coexisted with a second one on line 282 of the correction that fixed the first. At this
+   head the tracked `.md` files carry 5 dangling pointers, all pre-existing and all outside this
+   scope's remit (`CHANGELOG.md:48` and `:101` -> `2026-09-24`, a date the register has no row for;
    `ComponentIndex.md:188` -> `2026-09-01`, `:407` -> `2026-09-07`; `SFRegions.md:53` ->
-   `2026-10-01`), left standing as hygiene. Widening the scan surface to `.md` is a tool change
-   with findings of its own, not a documentation fix, and it belongs to the owner of the census.
+   `2026-10-01`). Widening the scan surface to `.md` is a tool change with findings of its own, not a
+   documentation fix, and it belongs to the owner of the census. The record's own text is written to
+   avoid the pointer form for dates the register does not carry, because the tool will not catch it.
 
 ## 11. This record's own rounds
 
@@ -279,10 +326,11 @@ Two blockers and one provenance item, all reproduced by the reviewer before bein
   command exits 0 and prints no case names, and those 4 names exist in no revision of this repo —
   they were written from memory. This is the record breaking its own promise, and the correction
   is in section 7 above.
-- **B2** line 12 cited `OOB.md #2026-11-20`, a date the register carries zero times
-  (`grep -c '2026-11-20' OOB.md` = 0); the ruling is keyed `2026-11-21` at `OOB.md:135`. The
-  closure record itself shipped a dangling pointer the scope had just been spent removing, because
-  the census does not read `.md` (section 10, item 4).
+- **B2** line 12 pointed at register date `2026-11-20` in the pointer form, a date the register
+  carries zero times (`grep -c '2026-11-20' OOB.md` = 0); the ruling is keyed `2026-11-21` at
+  `OOB.md:135`. The closure record itself shipped a dangling pointer the scope had just been spent
+  removing, because the census does not read `.md` (section 10, item 4). This bullet is deliberately
+  written without the pointer form: the same sentence in the first correction became round 2's F2.
 - **B3** the sweep row published the register's "79 comment rows", a figure measured by
   `comment_unity.py`, a tool that exists in no revision of this repo — the same copy-instead-of-
   measure failure the four preceding cards were about. The diff-derived figure replaces it.
@@ -290,3 +338,28 @@ Two blockers and one provenance item, all reproduced by the reviewer before bein
 Everything else reprinted exactly at that head: the table in section 1, the 165/165/0 census, the
 148/0 judge, the 9-row registry check, the 88-token decomposition, the 93-versus-88 comparison
 arm, and the push block's read-back lines.
+
+### Round 2 — card `t_e0ef2fed`, reviewed at `e1b231525a`
+
+Round 1's three findings were re-measured by the reviewer and closed (B1's two case names verbatim
+with 19 printed ids token-for-token; B2's line 12 resolving to `OOB.md:135`; B3's 25/57/+176/-188
+with all 364 changed lines being comment lines). Two new findings, both about this record's own
+completeness:
+
+- **F1** a section titled "what is still red on this tree" named one red while a second was standing.
+  `ChatViewHistoryShortcutTests.body_logs_history_metadata()` fails at this head; the reviewer ran
+  the filtered Swift suite independently and got the same reading recorded in section 7, then ruled
+  that the fix belongs here as a disclosure line and not as a repair. The mechanism they measured is
+  also not the one the first draft of that disclosure claimed: `totalTokens` is absent from the source
+  file entirely, so the 1500-character window was never the cause, and section 7 now says so.
+- **F2** the correction removed the pointer form from line 12 and rewrote it into line 282 of the same
+  file, in the sentence that described the fix. So the census-invisible `.md` dangling count read 6
+  both before and after, and the record was its own counter-example. Section 10 item 4 now states the
+  count as 5 pre-existing sites and explains why the text avoids the form.
+
+One board fact belongs here because it is how a verdict reaches a record: the reviewer's run 4805
+stored its metadata under `review_outcome_details` instead of the top-level `review_outcome`, so
+`review_gate.py` read the card as `not_approved` (= no verdict on the record) rather than
+`changes_requested`, and `merge-preflight.sh` refused the branch for the right reason with the wrong
+word. The reviewer re-stamped the run's own metadata row, with a DB snapshot beside it, without
+touching the tree or the sha.
