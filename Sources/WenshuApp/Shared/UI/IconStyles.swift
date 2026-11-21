@@ -211,7 +211,9 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// label and dark-ground glyph weights at regular (= thin strokes on a
     /// dark ground smear; = the 2026-11-21 craft audit rule T4/X7). A zone
     /// that wants another weight orders it at its own call site.
-    var fontWeight: Font.Weight { .regular }
+    var fontWeight: Font.Weight {
+        .regular
+    }
 
     /// Whether this case is a hit-area tier (= glyph is invisible; caller
     /// overlays an actual icon inside the hit zone). Affects SFIcon rendering:
