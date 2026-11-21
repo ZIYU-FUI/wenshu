@@ -383,6 +383,17 @@ struct NewBookSheet: View {
                                     }
                                 }
                                 .buttonStyle(.plain)
+                                // Craft audit B7 (accessibility): this grid
+                                // was ~24 icon-only cells announcing NOTHING
+                                // under VoiceOver (= no label, and the
+                                // selection was only a painted plate). The
+                                // cell now names the symbol it shows (=
+                                // the identifier is the thing the user is
+                                // picking) and carries the selection trait
+                                // so the chosen cell is announced as such.
+                                .accessibilityLabel(iconName)
+                                .accessibilityAddTraits(
+                                    selectedIcon == iconName ? .isSelected : [])
                             }
                         }
                         .padding(.vertical, DesignTokens.spacingIconic)
