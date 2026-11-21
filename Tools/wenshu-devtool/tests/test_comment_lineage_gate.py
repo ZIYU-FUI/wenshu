@@ -23,6 +23,15 @@ happened to a gate in this repo:
   7. UNITY_CARVE=0 reprints the census the carve-out excludes (= the boundary
      is switchable in the same file, so the number in the register can be
      reproduced rather than remembered).
+  8. the citation report reconciles with itself (= its headline count is the sum
+     of the citations on one line and the ones wrapped across two, and every
+     site it prints has a line that really carries the date it reports).
+  9. a citation naming a date the register has no row for is charged by name,
+     and a citation naming a date the register does carry is clean.
+ 10. the window resolves against the MERGE-BASE, not the base's tip (= with a
+     two-dot window a moving base drops somebody else's deletion into the delta
+     as an addition, and a clean branch gets charged for a lineage line it never
+     wrote; the repo's other delta gates already work this way).
 
 Run:  python3 Tools/wenshu-devtool/tests/test_comment_lineage_gate.py
 Exit: 0 = every case passed, 1 = at least one case failed.
@@ -253,10 +262,60 @@ def case_dangling_citation():
         rep = measure(tmp, base, "HEAD")
         labs = [lab for r in rep["rows"] for lab in r["labels"]]
         check("case 9: a citation to a row the register carries is clean",
-              rep["register_rows"] == 1 and rep["offending"] == 1,
-              f'rows={rep["register_rows"]} offending={rep["offending"]}')
+              rep["register_dates"] == 1 and rep["offending"] == 1,
+              f'dates={rep["register_dates"]} offending={rep["offending"]}')
         check("case 9b: and the charged label names the dangling citation",
               "citation names a date the register does not carry" in labs, str(labs))
+
+
+def case_moving_base():
+    """The window resolves against the MERGE-BASE (= `base...head`, the same shape the
+    repo's other delta gates use). With a two-dot window, a line the branch never wrote
+    enters the delta as an addition the moment base moves, and a clean card is charged
+    for somebody else's deletion — the false alarm that teaches an author to bypass the
+    gate rather than obey it."""
+    import tempfile, os, subprocess as sp
+    env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
+               GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
+
+    def sh(root, *a):
+        sp.run(a, cwd=root, check=True, capture_output=True, env=env)
+
+    def head(root):
+        return sp.run(["git", "-C", root, "rev-parse", "HEAD"], capture_output=True,
+                      text=True).stdout.strip()
+
+    with tempfile.TemporaryDirectory() as tmp:
+        sh(tmp, "git", "init", "-q", "-b", "main")
+        f = os.path.join(tmp, "Probe.swift")
+        open(f, "w").write("// base\n// card t_2699b55c refused a sha here\nstruct P { }\n")
+        sh(tmp, "git", "add", "-A")
+        sh(tmp, "git", "commit", "-qm", "shared history")
+        sh(tmp, "git", "branch", "card")
+        # main MOVES: the lineage line is deleted on main, never by the branch
+        open(f, "w").write("// base\nstruct P { }\n")
+        sh(tmp, "git", "commit", "-qam", "main removes the lineage line")
+        main_tip = head(tmp)
+        # the branch never touched that line: it still carries it, and adds a clean one
+        sh(tmp, "git", "checkout", "-q", "card")
+        open(f, "w").write("// base\n// card t_2699b55c refused a sha here\nstruct P { }\n"
+                           "// the picker writes the key\n")
+        sh(tmp, "git", "commit", "-qam", "card adds a clean line")
+        rep = measure(tmp, main_tip, "HEAD")
+        check("case 10: a moved base does not charge the branch with a line it never wrote",
+              rep["offending"] == 0 and rep["added_comment_lines"] == 1,
+              f'added={rep["added_comment_lines"]} offending={rep["offending"]}')
+        check("case 10b: and the window names the merge-base, not main's tip",
+              rep["window_base"] == "merge-base" and rep["window"].split("..")[0] != main_tip[:10],
+              rep["window"])
+        # the same moved base must still catch a real violation on the branch
+        open(f, "w").write("// base\n// card t_2699b55c refused a sha here\nstruct P { }\n"
+                           "// the picker writes the key\n// Q3 answered by the second sweep\n")
+        sh(tmp, "git", "commit", "-qam", "card adds a lineage line")
+        rep2 = measure(tmp, main_tip, "HEAD")
+        check("case 10c: a genuine violation on the branch is still charged",
+              rep2["offending"] == 1 and rep2["added_comment_lines"] == 2,
+              f'added={rep2["added_comment_lines"]} offending={rep2["offending"]}')
 
 
 def run():
@@ -268,6 +327,7 @@ def run():
     case_is_comment()
     case_citation_inventory()
     case_dangling_citation()
+    case_moving_base()
     if FAILURES:
         print(f"\nFAIL {len(FAILURES)} case(s): {FAILURES}")
         return 1

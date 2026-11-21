@@ -355,8 +355,11 @@ python3 Tools/wenshu-devtool/citation_inventory.py --sites         # the registe
 
 Four things the gate must state rather than imply:
 
-1. **its unit** — comment lines the window ADDS, not the tree's whole comment
-   census, so two numbers are never compared across different windows;
+1. **its unit and its base** — comment lines the window ADDS since the merge-base
+   of `--base` and the head, not the tree's whole comment census, and not a two-dot
+   comparison against the base's tip: a moving base would drop another branch's
+   deletion into this branch's delta as an addition and charge a clean card for a
+   lineage line it never wrote;
 2. **its carve-out** — under `Tools/wenshu-devtool/` and `Scripts/` a gate may
    name the card and round that built it, because that provenance is the
    engineering intent. The boundary is drawn in code and tested: it does not
@@ -366,11 +369,13 @@ Four things the gate must state rather than imply:
    prints that nothing was measured, since a green that saw nothing is how a
    renamed collector hides for years;
 4. **the citation report reconciles** — the headline count is the sum of the
-   citations that sit on one line (each with a `file:line` a reader can open)
-   and the ones wrapped across two lines (which have no line to open), so a
-   dangling citation is never counted without an address.
+   citations that sit on one line (each with a `file:line` a reader can open, and an
+   explicit marker when the printed list is capped) and the ones wrapped across two
+   lines (which have no line to open), so a dangling citation is never counted without
+   an address; and the register's DATED ROWS and its DISTINCT DATES print as the two
+   quantities they are, because a date can carry several rows.
 
-`tests/test_comment_lineage_gate.py` runs the 37 arms plus a fixture git repo
+`tests/test_comment_lineage_gate.py` runs its 23 cases over the 37 arms plus a fixture git repo
 it builds in a temp directory: the gate is shown FAILING a violating window
 and green on a compliant one that actually added a comment line. `pre_review_gate.py`
 runs the judge on every card, which is where it stops being an instrument

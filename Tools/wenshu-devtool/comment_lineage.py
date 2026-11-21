@@ -81,9 +81,10 @@ CITED_DATE = re.compile(r"OOB\.md\s*#(\d{4}-\d{2}-\d{2})")
 
 
 def register_dates(repo, head):
-    """The dates the register really carries (= the `| YYYY-MM-DD |` row keys of the
-    OOB.md at the head under test). A citation to any other date sends a reader to a
-    row that does not exist, which is a defect even when the decision is real."""
+    """The DATES the register really carries (= the distinct `| YYYY-MM-DD |` row keys
+    of the OOB.md at the head under test; several rows can share one date, so this is a
+    date set and not a row count). A citation to any other date sends a reader to a row
+    that does not exist, which is a defect even when the decision is real."""
     return set(ROW_KEY.findall(repo.git("show", f"{head}:OOB.md")))
 
 
@@ -141,10 +142,19 @@ class Repo:
                               capture_output=True, text=True).stdout
 
 
+def merge_base(repo, base, head):
+    """The commit the branch and `base` actually share (= the point the delta is
+    measured FROM). A two-dot window compares base's TIP to the head, so when base
+    moves after the branch point, lines the branch never touched enter the delta as
+    additions and an innocent branch is charged for them; the repo's other delta
+    gates resolve against the merge-base for exactly this reason."""
+    return repo.git("merge-base", base, head).strip()
+
+
 def added_comment_lines(repo, base, head):
-    """The window's added comment lines: `<base>..<head>`, code and tool sources only
-    (= the unit every count in the report is stated in: a delta over a window, not a
-    whole-tree state count)."""
+    """The window's added comment lines: `<merge-base>..<head>`, code and tool sources
+    only (= the unit every count in the report is stated in: a delta over a window,
+    not a whole-tree state count)."""
     diff = repo.git("diff", "-U0", "--no-color", f"{base}..{head}",
                     "--", "*.swift", "*.py", "*.sh", "*.js")
     cur, recs = None, []
@@ -161,7 +171,7 @@ def added_comment_lines(repo, base, head):
 def measure(repo_path, base, head="HEAD", carve=True):
     repo = Repo(repo_path)
     head_sha = repo.git("rev-parse", head).strip()
-    base_sha = repo.git("rev-parse", base).strip()
+    base_sha = merge_base(repo, repo.git("rev-parse", base).strip(), head_sha)
     recs = added_comment_lines(repo, base_sha, head_sha)
     tip, blob = {}, {}
 
@@ -207,7 +217,8 @@ def measure(repo_path, base, head="HEAD", carve=True):
     label_counts = collections.Counter(lab for r in rows for lab in r["labels"])
     return {
         "window": f"{base_sha[:10]}..{head_sha[:10]}",
-        "register_rows": len(dates),
+        "register_dates": len(dates),
+        "window_base": "merge-base",
         "unit": "comment lines ADDED by the diff over this window (a delta, not a state count)",
         "added_comment_lines": len(recs),
         "offending": len(rows),
@@ -244,7 +255,9 @@ def main(argv=None):
     if args.json:
         print(json.dumps(rep, ensure_ascii=False, indent=1))
     else:
-        print(f"comment-lineage: window {rep['window']} | {rep['unit']}")
+        print(f"comment-lineage: window {rep['window']} (the base resolved to its merge-base "
+              f"with the head, so a moving main cannot charge a branch for lines it never wrote) "
+              f"| {rep['unit']}")
         print(f"  added comment lines: {rep['added_comment_lines']}")
         if rep["added_comment_lines"] == 0:
             print("  NO added comment line in this window: nothing was measured, "

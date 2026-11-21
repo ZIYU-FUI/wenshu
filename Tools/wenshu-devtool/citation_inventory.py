@@ -68,15 +68,19 @@ def significant(s):
 
 
 def register_rows(repo):
+    """The register keyed by DATE (several rows can share one date), plus the count of
+    dated ROW LINES — the two quantities are different and printing one under the
+    other's name is how a census goes wrong."""
     text = open(os.path.join(repo, "OOB.md"), encoding="utf-8").read()
+    found = ROW.findall(text)
     rows = collections.defaultdict(list)
-    for d, body in ROW.findall(text):
+    for d, body in found:
         rows[d].append(body)
-    return rows
+    return rows, len(found)
 
 
 def inventory(repo, with_sites=False):
-    rows = register_rows(repo)
+    rows, dated_row_lines = register_rows(repo)
     real = set(rows)
     files = git(repo, "ls-files", "--", "*.swift", "*.py", "*.sh", "*.js").split()
     total = resolved = 0
@@ -119,7 +123,8 @@ def inventory(repo, with_sites=False):
     dangling = sum(by_date.values())
     wrapped_total = joined_total - total
     wrapped_dangling = joined_dangling - dangling
-    return {"total_citations": joined_total, "resolve": joined_total - joined_dangling,
+    return {"register_dated_rows": dated_row_lines, "register_dates": len(real),
+            "total_citations": joined_total, "resolve": joined_total - joined_dangling,
             "dangling": joined_dangling,
             "dangling_files": len(by_file) + (1 if wrapped_dangling else 0),
             "dangling_dates": len(set(by_date) | set()),
@@ -143,7 +148,8 @@ def main(argv=None):
     if args.json:
         print(json.dumps(rep, ensure_ascii=False, indent=1))
         return 0
-    print(f"OOB.md register rows: {len(register_rows(args.repo))}")
+    print(f"OOB.md: {rep['register_dated_rows']} dated rows over "
+          f"{rep['register_dates']} distinct dates (= a date can carry several rows)")
     w, o = rep["wrapped_across_lines"], rep["on_one_line"]
     print(f"citations: {rep['total_citations']} | resolve: {rep['resolve']} | "
           f"DANGLING: {rep['dangling']} over {len(rep['by_file'])} addressable files, "
@@ -157,10 +163,13 @@ def main(argv=None):
     if args.sites:
         rp = sum(1 for s in rep["sites"] if s["action"] == "repoint")
         print(f"sites: {len(rep['sites'])} -> repoint {rp}, drop {len(rep['sites']) - rp}")
-        for s in rep["sites"][:40]:
+        for s in rep["sites"][:40]:  # capped: the marker below says it is capped
             b = s["candidates"][0] if s["candidates"] else None
             print(f"   {s['action']:7s} {s['file']}:{s['line']} #{s['cited_date']} "
                   f"-> {('#' + b['date'] + ' score ' + str(b['score'])) if b else 'no row'}")
+        if len(rep["sites"]) > 40:
+            print(f"   … {len(rep['sites']) - 40} more sites not printed "
+                  f"(--json carries all {len(rep['sites'])})")
     return 0
 
 
