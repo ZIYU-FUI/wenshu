@@ -151,8 +151,9 @@ numbers is comparing things that happen to share a digit.
 | `t_a76df80c` | `6747dd2229` | changes_requested | this record itself: section 7 attributed the red to the report tool and named 4 cases that exist in no revision; line 12 carried a dangling register date; the sweep row copied the register's 79, measured by a tool the tree has never had |
 | `t_e0ef2fed` | `e1b231525a` | changes_requested | round-1's three findings verified closed by measurement; section 7 was still one red short, and the correction had rewritten the same dangling pointer form into line 282 of the record it was fixing |
 | `t_fcdcc953` | `c6fc14577d` | changes_requested | F1 and F2 re-run and closed; section 9 still printed the previous head — a read-back sha one commit stale, a timeline missing two arrivals, "one commit behind" where the measured distance was 2, and an outage asserted in present tense seven minutes after it ended, all of it surviving the verifier because the read-only command sat inside a `SKIP:` block |
+| `t_c0d2669c` | `a9297fa128` | changes_requested | section 9's rebuild confirmed byte-exact; three sentences this commit wrote to describe its own fix carried unmeasured claims — an ellipsis the tool never prints (83 is occurrences, 19 the full distinct roster), a snapshot credited with review cards that started after its cutoff, and an absolute rule about `SKIP:` blocks that its own next section broke |
 
-The repeating shape is one mistake, not twelve: **a number published from the head where it was
+The repeating shape is one mistake, not thirteen: **a number published from the head where it was
 first written, rather than the head the card names.** Prose in `nfi.md` and the registry rows
 are the same failure wearing a different file. The rule the scope ended on lives in the
 `wenshu-review-proof` skill (`references/measured-prose-and-comparison-arms.md`, sections 5
@@ -171,19 +172,28 @@ python3 Tools/wenshu-devtool/tests/test_inventory_measure.py; echo rc=$?
 #  rc=1
 #  inventory-measure's matcher: 2 case(s) FAILED
 #    - the guard fails when it is run from a subdirectory (= = it reads the tree by the CALLER's
-#      directory, = = and not by the repository it means)
-#    - the branch's added comment lines carry 83 ticket id(s): A1, A108, A112, A115, A14-A38,
-#      A2, C4, D1, D2, D3, D4, F1, H1, M1, M2, P1-02, P95, R2, round-7 …
+#      directory, = = and not by the repository it means):   - the branch's added comment lines
+#      carry 83 ticket id(s): A1, A108, A112, A115, A14-A38, A2, C4, D1, D2, D3, D4, F1, H1, M1,
+#      M2, P1-02, P95, R2, round-7
+#    - the branch's added comment lines carry 83 ticket id(s): A1, A108, A112, A115, A14-A38, A2,
+#      C4, D1, D2, D3, D4, F1, H1, M1, M2, P1-02, P95, R2, round-7
 ```
 
-The count is 83 and the list is the tool's own truncation — it prints 19 ids and stops, so a reader
-comparing this paste to the command's output should expect the ellipsis, not 83 names.
+Two lines, not three messages: the guard case's text and the ticket-id case's text are joined by the
+harness onto one 300-character line, which this block wraps across four lines to fit the page, and the
+same ticket-id sentence repeats as the second line. The units, because the sentence carries two:
+**83** is `len(offenders)`, the number of ticket-id **occurrences** on added comment lines, and the
+comma-separated list after it is `sorted({tok for tok, _ in offenders})` — **19 distinct ids**, printed
+in full (`test_inventory_measure.py:202-210`). An earlier version of this section claimed the tool
+truncated that list and printed 19 of 83; nothing is truncated, the ellipsis was this file's own, and
+the count and the roster are different units.
 
 Two cases, not four. The same suite exits 1 with the same 2 cases at this scope's base
-`437eb698bf` (83 ids) and at the pre-scope base `65590f4800` (84 ids), each measured in its own
-detached worktree, so the debt predates this scope and is left standing: the boss ruled hygiene
-out of this scope's remit, no fix is claimed here, and no gate is asserted that would hide it —
-the change gates pass because this window's added lines are clean, not because that suite is green.
+`437eb698bf` (83 occurrences / 19 ids) and at the pre-scope base `65590f4800` (84 occurrences), each
+measured in its own detached worktree, so the debt predates this scope and is left standing: the boss
+ruled hygiene out of this scope's remit, no fix is claimed here, and no gate is asserted that would
+hide it — the change gates pass because this window's added lines are clean, not because that suite
+is green.
 
 The names the first version printed — `test_cjk_and_refactor_counters`,
 `test_carry_lines_do_not_double_count_a_logical_line`,
@@ -225,15 +235,15 @@ field and nobody re-cited the assertion. Its owner is the chat lane.
 
 ## 8. What this scope cost on the board
 
-Twelve review cards with runs, 12 runs on the review lane, 231.2 minutes of reviewer wall clock,
+Thirteen review cards with runs, 13 runs on the review lane, 257.8 minutes of reviewer wall clock,
 and one card the reviewer created for the implementer that never ran (`t_ed400688`, archived). Every
-card completed its run: zero `rate_limited`, zero `timed_out`, zero reclaims. Eight verdicts came
+card completed its run: zero `rate_limited`, zero `timed_out`, zero reclaims. Nine verdicts came
 back changes_requested and four approved; the rounds, not the failures, were the price, and each
 returned round cost a full re-measure of the published numbers.
 
 ```
-sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select count(*), round(sum(coalesce(r.ended_at,strftime('%s','now'))-r.started_at)/60.0,1) from task_runs r where r.task_id in ('t_78c56873','t_040d46e6','t_9c5c9538','t_7000a317','t_cd27cc22','t_32bf3b9e','t_e9c37fab','t_ff60edef','t_15ebdbaa','t_a76df80c','t_e0ef2fed','t_fcdcc953')"
-#  12|231.2
+sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select count(*), round(sum(coalesce(r.ended_at,strftime('%s','now'))-r.started_at)/60.0,1) from task_runs r where r.task_id in ('t_78c56873','t_040d46e6','t_9c5c9538','t_7000a317','t_cd27cc22','t_32bf3b9e','t_e9c37fab','t_ff60edef','t_15ebdbaa','t_a76df80c','t_e0ef2fed','t_fcdcc953','t_c0d2669c')"
+#  13|257.8
 ```
 
 The query sums over an EXPLICIT list of this scope's card ids, not over a creator and a time window:
@@ -245,17 +255,23 @@ reading, not a contradiction of this one.
 
 ```
 SKIP: this query reads the live board, so its result moves with every run anyone dispatches;
-pasting it as an executable assertion would be a claim about the future. The reading below was
-taken at 16:49 on 2026-11-21, in the session that wrote this record.
+pasting it as an executable assertion would be a claim about the future. The reading below is a
+snapshot, taken at 16:49 on 2026-11-21 in the session that wrote this record, and the record cites
+it only as that moment's reading — never as a current fact. Section 11 states the rule this
+exception is subject to.
 sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select count(*), round(sum(coalesce(r.ended_at,strftime('%s','now'))-r.started_at)/60.0,1) from task_runs r join tasks t on t.id=r.task_id where t.created_by='pocock' and t.title like '%[T%'"
 #  592 | 14162.7
 ```
 
-That reading is board-wide, so it counts every scope this profile ever dispatched (592 runs,
-236.0 hours at the moment it was taken), and it grows on every re-run — all three of this record's
-own review cards are inside it. The scope's own figure is the explicit 12-card sum above, and the two
-numbers are not the same measurement: the board-wide count is context for how much of the lane this
-profile has occupied, not the price of this work. The reviewer's follow-up card
+That reading is board-wide, so it counts every scope this profile ever dispatched up to its own
+cutoff: 592 runs, 14162.7 minutes (236.0 hours). Of this record's own review cards exactly **one**
+was inside that cutoff — `t_a76df80c` started at 16:05:53 — while `t_e0ef2fed` (16:55:21),
+`t_fcdcc953` (17:45:52) and `t_c0d2669c` (18:10:08) all started after it. The sentence here used to
+say "all three of this record's own review cards are inside it", which the board's own `started_at`
+column refutes; a dated snapshot has to date what it contains as well as when it was taken. The
+scope's own figure is the explicit 13-card sum above, and the two numbers are not the same
+measurement: the board-wide count is context for how much of the lane this profile has occupied, not
+the price of this work. The reviewer's follow-up card
 (`t_ed400688`) was created by the reviewer and assigned to the implementer; the fix is one
 sentence and a reviewer does not dispatch implementation work to itself, so it was executed in
 this scope and the card archived.
@@ -369,10 +385,16 @@ the reader, not the file, decides which side of the interval they are on.
 ## 11. This record's own rounds
 
 Written on the merged tree at `8e7481ff8f`, in English. Its command blocks were each run; only a block
-whose command **mutates** the tree or a remote carries a `SKIP:` line, and a read-only command is
-never allowed to ride inside one, because the skipped surface is exactly where a stale value survives
-re-verification. This document does not record its own review verdict — the card that judges it
-carries that, and a verdict is not this file's to predict.
+whose command **mutates** the tree or a remote carries a `SKIP:` line. A read-only command may sit in a
+skipped block on one condition, and the condition is the sentence that makes it legal rather than the
+block marker: the value must be declared a dated snapshot, and the record must never cite it as
+current. Section 8's board-wide census is that case. Any value the record relies on as a fact about
+this head has to live in a block the verifier executes, because the skipped surface is exactly where a
+stale value survives re-verification. An earlier version of this paragraph said a read-only command
+was "never allowed" inside a `SKIP:` block, and the commit that wrote it carried a read-only sqlite
+select in its own section 8 — the rule was falsified by the file that stated it. This document does
+not record its own review verdict — the card that judges it carries that, and a verdict is not this
+file's to predict.
 
 ### Round 1 — card `t_a76df80c`, reviewed at `6747dd2229`
 
@@ -450,3 +472,28 @@ executes. Section 9 is therefore three blocks now — the push, marked `SKIP:`; 
 timelines, executable; and a read-back that prints `origin == main` / `old-origin == main` / deltas
 `0` instead of a sha, because a record cannot print the sha of its own commit and an equality can be
 true at every head that follows.
+
+### Round 4 — card `t_c0d2669c`, reviewed at `a9297fa128`
+
+Section 9's rebuild closed byte-exact on the reviewer's own run: three blocks, the `SKIP:` block
+carrying no readable value at all, 8 and 7 arrival rows, the equality printing at that head, the
+verifier at `PASS (12 block(s) seen, 6 executed)`, and every gate reproducing including the 12-card sum
+and the registry suite at `PASS=32 FAIL=0`. Three blockers came back instead, and all three were
+sentences this record had just written to describe its own fix:
+
+- **B1'** the ellipsis in section 7's id roster was the file's, not the tool's.
+  `test_inventory_measure.py:202-210` returns `sorted({tok for tok, _ in offenders})` — the full
+  **19 distinct ids**, with `83` counting **occurrences**. Nothing is truncated, and a sentence blaming
+  the tool for its own invented `…` is the copy-instead-of-measure failure wearing a footnote.
+- **B2'** section 8 credited the 16:49 board-wide snapshot with all of this record's own review cards.
+  `task_runs.started_at` puts `t_a76df80c` inside (16:05:53) and the three later cards outside
+  (16:55:21, 17:45:52, 18:10:08). A dated snapshot has to date its contents, not only its timestamp.
+- **B3'** the paragraph at the head of this section stated an absolute rule — no read-only command
+  inside a `SKIP:` block — and the same commit left a read-only sqlite census in section 8's skipped
+  block. The rule is now conditional, with section 8 naming the condition it relies on.
+
+The shape worth carrying forward: after three rounds the defects had moved out of the numbers and into
+the sentences *about* the numbers. A command block gets re-run by the verifier; a sentence about a
+command block gets read once, by the person who wrote it, immediately after writing it. Every figure in
+this record now names the command that prints it, and every sentence that characterises a command names
+the source lines it read to learn that.
