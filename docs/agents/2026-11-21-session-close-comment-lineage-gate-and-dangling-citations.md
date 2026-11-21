@@ -150,8 +150,9 @@ numbers is comparing things that happen to share a digit.
 | `t_15ebdbaa` | `8e7481ff8f` | approved | `README.md:384` carried a clause's lead sentence twice, a leftover of a patch that reworded one of the two halves |
 | `t_a76df80c` | `6747dd2229` | changes_requested | this record itself: section 7 attributed the red to the report tool and named 4 cases that exist in no revision; line 12 carried a dangling register date; the sweep row copied the register's 79, measured by a tool the tree has never had |
 | `t_e0ef2fed` | `e1b231525a` | changes_requested | round-1's three findings verified closed by measurement; section 7 was still one red short, and the correction had rewritten the same dangling pointer form into line 282 of the record it was fixing |
+| `t_fcdcc953` | `c6fc14577d` | changes_requested | F1 and F2 re-run and closed; section 9 still printed the previous head — a read-back sha one commit stale, a timeline missing two arrivals, "one commit behind" where the measured distance was 2, and an outage asserted in present tense seven minutes after it ended, all of it surviving the verifier because the read-only command sat inside a `SKIP:` block |
 
-The repeating shape is one mistake, not eleven: **a number published from the head where it was
+The repeating shape is one mistake, not twelve: **a number published from the head where it was
 first written, rather than the head the card names.** Prose in `nfi.md` and the registry rows
 are the same failure wearing a different file. The rule the scope ended on lives in the
 `wenshu-review-proof` skill (`references/measured-prose-and-comparison-arms.md`, sections 5
@@ -172,8 +173,11 @@ python3 Tools/wenshu-devtool/tests/test_inventory_measure.py; echo rc=$?
 #    - the guard fails when it is run from a subdirectory (= = it reads the tree by the CALLER's
 #      directory, = = and not by the repository it means)
 #    - the branch's added comment lines carry 83 ticket id(s): A1, A108, A112, A115, A14-A38,
-#      A2, C4, D1, D2, D3, D4, F1, H1, M1, M2, P1-02, P95, R2, round-7 … (83 ids printed)
+#      A2, C4, D1, D2, D3, D4, F1, H1, M1, M2, P1-02, P95, R2, round-7 …
 ```
+
+The count is 83 and the list is the tool's own truncation — it prints 19 ids and stops, so a reader
+comparing this paste to the command's output should expect the ellipsis, not 83 names.
 
 Two cases, not four. The same suite exits 1 with the same 2 cases at this scope's base
 `437eb698bf` (83 ids) and at the pre-scope base `65590f4800` (84 ids), each measured in its own
@@ -221,20 +225,23 @@ field and nobody re-cited the assertion. Its owner is the chat lane.
 
 ## 8. What this scope cost on the board
 
-Eleven review cards with runs, 11 runs on the review lane, 217.2 minutes of reviewer wall clock,
+Twelve review cards with runs, 12 runs on the review lane, 231.2 minutes of reviewer wall clock,
 and one card the reviewer created for the implementer that never ran (`t_ed400688`, archived). Every
-card completed its run: zero `rate_limited`, zero `timed_out`, zero reclaims. Seven verdicts came
+card completed its run: zero `rate_limited`, zero `timed_out`, zero reclaims. Eight verdicts came
 back changes_requested and four approved; the rounds, not the failures, were the price, and each
 returned round cost a full re-measure of the published numbers.
 
 ```
-sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select count(*), round(sum(coalesce(r.ended_at,strftime('%s','now'))-r.started_at)/60.0,1) from task_runs r where r.task_id in ('t_78c56873','t_040d46e6','t_9c5c9538','t_7000a317','t_cd27cc22','t_32bf3b9e','t_e9c37fab','t_ff60edef','t_15ebdbaa','t_a76df80c','t_e0ef2fed')"
-#  11|217.2
+sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select count(*), round(sum(coalesce(r.ended_at,strftime('%s','now'))-r.started_at)/60.0,1) from task_runs r where r.task_id in ('t_78c56873','t_040d46e6','t_9c5c9538','t_7000a317','t_cd27cc22','t_32bf3b9e','t_e9c37fab','t_ff60edef','t_15ebdbaa','t_a76df80c','t_e0ef2fed','t_fcdcc953')"
+#  12|231.2
 ```
 
 The query sums over an EXPLICIT list of this scope's card ids, not over a creator and a time window:
 every run in the list has ended, so the figure is fixed, and a filter on `created_by` would silently
-price this scope with every other scope the profile ever dispatched.
+price this scope with every other scope the profile ever dispatched. The card that judges **this**
+revision is deliberately absent — it does not exist at the head whose figure this is — so a reader
+who re-runs the query after that card has run will get a larger number, and that is the head's
+reading, not a contradiction of this one.
 
 ```
 SKIP: this query reads the live board, so its result moves with every run anyone dispatches;
@@ -245,8 +252,8 @@ sqlite3 /Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/kanban.db "select cou
 ```
 
 That reading is board-wide, so it counts every scope this profile ever dispatched (592 runs,
-236.0 hours at the moment it was taken), and it grows on every re-run — both of this record's own
-review cards are inside it. The scope's own figure is the explicit 11-card sum above, and the two
+236.0 hours at the moment it was taken), and it grows on every re-run — all three of this record's
+own review cards are inside it. The scope's own figure is the explicit 12-card sum above, and the two
 numbers are not the same measurement: the board-wide count is context for how much of the lane this
 profile has occupied, not the price of this work. The reviewer's follow-up card
 (`t_ed400688`) was created by the reviewer and assigned to the implementer; the fix is one
@@ -274,30 +281,62 @@ git log --format='%an' 65590f4800..8e7481ff8f | sort | uniq -c
   findings that followed it.
 
 Both remotes were pushed and read back separately, because a push that reported success on one
-remote says nothing about the other:
+remote says nothing about the other. Only the push itself is marked `SKIP:`; the read-back is a
+command that mutates nothing, so it lives in its own executable block — a value that rides inside a
+skipped block is a value the verifier cannot re-print, and that is how the last version of this
+section kept a stale sha.
 
 ```
-SKIP: pushing, and a push writes to a remote the reader may not own. The timeline below was read
-from `git reflog show --date=format:'%H:%M' origin/main` and the same command for
-`old-origin/main`, where each entry is the sha that arrival carried. An earlier version of this
-block listed 16:11 twice; nothing was pushed at 16:11 — the two arrivals were 16:04 and 16:51, and
-the wrong pair had been written from memory rather than from the reflog.
-  origin      10:19 a28cc8be80, 12:39 437eb698bf, 15:34 1d1d7c937b, 15:44 8e7481ff8f,
-              16:04 6747dd2229, 16:51 e1b231525a, 17:36 fc18fcc692
-  old-origin  10:19 a28cc8be80, 12:42 437eb698bf, 15:34 1d1d7c937b, 15:44 8e7481ff8f,
-              16:04 6747dd2229, 16:51 e1b231525a
-git ls-remote origin refs/heads/main
-#  fc18fcc692391255090e5abb3e8889dfb0943503   (= git rev-parse main)
+SKIP: pushing, and a push writes to a remote the reader may not own: `git push origin main` and
+`git push old-origin main`, eight and seven arrivals respectively for this scope, listed below.
 ```
 
-`old-origin` is not in that read-back because it could not be reached for this commit, and the
-probes say it is the path and not the permission: `git push old-origin main` closed on the wire,
-`ssh -T git@github.com` returns `Connection closed by 198.18.0.26 port 22`, and HTTPS fails at the
+```
+git reflog show --date=format:'%H:%M' origin/main | grep -E '^(a28cc8be80|437eb698bf|1d1d7c937b|8e7481ff8f|6747dd2229|e1b231525a|fc18fcc692|c6fc14577d) refs' | sed 's/ refs.*@{/  @{/; s/}: update by push//'
+#  c6fc14577d  @{17:43}
+#  fc18fcc692  @{17:36}
+#  e1b231525a  @{16:51}
+#  6747dd2229  @{16:04}
+#  8e7481ff8f  @{15:44}
+#  1d1d7c937b  @{15:34}
+#  437eb698bf  @{12:39}
+#  a28cc8be80  @{10:19}
+git reflog show --date=format:'%H:%M' old-origin/main | grep -E '^(a28cc8be80|437eb698bf|1d1d7c937b|8e7481ff8f|6747dd2229|e1b231525a|fc18fcc692|c6fc14577d) refs' | sed 's/ refs.*@{/  @{/; s/}: update by push//'
+#  c6fc14577d  @{17:43}
+#  e1b231525a  @{16:51}
+#  6747dd2229  @{16:04}
+#  8e7481ff8f  @{15:44}
+#  1d1d7c937b  @{15:34}
+#  437eb698bf  @{12:42}
+#  a28cc8be80  @{10:19}
+```
+
+`fc18fcc692` never reaches the second list because it was never on that remote: it was written while
+the path to GitHub was down, and the next commit carried it across. The filter names the scope's
+shas, so the commit that carries this line adds one more row to both reflogs at its own push time —
+the one row no pre-push paste can print, which is why the read-back below prints an equality rather
+than a sha.
+
+```
+o=$(git ls-remote origin refs/heads/main | cut -f1); m=$(git ls-remote old-origin refs/heads/main | cut -f1); l=$(git rev-parse main)
+[ "$o" = "$l" ] && echo "origin == main"; [ "$m" = "$l" ] && echo "old-origin == main"
+echo "delta_origin=$(git rev-list --count $o..$l) delta_old_origin=$(git rev-list --count $m..$l)"
+#  origin == main
+#  old-origin == main
+#  delta_origin=0 delta_old_origin=0
+```
+
+The one outage this scope hit is a dated interval, not a standing state: between **17:36 and 17:43
+on 2026-11-21** the route to GitHub was closed — `git push old-origin main` died on the wire,
+`ssh -T git@github.com` returned `Connection closed by 198.18.0.26 port 22`, and HTTPS failed at the
 handshake (`curl https://api.github.com` -> `LibreSSL SSL_connect: SSL_ERROR_SYSCALL`, http_code
-`000`). So the second remote sits at `e1b231525a`, one commit behind, and "both remotes carry this
-head" is **false** for the head this record ships under — which is why it is not asserted anywhere in
-it. Section 10 item 5 is the open line; a reader checks it with `git ls-remote old-origin
-refs/heads/main`.
+`000`). A bounded retry loop pushed on its first attempt at 17:43, and at the time of writing the
+same `ssh -T` authenticates (`Hi ZIYU-FUI! You've successfully authenticated`) with
+`git ls-remote old-origin refs/heads/main` answering rc 0. An earlier version of this section
+asserted that wall in undated present tense and asserted a second remote "one commit behind" — the
+distance was 2 against the head then shipping, and both halves stopped being true seven minutes
+after they were written. Section 10 item 5 carries the reading, the check command, and the fact that
+the reader, not the file, decides which side of the interval they are on.
 
 ## 10. Left open on purpose
 
@@ -320,18 +359,20 @@ refs/heads/main`.
    `2026-10-01`). Widening the scan surface to `.md` is a tool change with findings of its own, not a
    documentation fix, and it belongs to the owner of the census. The record's own text is written to
    avoid the pointer form for dates the register does not carry, because the tool will not catch it.
-5. The second remote is one commit behind. `old-origin` (the GitHub mirror) could not be reached for
-   the head this record ships under — the network path closes SSH on 22 and fails TLS on 443, so it is
-   a wall and not a missing key. `git ls-remote old-origin refs/heads/main` equal to
-   `git rev-parse main` is the check; until it passes, the closeout's push step is half done, and this
-   item rather than a claim of symmetry is where that fact lives.
+5. A remote that is down for seven minutes is not a defect the file can pin, only a reading it can
+   date. Section 9 carries the interval (17:36–17:43 on 2026-11-21) and the equality read-back; the
+   reader's own check is `git ls-remote origin refs/heads/main` and the same for `old-origin`, both
+   compared against `git rev-parse main`. What stays open is the habit, not the push: a value printed
+   inside a `SKIP:` block is never re-run, so any read-only command that lives there is a value the
+   verifier cannot keep honest.
 
 ## 11. This record's own rounds
 
-Written on the merged tree at `8e7481ff8f`, in English. Its command blocks were each run; blocks
-that mutate the tree or a remote carry a `SKIP:` line and are excluded from the re-runnable
-surface. This document does not record its own review verdict — the card that judges it carries
-that, and a verdict is not this file's to predict.
+Written on the merged tree at `8e7481ff8f`, in English. Its command blocks were each run; only a block
+whose command **mutates** the tree or a remote carries a `SKIP:` line, and a read-only command is
+never allowed to ride inside one, because the skipped surface is exactly where a stale value survives
+re-verification. This document does not record its own review verdict — the card that judges it
+carries that, and a verdict is not this file's to predict.
 
 ### Round 1 — card `t_a76df80c`, reviewed at `6747dd2229`
 
@@ -382,5 +423,30 @@ touching the tree or the sha.
 While re-measuring for this round the reflog caught a fifth figure of the same kind, in section 9 and
 not in the reviewer's findings: the push timeline had listed `16:11` twice, and no push happened at
 16:11 — the two arrivals were 16:04 and 16:51. It had been written from the session's memory of when
-the pushes felt like they happened. Section 9 now prints the reflog's own values, including the fact
-that the second remote is behind (section 10, item 5).
+the pushes felt like they happened. Section 9 now prints the reflog's own values.
+
+### Round 3 — card `t_fcdcc953`, reviewed at `c6fc14577d`
+
+F1 and F2 were closed on the reviewer's own re-run, not on this record's account of them: the
+filtered Swift suite fails only `body_logs_history_metadata()` at that head with `totalTokens`
+measured 0 in the source and 1 in the test, `git diff --numstat 65590f4800..HEAD` prints nothing for
+either file, and the `.md` census prints exactly the five sites section 10 item 4 names while the
+record carries none. Section 4's 9-row and 3-`.md` readings were verified true at the head they name
+(`8e7481ff8f`), in a detached worktree, where the same commands read 10 rows and 4 `.md` here — which
+lines 5-6 of that section disclose rather than smooth over.
+
+One blocker remained, and it was this record's own subject wearing its last costume: section 9 and
+item 5 printed the previous head. `git ls-remote origin` and `git rev-parse main` both read
+`c6fc14577d` while the block pasted `fc18fcc692`; the arrival timeline omitted both `17:43` pushes, so
+`head -7` no longer returned the pasted set (the scope's arrivals on `origin` are 8); "one commit
+behind" measured **2** against the head then shipping; and the GitHub outage was asserted in undated
+present tense at a moment when `ssh -T git@github.com` authenticated and `ls-remote` answered rc 0.
+
+The root cause is structural rather than arithmetic, and it is the reason the fix is a block layout
+and not a corrected sha: `git ls-remote` mutates nothing and any reader can run it, but it rode
+*inside* the `SKIP:`-marked push block, so `verify_doc_commands.py --run` never touched it. A value
+can only be kept honest by the re-runnable surface if the value sits in a block that surface
+executes. Section 9 is therefore three blocks now — the push, marked `SKIP:`; the two arrival
+timelines, executable; and a read-back that prints `origin == main` / `old-origin == main` / deltas
+`0` instead of a sha, because a record cannot print the sha of its own commit and an equality can be
+true at every head that follows.
