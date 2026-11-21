@@ -10,8 +10,8 @@ holds or exits non-zero naming what failed, and any rows beside it are read as a
 minute, never as what the command prints at the head. Sections 2 to 5 are closed-range readings;
 section 8 is a closed list of finished runs; section 9's arrival rows are dated and its read-back is a
 predicate. Nothing here argues with a verdict on this file: the findings section 6 lists are the gate's,
-at heads that are closed; section 8's census counts finished runs and their one-word verdicts, quoting no
-finding; section 9 places runs inside a dated interval by `started_at` and nothing else.
+at heads that are closed; section 8's census counts finished runs, their one-word verdicts, and which side
+of a dated cutoff each one started on, quoting no finding; section 9's reflog rows are arrival times.
 ## 1. What was asked
 
 The boss ruled the comment corpus (see OOB.md #2026-11-21): a comment exists for a human
@@ -107,10 +107,13 @@ git diff --shortstat 437eb698bf..8e7481ff8f
 git diff --shortstat 65590f4800..8e7481ff8f
 ```
 
-The judge lines above pin both ends. The rest take `--base` only, and `ci_change_gate.py` has no
-`--head` at all (its arguments are `--base`, `--check`, `--repo`, at
-`Tools/wenshu-devtool/ci_change_gate.py:506-513`), so their far end is the checkout you are standing
-in: run them from a worktree at `8e7481ff8f`, the head every reading below is from.
+The judge lines above pin both ends. Of the rest, `nfi-loc-check.py` and the `ci_change_gate.py` loop
+take `--base` and no far end -- `ci_change_gate.py` has no `--head` at all (its arguments are `--base`,
+`--check`, `--repo`, at `Tools/wenshu-devtool/ci_change_gate.py:506-513`) -- so their far end is the
+checkout you are standing in; `citation_inventory.py` takes no base at all (its flags are `--repo`,
+`--sites`, `--json`, `--out`) and reads the working tree; `tests/test_comment_lineage_gate.py` takes
+nothing and runs its own fixtures; and the two `git diff --shortstat` lines name both ends. Run the
+tree-dependent ones from a worktree at `8e7481ff8f`, the head every reading below is from.
 
 Readings at this tip, in that order:
 
@@ -178,7 +181,6 @@ names. The failure is:
 
 ```
 python3 Tools/wenshu-devtool/tests/test_inventory_measure.py; echo rc=$?
-#  rc=1
 #  inventory-measure's matcher: 2 case(s) FAILED
 #    - the guard fails when it is run from a subdirectory (= = it reads the tree by the CALLER's
 #      directory, = = and not by the repository it means):   - the branch's added comment lines
@@ -186,7 +188,10 @@ python3 Tools/wenshu-devtool/tests/test_inventory_measure.py; echo rc=$?
 #      M2, P1-02, P95, R2, round-7
 #    - the branch's added comment lines carry 83 ticket id(s): A1, A108, A112, A115, A14-A38, A2,
 #      C4, D1, D2, D3, D4, F1, H1, M1, M2, P1-02, P95, R2, round-7
+#  rc=1
 ```
+The `rc=1` line is last because `echo rc=$?` runs after the suite; the three stdout lines above it are the
+summary and the two case lines, in the order the harness prints them.
 
 Two lines, not three messages: the guard case's text and the ticket-id case's text are joined by the
 harness onto one 300-character line, which this block wraps across four lines to fit the page, and the
@@ -276,7 +281,7 @@ This block is clipped to its own cutoff rather than read live, and the clipping 
 version this session actually ran at 16:49 was `…coalesce(r.ended_at,strftime('%s','now'))…` with no
 `started_at` filter, and re-running *that* command today prints `595|14228.2`, because the board kept
 taking runs after the record quoted it. A skipped block whose command no longer prints the line under it
-is the same defect section 9 was blocked on twice, so the command was rewritten until the paste is what
+is the same defect a re-runnable command has to be rewritten for, so the command above was rewritten until the paste is what
 the command prints, and the block lost its `SKIP:` line because nothing it does mutates anything. Two
 limits on it, both honest: `unixepoch` reads a bare timestamp as UTC, so the `+08:00` in the cutoff is
 load-bearing (drop it and the same query answers `595|14228.2` for a different reason), and the class is
