@@ -319,11 +319,11 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         )
         // The font the control draws its label with.
         //
-        // MEASURED: the label font is the system font at 13 PT at both
-        // control sizes (= the control size changes the cell's height and
-        // the drawn capsule, = not the label's type), = and the control
-        // knows it before its first layout pass, = so the width the app
-        // measures is the width AppKit draws.
+        // The font is the AppKit preferred body scale via
+        // PaneTabStripClose.titleFont() (= 13 PT at the default text size,
+        // following the user's text size from there; control size changes
+        // the cell height and drawn capsule, not the label's type). ONE
+        // font for measuring and drawing = what AppKit draws is measured.
         let labelFont = control.font ?? PaneTabStripClose.titleFont()
         // The titles every segment carries (= the whole titles, = and the
         // ladder decides what is drawn).

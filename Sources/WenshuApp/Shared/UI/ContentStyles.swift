@@ -51,9 +51,10 @@ import SwiftUI
 /// etc. = the modifier would not apply on those).
 ///
 /// Why multiple presets (= not one canonical value):
-/// - `.standard` (= 18 PT) = the workspace default (= matches
-///   the editor's 18 PT top padding, the preview zone's 18 PT
-///   padding, the NSTextView/NSScrollView default content margins).
+/// - `.standard` (= 18 PT) = the product workspace default. The
+///   editor's own text inset is a separate system (the NSTextView's
+///   textContainerInset = 10 PT); this rung is the SwiftUI zone inset,
+///   not a claim about AppKit defaults.
 /// - `.compact` (= 12 PT) = for zones with denser content (= e.g.
 ///   the sidebar's tree outline, where each row is ~25 PT and a
 ///   18 PT top/bottom inset wastes 36 PT of vertical space).

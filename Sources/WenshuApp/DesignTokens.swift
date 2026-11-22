@@ -33,16 +33,16 @@ enum DesignTokens {
     /// settled on. No HIG figure exists; distinct from the row surface.
     static let sidebarRowHeight: CGFloat = 22
 
-    /// Apple Tahoe sidebar row icon tile size (= 24 PT). The wenshu bans naked
+    /// Product sidebar row icon tile size (= 24 PT). The wenshu bans naked
     /// chrome (= the tile has to read as visibly smaller than the row's
     /// tappable target).
     static let sidebarIconTileSize: CGFloat = 24
 
-    /// Apple Tahoe sidebar row icon tile corner radius (= 6 PT = ~25% of the
+    /// Product sidebar row icon tile corner radius (= 6 PT = ~25% of the
     /// 24 PT tile). The tile's corners go through this token.
     static let sidebarIconTileCornerRadius: CGFloat = 6
 
-    /// Apple Tahoe sidebar row icon tile inner padding (= 4 PT = the gap inside
+    /// Product sidebar row icon tile inner padding (= 4 PT = the gap inside
     /// the tile). The padding goes through this token.
     static let sidebarIconTilePadding: CGFloat = 4
 
@@ -314,11 +314,6 @@ enum DesignTokens {
     /// not a floating window.
     static let surfaceShadowRadiusButton: CGFloat = 8
 
-    /// Settings row label column width (= 80 PT, the product settings row
-    /// label column). MemorySettingsView spells the same value as a file-scope
-    /// `rowLabelWidth: CGFloat = 80`.
-    static let settingsRowLabelWidth: CGFloat = 80
-
     /// Active surface tint alpha (= 0.2, the product subtle accent overlay).
     /// ConnectorProfileRow uses it.
     static let surfaceActiveTintAlpha: CGFloat = 0.2
@@ -334,10 +329,6 @@ enum DesignTokens {
     /// Inactive border width (= 1 PT, product choice border). Replaces
     /// file-scope `inactiveStrokeWidth: CGFloat = 1` in ConnectorProfileRow.
     static let surfaceInactiveBorderWidth: CGFloat = 1
-
-    /// Badge interior vertical padding (= 2 PT, the product tight badge
-    /// standard). Replaces inline `.padding(.vertical, 2)` in ConnectorProfileRow.
-    static let badgePaddingVertical: CGFloat = 2
 
     /// The cap for a settings list's height (= 200 PT = the 4-row Mac App Store
     /// "in-app settings" pattern = enough for a feature toggle, a picker, and a

@@ -195,10 +195,10 @@ private struct ToolActivityList: View {
 /// the ChatPartRow container when it inserts / removes a
 /// ChatReasoningPartView in response to streaming events.
 extension AnyTransition {
-    /// T40 standard transition (= fade-in + small upward slide,
-    /// = Apple HIG "appear from above" affordance).
-    ///   - duration: 0.3s (= matches Apple HIG 0.2-0.4s range for
-    ///     content insertion)
+    /// T40 standard transition (= fade-in + small downward settle).
+    ///   - duration: 0.3s: inside the 100-500 ms band measured as the
+    ///     response window for content appearance (NN/g); the HIG
+    ///     publishes no duration figures (audit C3, provenance rewritten).
     ///   - opacity: 0 -> 1
     ///   - movement: 4pt upward (edge: .top, so the view slides
     ///     DOWN into position; = reads as "drop into place")

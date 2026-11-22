@@ -181,10 +181,10 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// sidebar row icon) while `.sidebar` keeps the multicolor + dark squircle
     /// tile that the Settings scene uses (= the Apple System Settings
     /// chip look).
-    /// Apple HIG source: macOS 27 Tahoe `Sidebars > List > Sidebar row anatomy`
-    /// (the chrome side — the library tree is chrome, not an Apple
-    /// system-settings surface; = system primary color, no multicolor, no
-    /// squircle tile).
+    /// (no HIG path is cited: the HIG publishes no numeric sidebar-row
+    /// anatomy — the chrome side stands on its own rule: the library tree
+    /// is chrome, not an Apple system-settings surface; = system primary
+    /// color, no multicolor, no squircle tile).
     case sidebarTree
 
     /// Apple HIG point size for this case. Values follow Apple-shipped app
@@ -449,11 +449,12 @@ struct SFIcon: View {
             // where the symbol has an intrinsic multicolour variant (= the
             // "Settings" pane family uses multi-colour SF Symbols 7
             // variants). The 28×28 PT tile (= 20 PT icon + 4 PT inset × 2)
-            // = Apple Tahoe's `.smallSymbolSize`-derived tile slot. Tile
-            // corner radius = `DesignTokens.sidebarIconTileCornerRadius`
-            // (= 7 PT, Apple squircle) + tile padding =
-            // `DesignTokens.sidebarIconTilePadding` (= 4 PT inset) + tile
-            // size = `DesignTokens.sidebarIconTileSize` (= 28 PT). All
+            // = the product tile slot. Tile corner radius =
+            // `DesignTokens.sidebarIconTileCornerRadius` (= 6 PT) + tile
+            // padding = `DesignTokens.sidebarIconTilePadding` (= 4 PT
+            // inset) + tile size = `DesignTokens.sidebarIconTileSize`
+            // (= 24 PT) — the three product tile tokens, read at source.
+            // All
             // tokens ban naked numeric corner / spacing / sizing literals
             // per the v3.0 design-system hard rule. `Color(nsColor:
             // .controlBackgroundColor)` is an AppKit semantic color (= NOT

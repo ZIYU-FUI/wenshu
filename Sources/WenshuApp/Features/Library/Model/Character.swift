@@ -38,17 +38,21 @@ enum CharacterRole: String, CaseIterable, Codable, Sendable {
 
     /// Hex color string (= ARGB without alpha prefix). Drives the
     /// color coding in the editor when this character is referenced
-    /// (= per FCP Role color pattern). A fixed product palette of five
-    /// slots (= the system red / orange / green / gray / purple hexes at
-    /// the default appearance); the hex strings are the storage format,
-    /// not a dynamic color. Currently no in-tree consumer reads it.
+    /// (= per FCP Role color pattern). Apple's documented iOS system
+    /// palette (red / orange / green / gray / INDIGO - the fifth slot is
+    /// iOS indigo, not purple), frozen as strings (= a storage format,
+    /// not a dynamic color). NOT the colors this OS resolves for those
+    /// names at either appearance (= macOS system-color table measured on
+    /// this machine 2026-11-22 during this lane's review: only the green
+    /// and gray slots coincide).
+    /// Currently no in-tree consumer reads it.
     var colorHex: String {
         switch self {
-        case .protagonist: return "#FF3B30"  // Apple system red
-        case .antagonist:  return "#FF9500"  // Apple system orange
-        case .supporting:  return "#34C759"  // Apple system green
-        case .narrator:    return "#8E8E93"  // Apple system gray
-        case .other:       return "#5856D6"  // Apple system purple
+        case .protagonist: return "#FF3B30"  // iOS system red (frozen)
+        case .antagonist:  return "#FF9500"  // iOS system orange (frozen)
+        case .supporting:  return "#34C759"  // iOS system green (frozen)
+        case .narrator:    return "#8E8E93"  // iOS system gray (frozen)
+        case .other:       return "#5856D6"  // iOS system INDIGO (frozen; macOS purple is a different hex)
         }
     }
 
