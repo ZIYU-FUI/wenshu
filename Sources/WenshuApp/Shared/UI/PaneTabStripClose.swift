@@ -121,11 +121,13 @@ enum PaneTabStripClose {
     /// The font the strip's titles are measured with (= the ONE font, so
     /// the width the scroll walks is the width the control draws).
     ///
-    /// ⇒ ⇒ ⇒ AND IT IS THE CONTROL'S OWN LABEL FONT: = MEASURED: the
-    /// segmented control's label font is the system font at 13 PT at both
-    /// control sizes, = and the strip draws its titles with it.
+    /// ⇒ ⇒ ⇒ AND IT IS THE CONTROL'S OWN LABEL FONT: = the strip takes
+    /// the AppKit preferred body font, the same scale the segmented
+    /// controls resolve to at the default text size (= 13 PT measured),
+    /// = and it follows the user's text size from there. Measurement and
+    /// drawing keep the ONE font because both call this function.
     static func titleFont() -> NSFont {
-        NSFont.systemFont(ofSize: 13)
+        NSFont.preferredFont(forTextStyle: .body)
     }
 
     /// The narrowest a collapsed tab may be (= POINTS).

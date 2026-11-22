@@ -29,8 +29,8 @@ enum DesignTokens {
     /// this footer reserves this much space for it.
     static let chromeBottomFooterHeight: CGFloat = 32
 
-    /// Apple HIG sidebar list-row height (= 22 PT). Distinct from the row
-    /// surface: the two are different measurements.
+    /// Product sidebar list-row height (= 22 PT): the row rhythm the tree
+    /// settled on. No HIG figure exists; distinct from the row surface.
     static let sidebarRowHeight: CGFloat = 22
 
     /// Apple Tahoe sidebar row icon tile size (= 24 PT). The wenshu bans naked
@@ -50,14 +50,14 @@ enum DesignTokens {
     /// is '.small', and '.small' is 8 PT.
     static let zoneContentInset: CGFloat = 8
 
-    // MARK: - Spacing (= Apple HIG canonical, 8 PT baseline grid)
+    // MARK: - Spacing (= internal 8 PT grid; base step measured, see below)
 
     /// Hairline spacing (= 1 PT): the gap the autocomplete field and the
     /// layout picker's hotkey badges sit across.
     static let spacingHairline: CGFloat = 1
 
-    /// Apple HIG caption2 metadata separator gap (= 2 PT). The canonical
-    /// caption row gap.
+    /// Caption micro-gap (= 2 PT): the product title/subtitle separator.
+    /// The HIG publishes no caption-gap figure (= audit C3, withdrawn).
     static let spacingCaption: CGFloat = 2
 
     /// Product icon-to-label gap (= 4 PT, the tightest rung): the
@@ -70,8 +70,8 @@ enum DesignTokens {
     /// "Apple HIG `.relaxed` stack spacing"; no such SDK value exists (audit C3).
     static let spacingRelaxed: CGFloat = 10
 
-    /// Apple HIG tight inter-row gap (= 6 PT). The canonical tight padding:
-    /// the EmptyStateView row gap.
+    /// Tight inter-row gap (= 6 PT): the product half-step between the
+    /// 4 and 8 rungs; the EmptyStateView row gap.
     static let spacingTight: CGFloat = 6
 
     /// The grid's base step (= 8 PT): measured as SwiftUI's default HStack
@@ -80,9 +80,8 @@ enum DesignTokens {
     /// such figure, audit C3).
     static let spacingStandard: CGFloat = 8
 
-    /// Apple HIG moderate spacing (= 12 PT). The canonical
-    /// bordered-content-row gap: the PlaceholderView and BookSettingConstraints
-    /// row gap.
+    /// Product moderate spacing (= 12 PT): the bordered-content-row gap,
+    /// the PlaceholderView and BookSettingConstraints row gap.
     static let spacingModerate: CGFloat = 12
 
     /// The window's default inset (= 16 PT): measured as the default inset of
@@ -90,9 +89,8 @@ enum DesignTokens {
     /// provenance is withdrawn, audit C3).
     static let spacingLoose: CGFloat = 16
 
-    /// Apple HIG hero / window content margin (= 20 PT). The canonical macOS
-    /// margin for the sidebar sheets, the ZoneEditor and the PreviewPane sheet
-    /// body.
+    /// Product hero / window content margin (= 20 PT): the margin the
+    /// sidebar sheets, the ZoneEditor and the PreviewPane sheet body use.
     static let spacingHero: CGFloat = 20
 
     /// Product section gap (= 24 PT): the EmptyStateView icon-to-text gap and
@@ -108,12 +106,12 @@ enum DesignTokens {
     /// lands in. The name is generic now, because it serves every pane tab.
     static let paneTabHotArea: CGFloat = 28
 
-    /// Per-pane tab close-X icon point size (= 8 PT, the Apple HIG "small"
-    /// tier).
+    /// Per-pane tab close-X icon point size (= 8 PT): the product small
+    /// glyph rung for tab chrome.
     static let tabCloseIconPointSize: CGFloat = 8
 
-    /// Per-pane tab selected-state underline height (= 1 PT, the Apple HIG
-    /// standard).
+    /// Per-pane tab selected-state underline height (= 1 PT): one device
+    /// hairline at the app's rendering scale.
     static let tabUnderlineHeight: CGFloat = 1
 
     // MARK: - Dividers
@@ -124,12 +122,12 @@ enum DesignTokens {
 
     // MARK: - Status bar text
 
-    /// Apple HIG foreground four-tier ladder mapped to writing surfaces.
+    /// The system's four-tier label ladder mapped to writing surfaces.
     /// The body text across the editor (NativeTextViewWrapper / NSTextView
     /// labelColor = .label) AND the chat (SwiftUI Text.font(.body))
-    /// reads `.primary` = the same SwiftUI semantic token. Apple HIG
-    /// forbids `.primary.opacity(0.X)` for dimming: dimming is the
-    /// job of the four-tier semantic ladder, not opacity tweaks.
+    /// reads `.primary` = the same SwiftUI semantic token. Dimming is the
+    /// four-tier ladder's job, not `.primary.opacity(0.X)` tweaks: hand-
+    /// rolled alphas do not follow Dark Mode or Increase Contrast (audit C2).
     ///   .primary   = writing body (= Pages / Notes body).
     ///   .secondary = bubble chrome (= timestamps, captions, footers).
     ///   .tertiary  = tertiary metadata (= IDs, hashes, badges).
@@ -141,9 +139,9 @@ enum DesignTokens {
     static let textChrome: HierarchicalShapeStyle = .secondary
     static let textMetadata: HierarchicalShapeStyle = .tertiary
     static let textPlaceholder: HierarchicalShapeStyle = .quaternary
-    /// Apple HIG text-style scale (macOS 27). Pinning the editor and the chrome
-    /// around the body to the same Apple scale stops the chat zone from
-    /// drifting to ad-hoc `Font.system(size:)` calls.
+    /// The AppKit preferred-font scale, read from the SDK's own
+    /// `NSFont.preferredFont(forTextStyle:)`. Pinning editor and chrome to it
+    /// stops the chat zone drifting to ad-hoc `Font.system(size:)` calls.
     static let bodyFontSize: CGFloat = NSFont.preferredFont(forTextStyle: .body).pointSize
     static let captionFontSize: CGFloat = NSFont.preferredFont(forTextStyle: .caption1).pointSize
     static let caption2FontSize: CGFloat = NSFont.preferredFont(forTextStyle: .caption2).pointSize
@@ -151,79 +149,79 @@ enum DesignTokens {
     /// `.foregroundStyle(.tertiary)` in 16 files.
     static let statusForeground: HierarchicalShapeStyle = .tertiary
 
-    // MARK: - Surface metrics (Apple HIG)
+    // MARK: - Surface metrics (product)
 
-    /// Accent tint opacity at 18% (= the dominant stop of the Apple HIG Liquid
-    /// Glass hero-card gradient).
+    /// Accent tint opacity at 18%: the product hero-card wash. The HIG's
+    /// Liquid Glass chapter publishes no gradient stop values (audit C3).
     static let accentTintOpacityHero: Double = 0.18
 
-    /// Window chrome shadow vertical offset (= 4 PT, the Apple HIG macOS window
-    /// shadow pattern).
+    /// Window chrome shadow vertical offset (= 4 PT): the product shadow
+    /// family's offset.
     static let surfaceShadowOffsetWindow: CGFloat = 4
 
     /// Canvas drag gesture minimum distance (= 5 PT). Wenshu-specific: the
     /// canvas lives inside the zone grid layout.
     static let dragGestureThresholdCanvas: CGFloat = 5
 
-    /// Chat bubble max-width (= 360 PT, the Apple HIG macOS chat panel standard
+    /// Chat bubble max-width (= 360 PT, the product chat panel standard
     /// = the Messages app reference width).
     static let chatBubbleMaxWidth: CGFloat = 360
 
-    /// Inline metadata panel max-width (= 320 PT, the Apple HIG compact inset
+    /// Inline metadata panel max-width (= 320 PT, the product compact inset
     /// panel). The ReaderExperienceView and GenreFitView report metadata
     /// side-panels use it.
     static let metadataPanelMaxWidth: CGFloat = 320
 
-    /// Attachment thumbnail max-width and height (= 240 PT, the Apple HIG
-    /// inline chat attachment preview component).
+    /// Attachment thumbnail max-width and height (= 240 PT): the product
+    /// inline chat attachment preview size.
     static let attachmentPreviewMaxSize: CGFloat = 240
 
-    /// Plan list max-width (= 420 PT, the Apple HIG inline structured list
+    /// Plan list max-width (= 420 PT, the product inline structured list
     /// panel). Used in `.frame(maxWidth: 420)` for ChatPlanPartView.
     static let planListMaxWidth: CGFloat = 420
 
-    /// Onboarding welcome max-width (= 480 PT, the Apple HIG macOS first-run
+    /// Onboarding welcome max-width (= 480 PT, the product first-run
     /// width).
     static let onboardingWelcomeMaxWidth: CGFloat = 480
 
-    /// TextEditor small min-height (= 80 PT, the Apple HIG macOS single-paragraph
+    /// TextEditor small min-height (= 80 PT, the product single-paragraph
     /// height) for the small TextEditor (= the 2-paragraph display minimum).
     static let textEditorSmallMinHeight: CGFloat = 80
 
-    /// TextEditor small max-height (= 140 PT, the Apple HIG macOS single-paragraph
+    /// TextEditor small max-height (= 140 PT, the product single-paragraph
     /// maximum) for the small TextEditor.
     static let textEditorSmallMaxHeight: CGFloat = 140
 
-    /// TextEditor medium min-height (= 100 PT, the Apple HIG macOS 2-3 paragraph
+    /// TextEditor medium min-height (= 100 PT, the product 2-3 paragraph
     /// height) for the medium TextEditor (= the 3-paragraph display minimum).
     static let textEditorMediumMinHeight: CGFloat = 100
 
-    /// TextEditor medium max-height (= 160 PT, the Apple HIG macOS 2-3 paragraph
+    /// TextEditor medium max-height (= 160 PT, the product 2-3 paragraph
     /// maximum) for the medium TextEditor.
     static let textEditorMediumMaxHeight: CGFloat = 160
 
-    /// TextEditor compact max-height (= 120 PT, the Apple HIG macOS compact
+    /// TextEditor compact max-height (= 120 PT, the product compact
     /// maximum). The compact editor starts at `textEditorSmallMinHeight` (= 80).
     static let textEditorCompactMaxHeight: CGFloat = 120
 
-    /// Preset thumbnail aspect ratio (= 4:3, the Apple HIG classic photo /
+    /// Preset thumbnail aspect ratio (= 4:3, the product classic photo /
     /// preview layout picker thumbnail).
     static let presetThumbnailAspectRatio: CGFloat = 4.0 / 3.0
 
-    /// Specialized panel medium max-height (= 180 PT, the Apple HIG macOS list
+    /// Specialized panel medium max-height (= 180 PT, the product list
     /// panel). BookSettingConstraintsView, CharacterLifecycleView and
     /// IdeaLibraryView use it.
     static let panelMediumMaxHeight: CGFloat = 180
 
-    /// Specialized panel large max-height (= 220 PT, the Apple HIG macOS list
+    /// Specialized panel large max-height (= 220 PT, the product list
     /// panel). PlaceholderView and CharacterRelationshipsView use it.
     static let panelLargeMaxHeight: CGFloat = 220
 
-    /// Inline panel max-height (= 100 PT, the Apple HIG macOS compact inline
+    /// Inline panel max-height (= 100 PT, the product compact inline
     /// list). The IdeaLibraryView inline panel uses it.
     static let panelInlineMaxHeight: CGFloat = 100
 
-    /// Kanban board max-height (= 360 PT, Apple HIG macOS kanban board standard
+    /// Kanban board max-height (= 360 PT, product kanban board standard
     /// = 5-row display). Used in `.frame(maxHeight: 360)` for KanbanView.
     static let kanbanBoardMaxHeight: CGFloat = 360
 
@@ -254,12 +252,12 @@ enum DesignTokens {
     /// leave the pickers room.
     static let kanbanSearchFieldWidth: CGFloat = 160
 
-    /// Button shadow vertical offset (= 2 PT, the Apple HIG macOS button shadow
+    /// Button shadow vertical offset (= 2 PT, the product button shadow
     /// pattern).
     static let surfaceShadowOffsetButton: CGFloat = 2
 
-    /// Card surface corner radius (= 8 PT, the Apple HIG rounded card standard).
-    /// The corner style is `.continuous` (the Apple HIG 13+ corner style).
+    /// Card surface corner radius (= 8 PT, the product rounded card choice).
+    /// The corner style is `.continuous` (the product 13+ corner style).
     static let surfaceCornerRadiusCard: CGFloat = 8
 
     /// The layout picker's width (= 416 PT). The value is one step away from
@@ -270,34 +268,34 @@ enum DesignTokens {
     /// `.continuous`, which gives macOS 27+ its smooth corners.
     static let surfaceCornerRadiusSmallChip: CGFloat = 3
 
-    /// List row leading icon column width (= 18 PT). The Apple HIG sidebar
+    /// List row leading icon column width (= 18 PT). The product sidebar
     /// list row pins the leading SF Symbol into a column this wide.
     static let listRowLeadingIconColumnWidth: CGFloat = 18
 
-    /// Plan step number column width (= 22 PT, the Apple HIG list row trailing
+    /// Plan step number column width (= 22 PT, the product list row trailing
     /// column). The ChatPlanPartView step number trailing-align column uses it.
     static let stepNumberColumnWidth: CGFloat = 22
 
-    /// Attachment thumbnail size (= 48×48 PT, the Apple HIG inline attachment
+    /// Attachment thumbnail size (= 48×48 PT, the product inline attachment
     /// thumbnail = the user-attached image preview chip in the chat input bar).
     static let attachmentThumbnailSize: CGFloat = 48
 
-    /// Bullet dot size (= 3×3 PT, the Apple HIG inline bullet indicator). The
+    /// Bullet dot size (= 3×3 PT, the product inline bullet indicator). The
     /// unread dot next to a message timestamp uses it.
     static let bulletDotSize: CGFloat = 3
 
-    /// Window chrome corner radius (= 10 PT, the Apple HIG macOS window chrome
+    /// Window chrome corner radius (= 10 PT, the product window chrome
     /// radius). The inspector's bottom card uses it.
     static let surfaceCornerRadiusWindow: CGFloat = 10
 
-    /// Hero card corner radius (= 12 PT, the Apple HIG hero card standard). The
+    /// Hero card corner radius (= 12 PT, the product hero card standard). The
     /// new-book and new-shelf sheets use it for the hero icon's background card.
     static let surfaceCornerRadiusHeroCard: CGFloat = 12
 
-    /// Small button corner radius (= 5 PT, the Apple HIG control standard).
+    /// Small button corner radius (= 5 PT, the product control standard).
     static let surfaceCornerRadiusSmallButton: CGFloat = 5
 
-    /// Window shadow radius (= 12 PT, the Apple HIG macOS window chrome shadow
+    /// Window shadow radius (= 12 PT, the product window chrome shadow
     /// radius).
     static let surfaceShadowRadiusWindow: CGFloat = 12
 
@@ -307,37 +305,37 @@ enum DesignTokens {
     /// itself measures 1.0 PT.
     static let separatorThicknessHairline: CGFloat = 0.5
 
-    /// Emphasis border thickness (= 2 PT, the Apple HIG selected/active border
+    /// Emphasis border thickness (= 2 PT, the product selected/active border
     /// in the picker grid).
     static let separatorThicknessEmphasis: CGFloat = 2
 
-    /// Button shadow radius (= 8 PT, the Apple HIG button drop-shadow standard).
+    /// Button shadow radius (= 8 PT, the product button drop-shadow standard).
     /// The canvas uses it too: the canvas is a 2-D surface inside the editor,
     /// not a floating window.
     static let surfaceShadowRadiusButton: CGFloat = 8
 
-    /// Settings row label column width (= 80 PT, the Apple HIG settings row
+    /// Settings row label column width (= 80 PT, the product settings row
     /// label column). MemorySettingsView spells the same value as a file-scope
     /// `rowLabelWidth: CGFloat = 80`.
     static let settingsRowLabelWidth: CGFloat = 80
 
-    /// Active surface tint alpha (= 0.2, the Apple HIG subtle accent overlay).
+    /// Active surface tint alpha (= 0.2, the product subtle accent overlay).
     /// ConnectorProfileRow uses it.
     static let surfaceActiveTintAlpha: CGFloat = 0.2
 
-    /// Inactive border tint alpha (= 0.2, Apple HIG subtle border). Replaces
+    /// Inactive border tint alpha (= 0.2, product subtle border). Replaces
     /// file-scope `inactiveStrokeAlpha: CGFloat = 0.2` in ConnectorProfileRow.
     static let surfaceInactiveBorderAlpha: CGFloat = 0.2
 
-    /// Active border width (= 2 PT, the Apple HIG emphasized border).
+    /// Active border width (= 2 PT, the product emphasized border).
     /// ConnectorProfileRow spells the same value as a file-scope constant.
     static let surfaceActiveBorderWidth: CGFloat = 2
 
-    /// Inactive border width (= 1 PT, Apple HIG standard border). Replaces
+    /// Inactive border width (= 1 PT, product choice border). Replaces
     /// file-scope `inactiveStrokeWidth: CGFloat = 1` in ConnectorProfileRow.
     static let surfaceInactiveBorderWidth: CGFloat = 1
 
-    /// Badge interior vertical padding (= 2 PT, the Apple HIG tight badge
+    /// Badge interior vertical padding (= 2 PT, the product tight badge
     /// standard). Replaces inline `.padding(.vertical, 2)` in ConnectorProfileRow.
     static let badgePaddingVertical: CGFloat = 2
 
@@ -354,30 +352,30 @@ enum DesignTokens {
     /// The small indicator's size (= 8 PT): the tab title font's indicator.
     static let indicatorSizeSmall: CGFloat = 8
 
-    /// Tiny bullet size (= 6 PT, the Apple HIG bullet indicator standard).
+    /// Tiny bullet size (= 6 PT, the product bullet indicator standard).
     /// Replaces the inline value in 2 sites.
     static let bulletSizeTiny: CGFloat = 6
 
-    /// Small bullet size (= 14 PT, the Apple HIG inline bullet icon size).
+    /// Small bullet size (= 14 PT, the product inline bullet icon size).
     /// Replaces the inline value in 1 site.
     static let bulletSizeSmall: CGFloat = 14
 
     /// The compact toolbar button's height (= 40 PT). The empty-state
-    /// icon-to-title gap beside it is 22 PT (the Apple HIG standard).
+    /// icon-to-title gap beside it is 22 PT (the product choice).
     static let toolbarButtonCompact: CGFloat = 40
 
-    /// Medium surface size (= 56×56 PT, the Apple HIG canonical value).
+    /// Medium surface size (= 56×56 PT, the product value).
     static let surfaceSizeMedium: CGFloat = 56
 
-    /// List row avatar size (= 64 PT, the Apple HIG canonical value). Replaces
+    /// List row avatar size (= 64 PT, the product value). Replaces
     /// `.frame(width: DesignTokens.avatarSize)` in 1 site.
     static let avatarSize: CGFloat = 64
 
-    /// Zone editor sidebar width (= 140 PT, the Apple HIG sidebar zone picker
+    /// Zone editor sidebar width (= 140 PT, the product sidebar zone picker
     /// width). Used in `.frame(height: DesignTokens.zoneEditorWidth)`.
     static let zoneEditorWidth: CGFloat = 140
 
-    /// Sub-progress detail height (= 100 PT, Apple HIG detail panel min-height
+    /// Sub-progress detail height (= 100 PT, product detail panel min-height
     /// standard). Replaces `.frame(height: DesignTokens.panelMinHeight)`.
     static let panelMinHeight: CGFloat = 100
 
@@ -418,30 +416,30 @@ enum DesignTokens {
     /// (= 216-316 PT), so its height follows.
     static let coverTileRatio: CGFloat = 4.0 / 3.0
 
-    /// Card preview height (= 180 PT, Apple HIG card preview standard).
+    /// Card preview height (= 180 PT, product card preview standard).
     /// Replaces `.frame(height: DesignTokens.cardPreviewHeight)`.
     static let cardPreviewHeight: CGFloat = 180
 
-    /// Popover compact size (= 320x280, the Apple HIG small popover standard).
+    /// Popover compact size (= 320x280, the product small popover standard).
     static let popoverCompactSize: CGSize = .init(width: 320, height: 280)
 
-    /// List row banner size (= 240x32, the Apple HIG inline banner standard).
+    /// List row banner size (= 240x32, the product inline banner standard).
     static let bannerInlineSize: CGSize = .init(width: 240, height: 32)
 
-    /// Square cover thumbnail (= 192×192 PT, the Apple HIG canonical value).
+    /// Square cover thumbnail (= 192×192 PT, the product value).
     static let coverThumbnailSize: CGFloat = 192
 
-    /// Settings sheet size (= 600x480, the Apple HIG settings window standard).
+    /// Settings sheet size (= 600x480, the product settings window standard).
     static let settingViewSheetSize: CGSize = .init(width: 600, height: 480)
 
-    /// Settings import/export sheet size (= 600x400, Apple HIG import/export
+    /// Settings import/export sheet size (= 600x400, product import/export
     /// window standard). Replaces `.frame(width: 600, height: 400)`.
     static let settingIOsheetSize: CGSize = .init(width: 600, height: 400)
 
-    /// Guardrail sheet width (= 360 PT, the Apple HIG modal sheet width).
+    /// Guardrail sheet width (= 360 PT, the product modal sheet width).
     static let guardrailSheetWidth: CGFloat = 360
 
-    /// Sidebar width (= 200 PT, Apple HIG narrow sidebar standard). Replaces
+    /// Sidebar width (= 200 PT, product narrow sidebar standard). Replaces
     /// `.frame(width: DesignTokens.sidebarNarrowWidth)`.
     static let sidebarNarrowWidth: CGFloat = 200
 
@@ -459,20 +457,20 @@ enum DesignTokens {
     /// token (audit K2/X13).
     static let controlHeightLarge: CGFloat = 36
 
-    /// Pages-style picker card row height (= 32 PT). The Apple HIG source is
+    /// Pages-style picker card row height (= 32 PT). The product source is
     /// the Pages inspector panel, and the row is aligned with it.
     static let pickerCardHeight: CGFloat = 32
 
-    /// Picker card internal horizontal padding (= 12 PT). The Apple HIG source is
+    /// Picker card internal horizontal padding (= 12 PT). The product source is
     /// the Pages step 1 wizard, and the card follows the Pages-style picker cards.
     static let pickerCardPaddingH: CGFloat = 12
 
-    /// Sheet width for inline rename dialogs (= 360 PT, the Apple HIG macOS
+    /// Sheet width for inline rename dialogs (= 360 PT, the product macOS
     /// sheet width). The sheet is a NavigationStack+Form, which read as
     /// iOS-shaped chrome on macOS 27.
     static let controlSheetWidthRename: CGFloat = 360
 
-    /// Onboarding welcome window size (= 640×720 PT, the Apple HIG onboarding
+    /// Onboarding welcome window size (= 640×720 PT, the product onboarding
     /// panel size). The onboarding runs through library creation.
     static let onboardingWindowSize: CGSize = .init(width: 640, height: 720)
 }

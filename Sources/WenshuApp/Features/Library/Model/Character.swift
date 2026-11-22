@@ -38,8 +38,10 @@ enum CharacterRole: String, CaseIterable, Codable, Sendable {
 
     /// Hex color string (= ARGB without alpha prefix). Drives the
     /// color coding in the editor when this character is referenced
-    /// (= per FCP Role color pattern). All colors match Apple system
-    /// colors (= red / orange / green / gray / purple).
+    /// (= per FCP Role color pattern). A fixed product palette of five
+    /// slots (= the system red / orange / green / gray / purple hexes at
+    /// the default appearance); the hex strings are the storage format,
+    /// not a dynamic color. Currently no in-tree consumer reads it.
     var colorHex: String {
         switch self {
         case .protagonist: return "#FF3B30"  // Apple system red
