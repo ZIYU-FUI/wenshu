@@ -78,9 +78,12 @@ Per 老板 cadence "涉及到前端 ui 的，要遵循铁律" (= session 9 + 10 
 - All new view code uses DesignTokens
 - RuntimeCWDDisplayChip uses DesignTokens (= chromePaddingMicro /
   chromePaddingSmall / badgePaddingVertical / surfaceCornerRadiusSmallChip)
-  - ADDENDUM 2026-11-22: `badgePaddingVertical` was already a dead token at
-    this record's date (0 code consumers) and has been removed from
-    DesignTokens with the craft P3 tail.
+  - ADDENDUM 2026-11-22: `badgePaddingVertical` outlived this record — the
+    chip consumed it until 4c5b7748c9 (2026-10-21, "delete the production
+    types that only tests reach"); at this lane's base `7f48fe46a6` it has 0
+    code consumers (`git grep -c badgePaddingVertical 7f48fe46a6 -- Sources
+    Tests ':!Sources/WenshuApp/DesignTokens.swift'` prints nothing, exit 1),
+    and the P3 tail removed the declaration from DesignTokens.
 
 ### D7: Push authority
 

@@ -187,9 +187,9 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// color, no multicolor, no squircle tile).
     case sidebarTree
 
-    /// Point size for this zone (= the product's frozen per-zone table,
-    /// settled 2026-11-21; NOT claimed as HIG figures — the HIG publishes
-    /// no icon point-size table).
+    /// Point size for this zone (= the product's own per-zone table; NOT
+    /// claimed as HIG figures — the HIG publishes no icon point-size
+    /// table).
     var pointSize: CGFloat {
         switch self {
         case .inlineSmall: 14
@@ -455,8 +455,8 @@ struct SFIcon: View {
             // padding = `DesignTokens.sidebarIconTilePadding` (= 4 PT
             // inset) + tile size = `DesignTokens.sidebarIconTileSize`
             // (= 24 PT) — the three product tile tokens, read at source.
-            // All tokens ban naked numeric corner / spacing / sizing
-            // literals per the v3.0 design-system hard rule. `Color(nsColor:
+            // All tokens ban naked numeric corner / spacing / sizing literals
+            // per the v3.0 design-system hard rule. `Color(nsColor:
             // .controlBackgroundColor)` is an AppKit semantic color (= NOT
             // a raw `Color.X.opacity(N)`) so the v3.0 rule #6 body-text
             // ban does not apply; = system-supplied color that resolves to
