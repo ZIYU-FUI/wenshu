@@ -3,7 +3,7 @@
 //
 // (2026-09-23): the token-usage bottom bar needs a background
 //  ，，，'. Add
-//  `.background(.bar)` (= Apple HIG sidebar/chrome material; =
+//  `.background(.bar)` (= product sidebar/chrome material; =
 //  translucent + Light/Dark auto-adapts; = same primitive the sidebar
 //  inherits).
 //
@@ -32,7 +32,7 @@
 //  ，').
 //
 // (2026-09-23): spec = chat column bottom = single input row +
-//  divider hairline (= Apple HIG sidebar-bottom-accessory separator).
+//  divider hairline (= product sidebar-bottom-accessory separator).
 // = clean rewrite. v1.82 = single-row HStack. v1.81 = 3-layer split.
 //
 //  Dead helper classes deleted (= no production caller):
@@ -142,7 +142,7 @@ struct ChatInputBarView: View {
         // "+ " button style/size verbatim (= the 'style, size copy verbatim'
         // ' = 'just copy the style and size from the sidebar').
         // Reference: NewLibraryOutlineView.swift L1760 `sidebarBottomNewButton`.
-        // Same primitives (= Apple HIG sidebar-bottom-accessory pattern):
+        // Same primitives (= product sidebar-bottom-accessory pattern):
         //   - Divider above
         //   - HStack(spacing: DesignTokens.spacingTight) for label (= just the Text here; = the
         //     "+ " button has `Image + Text`; = we have no action
@@ -164,7 +164,7 @@ struct ChatInputBarView: View {
         // 2026-10-12: refactored to go through the shared
         // `ChromeBottomFooter` component (= the same shell
         // the editor status bar now uses; = single source of
-        // truth for the canonical Apple HIG
+        // truth for the Apple
         // sidebar-bottom-accessory chrome surface). The outer
         // VStack { Divider; HStack; .padding 8/8 } +
         // .background(.bar) is identical between the chat
@@ -453,7 +453,7 @@ struct ChatInputBarView: View {
 /// fill `vm.inputText` with `/commandName ` (= trailing space = user
 /// can immediately type the remainder).
 ///
-/// Apple HIG: no custom chrome (= uses the chat zone's surface tier).
+/// product: no custom chrome (= uses the chat zone's surface tier).
 /// Hidden when no slash prefix OR no matching rows.
 private struct SlashCommandAutocompleteModifier: ViewModifier {
     @Binding var inputText: String

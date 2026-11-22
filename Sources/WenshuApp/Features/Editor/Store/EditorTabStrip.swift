@@ -108,7 +108,7 @@ struct EditorTabStrip: View {
     static let noSelectionSentinel = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
 
     var body: some View {
-        // RATIONALE: per Apple HIG SwiftUI macOS 27 + the Safari … (= 20
+        // RATIONALE: per product convention SwiftUI macOS 27 + the Safari … (= 20
         // rationale lines collapsed; = A112 docblock collapse per §1.8)
         // shift; = the caller's responsibility, not this view's.
         stripContent

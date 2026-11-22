@@ -5,7 +5,7 @@
 //  (= the "thinking…" trace that shows what the assistant considered
 //  before replying). Lifted out of ChatPartView.swift so:
 //
-//  - The chat part surface follows 1-view-1-file (= Apple HIG
+//  - The chat part surface follows 1-view-1-file (= product
 //    canonical file-per-view).
 //  - Reasoning rendering can evolve independently of text/tool/result
 //    part rendering (= hermes 1:1 = reasoning gets its own card;
@@ -16,7 +16,7 @@
 //  straight from ChatMessagePart.ReasoningPart.text).
 //
 //  hermes 1:1 (= assistant-message.tsx + message-parts.tsx):
-//  - Collapsed by default (= Apple HIG footnote convention).
+//  - Collapsed by default (= product footnote convention).
 //  - On expand: shows the reasoning content in a slightly-quieter
 //    foreground + monospaced font (= the "internal log" affordance).
 //  - isRunning pulse (= the wenshu StatusPulse private struct) is
@@ -66,7 +66,7 @@ struct ChatReasoningPartView: View {
     }
 
     var body: some View {
-        // Apple HIG footnote pattern (= the DisclosureGroup is the
+        // product footnote pattern (= the DisclosureGroup is the
         // canonical SwiftUI collapse/expand control = identical to
         // Mail / Notes "Show Details" toggles). Renders a label +
         // chevron that the user clicks to expand.
@@ -139,7 +139,7 @@ private struct ReasoningSegmentView: View {
             // the indentation go, = the words stay. (= hermes renders
             // the same block as a scratchpad, = never as app chrome.)
             // .caption (= smaller than the main text) + .secondary tone
-            // (= the standard Apple HIG "supplementary content" tone).
+            // (= the standard product "supplementary content" tone).
             MarkdownBlocksView(text: text, baseFont: .caption)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)

@@ -8,7 +8,7 @@
 //  purely the static catalog of available commands.
 //
 //  Future UX ticket: transform `/` autocomplete into a button +
-//  popover menu (= Apple HIG canonical); = this catalog stays the
+//  popover menu (= the product); = this catalog stays the
 //  source of truth for both presentations.
 //
 //  Per AGENTS.md §11.14 product philosophy: the user cannot define

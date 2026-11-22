@@ -15,7 +15,7 @@ import SwiftUI
 
 
 /// Per-file progress strip (= one row per `ImportTask`).
-/// Apple HIG canonical list pattern (= vertical stack of
+/// the product list pattern (= vertical stack of
 /// short rows; = the row shows the file name + the state
 /// badge + an inline error caption if the task failed).
 struct ImportProgressStrip: View {
@@ -176,7 +176,7 @@ struct ImportTaskRow: View {
                 // `ellipsis.circle.fill` (= three dots inside a filled
                 // circle; = the "gray circle" the boss disliked) to
                 // `ellipsis` (= three dots, no background; = matches
-                // the Apple HIG macOS 14+ 'system progress indicator'
+                // the product macOS 14+ 'system progress indicator'
                 // pattern; = the `variableColor` rendering still
                 // animates the dots as the canonical "thinking" cue).
                 SFIcon(
@@ -219,7 +219,7 @@ struct ImportTaskRow: View {
 /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// "引导式多步骤交互" directive).
 /// The 4-step dot indicator at the
-/// top of the sheet. Apple HIG
+/// top of the sheet. product
 /// canonical: a horizontal row of 4
 /// dots + labels (= one per step; =
 /// the current step is highlighted;
@@ -459,14 +459,14 @@ struct WizardStepNavBar: View {
 // the step's per-step content (= the 设定区 = the pickers / progress bar / file list /
 // summary) and the bottom action row (= the 操作区 = the nav bar with "上一步" + "下一步/开始/
 // 完成"). The Divider is the visual seam that separates "what the user is configuring /
-// observing" from "what the user does next" (= Apple HIG canonical dialog pattern; =
-// the Pages inspector uses the same hairline Divider between the inspector body and
-// the toolbar at the bottom of the panel). The Divider is applied to the sheet body (=
-// ABOVE the WizardStepNavBar; = below the per-step view's content; = on every step) so
-// the action area is always visually separated from the content area. The Divider has
-// no vertical padding (= the Divider is a single hairline; = the padding above the
-// Divider is supplied by the per-step view's bottom padding; = the padding below the
-// Divider is supplied by the WizardStepNavBar's `padding(.top, ... spacingStandard)`).
+/// observing" from "what the user does next" (= the product dialog pattern; =
+/// the Pages inspector uses the same hairline Divider between the inspector body and
+/// the toolbar at the bottom of the panel). The Divider is applied to the sheet body (=
+/// ABOVE the WizardStepNavBar; = below the per-step view's content; = on every step) so
+/// the action area is always visually separated from the content area. The Divider has
+/// no vertical padding (= the Divider is a single hairline; = the padding above the
+/// Divider is supplied by the per-step view's bottom padding; = the padding below the
+/// Divider is supplied by the WizardStepNavBar's `padding(.top, ... spacingStandard)`).
 struct WizardActionDivider: View {
     var body: some View {
         Divider()

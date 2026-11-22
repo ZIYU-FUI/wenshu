@@ -51,7 +51,7 @@
 // with a big transparent gap below it" visual bug). 4. `.background(Color.white)`.
 // Drop the explicit white background = the editor column's own background shows
 // through. The visible surface becomes "the editor column with the document text
-// rendered on it", which is the Apple HIG canonical editor surface (= Pages / Numbers
+// rendered on it", which is the product editor surface (= Pages / Numbers
 // / Xcode source editor = no paper rectangle around the text; = the text sits on the
 // column's own background). 5. `.environment(\.colorScheme, .light)`. Drop the forced
 // light scheme = the engine's NSTextView now follows the system appearance (= light

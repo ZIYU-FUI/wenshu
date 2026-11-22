@@ -18,7 +18,7 @@
 //       this the glass bezel renders as a rectangular panel)
 //    3. imagePosition = .imageOnly — hide the title, show only the
 //       SF Symbol
-//  PLUS a heightAnchor constraint = 32 PT (= Apple HIG
+//  PLUS a heightAnchor constraint = 32 PT (= product
 //  NSControl.controlSize = .regular chat input tap target).
 //
 //  No SwiftUI chain modifiers needed (= no .buttonStyle /
@@ -38,7 +38,7 @@ import AppKit
 /// GlassIconButton(systemName: "paperplane", help: "Send") { /* action */ }
 /// ```
 ///
-/// The button is 32 PT tall (= Apple HIG canonical chat input tap target).
+/// The button is 32 PT tall (= the product chat input tap target).
 struct GlassIconButton: NSViewRepresentable {
     let systemName: String
     let help: String
@@ -51,7 +51,7 @@ struct GlassIconButton: NSViewRepresentable {
         // 2. Circular border shape (= without this, the glass bezel
         //    renders as a rectangular panel = the bug fixed in v1.64e).
         button.borderShape = .circle
-        // 3. Icon-only rendering (= the macOS 26+ HIG default for
+        // 3. Icon-only rendering (= the macOS 26+ default for
         //    toolbar items that carry a single SF Symbol).
         button.imagePosition = .imageOnly
         button.image = NSImage(systemSymbolName: systemName, accessibilityDescription: help)
@@ -60,23 +60,23 @@ struct GlassIconButton: NSViewRepresentable {
         button.toolTip = help
         button.contentTintColor = NSColor.labelColor
         // Pin the button size to 36 PT on both axes (= a fixed frame, not an
-        // intrinsic one). Apple HIG NSButton with bezelStyle=.glass
+        // intrinsic one). product NSButton with bezelStyle=.glass
         // is constrained by its BEZEL'S intrinsicContentSize (= ~28 PT
         // for the glass bezel). Height-only heightAnchor alone is
         // ignored: the button's intrinsic size wins, and SwiftUI sees
         // a ~28-32 PT button.
-//
-// Apple HIG-correct approach for a fixed-size NSButton in SwiftUI:
-//   1. Set translatesAutoresizingMaskIntoConstraints = false
+        //
+        // The product approach for a fixed-size NSButton in SwiftUI:
+        //   1. Set translatesAutoresizingMaskIntoConstraints = false
 //      (= the button respects constraints; = no autoresizing mask)
-//   2. Pin both width AND height with explicit constraints
+        //   2. Pin both width AND height with explicit constraints
 //      (= SwiftUI no longer falls back to intrinsicContentSize)
-//   3. Set content hugging/compression resistance to .required
+        //   3. Set content hugging/compression resistance to .required
 //      (= SwiftUI prefers the explicit constraints over the bezel
 //      intrinsic size).
 //
-// The width = height (= circle). 36 PT diameter (= matches
-// TextField height in ChatInputBarView line 342).
+        // The width = height (= circle). 36 PT diameter (= matches
+        // TextField height in ChatInputBarView line 342).
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setContentHuggingPriority(.required, for: .vertical)
         button.setContentHuggingPriority(.required, for: .horizontal)

@@ -5,7 +5,7 @@ import os.log
 // - ShellDetailColumn
 import SwiftUI
 
-/// / Apple HIG content column (= 1 zone: the card grid).
+/// / product content column (= 1 zone: the card grid).
 /// … (= 22 rationale lines collapsed; = A112 docblock collapse per §1.8)
 /// / too and the card zone owns the full column height.
 struct AssetsPane: View {
@@ -289,7 +289,7 @@ struct AssetsPane: View {
                     ChromeTopBar(usesMaterial: false) {
                         // Search field body lives INSIDE the chrome band's
                         // leading slot (= title cluster replaced). Per
-                        // Apple HIG macOS toolbar pattern, the icons sit
+                        // product macOS toolbar pattern, the icons sit
                         // inline with the input; = no inner-padded
                         // TextField wrapper (= the 28 PT chrome band itself
                         // provides the row height). The two prior

@@ -29,8 +29,8 @@
 //  opens its read-only body sheet on a click anywhere on it, and its
 //  context menu deletes it.
 //
-//  Apple HIG: small icon button + .bordered / .borderedProminent
-//  button styles per macOS 26 Tahoe guidance. No sheet (per
+//  product: small icon button + .bordered / .borderedProminent
+//  button styles per the macOS 26 (Tahoe) release. No sheet (per
 //  ).
 //
 
@@ -95,13 +95,14 @@ struct KanbanView: View {
             reloadFromStore()
         }
         .onChange(of: focusedBookID) { _, _ in reloadFromStore() }
-        // apple-001 HIG absent batch: .refreshable (= Apple
-        // HIG pull-to-refresh standard). On macOS this becomes a
+        // apple-001 HIG absent batch: .refreshable (iOS
+        // pull-to-refresh; the macOS HIG publishes no such standard).
+        // On macOS this becomes a
         // refresh button in the toolbar (= Cmd-R equivalent). The
         // reloadFromStore() action re-reads the board from the store.
         .refreshable { reloadFromStore() }
         // kanban-detail-sheet 2026-09-28: tapping a KanbanCard opens
-        // this read-only body modal. Apple HIG canonical sheet (= no
+        // this read-only body modal. the product sheet (= no
         // custom chrome wrapper). .sheet(item:) gives us the task
         // identity (= sheet auto-dismisses when sheetTask = nil).
         .sheet(item: $sheetTask) { task in

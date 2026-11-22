@@ -55,9 +55,10 @@ enum PaneTabStripClose {
 
     /// The X's tap target (= POINTS).
     ///
-    /// Apple HIG macOS: = "Layout > Tap targets > macOS = 28 PT minimum". =
-    /// The X's INK is 13 PT, = and the tap target around it is the HIG's
-    /// minimum, = so a thin mark is still easy to hit.
+    /// Apple primary source: WWDC24 session 10085 @12:17 — "On Mac, you
+    /// should aim to make the hit area of your controls 28 by 28 points".
+    /// The X's INK is 13 PT, = and the tap target around it is the
+    /// transcript's minimum, = so a thin mark is still easy to hit.
     static let hitArea: CGFloat = 28
 
     /// The gap between the X and the segment's LEADING edge (= POINTS).
@@ -299,7 +300,7 @@ enum PaneTabStripClose {
     /// ruling, = and the ring is the wash's OWN ring around the mark (= and
     /// not a bigger mark, = and the mark keeps the size the boss chose).
     ///
-    /// ⇒ ⇒ ⇒ AND THE WASH IS THE TAP TARGET: = the HIG's own 28 PT minimum
+    /// ⇒ ⇒ ⇒ AND THE WASH IS THE TAP TARGET: = Apple's 28 x 28 PT macOS hit-area minimum
     /// (= and the very rectangle the pointer's business covers), = and the
     /// mark sits in its middle (= and the wash's ring is what shows around
     /// it).
@@ -375,7 +376,7 @@ enum PaneTabStripClose {
 
     /// The frame the X's TAP TARGET takes inside a segment's frame.
     ///
-    /// The tap target is the HIG's 28 PT minimum, = centred on the X's ink,
+    /// The tap target is Apple's 28 x 28 PT macOS minimum (WWDC24 10085), centred on the X's ink,
     /// = and it is clamped to the segment's own frame (= so a narrow
     /// segment never claims a tap target that reaches into its neighbour).
     static func hitRect(in segmentFrame: NSRect) -> NSRect {

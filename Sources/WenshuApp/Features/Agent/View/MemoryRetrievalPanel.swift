@@ -35,7 +35,7 @@ struct MemoryRetrievalPanel: View {
             // chromePaddingChipHorizontal = 10 PT) + .padding(.top,
             // chromePaddingSmall = 6 PT) = 10 PT horizontal = too
             // tight (= the symptom reported: 'zone 6 too small').
-            // chromePaddingLeading (= 8 PT per Apple HIG; = the value
+            // chromePaddingLeading (= 8 PT per product convention; = the value
             // of DesignTokens.spacingStandard per
             // 'Apple API default spacing isn't PT, it's a semantic
             // name' = the semantic name is '.small' = 8 PT)

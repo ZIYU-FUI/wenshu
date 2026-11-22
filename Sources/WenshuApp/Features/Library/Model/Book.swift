@@ -13,7 +13,7 @@
 // Adding any required field forces the architectural decision to
 // surface (= not just an incidental change in some file).
 //
-// Storage layout (= Apple HIG document-based app convention, building
+// Storage layout (= product document-based app convention, building
 // on the shelf layout):
 //   ~/Documents/wenshu/<shelf-id-uuid>/
 //     shelf.json
@@ -23,7 +23,7 @@
 //       chapters/<chapter-id-uuid>.md  (current)
 //
 // id == directory name (= UUID string) so renames don't break the
-// filesystem identity (= Apple HIG: URL = identity, name = label).
+// filesystem identity (= product: URL = identity, name = label).
 
 import Foundation
 
@@ -37,7 +37,7 @@ enum BookLength: String, CaseIterable, Codable, Sendable {
     case medium
     case long
 
-    /// Chinese display name for the wizard Picker. Apple HIG Picker
+    /// Chinese display name for the wizard Picker. product Picker
     /// labels are short, single-line (= the system spec example uses
     /// 'Short / Medium / Long' verbatim; we match the wenshu in progress
     /// design vocabulary).
@@ -135,7 +135,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     }
 
     /// Filesystem directory name (= UUID string form). Stable across
-    /// rename (= Apple HIG document-based app: id is the filesystem
+    /// rename (= product document-based app: id is the filesystem
     /// identity, title is just the display label).
     var directoryName: String {
         id.uuidString
@@ -169,7 +169,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         return icon
     }
 
-    /// id-based identity (= Apple HIG document-based convention).
+    /// id-based identity (= product document-based convention).
     /// Renaming changes `title` but NOT `id`, so `book == book` still
     /// holds across renames (critical for SwiftUI List diffing,
     /// @Observable change detection, and selection identity in

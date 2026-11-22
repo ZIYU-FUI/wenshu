@@ -5,7 +5,7 @@
 // `WenshuMarkdownEditor` (`NSViewRepresentable`). Forwards the
 // engine-side wiki-link clicks back to the host.
 //
-// One view per file (Apple HIG). `EditorEditContent` has 1 `@Binding`
+// One view per file (product). `EditorEditContent` has 1 `@Binding`
 // (draft: `String`) + 4 `let` parameters (`originalBody`,
 //  onWordCountChange, onDirtyChange, surface) + 1 computed
 // property (isDirty). No @State / @Environment / @Observable =
@@ -84,7 +84,7 @@ struct EditorEditContent: View {
             // Task per keystroke; = Obsidian-style debounce that
             // the user 9/2 flagged as inefficient). Instead,
             // auto-save runs once per dirty→clean transition
-            // (= Apple HIG standard auto-save = save when the
+            // (= product standard auto-save = save when the
             // document transitions from dirty to saved, not on
             // every keystroke). The handler is wired below in
             // .onChange(of: isDirty) → onDirtyChange().
@@ -94,7 +94,7 @@ struct EditorEditContent: View {
         // (= user starts editing), schedule a 3-second Task.
         // When dirty becomes false (= either Cmd+S saved the
         // document or the auto-save Task fired), cancel any
-        // pending Task (= no more writes; = matches Apple HIG
+        // pending Task (= no more writes; = matches product
         // TextEdit / Pages behavior).
         .onChange(of: isDirty) { _, newDirty in
             onDirtyChange(newDirty)

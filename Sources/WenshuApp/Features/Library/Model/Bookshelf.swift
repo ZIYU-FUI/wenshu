@@ -9,7 +9,7 @@
 // or Codable strategy must surface there first (= not silently in some
 // downstream file).
 //
-// Storage layout (= Apple HIG document-based app convention):
+// Storage layout (= product document-based app convention):
 //   ~/Documents/wenshu/<shelf-id-uuid>/
 //     shelf.json              ← encoded Bookshelf
 //     books/                  ← v0.02.1: book subdirs land here
@@ -45,7 +45,7 @@ struct Bookshelf: Identifiable, Hashable, Codable, Sendable {
     }
 
     /// Filesystem directory name for this shelf (= UUID string form).
-    /// Stable across rename (= Apple HIG document-based app: id is the
+    /// Stable across rename (= product document-based app: id is the
     /// filesystem identity, name is just the display label).
     var directoryName: String {
         id.uuidString
@@ -65,11 +65,11 @@ struct Bookshelf: Identifiable, Hashable, Codable, Sendable {
             : "books.vertical"
     }
 
-    // id-based identity (= Apple HIG document-based app convention: URL
-    // = identity, name = display label only). Renaming a shelf changes
-    // `name` but NOT `id`, so `shelf == shelf` still holds across renames
-    // (= critical for SwiftUI List selection / @Observable diffing / diff
-    // identification in WenshuLibrary).
+    /// id-based identity (= product document-based app convention: URL
+    /// = identity, name = display label only). Renaming a shelf changes
+    /// `name` but NOT `id`, so `shelf == shelf` still holds across renames
+    /// (= critical for SwiftUI List selection / @Observable diffing / diff
+    /// identification in WenshuLibrary).
     static func == (lhs: Bookshelf, rhs: Bookshelf) -> Bool {
         lhs.id == rhs.id
     }

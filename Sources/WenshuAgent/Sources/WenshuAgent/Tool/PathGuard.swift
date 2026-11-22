@@ -96,7 +96,7 @@ public enum PathGuard {
 
     /// Test-only override for the library root.
     ///
-    /// Apple HIG canonical pattern for test seams: `@TaskLocal` = the
+    /// the product pattern for test seams: `@TaskLocal` = the
     /// value lives in the current Swift task's context only; = tests
     /// wrap their body in
     /// `PathGuard.$libraryRootOverride.withValue(value) { ... }`

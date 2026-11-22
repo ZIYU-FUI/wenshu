@@ -256,8 +256,8 @@ extension SidebarService {
     }
 
     /// rename a shelf (= rewrites shelf.json with the new name). The directory
-    /// name (= UUID) is preserved (= the shelf's identity is stable per Apple
-    /// HIG document-based app).
+    /// name (= UUID) is preserved (= product rule: identity is the name,
+    /// stable across rename, as a document-based app keeps its file name).
     func renameShelf(id: UUID, newName: String) throws {
         // The default shelf's name is the app's (= the localized
         // default-shelf title), so the user may not rename it. The
@@ -298,8 +298,8 @@ extension SidebarService {
     }
 
     /// rename a book (= rewrites book.json with the new title). The directory
-    /// name (= UUID) is preserved (= the book's identity is stable per Apple
-    /// HIG document-based app).
+    /// name (= UUID) is preserved (= the book's identity is stable; product
+    /// document-based-app convention).
     func renameBook(id: UUID, newTitle: String) throws {
         // The help book is the app's own document (= read-only for the
         // user: = it cannot be edited, = and it cannot be renamed). It

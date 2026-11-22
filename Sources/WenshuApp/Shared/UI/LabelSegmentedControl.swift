@@ -2,7 +2,7 @@
 // LabelSegmentedControl.swift wenshu
 //
 // The toolbar's 4-page Picker keeps using the SwiftUI `Picker(.segmented)`
-// (= the canonical Apple HIG toolbar default style = the macOS-auto-picked
+// (= the Apple toolbar default style = the macOS-auto-picked
 // rounded-rect capsule = the same visual Mail / Notes / Finder / Pages use
 // in their toolbars).
 //
@@ -31,8 +31,8 @@
 // Implementation: a SwiftUI `NSViewRepresentable` that hosts a native
 // `NSSegmentedControl` and configures it with the macOS 27 Liquid Glass
 // appearance: - `segmentStyle = .roundRect` (= the canonical segmented
-// control visual; = matches the Apple HIG Pages / Numbers inspector tab
-// style; = the macOS 10.10+ rounded-rect style is what Apple renders for
+// control visual; = matches the Pages / Numbers inspector tab
+// style (Apple apps by name); = the macOS 10.10+ rounded-rect style is what Apple renders for
 // the inspector tab strip even in macOS 27).
 //
 // THE MATERIAL: = the native control carries Apple's own Liquid Glass, =
@@ -47,7 +47,7 @@
 // control's cells do not paint an opaque fill, = so the backdrop reads
 // through them (= the cell reads green-dominant, = while the same area
 // under an opaque fill reads neutral grey). = A material container between
-// the control and the backdrop would put a SECOND material there (= HIG's
+// the control and the backdrop would put a SECOND material there (= the HIG's
 // "do so sparingly"), = so the app adds none. - `role = .tabs` (=
 // explicitly mark the control as a tab switcher; = macOS 27 NEW API; =
 // Accessibility reads it as "page N of M"; = VoiceOver announces the page
@@ -166,7 +166,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// The AppKit control size (= the segment's own height and hit area; =
     /// `NSControl.ControlSize`).
     ///
-    /// The shared default is `.large` (= the macOS 27 Tahoe inspector-body
+    /// The shared default is `.large` (= the macOS inspector-body
     /// tab pill canonical; = 28 PT; = what the inspector body and the
     /// editor tab strip have always used). A call site that wants the
     /// smaller control passes `.small` (= 20 PT; = the size Apple ships for
@@ -387,8 +387,8 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             // decision is made (= one door per question = the editor's
             // strip and the chat zone's bar cannot drift).
             //
-            // The TOOLTIP keeps the WHOLE title (= the canonical Apple HIG
-            // inspector tab tooltip, = which is what a narrow tab needs: =
+            // The TOOLTIP keeps the WHOLE title (= the product
+            // inspector-tab tooltip, = which is what a narrow tab needs: =
             // the drawn title is short, = and the hover still names the
             // document). The title the segment DRAWS is the ladder's
             // answer, = and the control that carries the X owns it (= the
@@ -415,7 +415,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
                     forSegment: index
                 )
             }
-            // Also set tooltip (= the canonical Apple HIG inspector tab
+            // Also set tooltip (= the product inspector-tab
             // tooltip; = appears on hover).
             control.setToolTip(display, forSegment: index)
         }
@@ -496,7 +496,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // the title budget is the share MINUS that inset
         // (`PaneTabStripTitle.fitted`). The control size (= the segment's
         // own height, hit area and label font) is the per-call-site knob; =
-        // the shared default is `.large` (= the macOS 27 Tahoe
+        // the shared default is `.large` (= the macOS
         // inspector-body tab pill canonical; = the inspector body and the
         // editor tab strip both use it). RATIONALE: the size affects
         // Apple's accessibility math, the standard hit area, and the

@@ -213,7 +213,7 @@ struct ReferenceLibraryMetadata: Identifiable, Codable, Hashable, Sendable {
         self.createdAt = createdAt
     }
 
-    /// Apple HIG defaults (= empty / fresh ReferenceLibrary).
+    /// product defaults (= empty / fresh ReferenceLibrary).
     static let empty = ReferenceLibraryMetadata(
         id: UUID(),
         schemaVersion: 1,

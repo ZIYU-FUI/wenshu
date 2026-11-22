@@ -1,9 +1,9 @@
-// SidebarRowView.swift One row in the macOS 27 Apple HIG sidebar. Used by
+// SidebarRowView.swift One row in the macOS 27 product sidebar. Used by
 // AppleSidebarView's List(.sidebar) — Apple takes care of the disclosure indicator (=
 // children property of the row's data) + the selection tint (= List(selection:)
 // binding) + the hover highlight (= macOS 14+ default on List(.sidebar)) + the indent
 // (= per-level indent from the data tree's depth). The row itself just renders the
-// icon + title + subtitle (= the Apple HIG sidebar row content). (= boss 2026-10-10
+// icon + title + subtitle (= the product sidebar row content). (= the
 // (see OOB.md #2026-10-10) 处右键，点导入，就不能带入" directive): SidebarRowView now carries a
 // per-row `.contextMenu(menuItems:)` (= the right-click hit target IS the row that
 // hosts the menu; = the menu closure captures the row's `node` directly; = the user's
@@ -49,7 +49,7 @@ struct SidebarRowView: View {
         // sidebar fix (= (see OOB.md #2026-09-22) OOB ''): the macOS sidebar List bundled
         // with the `List(data, children:selection:rowContent:)` init (= the
         // OutlineGroup-backed one) does NOT bind selection back to the binding
-        // purely via Data.Element.Identifiable.id — Apple HIG sidebar
+        // purely via Data.Element.Identifiable.id — product sidebar
         // selection requires each row to ALSO carry an explicit `.tag(value)`
         // so the OutlineGroup's selection bridge (= `Binding<SelectionValue?>`
         // ↔ `OutlineGroup` row identity) can find the right row id. Without
@@ -142,7 +142,7 @@ struct SidebarRowView: View {
         let node: SidebarNode
         let callbacks: SidebarRowCallbacks?
         func body(content: Content) -> some View {
-            // Divider rows: NO menu (= Apple HIG = divider is a visual separator; = no
+            // Divider rows: NO menu (= product = divider is a visual separator; = no
             // selection, no menu, no hover- tint, no right-click action).
             if node.kind == .divider {
                 return AnyView(content)
@@ -252,7 +252,7 @@ struct SidebarRowView: View {
     static func rowContent(for node: SidebarNode) -> some View {
         // The `.divider` kind renders as a pure horizontal line (= no icon, no title, no
         // subtitle; = just a Divider + small vertical breathing room). Apple
-        // HIG section separator idiom. the divider has
+        // product section-separator idiom. the divider has
         // `.listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing:
         // 0))` applied at the body level (= no horizontal inset from the
         // List); = the Divider here renders flush to the sidebar column edge
@@ -271,7 +271,7 @@ struct SidebarRowView: View {
             // least 18-20 PT to render the letter glyph; = the
             // canonical 16 PT sidebar slot would clip the letter to
             // nothing). Use a custom 22 PT `HStack` with the icon at
-            // 20 PT (= Apple HIG `.controlSize(.regular)`).
+            // 20 PT (= product `.controlSize(.regular)`).
             //
             // The original `node.systemImage` (= a hardcoded SF
             // symbol per node kind) is preserved on the data model

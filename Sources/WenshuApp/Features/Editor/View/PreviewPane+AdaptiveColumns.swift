@@ -21,7 +21,7 @@ extension PreviewPane {
     /// - 1 column when width < `twoColumnBreakpoint` (= narrow layout;
     ///   = the canonical iPhone stack and macOS single-pane layout)
     ///
-    /// The breakpoint is 600 PT (= the Apple HIG compact-vs-regular
+    /// The breakpoint is 600 PT (= the product compact-vs-regular
     /// size class threshold).
     func adaptiveColumns(width: CGFloat) -> [GridItem] {
         if width >= Self.twoColumnBreakpoint {

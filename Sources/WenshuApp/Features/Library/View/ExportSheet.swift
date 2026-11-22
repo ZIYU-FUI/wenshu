@@ -1,7 +1,7 @@
 //
 //  ExportSheet.swift · Wenshu
 //
-//  Single-page sheet (= Apple HIG canonical macOS 14+ Sheet pattern)
+//  Single-page sheet (= the product macOS 14+ Sheet pattern)
 //  for exporting content from the active Wenshu library. Reachable
 //  from the menu bar via File → Export… (= ⇧⌘E). Presents three
 //  export-kind sections (Library / Book / Chapter), each backed by
@@ -19,7 +19,7 @@
 //  `EBookExportDocument.epub(...)` or `.pdf(...)` for the book; =
 //  a fresh `MarkdownDocument` for the chapter) and flips
 //  `isExporting: Bool`. The `.fileExporter` modifier observes
-//  `isExporting` and presents the system save sheet (= Apple HIG
+//  `isExporting` and presents the system save sheet (= product
 //  canonical flow). The engine runs on the background actor; =
 //  `onCompletion` dismisses the sheet after the file is written.
 //
@@ -97,7 +97,7 @@ struct ExportSheet: View {
     /// the manuscript's save panel.
     @State private var isExportingManuscript: Bool = false
 
-    /// Last-used destination URL per kind (Apple HIG canonical
+    /// Last-used destination URL per kind (the product
     /// "remember the last folder" pattern, persisted via
     /// @AppStorage below).
     @AppStorage("wenshu.export.library.lastURL") private var lastLibraryURLString: String = ""

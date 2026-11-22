@@ -178,12 +178,12 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         // mapping (= via ProviderKeychainError.from(_:)).
         //
         // The previous inline `SecItemAdd` implementation
-        // (= the canonical Apple Security framework keychain path; = the
+        // (= the Apple Security framework keychain path; = the
         // canonical wenshu architecture per AGENTS.md §11 hard rule 'API
         // keys via AppleKeychain NEVER plaintext SQLite'; = the previous
         // emergency revert stubbed this out because ad-hoc signed
         // wenshu.app triggered SecurityAgent modal + SIGABRT on the
-        // Settings window). The canonical Apple HIG path for API keys =
+        // Settings window). The Apple path for API keys =
         // the user's macOS Keychain = persists across app restarts +
         // sandbox-safe + encrypted at rest by the OS. Per
         // developer.apple.com/documentation/security/keychain_services:
@@ -403,7 +403,7 @@ public enum ProviderKeychain {
     ///
     /// Resolution order (= 1 rationale lines collapsed; = A115 aggressive docblock collapse):
     /// 1. `WENSHU_DEBUG_INMEMORY_KEYCHAIN=1` env var (= CI / UI iteration
-    ///    without a real keychain; = Apple HIG path for build-time
+    ///    without a real keychain; = product path for build-time
     ///    overrides).
     /// 2. `wenshu.debugNoKeychain` UserDefaults flag (= the dev-mode
     ///    toggle; = see `WenshuAppDelegate` comments for the on/off

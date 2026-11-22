@@ -94,7 +94,7 @@ enum WenshuEditorServicesFactory {
         // `vpSize` is therefore 0 PT; = the `NSTextContainer.size = 0 PT`; =
         // the `NSTextView` renders each character on its own line because the
         // text layout pass wraps at every character). Pin `readingWidth` to
-        // 600 PT (= the Apple HIG canonical reading-column width; = Pages
+        // 600 PT (= the product reading-column width; = Pages
         // defaults to 600 PT; = matches the wenshu inspector column-width
         // token of 600 PT) = the engine's `NSTextContainer.size` is always 600
         // PT, = the markdown text wraps cleanly across the editor column. The

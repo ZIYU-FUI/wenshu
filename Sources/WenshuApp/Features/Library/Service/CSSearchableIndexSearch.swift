@@ -49,7 +49,7 @@ struct CSSearchResult: Equatable, Sendable {
 }
 
 /// Domain name registered with CSSearchableIndex.
-/// Apple HIG: per-domain identifier to scope queries to wenshu docs only.
+/// product: per-domain identifier to scope queries to wenshu docs only.
 enum CSSearchDomain {
     static let domainIdentifier = "com.wenshu.docs"
 
@@ -127,7 +127,7 @@ private final class SpotlightQuery: @unchecked Sendable {
         query.completionHandler = { [self] error in
             onAnswer(error == nil ? .answered : .failed)
         }
-        // Apple HIG (macOS 27): `CSSearchQuery.start()` returns Void (= error surfaces
+        // product (macOS 27): `CSSearchQuery.start()` returns Void (= error surfaces
         // via completionHandler). If start is a no-op due to Spotlight unavailable,
         // completionHandler fires immediately with an error.
         query.start()
@@ -176,7 +176,7 @@ actor CSSearchableIndexSearch {
     static let shared = CSSearchableIndexSearch()
 
     /// Bootstrap the search index (= call once at app launch).
-    /// Apple HIG: CSSearchableIndex.default() returns the system Spotlight index
+    /// product: CSSearchableIndex.default() returns the system Spotlight index
     /// (= created lazily by macOS on first write).
     func bootstrap() throws {
         // The mirror holds what this session indexed (= it is not
@@ -185,7 +185,7 @@ actor CSSearchableIndexSearch {
     }
 
     /// Index one document (= upsert: remove then insert).
-    /// Apple HIG: `CSSearchableItem` attributes = title (title), contentDescription (body),
+    /// product: `CSSearchableItem` attributes = title (title), contentDescription (body),
     /// identifier (= docId), domainIdentifier (= CSSearchDomain.domainIdentifier).
     func index(docId: String, title: String, body: String) throws {
         // Update mirror first (= always in sync, even if Spotlight write fails).
@@ -194,14 +194,14 @@ actor CSSearchableIndexSearch {
 
         // Build CSSearchableItemAttributeSet (= Apple Spotlight index entry).
         // The actual CSSearchableItem is constructed inside flushPending() to
-        // batch with the other pending entries (= Apple HIG recommendation).
+        // batch with the other pending entries (= product recommendation).
         let attrSet = CSSearchableItemAttributeSet(contentType: .text)
         attrSet.title = title
         attrSet.contentDescription = body
         attrSet.identifier = docId
 
         // Coalesce into pendingIndex (= batch flush on next `flush()` or search()).
-        // Apple HIG: CSSearchableIndex.indexSearchableItems accepts batches of 100s;
+        // product: CSSearchableIndex.indexSearchableItems accepts batches of 100s;
         // = batching is the recommended pattern.
         pendingIndex.append((docId: docId, title: title, body: body))
 
@@ -273,7 +273,7 @@ actor CSSearchableIndexSearch {
 
     /// Query Apple Spotlight via CSSearchQuery.
     ///
-    /// Apple HIG (macOS 27): `CSSearchQuery.init(queryString:queryContext:)` +
+    /// product (macOS 27): `CSSearchQuery.init(queryString:queryContext:)` +
     /// `start()` is Void (= error surfaces via completionHandler).
     ///
     /// **⇒ THE WAIT DOES NOT HOLD THE ACTOR.** = The old wait was a
@@ -387,7 +387,7 @@ actor CSSearchableIndexSearch {
 /// Token-overlap ranking for fallback (= not BM25, = simpler but adequate).
 enum TokenOverlapRanking {
     /// Tokenize text (= lowercase + split on non-alphanumeric + CJK char-by-char).
-    /// Apple HIG: `NLTokenizer` would be richer; = keep Foundation-only to avoid dep.
+    /// product: `NLTokenizer` would be richer; = keep Foundation-only to avoid dep.
     ///
     /// CJK strategy: U+4E00..U+9FFF + extension ranges emit one token per character
     /// (= CJK has no spaces between words). ASCII words are kept as letter-runs.
@@ -427,7 +427,7 @@ enum TokenOverlapRanking {
     }
 
     /// CJK Unified Ideographs block (= U+4E00..U+9FFF) + extension A (= U+3400..U+4DBF).
-    /// Apple HIG: NLTokenizer.hebrew / .japanese use different per-language ranges;
+    /// product: NLTokenizer.hebrew / .japanese use different per-language ranges;
     /// = wenshu's primary authoring language is zh-Hans per AGENTS.md baseline.
     private static func isCJKScalar(_ scalar: Unicode.Scalar) -> Bool {
         let v = scalar.value

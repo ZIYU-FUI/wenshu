@@ -138,7 +138,7 @@ extension ChatView {
         .opacity(0)
         .accessibilityHidden(true)
         // ⌘⇧S = export conversation as Markdown. The.fileExporter modifier
-        // attached at the end of body (= Apple HIG canonical SwiftUI macOS
+        // attached at the end of body (= the product SwiftUI macOS
         // 11+ pattern; = replaces the legacy NSSavePanel.runModal block)
         // handles the sheet UX, sandbox permission, and bookmark for us. The
         // body just toggles the @State flag and the modifier fires once
@@ -176,7 +176,7 @@ extension ChatView {
         // existing.md file; = replaces the legacy NSOpenPanel.runModal
         // block). The import + parsing logic lives in the modifier's
         // completion handler (= same behavior as before; just the file picker
-        // is now Apple HIG canonical). Hidden Button pattern.
+        // is now the product). Hidden Button pattern.
         Button("Open chat Markdown") {
             isOpeningMarkdown = true
         }

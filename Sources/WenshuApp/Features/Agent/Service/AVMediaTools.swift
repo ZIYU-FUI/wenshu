@@ -2,7 +2,7 @@
 //
 // Local AV media tools (= hermes `tts` parity). Uses
 // `AVSpeechSynthesizer` for text-to-speech (Apple Foundation
-// default = Apple HIG canonical).
+// default = the product).
 
 import Foundation
 #if canImport(AVFoundation)

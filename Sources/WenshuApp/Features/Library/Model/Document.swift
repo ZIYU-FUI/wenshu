@@ -18,7 +18,7 @@
 //     settings/<doc-id>.md   ← BookCategory.setting
 //     research/<doc-id>.md   ← BookCategory.research
 //
-// id == filename (= <uuid>.md). Stable across rename (= Apple HIG
+// id == filename (= <uuid>.md). Stable across rename (= product
 // document-based app: id = filesystem identity, title = label).
 
 import Foundation
@@ -30,7 +30,7 @@ import Foundation
 /// value handles unknown strings, and the card UI iterates `allCases`
 /// so new categories appear automatically).
 ///
-/// The `directoryName` is the actual on-disk folder (= Apple HIG: the
+/// The `directoryName` is the actual on-disk folder (= product: the
 /// filesystem identity for documents in this category). The
 /// `displayName` is the card section header label (= Chinese, matches
 /// the wenshu design vocabulary). The `icon` is the SF Symbol used in
@@ -41,7 +41,7 @@ enum BookCategory: String, CaseIterable, Codable, Sendable {
     case research
 
     /// Filesystem directory name (= the on-disk folder under the book).
-    /// Stable across rename (= Apple HIG: directory = identity, not the
+    /// Stable across rename (= product: directory = identity, not the
     /// category's display label).
     var directoryName: String {
         switch self {
@@ -64,10 +64,11 @@ enum BookCategory: String, CaseIterable, Codable, Sendable {
     /// SF Symbol name for the card's icon (= no thumbnail in wenshu
     /// since MD files have no visual; the symbol carries the visual
     /// weight, FCP Browser does the same when no poster frame exists).
-    /// Apple HIG: symbols follow the system font; we use the .large
+    /// product: symbols follow the system font; we use the .large
     /// image scale at render time for empty-state size.
-    /// Outline icons everywhere (= the canonical Apple HIG form for
-    /// the Liquid Glass 3rd-generation design language).
+    /// Outline icons everywhere (= the HIG sf-symbols page:
+    /// "The outline variant works well in toolbars, lists,
+    /// and other places").
     /// The chapter icon derives from `BookFolderCatalog.spec(for:
     /// directoryName)?.icon` (= the SSOT for the same BookFolderSpec
     /// that powers the sidebar + PreviewPane). BookCategory stays as
@@ -167,11 +168,11 @@ struct Document: Identifiable, Hashable, Codable, Sendable {
             .appendingPathComponent(filename)
     }
 
-    // id-based identity (= Apple HIG document-based convention).
-    // Renames change `title` but NOT `id`, so `doc == doc` still
-    // holds across renames. SwiftUI List diffing /
-    // @Observable change detection / WenshuLibrary selection all
-    // assume this.
+    /// id-based identity (= product document-based convention).
+    /// Renames change `title` but NOT `id`, so `doc == doc` still
+    /// holds across renames. SwiftUI List diffing /
+    /// @Observable change detection / WenshuLibrary selection all
+    /// assume this.
     static func == (lhs: Document, rhs: Document) -> Bool {
         lhs.id == rhs.id
     }

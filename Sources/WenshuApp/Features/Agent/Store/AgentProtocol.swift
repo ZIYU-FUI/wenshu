@@ -13,7 +13,7 @@
 //     `{ method: "message/send" / "task/get", params: JSON }`
 //   - `A2AResponse`: `{ result: JSON?, error: A2AError? }`
 //
-// Apple HIG: actor (Swift 6 strict concurrency) + Sendable actor.
+// product: actor (Swift 6 strict concurrency) + Sendable actor.
 //
 
 import Foundation
@@ -151,7 +151,7 @@ enum A2AResult: Codable, Sendable {
 // MARK: - Agent Protocol Actor (in-process A2A)
 
 /// A2A (= in-process actor + URLSession HTTP server).
-/// Apple HIG: actor + `Sendable`.
+/// product: actor + `Sendable`.
 actor AgentProtocol {
     private var tasks: [UUID: AgentTask] = [:]
     private var tasksByAgent: [String: [UUID]] = [:]

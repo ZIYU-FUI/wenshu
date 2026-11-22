@@ -317,7 +317,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
             .appendingPathComponent(filename)
     }
 
-    // id-based identity (= Apple HIG document-based convention).
+    /// id-based identity (= product document-based convention).
     static func == (lhs: Reference, rhs: Reference) -> Bool {
         lhs.id == rhs.id
     }

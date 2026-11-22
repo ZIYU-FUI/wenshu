@@ -14,7 +14,7 @@
 //
 //  Why a concrete FileDocument per flavor (= vs. one union): the
 //  `.fileExporter` modifier requires a `FileDocument`-conforming
-//  type that declares its writableContentTypes (= Apple HIG canonical
+//  type that declares its writableContentTypes (= the product
 //  pattern for type-driven file pickers).
 //
 

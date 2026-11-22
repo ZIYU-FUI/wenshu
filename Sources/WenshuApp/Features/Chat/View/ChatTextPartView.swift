@@ -5,7 +5,7 @@
 //  canonical "the assistant said this" cell). Lifted out of
 //  ChatPartView.swift (= 929 lines = a multi-view file) so:
 //
-//  - The chat part surface follows 1-view-1-file (= Apple HIG
+//  - The chat part surface follows 1-view-1-file (= product
 //    canonical file-per-view; = future changes are scoped to
 //    one file).
 //  - Each part view is independently testable + Xcode-previewable.
@@ -142,7 +142,7 @@ struct ChatTextPartView: View {
 /// Hermes renders reasoning as a collapsible `<DisclosureGroup>` with
 /// a `ScaffoldRow` header (= "Thinking…" label + elapsed timer + a
 /// shimmer animation while running). wenshu's existing DisclosureGroup
-/// is the canonical Apple HIG equivalent (= no custom scaffold row =
+// is the system equivalent (= no custom scaffold row =
 /// Apple default = user's 'anything that uses Apple styles should default everything' OOB).
 ///
 /// The `isRunning` parameter (= true when the model is still thinking)

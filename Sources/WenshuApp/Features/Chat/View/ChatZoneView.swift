@@ -1,6 +1,6 @@
 // ChatZoneView.swift
 //
-// per Apple HIG = one view per file.
+// per product convention = one view per file.
 //
 // ChatZoneView = the chat-zone root container (= AI provider model
 // selector + ChatView + HelpTextOverlay).
@@ -9,7 +9,7 @@
 // The chat zone owns no top-bar chrome (= no top
 // tab bar, no 3-tab HStack, no archive icon, no TEB). The
 // body of the chat zone = bare ChatView (= the chat history +
-// input field). Per Apple HIG TabViews docs 'if you only need
+// input field). per product convention TabViews docs 'if you only need
 // to show ONE tab, don't show a tab bar at all'. All padding +
 // inset inside the chat zone body = Apple API default (= no
 // hand-rolled padding/spacing; = the SwiftUI List / NSSplitView
@@ -18,7 +18,7 @@
 // Architecture:
 // - chat zone lives inside an `NSSplitViewItem` (= canCollapse
 //   = true) in `EditorChatNSController` (= AppKit
-//   NSSplitViewController; = the canonical Apple Keynote
+//   NSSplitViewController; = the Apple Keynote
 //   speaker-notes API).
 // - chat zone visibility is controlled by
 //   `AppState.chatVisible` (= bound to the View > Show Chat
@@ -200,7 +200,7 @@ struct ChatZoneView: View {
         // chapter-dialog 2026-09-28 T1: the Allow/Deny dialog for the
         // chapter focus lock. The presenter holds the current pending
         // request; = when it becomes non-nil, .alert(item:) renders
-        // the dialog with Allow / Deny buttons (= Apple HIG canonical
+        // the dialog with Allow / Deny buttons (= the product
         // permission prompt). The buttons delegate back to the
         // presenter (= no business logic in the view).
         .alert(

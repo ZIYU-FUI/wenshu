@@ -416,8 +416,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // = the View → Show Tab Bar menu command toggles this state; = the
         // system-drawn tab bar appears under the window title bar; = cmd+T /
         // cmd+shift+B work natively; = no wenshu code maintains the tab list).
-        // This is the Apple HIG 1:1 path the boss asked for (= the
-        // "NSWindow.tabbingMode = .preferred" path from the 2026-10-14 OOB).
+        // This is the 1:1 native-tabbing path (`NSWindow.tabbingMode =
+        // .preferred`), a product decision: wenshu maintains no tab list
+        // of its own.
         // The wenshu business tabs (= the per-document editor tabs in the
         // editor zone) are still wenshu-managed; = the Window Tabs and the
         // business tabs are orthogonal (= the Window Tabs = a whole window per

@@ -14,7 +14,7 @@
 //      `.contentTransition(.interpolate)` for smooth token-by-token
 //      streaming (= no per-chunk flicker).
 //    • ChatReasoningPartView: CoT / hidden thinking block rendered
-//      as a collapsible DisclosureGroup (= Apple HIG footnote
+//      as a collapsible DisclosureGroup (= product footnote
 //      pattern = .secondary text + dimmed + .caption font).
 //    • ChatToolUsePartView: tool invocation as an inline card
 //      (= rounded rectangle + status dot + tool name + collapsed
@@ -93,7 +93,7 @@ struct ChatMessageBodyView: View {
     }
 
     var body: some View {
-        // Apple HIG: writing body text uses `.primary` foreground,
+        // product: writing body text uses `.primary` foreground,
         // uniformly (= Pages / Notes / Mail body). User-vs-assistant
         // distinction comes from alignment (= iMessage right vs left)
         // + bubble background, NOT from text color dimming. Both
@@ -103,9 +103,9 @@ struct ChatMessageBodyView: View {
         // RATIONALE: wenshu writing-tool requirement per boss 2026-10-16
         // "editor + chat body text share Apple text style" — body text
         // = always `.primary`; no `opacity()` mutators on the tint
-        // (Apple HIG forbids `.primary.opacity(0.X)`; the four-tier
-        // `.primary / .secondary / .tertiary / .quaternary` semantic
-        // ladder covers all muted cases without opacity tweaks).
+        // (product rule: the four-tier `.primary / .secondary /
+        // .tertiary / .quaternary` semantic ladder covers all muted
+        // cases without opacity tweaks).
         let roleForeground: HierarchicalShapeStyle = .primary
         return Group {
             if message.parts.isEmpty {
@@ -260,7 +260,7 @@ private struct ChatPartRow: View {
             )
             // T40-THINKING-FADEIN (2026-09-18): when a reasoning
             // part is added to or removed from a streaming message,
-            // the view fades in from the top (= Apple HIG content
+            // the view fades in from the top (= product content
             // insertion pattern; = matches the visual rhythm of
             // streamed tokens appearing). Pair with .animation on
             // the parent ForEach for smooth transitions.
@@ -271,7 +271,7 @@ private struct ChatPartRow: View {
                 // appear-from-top transition as T40 reasoning parts.
                 // Tool-use calls appearing in a streaming message
                 // (= the model invoking a tool) also benefit from
-                // a soft fade-in (= matches the Apple HIG content
+                // a soft fade-in (= matches the product content
                 // insertion pattern). Reuses AnyTransition.wenshuThinkingAppear()
                 // because the visual idiom is identical (= streaming
                 // event lands on screen; = fade in).

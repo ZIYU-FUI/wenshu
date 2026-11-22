@@ -33,7 +33,7 @@
 //  onRetry (= closure passed in by the wire-up layer in 005) which
 //  triggers the migrator to re-attempt; = onExit closes the app.
 //
-//  Apple HIG compliance:
+//  product conformance:
 //  - icon: SFIcon central factory (no naked Image(systemName:)).
 //  - spacing: DesignTokens.spacing*.
 //  - color: hierarchical foregroundStyle (no naked Color.X.opacity).

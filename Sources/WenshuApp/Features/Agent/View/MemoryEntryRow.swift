@@ -67,7 +67,7 @@ struct MemoryEntryRow: View {
                     // lets the UUID wrap to two lines instead of
                     // stretching the window past the user's
                     // `.defaultSize(width: 950, height: 517)` =
-                    // the canonical Apple-HIG fix for the same
+                    // the canonical product fix for the same
                     // `.lineLimit(2) + .lineLimit(nil)` recipe used
                     // earlier in this arc on `model.reasoning.effortHint`).
                     .lineLimit(2)

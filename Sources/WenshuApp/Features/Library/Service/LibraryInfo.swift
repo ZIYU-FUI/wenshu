@@ -1,6 +1,6 @@
 // LibraryInfo.swift
 //
-// Reads the .ws library's Info.plist metadata (= Apple HIG bundle
+// Reads the .ws library's Info.plist metadata (= product bundle
 // pattern).
 //
 // - `Bundle(url: <.ws>/Info.plist)` reads `CFBundlePackageType`

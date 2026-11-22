@@ -13,7 +13,7 @@ import Foundation
 struct SmartQuery: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     var name: String
-    /// JSON-encoded search predicate. Per Apple HIG, a JSON string
+    /// JSON-encoded search predicate. per product convention, a JSON string
     /// (= rather than a Swift Codable struct) decouples the storage
     /// format from the parser type (= parser can evolve without
     /// breaking stored queries).

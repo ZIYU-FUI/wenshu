@@ -32,7 +32,7 @@ import SwiftUI
 
 /// Leaf view: the sealed-message footer row showing timestamp +
 /// token count + estimated cost + NEW badge. Rendered below each
-/// chat bubble's body (= Apple HIG metadata convention).
+/// chat bubble's body (= product metadata convention).
 struct ChatMessageFooter: View {
     /// Timestamp displayed in the footer (= chat message creation time).
     let timestamp: Date
@@ -107,13 +107,13 @@ struct ChatMessageFooter: View {
         }
         .padding(.top, DesignTokens.spacingCaption)
         // -cleanup E6: vertical chromePaddingNano (= 2 PT) top (= row separator gap;
-        // = matches Apple HIG caption2 metadata vertical gap).
+        // = matches product caption2 metadata vertical gap).
         .frame(maxWidth: .infinity, alignment: .leading)
         // T53-FOOTER-COMBO-TOOLTIP: combined tooltip on the
         // entire footer HStack (= "1,500 tokens · 2026-09-18 14:32:05").
         .help(Self.comboFooterTooltip(timestamp: timestamp, tokens: tokens))
         // T55-FOOTER-DIVIDER: hairline above the footer
-        // (= Apple HIG secondary chrome). Hidden when both
+        // (= product secondary chrome). Hidden when both
         // timestamp + token are absent (= the divider would
         // float without context).
         .overlay(alignment: .top) {

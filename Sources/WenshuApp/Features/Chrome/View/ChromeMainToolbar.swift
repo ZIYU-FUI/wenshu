@@ -16,7 +16,7 @@
 //  Design (per boss 2026-10-16 OOB):
 //  The row carries the kanban window button and export. The window
 //  button wires to a `WindowID` registered in AppRootScene.swift. The
-//  implementation is the canonical Apple HIG
+//  implementation is the Apple
 //  `ToolbarItem(placement: .primaryAction)` + `Button { openWindow(id: ...)}`
 //  + `SFIcon(...)` pattern.
 //  The other secondary windows were removed on 2026-10-21 (= the
@@ -62,7 +62,7 @@ struct ChromeMainToolbar {
 
 extension ChromeMainToolbar: ToolbarContent {
     /// The kanban window button + the export button.
-    /// Apple HIG canonical: `.primaryAction` placement for the
+    /// the product: `.primaryAction` placement for the
     /// rightmost toolbar slot (= matches the wenshu 1:1 macOS 27
     /// Liquid Glass default).
     var body: some ToolbarContent {

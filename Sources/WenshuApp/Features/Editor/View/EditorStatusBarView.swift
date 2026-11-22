@@ -19,14 +19,14 @@
 // We don't wire the data sources here (= the View is a dumb
 // renderer). The parent (= EditorView / EditorEditContent) supplies
 // the 4 closures so the status bar stays a passive display
-// surface (= Apple HIG inspector status bar pattern = the bar
+// surface (= product inspector status bar pattern = the bar
 // reflects, = it does not own state).
 import SwiftUI
 
 /// Editor status bar (= the bottom chrome band of the editor zone).
 /// Three chunks (= left-to-right = word count / cursor location /
 /// autosave state). All 4 data sources are closures supplied by
-/// the parent (= the bar is a dumb renderer = Apple HIG inspector
+/// the parent (= the bar is a dumb renderer = product inspector
 /// status bar pattern).
 struct EditorStatusBarView: View {
     /// Current draft text (= used to compute the live word count;
@@ -152,7 +152,7 @@ struct EditorStatusBarView: View {
     /// xcstrings value, once from the defaultValue; = the
     /// hardcoded `+ " "` + literal unit gives a single, reliable
     /// render). The number is `count.formatted(.number)` (= the
-    /// Apple HIG `1,234` comma-separator format).
+    /// product `1,234` comma-separator format).
     /// ⇒ ⇒ ⇒ **⇒ AND IT IS THE PROPERTY THE BODY RENDERS** (= `Text(wordCountLabel)`), = = so it is INTERNAL, = = not private: = = the test reads the SAME statement the view renders, = = so a test that asserts the label is asserting the production path (= there is no second copy of the rule to drift, = = and no door between the test and the pixels).
     /// ⇒ ⇒ ⇒ **⇒ AND A STATIC THAT MIRRORS IT WOULD BE THE DOOR**: = = a second statement (= `wordCountLabelForTest(in:)`) can hold the new measure while the view renders the old one, = = and then every value-shaped case stays GREEN (= = the case the mode gate's family calls "the reader took the FIRST match instead of the RIGHT one"). = = ⇒ So there is ONE statement, = = and it is the one the body renders.
     var wordCountLabel: String {

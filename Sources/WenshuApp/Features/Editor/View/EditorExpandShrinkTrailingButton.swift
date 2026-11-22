@@ -2,7 +2,7 @@
 //
 // The trailing button on the editor pane's top-right that toggles
 // "Expand Fullscreen" <-> "Restore Layout". One view per file
-// (Apple HIG). No `@Binding` / `@State` / `@Observable` = pure
+// (product). No `@Binding` / `@State` / `@Observable` = pure
 // presentation.
 //
 // Only call site = WorkspaceView's editor pane top-right; invoked
@@ -12,13 +12,13 @@
 import SwiftUI
 
 struct EditorExpandShrinkTrailingButton: View {
-    // `wenshu.editorMaximized` is `@SceneStorage` (= Apple HIG
+    // `wenshu.editorMaximized` is `@SceneStorage` (= product
     // macOS 14+ standard for per-window state restoration). Each
     // window can have a different editor maximize state (= when
     // the user opens two windows and shrinks the editor in only
     // one, the other window should keep the unshrunk state).
     // `@SceneStorage` is scoped to the Scene (= the window) and
-    // restores on relaunch (= matches Apple HIG "per-window state
+    // restores on relaunch (= matches product "per-window state
     // restoration" requirement).
     //
     // `wenshu.editorExpand.snapshot` stays on `@AppStorage` (= the
@@ -31,10 +31,10 @@ struct EditorExpandShrinkTrailingButton: View {
     var body: some View {
         //
         // the editor expand/shrink trailing button was using raw `Lucide(...)`
-        // (= no size parameter = Lucide default size, not Apple HIG standard
+        // (= no size parameter = Lucide default size, not product standard
         // 18 PT tab icon). Migrated to the SAME icon-rendering pattern as
         // PaneTrailingIconButton: Color.clear as 28 PT hot area base + icon as centered
-        // .overlay at 18 PT (= Apple HIG small-control standard). Now
+        // .overlay at 18 PT (= product small-control standard). Now
         // visually identical to the leading tab icons in the same row
         // (= the 6 zones' tab bar visual contract is uniform).
         //

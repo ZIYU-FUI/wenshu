@@ -1,13 +1,13 @@
 // FileSystemEntityStore.swift Per-book entity storage layer, backed by SwiftData (= the
 // WSEntity + WSBody @Model classes in Persistence/) with a FileSystem fallback for
 // actor callers. Per boss 2026-10-05 (see OOB.md #2026-10-05) SwiftData migration).
-// This is commit 3 of #8. Apple HIG canonical pattern: WSEntity holds the indexed
+// This is commit 3 of #8. the product pattern: WSEntity holds the indexed
 // metadata (id, bookID, kind, name, aliases, tags, description, attributes,
 // kindSpecific) in one row. The body markdown lives in a separate WSBody row (= FK via
 // bodyID). SwiftData stores both as proper relational tables. Storage paths (=
 // unchanged at the public API level):
 // <.ws>/shelves/<shelf>/books/<UUID>/entities/<UUID>.md
-// <.ws>/shelves/<shelf>/books/<UUID>/entities.json Apple HIG dual-write pattern: when
+// <.ws>/shelves/<shelf>/books/<UUID>/entities.json product dual-write pattern: when
 // no ModelContainer is wired (= legacy dev-tool path; = actor-based callers that can't
 // reach MainActor), fall back to the legacy FileSystem path (= per-entity .md body +
 // entities.json index).
@@ -24,7 +24,7 @@ protocol EntityStoring: Sendable {
 
     /// Returns the parsed `entities.json` index (= the
     /// structured metadata for every Entity in this Book).
-    /// Missing = [], corrupt = [] (Apple HIG forgiving-reset).
+    /// Missing = [], corrupt = [] (product forgiving-reset).
     func loadEntities() throws -> [EntityDescriptor]
 
     /// Persist a new Entity (= creates the .md body + appends to

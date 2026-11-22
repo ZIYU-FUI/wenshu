@@ -233,7 +233,7 @@ enum EntityMigration {
     /// input rather than crashing the migration).
     private static func parseISODate(_ s: String?) -> Date? {
         guard let s else { return nil }
-        // Apple HIG canonical ISO-8601 parsing via
+        // the product ISO-8601 parsing via
         // Date.ISO8601FormatStyle (= macOS 12+; = the Swift-native
         // ISO8601DateFormatter equivalent). The plain format
         // (no fractional seconds) is tried first; if that fails

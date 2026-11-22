@@ -14,7 +14,7 @@ import SwiftUI
 /// ✕ button (SF Symbols 6 `xmark`) that calls the `onClear` closure. The
 /// whole chip is wrapped in `.regularMaterial` (= macOS 27 Liquid
 /// Glass translucency) + a 1 PT separator border = matches the
-/// TextField below for visual continuity (= Apple HIG canonical
+/// TextField below for visual continuity (= the product
 /// "chat input row" container styling).
 struct ChatAttachmentPreviewChip: View {
     let imagePath: String
@@ -26,7 +26,7 @@ struct ChatAttachmentPreviewChip: View {
             // SwiftUI `Image` (= no Nuke; Nuke was retired by
             // DEAD-PIN-CLEANUP-001 per §13 v0.10 ship packet).
             // `Image(nsImage:)` initializer requires AppKit; on
-            // macOS 27 the canonical Apple API is `Image(nsImage:)`
+            // macOS 27 the Apple API is `Image(nsImage:)`
             // (= macOS-only).
             thumbnail
             Button {

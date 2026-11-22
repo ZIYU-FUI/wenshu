@@ -24,7 +24,7 @@
 //  tripwire (= the pane's own test), = because "six roles" is a
 //  promise the multi-agent spec made.
 //
-//  Layout is Apple HIG macOS Settings: a grouped Form, one Section per
+//  Layout is product macOS Settings: a grouped Form, one Section per
 //  question, = the same shape as the agent pane's sections. Each role
 //  is a row with its name, = the tools it may call, = and where it
 //  runs. = The dispatch line is the part a user actually needs: = the

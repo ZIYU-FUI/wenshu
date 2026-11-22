@@ -15,7 +15,7 @@ import Foundation
 // falls back to the onboarding picker.
 //
 // Why the implementation branches on sandbox:
-//   .withSecurityScope is the Apple HIG canonical option for sandboxed
+//   .withSecurityScope is the product option for sandboxed
 //   builds (developer.apple.com/documentation/foundation/url/bookmarkdataoptions/
 //   securityscope). When the build is sandboxed, the bookmark data
 //   carries an opaque sandbox signature that ONLY resolves in the
@@ -47,7 +47,7 @@ import Foundation
 //     launch and deletes the key; = the bookmark is the sole
 //     persistence from then on).
 //
-// Failure modes (= Apple HIG canonical for each path):
+// Failure modes (= the product for each path):
 //   - User picked a bundle in the App Sandbox but the bookmark
 //     Data was wiped / corrupted -> resolve() returns nil.
 //     LibraryRootView falls back to the existing onboarding trigger.
@@ -65,7 +65,7 @@ import Foundation
 /// Security-scoped bookmark persistence for the user's single
 /// .ws library.
 ///
-/// Apple HIG macOS App Sandbox canonical pattern
+/// product macOS App Sandbox canonical pattern
 /// (developer.apple.com/documentation/foundation/url#bookmarkdata(options:includingresourcevaluesforkeys:relativeto:)).
 /// Without the bookmark, the user has to re-pick the library
 /// after every relaunch when the App Sandbox is enabled (= Mac
@@ -109,7 +109,7 @@ enum LibraryBookmark {
     /// preserves both across relaunches.
     static func make(for url: URL) throws -> Data {
         // RATIONALE: the options set matches the build's
-        // sandbox class. .withSecurityScope is the Apple HIG
+        // sandbox class. .withSecurityScope is the product
         // canonical option for sandboxed builds; omitting it is
         // the canonical choice for non-sandboxed builds (the
         // security-scope signature would otherwise be a

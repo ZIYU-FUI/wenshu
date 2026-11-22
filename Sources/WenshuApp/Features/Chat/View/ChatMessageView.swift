@@ -22,7 +22,7 @@
 import AppKit
 import SwiftUI
 
-/// One chat-message view (Apple HIG ground truth)
+/// One chat-message view (= the product ground truth)
 struct ChatMessageView: View {
     let message: ChatMessage
     /// T24-PLAN-APPROVE: callback invoked when the user clicks
@@ -177,7 +177,7 @@ struct ChatMessageView: View {
                 // have their own inline render).
                 //
                 // ChatMessageBodyView wraps each part in the bubble
-                // background (= Apple HIG iMessage-style) and applies
+                // background (= the product iMessage-style) and applies
                 // the streaming contentTransition to the text parts
                 // only (= the canonical SwiftUI "no flicker" pattern
                 //
@@ -189,12 +189,12 @@ struct ChatMessageView: View {
                 //
                 // The thinking DisclosureGroup + image thumbnail stay
                 // outside ChatMessageBodyView (= they're rendered
-                // above the parts array, = the conventional Apple
-                // HIG pattern of "supplementary content above the main
-                // content").
+                // above the parts array, = the product convention:
+                // supplementary content sits above the main content
+                // (no HIG figure or quote is claimed).
                 //
                 // Thinking collapsed: rendered as a DisclosureGroup
-                // (= Apple HIG footnote; = collapses by default;
+                // (= product footnote; = collapses by default;
                 // = expands on click). When parts[] is non-empty,
                 // the reasoning parts render via ChatReasoningPartView
                 // (= each part is its own collapsible block) — so we
@@ -300,14 +300,14 @@ struct ChatMessageView: View {
                 // of truth for chat-column horizontal padding; =
                 // maintenance = one place to change). Kept the
                 // vertical chromePaddingVertical (= 8 PT; = row
-                // vertical breathing room; = matches Apple HIG
-                // py-2 vertical row gap convention).
+                // vertical breathing room; = matches product
+                // py-2 vertical row gap = the product's own convention).
                 .padding(.vertical, DesignTokens.spacingStandard)
                 .wenshuChatHover()
             }
             // T19-MESSAGE-TIMESTAMP (2026-09-18): render a small
             // timestamp footer below sealed assistant messages
-            // (= same Apple HIG footer pattern as Apple Messages
+            // (= the product's footer pattern, same as Apple Messages
             // = small monospaced text below the bubble showing
             // the time). Hidden for:
             //   - user messages (= iMessage doesn't show timestamps
@@ -446,7 +446,7 @@ private struct UserGlassCardModifier: ViewModifier {
             // Apple's own material by construction). Apple's regular
             // variant "blurs and adjusts the luminosity of background
             // content to maintain legibility of text and other
-            // foreground elements" (= HIG materials), which is what
+            // foreground elements" (= the HIG materials page), which is what
             // keeps the user's words readable on the glass.
             //
             // It is the NON-interactive variant: Apple's own header says

@@ -74,7 +74,7 @@ struct ChatMessagePlaceholderRow<Pulse: View>: View {
             }
         }
         // -cleanup E6 (see OOB.md #2026-09-21) ' 10PT, ':
-        // vertical chromePaddingVertical (= 8 PT; = Apple HIG py-2 row gap
+        // vertical chromePaddingVertical (= 8 PT; = product py-2 row gap
         // convention). Horizontal padding lives on the chat transcript
         // outer (= single source of truth = ChatView.swift, not this
         // leaf).

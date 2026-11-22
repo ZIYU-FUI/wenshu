@@ -1,6 +1,6 @@
 // FileSystemChapterStore.swift Per-book chapter storage layer, backed by SwiftData (= the
 // WSChapter @Model class declared in Persistence/WSChapter.swift). Per boss 2026-10-05
-// (see OOB.md #2026-10-05) FileSystem*Store → SwiftData migration commit 1. Apple HIG
+// (see OOB.md #2026-10-05) FileSystem*Store → SwiftData migration commit 1. product
 // canonical pattern for SwiftData from an actor-based store: the ModelContainer (=
 // thread-safe; = Sendable) is shared across actors; = each actor hop resolves to
 // MainActor to grab the ModelContext (= SwiftData enforces MainActor isolation on
@@ -81,7 +81,7 @@ enum ChapterStoreError: Error, LocalizedError {
 
 // MARK: - SwiftData implementation
 
-/// Apple HIG canonical SwiftData-backed chapter store. The
+/// the product SwiftData-backed chapter store. The
 /// ModelContainer is thread-safe (= Sendable; = can be held by any
 /// actor); = the store resolves the ModelContext (= MainActor-
 /// isolated; = not Sendable) on each CRUD call.
@@ -165,7 +165,7 @@ struct FileSystemChapterStore: ChapterStoring {
     // MARK: ChapterStoring
 
     func loadChapters() throws -> [Document] {
-        // Apple HIG dual-write pattern: if a ModelContainer is provided, read from
+        // product dual-write pattern: if a ModelContainer is provided, read from
         // SwiftData (= the canonical path post-#8 migration). Otherwise (=
         // legacy dev-tool path where callers instantiate
         // FileSystemChapterStore without a container; = actor-based callers
@@ -209,7 +209,7 @@ struct FileSystemChapterStore: ChapterStoring {
         guard !isReadOnlyBook else {
             throw ChapterStoreError.bookIsReadOnly(bookID: bookID)
         }
-        // Apple HIG dual-write pattern: if no ModelContainer is wired, fall back to the
+        // product dual-write pattern: if no ModelContainer is wired, fall back to the
         // legacy FileSystem path (= actor- based callers that can't reach
         // MainActor; = the existing test suite that instantiates
         // FileSystemChapterStore without a container; = the #8 commit 1
@@ -402,7 +402,7 @@ struct FileSystemChapterStore: ChapterStoring {
             }
             return try decoder.decode([Document].self, from: data)
         } catch {
-            // Apple HIG forgiving reset (= corrupt index = empty list, not a throw that
+            // product forgiving reset (= corrupt index = empty list, not a throw that
             // bricks the per-book UI).
             return []
         }

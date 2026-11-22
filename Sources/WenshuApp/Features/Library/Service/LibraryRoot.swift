@@ -3,10 +3,10 @@
 // Where wenshu stores the user's bookshelves on disk. The location is
 // hard-coded for v0.02.0 (= the user has no Preferences panel yet) but
 // kept behind a single function so v0.02.1+ can swap it for an
-// NSOpenPanel-chosen location (= Apple HIG document-based apps: every
+// NSOpenPanel-chosen location (= product document-based apps: every
 // app picks a default but lets the user pick a different one).
 //
-// Why ~/Documents/wenshu (= Apple HIG default):
+// Why ~/Documents/wenshu (= product default):
 //   - Documents is the macOS-standard user-content location (= Pages,
 //     Numbers, Keynote, TextEdit, Bear, Obsidian all default here).
 //   - Finder treats it as the canonical 'files I created' folder.

@@ -111,7 +111,7 @@ struct Card: View {
     let onDoubleClick: (CardSource) -> Void
     /// (= boss 2026-10-10 "如 果有不 符合 模版 的内 容， 导入 后， 卡 片 加 橙 色 提 示 角 标"
     /// directive). When `true`, the card shows an orange border (= overriding
-    /// the hover tint) + a top-right triangle badge (= Apple HIG
+    /// the hover tint) + a top-right triangle badge (= product
     /// needs-attention pattern; = the user immediately sees which cards
     /// need补齐). The parent PreviewPane computes this flag from the reference's
     /// completion status (= see commit B for the checker; = the default value
@@ -320,7 +320,7 @@ struct Card: View {
 /// A card with no picture is paper, and there the words are INK
 /// (`DesignTokens.coverInk`), so the pill is a light wash and the label
 /// is ink at full strength: a dark label on a light pill, which is the
-/// canonical Apple metadata chip.
+/// Apple-style metadata chip.
 ///
 /// The horizontal padding is the caption token (= 2 PT), so the pill hugs
 /// its label instead of being twice as wide as the word in it.

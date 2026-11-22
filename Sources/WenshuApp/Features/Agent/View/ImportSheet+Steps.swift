@@ -26,7 +26,7 @@ extension ImportSheet {
             }
         }
 
-        /// Apple HIG canonical: a SF Symbol per step (= the dot indicator uses a dot,
+        /// the product: a SF Symbol per step (= the dot indicator uses a dot,
         /// and the current step uses the symbol with its tint).
         var iconName: String {
             switch self {

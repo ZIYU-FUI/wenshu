@@ -6,7 +6,7 @@
 //
 //  (= see OOB.md #2026-10-05). SwiftData migration; = commit 2 of #8.
 //
-//  Apple HIG canonical pattern: Reference's free-form body
+//  the product pattern: Reference's free-form body
 //  markdown lives inline in the WSReference.body field (= replaces
 //  the per-layer .md file on disk); the metadata fields (= title,
 //  source, url, layer, category, tags, etc.) live as typed

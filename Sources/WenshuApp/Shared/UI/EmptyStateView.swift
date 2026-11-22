@@ -37,7 +37,7 @@
 //  below (= no header bar; = pure empty state).
 //
 //  Icon (= SF Symbols 6):
-//    - SF Symbol 6 identifier (= canonical Apple SF Symbol
+//    - SF Symbol 6 identifier (= Apple SF Symbol
 //      name; = dot.case form like 'books.vertical')
 //    - size: 76 PT (= 2x the canonical '2x size'
 //      directive)
@@ -57,13 +57,13 @@
 //
 //  Spacing:
 //    - icon -> title: DesignTokens.spacingSection (= the
-//      Apple HIG standard ContentUnavailableView measured value;
+//      product standard ContentUnavailableView measured value;
 //      = the literal number isn't Apple-default = Apple doesn't
 //      expose this value publicly; = we use a semantic token instead)
-//    - title -> body: chromePaddingSmall (= Apple HIG standard for
+//    - title -> body: chromePaddingSmall (= product standard for
 //      title->caption spacing)
 //    - body maxWidth: DesignTokens.guardrailSheetWidth (= 360 PT
-//      = Apple HIG modal sheet width = the empty-state body
+//      = product modal sheet width = the empty-state body
 //      should wrap to the same width as a standard modal sheet)
 //    - icon size: IconStyle.emptyStateHero (= 76 PT
 //      = 2x the canonical empty-state
@@ -167,7 +167,7 @@ struct EmptyStateView: View {
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: DesignTokens.guardrailSheetWidth)
                 }
-                // Body (= Apple HIG .callout = 12 PT secondary =
+                // Body (= product .callout = 12 PT secondary =
                 // Apple's standard secondary text). The .tertiary
                 // tone + center alignment signals "this is
                 // supporting detail" (= Apple Mail / Notes /

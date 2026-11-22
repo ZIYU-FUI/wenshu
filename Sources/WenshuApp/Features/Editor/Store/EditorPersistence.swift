@@ -121,12 +121,10 @@ enum EditorPersistence {
         // `rename(2)`). The total cost of the write
         // path is well under 200 μs (= the user
         // does not perceive any UI hitch on a
-        // 3-second debounce tick). The previous
-        // [archived-round] commit's "Apple HIG 1:1 0-PT
-        // padding + 13 PT body" work was the real
-        // user-perceived perf win (= the editor
-        // body now scrolls smoothly; = see
-        // commit `bfd89b385` in the log). This
+        // 3-second debounce tick). An earlier archived round cut the
+        // chat padding to 0 PT and the body text to 13 PT; that work
+        // was the real user-perceived perf win (= the editor
+        // body now scrolls smoothly). This
         // function's skip-on-content-equal is the
         // secondary perf win (= no IO, no SwiftData
         // round-trip) and the primary correctness
@@ -334,7 +332,7 @@ enum EditorPersistence {
     /// is dirty (= draft != originalBody), write the in-memory
     /// draft to a `.local-wenshu-conflict-<unix-timestamp>.md`
     /// side file BEFORE clobbering (= the user's in-progress
-    /// edits survive the external reload = Apple HIG conflict-
+    /// edits survive the external reload = product conflict-
     /// backup convention).
     ///
     /// - Parameter tab: the tab whose documentPath is the source.
@@ -350,7 +348,7 @@ enum EditorPersistence {
         guard let newContent = try? String(contentsOf: url, encoding: .utf8) else {
             return nil
         }
-        // Apple HIG TextEdit / Pages / Xcode behavior: clean state
+        // matching TextEdit / Pages / Xcode behavior: clean state
         // = silent reload; dirty state = save user edits to a
         // .local-wenshu-conflict-<ts>.md BEFORE clobbering.
         let conflictNotice: String? = {
@@ -402,7 +400,7 @@ enum EditorPersistence {
             if tab.autoSaveTask == nil {
                 tab.autoSaveTask = Task {
                     // 3-second debounce (= auto-save, 3 seconds
-                    // after stopping'). Apple HIG doesn't define a canonical
+                    // after stopping'). the HIG publishes no canonical
                     // duration; = matches macOS TextEdit / Pages default.
                     try? await Task.sleep(for: .seconds(3))
                     if !Task.isCancelled {

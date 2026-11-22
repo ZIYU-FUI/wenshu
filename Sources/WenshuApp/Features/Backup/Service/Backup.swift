@@ -24,7 +24,7 @@ struct BackupMetadata: Equatable, Sendable {
 
 /// Backup (wenshu backup)
 ///
-/// The canonical Apple mechanism for safe file copy / move in a
+/// The standard Apple-file-system mechanism for safe file copy / move in a
 /// sandboxed app is `NSFileCoordinator`
 /// (= developer.apple.com/documentation/foundation/nsfilecoordinator).
 /// The previous implementation did raw `FileManager.copyItem` =
@@ -45,7 +45,7 @@ struct BackupTools: Sendable {
     /// directory tree = no compression needed; = Time Machine
     /// deduplicates the snapshot natively).
     ///
-    /// Apple HIG:
+    /// product:
     /// 1. NSFileCoordinator.coordinate(readingItemAt:writingItemAt:)
     ///    wraps the source read + backup write (= the canonical
     ///    cross-process coordination pattern).
@@ -68,7 +68,7 @@ struct BackupTools: Sendable {
         }
         try fm.createDirectory(at: destDir, withIntermediateDirectories: true)
         // Mark the backup directory with isExcludedFromBackupKey
-        // (= Time Machine loop defense). Per Apple HIG, the
+        // (= Time Machine loop defense). per product convention, the
         // resource value is set via `setResourceValues(_:)` on
         // the directory URL.
         var resourceValues = URLResourceValues()
@@ -82,7 +82,7 @@ struct BackupTools: Sendable {
         let archiveURL = destDir.appendingPathComponent(backupName, isDirectory: true)
 
         // NSFileCoordinator cross-process coordination (= the
-        // canonical Apple pattern; = replaces raw fm.copyItem).
+        // a documented Apple pattern; = replaces raw fm.copyItem).
         let coordinator = NSFileCoordinator()
         var coordinationError: NSError?
         // The coordinator's accessor closure is non-throwing

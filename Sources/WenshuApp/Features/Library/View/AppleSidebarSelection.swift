@@ -99,14 +99,14 @@ extension AppleSidebarView {
     /// forwards to `SidebarContextMenuBuilder.build(...)` with closures that
     /// flip `renaming` / `pendingDelete` / `appState.*RequestCount` (= the
     /// sidebar's local `@State` and the AppState shared counter; = the .sheet +
-    /// .alert modifiers elsewhere on this body observe + present). Apple HIG
+    /// .alert modifiers elsewhere on this body observe + present). product
     /// canonical: the closure passed to `.contextMenu(forSelectionType:menu:)`
     /// must return a @ViewBuilder block (= no `AnyView` wrapper, no explicit
     /// Group, no Divider between buttons). The `AnyView` wrapper collapses the
     /// @ContentBuilder tuple type and the menu item extractor drops trailing
     /// items (= the v1.69y symptom: the menu only renders the "create new"
     /// item). The `?` shorthand below ensures both return paths produce the
-    /// same @ContentBuilder tuple (= Apple HIG canonical shape). Map the
+    /// same @ContentBuilder tuple (= the product shape). Map the
     /// user-clicked sidebar row to the corresponding AppState.sidebarSelection
     /// discriminator (= so the rest of wenshu continues to read the same value
     /// it did before the v1.69 MVVM split (= when SidebarItem still lived

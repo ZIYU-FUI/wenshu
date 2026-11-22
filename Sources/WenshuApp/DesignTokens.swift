@@ -3,7 +3,7 @@
 // LayoutTokens + 16 files of inline literals). Listed in ComponentIndex.md Level
 // 1.1. The old header cited an "Apple HIG 30 PT toolbar standard" and an
 // "18 PT padding in 5 places"; neither figure exists in the HIG or in this
-// file (grep '= 30' = 0 hits; the only bar height HIG publishes is the menu
+// file (grep '= 30' = 0 hits; the only macOS bar height the HIG publishes is the menu
 // bar's 24 pt) (= the 2026-11-21 craft audit, rule C3/X12). Values below are
 // the product's; where one coincides with a system measurement, the doc
 // comment names the measurement instead of a citation.

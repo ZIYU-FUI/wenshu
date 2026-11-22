@@ -5,8 +5,8 @@
 // LayoutTreeStore keeps its existing public API (= `workspace`, `presets`,
 // `currentPresetID`, `save()`, `replaceAll(...)`, etc.); this repository sits
 // underneath and translates every Codable struct the store mutates into the SwiftData
-// @Model row updates (= Persistence/WSLayoutTreeState.swift). Apple HIG canonical:
-// SwiftData replaces the hand-rolled Codable + UserDefaults combination (= Apple HIG
+// @Model row updates (= Persistence/WSLayoutTreeState.swift). the product:
+// SwiftData replaces the hand-rolled Codable + UserDefaults combination (= product
 // §6 persistence = prefer SwiftData / Core Data / FileManager for structured state).
 // The repository pattern keeps the old public API stable so the 15 caller files don't
 // need to change in this commit.
@@ -90,7 +90,7 @@ struct LayoutTreeRepository {
     /// Persist the in-memory Codable tree (= LayoutTreeState) into
     /// the SwiftData @Model tables. Called from LayoutTreeStore.save().
     ///
-    /// Per Apple HIG observable model, this is the only writer
+    /// per product convention observable model, this is the only writer
     /// (= the Codable structs stay in memory; = SwiftData is the
     /// disk source of truth). Implementation: clear the existing
     /// SwiftData rows for this workspace, then re-insert from the

@@ -202,7 +202,7 @@ extension SettingView {
     }
 
     /// Localized hint distinguishing the two MiniMax providers.
-    /// Mirrors the canonical Apple-HIG URL-on-row pattern
+    /// Mirrors the canonical product URL-on-row pattern
     /// (= show the endpoint so the user types the right key into
     /// the right row).
     private func minimaxRegionHint(for provider: Provider) -> String {

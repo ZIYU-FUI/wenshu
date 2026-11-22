@@ -295,7 +295,7 @@ actor BookExportEngine {
     /// Write a minimal PDF (= one page per chapter) using PDFKit's
     /// `PDFDocument` + `PDFPage(image:)` pattern. Each page renders
     /// the chapter title + body via an `NSAttributedString` drawn into
-    /// an `NSImage` (= Apple HIG canonical pattern for rasterizing
+    /// an `NSImage` (= the product pattern for rasterizing
     /// attributed text into a PDF page).
     private func writePDF(
         chapters: [ResolvedChapter],
@@ -329,7 +329,7 @@ actor BookExportEngine {
             pdfDoc.insert(page, at: index)
         }
 
-        // Save the document to the destination URL (= Apple HIG
+        // Save the document to the destination URL (= product
         // canonical PDFKit save path).
         pdfDoc.write(to: destination)
         return destination

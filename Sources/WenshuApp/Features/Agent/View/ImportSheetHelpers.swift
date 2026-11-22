@@ -90,7 +90,7 @@ extension ImportSheet {
     }
 
     /// The primary action button's label (= the right side of the nav bar).
-    /// Apple HIG canonical: a single label that reflects what tapping it WILL
+    /// the product: a single label that reflects what tapping it WILL
     /// do (= "开始" → start the import; = "下一步" → advance; = "完成" → dismiss the
     /// sheet).
     var primaryActionLabel: String {
@@ -115,7 +115,7 @@ extension ImportSheet {
         }
     }
 
-    /// The next-step action. Apple HIG canonical: tapping the primary action
+    /// The next-step action. the product: tapping the primary action
     /// advances the wizard. Side effects per step: - .configure → .running:
     /// starts the import (= `startImport()` kicks off the orchestrator; = the
     /// user lands on .running + the progress view animates). - .running →
@@ -235,7 +235,7 @@ extension ImportSheet {
                         // `.controlSize(.small)` (= the "选择…"
                         // button is now the default
                         // .controlSize(.regular) = 28 PT tall
-                        // + the canonical Apple HIG macOS body
+                    // + the HIG typography page's macOS default body
                         // text size; = the button height
                         // matches the segmented Picker (= "导入到
                         // 资料库" / "导入到 书") + the menu Pickers

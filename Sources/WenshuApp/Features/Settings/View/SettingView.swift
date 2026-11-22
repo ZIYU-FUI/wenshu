@@ -61,7 +61,7 @@ struct SettingView: View {
             rawValue
         }
 
-        /// / SF Symbols 7 identifier per Apple HIG sidebar row leading icon.
+        /// / SF Symbols 7 identifier per product convention sidebar row leading icon.
         /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         /// / = every sidebar row icon occupies the identical optical width).
         var icon: String {

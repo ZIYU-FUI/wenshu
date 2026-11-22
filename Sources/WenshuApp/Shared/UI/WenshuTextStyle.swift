@@ -4,7 +4,7 @@
 //  Text style enum + View extension extracted from IconStyles.swift (= §6.6
 //  god-class split: 88 LOC of text-related code moved out). The
 //  `WenshuTextStyle` enum is the canonical source for wenshu's text
-//  styles (= 9 cases spanning Apple HIG canonical sizes + a few wenshu-
+//  styles (= 9 cases spanning the product sizes + a few wenshu-
 //  specific tuning knobs). The `View.wenshuFont(...)` modifier is the
 //  presentational helper (= wraps `SwiftUI.View.font(_:)` with the
 //  WenshuTextStyle).
@@ -14,11 +14,11 @@ import SwiftUI
 
 // MARK: - wenshuFont
 
-/// Convenience modifier that applies a `WenshuTextStyle` (= the HIG
-/// text-style API). Production code that previously did
-/// `.font(DesignTokens.statusFont)` (= 13 PT ad-hoc) moves to
-/// `.wenshuFont(.body)` (= HIG body, same 13 PT default, same
-/// Dynamic Type semantics).
+/// Convenience modifier that applies a `WenshuTextStyle` (= the app's
+/// own text-style API; the HIG names no API). `.wenshuFont(.body)` is
+/// `.font(DesignTokens.statusFont)` (= 13 PT ad-hoc) collapsed into
+/// one call site: system body, same 13 PT default, same Dynamic Type
+/// semantics.
 ///
 /// Used by: status bar text, hotkey columns, tab titles.
 extension View {
@@ -27,66 +27,66 @@ extension View {
     }
 }// MARK: - WenshuTextStyle
 
-/// Apple HIG text-style enum. Each case carries the SwiftUI text-style
+/// product text-style enum. Each case carries the SwiftUI text-style
 /// API (= `.body` / `.callout` / `.caption` / `.title2` / `.footnote`)
-/// + the point size (= SwiftUI default; = Apple HIG default).
+/// + the point size (= SwiftUI default; = product default).
 ///
-/// The case names walk Apple HIG text-style terminology (= the 2026-09-15
+/// The case names walk product text-style terminology (= the 2026-09-15
 /// 2026-10-01 = "  HIG "; =  case  = Apple
 /// Text Style ).
 enum WenshuTextStyle: Sendable, Equatable, CaseIterable {
 
-    /// HIG `.largeTitle` (= SwiftUI `.font(.largeTitle)`, default 26 PT).
+    /// system `\.largeTitle` (= SwiftUI `.font(.largeTitle)`, default 26 PT).
     /// Used by: top-level page hero text.
     case largeTitle
 
-    /// HIG `.title` (= SwiftUI `.font(.title)`, default 22 PT).
+    /// system `\.title` (= SwiftUI `.font(.title)`, default 22 PT).
     /// Used by: section titles (= h1).
     case title
 
-    /// HIG `.title2` (= SwiftUI `.font(.title2)`, default 17 PT).
+    /// system `\.title2` (= SwiftUI `.font(.title2)`, default 17 PT).
     /// Used by: secondary section titles (= h2).
     case title2
 
-    /// HIG `.title3` (= SwiftUI `.font(.title3)`, default 15 PT).
+    /// system `\.title3` (= SwiftUI `.font(.title3)`, default 15 PT).
     /// Used by: tertiary section titles (= h3).
     case title3
 
-    /// HIG `.headline` (= SwiftUI `.font(.headline)`, default 13 PT
+    /// system `\.headline` (= SwiftUI `.font(.headline)`, default 13 PT
     /// semibold). Used by: list row emphasis.
     case headline
 
-    /// HIG `.body` (= SwiftUI `.font(.body)`, default 13 PT regular).
+    /// system `\.body` (= SwiftUI `.font(.body)`, default 13 PT regular).
     /// Apple-shipped Mail / Notes body text.
     /// Used by: status bar text (= former `statusFont` 13 PT),
     /// kanban card body.
     case body
 
-    /// HIG `.callout` (= SwiftUI `.font(.callout)`, default 12 PT).
+    /// system `\.callout` (= SwiftUI `.font(.callout)`, default 12 PT).
     /// Apple-shipped inline button label.
     /// Used by: hotkey combo label (= former `hotkeyComboFont` 12 PT),
     /// pane tab title (= former `tabTitleFont` 12 PT).
     case callout
 
-    /// HIG `.subheadline` (= SwiftUI `.font(.subheadline)`, default 11 PT).
+    /// system `\.subheadline` (= SwiftUI `.font(.subheadline)`, default 11 PT).
     /// Used by: secondary metadata.
     case subheadline
 
-    /// HIG `.caption` (= SwiftUI `.font(.caption)`, default 11 PT regular).
+    /// system `\.caption` (= SwiftUI `.font(.caption)`, default 11 PT regular).
     /// Apple-shipped inline footnote.
     /// Used by: runtime CWD display chip (= former `runtimeCwdChipFont`
     /// 11 PT), inline metadata captions.
     case caption
 
-    /// HIG `.caption2` (= SwiftUI `.font(.caption2)`, default 11 PT).
+    /// system `\.caption2` (= SwiftUI `.font(.caption2)`, default 11 PT).
     /// Used by: very small captions.
     case caption2
 
-    /// HIG `.footnote` (= SwiftUI `.font(.footnote)`, default 10 PT).
+    /// system `\.footnote` (= SwiftUI `.font(.footnote)`, default 10 PT).
     /// Used by: footnote text.
     case footnote
 
-    /// SwiftUI text-style API (= the canonical HIG text style).
+    /// SwiftUI text-style API (= the system text styles).
     var font: Font {
         switch self {
         case .largeTitle: .largeTitle
@@ -103,7 +103,7 @@ enum WenshuTextStyle: Sendable, Equatable, CaseIterable {
         }
     }
 
-    /// HIG default point size (= SwiftUI text-style default).
+    /// System default point size (= SwiftUI text-style default).
     var pointSize: CGFloat {
         switch self {
         case .largeTitle: 26

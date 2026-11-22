@@ -10,7 +10,7 @@
 //  diff (= untruncated, scrollable, textSelection(.enabled) for
 //  clipboard copy).
 //
-//  Apple HIG: NavigationStack + toolbar Close. Mirrors
+//  product: NavigationStack + toolbar Close. Mirrors
 //  KanbanTicketDetailSheet's structural choices so the two
 //  "tap-to-expand diff" surfaces share visual identity.
 //
@@ -30,7 +30,7 @@ struct ChatToolDiffPreviewSheet: View {
         ChatToolDiffPreview.countLineStats(display)
     }
 
-    /// Close button (= Apple HIG macOS convention = toolbar
+    /// Close button (= product macOS convention = toolbar
     /// navigation item + .cancellation action label).
     @Environment(\.dismiss) private var dismiss
 

@@ -14,7 +14,7 @@
 import Foundation
 
 /// Character role (= narrative POV function inside the book). Drives
-/// color coding in the editor (= Apple HIG: roles are color-coded
+/// color coding in the editor (= product: roles are color-coded
 /// per the FCP Role pattern).
 /// Five cases cover the most common narrative POV positions:
 /// protagonist, antagonist, supporting, narrator, other.
@@ -57,8 +57,8 @@ enum CharacterRole: String, CaseIterable, Codable, Sendable {
     }
 
     /// SF Symbol name for the card icon. Outline icons everywhere
-    /// (= the canonical Apple HIG form for the Liquid Glass 3rd-
-    /// generation design language).
+    /// (= the HIG sf-symbols page: "The outline variant
+    /// works well in toolbars, lists, and other places".)
     ///
     /// The antagonist carries a magnifying glass (= the role under
     /// scrutiny). The name is the system symbol's own name: the
@@ -163,9 +163,9 @@ struct Character: Identifiable, Hashable, Codable, Sendable {
             .appendingPathComponent(filename)
     }
 
-    // id-based identity (= Apple HIG document-based convention).
-    // Renames change `name` but NOT `id`, so `char == char` still
-    // holds across renames.
+    /// id-based identity (= product document-based convention).
+    /// Renames change `name` but NOT `id`, so `char == char` still
+    /// holds across renames.
     static func == (lhs: Character, rhs: Character) -> Bool {
         lhs.id == rhs.id
     }

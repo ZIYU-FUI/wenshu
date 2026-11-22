@@ -55,7 +55,7 @@ public final class FileProviderKeyStore: ProviderKeychainStoring, @unchecked Sen
     /// canonical macOS location (= sandbox-safe + per-user; =
     /// persists across wenshu updates + doesn't get bundled into
     /// the `.ws` library when the user shares / syncs it).
-    /// Per Apple HIG: `FileManager.default.url(for: .applicationSupportDirectory,
+    /// per product convention: `FileManager.default.url(for: .applicationSupportDirectory,
     /// in: .userDomainMask, appropriateFor: nil, create: true)`.
     public static let fileURL: URL = {
         let fm = FileManager.default

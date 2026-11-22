@@ -59,12 +59,12 @@ enum DisplayState: Sendable, Equatable, Codable {
         switch self {
             case .idle: return "circle"
             case .running: return "arrow.triangle.2.circlepath"
-            // Migrated to outline glyphs (= Apple SF Symbols 6 outline convention).
-            // status icons (success / error) use outline glyphs
-            // (= the canonical Apple HIG form for the Liquid Glass
-            // 3rd-generation design language). The .fill variant
-            // is reserved for selected/active state markers
-            // (= future ticket if the UI needs them).
+        // Migrated to outline glyphs (= the HIG sf-symbols page:
+        // "The outline variant works well in toolbars, lists, and
+        // other places where you display a symbol alongside text").
+        // status icons (success / error) use outline glyphs.
+        // The .fill variant is reserved for selected/active state
+        // markers (= future ticket if the UI needs them).
             case .success: return "checkmark.circle"
             case .error: return "exclamationmark.triangle"
             case .cancelled: return "xmark.circle"

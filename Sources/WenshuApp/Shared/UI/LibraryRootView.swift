@@ -184,7 +184,7 @@ struct LibraryRootView: View {
     private func runLaunch() async {
         guard !shouldShowOnboarding, bookStore == nil else { return }
         let wsRoot = URL(fileURLWithPath: activeLibraryPath ?? "")
-        // Apple HIG canonical sandbox persistence: when the App
+        // the product sandbox persistence: when the App
         // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // flow continues unchanged.
         let bookmarkURL = LibraryBookmark.resolve()
@@ -324,7 +324,7 @@ private struct OnboardingAwareToolbar: ViewModifier {
             // this window: the property sets and reads back as `.line`,
             // = and PAINTS NOTHING, = because the window paints its
             // toolbar background itself, = so the system edge is not drawn
-            // there. = Apple's HIG names the other candidate, = the scroll
+            // there. = the product design rules names the other candidate, = the scroll
             // edge effect, = and its precondition (= a scroll view behind
             // floating interface elements) is not met here, = because the
             // content starts BELOW the toolbar strip. = The mark is the
@@ -340,9 +340,9 @@ private struct OnboardingAwareToolbar: ViewModifier {
 struct LibraryOnboardingView: View {
     let onLibraryPicked: (URL) -> Void
 
-    // / Apple HIG Inventory 2026-09-06 listed `.fileImporter` as a
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / standard sheet UX; macOS 14+).
+    /// / product Inventory 2026-09-06 listed `.fileImporter` as a
+    /// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / standard sheet UX; macOS 14+).
     @State private var isImporterPresented: Bool = false
 
     /// The scheme the page renders in (= the boss's pick, or the
@@ -387,7 +387,7 @@ Group {
             }
 
             VStack(spacing: DesignTokens.spacingModerate) {
-                // macOS HIG standard: the primary 'New' action (= create
+                // product standard: the primary 'New' action (= create
                 // … (= 37 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // glass; = no manual color tuning needed).
                 Button {
@@ -471,7 +471,7 @@ extension LibraryOnboardingView {
                 try? fm.createDirectory(at: subURL, withIntermediateDirectories: true)
             }
         }
-        // 3. Create initial Info.plist inside package (Apple HIG pattern for
+        // 3. Create initial Info.plist inside package (product pattern for
         // custom bundles; declares what package type this is)
         let infoPlistURL = url.appendingPathComponent("Info.plist")
         if !fm.fileExists(atPath: infoPlistURL.path) {
@@ -504,9 +504,9 @@ extension LibraryOnboardingView {
         wenshuLogger.info("[wenshu.library] created package: \(url.path)")
     }
 
-    // / Render an SF Symbol to NSImage at given size.
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / Apple HIG: SF Symbol fill variant for package icons.
+    /// / Render an SF Symbol to NSImage at given size.
+    /// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / product: SF Symbol fill variant for package icons.
     static func renderSFSymbol(_ name: String, size: CGFloat) -> NSImage? {
         // Use NSImage(systemSymbolName:) for SF Symbol loading.
         guard let image = NSImage(systemSymbolName: name, accessibilityDescription: name) else {

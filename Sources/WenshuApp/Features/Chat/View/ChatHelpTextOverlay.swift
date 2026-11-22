@@ -24,7 +24,7 @@ struct ChatHelpTextOverlay: View {
         // 'You there?' buttons) bled through the hint and made it hard to
         // read.
         //
-        // Apple HIG pattern for an empty-state overlay inside a
+        // product pattern for an empty-state overlay inside a
         // content area (= Mail's 'No conversations selected' /
         // Notes' 'No notes' / Music's 'No music in library'):
         // the empty state COVERS the content area with a SOLID
@@ -37,7 +37,7 @@ struct ChatHelpTextOverlay: View {
         // 1. .background(.regularMaterial) → semi-transparent material (content below
         //    shows through blurred — not appropriate for empty state, need full occlusion)
         // 2. .background(Color(NSColor.windowBackgroundColor))
-        //    → solid color (Apple HIG recommended for empty state)
+        //    → solid color (the product's choice for empty state)
         // 3. .background(Color(NSColor.controlBackgroundColor))
         //    → control background color (good for inline views, not large areas)
         // 4. .containerBackground(.background, for: .window)
@@ -46,13 +46,13 @@ struct ChatHelpTextOverlay: View {
         // Final pick: #2 `Color(NSColor.windowBackgroundColor)` in a
         // ZStack background layer (= solid fill matching the chat panel's
         // base color = fully occludes the messages below + visually consistent
-        // with the Apple system chat panel = Apple HIG canonical empty-state pattern).
+        // with the Apple system chat panel (= the product's empty-state pattern).
         //
         // Frame: `.frame(maxWidth: .infinity, maxHeight: .infinity)`
         // on the ZStack = overlay fills the entire chat zone (= same slot
         // as the chat messages) = the empty state is a fullscreen-
         // for-this-zone message, not a tiny floating bubble (=
-        // Apple HIG canonical for empty states inside scrollable
+        // the product for empty states inside scrollable
         // content).
         //
         // Layer order: the Color is the FIRST child of ZStack (= it
@@ -90,8 +90,10 @@ struct ChatHelpTextOverlay: View {
                 // ContentUnavailableView sample.
                 // -m1-shell (see OOB.md #2026-09-16) OOB ' ICON， .fill':
                 // migrated chat empty-state icon from 'message.fill' to
-                // 'message' (= the outline form = the canonical Apple
-                // HIG Liquid Glass 3rd-generation design language).
+                // 'message' (= the outline variant, which the HIG
+                // sf-symbols page recommends: "The outline variant works
+                // well in toolbars, lists, and other places where you
+                // display a symbol alongside text").
                 EmptyStateView(
                     icon: "message",
                     titleView:

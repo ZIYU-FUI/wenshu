@@ -34,7 +34,7 @@
 //
 //  Click behavior: NSWorkspace.shared.open(url) (= Reveal in Finder
 //  semantics = opens the file with the user's default app). This is
-//  Apple HIG canonical for "tap an attachment thumbnail" (= no need
+//  the product for "tap an attachment thumbnail" (= no need
 //  to invent a custom viewer).
 //
 //  Failure mode: when the file is missing (= e.g. cache was cleared
@@ -63,7 +63,7 @@ struct ChatMessageAttachmentPreview: View {
         if let nsImage = NSImage(contentsOfFile: imagePath) {
             Button {
                 let url = URL(fileURLWithPath: imagePath)
-                // Apple HIG canonical attachment-open behavior:
+                // the product attachment-open behavior:
                 // NSWorkspace.shared.open = "Reveal in default app".
                 // No custom viewer (= hermes also uses
                 // <a href={url} target="_blank">).

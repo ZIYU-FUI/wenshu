@@ -23,7 +23,7 @@
 //       the library store; the function returns a path proposal the
 //       caller can use to update documentPath). The path is
 //       computed deterministically so subsequent saves overwrite
-//       the same file (= atomic write per Apple HIG).
+//       the same file (= atomic write per product convention).
 //   - MarkdownEditorBusBridge.bind(bus:formatToolbar:findReplace:)
 //       Subscribes the host's format-toolbar / find / replace UI
 //       to the bus's Notification.Names. Returns an opaque token
@@ -222,7 +222,7 @@ enum DraftPersistence {
         return chaptersDir.appendingPathComponent("\(tab.id.uuidString).md", isDirectory: false)
     }
 
-    /// Write `text` to `url` atomically (= Apple HIG document
+    /// Write `text` to `url` atomically (= product document
     /// write pattern). Throws on failure (= host can surface an
     /// alert / log).
     static func persist(text: String, to url: URL) throws {

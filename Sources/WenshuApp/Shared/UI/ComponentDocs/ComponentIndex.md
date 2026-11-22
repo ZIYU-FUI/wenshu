@@ -30,8 +30,8 @@ Each component has:
 - **Don't use when**: One-off local measurement (= use inline CGFloat literal)
 - **API**:
   ```swift
-  DesignTokens.chromePaddingLeading   // 8 PT (= Apple HIG canonical 'Spacing.small')
-  DesignTokens.chromePaddingTrailing  // 8 PT (= Apple HIG canonical 'Spacing.small')
+  DesignTokens.chromePaddingLeading   // 8 PT (= the product 'Spacing.small')
+  DesignTokens.chromePaddingTrailing  // 8 PT (= the product 'Spacing.small')
   DesignTokens.chromePaddingVertical  // 8 PT
   DesignTokens.paneTabHotArea         // 28 PT (= renamed from chatTabHotArea)
   DesignTokens.tabUnderlineHeight     // 3 PT
@@ -116,7 +116,7 @@ Each component has:
 
 ### 2.6 PaneStatusBar (NEW, Phase 5)
 - **Path**: `Sources/WenshuApp/UI/PaneStatusBar.swift` (NEW)
-- **Purpose**: Higher-level wrapper around `RegionStatusBar` with built-in left/right status text + Apple HIG padding
+- **Purpose**: Higher-level wrapper around `RegionStatusBar` with built-in left/right status text + product padding
 - **Use when**: Showing simple "left status + right status" at pane bottom (= most common pattern)
 - **API**:
   ```swift
@@ -178,7 +178,7 @@ Each component has:
 
 ### 4.3 RegionSelectionBackground
 - **Path**: `Sources/WenshuApp/UI/RegionSelectionBackground.swift`
-- **Purpose**: Standard selected state background (= Apple HIG .thinMaterial accent overlay)
+- **Purpose**: Standard selected state background (= product .thinMaterial accent overlay)
 - **Use when**: Any view has a selected/unselected state (= tabs, list items, etc.)
 
 ---
@@ -194,7 +194,7 @@ Each component has:
 ### 5.3 Tooltip (Apple SwiftUI `.help()`)
 
 - **Path**: N/A (= SwiftUI built-in modifier).
-- **Purpose**: Apple HIG canonical tooltip (= tiny popup on hover/long-press). The OS handles the warm-window delay and the popup rendering (= no custom code).
+- **Purpose**: the product tooltip (= tiny popup on hover/long-press). The OS handles the warm-window delay and the popup rendering (= no custom code).
 - **Use when**: Any view needs contextual help text. Apply `.help("Toggle sidebar (⌘B)")` to the view (= Apple canonical since macOS 11).
 - **Replaces**: `Sources/WenshuApp/UI/Components/Tip.swift` (= 221-LOC custom `TipController` + `TipModifier` with a hand-rolled 300 ms warm-window; deleted in commit by Tier-1 rank-1 deletion per `.scratch/v0.32-apple-api-audit/audit.md` §3).
 
@@ -217,7 +217,7 @@ Each component has:
   SFIcon("wand.and.stars", size: .large, rendering: .palette, color: .tint)
   Image(systemName: "magnifyingglass").iconStyle(.chrome)
   ```
-- **Rendering modes**: `.monochrome` / `.hierarchical` (default; = Apple HIG chrome) / `.palette` (= per-layer color depth) / `.paletteLayers(Color, Color)` (= explicit two-layer).
+- **Rendering modes**: `.monochrome` / `.hierarchical` (default; = product chrome) / `.palette` (= per-layer color depth) / `.paletteLayers(Color, Color)` (= explicit two-layer).
 - **Weight**: `.regular` (= the 2026-09-15 '细体' (thin) = canonical macOS 27 toolbar weight).
 
 ### 6.2 ~~Lucide (raw)~~ — REMOVED 2026-09-15
@@ -275,7 +275,7 @@ These were removed in various phases (= Apple-API-first sweep + iron-rules pass)
 
 ### 8.3d The right-rail shell (= InspectorView, live, no tools)
 - **Path**: `Sources/WenshuApp/Features/Editor/View/InspectorView.swift`
-- **Purpose**: The window's trailing inspector column (= the Apple HIG `.inspector` surface; = the active page's title + the status page's sub-agent task cards; = one page)
+- **Purpose**: The window's trailing inspector column (= the product `.inspector` surface; = the active page's title + the status page's sub-agent task cards; = one page)
 - **Use when**: Giving the column another page (= that is a new ticket; = the 15 tools the rail used to hold stay deleted, see 8.3c)
 - **Don't use when**: Reaching for a tool the rail used to have (= the removal in 8.3c is deliberate)
 - **API**:
@@ -302,7 +302,7 @@ These were removed in various phases (= Apple-API-first sweep + iron-rules pass)
 - **Was in**: 4 custom SwiftUI wrappers under `Sources/WenshuApp/UI/` (= 1 fixed-top + 1 fixed-bottom + 1 polish + 1 overlay) — all deleted in v0.34
 - **Deleted**: commit `69a43da65` ('use the most reasonable approach, should be unified into one component')
 - **Use instead**: SwiftUI `.toolbar { ToolbarItemGroup }` + `.windowToolbarStyle(.unified)` (= Apple macOS 26 canonical pattern; see LEVEL 7.1)
-- **Why deleted**: All 4 wrappers duplicated Apple HIG behavior Apple provides for free via `.windowToolbarStyle(.unified)` + `.toolbar { ToolbarItem(placement: .principal) }`. The whole 4-file chrome overlay was never rendered in production.
+- **Why deleted**: All 4 wrappers duplicated product behavior Apple provides for free via `.windowToolbarStyle(.unified)` + `.toolbar { ToolbarItem(placement: .principal) }`. The whole 4-file chrome overlay was never rendered in production.
 
 ---
 
@@ -494,7 +494,7 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 
 ### 9.2 WindowOpenButton
 - **Path**: `Sources/WenshuApp/Features/Chrome/View/WindowOpenButton.swift` (A94, 98 LOC)
-- **Purpose**: Reusable button format for opening an independent macOS window (= 1 source of truth for the toolbar button shape; = uses `Image(systemName:)` directly per Apple HIG; = A97 dropped the SFIcon wrapper for toolbar since the toolbar's NSToolbar defaults pin the icon style)
+- **Purpose**: Reusable button format for opening an independent macOS window (= 1 source of truth for the toolbar button shape; = uses `Image(systemName:)` directly per product convention; = A97 dropped the SFIcon wrapper for toolbar since the toolbar's NSToolbar defaults pin the icon style)
 - **Use when**: Anywhere a SwiftUI surface needs to open an independent window (= toolbar + sidebar + inspector).
 - **Don't use when**: Inside the `Window` body itself (= the window already has a body; = don't recursively open a window from inside).
 - **API**:

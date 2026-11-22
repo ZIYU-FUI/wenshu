@@ -22,7 +22,7 @@
 //  the sheet's progress indicator. The actor's isolation lets the
 //  sheet observe progress from the main actor without blocking.
 //
-//  No third-party zip SPM dep. Per Apple HIG, the system `zip` CLI
+//  No third-party zip SPM dep. per product convention, the system `zip` CLI
 //  is the canonical tool (= `/usr/bin/zip` is shipped on every
 //  macOS install). Spinning a `Process` (= actor-isolated) avoids
 //  pulling in a 200 KB SPM dep for 5 lines of process spawn.

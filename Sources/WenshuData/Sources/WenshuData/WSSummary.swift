@@ -47,9 +47,9 @@ public final class WSSummary {
     }
 }
 
-// Apple HIG canonical Identifiable conformance for SwiftUI
-// Table selection. Same rationale as WSBody (= the
-// existing String id field already satisfies Swift's
-// Identifiable; = free one-line declaration; = no
-// PersistentIdentifier entanglement).
+/// the product Identifiable conformance for SwiftUI
+/// Table selection. Same rationale as WSBody (= the
+/// existing String id field already satisfies Swift's
+/// Identifiable; = free one-line declaration; = no
+/// PersistentIdentifier entanglement).
 extension WSSummary: Identifiable {}

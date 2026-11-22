@@ -119,7 +119,7 @@ extension Card {
                 .allowsHitTesting(false)
             }
             // The last attempt failed: the card carries the mark
-            // (= the Apple HIG "needs attention" pattern, in the
+            // (= the product "needs attention" pattern, in the
             // corner the completion badge does not use).
             if showsFailureMark {
                 SFIcon(
@@ -204,7 +204,7 @@ extension Card {
             // mouse-off events; = the user can leave the card and the
             // orange tint stays; = matches the boss's "需 要用户补 齐" wording =
             // the card needs attention, not just a hover hint). The orange
-            // tint = Apple HIG "needs- attention" color (= the system
+            // tint = product "needs- attention" color (= the system
             // orange; = not the wenshu accent color; = the user
             // immediately recognizes "this needs action").
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow, style: .continuous)
@@ -216,7 +216,7 @@ extension Card {
                 )
         )
         // the top-right corner badge (= a small orange triangle icon in a white circle; =
-        // the Apple HIG "needs attention" pattern; = the badge persists across
+        // the product "needs attention" pattern; = the badge persists across
         // hover events; = the user can scroll the card into view and
         // immediately see "this one needs 补齐" without hovering). Only shown
         // when `needsCompletion == true`.
@@ -254,7 +254,7 @@ extension Card {
         // the enclosing scroll gesture" pattern; = the `simultaneousGesture`
         // modifier tells the gesture system to also recognize this gesture in
         // parallel with the parent `ScrollView`'s pan gesture; = the count=2
-        // TapGesture is the macOS HIG double-click surface for SwiftUI; = the
+        // TapGesture is the standard SwiftUI way to take a double-click; = the
         // previous attempts of `.onTapGesture(count: 2)` were blocked by
         // LazyVGrid's ScrollView gesture recognizer, but `simultaneousGesture`
         // bypasses the conflict by asserting "fire this gesture in parallel
@@ -288,7 +288,7 @@ extension Card {
                        cardID)
             }
         )
-        // Apple HIG tooltip (= .help = NSWindow tooltip = separate window per Apple HIG =
+        // product tooltip (= .help = NSWindow tooltip = separate window per product convention =
         // the user can hover any tab label and get its full name; = matches
         // macOS Finder / TextEdit tab bar tooltip behavior).
         .help(source.title)

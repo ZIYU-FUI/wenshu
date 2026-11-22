@@ -19,7 +19,7 @@ import MarkdownEngine
 /// One host-side preference (= SwiftUI AppStorage-backed). Each
 /// field is its own getter so a future "Settings → Editor" panel
 /// can bind to individual fields without rebuilding the entire
-/// struct (= Apple HIG Settings panel = one toggle per row = =
+/// struct (= product Settings panel = one toggle per row = =
 /// one @AppStorage per row).
 ///
 /// Default values mirror `MarkdownEditorConfiguration.default`
@@ -32,8 +32,8 @@ struct EditorPreferences: Equatable, Sendable {
     /// window width (= the engine fills horizontally).
     var readingWidth: CGFloat?
     /// Vertical growth behavior (= .scrolls = NSTextView scrolls; =
-    /// .fitsContent = NSTextView grows with content = the Apple
-    /// HIG Pages inspector "Page Setup" choice).
+    /// .fitsContent = NSTextView grows with content = an Apple Pages
+    /// "Page Setup"-style choice (product rule, no HIG figure).
     var heightBehavior: MarkdownEditorConfiguration.HeightBehavior
     /// Show raw markdown source instead of rendered prose (= the
     /// engine's `rawSourceMode` toggle).

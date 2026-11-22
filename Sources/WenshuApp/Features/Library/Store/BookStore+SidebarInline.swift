@@ -158,7 +158,7 @@ extension BookStore {
     }
 
     /// Create a new shelf on disk with reserved-name + duplicate-name
-    /// guards (= Apple HIG document-based app: shelf.id is the
+    /// guards (= product document-based app: shelf.id is the
     /// filesystem identity; shelf.name is the user-visible label, so
     /// duplicate user labels would confuse the reader).
     func sidebarSaveShelf(name: String, icon: String?) throws {
@@ -200,7 +200,7 @@ extension BookStore {
     /// inside the active book directory). Returns nil if the book id
     /// is not on disk (= caller decides how to render the empty state).
     ///
-    /// Apple HIG: pure helper on the data store (= no SwiftUI
+    /// product: pure helper on the data store (= no SwiftUI
     /// dependency; trivially testable; matches `folderDocumentCount`
     /// scan pattern above).
     ///

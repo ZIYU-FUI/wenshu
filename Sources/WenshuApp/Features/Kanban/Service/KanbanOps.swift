@@ -36,7 +36,7 @@
 //    seam (= a protocol with one method, satisfied by BookStore in
 //    production and a MockReferenceStore struct in tests).
 //
-//  Apple HIG canonical pattern: stateless business-layer enum +
+//  the product pattern: stateless business-layer enum +
 //  per-call Result structs (= matches Foundation URLSession's
 //  completion-handler shape; = no leaky global state).
 //

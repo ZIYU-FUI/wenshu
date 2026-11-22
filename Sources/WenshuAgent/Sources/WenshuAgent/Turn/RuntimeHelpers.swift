@@ -365,7 +365,7 @@ public actor RuntimeHelpers {
 //     in `RuntimeHelpers.dprint`).
 //   - The 5 hermes reasoning tag variants (= `<think>` /
 //     `<thinking>` / `<reasoning>` / `<REASONING_SCRATCHPAD>` /
-//     `<thought>`) are preserved 1:1 (= wenshu uses Apple HIG
+//     `<thought>`) are preserved 1:1 (= wenshu uses product
 //     tag rendering, = hermes-style raw HTML/XML strips out
 //     before rendering).
 

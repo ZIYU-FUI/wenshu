@@ -6,7 +6,7 @@
 //  agent-written body (= markdown = `**Goal:**`, lists, inline code,
 //  links) can be read past the card's `.lineLimit(6)` truncation.
 //
-//  Apple HIG components used (= no custom chrome):
+//  product components used (= no custom chrome):
 //    - .sheet(isPresented:)
 //    - NavigationStack (Apple-default sheet chrome = title row + close)
 //    - ScrollView + Text(AttributedString) for the body

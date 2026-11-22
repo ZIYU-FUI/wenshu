@@ -1,8 +1,8 @@
 // EditorChatNSController.swift · Wenshu
 //
 // First-launch divider = 50:50; drag-to-resize persists via
-// Apple HIG NSSplitView autosaveName. Implementation:
-//   - Apple HIG NSSplitView autosaveName handles drag persistence
+// product NSSplitView autosaveName. Implementation:
+//   - product NSSplitView autosaveName handles drag persistence
 //     (= writes divider position to UserDefaults on every drag;
 //     = reads it back on next launch).
 //   - Flag `wenshu.editor.split.didSetFirstLaunchPosition` gates
@@ -16,7 +16,7 @@
 // Why NSSplitViewController (= not SwiftUI VSplitView)?
 // ----------------------------------------------------
 //
-// The canonical Apple HIG pattern for Keynote's 'presenter notes'
+// The Apple pattern for Keynote's 'presenter notes'
 // pane (= hideable + resizable + drag-collapse + animated toggle)
 // is `NSSplitViewController` + `NSSplitViewItem.canCollapse`
 // + `NSSplitViewItem.animator().isCollapsed` per Apple's
@@ -33,7 +33,7 @@
 // `isCollapsed` / native divider collapse animation. Per Apple's
 // macOS 14+ SwiftUI release notes, VSplitView is a thin wrapper
 // over NSSplitView but does NOT bridge the canCollapse API.
-// The Apple HIG canonical way to get the Keynote speaker-notes
+// The product way to get the Keynote speaker-notes
 // hide/show + animated toggle is the AppKit NSSplitViewController.
 //
 // Implementation:
@@ -41,7 +41,7 @@
 // - 2 `NSSplitViewItem`s: top = editor, bottom = chat zone
 // - chat zone `NSSplitViewItem.canCollapse = true`
 // - each item hosts an `NSHostingController(rootView: SwiftUIView)`
-// - dividerStyle = .thin (= matches Apple HIG thin divider pattern)
+// - dividerStyle = .thin (= matches product thin divider pattern)
 // - autosaveName persists the divider position across launches
 // - `toggleChatZone()` (= the menu action) calls
 //   `splitViewItems[1].animator().isCollapsed.toggle()`
@@ -70,7 +70,7 @@ final class EditorChatNSController: NSSplitViewController {
     /// action to find the right item to toggle).
     static let chatItemIdentifier = "wenshu.editor.chat"
 
-    /// Persisted divider position (= Apple HIG NSSplitViewController
+    /// Persisted divider position (= product NSSplitViewController
     /// built-in autosave behavior; = the user's drag positions
     /// survive app relaunch automatically; = no manual UserDefaults
     /// flag needed). Apple docs:
@@ -83,7 +83,7 @@ final class EditorChatNSController: NSSplitViewController {
     /// (= wenshu.editor.split.didSetFirstLaunchPosition) to force
     /// 50:50 on first launch; = problem: once the flag was set,
     /// the user's drag always overrode it; = no way to recover
-    /// the 50:50 default after the first launch. Apple HIG fix:
+    /// the 50:50 default after the first launch. product fix:
     /// ONLY use the autosaveName mechanism. Drop the manual flag
     /// + let Apple autosave handle persistence; = the
     /// first-launch 50:50 position is set via setPosition() in
@@ -95,7 +95,7 @@ final class EditorChatNSController: NSSplitViewController {
 
     /// Reference to the chat-zone split item (= set in viewDidLoad).
     /// Stored so the menu action can call `isCollapsed.toggle()`
-    /// on it (= the canonical Apple Keynote speaker-notes API).
+    /// on it (= the Apple Keynote speaker-notes API).
     var chatItem: NSSplitViewItem?
 
     /// The share of the axis the divider holds (= the user's own

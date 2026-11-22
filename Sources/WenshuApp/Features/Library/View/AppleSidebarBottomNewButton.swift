@@ -2,7 +2,7 @@
 //
 // Bottom '+' button (= safe-area-inset, = pinned to the bottom of
 // the sidebar). Used by AppleSidebarView (= the macOS 27
-// Apple HIG List(.sidebar) sidebar). Clicking calls `action`
+// product List(.sidebar) sidebar). Clicking calls `action`
 // (= AppleSidebarView wires it to `appState.choiceRequestCount += 1`
 // to trigger the choice sheet via .onChange in the parent).
 //
@@ -38,7 +38,7 @@
 // (= the sidebar bottom tints with the same sidebar
 // / chrome material the chat footer / editor
 // status bar use; = all three column-bottom rows
-// in wenshu now share one canonical Apple HIG
+// in wenshu now share one Apple
 // sidebar-bottom-accessory surface).
 
 import SwiftUI

@@ -36,7 +36,7 @@
 // Material, for: .windowToolbar)`), = so the system edge is not
 // drawn there.
 //
-// Apple's HIG names the other candidate, = and this app's shape does
+// the product design rules names the other candidate, = and this app's shape does
 // not meet its precondition:
 //   - toolbars: "use a ScrollEdgeEffectStyle when necessary to
 //     distinguish the toolbar area from the content area."

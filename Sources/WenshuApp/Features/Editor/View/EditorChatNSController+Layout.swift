@@ -88,7 +88,7 @@ extension EditorChatNSController {
     /// Programmatic toggle (= called from the menu bar View >
     /// Show/Hide Chat Zone item). Uses `animator()` so the collapse
     /// / expand animates per NSSplitView's standard animation.
-    /// This is the canonical Apple HIG Keynote speaker-notes API.
+    /// This is the Apple Keynote speaker-notes API.
     func toggleChatZone() {
         // dual-axis followup: added NSLog when
         // chatItem is nil (= was a silent no-op before; = the menu

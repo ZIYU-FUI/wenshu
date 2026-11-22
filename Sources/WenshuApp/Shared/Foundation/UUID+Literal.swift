@@ -9,7 +9,7 @@
 //  strings are guaranteed-valid UUID format literals so the try! is
 //  "safe in practice" but reads as a hidden crash vector).
 //
-//  Apple HIG canonical pattern: UUID is initialised with
+//  the product pattern: UUID is initialised with
 //  preconditionFailure on a malformed literal (= any failure
 //  indicates the literal itself is wrong, not a runtime input).
 //
@@ -31,7 +31,7 @@ extension UUID {
         if let uuid = UUID(uuidString: string) {
             return uuid
         }
-        // Apple HIG precondition: a compile-time UUID literal should NEVER
+        // product precondition: a compile-time UUID literal should NEVER
         // fail to parse. If it does, the developer made a typo (= the
         // string isn't a valid UUID format). Use preconditionFailure
         // (= a precondition violation = the same fatal behavior as try!

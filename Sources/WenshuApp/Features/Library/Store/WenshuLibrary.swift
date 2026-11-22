@@ -31,7 +31,7 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshulibr
 @MainActor
 @Observable
 final class WenshuLibrary {
-    /// All bookshelves, sorted by updatedAt descending (= Apple HIG Finder
+    /// All bookshelves, sorted by updatedAt descending (= product Finder
     /// 'Recents' convention).
     private(set) var shelves: [Bookshelf] = []
     /// Total book count across all shelves (= used by projectSidebar
@@ -40,7 +40,7 @@ final class WenshuLibrary {
     /// so UI updates reactively when shelves/books change.
     private(set) var bookCount: Int = 0
 
-    /// The user's current selection (= Apple HIG document-based apps
+    /// The user's current selection (= product document-based apps
     /// default to a single selection (single-selection only).
     /// Nil means "no selection" (= fresh install, or user cleared).
     private(set) var selectedShelfId: UUID?
@@ -62,7 +62,7 @@ final class WenshuLibrary {
         } catch {
             self.shelves = []
         }
-        // Apple HIG document-based app: on launch, if there's a
+        // product document-based app: on launch, if there's a
         // library, auto-select the most-recently-edited shelf (= the
         // same sort order the list shows). Avoids the empty-state in
         // the right pane for the typical 'I have existing books I want
@@ -104,7 +104,7 @@ final class WenshuLibrary {
     }
 
     /// URL to display in the UI (= 'Library at <rootURL>'). The view
-    /// uses this for the Apple HIG 'Show in Finder' affordance.
+    /// uses this for the product 'Show in Finder' affordance.
     var libraryRootURL: URL { store.rootURL }
 
     // MARK: - Mutations (= all delegate to the storage layer; mirror the
@@ -120,12 +120,12 @@ final class WenshuLibrary {
         // shelf has the latest updatedAt (= .now from the init), so it
         // goes to the front.
         shelves.insert(shelf, at: 0)
-        // Auto-select the newly added shelf (= Apple HIG Finder behavior:
+        // Auto-select the newly added shelf (= product Finder behavior:
         // creating a folder also selects it).
         selectedShelfId = shelf.id
     }
 
-    /// Renames an existing shelf. id stays the same (= Apple HIG
+    /// Renames an existing shelf. id stays the same (= product
     /// document-based: URL = identity, name = display label only).
     /// Throws .shelfNotFound if no shelf with that id exists.
     func renameShelf(id: UUID, to newName: String) throws {
@@ -191,7 +191,7 @@ final class WenshuLibrary {
         try store.loadBooks(shelfId: shelfId)
     }
 
-    /// Creates a new book under a shelf. Auto-selects it (= Apple HIG
+    /// Creates a new book under a shelf. Auto-selects it (= product
     /// Finder: creating a file also selects it).
     func addBook(_ book: Book) throws {
         try store.saveBook(book)
@@ -200,7 +200,7 @@ final class WenshuLibrary {
         }
     }
 
-    /// Renames a book. id stays the same (= Apple HIG document-based:
+    /// Renames a book. id stays the same (= product document-based:
     /// URL = identity, title = display label only).
     func renameBook(id: UUID, to newTitle: String) throws {
         guard let book = try store.loadBook(id: id) else {

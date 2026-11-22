@@ -152,10 +152,10 @@ struct PreviewPane: View {
         VStack(spacing: 0) {
             // The column's top row is the search band: the column carries
             // no title row above it.
-            // Per Apple HIG / platform-default style: remove the custom top inset
+            // per product convention / platform-default style: remove the custom top inset
             // (= `chromePaddingSectionTop` = 18 PT) and the custom bottom inset
             // (= 4 PT). The center column is the content column of a
-            // NavigationSplitView; = Apple HIG macOS 27 default content column
+            // NavigationSplitView; = product macOS 27 default content column
             // rhythm places the column's first row at the natural List ScrollView
             // top margin (= NO custom padding required; = the Apple API default).
             // Per the verbatim port discipline, the previous search-field
@@ -163,7 +163,7 @@ struct PreviewPane: View {
             // column layout are preserved (= no unrelated changes). Custom
             // leading search field above the first card': render the custom
             // leading-aligned search field HERE (= at the TOP of the cards
-            // column; above the first card grid) = the Apple HIG "inline search
+            // column; above the first card grid) = the product "inline search
             // field at the column top" pattern (= the canonical Mail / Notes
             // column search pattern). The previous attempt (commit 71daf8311)
             // put the search field in a wrapper HStack ABOVE PreviewPane (=
@@ -175,7 +175,7 @@ struct PreviewPane: View {
             // `customLeadingSearch != nil`). Default = nil = no field (= legacy
             // callers / tests still work).
             if let customSearch = customLeadingSearch {
-                // Per Apple HIG / platform-default style: render the search field
+                // per product convention / platform-default style: render the search field
                 // at the FULL column width (= the outer
                 // `.frame(maxWidth:.infinity)` makes SwiftUI stretch this view to
                 // consume all available horizontal space in the parent VStack; =
@@ -191,7 +191,7 @@ struct PreviewPane: View {
                 // applied by the parent VStack that can see the column width) is
                 // what forces the stretch.
                 customSearch
-                    // Per Apple HIG / platform-default style: use
+                    // per product convention / platform-default style: use
                     // `.controlSize(.regular)` on the inner TextField (= the
                     // canonical macOS 13+ SwiftUI expression for the standard
                     // form- control height = 22 PT = matches Apple's Mail / Notes /
@@ -210,23 +210,23 @@ struct PreviewPane: View {
                     // once SwiftUI's vertical padding and the surrounding HStack
                     // padding are added; = the intuition that 30 PT feels right).
                     .frame(maxWidth: .infinity, alignment: .center)
-                // Per Apple HIG / platform-default style: drop the manual BOTTOM
+                // per product convention / platform-default style: drop the manual BOTTOM
                 // padding around the search field (= the previous
                 // `.padding(.bottom, 6)` was a hand- rolled vertical breathing
                 // room between the search field and the first card; = removing it
                 // makes the search field sit flush against the first card below;
                 // = the cards' own LazyVGrid spacing controls the gap to the next
-                // card). Per Apple HIG / platform-default style: per the UPDATE —
+                // card). per product convention / platform-default style: per the UPDATE —
                 // 'remove all custom padding and switch to Apple- standard
                 // expressions — find an approximate value': REMOVE both
                 // `.padding(.top, 4)` (= 4 PT divider→search gap) and
                 // `.padding(.horizontal, 8)` (= 8 PT horizontal inset). The Apple
-                // HIG macOS 27 default layout for an inline search field within a
+                // product layout for an inline search field within a
                 // content column places the field at natural SwiftUI default
                 // spacing (= NO custom padding required; = the canonical Mail /
                 // Notes column search pattern).
             }
-            // Per Apple HIG platform availability: use the platform's own search
+            // per product convention platform availability: use the platform's own search
             // field, rather than a hand-rolled one (= the previous internal
             // search bar was removed). The search field now lives at the parent
             // level, attached to the shell's middle column.

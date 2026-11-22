@@ -44,7 +44,7 @@ import SwiftUI
 /// Each preset = a complete Apple-canonical edge-to-content
 /// distance (= no scattered `.padding(.horizontal, 18)` calls).
 ///
-/// Apple HIG alignment: matches `.contentMargins(_:for:)` =
+/// product alignment: matches `.contentMargins(_:for:)` =
 /// SwiftUI standard for ScrollView content edges (iOS 17 / macOS
 /// 14+). Applied as a regular `.padding(...)` modifier here
 /// because we wrap non-ScrollView content too (= LazyVGrid, VStack,
@@ -86,7 +86,7 @@ extension View {
     /// content VStack/HStack so inset values are centralized here
     /// (= one token change adjusts all zones).
     ///
-    /// Note (= Apple HIG alignment): this is NOT the same as
+    /// Note (= product alignment): this is NOT the same as
     /// `.contentMargins(_:for:)` (which only applies to
     /// ScrollView). It's a plain `.padding(_:)` modifier (= applies
     /// to anything) so zones that use LazyVGrid / VStack get the

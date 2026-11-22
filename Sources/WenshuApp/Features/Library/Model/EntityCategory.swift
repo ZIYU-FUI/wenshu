@@ -97,8 +97,8 @@ enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiable, Hash
     }
 
     /// Filesystem directory name (= the on-disk folder under
-    /// `reference-library/entities/`). Stable across rename (= Apple
-    /// HIG: directory = identity, not the category's display label).
+    /// `reference-library/entities/`). Stable across rename (= product
+    /// rule: directory = identity, not the category's display label).
     /// Uses lowercase letter (= POSIX-compliant) for all cases EXCEPT
     /// `.z` (= Other fallback, uses Chinese name to match the fallback
     /// convention so LLM output is consistent across the system).

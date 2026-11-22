@@ -1,9 +1,9 @@
 // FileSystemLibraryStore.swift Filesystem-backed LibraryStoring implementation. Swap for
 // MetadataQuery / CoreData / CloudKit later without changing the contract (=
-// LibraryStoring) or any caller (= view layer). Apple HIG document-based-app
+// LibraryStoring) or any caller (= view layer). product document-based-app
 // convention (= Pages / TextEdit / Numbers): ~/Documents/wenshu/<shelf-id-uuid>/
 // shelf.json     ← encoded Bookshelf (the metadata) books/         ← v0.02.1 chapters/
-// ← v0.02.1 Atomic write strategy (= the Apple HIG pattern, also used by NSDocument +
+// ← Atomic write strategy (= the product pattern, also used by NSDocument +
 // FileWrapper.write(to:options:originalContents:)): 1. write shelf.json.tmp 2. fsync
 // the temp file (FileManager doesn't expose fsync directly; use replaceItemAt on a
 // separate backup file path so the rename through the kernel is atomic) 3. atomic
@@ -24,7 +24,7 @@ import WenshuData
 /// contract); = the 1 caller (= WenshuApp) is itself @MainActor, so
 /// the conversion is type-compatible.
 ///
-/// Apple HIG canonical pattern: when `modelContainer` is wired
+/// the product pattern: when `modelContainer` is wired
 /// (= the production path), the list operations (= loadShelves,
 /// loadBooks) read from SwiftData. The body-on-disk operations
 /// (= saveDocument, loadDocumentContent) continue to use the
@@ -53,7 +53,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
 
     func loadShelves() throws -> [Bookshelf] {
         let fm = FileManager.default
-        // Apple HIG: don't fail loudly if the user's library root is missing on first
+        // product: don't fail loudly if the user's library root is missing on first
         // launch (= they haven't created any shelf yet). Return empty; the
         // user can pick a different root in Preferences.
         guard fm.fileExists(atPath: rootURL.path) else { return [] }
@@ -153,7 +153,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
 
         // Pre-create the books/ and chapters/ subdirs so the storage layout is
         // consistent. ASSUMPTION: a document's bundle structure is set up once
-        // at creation, not lazily as files appear (= Apple HIG document-based-
+        // at creation, not lazily as files appear (= product document-based-
         // app convention).
         let booksDir = dir.appendingPathComponent("books")
         let chaptersDir = dir.appendingPathComponent("chapters")
@@ -189,7 +189,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
         let booksDir = rootURL
             .appendingPathComponent(shelfId.uuidString)
             .appendingPathComponent("books")
-        // Apple HIG: a missing directory means "no books" (= shelf exists but is empty),
+        // product: a missing directory means "no books" (= shelf exists but is empty),
         // not "error". Same forgiving convention as loadShelves on a missing
         // root.
         guard fm.fileExists(atPath: booksDir.path) else { return [] }
@@ -281,7 +281,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
         }
 
         // Pre-create chapters/ subdir so chapter content writes have a consistent bundle
-        // structure (= Apple HIG document-based-app convention: set up the
+        // structure (= product document-based-app convention: set up the
         // bundle once at creation).
         let chaptersDir = bookDir.appendingPathComponent("chapters")
         try? fm.createDirectory(at: chaptersDir, withIntermediateDirectories: true)
@@ -538,7 +538,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
 
     /// First H1 (= '# Title') from the MD body. Falls back to a generic
     /// placeholder (the filename, without .md) when no H1 is present.
-    /// Apple HIG documents typically have an H1 (= the document title);
+    /// product documents typically have an H1 (= the document title);
     /// if the user is still drafting, the filename is a reasonable
     /// stand-in.
     /// `nonisolated` = it is a pure function of its argument, = and the
@@ -578,7 +578,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
             .joined(separator: " ")
-        // Cap at ~100 chars. Apple HIG card body fields typically hold 2-3 lines (=
+        // Cap at ~100 chars. product card body fields typically hold 2-3 lines (=
         // roughly 80-120 chars depending on font); 100 is a comfortable
         // midpoint.
         if collapsed.count <= 100 { return collapsed }

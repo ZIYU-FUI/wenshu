@@ -45,7 +45,7 @@ import Foundation
 /// state.
 ///
 /// chatVisible + inspectorPage were previously on `ShellState`
-/// (= a separate 4-property @Observable class). Apple HIG
+/// (= a separate 4-property @Observable class). product
 /// treats every field here as the same shape (= view-local UI
 /// state shared across column descendants; = the Pages /
 /// Numbers / Keynote pattern is to keep them in one

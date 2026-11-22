@@ -17,7 +17,7 @@
 //  tool results — wenshu reuses the same surface (= 1 diff
 //  pipeline across chat + kanban + (future) BackgroundReview).
 //
-//  Apple HIG: no custom chrome, no shadow, no rounded-rect wrapper.
+//  product: no custom chrome, no shadow, no rounded-rect wrapper.
 //  The card uses the same `Quinary` background + `RoundedRectangle`
 //  stroke as `ChatToolResultPartView` for visual continuity.
 //
@@ -118,7 +118,7 @@ struct ChatToolDiffPreview: View {
         return line
     }
 
-    /// Color for a diff line (Apple HIG semantic colors, light + dark).
+    /// Color for a diff line (product semantic colors, light + dark).
     nonisolated static func color(for line: String) -> Color {
         if line.hasPrefix("@@") {
             return .secondary

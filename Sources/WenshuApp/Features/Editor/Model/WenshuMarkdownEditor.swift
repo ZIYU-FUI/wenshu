@@ -59,7 +59,7 @@ struct WenshuMarkdownEditor: View {
     var body: some View {
         // Pass `isEditable` so the SAME NSTextView renders both
         // preview (= read-only) and edit (= editable) modes
-        // (= zero visual scaling between modes; = Apple HIG
+        // (= zero visual scaling between modes; = product
         // canonical for WYSIWYG surfaces).
         //
         // Forward the host-supplied `placeholder:` so the engine's own
@@ -121,7 +121,7 @@ struct WenshuMarkdownEditor: View {
             text: $text,
             configuration: adjustedConfiguration,
             // Pass fontSize so the engine base font matches the
-            // Apple HIG `body` text style (= 13 PT on macOS 27).
+            // product `body` text style (= 13 PT on macOS 27).
             // Without this, `NativeTextViewWrapper` defaults to
             // 16 PT and the multiplier math produces H1 = 16 ×
             // (17/13) = 20.9 PT (= still visually dominant vs
@@ -147,7 +147,7 @@ struct WenshuMarkdownEditor: View {
             // file via `EditorScrollMemory.persist`; =
             // `restoreScrollOffset` reads the JSON file so the host
             // app reopens at the last scroll position = the
-            // canonical Apple HIG "remember what you were reading"
+            // Apple "remember what you were reading"
             // pattern = Pages / Numbers reopen at the last scroll).
             retainedScrollDocumentIds: EditorScrollMemory.retainedDocumentIds,
             onPersistScrollOffset: { documentId, offset in

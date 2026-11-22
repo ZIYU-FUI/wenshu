@@ -63,7 +63,7 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
     }
 
     /// The SF Symbol name for the row's leading
-    /// icon (= Apple HIG canonical "leading icon"
+    /// icon (= the product "leading icon"
     /// for a picker row; = the wenshu design
     /// system uses the `SFIcon` central factory; =
     /// no naked `Image(systemName:)`).

@@ -83,7 +83,7 @@ actor BacklinkResolver {
             let unresolved = try await MainActor.run {
                 try repository.searchBackward(targetRef: name).map(Self.toDomain)
             }
-            // Merge + deduplicate (Apple HIG: Set semantics)
+            // Merge + deduplicate (product: Set semantics)
             let combined = resolved + unresolved.filter { u in !resolved.contains(where: { $0.sourceDocId == u.sourceDocId && $0.offset == u.offset }) }
             return combined.sorted { $0.createdAt > $1.createdAt }
         }

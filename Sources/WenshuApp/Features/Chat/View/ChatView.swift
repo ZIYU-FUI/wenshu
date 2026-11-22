@@ -21,7 +21,7 @@ struct ChatView: View {
     @Environment(WorkspaceUIState.self) private var workspaceUI
     /// Toggles the `.fileImporter` sheet when the user clicks the paperclip
     /// button. Bound to `.fileImporter(isPresented:)` on the input HStack (= the
-    /// Apple HIG SwiftUI fileImporter pattern). The state for the input row's file
+    /// product SwiftUI fileImporter pattern). The state for the input row's file
     /// picker and its drop highlight are forwarded through `ChatInputBarView`;
     /// `ChatView` owns the `@State` and the input row receives a `Binding` (=
     /// standard SwiftUI parent-child state plumbing). The `.fileImporter`, the
@@ -31,7 +31,7 @@ struct ChatView: View {
     /// True while a drag is hovering the input row, so the row can show a drop
     /// highlight. Apple's `.dropDestination` reports this for free.
     @State private var isDropTargeted: Bool = false
-    // Apple HIG canonical export/import sheets for the conversation as Markdown.
+    // the product export/import sheets for the conversation as Markdown.
     // Bound to.fileExporter /.fileImporter modifiers at the end of body; = the
     // hidden Button shortcuts below toggle these instead of constructing
     // NSSavePanel / NSOpenPanel directly.
@@ -173,7 +173,7 @@ struct ChatView: View {
             // in a capped column that matches the chat input width so the bubble
             // + input column visually align per Hermes). maxWidth = 720 PT (= the
             // canonical chat content width observed in Hermes desktop = roughly
-            // 75% of a 960 PT detail pane). Apple's HIG 'Readable Content'
+            // 75% of a 960 PT detail pane). the product design rules 'Readable Content'
             // default is around 60-75 characters per line; 720 PT × ~10 PT char ≈
             // 72 chars per line, in the right band. The 10 PT top padding
             // applies to the ScrollView chain below (= the ScrollView's content area;
@@ -217,7 +217,7 @@ struct ChatView: View {
             }
             // Chat input bar (= the top layer of the 3-layer UI split per the
             // spec) floats over this ScrollView via.safeAreaInset(edge:.bottom);
-            // = Apple HIG Messages / Slack chat input pattern.
+            // = product Messages / Slack chat input pattern.
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 ChatInputBarView(
                     vm: vm,
@@ -289,7 +289,7 @@ struct ChatView: View {
             workspaceUI.inspectorSection = .dynamic
             workspaceUI.inspectorPage = .status
         }
-        // Apple HIG canonical file-export / file-import for the conversation as
+        // the product file-export / file-import for the conversation as
         // Markdown. Both modifiers handle the sheet UX + sandbox permission +
         // bookmark for us (= the legacy NSSavePanel / NSOpenPanel blocks in the
         // hidden Button shortcuts above have been retired).

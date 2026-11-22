@@ -5,7 +5,7 @@
 // levels of comfort with AI get different choices, the third-party options
 // stay, and the pane recommends what is reachable from here.
 //
-// Layout is Apple HIG macOS Settings: a grouped Form, one Section per
+// Layout is product macOS Settings: a grouped Form, one Section per
 // question, each with a header and a footer that says what the choice costs.
 // The footers are the load-bearing part. A checkbox labelled "web search"
 // teaches nothing; "搜索会联网" tells a user whether turning it on means their

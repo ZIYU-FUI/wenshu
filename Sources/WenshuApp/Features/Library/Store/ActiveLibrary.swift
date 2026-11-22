@@ -13,7 +13,7 @@ import WenshuAgent
 
 /// Single source of truth for the user's active .ws library path string.
 ///
-/// Apple HIG canonical pattern (= security-scoped bookmark).
+/// the product pattern (= security-scoped bookmark).
 /// Per boss 2026-10-05 (see OOB.md #2026-10-05)
 /// bookmark is the SOLE persistence. Consumers call `ActiveLibrary.path`
 /// instead of `UserDefaults.standard.string(forKey: "wenshu.libraryPath")`.

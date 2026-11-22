@@ -5,9 +5,9 @@
 //  (= list of PlanStep) as a collapsible card with an
 //  'Approve & Run' action.
 //
-//  Apple HIG convention:
+//  product convention:
 //    - Card with .quaternary fill (= subtle plan-mode indicator;
-//      = the chat bubble color stays neutral = no Apple HIG conflict)
+//      = the chat bubble color stays neutral = no product conflict)
 //    - Numbered steps in monospaced font (= the canonical code-block
 //      "step list" visual; = matches Xcode's task list pattern).
 //    - 'Approve' / 'Decline' buttons at the bottom (= the standard
@@ -118,7 +118,7 @@ struct ChatPlanPartView: View {
                 }
                 // T32-PLAN-ELAPSED (2026-09-18): a small relative-time
                 // chip after the model id (= "3s ago", "2m ago",
-                // "1h ago"). Matches the Apple HIG relative-time
+                // "1h ago"). Matches the product relative-time
                 // convention (= .relative(presentation: .named) on
                 // Date.FormatStyle). Helps the user judge whether
                 // the plan is fresh or stale.

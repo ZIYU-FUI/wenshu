@@ -16,8 +16,8 @@
 //
 //  The three places are mutually exclusive, = they all apply to the same
 //  thing (= the whole sheet), = and all of them are always worth seeing.
-//  = That is the control Apple names for this corner of a window (= HIG, =
-//  segmented-controls, = alert-date 2023-06-21: = "a segmented control in
+//  = That is the control Apple names for this corner of a window (= the
+//  HIG segmented-controls page, fetched 2026-11-22: = "a segmented control in
 //  an inspector could let people choose one or more attributes to apply to
 //  a selection", = and for macOS, = "Consider using a segmented control to
 //  help people switch views in a toolbar or inspector pane"), = and their
@@ -118,10 +118,9 @@ struct InspectorStylePresetPicker: View {
             regionWidth = width
         }
         //  The group's own heading names this choice on the page, = so the
-        //  control carries no label of its own (= and HIG asks no
-        //  introductory text of a segmented control that carries its own
-        //  words: = "A segmented control that displays text labels doesn't
-        //  need introductory text").
+        //  control carries no label of its own (= the HIG segmented-controls
+        //  page states: = "A segmented control that displays text labels
+        //  doesn't need introductory text").
         .accessibilityLabel(String(localized: "inspector.style.group.presets"))
     }
 

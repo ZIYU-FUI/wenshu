@@ -12,7 +12,7 @@
 //  releases the lock + retries, = Deny throws DatasetLockDeniedByBoss
 //  (= the LLM receives the error and decides what to do next).
 //
-//  Apple HIG alert (= .alert(item:) + primaryButton Allow +
+//  product alert (= .alert(item:) + primaryButton Allow +
 //  secondaryButton Deny) matches the macOS canonical dialog UX
 //  (= same shape as System Settings permission prompts).
 //
@@ -123,7 +123,7 @@ final class ChapterFocusLockDialogPresenter {
 }
 
 /// chapter-dialog 2026-09-28 T1: SwiftUI alert content view that
-/// ChatZoneView hosts. Renders an Apple HIG permission-prompt-style
+/// ChatZoneView hosts. Renders a product permission-prompt-style
 /// dialog (= title + message + primaryButton Allow + secondaryButton
 /// Deny). The view's actions delegate to the presenter (= no
 /// business logic in the view itself).

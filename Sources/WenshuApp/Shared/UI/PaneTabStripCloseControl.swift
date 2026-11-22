@@ -428,7 +428,7 @@ final class PaneTabStripCloseControl: NSSegmentedControl {
     // MARK: The hover
 
     /// ⇒ ⇒ ⇒ AND THE POINTER'S BUSINESS IS ONE RECTANGLE: = the X's own tap
-    /// target (= the HIG's 28 PT minimum), and NOT the whole strip (= and
+    /// target (= Apple's 28 x 28 PT macOS hit-area minimum, WWDC24 10085), NOT the whole strip (= and
     /// not one area per tab = and a tracking area per tab is what made this
     /// control's geometry go stale).
     override func updateTrackingAreas() {

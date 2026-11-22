@@ -1,6 +1,6 @@
 // SidebarNode.swift · Wenshu
 //
-// Tree data model for the macOS 27 Apple HIG sidebar
+// Tree data model for the macOS 27 product sidebar
 // (= List(data, children: \.children) + .listStyle(.sidebar)).
 //
 // The wenshu domain models are flat (= no `var children: [Self]?`),
@@ -11,7 +11,7 @@
 // Solution: project the flat shelves + books into a SidebarNode tree
 // at view-layer (= inside the sidebar view's state object). Domain
 // models stay flat (= no surprise for downstream callers); = the
-// sidebar gets the Apple HIG canonical surface.
+// sidebar gets the product surface.
 //
 // b differs from the reverted v1.68a (= same idea, =
 // the user accepted the architecture but rejected the rest of the
@@ -202,11 +202,11 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         /// `tags.contains(<tag>)`).
         case tag
         /// A non-interactive row that renders a horizontal
-        // Divider (= the Apple HIG section separator idiom; =
-        // same role as the section header divider at the
-        // top of the sidebar). Inserted between the shelves
-        // (= user shelves) and the reference library (= the
-        // synthetic `reference` root node) by SidebarService.
+        /// Divider (= the product section separator idiom; =
+        /// same role as the section header divider at the
+        /// top of the sidebar). Inserted between the shelves
+        /// (= user shelves) and the reference library (= the
+        /// synthetic `reference` root node) by SidebarService.
         case divider
 
         /// The kind's stable name (= the digest's own token, = so a

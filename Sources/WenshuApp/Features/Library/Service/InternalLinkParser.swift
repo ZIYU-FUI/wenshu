@@ -26,10 +26,10 @@ struct InternalLink: Equatable, Sendable {
 enum InternalLinkParser {
     /// ok `[[name]]` `[[name|alias]]`
     ///: `[[` + `]` + `]]`, in progress `|` target / alias
-    /// Apple HIG: NSRegularExpression Markdown
+    /// product: NSRegularExpression Markdown
     private static let pattern: NSRegularExpression = {
         // \[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\] — group 1 = target, group 2 = optional alias
-        // Per Apple HIG + 12 standard P2-01 fatalError : the
+        // per product convention + 12 standard P2-01 fatalError : the
         // NSRegularExpression literal is non-rare (= the regex is
         // statically embedded in this file; = an edit to the literal
         // is the only way this `try?` can fail). Treat the failure as

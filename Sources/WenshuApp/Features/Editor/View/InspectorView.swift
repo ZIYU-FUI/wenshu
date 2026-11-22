@@ -3,9 +3,9 @@
 //  wenshu
 //
 //  The right-hand inspector column (= the trailing column of the
-//  detail split; = the Apple HIG `.inspector` surface).
+//  detail split; = the product `.inspector` surface).
 //
-//  Layout (= the Apple HIG three-column pattern):
+//  Layout (= the product three-column pattern):
 //  - the WINDOW TOOLBAR's rightmost slot carries the button group that
 //    picks the column's MAJOR SECTION (= the dynamic series, = or the
 //    format inspector), = as the macOS window titlebar's right-hand

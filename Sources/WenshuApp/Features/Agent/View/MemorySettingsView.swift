@@ -11,7 +11,7 @@ import WenshuAgent
 //  values" (= smallChipCornerRadius = 3 for chip-level rounding;
 //  subtleSurfaceAlpha = 0.05 for subtle surface tint) but the
 //  MemorySettingsView now uses DesignTokens.surfaceCornerRadiusSmallChip
-//  (= the canonical Apple HIG-measured token set;
+//  (= the Apple-measured token set;
 //  = wenshu-pocock-workflow/references/design-system-rule.md).
 //  See wenshu-dead-code-cleanup SKILL.md.)
 
@@ -151,7 +151,7 @@ struct MemorySettingsView: View {
     }
 
     var body: some View {
-        // Canonical Apple HIG macOS Settings layout (= Form with
+        // Canonical product macOS Settings layout (= Form with
         // `.grouped` style; = the same shape the other Settings panes
         // use, including the freshly-added "网络" (= Network) pane).
         // The previous incarnation used a custom `VStack + .padding`

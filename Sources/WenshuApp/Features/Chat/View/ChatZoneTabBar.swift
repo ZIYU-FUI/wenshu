@@ -16,7 +16,7 @@
 // keeps a growing page list inside the chat column, and the system owns
 // the selected plate and how it moves.
 //
-// One view per file (per Apple HIG).
+// One view per file (per product convention).
 
 import SwiftUI
 

@@ -65,7 +65,7 @@ struct EditorSurface {
     /// Both modes now use WenshuMarkdownEditor. The engine's
     /// NativeTextViewWrapper has an `isEditable: Bool` parameter which
     /// toggles between edit + preview with the SAME NSTextView (= zero
-    /// visual scaling between modes; = Apple HIG canonical for WYSIWYG
+    /// visual scaling between modes; = the product for WYSIWYG
     /// / preview-vs-edit surfaces).
     ///
     /// chapter-focus-lock 2026-09-28: the caller (= EditorView)

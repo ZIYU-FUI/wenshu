@@ -15,17 +15,17 @@ extension EditorChatNSController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Apple HIG thin divider style (= the canonical Keynote
+        // product thin divider style (= the canonical Keynote
         // speaker-notes divider; = the Apple-standard 1 PT hairline;
         // = matches Pages / Numbers / Keynote).
         splitView.dividerStyle = .thin
-        // Pure Apple HIG approach (= let NSSplitView + NSSplitViewItem
+        // Pure product approach (= let NSSplitView + NSSplitViewItem
         // be transparent; = the chat column shows the window's single
         // root material).
         // Without this, NSVisualEffectView bleeds through (= the
         // gradient observed in the previous attempts).
         //
-        // Apple HIG rationale (developer.apple.com/documentation/appkit/nssplitview):
+        // product rationale (developer.apple.com/documentation/appkit/nssplitview):
         // NSSplitView by default paints a backgroundColor under both
         // panes (= the "behind the chrome" color). When set to
         // `.clear`, the SwiftUI-hosted content's own background
@@ -49,13 +49,13 @@ extension EditorChatNSController {
         // horizontal divider up/down to resize the chat zone =
         // the canonical Keynote speaker-notes pattern).
         //
-        // Apple HIG developer.apple.com/documentation/appkit/nssplitview:
+        // product developer.apple.com/documentation/appkit/nssplitview:
         // 'If false, the split view is oriented horizontally
         // (= items are arranged top to bottom).'
         splitView.isVertical = false
-        // Pure Apple HIG approach (= autosaveName + the built-in
+        // Pure product approach (= autosaveName + the built-in
         // UserDefaults persistence path):
-        //   1. Wire autosaveName (= Apple HIG NSSplitView built-in
+        //   1. Wire autosaveName (= product NSSplitView built-in
         //      autosave; = the user's drag-to-resize persists across
         //      relaunches via UserDefaults key
         //      'NSSplitView Subview Frames wenshu.editor.split.autosave').
@@ -109,7 +109,7 @@ extension EditorChatNSController {
         chatSplitItem = chatItemLocal
 
         // First-launch divider = 50:50; subsequent launches =
-        // persisted ratio (= Apple HIG NSSplitView autosave path
+        // persisted ratio (= product NSSplitView autosave path
         // handles the persistence; = this block only runs on the
         // user's very first launch ever).
         //

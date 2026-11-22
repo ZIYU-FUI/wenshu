@@ -22,7 +22,7 @@
 //  - The onChange callback is captured by the DispatchSource event
 //    handler closure (= closure-captured, no instance field).
 //
-//  Apple HIG canonical pattern (= Files app / Xcode file watcher):
+//  the product pattern (= Files app / Xcode file watcher):
 //  POSIX `open(path, O_EVTONLY)` returns an fd; DispatchSource
 //  reads from the fd; `setCancelHandler { close(fd) }` prevents
 //  fd leaks (= the previous inline code did exactly this).
@@ -104,7 +104,7 @@ enum EditorFileWatcher {
             }
         }
         source.setCancelHandler {
-            // Apple HIG: close the fd when the source is cancelled
+            // product: close the fd when the source is cancelled
             // (= prevents fd leaks; = standard pattern).
             close(fd)
         }

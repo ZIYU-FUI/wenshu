@@ -1,6 +1,6 @@
 // SidebarService.swift · Wenshu Loads the wenshu sidebar tree from the existing data
 // layer (= flat Bookshelf / Book / Reference) and projects it into the SidebarNode
-// tree that the macOS 27 Apple HIG `List(_, children:)` initializer needs. The
+// tree that the macOS 27 product `List(_, children:)` initializer needs. The
 // projection lives at view-layer (= inside the sidebar's own state object) — = the
 // domain models stay flat (= the rest of wenshu continues to use them as before). The
 // service takes pure closures (= loadShelves, loadBooks, loadReferences) instead of a
@@ -16,14 +16,14 @@ import os
 let sidebarLogger = Logger(subsystem: "com.wenshu", category: "sidebarservice")
 
 /// Loads and projects the sidebar tree (= flat row + cell library
-/// + reference) into a SidebarNode tree for the Apple HIG
+/// + reference) into a SidebarNode tree for the product
 /// `List(_, children:)` initializer.
 @MainActor
 @Observable
 final class SidebarService {
 
     /// The current sidebar tree (= shelf roots + a synthetic
-    /// Reference Library root). Apple HIG syncs this state into the
+    /// Reference Library root). product syncs this state into the
     /// List's row content closure (= one node per row).
     ///
     /// ⇒ ⇒ ⇒ THE TREE IS PUBLISHED WITH ITS SHAPE: = the rows are
@@ -301,7 +301,7 @@ final class SidebarService {
     /// to default-seeded books only if needed).
     private func folderChildren(for book: Book) -> [SidebarNode]? {
         // Stable id = "<book-id>.<folder-name>" so two different books don't collide on
-        // the same folder name. Apple HIG List(.sidebar) requires unique row
+        // the same folder name. product List(.sidebar) requires unique row
         // ids within the tree. add the "X " subtitle (= the .md file count
         // under each folder) so the sidebar rows mirror the reference-library
         // row shape (= same 2-line: icon + title + subtitle = icon + title +

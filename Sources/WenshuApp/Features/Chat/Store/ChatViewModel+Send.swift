@@ -213,7 +213,7 @@ extension ChatViewModel {
             // returns, via the shared AppState reference). No more raw
             // UserDefaults read here (= single owner maintained).
             let currentModel: String = self.currentModel
-            // Per Apple HIG + 12 standard + Swift 6 strict-concurrency: migrate
+            // per product convention + 12 standard + Swift 6 strict-concurrency: migrate
             // from `NSLog` (= Swift 6 treats variadic as unavailable). Local
             // variable captures model name for the Logger interpolation (= Swift
             // 6 closure-capture rule).
@@ -292,7 +292,7 @@ extension ChatViewModel {
                 // false` flip after `message.complete`). Replace placeholder with
                 // the final message.
                 if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
-                    // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
+                    // per product convention + 12 standard + Swift 6 strict-concurrency:
                     // migrate from `NSLog` (= Swift 6 treats variadic as
                     // unavailable). Local captures avoid closure-capture
                     // complaint.

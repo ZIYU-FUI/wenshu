@@ -4,7 +4,7 @@
 // trips. The boss's 2026-10-12 directive "你去看一下聊天区的底栏的写法. 照抄就行了, 那是已经实现过的逻辑" — and the
 // alternate "或者你把聊天区的低栏 抽象个组件. 让编辑器区直接应用也可以" — converge on the same solution: extract
 // a single shared `ChromeBottomFooter` component and use it from BOTH call sites. The
-// shared component is the canonical Apple HIG sidebar-bottom-accessory chrome surface
+// shared component is the Apple sidebar-bottom-accessory chrome surface
 // recipe (= `VStack(spacing: 0) { Divider; content; .frame(maxWidth: .infinity, alignment:
 // .leading); .padding(.vertical, 8); .padding(.horizontal, 8) } .background(the surface
 // this bar wears)`).
@@ -105,7 +105,7 @@ private struct ContentAreaSurface: NSViewRepresentable {
     }
 }
 
-/// Canonical Apple HIG sidebar-bottom-accessory chrome surface
+/// Canonical product sidebar-bottom-accessory chrome surface
 /// (= the bottom row of `Mail` / `Notes` / `Finder` /
 /// `System Settings` sidebar rows + `ChatInputBarView` token
 /// footer + `EditorStatusBarView` status bar). Use this for
@@ -113,7 +113,7 @@ private struct ContentAreaSurface: NSViewRepresentable {
 /// indicator, secondary action button, etc.) so all column
 /// bottoms in wenshu have the same surface recipe: `Divider`
 /// above + content + 8 PT all-around padding (= the canonical
-/// Apple HIG sidebar-bottom-accessory height of ~38 PT).
+/// product sidebar-bottom-accessory height of ~38 PT).
 ///
 /// any new column-bottom chrome
 /// row MUST go through this component. The outer shell
@@ -126,10 +126,10 @@ struct ChromeBottomFooter<Content: View>: View {
     /// The column-bottom content (= a horizontal HStack of
     /// SFIcon + Text chunks). Caller supplies the HStack;
     /// this shell anchors it to the leading edge of the
-    /// column (= Apple HIG inspector status row format).
+    /// column (= product inspector status row format).
     @ViewBuilder let content: Content
     /// Optional tooltip (= maps to the surface's `.help(...)`
-    /// modifier; = Apple HIG accessibility surface for the
+    /// modifier; = product accessibility surface for the
     /// bottom-chrome row).
     let help: LocalizedStringKey?
     /// Which surface the bar wears (= = which edge it sits on).

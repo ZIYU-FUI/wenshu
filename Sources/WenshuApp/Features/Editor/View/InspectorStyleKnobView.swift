@@ -18,9 +18,9 @@
 //
 //  A knob offers a flat list of positions, = all of them applying to the
 //  same thing, = with one of them chosen at a time. = That is the shape
-//  Apple built the pop-up button for (= HIG, = pop-up-buttons, =
-//  alert-date 2023-10-24, = macOS: = "Use a pop-up button to present a
-//  flat list of mutually exclusive options or states"), = and the button
+//  Apple's NSPopUpButton is built for (= HIG > Pop-up buttons > Best
+//  practices: "Use a pop-up button to present a flat list of mutually
+//  exclusive options or states"), = and the button
 //  shows the chosen one in itself (= same page: = "the button can update
 //  its content to indicate the current selection"). = Nothing a knob does
 //  asks for more than that, = so the row carries Apple's own

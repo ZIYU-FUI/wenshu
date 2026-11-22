@@ -38,7 +38,7 @@
 //
 //  SidebarContextMenu.swift (= next file in the v1.69y arc)
 //  hosts the right-click menu builder = the
-//  .contextMenu(forSelectionType:) Apple HIG canonical hook.
+//  .contextMenu(forSelectionType:) the product hook.
 //
 
 import SwiftUI
@@ -489,7 +489,7 @@ struct RenameItemSheet: View {
                     .foregroundStyle(.red)
             }
             // HStack: 取消 + 保存 (= 12 PT spacing between; = trailing
-            // alignment; = Cancel first, Save second per Apple HIG
+            // alignment; = Cancel first, Save second per product convention
             // macOS button order = leading = safe = trailing = primary).
             HStack(spacing: DesignTokens.spacingModerate) {
                 Spacer()

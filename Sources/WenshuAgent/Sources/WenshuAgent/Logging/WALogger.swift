@@ -1,7 +1,7 @@
 //
 //  WALogger.swift · Wenshu · WenshuAgent subsystem LOG (v3.1+ ticket: extract WenshuAgent)
 //
-//  Apple HIG canonical LOG surface for the WenshuAgent package.
+//  the product LOG surface for the WenshuAgent package.
 //  Subsystem = "com.wenshu.agent" (= consistent with wenshu other future
 //  subsystems like com.wenshu.ui, com.wenshu.data; the third-party
 //  "com.wenshu.app" ubsystem is reserved for the SwiftData + UI layer).

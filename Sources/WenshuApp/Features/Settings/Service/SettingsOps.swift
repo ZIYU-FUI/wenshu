@@ -33,7 +33,7 @@
 //    static enum); tests pass StubProviderFetcher (= the in-file
 //    capture-and-return struct).
 //
-//  Apple HIG canonical pattern: stateless business-layer enum +
+//  the product pattern: stateless business-layer enum +
 //  per-call Result structs (= matches Foundation URLSession's
 //  completion-handler shape; = no leaky global state).
 //

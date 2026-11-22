@@ -69,7 +69,7 @@ struct WindowOpenButton: View {
     let icon: String
     /// The button's label (= "看板" / "待办" / "记忆历史" etc.).
     /// Used as the .help tooltip (= the visible button is just
-    /// an icon per Apple HIG toolbar conventions; = the title
+    /// an icon per product convention toolbar conventions; = the title
     /// appears in the tooltip on hover).
     let title: String
     /// The openWindow environment action (= injected at the call site

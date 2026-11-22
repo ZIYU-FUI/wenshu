@@ -4,7 +4,7 @@
 <dict>
     <!-- v0.40 apple-001 i18n (real-device test 2026-09-07):
          changed CFBundleDevelopmentRegion from "zh_CN" to "en"
-         (= base/development language = English per Apple HIG).
+         (= base/development language = English per platform convention).
          Added CFBundleLocalizations = ["en", "zh-Hans"] (= explicit
          list of supported localizations so macOS Finder + App Store
          + NSLocalizedString can pick the right one per user system

@@ -68,10 +68,9 @@
 //  handed a 252 PT column, asked AppKit for 594 PT and laid itself over the
 //  inspector's edge). = The HIG names both kinds for exactly this place: = a
 //  pop-up button is for "a flat list of mutually exclusive options or states"
-//  = and "can update its content to indicate the current selection" (=
-//  pop-up-buttons, = alert-date 2023-10-24, = macOS), = and a segmented
-//  control belongs in "a toolbar or inspector pane" (= segmented-controls,
-//  = alert-date 2023-06-21, = macOS).
+//  = and "can update its content to indicate the current selection" (= the
+//  HIG pop-up-buttons page), = and a segmented control belongs in "a
+//  toolbar or inspector pane" (= the HIG segmented-controls page).
 //
 //  A FACSIMILE SILENCES THE CONTROL IT COPIES
 //

@@ -39,7 +39,7 @@
 //    6 = "Executing tools"
 //    7 = "Finalizing reply"
 //
-//  Apple HIG: no persistence, no global singleton, no UIKit; Swift
+//  product: no persistence, no global singleton, no UIKit; Swift
 //  Concurrency native. Matches KanbanStore's actor pattern (= per-
 //  wenshu rule: any SQLite-or-store-style container is an actor).
 //

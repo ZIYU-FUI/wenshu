@@ -16,7 +16,7 @@
 import Foundation
 
 /// World-building entry type (= category of the world-building fact).
-/// Apple HIG: enum cases match user-visible mental categories (= a
+/// product: enum cases match user-visible mental categories (= a
 /// user typing world-building thinks "this is a place" / "this is an
 /// event" / "this is an object" — not "this is a row of untyped text").
 /// Extensible via standard Swift Codable enum case addition.
@@ -39,10 +39,11 @@ enum WorldEntryType: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// SF Symbol name for the card icon. Apple HIG: SF Symbol carries
+    /// SF Symbol name for the card icon. product: SF Symbol carries
     /// the visual weight (= wenshu MD files have no thumbnail).
-    /// Outline icons everywhere (= canonical Apple HIG form for the
-    /// Liquid Glass 3rd-generation design language).
+    /// Outline icons everywhere (= the HIG sf-symbols page:
+    /// "The outline variant works well in toolbars, lists,
+    /// and other places").
     var icon: String {
         switch self {
         case .geography: return "map"
@@ -115,7 +116,7 @@ struct WorldEntry: Identifiable, Hashable, Codable, Sendable {
     }
 
     /// Filename on disk (= `<uuid>.md`). Stable across renames.
-    /// Apple HIG: filesystem identity = stable, name = mutable label.
+    /// product: filesystem identity = stable, name = mutable label.
     var filename: String {
         "\(id.uuidString).md"
     }
@@ -129,11 +130,11 @@ struct WorldEntry: Identifiable, Hashable, Codable, Sendable {
             .appendingPathComponent(filename)
     }
 
-    // id-based identity (= Apple HIG document-based convention).
-    // Renames change `name` but NOT `id`, so `entry == entry` still
-    // holds across renames. SwiftUI List diffing /
-    // @Observable change detection / WenshuLibrary selection all
-    // assume this.
+    /// id-based identity (= product document-based convention).
+    /// Renames change `name` but NOT `id`, so `entry == entry` still
+    /// holds across renames. SwiftUI List diffing /
+    /// @Observable change detection / WenshuLibrary selection all
+    /// assume this.
     static func == (lhs: WorldEntry, rhs: WorldEntry) -> Bool {
         lhs.id == rhs.id
     }

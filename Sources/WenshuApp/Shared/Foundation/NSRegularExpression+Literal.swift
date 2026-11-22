@@ -9,7 +9,7 @@
 //  literals so the try! is "safe in practice" but reads as a hidden
 //  crash vector).
 //
-//  Apple HIG canonical pattern: NSRegularExpression is initialised
+//  the product pattern: NSRegularExpression is initialised
 //  lazily via a closure that calls preconditionFailure on a malformed
 //  pattern (= any failure indicates the build itself is broken).
 //
@@ -34,7 +34,7 @@ extension NSRegularExpression {
         do {
             return try NSRegularExpression(pattern: pattern, options: options)
         } catch {
-            // Apple HIG precondition: a compile-time regex should NEVER fail
+            // product precondition: a compile-time regex should NEVER fail
             // to compile. If it does, the developer made a typo (= the regex
             // itself is invalid syntax). Use preconditionFailure (= a
             // precondition violation = the same fatal behavior as try! but

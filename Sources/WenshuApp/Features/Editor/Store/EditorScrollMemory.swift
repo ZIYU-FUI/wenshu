@@ -5,7 +5,7 @@
 // (= `onPersistScrollOffset` / `restoreScrollOffset` /
 // `retainedScrollDocumentIds`) for the host to wire to a backing
 // store. Wenshu persists scroll offsets to a small JSON file
-// (= canonical Apple HIG "remember what you were reading"
+// (= Apple "remember what you were reading"
 // behavior = Pages / Numbers reopens at the last scroll position).
 //
 // Storage shape (= JSON `File` keyed by document id; = the value is
@@ -31,7 +31,7 @@ struct EditorScrollMemory: Sendable {
     static let retainedDocumentIds: Set<String>? = nil
 
     /// JSON file URL (= wenshu's app-support / scroll-memory.json;
-    /// = the canonical Apple HIG "remember what you were reading"
+    /// = the Apple "remember what you were reading"
     /// pattern = the engine's closure callbacks wire to this file
     /// via `EditorScrollMemory.persist` and
     /// `EditorScrollMemory.restore`).

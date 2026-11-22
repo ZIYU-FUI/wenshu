@@ -208,7 +208,7 @@ struct BookDoc: Identifiable, Hashable {
     /// first H1 is now surfaced as a `Reference.tags`-style chip pill
     /// in the card (= not as a literal `# xxx` grey subtitle), so
     /// the book card visually matches the reference card. The
-    /// literal `# ` prefix is stripped (= Apple HIG card style
+    /// literal `# ` prefix is stripped (= product card style
     /// never shows raw markdown syntax) and the rest of the
     /// heading text becomes a single tag.
     ///

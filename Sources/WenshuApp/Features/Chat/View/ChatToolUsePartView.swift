@@ -34,7 +34,7 @@ struct ChatToolUsePartView: View {
     }
 
     var body: some View {
-        // Apple HIG inline card (= rounded rect + thin left border +
+        // product inline card (= rounded rect + thin left border +
         // monospaced font for the tool name = the canonical "tool call"
         // visual = same pattern as Xcode / Mail "Show Details" blocks).
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
@@ -91,7 +91,7 @@ struct ChatToolUsePartView: View {
                 // T47-TOOL-DURATION (2026-09-18): show the tool
                 // execution duration when present (= e.g. "1.2s" /
                 // "234ms"). Appended inline after the tool name with
-                // a · separator (= Apple HIG metadata pattern).
+                // a · separator (= product metadata pattern).
                 // Hidden when:
                 //   - status != .complete / .error (= the tool is
                 //     still running; = no duration yet)
@@ -139,7 +139,7 @@ struct ChatToolUsePartView: View {
         }
     }
 
-    /// Status color (= Apple HIG semantic color = adapts to dark mode
+    /// Status color (= product semantic color = adapts to dark mode
     /// + the user's accent preference).
     private var statusColor: Color {
         switch toolUse.status {
@@ -237,7 +237,7 @@ struct ChatToolUsePartView: View {
             || lower.contains("url") {
             return "globe"
         }
-        // Fallback (= generic tool glyph = Apple HIG "Settings"
+        // Fallback (= generic tool glyph = product "Settings"
         // equivalent for unknown tools).
         return "wrench.and.screwdriver"
     }
@@ -249,8 +249,8 @@ struct ChatToolUsePartView: View {
     ///
     /// Visual mapping:
     ///   - .running  → "hourglass" (= "in progress" affordance)
-    ///   - .complete → "checkmark" (= Apple HIG success)
-    ///   - .error    → "xmark" (= Apple HIG error)
+    ///   - .complete → "checkmark" (= product success)
+    ///   - .error    → "xmark" (= product error)
     nonisolated static func statusIconName(for status: ChatMessagePart.ToolUsePart.Status) -> String {
         switch status {
         case .running: return "hourglass"

@@ -1,7 +1,7 @@
 // Sources/WenshuApp/UI/Chrome/ChromeTopBar.swift The column-top chrome
 // rows (the sidebar's switcher band, = the assets column's search band,
 // = the inspector column's page band) use this shared `ChromeTopBar`
-// chrome surface (= the wenshu 1:1 Apple HIG top-of-column chrome recipe; = mirror
+// chrome surface (= the wenshu 1:1 product top-of-column chrome recipe; = mirror
 // image of `ChromeBottomFooter`). Single source of truth for the top-chrome shape; =
 // no visual drift between the two call sites; = Apple-default 1:1. Difference from
 // `ChromeBottomFooter` (= the bottom chrome): - `ChromeBottomFooter` has the
@@ -12,7 +12,7 @@
 
 import SwiftUI
 
-/// Canonical Apple HIG top-of-column chrome surface
+/// Canonical product top-of-column chrome surface
 /// (= the top row of `Mail` / `Notes` / `Finder` /
 /// `System Settings` sidebar rows). Use this for ANY
 /// column-top chrome row (= toolbar, search bar, status
@@ -20,7 +20,7 @@ import SwiftUI
 /// have the same surface recipe: `VStack(spacing: 0) { content;
 /// .frame(maxWidth: .infinity, alignment: .leading);
 /// .padding(.vertical, 8); .padding(.horizontal, 8);
-/// .background(.bar) }` (= canonical Apple HIG column-top
+/// .background(.bar) }` (= Apple column-top
 /// chrome accessory surface).
 ///
 /// any new column-top chrome
@@ -34,10 +34,10 @@ struct ChromeTopBar<Content: View>: View {
     /// The column-top content (= a horizontal HStack of
     /// SFIcon + Text + Button chunks). Caller supplies the
     /// HStack; this shell anchors it to the leading edge
-    /// of the column (= Apple HIG format-toolbar format).
+    /// of the column (= product format-toolbar format).
     @ViewBuilder let content: Content
     /// Optional tooltip (= maps to the surface's `.help(...)`
-    /// modifier; = Apple HIG accessibility surface for
+    /// modifier; = product accessibility surface for
     /// the top-chrome row).
     let help: LocalizedStringKey?
     /// The band's horizontal inset (= the gap between the

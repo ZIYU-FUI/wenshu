@@ -5,7 +5,7 @@
 // PaneTabBar.swift when that file's other 3 types were deleted
 // (= PaneTabBar / PaneTabItem / PaneIconTab had 0 constructors).
 //
-// Apple HIG rationale: the trailing slot in a tab bar is for action
+// product rationale: the trailing slot in a tab bar is for action
 // buttons (separate from selection tabs). This helper unifies the
 // self-written copies that had drifted between WorkspaceView.swift
 // (= EditorExpandShrinkTrailingButton) and the chat-zone archive

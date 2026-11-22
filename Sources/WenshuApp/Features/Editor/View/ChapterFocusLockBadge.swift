@@ -3,7 +3,7 @@
 //
 //  Visual badge surfaced in the editor when the LLM holds the
 //  chapter cursor (= the focus-lock wrapper cleared
-//  AppState.focusedChapterPath and is mid-edit). Apple HIG
+//  AppState.focusedChapterPath and is mid-edit). product
 //  canonical "editing" affordance: a small label + spinner
 //  above the editor content (= same shape as Pages / Numbers'
 //  'Saving...' badge next to the document title).
@@ -25,7 +25,7 @@ import SwiftUI
 struct ChapterFocusLockBadge: View {
     var body: some View {
         HStack(spacing: DesignTokens.spacingIconic) {
-            // Apple HIG spinner (= ProgressView infinite) signals
+            // product spinner (= ProgressView infinite) signals
             // ongoing activity without stealing focus from the
             // editor's read-only text view.
             ProgressView()

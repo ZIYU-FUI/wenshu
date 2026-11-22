@@ -174,7 +174,7 @@ extension PreviewPane {
     /// visual icon. Caller can override per-call (= rare; most callers use the
     /// default).
     func emptyState(
-        // Per Apple HIG / platform-default style: default icon 'book-open' is Lucide
+        // per product convention / platform-default style: default icon 'book-open' is Lucide
         // kebab-case (= NOT a valid SF Symbol 6 identifier) = renders as a
         // blank rectangle in PreviewPane's empty states. Migrated to the
         // dot.case SF Symbols 6 form ('book.pages'). Per /Applications/SF
@@ -263,7 +263,7 @@ extension PreviewPane {
     }
 
     /// Non-empty branch of categoryGrid (= the GeometryReader + ScrollView +
-    /// LazyVGrid + animations + contentInset pipeline). Apple HIG canonical
+    /// LazyVGrid + animations + contentInset pipeline). the product
     /// pattern: when an if/else has a heavy non-empty branch (= 5 nested view
     /// frames here: GeometryReader → ScrollView → LazyVGrid → ForEach →
     /// referenceCategoryCard), extract it into a named @ViewBuilder helper (=
@@ -357,7 +357,7 @@ extension PreviewPane {
     }
 
     // Single Reference card for a category grid (= extracted from
-    // categoryGrid's nested ForEach + Card trailing closure). Apple HIG
+    // categoryGrid's nested ForEach + Card trailing closure). product
     // canonical pattern for deep view hierarchies (= extract nested trailing
     // closures into named @ViewBuilder helpers; = one less view layer; =
     // categoryGrid goes from 8 nested views to 7). The body contains the

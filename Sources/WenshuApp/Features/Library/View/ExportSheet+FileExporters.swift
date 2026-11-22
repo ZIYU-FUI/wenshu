@@ -16,7 +16,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// Build the default destination URL for the system save dialog.
-/// Reads the last-used URL from @AppStorage (= Apple HIG canonical
+/// Reads the last-used URL from @AppStorage (= the product
 /// "remember last folder" pattern); = falls back to the temp
 /// directory with a timestamped filename.
 private func lastURL(_ stored: String, suffix: String, ext: String = "") -> URL {
@@ -34,7 +34,7 @@ private func lastURL(_ stored: String, suffix: String, ext: String = "") -> URL 
 }
 
 /// `ViewModifier` that wires the library `.fileExporter` modifier.
-/// Apple HIG canonical pattern: one modifier per FileDocument type
+/// the product pattern: one modifier per FileDocument type
 /// (= each declares its own `writableContentTypes`).
 ///
 /// The onCompletion handler dispatches to the library engine
@@ -86,7 +86,7 @@ struct LibraryFileExporter: ViewModifier {
 }
 
 /// `ViewModifier` that wires the book `.fileExporter` modifier.
-/// Apple HIG canonical pattern: one modifier per FileDocument type
+/// the product pattern: one modifier per FileDocument type
 /// (= each declares its own `writableContentTypes`).
 ///
 /// The onCompletion handler dispatches to the book engine
@@ -140,7 +140,7 @@ struct BookFileExporter: ViewModifier {
 }
 
 /// `ViewModifier` that wires the chapter `.fileExporter` modifier.
-/// Apple HIG canonical pattern: one modifier per FileDocument type
+/// the product pattern: one modifier per FileDocument type
 /// (= each declares its own `writableContentTypes`).
 ///
 /// The onCompletion handler dispatches to the chapter engine

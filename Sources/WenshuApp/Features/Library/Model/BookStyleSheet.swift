@@ -9,7 +9,7 @@
 // screen:
 //
 //   body         Songti 13pt (= the print minimum is size 5 (10.5pt), = and
-//                13pt is the HIG body size)
+//                13pt = the HIG typography table's macOS default size)
 //   line spacing 1.55 (= print 1.50-1.60)
 //   indent       two characters (= the print first-line indent of two
 //                characters)
@@ -49,7 +49,8 @@ enum BookBodySize: String, CaseIterable, Codable, Sendable {
     case large
 
     /// Points on screen. = The print minimum for a novel's body is size 5
-    /// (10.5pt), = and 13pt is the HIG body size, = so the middle position
+    /// (10.5pt), = and 13pt is the HIG typography table's macOS default
+    /// size, = so the middle position
     /// is the print baseline and the smallest one is a shade under it.
     var points: Double {
         switch self {

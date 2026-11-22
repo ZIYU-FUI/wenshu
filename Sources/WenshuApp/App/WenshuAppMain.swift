@@ -18,13 +18,13 @@ import WenshuData
 // Was a pass-through `makeBody { configuration.label }` (= no-op);
 // the previous call site + outer Button style (formerly App.swift
 // L1820 + L1839 before the legacy code split moved those features out
-// of App.swift) is now superseded by the canonical Apple
+// of App.swift) is now superseded by the documented Apple
 // `.buttonStyle(.plain)` + `Color.clear.frame(28,28).contentShape(...)`
-// pattern (= Apple HIG hot-area convention).
+// pattern (= product hot-area convention).
 // SwiftUI button-style precedence = outer-wins, so the inner style was
 // always superseded. Use Apple `.buttonStyle(.plain)` directly with
 // `Color.clear.frame(28,28).contentShape(Rectangle())` inside the label
-// closure (= Apple HIG canonical hot-area pattern).
+// closure (= the product hot-area pattern).
 
 // "reset layout" notification bridge (AppRootScene uses @State private vm,
 // top-level .commands can't access vm instance, routed via NotificationCenter)
@@ -320,6 +320,6 @@ enum AuxTask: String, CaseIterable, Identifiable {
 // `NewLibraryOutlineView` (the 2366-LOC mega-file sidebar).
 // Both are removed (= commit 6bd3eb7f); = the sidebar
 // surface in production lives in NavigationSplitShell.swift
-// (= AppleSidebarView = the Apple HIG List(.sidebar) +
+// (= AppleSidebarView = the product List(.sidebar) +
 // post-v1.69 split sheets/context-menu/business files). No
 // replacement needed here.

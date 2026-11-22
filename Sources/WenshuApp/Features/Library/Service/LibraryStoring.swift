@@ -4,14 +4,14 @@
 // future impls = MetadataQuery / CoreData / CloudKit can be swapped in
 // without touching the view layer).
 //
-// Apple HIG document-based-app convention:
+// product document-based-app convention:
 //   ~/Documents/wenshu/<shelf-id-uuid>/
 //     shelf.json     ← encoded Bookshelf (the metadata)
 //     books/         ← book subdirs land here
 //     chapters/      ← chapter .md files land here
 //
 // Writes are atomic (= write-to-temp + rename) so a crash mid-write
-// leaves the existing file intact. This matches the Apple HIG pattern
+// leaves the existing file intact. This matches the product pattern
 // used by NSDocument / FileWrapper.write(to:options:originalContents:).
 
 import Foundation
@@ -68,12 +68,12 @@ struct LibraryStoringError: Error, Sendable {
 protocol LibraryStoring: Sendable {
     /// Where shelves are persisted on disk (= the ~/Documents/wenshu/ root
     /// for the FileSystem impl). Exposed so the UI can show 'Library at
-    /// ~/Documents/wenshu' (= Apple HIG 'Show in Finder' affordance) and
+    /// ~/Documents/wenshu' (= product 'Show in Finder' affordance) and
     /// so tests can inject an isolated /tmp root.
     var rootURL: URL { get }
 
     /// Returns all shelves sorted by updatedAt descending (= most-recently
-    /// edited first, Apple HIG Finder 'Recents' convention).
+    /// edited first, product Finder 'Recents' convention).
     func loadShelves() throws -> [Bookshelf]
 
     /// Persists the shelf (= creates the directory + writes shelf.json).
@@ -85,7 +85,7 @@ protocol LibraryStoring: Sendable {
 
     /// Removes the shelf directory and its contents. Idempotent: if the
     /// shelf is already gone (= user deleted it via Finder), this is a
-    /// no-op rather than an error. (= Apple HIG document-based apps treat
+    /// no-op rather than an error. (= product document-based apps treat
     /// delete as forgiving — Finder trashed the file from outside the
     /// app and the app should reconcile, not crash.)
     func deleteShelf(id: UUID) throws

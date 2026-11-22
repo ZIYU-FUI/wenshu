@@ -68,7 +68,7 @@ enum WordCounter {
         // 1. word (.byWords) — ASCII / word (CJK word)
         content.enumerateSubstrings(in: content.startIndex..<content.endIndex, options: .byWords) { substring, range, _, _ in
             if let s = substring, !s.isEmpty {
-                // Apple HIG: yesno ASCII ()
+                // product: yesno ASCII ()
                 let hasAscii = s.unicodeScalars.contains { $0.isASCII }
                 if hasAscii {
                     words += 1
@@ -76,7 +76,7 @@ enum WordCounter {
             }
         }
         // 2. in progress (CJK Unicode)
-        // Apple HIG: String.unicodeScalars + isChinese
+        // product: String.unicodeScalars + isChinese
         for scalar in content.unicodeScalars {
             if isChinese(scalar) {
                 chineseChars += 1
@@ -101,7 +101,7 @@ enum WordCounter {
     }
 
     /// in progress unicode (CJK Unified Ideographs + Extension A)
-    /// Apple HIG: Unicode 4E00-9FFF (basic) + 3400-4DBF (A)
+    /// product: Unicode 4E00-9FFF (basic) + 3400-4DBF (A)
     private static func isChinese(_ scalar: Unicode.Scalar) -> Bool {
         let v = scalar.value
         return (v >= 0x4E00 && v <= 0x9FFF) || (v >= 0x3400 && v <= 0x4DBF)

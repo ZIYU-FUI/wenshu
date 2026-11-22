@@ -1,5 +1,5 @@
 // ImportSheet.swift · Wenshu's markdown import feature. A
-// single-page sheet (= Apple HIG canonical macOS 14+ pattern) for the user to
+// single-page sheet (= the product macOS 14+ pattern) for the user to
 // pick: 1. The source directory on disk (= the directory containing their
 // existing markdown files; = e.g. an Obsidian vault). 2. The target book (= a
 // Book in the active library = the book they want the.md files to land inside; =
@@ -100,7 +100,7 @@ struct ImportSheet: View {
     /// import must not dismiss the sheet while the work is in flight.
     @State var confirmCancelPresented: Bool = false
 
-    /// Last-used source directory (= Apple HIG canonical "remember the last
+    /// Last-used source directory (= the product "remember the last
     /// folder"; = the system open panel starts here).
     @AppStorage("wenshu.import.source.lastURL") var lastSourceURLString: String = ""
 
@@ -177,7 +177,7 @@ struct ImportSheet: View {
                 selectedBookID = id
             }
         }
-        // Sheet sizing: the canonical Apple HIG macOS 14+ pattern is `minWidth:
+        // Sheet sizing: the Apple macOS 14+ pattern is `minWidth:
         // N` (= a minimum so the sheet is always wide enough to be readable) + no
         // `minHeight` (= the sheet hugs the content; = the empty / fresh sheet is
         // a small 2-picker card; = the post-import sheet grows to fit the
@@ -196,7 +196,7 @@ struct ImportSheet: View {
             // after the user confirms; = this hook is the no-op tail of the
             // dismiss path so we don't double-rollback).
         }
-        // The confirmation dialog (= the canonical Apple HIG macOS 14+
+        // The confirmation dialog (= the Apple macOS 14+
         // `confirmationDialog` pattern; = a popup the user can't miss; = the
         // dismiss is blocked until the user explicitly picks an outcome). Apple
         // canonical: the dialog presents ONLY when `confirmCancelPresented =

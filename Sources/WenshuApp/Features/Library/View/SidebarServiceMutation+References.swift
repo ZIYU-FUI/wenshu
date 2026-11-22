@@ -10,7 +10,7 @@
 //  = the book-doc mutations still live there), = and the split is
 //  registered in the NFI.
 //
-//  One view per file (per Apple HIG).
+//  One view per file (per product convention).
 //
 
 import Foundation

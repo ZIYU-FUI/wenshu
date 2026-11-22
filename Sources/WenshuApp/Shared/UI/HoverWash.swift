@@ -1,6 +1,6 @@
 // Sources/WenshuApp/UI/HoverWash.swift
 //
-// Apple HIG canonical macOS 26+ hover wash (= .quaternary ShapeStyle
+// the product macOS 26+ hover wash (= .quaternary ShapeStyle
 // inside a 4 PT corner radius RoundedRectangle). This is the same
 // pattern Apple uses in Settings.app sidebar rows, Mail message
 // rows, Finder toolbar buttons = the system-managed hover feedback
@@ -37,16 +37,16 @@
 import SwiftUI
 
 extension View {
-    /// Apply Apple HIG canonical hover wash (= .quaternary ShapeStyle
+    /// Apply the product hover wash (= .quaternary ShapeStyle
     /// inside a 4 PT corner radius RoundedRectangle = the macOS 26+
     /// standard hover feedback for toolbar / chrome buttons).
     ///
-    /// Apple HIG rationale:
+    /// product rationale:
     /// - .quaternary is a SwiftUI built-in ShapeStyle (= Apple API,
     ///   not a project custom color).
     /// - .quaternary auto-adapts to dark/light mode + Increase Contrast
     ///   (= system-managed, no per-app override).
-    /// - 4 PT corner radius matches Apple HIG small button hover shape
+    /// - 4 PT corner radius matches product small button hover shape
     ///   (= same as Settings / Mail / Finder toolbar buttons).
     /// - The .onHover callback is the Apple canonical SwiftUI macOS
     ///   pattern since macOS 10.15; .hoverEffect is visionOS-only

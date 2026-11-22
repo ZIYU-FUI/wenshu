@@ -38,7 +38,7 @@ struct AppRootScene: Scene {
     var body: some Scene {
         // title set to empty string (= no NSWindow title shown). Combined
         // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // canonical Apple HIG API to hide title slot in unified chrome.
+        // Apple API to hide title slot in unified chrome.
         WindowGroup("") {
             // dropped SettingsEnvironmentCapturer
             // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -62,7 +62,7 @@ struct AppRootScene: Scene {
         // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // macOS 13+ (= wenshu target = macOS 27).
         .defaultPosition(.center)
-        // Apple HIG default restoration (= `.automatic` = SwiftUI
+        // product default restoration (= `.automatic` = SwiftUI
         // … (= 34 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // standard macOS zoom gesture working as expected.
         .windowResizability(.contentMinSize)

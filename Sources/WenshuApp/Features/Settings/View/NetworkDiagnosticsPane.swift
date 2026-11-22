@@ -168,7 +168,7 @@ struct NetworkDiagnosticsPane: View {
         monitor.start(queue: queue)
         // Stop the monitor after one path update so we do not keep
         // the queue alive after the pane finishes its initial probe
-        // (= the pane is read-only afterward; = Apple HIG minimum
+        // (= the pane is read-only afterward; = product minimum
         // lifetime for a per-pane resource).
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             monitor.cancel()
@@ -286,7 +286,7 @@ enum ProbeStatus {
 }
 
 /// URLSession mode the user can select in Settings → Network.
-/// `systemDefault` is the canonical Apple HIG behavior (= URLSession
+/// `systemDefault` is the Apple behavior (= URLSession
 /// inherits the system proxy stack); = wenshu MUST NOT toggle this by
 /// default. The other two modes exist for users whose network stack
 /// (= corporate proxies / VPN / captive portals) blocks minimax.cn

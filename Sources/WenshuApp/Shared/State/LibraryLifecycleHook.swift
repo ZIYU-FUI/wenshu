@@ -60,7 +60,7 @@ struct LibraryStores: Sendable {
     /// Construct per-book FileSystemEntityStore (= unified v2.3 entity
     /// storage; = replaces the v2.0 WorldStoring + CharacterStoring
     /// pair with a single kind-discriminated store). v0.27 follows
-    /// the standard "data source switch" pattern (= Apple HIG
+    /// the standard "data source switch" pattern (= product
     /// canonical for app-level stores).
     @MainActor
     func makeBookStores(for bookDirectory: URL) -> PerBookStores {

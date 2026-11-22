@@ -38,7 +38,7 @@ struct EditorView: View {
 
     /// / P2 #19 (WIRE-PARAGRAPH-002): applyParagraphAI spinner flag. Disables the
     /// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-    /// / double-fire; = Apple HIG actionable-control-while-busy rule).
+    /// / double-fire; = product actionable-control-while-busy rule).
     @State private var isApplyingParagraphAI: Bool = false
 
     /// / P2 #19 (WIRE-PARAGRAPH-002): public selection setter. Future ticket will
@@ -81,7 +81,7 @@ struct EditorView: View {
     // `onClose` = the Safari-style X, = drawn by the one
     // segmented control), = and the trailing slot is empty again.
     //
-    // The trailing slot's Apple HIG rule (= it is the slot for action
+    // The trailing slot's product rule (= it is the slot for action
     // buttons beside the tabs) = is not what that button was: = it
     // closed a DOCUMENT, = which is the tabs' own business.
 
@@ -93,7 +93,7 @@ struct EditorView: View {
     // The close control used to sit in the trailing slot of the format
     // toolbar, the row under this one. That row is gone (= the format
     // commands moved to the inspector column's format page), and the
-    // trailing slot of a TAB BAR is the Apple HIG slot for action
+    // trailing slot of a TAB BAR is the product slot for action
     // buttons (= separate from the selection tabs), so the control moves
     // here rather than dying with the row.
     //
@@ -143,7 +143,7 @@ struct EditorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Tab strip = Safari-style multi-tab bar (Apple HIG tabbed-document
+            // Tab strip = Safari-style multi-tab bar (product tabbed-document
             // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
             // empty- state hint at full size below).
             HStack(spacing: 0) {
@@ -246,7 +246,7 @@ struct EditorView: View {
                                     )
                                 }
                             } else {
-                                // edit mode uses Apple SwiftUI TextEditor (= HIG
+                                // edit mode uses Apple SwiftUI TextEditor (= the
                                 // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
                                 // contract).
                                 EditorEditContent(

@@ -17,16 +17,16 @@ import SwiftUI
 
 // MARK: - SFLabelRow
 
-/// Central Apple HIG sidebar-row factory. Renders one icon + title + optional
-/// subtitle per Apple HIG Sidebars canonical pattern (=
+/// Central product sidebar-row factory. Renders one icon + title + optional
+/// subtitle per the product sidebar-row pattern (=
 /// `developer.apple.com/design/human-interface-guidelines/sidebars`:
 /// "Short labels / Familiar SF Symbols / Calm the sidebar").
 ///
-/// Application position: macOS 27 List(.sidebar) rows. Pinned to Apple's
-/// own sidebar row anatomy = 22 PT row height (= SwiftUI List(.sidebar)
+/// Application position: macOS 27 List(.sidebar) rows. Pinned to the
+/// product's own sidebar row anatomy = 22 PT row height (= SwiftUI List(.sidebar)
 /// default), 16 PT leading icon (= Apple Mail / Finder / Settings sidebar
 /// default), `.body` title + `.caption + .secondary` subtitle, with the
-/// 10 PT inner gutter (= the Apple HIG standard sidebar inset).
+/// 10 PT inner gutter (= the product standard sidebar inset).
 ///
 /// The library tree rows do not instantiate this wrapper yet (= they
 /// draw their own icon slot); = the wrapper is the reference
@@ -88,7 +88,7 @@ struct SFLabelRow: View {
             // still look larger or smaller beside one another. A fixed
             // slot plus the canonical regular weight keeps the tree
             // visually aligned without tuning each symbol individually.
-            // Color follows Apple Tahoe sidebar default (= system primary,
+            // Color follows macOS sidebar default (= system primary,
             // not app accent). No explicit .symbolRenderingMode here (=
             // the SFIcon factory owns the rendering decision via
             // IconStyle.sidebar = .monochrome; per the boss 2026-10-08
