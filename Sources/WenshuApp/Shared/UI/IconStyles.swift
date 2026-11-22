@@ -187,8 +187,9 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// color, no multicolor, no squircle tile).
     case sidebarTree
 
-    /// Apple HIG point size for this case. Values follow Apple-shipped app
-    /// defaults (= not wenshu-invented).
+    /// Point size for this zone (= the product's frozen per-zone table,
+    /// settled 2026-11-21; NOT claimed as HIG figures — the HIG publishes
+    /// no icon point-size table).
     var pointSize: CGFloat {
         switch self {
         case .inlineSmall: 14
@@ -448,15 +449,14 @@ struct SFIcon: View {
             // Symbol) and renders the SF Symbol in `.multicolor` mode
             // where the symbol has an intrinsic multicolour variant (= the
             // "Settings" pane family uses multi-colour SF Symbols 7
-            // variants). The 28×28 PT tile (= 20 PT icon + 4 PT inset × 2)
-            // = the product tile slot. Tile corner radius =
+            // variants). The 24×24 PT tile (= 16 PT content box + 4 PT
+            // inset × 2) = the product tile slot. Tile corner radius =
             // `DesignTokens.sidebarIconTileCornerRadius` (= 6 PT) + tile
             // padding = `DesignTokens.sidebarIconTilePadding` (= 4 PT
             // inset) + tile size = `DesignTokens.sidebarIconTileSize`
             // (= 24 PT) — the three product tile tokens, read at source.
-            // All
-            // tokens ban naked numeric corner / spacing / sizing literals
-            // per the v3.0 design-system hard rule. `Color(nsColor:
+            // All tokens ban naked numeric corner / spacing / sizing
+            // literals per the v3.0 design-system hard rule. `Color(nsColor:
             // .controlBackgroundColor)` is an AppKit semantic color (= NOT
             // a raw `Color.X.opacity(N)`) so the v3.0 rule #6 body-text
             // ban does not apply; = system-supplied color that resolves to
@@ -464,8 +464,8 @@ struct SFIcon: View {
             // #9 = use `IconColor` semantic tint, and the canonical Tahoe
             // sidebar icon tile uses the control (= "background") color
             // over the system accent (= the sidebar List cell tint is now
-            // system controlBackground per Apple HIG `Sidebars > Sidebar
-            // row anatomy`). The icon color argument is ignored under
+            // system controlBackground; no HIG path is cited — the HIG
+            // publishes no such anatomy). The icon color argument is ignored under
             // `.multicolor` (= the symbol carries its own intrinsic
             // colors); = the color parameter is kept in the API so call
             // sites don't churn.

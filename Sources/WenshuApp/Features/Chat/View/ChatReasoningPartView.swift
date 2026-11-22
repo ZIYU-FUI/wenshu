@@ -195,13 +195,17 @@ private struct ToolActivityList: View {
 /// the ChatPartRow container when it inserts / removes a
 /// ChatReasoningPartView in response to streaming events.
 extension AnyTransition {
-    /// T40 standard transition (= fade-in + small downward settle).
-    ///   - duration: 0.3s: inside the 100-500 ms band measured as the
-    ///     response window for content appearance (NN/g); the HIG
-    ///     publishes no duration figures (audit C3, provenance rewritten).
+    /// T40 standard transition (= fade-in + settle from above).
+    ///   - duration: this transition sets NO duration — the call sites
+    ///     run under `.animation(.default, value:)` from
+    ///     `ChatPartView.swift:146` (= wenshu-tuned; the HIG publishes no
+    ///     duration figures. The craft audit's corpus quotes NN/g's
+    ///     100–500 ms animation range as third-party research, not Apple
+    ///     policy — quoted, never measured here).
     ///   - opacity: 0 -> 1
-    ///   - movement: 4pt upward (edge: .top, so the view slides
-    ///     DOWN into position; = reads as "drop into place")
+    ///   - movement: `.move(edge: .top)` translates the view DOWN into
+    ///     position by its own height (= there is no fixed 4pt literal in
+    ///     this code; reads as "drop into place")
     ///
     /// T40 implementation note: implemented as a STATIC FUNCTION
     /// (not a stored property) to satisfy Swift 6 strict concurrency

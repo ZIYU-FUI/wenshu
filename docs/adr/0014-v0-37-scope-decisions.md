@@ -78,6 +78,9 @@ Per 老板 cadence "涉及到前端 ui 的，要遵循铁律" (= session 9 + 10 
 - All new view code uses DesignTokens
 - RuntimeCWDDisplayChip uses DesignTokens (= chromePaddingMicro /
   chromePaddingSmall / badgePaddingVertical / surfaceCornerRadiusSmallChip)
+  - ADDENDUM 2026-11-22: `badgePaddingVertical` was already a dead token at
+    this record's date (0 code consumers) and has been removed from
+    DesignTokens with the craft P3 tail.
 
 ### D7: Push authority
 

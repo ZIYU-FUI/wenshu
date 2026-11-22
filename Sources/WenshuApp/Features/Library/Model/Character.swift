@@ -48,11 +48,11 @@ enum CharacterRole: String, CaseIterable, Codable, Sendable {
     /// Currently no in-tree consumer reads it.
     var colorHex: String {
         switch self {
-        case .protagonist: return "#FF3B30"  // iOS system red (frozen)
-        case .antagonist:  return "#FF9500"  // iOS system orange (frozen)
-        case .supporting:  return "#34C759"  // iOS system green (frozen)
-        case .narrator:    return "#8E8E93"  // iOS system gray (frozen)
-        case .other:       return "#5856D6"  // iOS system INDIGO (frozen; macOS purple is a different hex)
+        case .protagonist: return "#FF3B30" // iOS system red (frozen)
+        case .antagonist: return "#FF9500" // iOS system orange (frozen)
+        case .supporting: return "#34C759" // iOS system green (frozen)
+        case .narrator: return "#8E8E93" // iOS system gray (frozen)
+        case .other: return "#5856D6" // iOS system INDIGO (frozen; macOS purple is a different hex)
         }
     }
 
