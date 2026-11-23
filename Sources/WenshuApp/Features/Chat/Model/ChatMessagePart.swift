@@ -78,20 +78,31 @@ struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
     /// Unix seconds when this part stopped streaming (= hermes
     /// TimelinePartMetadata.completedAt). nil while still streaming.
     let completedAt: TimeInterval?
-    /// Whether the reader has this part's detail open.
-    ///
-    /// The answer belongs to the part rather than to the row that draws it.
-    /// The row is built again whenever the reply grows, and it is not built
-    /// at all while the transcript scrolls it out of the viewport (= a
-    /// `LazyVStack` keeps the realised rows only), so an answer kept in the
-    /// row is lost with the row (= measured: a block the reader closed
-    /// reopened itself on the next appended frame).
+    /// Whether the reader is reading this block's detail.
     ///
     /// The default shows the reasoning: an agent reply exposes its trace to
     /// the reader (see OOB.md #2026-10-15), so an open block here is that
-    /// rule applied, not a state the row happens to start out in.
-    /// The reader's own collapse is what this field carries, and that choice
+    /// rule applied, not a state the row happens to start out in. The
+    /// reader's own collapse is what this field carries, and that choice
     /// then survives the rebuild and the scroll.
+    ///
+    /// The answer lives here rather than in the row that draws the block:
+    /// the row is torn down and built again (= the reply grows, and a
+    /// `LazyVStack` realises only the rows near the visible band), so an
+    /// answer kept in the row is an answer that is lost with the row.
+    ///
+    /// Two answers, not three: "the reader opened it" and "the reader
+    /// never touched it" draw the same thing (= = the block shows its
+    /// words), = = so a third state would record a difference no reader
+    /// can see.
+    ///
+    /// This answer DOES decide the room the block takes: a block the
+    /// reader closed is not built at all (= = measured: the transcript
+    /// reads 45.0 PT closed and 205.0 PT open, = = and a closed block
+    /// has no inner scroller in the tree). What the answer does NOT
+    /// decide is the rectangle's own height: WHENEVER the block is
+    /// shown, its rectangle is bounded (= = the trace scrolls inside
+    /// it), = = so its room does not follow the length of the trace.
     var isThinkingRevealed: Bool = true
 
     /// Extend this part's own text with a streamed chunk.
@@ -168,7 +179,12 @@ struct ChatMessagePart: Equatable, Hashable, Identifiable, Sendable {
     }
 
     static func reasoning(_ s: String, timestamp: TimeInterval? = nil) -> ChatMessagePart {
-        ChatMessagePart(id: UUID(), kind: .reasoning(s), timestamp: timestamp, completedAt: nil)
+        return ChatMessagePart(
+            id: UUID(),
+            kind: .reasoning(s),
+            timestamp: timestamp,
+            completedAt: nil
+        )
     }
 
     static func toolUse(

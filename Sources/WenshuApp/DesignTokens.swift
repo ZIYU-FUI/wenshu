@@ -190,6 +190,16 @@ enum DesignTokens {
     /// side-panels use it.
     static let metadataPanelMaxWidth: CGFloat = 320
 
+    /// The reasoning block's height cap (= 160 PT).
+    ///
+    /// The number is the app's own: Apple's HIG publishes no figure for
+    /// the height of a nested scrolling region, so the cap is the
+    /// product's decision. At the app's caption line height (= 13 PT)
+    /// the rectangle holds about twelve lines: a screenful of thinking
+    /// is readable at a glance, and the rest scrolls inside the
+    /// rectangle instead of pushing the transcript down.
+    static let reasoningBoxMaxHeight: CGFloat = 160
+
     /// Attachment thumbnail max-width and height (= 240 PT): the product
     /// inline chat attachment preview size.
     static let attachmentPreviewMaxSize: CGFloat = 240

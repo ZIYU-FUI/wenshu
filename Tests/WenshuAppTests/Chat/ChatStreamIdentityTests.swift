@@ -269,6 +269,32 @@ struct ChatStreamIdentityTests {
         #expect(cameBackClosed, "The block came back open after the row was built again from the model")
     }
 
+    @Test("the reader's answer is one flag: a block nobody touched still shows its words")
+    func theReaderAnswerIsOneFlag() throws {
+        // The flag is ONE answer (= = not a record of "the reader opened
+        // it" versus "the reader never touched it"): = = a block that was
+        // never touched and a block the reader opened draw the SAME
+        // thing. = = This test exists because a three-state shape once
+        // stood here (= = and its third state had no reader, = = so
+        // deleting it left the whole suite green).
+        let (vm, streamingID) = makeViewModel(settledReplies: 0)
+        let acc = StreamingAccumulator()
+        feed(vm, streamingID, acc, Self.reasoningChunk)
+        feed(vm, streamingID, acc, "the answer so far ")
+        let partID = try #require(reasoningPartID(vm.messages[0]))
+
+        // Nobody touched it: = = the block shows its words.
+        let untouchedTexts = Self.publishedTexts(of: vm.messages[0])
+        #expect(untouchedTexts.contains { $0.contains(Self.reasoningText) },
+                "A block nobody touched does not show its words")
+
+        // The reader opened it: = = the same words (= = the same answer).
+        vm.setThinkingRevealed(true, messageID: streamingID, partID: partID)
+        let openedTexts = Self.publishedTexts(of: vm.messages[0])
+        #expect(openedTexts.contains { $0.contains(Self.reasoningText) },
+                "Opening a block that was already showing its words changed the drawing")
+    }
+
     // MARK: - 4. The disclosure seam: structure
 
     @Test("a collapsed block has no body in the tree that is built for it")

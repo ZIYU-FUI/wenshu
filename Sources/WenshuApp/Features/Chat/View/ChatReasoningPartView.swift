@@ -28,6 +28,12 @@
 //  the same disclosure, because the tool calls are facts and the model's
 //  prose is its own account of them.
 //
+//  The body is drawn inside a bounded rectangle (= ReasoningScrollBox):
+//  the trace scrolls inside the rectangle instead of pushing the
+//  transcript down, so the transcript's height does not follow the
+//  length of the thinking. While the turn runs the rectangle follows
+//  the new words, and it stops as soon as the reader scrolls up.
+//
 
 import SwiftUI
 
@@ -52,7 +58,6 @@ struct ChatReasoningPartView: View {
     /// until the reader closes it), so the reasoning text is visible
     /// without a click and the reader's own collapse is what changes it.
     @Binding var isRevealed: Bool
-
     init(
         text: String,
         isRunning: Bool = false,
@@ -71,16 +76,18 @@ struct ChatReasoningPartView: View {
         // Mail / Notes "Show Details" toggles). Renders a label +
         // chevron that the user clicks to expand.
         DisclosureGroup(isExpanded: $isRevealed) {
-            VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-                ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
-                    ReasoningSegmentView(segment: segment)
+            ReasoningScrollBox {
+                VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
+                    ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                        ReasoningSegmentView(segment: segment)
+                    }
+                    if !activity.isEmpty {
+                        ToolActivityList(activity: activity)
+                    }
                 }
-                if !activity.isEmpty {
-                    ToolActivityList(activity: activity)
-                }
+                .padding(.top, DesignTokens.spacingIconic)
+                .transition(.opacity)
             }
-            .padding(.top, DesignTokens.spacingIconic)
-            .transition(.opacity)
         } label: {
             // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI '
             // (= the brain-head-profile icon was C2-era wenshu-side chrome
@@ -126,13 +133,155 @@ struct ChatReasoningPartView: View {
     }
 }
 
+/// The distance from the bottom within which the reader is still following
+/// the stream inside the reasoning rectangle.
+///
+/// The slack keeps the gate from flapping on a sub-pixel difference at the
+/// bottom.
+private let reasoningFollowThreshold: CGFloat = 24
+
+/// The anchor the reasoning rectangle's follow scrolls to (= the end of the
+/// body).
+private let reasoningBottomAnchor = "reasoning-bottom"
+
+/// The reasoning rectangle's own scroll geometry (= what the gate is read
+/// from).
+private struct ReasoningScrollGeometry: Equatable {
+    /// How far the rectangle is scrolled.
+    let offset: CGFloat
+    /// The height of the words inside it.
+    let contentHeight: CGFloat
+    /// The height of the rectangle itself.
+    let containerHeight: CGFloat
+
+    /// How far the reader is from the bottom.
+    var gap: CGFloat {
+        contentHeight - offset - containerHeight
+    }
+}
+
+/// The rectangle a reasoning body is read in.
+///
+/// The body scrolls inside the rectangle, so a long trace does not push
+/// the transcript down: the transcript's height then does not follow the
+/// length of the thinking. While the turn runs the rectangle follows the
+/// new words (= it scrolls to its own bottom), and it stops the moment
+/// the reader scrolls up (= the reader's position wins, and the new
+/// words pile up below it).
+///
+/// The gate is the reader's distance from the bottom: within the
+/// threshold the reader is still following the stream, and past it the
+/// reader has taken over. The threshold carries a little slack, so a
+/// sub-pixel difference at the bottom cannot make the gate flap.
+private struct ReasoningScrollBox<Content: View>: View {
+    /// The body the rectangle holds.
+    @ViewBuilder let content: Content
+    /// Whether the reader is still at the bottom of the rectangle.
+    @State private var following = true
+    /// The height the body had the last time it was measured.
+    ///
+    /// It starts EMPTY (= no measurement yet), = = not at -1: a -1 is
+    /// smaller than every real height, = = so the first measurement
+    /// would look like growth, = = and a FINISHED trace (= one that is
+    /// not growing any more) would scroll to its tail before the reader
+    /// had done anything (= = the reader's place inside the rectangle
+    /// was lost, = = and the `LazyVStack` builds the row again when it
+    /// scrolls out of the viewport, = = so every re-realization landed
+    /// back at the tail).
+    @State private var lastContentHeight: CGFloat?
+    /// The offset the rectangle was at the last time it was measured.
+    @State private var lastOffset: CGFloat = 0
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                content
+                    .id(reasoningBottomAnchor)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { _, new in
+                        // The body grew (= the stream added words), so the
+                        // rectangle follows it while the reader is at the
+                        // bottom. A width change also lands here, so the
+                        // growth is what opens the gate.
+                        //
+                        // The FIRST measurement is not a growth: there is
+                        // nothing to compare it with yet, = = so it only
+                        // records the height. A body that is not growing
+                        // (= a finished trace) therefore never scrolls on
+                        // its own, = = and the reader finds the top of
+                        // the trace where they left it.
+                        guard let previous = lastContentHeight else {
+                            lastContentHeight = new
+                            return
+                        }
+                        let grew = new > previous
+                        lastContentHeight = new
+                        guard grew, following else { return }
+                        proxy.scrollTo(reasoningBottomAnchor, anchor: .bottom)
+                    }
+            }
+            // The cap is a maximum, not a height: a short trace holds a
+            // short rectangle, and a long one scrolls inside the cap.
+            //
+            // The rectangle is ALWAYS bounded: a block the reader took
+            // over is drawn whole was a shape that never shipped (= the
+            // parameter had no caller), = = so the shape the app draws
+            // is the one the record describes.
+            .frame(maxHeight: DesignTokens.reasoningBoxMaxHeight)
+            // The system's own scroll indicator (= the reader is told the
+            // rectangle scrolls; = it is never hidden).
+            .scrollIndicators(.automatic)
+            // The rectangle says where it ends.
+            //
+            // A scroller that draws nothing at its edges (= the overlay
+            // indicator only paints while the reader scrolls, = and a
+            // body of plain text has no background of its own) looks
+            // like a cut-off line of words: the reader cannot tell that
+            // there is more below. The edge is a hairline in the
+            // divider colour the app already uses for separators.
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    // The system's own separator colour (= = the app's
+                    // precedent: `InspectorStyleRule` draws its rule
+                    // with `Color(nsColor: .separatorColor)`).
+                    //
+                    // NOT a hand-mixed alpha (= = the app's own rule:
+                    // "hand-rolled alphas do not follow Dark Mode or
+                    // Increase Contrast"), = = and not `.secondary`
+                    // (= = that is a text tier, = = not a line).
+                    .fill(Color(nsColor: .separatorColor))
+                    .frame(height: DesignTokens.dividerHeight)
+            }
+            .onScrollGeometryChange(for: ReasoningScrollGeometry.self) { geometry in
+                ReasoningScrollGeometry(
+                    offset: geometry.contentOffset.y,
+                    contentHeight: geometry.contentSize.height,
+                    containerHeight: geometry.containerSize.height
+                )
+            } action: { _, geometry in
+                // The gate is read when the RECTANGLE MOVED (= the reader
+                // scrolled), and not when the words grew: a body that
+                // grows under a reader who is at the bottom must not be
+                // mistaken for a reader who scrolled away.
+                let moved = geometry.offset != lastOffset
+                lastOffset = geometry.offset
+                guard moved else { return }
+                following = geometry.gap < reasoningFollowThreshold
+            }
+        }
+    }
+}
+
 /// One labelled step of the assistant's reasoning.
 private struct ReasoningSegmentView: View {
     let segment: ReasoningSegment
 
     var body: some View {
         switch segment {
-        case .prose(let text):
+        case let .prose(text):
             // The thinking is the model's private scratchpad (= its own
             // markdown-ish notes, = indented the way it indents its
             // notes), = so it is read as plain text: = the markers and

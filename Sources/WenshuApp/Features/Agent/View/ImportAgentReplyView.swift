@@ -61,6 +61,10 @@ struct ImportAgentReplyView: View {
                 guard let kept = drawnParts.first(where: { $0.id == part.id })?
                     .isThinkingRevealed else { return part }
                 var copy = part
+                // A plain flag (= = not a three-state record): = = copying
+                // the reader's answer back onto the grown part is
+                // equality-preserving, = = so the row does NOT see a
+                // change when nothing draws differently.
                 copy.isThinkingRevealed = kept
                 return copy
             }
