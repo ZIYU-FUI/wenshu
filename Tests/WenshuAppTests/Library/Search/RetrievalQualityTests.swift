@@ -120,6 +120,8 @@ struct RetrievalQualityTests {
                 "the production library search must not fall below its recorded recall@1")
         #expect(library.recallAt3 >= RankerTable.libraryBaselineRecallAt3,
                 "the production library search must not fall below its recorded recall@3")
+        #expect(library.recallAt5 >= RankerTable.libraryBaselineRecallAt5,
+                "the production library search must not fall below its recorded recall@5")
     }
 
     @Test("the production mirror search holds its recorded recall")
@@ -128,6 +130,13 @@ struct RetrievalQualityTests {
         let mirror = table.row(named: RankerTable.mirrorName)
         #expect(mirror.recallAt1 >= RankerTable.mirrorBaselineRecallAt1,
                 "the production mirror search must not fall below its recorded recall@1")
+        #expect(mirror.recallAt3 >= RankerTable.mirrorBaselineRecallAt3,
+                "the production mirror search must not fall below its recorded recall@3")
+        // **⇒ The floor holds every recall the table prints, = = because a
+        // ranking can lose the SECOND and THIRD hit without losing the
+        // first.** = = A floor on one column is a floor on one column.
+        #expect(mirror.recallAt5 >= RankerTable.mirrorBaselineRecallAt5,
+                "the production mirror search must not fall below its recorded recall@5")
     }
 
     @Test("the reference ranker with inverse document frequency is ahead of the production library search")

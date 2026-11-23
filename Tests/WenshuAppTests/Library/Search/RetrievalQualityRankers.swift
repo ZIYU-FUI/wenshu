@@ -49,10 +49,17 @@ struct RankerTable {
     /// corpus (= 0.75, = and not the 0.67 a copy of the ranking gave: = the
     /// copy's tie order was the copy's own, = and a tie is exactly where a
     /// ranking's copy stops measuring the ranking).**
-    static let libraryBaselineRecallAt1 = 0.75
-    static let libraryBaselineRecallAt3 = 0.83
+    /// **⇒ THE FLOORS ARE FRACTIONS OF THE FIXTURE'S TWELVE QUESTIONS**
+    /// (= = and not the rounded numbers the table prints: = = 11 of 12 is
+    /// 0.9166..., = = and a floor of 0.92 would sit ABOVE it and fail a
+    /// ranking that did not move).
+    static let libraryBaselineRecallAt1 = 9.0 / 12.0
+    static let libraryBaselineRecallAt3 = 10.0 / 12.0
+    static let libraryBaselineRecallAt5 = 11.0 / 12.0
     /// The production mirror search's recorded recall.
-    static let mirrorBaselineRecallAt1 = 0.83
+    static let mirrorBaselineRecallAt1 = 10.0 / 12.0
+    static let mirrorBaselineRecallAt3 = 11.0 / 12.0
+    static let mirrorBaselineRecallAt5 = 12.0 / 12.0
     static let expanderBaselineRecallAt1 = 0.41
 
     let rows: [RankerResult]
