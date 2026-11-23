@@ -53,8 +53,8 @@ The shape that was measured, not chosen:
 
 ## 3. What the branch's commits change
 
-`git diff --shortstat <main>...<tip>` = = "24 files changed, 2760
-insertions(+), 151 deletions(-)": 16 `Sources/` files, 6 `Tests/` files, and
+`git diff --shortstat <main>...<tip>` = = "24 files changed, 2778
+insertions(+), 158 deletions(-)": 16 `Sources/` files, 6 `Tests/` files, and
 the registry. Ten files are new (= = `SubAgentActivityLine.swift`,
 `SubAgentRunner+Storage.swift`, `ChatScrollToBottomButton.swift`,
 `ChatTranscriptBottom.swift`, `ChatView+Transcript.swift`, and five test
@@ -76,8 +76,9 @@ files); the rest are rewrites.
 
 The reviewer re-ran the gates in the card's own worktree, with the worktree
 clean before and after and its `HEAD` = = the named sha, and wrote no file in
-it. It also re-derived the registry independently of its gate (512 rows, 512
-keys, 0 base keys lost) and checked the lane carry **by blob and by line**:
+it. It also re-derived the registry independently of its gate, with the
+registry driver's own ruler (= = the key it extracts from each row): 499 keys
+at `main` = = 510 keys at the tip, 11 added, 0 lost. and checked the lane carry **by blob and by line**:
 20 of the 23 lane-touched files byte-identical to their lane's copy, and in
 the three exceptions (`nfi.md`, `ChatViewModel.swift`,
 `Localizable.xcstrings`) no lane-authored code or test line is absent at the
