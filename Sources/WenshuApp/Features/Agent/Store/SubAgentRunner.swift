@@ -62,26 +62,26 @@ final class SubAgentRunner {
     /// Production code injects `LiveAuditorStorage`.
     let auditorStorage: AuditorStorage?
 
-    // / The ledger every run writes to.
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / archive pane reads; = without it the rows never exist).
+    /// / The ledger every run writes to.
+    /// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / archive pane reads; = without it the rows never exist).
     let ledger: SubAgentLedger?
 
-    // / Where a finished run's result goes.
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / conversation that asked for it, = as a message with its own
-    // / source; = without it the result reaches nobody).
+    /// / Where a finished run's result goes.
+    /// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / conversation that asked for it, = as a message with its own
+    /// / source; = without it the result reaches nobody).
     let resultDelivery: SubAgentResultDelivery?
 
-    // / The card that shows a research delegation's progress.
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / in "new" forever, = so the board listed intentions instead of
-    // / outcomes).
+    /// / The card that shows a research delegation's progress.
+    /// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / in "new" forever, = so the board listed intentions instead of
+    /// / outcomes).
     let kanbanBridge: SubAgentKanbanBridge?
 
-    // / The registry this runner drains handles from. Always
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / init.
+    /// / The registry this runner drains handles from. Always
+    /// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / init.
     private var registry: AsyncDelegationRegistry {
         _isolatedRegistry ?? .shared
     }
@@ -112,8 +112,8 @@ final class SubAgentRunner {
         self.ledger = ledger
         self.resultDelivery = resultDelivery
         self.kanbanBridge = kanbanBridge
-        self._isolatedRegistry = nil
-        self._isolatedToolRegistry = nil
+        _isolatedRegistry = nil
+        _isolatedToolRegistry = nil
     }
 
     /// A test-only initializer with an isolated registry (= the runner does not
@@ -133,11 +133,11 @@ final class SubAgentRunner {
         self.maxSubAgentTurns = maxSubAgentTurns
         self.archivistStorage = archivistStorage
         self.auditorStorage = auditorStorage
-        self.ledger = nil
-        self.resultDelivery = nil
-        self.kanbanBridge = nil
-        self._isolatedRegistry = isolatedRegistry
-        self._isolatedToolRegistry = nil
+        ledger = nil
+        resultDelivery = nil
+        kanbanBridge = nil
+        _isolatedRegistry = isolatedRegistry
+        _isolatedToolRegistry = nil
     }
 
     /// A test-only initializer that bypasses `ToolRegistry.shared`. Use it for
@@ -157,11 +157,11 @@ final class SubAgentRunner {
         self.maxSubAgentTurns = maxSubAgentTurns
         self.archivistStorage = archivistStorage
         self.auditorStorage = auditorStorage
-        self.ledger = nil
-        self.resultDelivery = nil
-        self.kanbanBridge = nil
-        self._isolatedRegistry = isolatedRegistry
-        self._isolatedToolRegistry = isolatedToolRegistry
+        ledger = nil
+        resultDelivery = nil
+        kanbanBridge = nil
+        _isolatedRegistry = isolatedRegistry
+        _isolatedToolRegistry = isolatedToolRegistry
     }
 
     /// Drains up to `maxBatchSize` pending handles. Each handle is a unit of work
@@ -379,8 +379,8 @@ final class SubAgentRunner {
     /// for it.
     ///
     /// A delivery failure is swallowed: = the run finished, = its
-    //  outcome is in the ledger, = and a conversation that could not
-    //  be written to must not turn that into a failed run.
+    ///  outcome is in the ledger, = and a conversation that could not
+    ///  be written to must not turn that into a failed run.
     private func deliverResult(handle: BackgroundDelegationHandle, result: String) async {
         guard let resultDelivery else { return }
         // The result is formatted before it is delivered, = because
@@ -472,11 +472,28 @@ final class SubAgentRunner {
                     switch block {
                     case let .text(text):
                         await outputRegistry.appendOutput(handleID: handleID, text: text)
-                    case let .toolUse(_, toolName, _):
+                    case let .toolUse(_, toolName, input):
                         // The card names the tool the sub-agent is calling
                         // right now (= Hermes' sub-agent row does), so the
                         // name is recorded as the block arrives.
                         await outputRegistry.recordCurrentTool(handleID: handleID, tool: toolName)
+                        // The activity line says what the call was about:
+                        // the tool's name alone does not say WHICH file
+                        // the agent is reading (= and the argument is
+                        // already here, = = it was being dropped).
+                        await outputRegistry.recordActivity(
+                            handleID: handleID,
+                            activity: SubAgentActivityLine.text(toolName: toolName, input: input)
+                        )
+                    case let .thinking(text, _):
+                        // The agent's own words are the activity too: = =
+                        // a line the reader can follow while the agent
+                        // thinks (= Hermes' row shows the child's last
+                        // stream line, = = which is its thinking).
+                        await outputRegistry.recordActivity(
+                            handleID: handleID,
+                            activity: SubAgentActivityLine.text(thinking: text)
+                        )
                     default:
                         break
                     }
@@ -520,80 +537,5 @@ final class SubAgentRunner {
         }
 
         return summary
-    }
-
-    // MARK: - Storage-dispatch sub-agents (v2.7d)
-
-    /// Runs the archivist sub-agent and returns its summary. The run
-    /// reports a typed error on a transport, decode or provider failure.
-    private func runArchivistSubAgent(
-        handle: BackgroundDelegationHandle,
-        slug: String
-    ) async throws -> String {
-        guard let storage = archivistStorage else {
-            // No storage adapter injected (= misconfigured runner). Per §11
-            // baseline 'no fake success', we throw so the handle ends up.failed
-            // (not.completed with a fake summary).
-            throw SubAgentRunnerError.subAgentLLMFailed(
-                handleID: handle.id,
-                agentName: slug,
-                message: "ArchivistStorage not injected (= runner misconfigured; = production should pass LiveArchivistStorage)"
-            )
-        }
-
-        let task = handle.userMessage.trimmingCharacters(in: .whitespacesAndNewlines)
-        let parts = task.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
-        guard let action = parts.first.map(String.init) else {
-            return #"{"stored":0,"action":"noop","reason":"empty task"}"#
-        }
-
-        let restAfterAction = parts.count > 1 ? String(parts[1]) : ""
-
-        switch action {
-        case "backup":
-            // "backup <label> <contents>" — split restAfterAction on first space.
-            let backupParts = restAfterAction.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
-            guard backupParts.count == 2 else {
-                return #"{"stored":0,"action":"backup","reason":"expected: backup <label> <contents>"}"#
-            }
-            let label = String(backupParts[0])
-            let contents = String(backupParts[1])
-            let url = try await storage.writeBackup(label: label, contents: contents)
-            return #"{"stored":1,"action":"backup","path":"\#(url.path)"}"#
-
-        default:
-            return #"{"stored":0,"action":"noop","reason":"unknown action: \#(action)"}"#
-        }
-    }
-
-    /// Runs the Auditor sub-agent (= read-only memory access via the auditor's
-    /// storage). A `skip` verdict means there was no memory snippet, so there is
-    /// nothing to verify against.
-    private func runAuditorSubAgent(
-        handle: BackgroundDelegationHandle,
-        slug: String
-    ) async throws -> String {
-        guard let storage = auditorStorage else {
-            throw SubAgentRunnerError.subAgentLLMFailed(
-                handleID: handle.id,
-                agentName: slug,
-                message: "AuditorStorage not injected (= runner misconfigured)"
-            )
-        }
-
-        let memory = await storage.readMemory(forUserMessage: handle.userMessage)
-        let trimmed = memory.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if trimmed.isEmpty {
-            return #"{"verdict":"skip","memory_snippet_count":0,"first_snippet":null}"#
-        }
-
-        let snippetCount = trimmed
-            .components(separatedBy: "\n\n")
-            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-            .count
-
-        let firstSnippet = String(trimmed.prefix(80))
-        return #"{"verdict":"pass","memory_snippet_count":\#(snippetCount),"first_snippet":"\#(firstSnippet)"}"#
     }
 }

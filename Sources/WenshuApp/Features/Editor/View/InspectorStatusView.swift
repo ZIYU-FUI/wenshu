@@ -221,6 +221,11 @@ struct InspectorStatusTask: Identifiable, Equatable, Sendable {
     /// The tool the sub-agent is calling right now. Nil = it is not
     /// calling one (= the card shows no tool column).
     let currentTool: String?
+    /// What the sub-agent just did. Nil = it has done nothing the card
+    /// can name (= the card draws its fallback line instead of the
+    /// line vanishing, = = so the card's height does not change while
+    /// the agent runs).
+    let activityText: String?
 
     init(handle: BackgroundDelegationHandle) {
         id = handle.id
@@ -232,6 +237,12 @@ struct InspectorStatusTask: Identifiable, Equatable, Sendable {
         // Only a running task is calling a tool (= a finished task's
         // last tool is history, = the card shows the present).
         currentTool = handle.state == .running ? handle.currentTool : nil
+        // The activity line says what the agent did, = = and a card is
+        // a history: = = a finished task's last action is still what it
+        // did. = = When there is none, the line falls back to a word
+        // that fits the STATE (= = the card never says "waiting" about
+        // a task that is done).
+        activityText = handle.activityText
         switch handle.state {
         case .running:
             // A running task streams its text into the tail.
@@ -334,6 +345,16 @@ private struct InspectorStatusTaskCard: View {
                         .font(.callout)
                         .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
                         .lineLimit(3)
+                    // The activity line: = = what the agent just did,
+                    // under the task it was given. It is ALWAYS drawn
+                    // (= = the fallback says the agent has not done
+                    // anything yet), = = so the card's height does not
+                    // change while the agent runs.
+                    Text(InspectorStatusActivityStyle.text(for: task))
+                        .font(.caption2)
+                        .foregroundStyle(DesignTokens.statusForeground)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
             } trailing: {
                 InspectorStatusElapsedLabel(task: task)
@@ -357,11 +378,37 @@ private struct InspectorStatusTaskCard: View {
 /// a capital (= "Read File"), so the column reads as words.
 enum InspectorStatusToolLabel {
     static func text(_ tool: String) -> String {
-        let words = tool
-            .split(separator: "_")
-            .filter { !$0.isEmpty }
-            .map { $0.prefix(1).uppercased() + $0.dropFirst() }
-        return words.isEmpty ? tool : words.joined(separator: " ")
+        SubAgentActivityLine.readableToolName(tool)
+    }
+}
+
+/// The card's activity line.
+///
+/// The line always has words: = = a running agent that has not done
+/// anything yet says so (= = "Waiting"), = = so the card does not
+/// change its height when the agent's first action arrives.
+enum InspectorStatusActivityStyle {
+    static func text(for task: InspectorStatusTask) -> String {
+        if let activity = task.activityText, !activity.isEmpty {
+            return activity
+        }
+        // The fallback is PICKED BY THE STATE, = = the way upstream
+        // picks it (= = its sub-agent row falls back to the queued word
+        // or the waiting word, = = and it never shows that row for a
+        // finished task at all). = = So a card that is done never says
+        // it is waiting.
+        switch task.state {
+        case .pending:
+            return String(localized: "inspector.status.activity.queued")
+        case .running:
+            return String(localized: "inspector.status.activity.waiting")
+        case .completed:
+            return String(localized: "inspector.status.activity.finished")
+        case .failed:
+            return String(localized: "inspector.status.activity.failed")
+        case .timeout:
+            return String(localized: "inspector.status.activity.timedOut")
+        }
     }
 }
 

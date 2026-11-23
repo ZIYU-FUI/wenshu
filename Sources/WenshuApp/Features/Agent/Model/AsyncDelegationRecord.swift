@@ -85,6 +85,22 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
     /// same way).
     var currentTool: String?
 
+    /// What the sub-agent just did (= the card's activity line).
+    ///
+    /// The name of the tool alone says less than the call does: "Read"
+    /// does not say WHICH file, = = and a reader watching a crew wants
+    /// to know what the agent is touching right now.
+    ///
+    /// It is one line, = = the last thing the agent did, = = and it is
+    /// replaced (= = not appended) as the agent moves on: the card shows
+    /// the present, = = the way the tool column beside the agent's name
+    /// does.
+    ///
+    /// Nil = the agent has not done anything the card can name (= the
+    /// card draws a fallback instead of the line vanishing, = = so the
+    /// card's HEIGHT does not change while the agent runs).
+    var activityText: String?
+
     init(
         id: String = UUID().uuidString,
         agentName: String,
@@ -97,7 +113,8 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
         scope: AgentScope? = nil,
         kanbanTaskID: String? = nil,
         outputTail: String = "",
-        currentTool: String? = nil
+        currentTool: String? = nil,
+        activityText: String? = nil
     ) {
         self.id = id
         self.agentName = agentName
@@ -111,6 +128,7 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
         self.kanbanTaskID = kanbanTaskID
         self.outputTail = outputTail
         self.currentTool = currentTool
+        self.activityText = activityText
     }
 }
 

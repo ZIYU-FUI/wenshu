@@ -235,6 +235,19 @@ actor AsyncDelegationRegistry {
         store(handle)
     }
 
+    /// Record what the sub-agent just did (= the card's activity line).
+    ///
+    /// A blank line clears the field (= the agent has nothing the card
+    /// can name). An unknown handle id is a no-op (= the sub-agent
+    /// finished, or the record was evicted, before its last block
+    /// arrived).
+    func recordActivity(handleID: String, activity: String?) {
+        guard var handle = records[handleID] else { return }
+        let trimmed = activity?.trimmingCharacters(in: .whitespacesAndNewlines)
+        handle.activityText = (trimmed?.isEmpty == false) ? trimmed : nil
+        store(handle)
+    }
+
     /// Get a handle by id.
     func get(id: String) -> BackgroundDelegationHandle? {
         return records[id]
