@@ -175,7 +175,7 @@ enum PreviewScope: Hashable, Codable {
     case empty
 }
 
-struct BookDoc: Identifiable, Hashable {
+struct BookDoc: Identifiable, Hashable, Sendable {
     // Stable-id root-cause fix: the previous `let id: UUID = UUID()` default value made
     // every BookDoc instance unique (= the SwiftUI ForEach inside bookDocsGrid saw
     // "all rows changed" on every body re-render = full grid rebuild =

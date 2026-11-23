@@ -72,21 +72,43 @@ print("probe: \(name)  source_commit: \(sourceCommit())")
 /// a tree that has moved any of them reports NO NUMBER and exits 2.
 let FRAGMENTS: [(file: String, needle: String)] = [
     // The list reads each .md's HEAD (= = not its whole body).
+    //
+    // = = ⇒ AND THE HEAD READ HAS ONE HOME: = = both scopes read the
+    // = = ⇒ same head (= = so the two cannot drift on what a head
+    // = = ⇒ means), = = and it lives in the book scope's file (= = the
+    // = = ⇒ one that the book scope reads it through).
     (
-        "Features/Editor/View/PreviewPaneLibraryList.swift",
+        "Features/Editor/View/PreviewPaneBookDocuments.swift",
         "static let headByteCount = 8 * 1024"
     ),
     // The head keeps its complete characters (= = the cut inside a
     // multi-byte character does not discard the whole read).
     (
-        "Features/Editor/View/PreviewPaneLibraryList.swift",
+        "Features/Editor/View/PreviewPaneBookDocuments.swift",
         "private static func decodePrefix(_ data: Data) -> String?"
     ),
     // The head holds the card only when it holds the H1 line COMPLETE
     // (= = and the summary's whole window after it).
     (
-        "Features/Editor/View/PreviewPaneLibraryList.swift",
+        "Features/Editor/View/PreviewPaneBookDocuments.swift",
         "static func headHoldsTheCard(_ text: String) -> Bool"
+    ),
+    // The BOOK scope's list is read OFF the main thread (= = so the
+    // chat zone's tab switch keeps its frame).
+    (
+        "Features/Editor/View/PreviewPaneBookDocuments.swift",
+        "nonisolated static func load("
+    ),
+    // The BOOK scope's body reads the store (= = not a walk in the body).
+    (
+        "Features/Editor/View/PreviewPaneScopeViews.swift",
+        "let allDocs = bookDocuments.documents"
+    ),
+    // The BOOK scope's chrome count reads the SAME list (= = not a second
+    // walk).
+    (
+        "Features/Editor/View/AssetsPane.swift",
+        "bookDocuments.documents,"
     ),
     // The list is walked ONCE per library change (= = not per body pass).
     (
@@ -295,6 +317,62 @@ fact("A the head read on THIS library", headBytes == bookBytes
     ? "reads the same bytes (= the .md files are smaller than the 8 KB head) = = so the saving is NOT bytes"
     : "reads fewer bytes than the full bodies")
 fact("A per-body-pass saving", "2 whole-library walks per body pass (= = the whole library, = = every body pass)")
+
+// MARK: - A2. the materials column's BOOK scope (= the chat tab's own scope)
+
+/// The book scope's walk, in the OLD shape (= the body called
+/// `PreviewPaneOps.loadBookDocs`, = and the chrome count called it AGAIN).
+///
+/// = = The OLD door read every .md's FULL body, = = twice per body pass.
+/// = = So this is what a body pass in the book scope cost.
+func walkBookScopeFullBodies() -> Int {
+    var count = 0
+    // The grid's walk.
+    for url in bookFiles {
+        if let body = try? String(contentsOf: url, encoding: .utf8) {
+            count += body.count
+        }
+    }
+    // The chrome count's walk (= = the SAME book, = = a second time).
+    for url in bookFiles {
+        if let body = try? String(contentsOf: url, encoding: .utf8) {
+            count += body.count
+        }
+    }
+    return count
+}
+
+/// The book scope's walk, in the NEW shape (= the store's ONE read).
+///
+/// = = The store reads each .md's HEAD (= = the card's title, = = the
+/// = = chip tag, = = the summary), = = and the chrome count reads that
+/// = = SAME list (= = so one walk answers both).
+func walkBookScopeHeadsOnly() -> Int {
+    var count = 0
+    for url in bookFiles {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { continue }
+        defer { try? handle.close() }
+        let head = (try? handle.read(upToCount: 8 * 1024)) ?? nil
+        count += (head?.count ?? 0)
+    }
+    return count
+}
+
+print("")
+print("=== A2. the materials column: the BOOK scope (= the chat tab's scope) ===")
+bench("A2a book scope walk (= the OLD door, = = twice per body pass)", 40) {
+    walkBookScopeFullBodies()
+}
+
+bench("A2b book scope walk (= the NEW door, = = once per scope change)", 40) {
+    walkBookScopeHeadsOnly()
+}
+
+fact("A2 walks per body pass: BEFORE", "2 (= the grid walked the book AND the chrome count walked it again)")
+fact("A2 walks per body pass: AFTER", "0 (= the book is read once per scope change, = = and the chrome count reads that same list)")
+fact("A2 bytes read per body pass: BEFORE", "\(bookBytes * 2) (= every .md's FULL body, = = twice)")
+fact("A2 bytes read per body pass: AFTER", "0 (= the body pass reads NOTHING = = the list is already in the store)")
+fact("A2 where the read happens", "OFF the main actor (= = on a background task), = = so the main thread is free for the frame that drew the chat zone's tab switch")
 
 // MARK: - B. the inspector board's per-body-pass CARD CONSTRUCTION
 

@@ -66,6 +66,16 @@ struct PreviewPane: View {
     /// the previews and the unit tests working.
     let libraryDocuments: LibraryDocumentStore
 
+    /// The book scope's ONE list of documents (= the book's .md cards),
+    /// held by a store the pane loads ONCE per scope change.
+    ///
+    /// = = The store is passed IN (= = `AssetsPane` owns it, = = so the
+    /// = = chrome's card count reads the SAME list the grid draws = = and
+    /// = = the book is not walked once per body pass and a second time
+    /// = = for the count). = = The default keeps the previews and the unit
+    /// = = tests working.
+    let bookDocuments: BookDocumentStore
+
     /// scope of documents to display. Driven by sidebar selection (=
     /// WorkspaceView computes from sidebarSelection).
     let scope: PreviewScope
@@ -118,7 +128,8 @@ struct PreviewPane: View {
         customLeadingSearch: AnyView? = nil,
         activeTag: Binding<String?> = .constant(nil),
         coverServices: CoverPaneServices = CoverPaneServices.live(),
-        libraryDocuments: LibraryDocumentStore = LibraryDocumentStore()
+        libraryDocuments: LibraryDocumentStore = LibraryDocumentStore(),
+        bookDocuments: BookDocumentStore = BookDocumentStore()
     ) {
         self.scope = scope
         self.onDoubleClick = onDoubleClick
@@ -128,6 +139,7 @@ struct PreviewPane: View {
         self.customLeadingSearch = customLeadingSearch
         _coverServicesHolder = State(initialValue: coverServices)
         self.libraryDocuments = libraryDocuments
+        self.bookDocuments = bookDocuments
     }
 
     /// The width at which the pane switches to two columns. The spec says the
@@ -145,6 +157,21 @@ struct PreviewPane: View {
     /// them does not.
     private var libraryListTaskID: String {
         "\(scope)|\(libraryChangeTick)|\(previewSortOrder.rawValue)"
+    }
+
+    /// What the book scope's document load depends on.
+    ///
+    /// = = The scope (= = the book + the folder the scope names) and the
+    /// = = library-change tick (= = the library changed on disk). = = A
+    /// = = change in any of them re-reads the book; = = a body pass that
+    /// = = changes none of them does not.
+    ///
+    /// = = ⇒ AND THE SORT ORDER IS NOT HERE: = = the book scope's grid
+    /// = = sorts its own cards (= = `bookDocsGrid` sorts), = = so the
+    /// = = list the store holds is the book's documents (= = unsorted),
+    /// = = and a sort change does not re-read the disk.
+    private var bookDocumentsTaskID: String {
+        "\(scope)|\(libraryChangeTick)"
     }
 
     var body: some View {
@@ -372,6 +399,15 @@ struct PreviewPane: View {
             referenceScopeView(category: nil, tagOverride: tag)
         case let .bookScope(bookId, folderName: folderName):
             bookScopeView(bookId: bookId, folderName: folderName)
+                .task(id: bookDocumentsTaskID) {
+                    guard case let .bookScope(bookId, folderName) = scope else { return }
+                    await bookDocuments.loadNow(
+                        key: bookDocumentsTaskID,
+                        shelvesRoot: bookStore.stores.shelvesRoot,
+                        bookId: bookId,
+                        folderName: folderName
+                    )
+                }
         case let .shelfScope(shelfId):
             shelfScopeView(shelfId: shelfId)
                 .id(shelfId)

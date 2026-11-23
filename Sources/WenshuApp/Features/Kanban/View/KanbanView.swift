@@ -501,7 +501,6 @@ private struct KanbanCard: View {
     }
 }
 
-
 /// Which read of the board is the current one.
 ///
 /// = = ⇒ AND IT IS A COUNTER, NOT THE BOOK: = = the board can be asked

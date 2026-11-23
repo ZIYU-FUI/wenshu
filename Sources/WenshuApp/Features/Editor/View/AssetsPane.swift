@@ -43,6 +43,22 @@ struct AssetsPane: View {
     /// child's.
     @State private var libraryDocuments = LibraryDocumentStore()
 
+    /// The book scope's ONE list of documents (= the book's .md cards),
+    /// held by a store the pane loads ONCE per scope change.
+    ///
+    /// = = The pane OWNS the store (= = so the chrome's card count reads
+    /// = = the SAME list the cards grid draws, = = and the book is not
+    /// = = walked ONCE per body pass and a SECOND time for the count).
+    /// = = It lives here rather than in `PreviewPane` because the count is
+    /// = = this pane's (= the count is in the chrome footer) and the grid
+    /// = = is the child's.
+    ///
+    /// = = ⇒ AND THE READ RUNS OFF THE MAIN ACTOR: = = the walk touches
+    /// = = no actor state (= = a URL, = = a file name, = = a date), = = so
+    /// = = it runs on a background task = = and the main thread is free
+    /// = = for the frame that drew the chat zone's tab switch.
+    @State private var bookDocuments = BookDocumentStore()
+
     private var bookStore: BookStore? {
         envBookStore
     }
@@ -58,6 +74,29 @@ struct AssetsPane: View {
         switch previewScope() {
         case .allLibraryScope:
             return libraryDocuments.documents.filtered(by: envAppState.searchText).count
+        case let .bookScope(bookId, folderName):
+            // The book scope reads the ONE list the store holds (= = the
+            // same list the cards grid draws), = = because the count used
+            // to walk the book a SECOND time per body pass (= = and read
+            // every .md's full body again).
+            //
+            // ⇒ ⇒ ⇒ AND THE COUNT IS THE GRID'S COUNT: = = the store's
+            // list is the grid's list (= = the same documents, = =
+            // in the same order), = = so one filter answers both
+            // (= = the one-door rule).
+            //
+            // ⇒ ⇒ ⇒ AND A COUNT FROM A LIST THAT IS NOT HERE YET IS 0:
+            // = = the grid is drawing the loading placeholder
+            // while the list arrives, = = so the count has
+            // nothing to count yet (= = and 0 is what the grid
+            // holds at that moment).
+            guard bookDocuments.bookId == bookId,
+                  bookDocuments.folderName == folderName
+            else { return 0 }
+            return PreviewPaneOps.searchFilteredBookDocs(
+                bookDocuments.documents,
+                query: envAppState.searchText
+            ).count
         default:
             return PreviewPaneOps.countCardsInScope(
                 scope: previewScope(),
@@ -324,7 +363,8 @@ struct AssetsPane: View {
                 // them (= a batch run and a manual click on the same
                 // card make one image call, not two).
                 coverServices: coverServices,
-                libraryDocuments: libraryDocuments
+                libraryDocuments: libraryDocuments,
+                bookDocuments: bookDocuments
             )
             // 2026-10-12 boss directive "在素材栏也加一个底栏,
             // … (= 45 rationale lines collapsed; = A112 docblock collapse per §1.8)

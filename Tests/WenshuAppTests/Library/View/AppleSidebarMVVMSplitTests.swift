@@ -315,14 +315,35 @@ struct AppleSidebarMVVMSplitTests {
         // helpers were extracted from PreviewPane.swift into
         // PreviewPaneScopeViews.swift).
         let scopeViews = try SourceLocator.read("Sources/WenshuApp/Features/Editor/View/PreviewPaneScopeViews.swift")
+        // The BOOK scope's loader is its OWN door (= the store's), and
+        // the file that holds it.
+        let bookDocuments = try SourceLocator.read(
+            "Sources/WenshuApp/Features/Editor/View/PreviewPaneBookDocuments.swift"
+        )
         // The loader is a static on PreviewPaneOps now: it takes the
         // store and returns its own result type, so the declaration
         // is matched across the line breaks it is written on.
         #expect(ops.range(of: Self.loadBookDocsSignature, options: .regularExpression) != nil,
                 "PreviewPaneOps.loadBookDocs MUST be a static loader taking the store, the book id and the folder name (= the shape that is real now)")
-        #expect(scopeViews.contains("PreviewPaneOps.loadBookDocs(bookStore: bookStore, bookId: bookId, folderName: folderName)"),
-                "the preview pane's book scope MUST load its docs through PreviewPaneOps.loadBookDocs (= the card grid loader)")
         #expect(ops.contains("folders = [folderName]"),
                 "PreviewPaneOps.loadBookDocs MUST scope to the one folder when non-nil")
+        // ⇒ ⇒ ⇒ AND THE BOOK SCOPE'S BODY MUST NOT WALK THE DISK: = =
+        // SwiftUI re-evaluates a body on every observation tick, = =
+        // so a walk here ran hundreds of times per second (= = = ⇒ ⇒ ⇒ MEASURED: = = min 821us / median 2634us / p95 8087us of
+        // main-thread work per pass, = = over Apple's 5000us hitch
+        // line, = = in the frame that drew the chat zone's tab
+        // switch). = = The body reads the STORE (= = the one list
+        // the store's own task loaded, = = off the main thread).
+        #expect(!scopeViews.contains("PreviewPaneOps.loadBookDocs(bookStore: bookStore, bookId: bookId, folderName: folderName)"),
+                "the preview pane's book scope MUST NOT walk the disk in its body (= the walk belongs to the store's own task)")
+        #expect(scopeViews.contains("bookDocuments.documents"),
+                "the preview pane's book scope MUST draw the store's list (= the one list the chrome's card count reads too)")
+        // ⇒ ⇒ ⇒ AND THE STORE'S DOOR SCOPES TO THE ONE FOLDER: = = the
+        // folder's scope holds that folder's .md files and no
+        // other.
+        #expect(bookDocuments.contains("return [folderName]"),
+                "the book scope's loader MUST scope to the one folder when non-nil")
+        #expect(bookDocuments.contains("nonisolated static func load("),
+                "the book scope's loader MUST be nonisolated (= so it can run off the main actor)")
     }
 }
