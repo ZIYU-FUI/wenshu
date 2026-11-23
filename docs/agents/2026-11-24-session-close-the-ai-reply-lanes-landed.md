@@ -51,14 +51,19 @@ The shape that was measured, not chosen:
   252 (= = the count of the tree the rows were written in). The label is a
   claim about a file, so it was re-published to the file the tree actually has.
 
-## 3. What the branch's commits change
+## 3. What the branch's lane commits change
 
-`git diff --shortstat <main>...<tip>` = = "24 files changed, 2778
-insertions(+), 158 deletions(-)": 16 `Sources/` files, 6 `Tests/` files, and
+`git diff --shortstat <main>...c3f59ea158` = = "23 files changed, 2660
+insertions(+), 151 deletions(-)": 16 `Sources/` files, 6 `Tests/` files, and
 the registry. Ten files are new (= = `SubAgentActivityLine.swift`,
 `SubAgentRunner+Storage.swift`, `ChatScrollToBottomButton.swift`,
 `ChatTranscriptBottom.swift`, `ChatView+Transcript.swift`, and five test
 files); the rest are rewrites.
+
+That range ends at the commit that carries the three lane commits, so the
+figure does not move when this record's own commits are added on top of it
+(= = a whole-tip figure would restate itself on every commit that carries
+this file).
 
 ## 4. The gates, as they read at this tip
 
