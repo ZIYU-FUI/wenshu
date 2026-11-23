@@ -21,7 +21,6 @@ import WenshuData
 
 /// Collects the agent's stream into the parts the sheet shows.
 final class ImportAgentPartEmitter: @unchecked Sendable {
-
     private let accumulator = StreamingAccumulator()
 
     /// How many of the accumulator's parts were already reported.
@@ -39,11 +38,11 @@ final class ImportAgentPartEmitter: @unchecked Sendable {
     /// Read one stream block and return the parts it produced.
     func consume(_ block: LLMBlock) -> [ImportAgentPart] {
         switch block {
-        case .text(let text):
+        case let .text(text):
             accumulator.appendText(text)
-        case .thinking(let text, _):
+        case let .thinking(text, _):
             accumulator.appendReasoning(text)
-        case .toolUse(let id, let name, let input):
+        case let .toolUse(id, name, input):
             accumulator.appendPart(
                 .toolUse(
                     id: ToolCallID(rawValue: id),
@@ -51,12 +50,14 @@ final class ImportAgentPartEmitter: @unchecked Sendable {
                     args: Self.summarise(tool: name, input: input)
                 )
             )
-        case .toolResult(let toolUseID, let output):
+        case let .toolResult(toolUseID, output, isError):
+            // The flag travels: a failed call must not arrive as a
+            // successful one (= = the card settles from it).
             accumulator.appendPart(
                 .toolResult(
                     toolUseID: ToolCallID(rawValue: toolUseID),
                     content: output,
-                    isError: false
+                    isError: isError
                 )
             )
         }
@@ -72,15 +73,19 @@ final class ImportAgentPartEmitter: @unchecked Sendable {
         // were not reported yet.
         if parts.count > reportedParts {
             for part in parts[reportedParts...] {
-                if case .text = part.kind { continue }
-                if case .reasoning = part.kind { continue }
+                if case .text = part.kind {
+                    continue
+                }
+                if case .reasoning = part.kind {
+                    continue
+                }
                 out.append(ImportAgentPart(part: part))
             }
             reportedParts = parts.count
         }
 
         // The trailing text part may have grown.
-        if case .text(let text)? = parts.last?.kind, text.count > reportedText {
+        if case let .text(text)? = parts.last?.kind, text.count > reportedText {
             out.append(
                 ImportAgentPart(
                     kind: .text,
@@ -91,7 +96,7 @@ final class ImportAgentPartEmitter: @unchecked Sendable {
         }
 
         // The trailing reasoning part may have grown.
-        if case .reasoning(let reasoning)? = parts.last?.kind, reasoning.count > reportedReasoning {
+        if case let .reasoning(reasoning)? = parts.last?.kind, reasoning.count > reportedReasoning {
             out.append(
                 ImportAgentPart(
                     kind: .reasoning,

@@ -1,6 +1,6 @@
-import XCTest
-@testable import WenshuAgent
 import Foundation
+@testable import WenshuAgent
+import XCTest
 
 /// The live tool round: the package's own builders, the real provider.
 ///
@@ -8,7 +8,6 @@ import Foundation
 /// needs a provider key). The key is read from the local provider store
 /// at runtime and is never committed.
 final class ProviderToolRoundReplayTests: XCTestCase {
-
     func testProviderAcceptsTheToolRound() async throws {
         guard ProcessInfo.processInfo.environment["WENSHU_TOOL_ROUND_LIVE"] == "1" else {
             throw XCTSkip("set WENSHU_TOOL_ROUND_LIVE=1 to run the live replay")
@@ -36,13 +35,14 @@ final class ProviderToolRoundReplayTests: XCTestCase {
                 description: "Query the reference library.",
                 inputSchema: [
                     "action": ToolRegistrySchemaProperty(
-                        type: "string", description: "action")
+                        type: "string", description: "action"
+                    ),
                 ],
                 required: ["action"]
-            )
+            ),
         ]
         let first: [LLMMessage] = [
-            LLMMessage(role: .user, blocks: [.text("List the cards in my library.")])
+            LLMMessage(role: .user, blocks: [.text("List the cards in my library.")]),
         ]
 
         var blocks: [LLMBlock] = []
@@ -55,13 +55,15 @@ final class ProviderToolRoundReplayTests: XCTestCase {
             messages: first,
             tools: tools
         ) {
-            if let block = accumulator.ingest(chunk) { blocks.append(block) }
+            if let block = accumulator.ingest(chunk) {
+                blocks.append(block)
+            }
         }
 
         var results: [LLMBlock] = []
         for block in blocks {
-            if case .toolUse(let id, _, _) = block {
-                results.append(.toolResult(toolUseID: id, output: "{\"ok\":true}"))
+            if case let .toolUse(id, _, _) = block {
+                results.append(.toolResult(toolUseID: id, output: "{\"ok\":true}", isError: false))
             }
         }
         try XCTSkipIf(results.isEmpty, "the provider did not ask for a tool")
@@ -73,7 +75,7 @@ final class ProviderToolRoundReplayTests: XCTestCase {
             systemPrompt: "You are a helpful assistant.",
             messages: first + [
                 LLMMessage(role: .assistant, blocks: blocks),
-                LLMMessage(role: .user, blocks: results)
+                LLMMessage(role: .user, blocks: results),
             ],
             tools: tools
         )

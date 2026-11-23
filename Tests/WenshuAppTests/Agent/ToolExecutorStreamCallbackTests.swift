@@ -13,14 +13,13 @@
 //  emits each toolUse before running + each toolResult after running.
 //
 
-import Testing
 import Foundation
+import Testing
 import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ToolExecutor streamCallback (T2-TOOL-UI)")
 struct ToolExecutorStreamCallbackTests {
-
     /// T2 contract: when streamCallback is provided, ToolExecutor
     /// emits a .toolUse block before running the tool + a .toolResult
     /// block after. ChatView's ChatToolUsePartView + ChatToolResultPartView
@@ -41,8 +40,13 @@ struct ToolExecutorStreamCallbackTests {
         // Capture what streamCallback receives.
         actor Sink {
             var blocks: [LLMBlock] = []
-            func append(_ b: LLMBlock) { blocks.append(b) }
-            func snapshot() -> [LLMBlock] { blocks }
+            func append(_ b: LLMBlock) {
+                blocks.append(b)
+            }
+
+            func snapshot() -> [LLMBlock] {
+                blocks
+            }
         }
         let sink = Sink()
         let cb: @Sendable (LLMBlock) async -> Void = { block in
@@ -61,14 +65,14 @@ struct ToolExecutorStreamCallbackTests {
         let received = await sink.snapshot()
         #expect(received.count >= 2, "expected at least 2 blocks, got \(received.count)")
         // First block must be .toolUse (T2 emits toolUse before execution)
-        if case .toolUse(let id, let name, _) = received[0] {
+        if case let .toolUse(id, name, _) = received[0] {
             #expect(id == "test-1")
             #expect(name == "echo_tool")
         } else {
             Issue.record("expected first block to be .toolUse, got \(received[0])")
         }
         // Last block must be .toolResult (T2 emits toolResult after execution)
-        if case .toolResult(let toolUseID, let output) = received.last {
+        if case let .toolResult(toolUseID, output, _) = received.last {
             #expect(toolUseID == "test-1")
             #expect(output.contains("echoed:"))
         } else {
@@ -81,7 +85,9 @@ struct ToolExecutorStreamCallbackTests {
     /// behavior regression for callers that don't opt in).
     @Test func nil_streamCallback_still_appends_to_messages() async throws {
         struct EchoTool: Tool {
-            func execute(input: String) async throws -> String { "ok" }
+            func execute(input _: String) async throws -> String {
+                "ok"
+            }
         }
         let assistant = LLMMessage(
             role: .assistant,
@@ -94,12 +100,12 @@ struct ToolExecutorStreamCallbackTests {
             messages: &messages,
             taskId: "test-task",
             tools: ["echo_tool": EchoTool()],
-            streamCallback: nil  // legacy caller
+            streamCallback: nil // legacy caller
         )
         // Tool result must still be in messages (= no regression).
         let lastMessage = messages.last
         #expect(lastMessage?.role == .tool)
-        if case .toolResult(let id, let output) = lastMessage?.blocks.first {
+        if case let .toolResult(id, output, _) = lastMessage?.blocks.first {
             #expect(id == "no-cb-1")
             #expect(output == "ok")
         } else {

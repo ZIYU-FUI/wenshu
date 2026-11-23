@@ -41,11 +41,11 @@ public struct LLMResponse: Sendable, Equatable {
     /// locally (= a refusal notice, a recovery message) and carry no provider
     /// identity or token counts.
     public init(blocks: [LLMBlock]) {
-        self.id = ""
-        self.model = ""
+        id = ""
+        model = ""
         self.blocks = blocks
-        self.stopReason = .endTurn
-        self.usage = LLMUsage(inputTokens: 0, outputTokens: 0)
+        stopReason = .endTurn
+        usage = LLMUsage(inputTokens: 0, outputTokens: 0)
     }
 
     public enum StopReason: String, Sendable, Equatable, Codable {
@@ -84,7 +84,9 @@ public struct LLMUsage: Sendable, Equatable {
         self.cacheCreationTokens = cacheCreationTokens
     }
 
-    public var totalTokens: Int { inputTokens + outputTokens }
+    public var totalTokens: Int {
+        inputTokens + outputTokens
+    }
 }
 
 /// Cross-connector content block (= used by both LLMResponse.blocks and
@@ -94,7 +96,14 @@ public enum LLMBlock: Sendable, Equatable {
     case text(String)
     case thinking(text: String, signature: String?)
     case toolUse(id: String, name: String, input: String)
-    case toolResult(toolUseID: String, output: String)
+    /// A tool's result.
+    ///
+    /// `isError` says whether the call FAILED (= = the provider's own
+    /// `is_error` on a tool result). It travels here because the chat
+    /// layer settles the call's card from it (= = a card that says
+    /// "complete" for a failed call is a lie), = = and because the
+    /// provider layer is the only place that knows it.
+    case toolResult(toolUseID: String, output: String, isError: Bool)
 
     /// Canonical JSON representation for each block case.
     /// Replaces the case .text / .toolUse / .toolResult switch repeated
@@ -102,36 +111,52 @@ public enum LLMBlock: Sendable, Equatable {
     /// Switches smell). Polymorphic dispatch via Dictionary subscript.
     public var asJSONObject: [String: Any] {
         switch self {
-            case let .text(s):
-                return ["type": "text", "text": s]
-            case let .thinking(text, signature):
-                var dict: [String: Any] = ["type": "thinking", "thinking": text]
-                if let signature { dict["signature"] = signature }
-                return dict
-            case let .toolUse(id, name, input):
-                // Anthropic's `tool_use.input` is a JSON OBJECT on the
-                // wire, not the raw JSON string the model streamed. The
-                // string form is rejected by the provider ("Input
-                // should be a valid dictionary" = MiniMax 2013, measured
-                // 2026-10-24), which failed every tool-using turn.
-                //
-                // The fallback keeps the raw text rather than dropping
-                // it: an empty object would silently call the tool with
-                // no arguments (= the same convention the other
-                // serializer in this package uses).
-                var parsedInput: [String: Any] = [:]
-                if let data = input.data(using: .utf8),
-                   let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    parsedInput = object
-                } else {
-                    parsedInput = ["_raw": input]
-                }
-                return ["type": "tool_use", "id": id, "name": name, "input": parsedInput]
-            case let .toolResult(toolUseID, output):
-                // The Anthropic key is `content` (= `output` is not part
-                // of the Messages API and the provider ignores it, so
-                // the tool result never reached the model).
-                return ["type": "tool_result", "tool_use_id": toolUseID, "content": output]
+        case let .text(s):
+            return ["type": "text", "text": s]
+        case let .thinking(text, signature):
+            var dict: [String: Any] = ["type": "thinking", "thinking": text]
+            if let signature {
+                dict["signature"] = signature
+            }
+            return dict
+        case let .toolUse(id, name, input):
+            // Anthropic's `tool_use.input` is a JSON OBJECT on the
+            // wire, not the raw JSON string the model streamed. The
+            // string form is rejected by the provider ("Input
+            // should be a valid dictionary" = MiniMax 2013, measured
+            // 2026-10-24), which failed every tool-using turn.
+            //
+            // The fallback keeps the raw text rather than dropping
+            // it: an empty object would silently call the tool with
+            // no arguments (= the same convention the other
+            // serializer in this package uses).
+            var parsedInput: [String: Any] = [:]
+            if let data = input.data(using: .utf8),
+               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            {
+                parsedInput = object
+            } else {
+                parsedInput = ["_raw": input]
+            }
+            return ["type": "tool_use", "id": id, "name": name, "input": parsedInput]
+        case let .toolResult(toolUseID, output, isError):
+            // The Anthropic key is `content` (= `output` is not part
+            // of the Messages API and the provider ignores it, so
+            // the tool result never reached the model).
+            //
+            // `is_error` is the provider's own field (= = the API says a
+            // failed call is marked, = = and the model reads it). = = It
+            // has to be here and not only in the non-streaming encoder:
+            // = = this serializer IS the wire body of a streaming tool
+            // round (= = the chat's own tool loop streams its results),
+            // = = and without the key the model reads a failed call as a
+            // successful one.
+            return [
+                "type": "tool_result",
+                "tool_use_id": toolUseID,
+                "is_error": isError,
+                "content": output,
+            ]
         }
     }
 
@@ -140,10 +165,10 @@ public enum LLMBlock: Sendable, Equatable {
     /// 5+ files. Used by ChatMessageBridge.textContent + display paths.
     public var textValue: String {
         switch self {
-            case let .text(s): return s
-            case let .thinking(text, _): return text
-            case let .toolUse(_, _, input): return input
-            case let .toolResult(_, output): return output
+        case let .text(s): return s
+        case let .thinking(text, _): return text
+        case let .toolUse(_, _, input): return input
+        case let .toolResult(_, output, _): return output
         }
     }
 }

@@ -25,15 +25,14 @@
 //  cross-suite pollution; = no init() reset needed).
 //
 
-import Testing
 import Foundation
+import Testing
 import WenshuAgent
 @testable import WenshuApp
 
 @MainActor
 @Suite("FileTools (agent-side, = ticket 001 sub-step 6)")
 struct FileToolsAgentTests {
-
     /// Canonical library root for these tests (= /tmp, resolved
     /// through /private/tmp symlink so PathGuard's canonical-root
     /// comparison matches the test's /tmp/... temp files).
@@ -49,7 +48,7 @@ struct FileToolsAgentTests {
     // MARK: - Test 1: Read round-trip
 
     @Test("ReadFileTool reads existing file via FileTools delegate")
-    func testReadRoundTrip() async throws {
+    func readRoundTrip() async throws {
         // Setup: write a file directly via FileTools (= not via WriteFileTool,
         // to isolate the test)
         let tmpPath = "/tmp/wenshu-readfiletool-test-\(UUID().uuidString).md"
@@ -68,7 +67,7 @@ struct FileToolsAgentTests {
     // MARK: - Test 2: Write round-trip
 
     @Test("WriteFileTool writes file via FileTools delegate")
-    func testWriteRoundTrip() async throws {
+    func writeRoundTrip() async throws {
         let tmpPath = "/tmp/wenshu-writefiletool-test-\(UUID().uuidString).md"
         let input = "{\"path\":\"\(tmpPath)\",\"content\":\"wrote via WriteFileTool\"}"
 
@@ -87,7 +86,7 @@ struct FileToolsAgentTests {
     // MARK: - Test 3: Read sandbox denial
 
     @Test("ReadFileTool rejects sandbox-denied path")
-    func testReadSandboxDenial() async throws {
+    func readSandboxDenial() async throws {
         let tool = ReadFileTool()
         // /etc/shadow is the canonical sandbox-denied path
         await #expect(throws: ToolExecutorError.self) {
@@ -98,7 +97,7 @@ struct FileToolsAgentTests {
     // MARK: - Test 4: Write sandbox denial
 
     @Test("WriteFileTool rejects sandbox-denied path")
-    func testWriteSandboxDenial() async throws {
+    func writeSandboxDenial() async throws {
         let tool = WriteFileTool()
         await #expect(throws: ToolExecutorError.self) {
             _ = try await tool.execute(input: "{\"path\":\"/etc/shadow\",\"content\":\"x\"}")
@@ -108,7 +107,7 @@ struct FileToolsAgentTests {
     // MARK: - Test 5: Integration with ToolExecutor
 
     @Test("ReadFileTool integrates with ToolExecutor (end-to-end dispatch)")
-    func testToolExecutorIntegration() async throws {
+    func toolExecutorIntegration() async throws {
         try await withLibraryRoot {
             // wt/path-guard-v2-2026-09-25: the executor's preDispatchValidator
             // (= defaultPathGuardValidator) rejects any path that resolves
@@ -139,7 +138,7 @@ struct FileToolsAgentTests {
             // Verify: 1 assistant + 1 tool message with the file content
             #expect(messages.count == 2)
             #expect(messages[1].role == .tool)
-            if case .toolResult(_, let output) = messages[1].blocks[0] {
+            if case let .toolResult(_, output, _) = messages[1].blocks[0] {
                 #expect(output == "executor dispatched this")
             } else {
                 Issue.record("expected toolResult block")

@@ -19,14 +19,13 @@
 //  existing ProviderKeychainTests pattern).
 //
 
-import Testing
 import Foundation
+import Testing
 import WenshuAgent
 @testable import WenshuApp
 
 @Suite("LLMConnector (ticket 001 sub-step 2)")
 struct LLMConnectorTests {
-
     // MARK: - Test 1: Protocol conformance
 
     @Test("LLMConnector protocol can be conformed by a test type")
@@ -36,7 +35,7 @@ struct LLMConnectorTests {
         let options = LLMCallOptions(model: "mock-model", maxTokens: 100)
         let response = try await mock.send(messages: messages, options: options)
         #expect(response.blocks.count == 1)
-        if case .text(let s) = response.blocks[0] {
+        if case let .text(s) = response.blocks[0] {
             #expect(s == "echo: hi")
         } else {
             Issue.record("expected text block, got \(response.blocks[0])")
@@ -49,7 +48,7 @@ struct LLMConnectorTests {
     func crossConnectorWireFormat() {
         let textMsg = LLMMessage(role: .user, blocks: [.text("hello")])
         let toolMsg = LLMMessage(role: .assistant, blocks: [.toolUse(id: "t1", name: "ReadFile", input: "{}")])
-        let toolResult = LLMMessage(role: .tool, blocks: [.toolResult(toolUseID: "t1", output: "file content")])
+        let toolResult = LLMMessage(role: .tool, blocks: [.toolResult(toolUseID: "t1", output: "file content", isError: false)])
         #expect(textMsg.role == .user)
         #expect(toolMsg.role == .assistant)
         #expect(toolResult.role == .tool)
@@ -60,7 +59,7 @@ struct LLMConnectorTests {
             blocks: [
                 .thinking(text: "reasoning", signature: nil),
                 .text("answer"),
-                .toolUse(id: "t2", name: "WriteFile", input: "{\"path\":\"/tmp/x\"}")
+                .toolUse(id: "t2", name: "WriteFile", input: "{\"path\":\"/tmp/x\"}"),
             ],
             stopReason: .endTurn,
             usage: LLMUsage(inputTokens: 10, outputTokens: 20)

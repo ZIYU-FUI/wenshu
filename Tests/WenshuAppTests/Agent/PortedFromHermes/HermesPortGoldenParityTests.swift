@@ -12,17 +12,16 @@
 //  To regenerate golden files (= when hermes Python behavior changes):
 //      python3 Tests/WenshuAppTests/Agent/PortedFromHermes/scripts/generate_golden.py
 //
-// 
+//
 //
 
-import Testing
 import Foundation
+import Testing
 import WenshuAgent
 @testable import WenshuApp
 
 @Suite("HermesPortGoldenParityTests (ticket 018 Z contract)")
 struct HermesPortGoldenParityTests {
-
     /// Load a golden file from the standard location.
     /// - Returns: parsed JSON dict with module / function / input / output
     private func loadGolden(module: String, function: String, inputHash: String) throws -> [String: Any] {
@@ -37,14 +36,15 @@ struct HermesPortGoldenParityTests {
     // ========================================================================
 
     @Test("message_sanitization.extract_text: mixed block types")
-    func testExtractTextMixedBlocks() throws {
+    func extractTextMixedBlocks() throws {
         let golden = try loadGolden(
             module: "message_sanitization",
             function: "extract_text",
             inputHash: "d7373c521d92"
         )
         guard let input = golden["input"] as? [String: Any],
-              let blocks = input["blocks"] as? [[String: Any]] else {
+              let blocks = input["blocks"] as? [[String: Any]]
+        else {
             Issue.record("Golden input malformed")
             return
         }
@@ -54,53 +54,58 @@ struct HermesPortGoldenParityTests {
         for block in blocks {
             guard let type = block["type"] as? String else { continue }
             switch type {
-                case "text":
-                    if let text = block["text"] as? String {
-                        messageBlocks.append(.text(text))
-                    }
-                case "thinking":
-                    if let text = block["thinking"] as? String {
-                        let signature = block["signature"] as? String
-                        messageBlocks.append(.thinking(text: text, signature: signature))
-                    }
-                case "tool_use":
-                    if let id = block["id"] as? String,
-                       let name = block["name"] as? String,
-                       let input = block["input"] as? String {
-                        messageBlocks.append(.toolUse(id: id, name: name, input: input))
-                    }
-                case "tool_result":
-                    if let toolUseID = block["tool_use_id"] as? String,
-                       let output = block["output"] as? String {
-                        messageBlocks.append(.toolResult(toolUseID: toolUseID, output: output))
-                    }
-                default:
-                    Issue.record("Unknown block type: \(type)")
+            case "text":
+                if let text = block["text"] as? String {
+                    messageBlocks.append(.text(text))
+                }
+            case "thinking":
+                if let text = block["thinking"] as? String {
+                    let signature = block["signature"] as? String
+                    messageBlocks.append(.thinking(text: text, signature: signature))
+                }
+            case "tool_use":
+                if let id = block["id"] as? String,
+                   let name = block["name"] as? String,
+                   let input = block["input"] as? String
+                {
+                    messageBlocks.append(.toolUse(id: id, name: name, input: input))
+                }
+            case "tool_result":
+                if let toolUseID = block["tool_use_id"] as? String,
+                   let output = block["output"] as? String
+                {
+                    messageBlocks.append(.toolResult(toolUseID: toolUseID, output: output, isError: false))
+                }
+            default:
+                Issue.record("Unknown block type: \(type)")
             }
         }
         let message = LLMMessage(role: .user, blocks: messageBlocks)
 
         // Run Swift port (= hermes extract_text: only .text blocks extracted, joined).
         let swiftOutput = message.blocks.compactMap { block -> String? in
-            if case let .text(s) = block { return s }
+            if case let .text(s) = block {
+                return s
+            }
             return nil
         }.joined(separator: "\n")
 
         // Compare against hermes golden output.
         let hermesOutput = golden["output"] as? String ?? ""
         #expect(swiftOutput == hermesOutput)
-        #expect(swiftOutput == "hello world")  // only text block is extracted
+        #expect(swiftOutput == "hello world") // only text block is extracted
     }
 
     @Test("message_sanitization.extract_text: three text blocks concatenated")
-    func testExtractTextMultipleTextBlocks() throws {
+    func extractTextMultipleTextBlocks() throws {
         let golden = try loadGolden(
             module: "message_sanitization",
             function: "extract_text",
             inputHash: "00e50d5312e6"
         )
         guard let input = golden["input"] as? [String: Any],
-              let blocks = input["blocks"] as? [[String: Any]] else {
+              let blocks = input["blocks"] as? [[String: Any]]
+        else {
             Issue.record("Golden input malformed")
             return
         }
@@ -115,7 +120,9 @@ struct HermesPortGoldenParityTests {
 
         // Run Swift port (= hermes extract_text: only .text blocks extracted, joined).
         let swiftOutput = message.blocks.compactMap { block -> String? in
-            if case let .text(s) = block { return s }
+            if case let .text(s) = block {
+                return s
+            }
             return nil
         }.joined(separator: "\n")
         let hermesOutput = golden["output"] as? String ?? ""
@@ -128,14 +135,15 @@ struct HermesPortGoldenParityTests {
     // ========================================================================
 
     @Test("context_compressor.count_tokens_rough: 4 chars per token heuristic")
-    func testCountTokensRough() throws {
+    func countTokensRough() throws {
         let golden = try loadGolden(
             module: "context_compressor",
             function: "count_tokens_rough",
             inputHash: "12d4b87cc894"
         )
         guard let input = golden["input"] as? [String: Any],
-              let text = input["text"] as? String else {
+              let text = input["text"] as? String
+        else {
             Issue.record("Golden input malformed")
             return
         }
@@ -146,7 +154,7 @@ struct HermesPortGoldenParityTests {
 
         let hermesTokens = golden["output"] as? Int ?? -1
         #expect(swiftTokens == hermesTokens)
-        #expect(swiftTokens == 7)  // 30 chars / 4 = 7
+        #expect(swiftTokens == 7) // 30 chars / 4 = 7
     }
 
     // ========================================================================
@@ -154,10 +162,11 @@ struct HermesPortGoldenParityTests {
     // ========================================================================
 
     // MARK: - v0.37 Batch 2.3 sub-step 2: 6 new parity tests for full
+
     // 11-ticket hermes port coverage.
 
     @Test("prompt_caching.apply_cache_control: 4 messages, 4 cache breakpoints")
-    func testPromptCachingApplyCacheControl() throws {
+    func promptCachingApplyCacheControl() throws {
         let golden = try loadGolden(module: "prompt_caching", function: "apply_cache_control", inputHash: "69bc2f4df67f")
         guard let output = golden["output"] as? [String: Any] else {
             Issue.record("Golden output malformed")
@@ -169,7 +178,7 @@ struct HermesPortGoldenParityTests {
             LLMMessage(role: .user, blocks: [.text("msg 1")]),
             LLMMessage(role: .assistant, blocks: [.text("reply 1")]),
             LLMMessage(role: .user, blocks: [.text("msg 2")]),
-            LLMMessage(role: .assistant, blocks: [.text("reply 2")])
+            LLMMessage(role: .assistant, blocks: [.text("reply 2")]),
         ]
         let cached = PromptCaching.applyCacheControl(
             messages: messages,
@@ -183,7 +192,7 @@ struct HermesPortGoldenParityTests {
     }
 
     @Test("conversation_compression.compress_context: 20 msgs keep 4 recent")
-    func testConversationCompression() async throws {
+    func conversationCompression() async throws {
         let golden = try loadGolden(module: "conversation_compression", function: "compress_context", inputHash: "08b6f26242fc")
         guard let output = golden["output"] as? [String: Any] else {
             Issue.record("Golden output malformed")
@@ -191,7 +200,7 @@ struct HermesPortGoldenParityTests {
         }
 
         // Swift port (= ConversationCompression from ticket 003)
-        let messages: [LLMMessage] = (1...20).map { i in
+        let messages: [LLMMessage] = (1 ... 20).map { i in
             LLMMessage(role: .user, blocks: [.text("msg \(i)")])
         }
         let compressor = ConversationCompression(
@@ -210,7 +219,7 @@ struct HermesPortGoldenParityTests {
 
     @Test("memory_manager.prefetch_relevant: top-K retrieval")
     @MainActor
-    func testMemoryManagerPrefetch() throws {
+    func memoryManagerPrefetch() throws {
         let golden = try loadGolden(module: "memory_manager", function: "prefetch_relevant", inputHash: "4e5cc7199254")
         guard let output = golden["output"] as? [String: Any] else {
             Issue.record("Golden output malformed")

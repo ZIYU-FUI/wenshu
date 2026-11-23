@@ -12,14 +12,13 @@
 //  are v0.35 ticket 001/002 (= my work).
 //
 
-import Testing
 import Foundation
+import Testing
 import WenshuAgent
 @testable import WenshuApp
 
 @Suite("TurnFinalizer deep (= v0.35 ticket 001)")
 struct TurnFinalizerDeepTests {
-
     @Test("TurnFinalizer.finalize: drops empty text blocks")
     func finalizeDropsEmptyText() {
         let response = LLMResponse(
@@ -42,7 +41,7 @@ struct TurnFinalizerDeepTests {
             blocks: [
                 .text("Hello "),
                 .text("world"),
-                .thinking(text: "reasoning", signature: "sig")
+                .thinking(text: "reasoning", signature: "sig"),
             ],
             stopReason: .endTurn,
             usage: LLMUsage(inputTokens: 10, outputTokens: 5)
@@ -96,7 +95,6 @@ struct TurnFinalizerDeepTests {
 
 @Suite("TurnRetryState deep (= v0.35 ticket 001)")
 struct TurnRetryStateDeepTests {
-
     @Test("TurnRetryState: initial canRetry = true")
     func initialCanRetry() {
         let state = TurnRetryState(maxAttempts: 3)
@@ -138,7 +136,7 @@ struct TurnRetryStateDeepTests {
         var state = TurnRetryState(maxAttempts: 2)
         state.recordAttempt()
         state.recordAttempt()
-        state.recordAttempt()  // over the limit
+        state.recordAttempt() // over the limit
         #expect(state.remainingAttempts == 0)
     }
 
@@ -184,7 +182,6 @@ struct TurnRetryStateDeepTests {
 
 @Suite("MessageContent canonicalize (= v0.35 ticket 001)")
 struct MessageContentCanonicalizeTests {
-
     @Test("MessageContent.canonicalize: drops empty text blocks")
     func canonicalizeDropsEmpty() {
         let blocks: [LLMBlock] = [.text(""), .text("hello"), .text("")]
@@ -198,7 +195,7 @@ struct MessageContentCanonicalizeTests {
             .text("hello"),
             .thinking(text: "reasoning", signature: "sig"),
             .toolUse(id: "t1", name: "X", input: "{}"),
-            .toolResult(toolUseID: "t1", output: "result")
+            .toolResult(toolUseID: "t1", output: "result", isError: false),
         ]
         let canonical = MessageContent.canonicalize(blocks)
         #expect(canonical.count == 4)

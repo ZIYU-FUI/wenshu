@@ -26,7 +26,6 @@
 import Foundation
 
 public enum MessageSanitization {
-
     // MARK: - C0 control-character strip (= existing sub-step 4 surface)
 
     /// Strip C0 control characters from text (= preserve newlines).
@@ -43,15 +42,15 @@ public enum MessageSanitization {
         messages.map { msg in
             let sanitizedBlocks = msg.blocks.map { block -> LLMBlock in
                 switch block {
-                case .text(let s):
+                case let .text(s):
                     let clean = sanitizeText(s)
                     return clean.isEmpty ? .text("") : .text(clean)
-                case .thinking(let text, let signature):
+                case let .thinking(text, signature):
                     return .thinking(text: sanitizeText(text), signature: signature)
-                case .toolUse(let id, let name, let input):
+                case let .toolUse(id, name, input):
                     return .toolUse(id: id, name: name, input: input)
-                case .toolResult(let toolUseID, let output):
-                    return .toolResult(toolUseID: toolUseID, output: sanitizeText(output))
+                case let .toolResult(toolUseID, output, isError):
+                    return .toolResult(toolUseID: toolUseID, output: sanitizeText(output), isError: isError)
                 }
             }
             return LLMMessage(role: msg.role, blocks: sanitizedBlocks)
@@ -159,7 +158,7 @@ public enum MessageSanitization {
     /// "invalid tool call arguments". This function applies common repairs;
     /// if all fail it returns `"{}"` so the request succeeds (better than
     /// crashing the session).
-    public static func repairToolCallArguments(_ rawArgs: String, toolName: String = "?") -> String {
+    public static func repairToolCallArguments(_ rawArgs: String, toolName _: String = "?") -> String {
         let raw = rawArgs.trimmingCharacters(in: .whitespacesAndNewlines)
         if raw.isEmpty {
             return "{}"
@@ -182,7 +181,8 @@ public enum MessageSanitization {
                with: data,
                options: [.fragmentsAllowed]
            ),
-           JSONSerialization.isValidJSONObject(parsed) {
+           JSONSerialization.isValidJSONObject(parsed)
+        {
             return raw
         }
 
@@ -196,7 +196,8 @@ public enum MessageSanitization {
            let reserialised = try? JSONSerialization.data(
                withJSONObject: parsed,
                options: [.fragmentsAllowed]
-           ), let s = String(data: reserialised, encoding: .utf8) {
+           ), let s = String(data: reserialised, encoding: .utf8)
+        {
             return s
         }
 
@@ -211,13 +212,18 @@ public enum MessageSanitization {
         // Close unclosed structures.
         let openCurly = fixed.filter { $0 == "{" }.count - fixed.filter { $0 == "}" }.count
         let openBracket = fixed.filter { $0 == "[" }.count - fixed.filter { $0 == "]" }.count
-        if openCurly > 0 { fixed += String(repeating: "}", count: openCurly) }
-        if openBracket > 0 { fixed += String(repeating: "]", count: openBracket) }
+        if openCurly > 0 {
+            fixed += String(repeating: "}", count: openCurly)
+        }
+        if openBracket > 0 {
+            fixed += String(repeating: "]", count: openBracket)
+        }
 
         // Pass 2: excess closing braces/brackets removal (bounded).
-        for _ in 0..<50 {
+        for _ in 0 ..< 50 {
             if let data = fixed.data(using: .utf8),
-               (try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])) != nil {
+               (try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])) != nil
+            {
                 return fixed
             }
             if fixed.hasSuffix("}") && fixed.filter({ $0 == "}" }).count > fixed.filter({ $0 == "{" }).count {
@@ -230,7 +236,8 @@ public enum MessageSanitization {
         }
 
         if let data = fixed.data(using: .utf8),
-           (try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])) != nil {
+           (try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])) != nil
+        {
             return fixed
         }
 
@@ -238,7 +245,8 @@ public enum MessageSanitization {
         let escaped = escapeInvalidCharsInJSONStrings(fixed)
         if escaped != fixed,
            let data = escaped.data(using: .utf8),
-           (try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])) != nil {
+           (try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])) != nil
+        {
             return escaped
         }
 
@@ -259,14 +267,24 @@ public enum MessageSanitization {
     ) -> [LLMMessage] {
         guard let last = messages.last else { return messages }
         // Already an assistant tail — nothing to close.
-        if case .assistant = last.role { return messages }
+        if case .assistant = last.role {
+            return messages
+        }
         // Tail must contain a tool result.
         let hasToolResult = last.blocks.contains { block in
-            if case .toolResult = block { return true } else { return false }
+            if case .toolResult = block {
+                return true
+            } else {
+                return false
+            }
         }
         guard hasToolResult else { return messages }
         let placeholder = fallbackResponse?.blocks.first.flatMap { block -> LLMBlock? in
-            if case .text(let s) = block, !s.isEmpty { return .text(s) } else { return nil }
+            if case let .text(s) = block, !s.isEmpty {
+                return .text(s)
+            } else {
+                return nil
+            }
         } ?? .text("(interrupted — session paused)")
         var out = messages
         out.append(LLMMessage(role: .assistant, blocks: [placeholder]))
@@ -303,8 +321,12 @@ public enum MessageSanitization {
         while let last = out.last {
             if case .assistant = last.role {
                 let isEmpty = last.blocks.allSatisfy { block in
-                    if case .text(let s) = block { return s.isEmpty }
-                    if case .thinking(let t, _) = block { return t.isEmpty }
+                    if case let .text(s) = block {
+                        return s.isEmpty
+                    }
+                    if case let .thinking(t, _) = block {
+                        return t.isEmpty
+                    }
                     return false
                 }
                 if isEmpty {
@@ -337,6 +359,4 @@ public enum MessageSanitization {
     //  combined facade. See wenshu-pocock-workflow
     //  references/v3.0-design-system-rule.md +
     //  wenshu-dead-code-cleanup SKILL.md.)
-
-
 }

@@ -1,12 +1,11 @@
-import XCTest
-@testable import WenshuAgent
 import Foundation
+@testable import WenshuAgent
+import XCTest
 
 /// The wire level of the tool round: the request body the provider
 /// actually receives must carry an object `tool_use.input` and a
 /// `tool_result.content`.
 final class AnthropicToolRoundWireTests: XCTestCase {
-
     private func wireBody(
         messages: [LLMMessage]
     ) throws -> [String: Any] {
@@ -33,11 +32,11 @@ final class AnthropicToolRoundWireTests: XCTestCase {
         let body = try wireBody(messages: [
             LLMMessage(role: .user, blocks: [.text("go")]),
             LLMMessage(role: .assistant, blocks: [
-                .toolUse(id: "call_1", name: "file", input: "{\"op\":\"read\"}")
+                .toolUse(id: "call_1", name: "file", input: "{\"op\":\"read\"}"),
             ]),
             LLMMessage(role: .user, blocks: [
-                .toolResult(toolUseID: "call_1", output: "{\"ok\":true}")
-            ])
+                .toolResult(toolUseID: "call_1", output: "{\"ok\":true}", isError: false),
+            ]),
         ])
 
         let wireMessages = try XCTUnwrap(body["messages"] as? [[String: Any]])
@@ -70,8 +69,8 @@ final class AnthropicToolRoundWireTests: XCTestCase {
             LLMMessage(role: .user, blocks: [.text("go")]),
             LLMMessage(role: .assistant, blocks: [
                 .toolUse(id: "call_1", name: "a", input: "{\"x\":1}"),
-                .toolUse(id: "call_2", name: "b", input: "{\"y\":2}")
-            ])
+                .toolUse(id: "call_2", name: "b", input: "{\"y\":2}"),
+            ]),
         ])
         let wireMessages = try XCTUnwrap(body["messages"] as? [[String: Any]])
         let blocks = try XCTUnwrap(wireMessages[1]["content"] as? [[String: Any]])

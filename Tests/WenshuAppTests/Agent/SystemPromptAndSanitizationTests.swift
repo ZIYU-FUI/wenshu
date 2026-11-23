@@ -14,14 +14,13 @@
 //  for the stable tier, PromptBuilder for the dynamic tier.
 //
 
-import Testing
 import Foundation
+import Testing
 import WenshuAgent
 @testable import WenshuApp
 
 @Suite("SystemPrompt deep (= v0.35 ticket 002)")
 struct SystemPromptDeepTests {
-
     // MARK: - The live builders
 
     /// The stable tier, as the turn loop builds it.
@@ -118,7 +117,6 @@ struct SystemPromptDeepTests {
 
 @Suite("MessageSanitization (= v0.35 ticket 001)")
 struct MessageSanitizationTests {
-
     @Test("sanitizeText: preserves newline + carriage return")
     func sanitizePreservesNewlines() {
         let text = "Line 1\nLine 2\r\nLine 3"
@@ -150,12 +148,12 @@ struct MessageSanitizationTests {
         let messages: [LLMMessage] = [
             LLMMessage(role: .user, blocks: [
                 .text("Hello\u{0001}"),
-                .text("World\u{0007}!")
-            ])
+                .text("World\u{0007}!"),
+            ]),
         ]
         let clean = MessageSanitization.sanitize(messages)
         #expect(clean.count == 1)
-        if case .text(let s) = clean[0].blocks[0] {
+        if case let .text(s) = clean[0].blocks[0] {
             #expect(s == "Hello")
         } else {
             Issue.record("expected text block")
@@ -167,29 +165,29 @@ struct MessageSanitizationTests {
         let messages: [LLMMessage] = [
             LLMMessage(role: .assistant, blocks: [
                 .toolUse(id: "t1", name: "ReadFile", input: "{}"),
-                .toolResult(toolUseID: "t1", output: "content\u{0001}"),
-                .thinking(text: "thinking\u{0007}", signature: "sig")
-            ])
+                .toolResult(toolUseID: "t1", output: "content\u{0001}", isError: false),
+                .thinking(text: "thinking\u{0007}", signature: "sig"),
+            ]),
         ]
         let clean = MessageSanitization.sanitize(messages)
         #expect(clean[0].blocks.count == 3)
         // toolUse is preserved
-        if case .toolUse(let id, let name, _) = clean[0].blocks[0] {
+        if case let .toolUse(id, name, _) = clean[0].blocks[0] {
             #expect(id == "t1")
             #expect(name == "ReadFile")
         } else {
             Issue.record("expected toolUse block")
         }
         // toolResult has sanitized output
-        if case .toolResult(let toolUseID, let output) = clean[0].blocks[1] {
+        if case let .toolResult(toolUseID, output, _) = clean[0].blocks[1] {
             #expect(toolUseID == "t1")
-            #expect(output == "content")  // control char stripped
+            #expect(output == "content") // control char stripped
         } else {
             Issue.record("expected toolResult block")
         }
         // thinking has sanitized text
-        if case .thinking(let text, let sig) = clean[0].blocks[2] {
-            #expect(text == "thinking")  // control char stripped
+        if case let .thinking(text, sig) = clean[0].blocks[2] {
+            #expect(text == "thinking") // control char stripped
             #expect(sig == "sig")
         } else {
             Issue.record("expected thinking block")
@@ -199,11 +197,11 @@ struct MessageSanitizationTests {
     @Test("sanitize: empty text block becomes empty after sanitize")
     func sanitizeEmptyText() {
         let messages: [LLMMessage] = [
-            LLMMessage(role: .user, blocks: [.text("")])
+            LLMMessage(role: .user, blocks: [.text("")]),
         ]
         let clean = MessageSanitization.sanitize(messages)
         // empty text stays empty
-        if case .text(let s) = clean[0].blocks[0] {
+        if case let .text(s) = clean[0].blocks[0] {
             #expect(s == "")
         } else {
             Issue.record("expected text block")

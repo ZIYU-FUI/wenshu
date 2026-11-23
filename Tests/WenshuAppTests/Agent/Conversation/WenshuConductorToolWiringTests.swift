@@ -26,8 +26,8 @@ import Foundation
 import SwiftData
 import Testing
 import WenshuAgent
-import WenshuData
 @testable import WenshuApp
+import WenshuData
 
 @Suite("WenshuConductor → ToolExecutor wiring (P0 #2 / WIRE-AGENT-002)")
 @MainActor
@@ -42,13 +42,11 @@ struct WenshuConductorToolWiringTests {
         return WSKanbanRepository(container: container)
     }
 
-
-
     // MARK: - Test 1: tools dict reaches ConversationLoop.runTurn
 
     @Test("handle forwards the registered tools dictionary to ConversationLoop.runTurn")
     @MainActor
-    func testConductor_toolsPassedToLoop() async throws {
+    func conductor_toolsPassedToLoop() async throws {
         // Capturing connector records both the LLMCallOptions and the
         // message list it received on each call. The first call's
         // options do NOT carry the tool registry directly (= the
@@ -73,7 +71,7 @@ struct WenshuConductorToolWiringTests {
                     blocks: [.text("final")],
                     stopReason: .endTurn,
                     usage: LLMUsage(inputTokens: 2, outputTokens: 2)
-                )
+                ),
             ]
         )
         let probe = ProbeTool()
@@ -100,7 +98,7 @@ struct WenshuConductorToolWiringTests {
 
     @Test("handle dispatches tool_use blocks to ParagraphAITool when registered")
     @MainActor
-    func testConductor_toolDispatch_invokesParagraphAI() async throws {
+    func conductor_toolDispatch_invokesParagraphAI() async throws {
         let connector = RecordingMockConnector(
             scriptedResponses: [
                 LLMResponse(
@@ -120,7 +118,7 @@ struct WenshuConductorToolWiringTests {
                     blocks: [.text("paragraph processed")],
                     stopReason: .endTurn,
                     usage: LLMUsage(inputTokens: 2, outputTokens: 2)
-                )
+                ),
             ]
         )
         let conductor = try await makeConductor(
@@ -149,7 +147,7 @@ struct WenshuConductorToolWiringTests {
 
     @Test("handle surfaces tool output in the final assistant reply (= LLM is re-invoked with tool results)")
     @MainActor
-    func testConductor_toolDispatch_resultsBackInFinalResponse() async throws {
+    func conductor_toolDispatch_resultsBackInFinalResponse() async throws {
         // The mock returns a toolUse block on the first call. The
         // ConversationLoop runs the ToolExecutor (= ParagraphAITool
         // tool returns text) and re-invokes the connector with
@@ -173,7 +171,7 @@ struct WenshuConductorToolWiringTests {
                     blocks: [.text("got-tool-result")],
                     stopReason: .endTurn,
                     usage: LLMUsage(inputTokens: 2, outputTokens: 2)
-                )
+                ),
             ]
         )
         let conductor = try await makeConductor(
@@ -202,7 +200,7 @@ struct WenshuConductorToolWiringTests {
 
     @Test("registering multiple tools makes all of them available for dispatch (= tool registry is the single source)")
     @MainActor
-    func testConductor_multipleTools_allRegistered() async throws {
+    func conductor_multipleTools_allRegistered() async throws {
         // Each probe increments its own counter. The mock emits a
         // tool_use for one tool per call; across three turns we cover
         // all three tools. After three turns, every probe's counter
@@ -257,7 +255,7 @@ struct WenshuConductorToolWiringTests {
                     blocks: [.text("ok-c")],
                     stopReason: .endTurn,
                     usage: LLMUsage(inputTokens: 2, outputTokens: 2)
-                )
+                ),
             ]
         )
         let conductor = try await makeConductor(
@@ -289,8 +287,8 @@ struct WenshuConductorToolWiringTests {
     ) async throws -> WenshuConductor {
         let kanban = try Self.makeKanbanRepository()
 
-                return WenshuConductor(
-                        connector: connector,
+        return WenshuConductor(
+            connector: connector,
             tools: tools
         )
     }
@@ -307,8 +305,11 @@ struct WenshuConductorToolWiringTests {
 /// were dispatched.
 actor ProbeTool: Tool {
     private var _count: Int = 0
-    var callCount: Int { _count }
-    func execute(input: String) async throws -> String {
+    var callCount: Int {
+        _count
+    }
+
+    func execute(input _: String) async throws -> String {
         _count += 1
         return "probe-ok"
     }
@@ -326,19 +327,21 @@ actor ProbeTool: Tool {
 ///     the recorded message lists (= proves which tools ran + what
 ///     they returned)
 actor RecordingMockConnector: LLMConnector {
-    nonisolated public let connectorID: String = "recording-mock"
+    nonisolated let connectorID: String = "recording-mock"
 
-    public var scriptedResponses: [LLMResponse]
+    var scriptedResponses: [LLMResponse]
     private var scriptedIndex: Int = 0
     private var receivedCalls: [(messages: [LLMMessage], options: LLMCallOptions)] = []
 
-    public init(scriptedResponses: [LLMResponse]) {
+    init(scriptedResponses: [LLMResponse]) {
         self.scriptedResponses = scriptedResponses
     }
 
-    public var callCount: Int { receivedCalls.count }
+    var callCount: Int {
+        receivedCalls.count
+    }
 
-    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         receivedCalls.append((messages: messages, options: options))
         if scriptedIndex < scriptedResponses.count {
             let response = scriptedResponses[scriptedIndex]
@@ -347,7 +350,9 @@ actor RecordingMockConnector: LLMConnector {
         }
         // Fallback: echo the last user message verbatim.
         let echo = messages.last?.blocks.first.flatMap { block -> String? in
-            if case .text(let s) = block { return s }
+            if case let .text(s) = block {
+                return s
+            }
             return nil
         } ?? ""
         return LLMResponse(
@@ -359,7 +364,7 @@ actor RecordingMockConnector: LLMConnector {
         )
     }
 
-    public nonisolated func stream(
+    nonisolated func stream(
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {
@@ -380,12 +385,14 @@ actor RecordingMockConnector: LLMConnector {
 
     /// Whether the second .send() call (= re-invocation after tool
     /// dispatch) saw a `.toolResult` block in its message list.
-    public func secondCallHadToolResult() -> Bool {
+    func secondCallHadToolResult() -> Bool {
         guard receivedCalls.count >= 2 else { return false }
         let second = receivedCalls[1]
         return second.messages.contains { msg in
             msg.blocks.contains { block in
-                if case .toolResult = block { return true }
+                if case .toolResult = block {
+                    return true
+                }
                 return false
             }
         }
@@ -394,12 +401,12 @@ actor RecordingMockConnector: LLMConnector {
     /// All `.toolResult` output strings observed across every
     /// recorded message list. Used to assert that a specific tool's
     /// output made it through the dispatch path.
-    public func allToolResults() -> [String] {
+    func allToolResults() -> [String] {
         var results: [String] = []
         for call in receivedCalls {
             for msg in call.messages {
                 for block in msg.blocks {
-                    if case .toolResult(_, let output) = block {
+                    if case let .toolResult(_, output, _) = block {
                         results.append(output)
                     }
                 }

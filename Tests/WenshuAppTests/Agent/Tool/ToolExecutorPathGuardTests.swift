@@ -15,15 +15,14 @@
 //  cross-suite pollution; = no init() reset needed).
 //
 
-import Testing
 import Foundation
+import Testing
 import WenshuAgent
 @testable import WenshuApp
 
 @MainActor
 @Suite("ToolExecutor ↔ PathGuard integration (wt/path-guard-v2-2026-09-25)", .serialized)
 struct ToolExecutorPathGuardTests {
-
     private let libraryRoot = "/Users/anbaiqiang/libraries/test.ws"
 
     /// Run `body` with `PathGuard.libraryRootOverride` bound to
@@ -43,7 +42,7 @@ struct ToolExecutorPathGuardTests {
     }
 
     @Test("executeSequential allows a tool_use block whose path key resolves inside the library")
-    func testAllowsInsideLibrary() async throws {
+    func allowsInsideLibrary() async throws {
         try await withLibraryRoot {
             let executor = ToolExecutor()
             let insidePath = "\(libraryRoot)/chapter.md"
@@ -67,7 +66,7 @@ struct ToolExecutorPathGuardTests {
             )
 
             #expect(messages.count == 2)
-            if case .toolResult(_, let output) = messages[1].blocks[0] {
+            if case let .toolResult(_, output, _) = messages[1].blocks[0] {
                 #expect(output.hasPrefix("RAN:"))
             } else {
                 Issue.record("expected toolResult block in messages[1]")
@@ -76,7 +75,7 @@ struct ToolExecutorPathGuardTests {
     }
 
     @Test("executeSequential rejects a tool_use block whose path key resolves outside the library")
-    func testRejectsOutsideLibrary() async throws {
+    func rejectsOutsideLibrary() async throws {
         try await withLibraryRoot {
             let executor = ToolExecutor()
             let outsidePath = "/etc/passwd"
@@ -103,7 +102,9 @@ struct ToolExecutorPathGuardTests {
 
             let allBlocks = messages.flatMap { $0.blocks }
             let anyRan = allBlocks.contains { block in
-                if case .toolResult(_, let output) = block, output.hasPrefix("RAN:") { return true }
+                if case let .toolResult(_, output, _) = block, output.hasPrefix("RAN:") {
+                    return true
+                }
                 return false
             }
             #expect(anyRan == false, "tool body must not run when PathGuard rejects the path")
@@ -111,7 +112,7 @@ struct ToolExecutorPathGuardTests {
     }
 
     @Test("executeSequential allows a tool_use block with no path-bearing keys")
-    func testAllowsEmptyInput() async throws {
+    func allowsEmptyInput() async throws {
         try await withLibraryRoot {
             let executor = ToolExecutor()
             let tools: [String: any Tool] = ["SearchLike": EchoPathTool()]
@@ -134,7 +135,7 @@ struct ToolExecutorPathGuardTests {
             )
 
             #expect(messages.count == 2)
-            if case .toolResult(_, let output) = messages[1].blocks[0] {
+            if case let .toolResult(_, output, _) = messages[1].blocks[0] {
                 #expect(output.hasPrefix("RAN:"))
             } else {
                 Issue.record("expected toolResult block in messages[1]")
@@ -143,7 +144,7 @@ struct ToolExecutorPathGuardTests {
     }
 
     @Test("executeSequential processes the first tool_use (valid) and aborts on the second (outside)")
-    func testMixedValidAndInvalid() async throws {
+    func mixedValidAndInvalid() async throws {
         try await withLibraryRoot {
             let executor = ToolExecutor()
             let tools: [String: any Tool] = ["Mixed": EchoPathTool()]
@@ -153,7 +154,7 @@ struct ToolExecutorPathGuardTests {
                 role: .assistant,
                 blocks: [
                     .toolUse(id: "t1", name: "Mixed", input: "{\"path\":\"\(insidePath)\"}"),
-                    .toolUse(id: "t2", name: "Mixed", input: "{\"path\":\"/etc/passwd\"}")
+                    .toolUse(id: "t2", name: "Mixed", input: "{\"path\":\"/etc/passwd\"}"),
                 ]
             )
             var messages: [LLMMessage] = [assistantMessage]
@@ -168,7 +169,7 @@ struct ToolExecutorPathGuardTests {
             }
 
             #expect(messages.count == 2)
-            if case .toolResult(_, let firstOutput) = messages[1].blocks[0] {
+            if case let .toolResult(_, firstOutput, _) = messages[1].blocks[0] {
                 #expect(firstOutput.hasPrefix("RAN:"))
             } else {
                 Issue.record("expected first toolResult to be the RAN: echo of the inside path")
@@ -177,7 +178,7 @@ struct ToolExecutorPathGuardTests {
     }
 
     @Test("executeSequential errorDescription for pathGuardViolation does NOT leak absolute path")
-    func testErrorDescriptionHidesAbsolutePath() async throws {
+    func errorDescriptionHidesAbsolutePath() async throws {
         try await withLibraryRoot {
             let executor = ToolExecutor()
             let tools: [String: any Tool] = ["ReadFileLike": EchoPathTool()]

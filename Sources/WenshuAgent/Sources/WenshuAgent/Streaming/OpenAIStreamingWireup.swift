@@ -30,15 +30,14 @@
 //  we only add the JSON-decoding layer on top).
 //
 
-import Foundation
 import EventSource
+import Foundation
 
 /// OpenAI-compatible SSE wire-up (= AsyncStream producer of raw `data:`
 /// payloads). Wraps EventSource (= mattt/EventSource 1.5.1) and yields
 /// raw `data:` strings (= JSON decoding happens in
 /// OpenAIChunkToLLMBlockConverter).
 public actor OpenAIStreamingWireup {
-
     private var eventSource: EventSource?
     private var continuation: AsyncStream<String>.Continuation?
 
@@ -90,7 +89,7 @@ public actor OpenAIStreamingWireup {
         Task { await self.finishStream() }
     }
 
-    private nonisolated func finish(error: Error) {
+    private nonisolated func finish(error _: Error) {
         Task { await self.finishStream() }
     }
 
@@ -110,7 +109,6 @@ public actor OpenAIStreamingWireup {
 // MARK: - Convenience factory (= single entry point for OpenAICompatibleConnector)
 
 public enum OpenAIStreamingWireupFactory {
-
     /// Build a streaming URLRequest and wire it up (= returns AsyncStream of
     /// raw `data:` payloads; = JSON decoding is the consumer's job).
     public static func streamingStream(
@@ -132,7 +130,7 @@ public enum OpenAIStreamingWireupFactory {
             tools: tools
         )
         let wireup = OpenAIStreamingWireup()
-        let stream: AsyncStream<String> = AsyncStream { continuation in
+        return AsyncStream { continuation in
             Task { @Sendable in
                 let inner = await wireup.connect(request: request)
                 Task { @Sendable in
@@ -143,7 +141,6 @@ public enum OpenAIStreamingWireupFactory {
                 }
             }
         }
-        return stream
     }
 
     /// Pure URLRequest builder (= extracted for Sendable capture in factory).
@@ -164,9 +161,11 @@ public enum OpenAIStreamingWireupFactory {
         var url = baseURL
         if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
             components.queryItems = (components.queryItems ?? []) + [
-                URLQueryItem(name: "stream", value: "true")
+                URLQueryItem(name: "stream", value: "true"),
             ]
-            if let composed = components.url { url = composed }
+            if let composed = components.url {
+                url = composed
+            }
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -193,7 +192,7 @@ public enum OpenAIStreamingWireupFactory {
                 messages: messages,
                 providerSlug: credentials.provider.slug,
                 model: model
-            )
+            ),
         ]
         // OpenAI chat completions tools shape: top-level `tools` array
         // of `{type: "function", function: {name, description,
@@ -209,20 +208,20 @@ public enum OpenAIStreamingWireupFactory {
                 let function: [String: Any] = {
                     var f: [String: Any] = [
                         "name": schema.name,
-                        "description": schema.description
+                        "description": schema.description,
                     ]
                     if !props.isEmpty || !schema.required.isEmpty {
                         f["parameters"] = [
                             "type": "object",
                             "properties": props,
-                            "required": schema.required
+                            "required": schema.required,
                         ]
                     }
                     return f
                 }()
                 return [
                     "type": "function",
-                    "function": function
+                    "function": function,
                 ]
             }
             var mutableBody = body
@@ -260,7 +259,7 @@ public enum OpenAIStreamingWireupFactory {
         if let sys = systemPrompt, !sys.isEmpty {
             var system: [String: Any] = [
                 "role": "system",
-                "content": sys
+                "content": sys,
             ]
             if let marker {
                 system["cache_control"] = marker
@@ -276,22 +275,22 @@ public enum OpenAIStreamingWireupFactory {
             }
             let contentParts: [[String: Any]] = msg.blocks.compactMap { block in
                 switch block {
-                case .text(let s):
+                case let .text(s):
                     return ["type": "text", "text": s]
-                case .thinking(let s, _):
+                case let .thinking(s, _):
                     // OpenAI-compatible providers don't support a
                     // separate thinking block in the request shape; =
                     // surface as text so the model has the context.
                     return ["type": "text", "text": s]
-                case .toolUse(_, let name, let input):
+                case let .toolUse(_, name, input):
                     return [
                         "type": "function",
                         "function": [
                             "name": name,
-                            "arguments": input
-                        ]
+                            "arguments": input,
+                        ],
                     ]
-                case .toolResult(_, let output):
+                case let .toolResult(_, output, _):
                     // tool_result blocks in OpenAI go in their own
                     // message with role=tool; = the caller wraps them
                     // outside this helper. Skipping here.
@@ -301,7 +300,7 @@ public enum OpenAIStreamingWireupFactory {
             }
             var dict: [String: Any] = [
                 "role": role,
-                "content": contentParts
+                "content": contentParts,
             ]
             // The per-message marker the cache builder placed on this
             // message (= the last three of the conversation).

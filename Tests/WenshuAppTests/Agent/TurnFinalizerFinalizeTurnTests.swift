@@ -3,20 +3,19 @@
 //
 //  Round-trip tests for the extended TurnFinalizer surface (= hermes
 //  turn_finalizer.py = 507 LOC):
-    //    1. testCoalesceAdjacentText       — adjacent .text blocks merge into 1
-    //    2. testFinalizeTurnCompleted      — happy-path completed=true
-    //    3. testFinalizeTurnBudgetExhausted — exitReason="max_iterations_reached(...)"
+//    1. testCoalesceAdjacentText       — adjacent .text blocks merge into 1
+//    2. testFinalizeTurnCompleted      — happy-path completed=true
+//    3. testFinalizeTurnBudgetExhausted — exitReason="max_iterations_reached(...)"
 //    4. testInterruptedClosesToolSeq    — close_interrupted_tool_sequence
 //
 
-import Testing
 import Foundation
+import Testing
 import WenshuAgent
 @testable import WenshuApp
 
 @Suite("TurnFinalizerFinalizeTurn ()")
 struct TurnFinalizerFinalizeTurnTests {
-
     // MARK: - Test 1: Adjacent text coalescing
 
     @Test("coalesceAdjacentText merges adjacent .text blocks into one")
@@ -26,12 +25,12 @@ struct TurnFinalizerFinalizeTurnTests {
             .text(""),
             .text("world"),
             .thinking(text: "reasoning", signature: "sig"),
-            .text("more")
+            .text("more"),
         ]
         let coalesced = TurnFinalizer.coalesceAdjacentText(blocks)
         // 5 → 3 (text, thinking, text) with the first two text blocks merged.
         #expect(coalesced.count == 3)
-        if case .text(let s) = coalesced[0] {
+        if case let .text(s) = coalesced[0] {
             #expect(s.contains("hello"))
             #expect(s.contains("world"))
         } else {
@@ -40,7 +39,7 @@ struct TurnFinalizerFinalizeTurnTests {
         if case .thinking = coalesced[1] { /* ok */ } else {
             Issue.record("expected .thinking at index 1")
         }
-        if case .text(let s) = coalesced[2] {
+        if case let .text(s) = coalesced[2] {
             #expect(s == "more")
         } else {
             Issue.record("expected .text at index 2")
@@ -50,7 +49,7 @@ struct TurnFinalizerFinalizeTurnTests {
     // MARK: - Test 2: finalizeTurn happy-path
 
     @Test("finalizeTurn with a final response marks completed=true")
-    func testFinalizeTurnCompleted() {
+    func finalizeTurnCompleted() {
         let response = LLMResponse(
             id: "r1",
             model: "mock",
@@ -60,7 +59,7 @@ struct TurnFinalizerFinalizeTurnTests {
         )
         var messages: [LLMMessage] = [
             LLMMessage(role: .user, blocks: [.text("hi")]),
-            LLMMessage(role: .assistant, blocks: [.text("hi back")])
+            LLMMessage(role: .assistant, blocks: [.text("hi back")]),
         ]
         let finalized = TurnFinalizer.finalizeTurn(
             finalResponse: response,
@@ -82,12 +81,17 @@ struct TurnFinalizerFinalizeTurnTests {
     // MARK: - Test 3: Budget exhaustion
 
     @Test("finalizeTurn records max_iterations_reached exit reason when budget blown")
-    func testFinalizeTurnBudgetExhausted() {
+    func finalizeTurnBudgetExhausted() {
         final class BudgetRecorder: @unchecked Sendable {
             private let lock = NSLock()
             private var calledStorage = false
-            func mark() { lock.withLock { calledStorage = true } }
-            var snapshot: Bool { lock.withLock { calledStorage } }
+            func mark() {
+                lock.withLock { calledStorage = true }
+            }
+
+            var snapshot: Bool {
+                lock.withLock { calledStorage }
+            }
         }
         let rec = BudgetRecorder()
         let hooks = TurnFinalizer.PostTurnHooks(
@@ -116,12 +120,12 @@ struct TurnFinalizerFinalizeTurnTests {
     // MARK: - Test 4: Interrupted tool sequence closure
 
     @Test("interrupted turn with tool result tail appends a closing assistant message")
-    func testInterruptedClosesToolSeq() {
+    func interruptedClosesToolSeq() {
         // Transcript ends with a tool result (no closing assistant).
         var messages: [LLMMessage] = [
             LLMMessage(role: .user, blocks: [.text("search for foo")]),
             LLMMessage(role: .assistant, blocks: [.toolUse(id: "t1", name: "search", input: "{}")]),
-            LLMMessage(role: .tool, blocks: [.toolResult(toolUseID: "t1", output: "results")])
+            LLMMessage(role: .tool, blocks: [.toolResult(toolUseID: "t1", output: "results", isError: false)]),
         ]
         _ = TurnFinalizer.finalizeTurn(
             finalResponse: nil,

@@ -29,16 +29,15 @@
 import Foundation
 
 public actor ContextCompressor {
-
     /// Compression policy (= deterministic, no LLM).
     public struct Policy: Sendable {
-        public let keepRecentTurns: Int  // last N messages to preserve verbatim
-        public let maxTokens: Int         // stop early if estimated token count fits
+        public let keepRecentTurns: Int // last N messages to preserve verbatim
+        public let maxTokens: Int // stop early if estimated token count fits
         public let summaryTemplate: String // text for the synthesized summary message
 
         public init(
             keepRecentTurns: Int = 8,
-            maxTokens: Int = 30_000,
+            maxTokens: Int = 30000,
             summaryTemplate: String = "[Earlier conversation summarized: %d turns omitted to fit context budget.]"
         ) {
             self.keepRecentTurns = keepRecentTurns
@@ -91,8 +90,8 @@ public actor ContextCompressor {
 
         // 2. Split: older messages + recent messages
         let splitIndex = messages.count - policy.keepRecentTurns
-        let olderMessages = Array(messages[0..<splitIndex])
-        let recentMessages = Array(messages[splitIndex..<messages.count])
+        let olderMessages = Array(messages[0 ..< splitIndex])
+        let recentMessages = Array(messages[splitIndex ..< messages.count])
 
         // 3. Build synthesized summary message (= hermes behavior:
         // replace older turns with one summary block)
@@ -127,10 +126,10 @@ public struct CharacterBasedTokenEstimator: TokenEstimator, Sendable {
     public func estimate(_ message: LLMMessage) -> Int {
         let totalChars = message.blocks.reduce(into: 0) { sum, block in
             switch block {
-            case .text(let s): sum += s.count
-            case .thinking(let text, _): sum += text.count
-            case .toolUse(_, _, let input): sum += input.count
-            case .toolResult(_, let output): sum += output.count
+            case let .text(s): sum += s.count
+            case let .thinking(text, _): sum += text.count
+            case let .toolUse(_, _, input): sum += input.count
+            case let .toolResult(_, output, _): sum += output.count
             }
         }
         // Ceiling division so any non-empty message yields >=1 token

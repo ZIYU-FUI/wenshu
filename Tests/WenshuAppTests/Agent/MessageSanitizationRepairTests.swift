@@ -11,18 +11,17 @@
 //    6. testCloseInterruptedToolSeq       — tool-tail close
 //
 
-import Testing
 import Foundation
+import Testing
 import WenshuAgent
 @testable import WenshuApp
 
 @Suite("MessageSanitizationRepair ()")
 struct MessageSanitizationRepairTests {
-
     // MARK: - Test 1: Well-formed JSON passes through
 
     @Test("repairToolCallArguments leaves well-formed JSON untouched")
-    func testRepairTrivialJSON() {
+    func repairTrivialJSON() {
         let good = #"{"path":"/foo","mode":"r"}"#
         #expect(MessageSanitization.repairToolCallArguments(good) == good)
     }
@@ -30,11 +29,11 @@ struct MessageSanitizationRepairTests {
     // MARK: - Test 2: Trailing comma repair
 
     @Test("repairToolCallArguments strips trailing commas before } or ]")
-    func testRepairTrailingComma() {
+    func repairTrailingComma() throws {
         let bad = #"{"a":1,"b":2,}"#
         let fixed = MessageSanitization.repairToolCallArguments(bad, toolName: "x")
         // Must be parseable JSON.
-        let data = fixed.data(using: .utf8)!
+        let data = try #require(fixed.data(using: .utf8))
         let obj = try? JSONSerialization.jsonObject(with: data)
         #expect(obj != nil)
         if let dict = obj as? [String: Any] {
@@ -46,14 +45,14 @@ struct MessageSanitizationRepairTests {
     // MARK: - Test 3: Python-None normalization
 
     @Test("repairToolCallArguments maps literal 'None' to '{}'")
-    func testRepairPythonNone() {
+    func repairPythonNone() {
         #expect(MessageSanitization.repairToolCallArguments("None") == "{}")
     }
 
     // MARK: - Test 4: Last resort
 
     @Test("repairToolCallArguments returns '{}' on unrepairable garbage")
-    func testRepairUnrepairable() {
+    func repairUnrepairable() {
         #expect(MessageSanitization.repairToolCallArguments("@@@not json@@@") == "{}")
         #expect(MessageSanitization.repairToolCallArguments("") == "{}")
     }
@@ -61,7 +60,7 @@ struct MessageSanitizationRepairTests {
     // MARK: - Test 5: Surrogate strip
 
     @Test("sanitizeSurrogates drops lone high surrogates while preserving paired ones")
-    func testSurrogateStrip() {
+    func surrogateStrip() {
         // Lone high surrogate (no matching low surrogate) → drop.
         // Swift rejects literal surrogate scalars in string literals, so
         // we construct the test input via UTF-16 code units (= exactly
@@ -82,12 +81,12 @@ struct MessageSanitizationRepairTests {
     // MARK: - Test 6: Close interrupted tool sequence
 
     @Test("closeInterruptedToolSequence appends a synthetic assistant when tail is a tool result")
-    func testCloseInterruptedToolSeq() {
+    func closeInterruptedToolSeq() {
         // Transcript ending with a tool result (no closing assistant).
         let messages: [LLMMessage] = [
             LLMMessage(role: .user, blocks: [.text("search for foo")]),
             LLMMessage(role: .assistant, blocks: [.toolUse(id: "t1", name: "search", input: "{}")]),
-            LLMMessage(role: .tool, blocks: [.toolResult(toolUseID: "t1", output: "ok")])
+            LLMMessage(role: .tool, blocks: [.toolResult(toolUseID: "t1", output: "ok", isError: false)]),
         ]
         let closed = MessageSanitization.closeInterruptedToolSequence(messages)
         // A synthetic assistant message is appended.
@@ -102,12 +101,12 @@ struct MessageSanitizationRepairTests {
     // MARK: - Test 7: Drop trailing empty-response scaffolding (bonus)
 
     @Test("dropTrailingEmptyResponseScaffolding rewinds empty assistant turns at the tail")
-    func testDropTrailingEmpty() {
+    func dropTrailingEmpty() {
         let messages: [LLMMessage] = [
             LLMMessage(role: .user, blocks: [.text("hi")]),
             LLMMessage(role: .assistant, blocks: [.text("hello")]),
             LLMMessage(role: .assistant, blocks: [.text("")]),
-            LLMMessage(role: .assistant, blocks: [.text("")])
+            LLMMessage(role: .assistant, blocks: [.text("")]),
         ]
         let trimmed = MessageSanitization.dropTrailingEmptyResponseScaffolding(messages)
         // The two trailing empty assistant turns are rewound.
@@ -119,7 +118,7 @@ struct MessageSanitizationRepairTests {
 
     @Test("stripNonASCII replaces non-ASCII characters with '?'")
     func testStripNonASCII() {
-        let s = "hello \u{4E2D}\u{6587} world"  // in progress
+        let s = "hello \u{4E2D}\u{6587} world" // in progress
         let stripped = MessageSanitization.stripNonASCII(s)
         #expect(stripped == "hello ?? world")
     }
@@ -127,7 +126,7 @@ struct MessageSanitizationRepairTests {
     // MARK: - Test 9: escapeInvalidCharsInJSONStrings (bonus)
 
     @Test("escapeInvalidCharsInJSONStrings escapes literal control chars inside JSON strings")
-    func testEscapeInvalid() {
+    func escapeInvalid() {
         // JSON with a literal tab inside a string value (hermes repair pass 4).
         let raw = #"{"a":"line1\#tline2"}"#
         let escaped = MessageSanitization.escapeInvalidCharsInJSONStrings(raw)

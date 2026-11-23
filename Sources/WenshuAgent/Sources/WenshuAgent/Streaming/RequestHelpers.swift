@@ -1,16 +1,16 @@
-// 
+//
 // … (= 39 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// 
+//
 import Foundation
 
-// / Shared request/response marshaling for the 5 wenshu LLM connectors.
-// … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / helper (= no silent unification across providers).
+/// / Shared request/response marshaling for the 5 wenshu LLM connectors.
+/// … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+/// / helper (= no silent unification across providers).
 public enum RequestHelpers {
-
     // MARK: - Anthropic native
-    // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / - Returns: JSON-encoded request body Data
+
+    /// … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / - Returns: JSON-encoded request body Data
     public static func buildAnthropicRequest(
         model: String,
         messages: [LLMMessage],
@@ -32,19 +32,19 @@ public enum RequestHelpers {
     ) throws -> Data {
         var body: [String: Any] = [
             "model": model,
-            "max_tokens": maxTokens
+            "max_tokens": maxTokens,
         ]
         if let thinkingBudget {
             body["thinking"] = [
                 "type": "enabled",
-                "budget_tokens": thinkingBudget
+                "budget_tokens": thinkingBudget,
             ] as [String: Any]
         }
         if let sys = systemPrompt, !sys.isEmpty {
             body["system"] = [
                 "type": "text",
                 "text": sys,
-                "cache_control": ["type": "ephemeral"]
+                "cache_control": ["type": "ephemeral"],
             ]
         }
         if !tools.isEmpty {
@@ -54,7 +54,7 @@ public enum RequestHelpers {
             body["tools"] = tools.map { schema -> [String: Any] in
                 var dict: [String: Any] = [
                     "name": schema.name,
-                    "description": schema.description
+                    "description": schema.description,
                 ]
                 if !schema.inputSchema.isEmpty || !schema.required.isEmpty {
                     var props: [String: Any] = [:]
@@ -64,7 +64,7 @@ public enum RequestHelpers {
                     dict["input_schema"] = [
                         "type": "object",
                         "properties": props,
-                        "required": schema.required
+                        "required": schema.required,
                     ]
                 }
                 return dict
@@ -84,7 +84,7 @@ public enum RequestHelpers {
             }
             body["thinking"] = [
                 "type": "enabled",
-                "budget_tokens": budgetTokens
+                "budget_tokens": budgetTokens,
             ]
         }
         body["messages"] = messages.map { msg -> [String: Any] in
@@ -92,23 +92,26 @@ public enum RequestHelpers {
                 "role": msg.role.rawValue,
                 "content": msg.blocks.map { block -> [String: Any] in
                     switch block {
-                    case .text(let s):
+                    case let .text(s):
                         var d: [String: Any] = ["type": "text", "text": s]
                         if let marker = msg.cacheControl {
                             d["cache_control"] = marker
                         }
                         return d
-                    case .thinking(let t, let sig):
+                    case let .thinking(t, sig):
                         var d: [String: Any] = ["type": "thinking", "thinking": t]
-                        if let sig { d["signature"] = sig }
+                        if let sig {
+                            d["signature"] = sig
+                        }
                         return d
-                    case .toolUse(let id, let name, let input):
+                    case let .toolUse(id, name, input):
                         // Anthropic native `tool_use.input` is a JSON
                         // … (= 17 rationale lines collapsed; = A112 docblock collapse per §1.8)
                         // is a JSON object, so we prefer that path).
                         let parsedInput: [String: Any]
                         if let data = input.data(using: .utf8),
-                           let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                           let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                        {
                             parsedInput = object
                         } else {
                             parsedInput = ["_raw": input]
@@ -117,16 +120,20 @@ public enum RequestHelpers {
                             "type": "tool_use",
                             "id": id,
                             "name": name,
-                            "input": parsedInput
+                            "input": parsedInput,
                         ]
-                    case .toolResult(let toolUseID, let output):
+                    case let .toolResult(toolUseID, output, isError):
                         return [
                             "type": "tool_result",
                             "tool_use_id": toolUseID,
-                            "content": output
+                            // Anthropic's own field (= = the API says a
+                            // failed call is marked, = = and the model
+                            // reads it).
+                            "is_error": isError,
+                            "content": output,
                         ]
                     }
-                }
+                },
             ]
             if let marker = msg.cacheControl {
                 dict["cache_control"] = marker
@@ -136,9 +143,9 @@ public enum RequestHelpers {
         return try JSONSerialization.data(withJSONObject: body)
     }
 
-    // / Decode an Anthropic-format JSON response into an `LLMResponse`.
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / same Anthropic-compatible wire shape on the response side).
+    /// / Decode an Anthropic-format JSON response into an `LLMResponse`.
+    /// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / same Anthropic-compatible wire shape on the response side).
     public static func decodeAnthropicResponse(
         data: Data,
         model: String,
@@ -167,11 +174,13 @@ public enum RequestHelpers {
             case "tool_use":
                 if let id = block["id"] as? String,
                    let name = block["name"] as? String,
-                   let input = block["input"] {
+                   let input = block["input"]
+                {
                     let inputString: String
                     if let inputDict = input as? [String: Any],
                        let data = try? JSONSerialization.data(withJSONObject: inputDict),
-                       let s = String(data: data, encoding: .utf8) {
+                       let s = String(data: data, encoding: .utf8)
+                    {
                         inputString = s
                     } else if let s = input as? String {
                         inputString = s
@@ -209,8 +218,9 @@ public enum RequestHelpers {
     }
 
     // MARK: - Minimax-compatible (= thin Anthropic wrapper for minimax cn)
-    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / breakpoints from `PromptCaching.applyCacheControl`).
+
+    /// … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / breakpoints from `PromptCaching.applyCacheControl`).
     public static func buildMinimaxRequest(
         model: String,
         messages: [LLMMessage],
@@ -237,17 +247,18 @@ public enum RequestHelpers {
                     "role": msg.role.rawValue,
                     "content": msg.blocks.compactMap { block -> [String: Any]? in
                         switch block {
-                        case .text(let s):
+                        case let .text(s):
                             return ["type": "text", "text": s]
-                        case .thinking(let t, _):
+                        case let .thinking(t, _):
                             return ["type": "thinking", "thinking": t]
-                        case .toolUse(let id, let name, let input):
+                        case let .toolUse(id, name, input):
                             // Parse the input JSON string into a dict so
                             // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                             // structured object (= not a string).
                             let parsedInput: Any
                             if let data = input.data(using: .utf8),
-                               let parsed = try? JSONSerialization.jsonObject(with: data) {
+                               let parsed = try? JSONSerialization.jsonObject(with: data)
+                            {
                                 parsedInput = parsed
                             } else {
                                 parsedInput = input
@@ -256,12 +267,12 @@ public enum RequestHelpers {
                                 "type": "tool_use",
                                 "id": id,
                                 "name": name,
-                                "input": parsedInput
+                                "input": parsedInput,
                             ]
                         case .toolResult:
-                            return nil  // tool_result belongs in user-role, not assistant.
+                            return nil // tool_result belongs in user-role, not assistant.
                         }
-                    }
+                    },
                 ]
                 if let marker = msg.cacheControl {
                     dict["cache_control"] = marker
@@ -273,11 +284,12 @@ public enum RequestHelpers {
                 // Anthropic Messages API shape).
                 let resultBlocks: [[String: Any]] = msg.blocks.compactMap { block -> [String: Any]? in
                     switch block {
-                    case .toolResult(let toolUseID, let output):
+                    case let .toolResult(toolUseID, output, isError):
                         return [
                             "type": "tool_result",
                             "tool_use_id": toolUseID,
-                            "content": output
+                            "is_error": isError,
+                            "content": output,
                         ]
                     default:
                         return nil
@@ -285,7 +297,7 @@ public enum RequestHelpers {
                 }
                 var dict: [String: Any] = [
                     "role": "user",
-                    "content": resultBlocks
+                    "content": resultBlocks,
                 ]
                 if let marker = msg.cacheControl {
                     dict["cache_control"] = marker
@@ -297,7 +309,7 @@ public enum RequestHelpers {
             "model": model,
             "max_tokens": maxTokens,
             "system": systemPrompt ?? "",
-            "messages": messagesPayload
+            "messages": messagesPayload,
         ]
         if let thinkingBudget {
             // The same key the Anthropic path uses (= a provider that
@@ -305,7 +317,7 @@ public enum RequestHelpers {
             // drops the budget and runs again).
             body["thinking"] = [
                 "type": "enabled",
-                "budget_tokens": thinkingBudget
+                "budget_tokens": thinkingBudget,
             ] as [String: Any]
         }
         if !tools.isEmpty {
@@ -315,7 +327,7 @@ public enum RequestHelpers {
             body["tools"] = tools.map { schema -> [String: Any] in
                 var dict: [String: Any] = [
                     "name": schema.name,
-                    "description": schema.description
+                    "description": schema.description,
                 ]
                 if !schema.inputSchema.isEmpty || !schema.required.isEmpty {
                     var props: [String: Any] = [:]
@@ -325,7 +337,7 @@ public enum RequestHelpers {
                     dict["input_schema"] = [
                         "type": "object",
                         "properties": props,
-                        "required": schema.required
+                        "required": schema.required,
                     ]
                 }
                 return dict
@@ -390,8 +402,9 @@ public enum RequestHelpers {
     }
 
     // MARK: - Gemini native
-    // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / - Returns: JSON-encoded request body Data
+
+    /// … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / - Returns: JSON-encoded request body Data
     public static func buildGeminiRequest(
         model: String,
         messages: [LLMMessage],
@@ -407,7 +420,7 @@ public enum RequestHelpers {
             let role = msg.role == .user ? "user" : "model"
             let parts: [[String: Any]] = msg.blocks.compactMap { block in
                 switch block {
-                case .text(let s): return ["text": s]
+                case let .text(s): return ["text": s]
                 default: return nil
                 }
             }
@@ -417,7 +430,7 @@ public enum RequestHelpers {
         }
 
         var body: [String: Any] = [
-            "contents": contents
+            "contents": contents,
         ]
         if let sys = systemPrompt, !sys.isEmpty {
             body["systemInstruction"] = ["parts": [["text": sys]]]
@@ -441,13 +454,13 @@ public enum RequestHelpers {
             var genConfig = body["generationConfig"] as? [String: Any] ?? [:]
             genConfig["thinkingConfig"] = [
                 "thinkingBudget": budgetTokens,
-                "includeThoughts": false
+                "includeThoughts": false,
             ]
             body["generationConfig"] = genConfig
         }
         // `model` is wired into the URL by the connector, NOT the body
         // (= Gemini `generateContent` endpoint takes model in path).
-        _ = model  // reserved for future body-level model override
+        _ = model // reserved for future body-level model override
         return try JSONSerialization.data(withJSONObject: body)
     }
 

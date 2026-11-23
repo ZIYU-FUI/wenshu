@@ -1,5 +1,6 @@
 import Foundation
 import WenshuAgent
+import WenshuData
 
 // A reference-type accumulator for the streaming LLMBlock callback. It is a
 // reference type because the callback is @Sendable, and the value
@@ -141,5 +142,48 @@ final class StreamingAccumulator: @unchecked Sendable {
     func appendPart(_ part: ChatMessagePart) {
         lock.lock(); defer { lock.unlock() }
         _parts.append(part)
+    }
+
+    /// Settle a tool call with its result.
+    ///
+    /// The call and its result are ONE card: the call card already knows
+    /// how to draw a state (= = its status, = = its duration, = = its
+    /// tint), = = and the writer was reading "the assistant is calling
+    /// tool X" FOREVER (= = because nothing ever wrote the state), next
+    /// to a second card carrying the answer.
+    ///
+    /// So the result settles the call instead of becoming a second part:
+    /// the transcript shows one row per call, = = and the row says what
+    /// happened.
+    ///
+    /// A result with NO matching call (Hermes has that shape too: "a
+    /// result WITHOUT a prior use") stays its own part: there is no card
+    /// to settle, = = and dropping it would lose the answer.
+    ///
+    /// - Parameters:
+    ///   - toolUseID: the call this result belongs to.
+    ///   - content: the tool's output.
+    ///   - isError: whether the call failed.
+    func settleToolResult(toolUseID: ToolCallID, content: String, isError: Bool) {
+        lock.lock(); defer { lock.unlock() }
+        guard let index = _parts.firstIndex(where: { part in
+            guard case let .toolUse(call) = part.kind else { return false }
+            return call.id == toolUseID
+        }) else {
+            // An orphan result: it has no card to settle, = = so it
+            // draws itself.
+            _parts.append(.toolResult(toolUseID: toolUseID, content: content, isError: isError))
+            return
+        }
+        guard case var .toolUse(call) = _parts[index].kind else { return }
+        // The call is settled ONCE: a second result for the same call
+        // (= a retry that reported twice) does not reopen it.
+        guard call.status == .running else { return }
+        call.status = isError ? .error : .complete
+        call.result = content
+        if isError {
+            call.errorMessage = content
+        }
+        _parts[index].kind = .toolUse(call)
     }
 }

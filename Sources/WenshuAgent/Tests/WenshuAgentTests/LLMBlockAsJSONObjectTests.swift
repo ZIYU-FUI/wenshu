@@ -1,5 +1,5 @@
-import XCTest
 @testable import WenshuAgent
+import XCTest
 
 /// The Anthropic wire needs `tool_use.input` as a JSON OBJECT.
 ///
@@ -8,7 +8,6 @@ import XCTest
 /// dictionary" = MiniMax 2013) and the chat answered "temporarily
 /// unable to reply" for every question that needed a tool.
 final class LLMBlockAsJSONObjectTests: XCTestCase {
-
     func testToolUseInputIsAnObject() {
         let json = LLMBlock.toolUse(
             id: "call_1", name: "file", input: "{\"op\":\"read\",\"pattern\":\"AGENTS.md\"}"
@@ -48,7 +47,7 @@ final class LLMBlockAsJSONObjectTests: XCTestCase {
     func testToolResultUsesTheAnthropicContentKey() {
         // `output` is not part of the Messages API: the provider ignored
         // it, so the tool result never reached the model.
-        let json = LLMBlock.toolResult(toolUseID: "call_1", output: "{\"ok\":true}").asJSONObject
+        let json = LLMBlock.toolResult(toolUseID: "call_1", output: "{\"ok\":true}", isError: false).asJSONObject
         XCTAssertEqual(json["type"] as? String, "tool_result")
         XCTAssertEqual(json["tool_use_id"] as? String, "call_1")
         XCTAssertEqual(json["content"] as? String, "{\"ok\":true}")

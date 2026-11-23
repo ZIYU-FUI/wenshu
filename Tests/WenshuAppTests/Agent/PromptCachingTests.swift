@@ -23,18 +23,17 @@
 //  6. Stable system-prompt bytes across 50 turns (= cache byte-stability invariant)
 //
 
-import Testing
 import Foundation
+import Testing
 import WenshuAgent
 @testable import WenshuApp
 
 @Suite("PromptCaching (ticket 002 sub-step 1)")
 struct PromptCachingTests {
-
     // MARK: - Test 1: 4 cache markers applied
 
     @Test("applyCacheControl places 4 cache_control markers (= system + last 3 non-system)")
-    func testFourBreakpoints() {
+    func fourBreakpoints() {
         let user1 = LLMMessage.user("msg 1")
         let asst1 = LLMMessage.assistant("reply 1")
         let user2 = LLMMessage.user("msg 2")
@@ -56,12 +55,12 @@ struct PromptCachingTests {
         let markerCount = cached.reduce(0) { count, msg in
             count + (PromptCaching.hasCacheControl(msg) ? 1 : 0)
         }
-        #expect(markerCount == 3)  // system slot is separate, only non-system messages are in `messages`
+        #expect(markerCount == 3) // system slot is separate, only non-system messages are in `messages`
 
         // Last 3 non-system messages carry markers (= asst3, asst2, asst1)
-        #expect(PromptCaching.hasCacheControl(cached[5]))  // asst3
-        #expect(PromptCaching.hasCacheControl(cached[3]))  // asst2
-        #expect(PromptCaching.hasCacheControl(cached[1]))  // asst1
+        #expect(PromptCaching.hasCacheControl(cached[5])) // asst3
+        #expect(PromptCaching.hasCacheControl(cached[3])) // asst2
+        #expect(PromptCaching.hasCacheControl(cached[1])) // asst1
         // user messages do NOT carry markers (assistant responses only)
         #expect(!PromptCaching.hasCacheControl(cached[6]))
     }
@@ -69,7 +68,7 @@ struct PromptCachingTests {
     // MARK: - Test 2: Marker shape
 
     @Test("Cache marker has type=ephemeral + ttl=5m (default)")
-    func testMarkerShape() {
+    func markerShape() {
         let messages = [LLMMessage.user("hi")]
         let cached = PromptCaching.applyCacheControl(
             messages: messages,
@@ -79,11 +78,11 @@ struct PromptCachingTests {
 
         let marker = PromptCaching.extractCacheControl(cached[0])
         #expect(marker?["type"] == "ephemeral")
-        #expect(marker?["ttl"] == nil)  // 5m default, no ttl field
+        #expect(marker?["ttl"] == nil) // 5m default, no ttl field
     }
 
     @Test("Cache marker with ttl=1h includes ttl field")
-    func testMarkerWithTtl1h() {
+    func markerWithTtl1h() {
         let messages = [LLMMessage.user("hi")]
         let cached = PromptCaching.applyCacheControl(
             messages: messages,
@@ -98,7 +97,7 @@ struct PromptCachingTests {
     // MARK: - Test 3: Deep copy (no mutation)
 
     @Test("Original messages array not mutated (= hermes copy.deepcopy)")
-    func testDeepCopy() {
+    func deepCopy() {
         let originalUser = LLMMessage.user("hi")
         let messages = [originalUser]
 
@@ -112,14 +111,14 @@ struct PromptCachingTests {
     // MARK: - Test 4: Stable system-prompt bytes across turns (cache-stable invariant)
 
     @Test("System prompt bytes stable across 50 turns (= AGENTS.md §11.3 cache-stable invariant)")
-    func testSystemPromptByteStability() {
+    func systemPromptByteStability() {
         // Build a 50-turn conversation; system prompt must be byte-identical
         // (= the cached prefix the Anthropic API keys on)
         let systemPrompt = "you are a helpful writing assistant; respond in English; " +
-                            "follow the user's outline exactly; never break character"
+            "follow the user's outline exactly; never break character"
 
         var messages: [LLMMessage] = []
-        for i in 1...50 {
+        for i in 1 ... 50 {
             messages.append(LLMMessage.user("turn \(i) question"))
             messages.append(LLMMessage.assistant("turn \(i) answer"))
         }
@@ -142,7 +141,7 @@ struct PromptCachingTests {
     // MARK: - Test 5: Empty messages list
 
     @Test("Empty messages list = no-op")
-    func testEmptyMessages() {
+    func emptyMessages() {
         let cached = PromptCaching.applyCacheControl(
             messages: [],
             systemPrompt: "system",
@@ -154,10 +153,10 @@ struct PromptCachingTests {
     // MARK: - Test 6: Skip empty tool messages
 
     @Test("Empty tool messages are skipped (= marker would be wasted)")
-    func testSkipEmptyTool() {
+    func skipEmptyTool() {
         let toolMsg = LLMMessage(
             role: .tool,
-            blocks: [.toolResult(toolUseID: "t1", output: "")]
+            blocks: [.toolResult(toolUseID: "t1", output: "", isError: false)]
         )
         let userMsg = LLMMessage.user("hi")
 
@@ -171,13 +170,13 @@ struct PromptCachingTests {
         // Empty tool message should not have a marker
         #expect(!PromptCaching.hasCacheControl(cached[1]))
         // user + assistant should have markers
-        #expect(PromptCaching.hasCacheControl(cached[2]))  // assistant
+        #expect(PromptCaching.hasCacheControl(cached[2])) // assistant
     }
 
     // MARK: - Test 7: Last 3 marker placement with fewer messages
 
     @Test("Fewer than 3 non-system messages = fewer markers (= bounds check)")
-    func testFewerMessages() {
+    func fewerMessages() {
         let messages = [LLMMessage.user("only one")]
         let cached = PromptCaching.applyCacheControl(
             messages: messages,

@@ -11,12 +11,14 @@ import Testing
 @Suite("The executor refuses what the policy refuses")
 @MainActor
 struct ToolSafetyExecutorTests {
-
     /// A tool that records whether it ran.
     private final class CountingTool: Tool, @unchecked Sendable {
         private let counter: Counter
-        init(counter: Counter) { self.counter = counter }
-        func execute(input: String) async throws -> String {
+        init(counter: Counter) {
+            self.counter = counter
+        }
+
+        func execute(input _: String) async throws -> String {
             counter.count += 1
             return "ran"
         }
@@ -29,7 +31,7 @@ struct ToolSafetyExecutorTests {
 
     /// A tool that always fails.
     private struct FailingTool: Tool {
-        func execute(input: String) async throws -> String {
+        func execute(input _: String) async throws -> String {
             throw ToolExecutorError.toolFailed(name: "failing", underlying: "boom")
         }
     }
@@ -46,7 +48,9 @@ struct ToolSafetyExecutorTests {
         messages.compactMap { message in
             guard message.role == .tool else { return nil }
             return message.blocks.compactMap { block in
-                if case let .toolResult(_, output) = block { return output }
+                if case let .toolResult(_, output, _) = block {
+                    return output
+                }
                 return nil
             }.first
         }
@@ -125,7 +129,7 @@ struct ToolSafetyExecutorTests {
         let executor = ToolExecutor(safetyLedger: ledger)
         var messages: [LLMMessage] = []
 
-        for _ in 0..<3 {
+        for _ in 0 ..< 3 {
             try await executor.executeSequential(
                 assistantMessage: assistantCalling("book_chapter", input: "{\"a\":1}"),
                 messages: &messages,
@@ -148,7 +152,7 @@ struct ToolSafetyExecutorTests {
         // The tool carries no path key (= the path guard wants a
         // configured library root, and this test is about the failure
         // rule, not about paths).
-        for _ in 0..<2 {
+        for _ in 0 ..< 2 {
             try await executor.executeSequential(
                 assistantMessage: assistantCalling("flaky_tool", input: "{\"a\":1}"),
                 messages: &messages,

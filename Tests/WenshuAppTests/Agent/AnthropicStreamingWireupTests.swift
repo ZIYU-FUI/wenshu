@@ -16,19 +16,18 @@
 //  4. AnthropicStreamingWireup.connect() returns AsyncStream
 //     (= consumer receives chunks when EventSource fires)
 //
-// 
+//
 //
 
-import Testing
 import Foundation
+import Testing
 import WenshuAgent
 @testable import WenshuApp
 
 @Suite("AnthropicStreamingWireupFactory (ticket 004 sub-step 5 Z contract)")
 struct AnthropicStreamingWireupFactoryTests {
-
     @Test("buildRequest adds x-api-key + anthropic-version headers")
-    func testHeaders() {
+    func headers() {
         let creds = ConnectorCredentials(
             provider: .anthropic,
             apiKey: "sk-test-12345",
@@ -40,7 +39,7 @@ struct AnthropicStreamingWireupFactoryTests {
             maxTokens: 4096,
             systemPrompt: "you are a helpful assistant",
             messages: [
-                LLMMessage(role: .user, blocks: [.text("hello")])
+                LLMMessage(role: .user, blocks: [.text("hello")]),
             ]
         )
         #expect(request.value(forHTTPHeaderField: "x-api-key") == "sk-test-12345")
@@ -49,7 +48,7 @@ struct AnthropicStreamingWireupFactoryTests {
     }
 
     @Test("buildRequest appends stream=true to URL")
-    func testStreamQueryParam() {
+    func streamQueryParam() {
         let creds = ConnectorCredentials(
             provider: .anthropic,
             apiKey: "sk-test",
@@ -67,7 +66,7 @@ struct AnthropicStreamingWireupFactoryTests {
     }
 
     @Test("buildRequest body includes stream=true + system + messages")
-    func testBodyShape() throws {
+    func bodyShape() throws {
         let creds = ConnectorCredentials(
             provider: .anthropic,
             apiKey: "sk-test",
@@ -79,7 +78,7 @@ struct AnthropicStreamingWireupFactoryTests {
             maxTokens: 1024,
             systemPrompt: "system prompt here",
             messages: [
-                LLMMessage(role: .user, blocks: [.text("user message")])
+                LLMMessage(role: .user, blocks: [.text("user message")]),
             ]
         )
         let bodyData = try #require(request.httpBody)
@@ -102,8 +101,42 @@ struct AnthropicStreamingWireupFactoryTests {
         #expect(messagesArray[0]["content"] as? [[String: Any]] != nil)
     }
 
+    @Test("a failed tool call reaches the provider as a failed one (= = the streaming wire carries is_error)")
+    func failedToolResultCarriesIsError() throws {
+        // The streaming request body IS the wire the chat's own tool
+        // loop sends (= = the loop streams its results), = = so a
+        // failure that is dropped here is a failure the model reads as
+        // a success.
+        let creds = ConnectorCredentials(
+            provider: .anthropic,
+            apiKey: "sk-test",
+            baseURL: "https://api.anthropic.com"
+        )
+        let request = AnthropicStreamingWireupFactory.buildRequest(
+            credentials: creds,
+            model: "claude-sonnet-4.5",
+            maxTokens: 1024,
+            systemPrompt: nil,
+            messages: [
+                LLMMessage(
+                    role: .user,
+                    blocks: [
+                        .toolResult(toolUseID: "call-1", output: "the file is not there", isError: true),
+                    ]
+                ),
+            ]
+        )
+        let bodyData = try #require(request.httpBody)
+        let bodyJSON = try #require(try JSONSerialization.jsonObject(with: bodyData) as? [String: Any])
+        let messages = try #require(bodyJSON["messages"] as? [[String: Any]])
+        let content = try #require(messages[0]["content"] as? [[String: Any]])
+        let result = try #require(content.first { $0["type"] as? String == "tool_result" })
+        #expect(result["is_error"] as? Bool == true,
+                "A failed tool call must reach the provider marked as failed")
+    }
+
     @Test("buildRequest with nil systemPrompt uses empty string")
-    func testNilSystemPrompt() throws {
+    func nilSystemPrompt() throws {
         let creds = ConnectorCredentials(
             provider: .anthropic,
             apiKey: "sk-test",
@@ -123,7 +156,7 @@ struct AnthropicStreamingWireupFactoryTests {
     }
 
     @Test("buildRequest assistant message uses 'assistant' role")
-    func testAssistantRole() throws {
+    func assistantRole() throws {
         let creds = ConnectorCredentials(
             provider: .anthropic,
             apiKey: "sk-test",
@@ -136,7 +169,7 @@ struct AnthropicStreamingWireupFactoryTests {
             systemPrompt: nil,
             messages: [
                 LLMMessage(role: .user, blocks: [.text("hi")]),
-                LLMMessage(role: .assistant, blocks: [.text("hello!")])
+                LLMMessage(role: .assistant, blocks: [.text("hello!")]),
             ]
         )
         let bodyData = try #require(request.httpBody)
@@ -148,13 +181,13 @@ struct AnthropicStreamingWireupFactoryTests {
     }
 
     @Test("LLMConnectorError.streamingFailed carries provider name")
-    func testStreamingFailedError() {
+    func streamingFailedError() {
         let error = LLMConnectorError.streamingFailed(provider: "anthropic")
         #expect(error.errorDescription?.contains("anthropic") == true)
     }
 
     @Test("AnthropicStreamingWireup init does not throw")
-    func testWireupInit() {
+    func wireupInit() {
         let wireup = AnthropicStreamingWireup()
         // No init parameters; just verify it's creatable.
         // (close() will be called when consumer finishes the stream.)
@@ -164,9 +197,8 @@ struct AnthropicStreamingWireupFactoryTests {
 
 @Suite("AnthropicSSEDecoder (ticket 002 sub-step 1 verification)")
 struct AnthropicSSEDecoderVerificationTests {
-
     @Test("decode text_delta chunk")
-    func testTextDeltaDecode() {
+    func textDeltaDecode() {
         let event = "content_block_delta"
         let data = """
         {"index":0,"delta":{"type":"text_delta","text":"hello"}}
@@ -182,7 +214,7 @@ struct AnthropicSSEDecoderVerificationTests {
     }
 
     @Test("decode messageStop")
-    func testMessageStopDecode() {
+    func messageStopDecode() {
         let chunk = AnthropicSSEDecoder.decode(event: "message_stop", data: "{}")
         guard case .messageStop = chunk?.kind else {
             Issue.record("Expected messageStop")
@@ -191,7 +223,7 @@ struct AnthropicSSEDecoderVerificationTests {
     }
 
     @Test("decode ping")
-    func testPingDecode() {
+    func pingDecode() {
         let chunk = AnthropicSSEDecoder.decode(event: "ping", data: "{}")
         guard case .ping = chunk?.kind else {
             Issue.record("Expected ping")
@@ -200,7 +232,7 @@ struct AnthropicSSEDecoderVerificationTests {
     }
 
     @Test("decode unknown event returns unknown case")
-    func testUnknownEvent() {
+    func unknownEvent() {
         let chunk = AnthropicSSEDecoder.decode(event: "custom_event", data: "{}")
         guard case let .unknown(name) = chunk?.kind else {
             Issue.record("Expected unknown")

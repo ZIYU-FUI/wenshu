@@ -65,8 +65,17 @@ extension ChatViewModel {
             switch block {
             case let .toolUse(id, name, input):
                 accumulator.appendPart(.toolUse(id: ToolCallID(rawValue: id), name: name, args: input))
-            case let .toolResult(toolUseID, output):
-                accumulator.appendPart(.toolResult(toolUseID: ToolCallID(rawValue: toolUseID), content: output, isError: false))
+            case let .toolResult(toolUseID, output, isError):
+                // The result settles the CALL's card (= = the
+                // accumulator merges it into the call), = = and the flag
+                // says whether the call failed (= = it was written
+                // `false` here, = = so a failed tool read as a
+                // successful one).
+                accumulator.settleToolResult(
+                    toolUseID: ToolCallID(rawValue: toolUseID),
+                    content: output,
+                    isError: isError
+                )
             case .text, .thinking:
                 break
             }

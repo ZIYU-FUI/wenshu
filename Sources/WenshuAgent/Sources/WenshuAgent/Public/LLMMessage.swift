@@ -47,20 +47,24 @@ public struct LLMMessage: Sendable, Equatable {
 
     /// Build a tool result message.
     public static func toolResult(toolUseID: String, output: String) -> LLMMessage {
-        LLMMessage(role: .tool, blocks: [.toolResult(toolUseID: toolUseID, output: output)])
+        LLMMessage(role: .tool, blocks: [.toolResult(toolUseID: toolUseID, output: output, isError: false)])
     }
 
     /// Extract plain text from message blocks (= convenience for callers
     /// that don't need to inspect thinking / tool_use separately).
     public var plainText: String {
         blocks.compactMap { block in
-            if case .text(let s) = block { return s } else { return nil }
+            if case let .text(s) = block {
+                return s
+            } else {
+                return nil
+            }
         }.joined(separator: "")
     }
 
-    /// First text content (= concatenate text blocks; empty if none).
-    /// Defined as an extension in `Views/Chat/ChatMessageBridge.swift`
-    /// (= the canonical bridge file per Standards-axis S2 Feature
-    /// Envy smell; = `LLMMessage.textContent` lives next to its
-    /// bridge callers, not on the core type).
+    // First text content (= concatenate text blocks; empty if none).
+    // Defined as an extension in `Views/Chat/ChatMessageBridge.swift`
+    // (= the canonical bridge file per Standards-axis S2 Feature
+    // Envy smell; = `LLMMessage.textContent` lives next to its
+    // bridge callers, not on the core type).
 }

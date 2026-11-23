@@ -12,14 +12,13 @@
 //  are v0.35 ticket 001 (= my work).
 //
 
-import Testing
 import Foundation
+import Testing
 import WenshuAgent
 @testable import WenshuApp
 
 @Suite("LLMBlock + LLMResponse + LLMUsage deep (= v0.35 ticket 001)")
 struct LLMBlockAndResponseDeepTests {
-
     // MARK: - LLMBlock
 
     @Test("LLMBlock: 4 case types")
@@ -28,7 +27,7 @@ struct LLMBlockAndResponseDeepTests {
             .text("hello"),
             .thinking(text: "reasoning", signature: "sig"),
             .toolUse(id: "t1", name: "ReadFile", input: "{}"),
-            .toolResult(toolUseID: "t1", output: "result")
+            .toolResult(toolUseID: "t1", output: "result", isError: false),
         ]
         #expect(blocks.count == 4)
     }
@@ -53,7 +52,7 @@ struct LLMBlockAndResponseDeepTests {
 
     @Test("LLMBlock.textValue: toolResult case returns output")
     func llmBlockTextValueToolResult() {
-        let block = LLMBlock.toolResult(toolUseID: "t1", output: "file content here")
+        let block = LLMBlock.toolResult(toolUseID: "t1", output: "file content here", isError: false)
         #expect(block.textValue == "file content here")
     }
 
@@ -71,7 +70,7 @@ struct LLMBlockAndResponseDeepTests {
         let blocks: [LLMBlock] = [
             .text("Hello "),
             .thinking(text: "reasoning", signature: nil),
-            .text("world")
+            .text("world"),
         ]
         // textValue per block: "Hello ", "reasoning", "world"
         let texts = blocks.map { $0.textValue }
@@ -114,7 +113,7 @@ struct LLMBlockAndResponseDeepTests {
     @Test("StopReason: 5 case types")
     func stopReasonCaseTypes() {
         let reasons: [LLMResponse.StopReason] = [
-            .endTurn, .toolUse, .maxTokens, .stopSequence, .unknown
+            .endTurn, .toolUse, .maxTokens, .stopSequence, .unknown,
         ]
         #expect(reasons.count == 5)
     }
@@ -182,7 +181,7 @@ struct LLMBlockAndResponseDeepTests {
             .thinking(text: "reasoning", signature: "sig"),
             .text("Hello"),
             .toolUse(id: "t1", name: "X", input: "{}"),
-            .text("World")
+            .text("World"),
         ])
         let text = message.textContent
         #expect(text == "Hello\nWorld")

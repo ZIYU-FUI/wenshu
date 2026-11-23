@@ -35,34 +35,48 @@ struct ToolActivity: Identifiable, Equatable, Sendable {
     let kind: Kind
     /// The sentence, in the user's language.
     let text: String
-
-    static func == (lhs: ToolActivity, rhs: ToolActivity) -> Bool {
-        lhs.id == rhs.id && lhs.kind == rhs.kind && lhs.text == rhs.text
-    }
 }
 
 extension ToolActivity {
     /// The activity a reply's parts recorded.
     ///
-    /// A tool call becomes an action line; the matching result becomes a
-    /// result line under it. A call with no result yet (= still running)
+    /// A tool call becomes an action line; the result becomes a result
+    /// line under it. A call with no result yet (= still running)
     /// contributes only the action, which is the honest description of a
     /// step that has not finished.
+    ///
+    /// The result comes from the CALL's own state once the call has
+    /// settled (= = the result is merged into the call's part, = = so
+    /// there is no second part to read it from), = = and from a result
+    /// part of its own when the result has no call to settle (= = an
+    /// orphan result still draws its line).
     static func activity(from parts: [ChatMessagePart]) -> [ToolActivity] {
         var steps: [ToolActivity] = []
-        var pending: [String: ToolActivity] = [:]
 
         for part in parts {
             switch part.kind {
-            case .toolUse(let use):
+            case let .toolUse(use):
                 let step = ToolActivity(
                     id: "action-\(use.id.rawValue)",
                     kind: .action,
                     text: ToolActivityNarrator.action(toolName: use.name, arguments: use.args)
                 )
                 steps.append(step)
-                pending[use.id.rawValue] = step
-            case .toolResult(let result):
+                // The settled call carries its own result (= = the result
+                // is merged into the call's part), = = so the result line
+                // is read from here and not from a second part.
+                if let output = use.result {
+                    steps.append(
+                        ToolActivity(
+                            id: "result-\(use.id.rawValue)",
+                            kind: .result,
+                            text: ToolActivityNarrator.result(toolName: use.name, output: output)
+                        )
+                    )
+                }
+            case let .toolResult(result):
+                // An orphan result (= no call to settle) draws its own
+                // line, = = because there is no action line under it.
                 let text = ToolActivityNarrator.result(
                     toolName: toolName(forToolUseID: result.toolUseID, in: parts),
                     output: result.content
@@ -80,7 +94,7 @@ extension ToolActivity {
     /// The name of the tool a result belongs to.
     private static func toolName(forToolUseID id: ToolCallID, in parts: [ChatMessagePart]) -> String {
         for part in parts {
-            if case .toolUse(let use) = part.kind, use.id == id {
+            if case let .toolUse(use) = part.kind, use.id == id {
                 return use.name
             }
         }

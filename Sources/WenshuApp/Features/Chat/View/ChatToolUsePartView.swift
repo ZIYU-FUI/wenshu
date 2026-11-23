@@ -98,7 +98,8 @@ struct ChatToolUsePartView: View {
                 //   - durationSeconds is nil (= legacy tool calls
                 //     without the duration field)
                 if let duration = toolUse.durationSeconds,
-                   toolUse.status != .running {
+                   toolUse.status != .running
+                {
                     Text("·")
                         .font(.caption2)
                         .foregroundStyle(.quaternary)
@@ -116,6 +117,21 @@ struct ChatToolUsePartView: View {
                 Text(Self.prettyJSON(toolUse.args))
                     .font(.caption.monospaced())
                     .foregroundStyle(DesignTokens.statusForeground)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, DesignTokens.spacingIconic)
+            }
+            // The result, on the SAME card as the call (= = one row per
+            // call, = = and the row says what happened).
+            //
+            // It is the output the tool produced, = = and a failed call's
+            // output IS the error's text (= = so it wears the error's
+            // colour, = = and the card's own status icon already says
+            // "failed").
+            if let result = toolUse.result, !result.isEmpty {
+                Text(Self.displayText(for: result))
+                    .font(.caption)
+                    .foregroundStyle(toolUse.status == .error ? AnyShapeStyle(Color.red) : AnyShapeStyle(DesignTokens.statusForeground))
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, DesignTokens.spacingIconic)
@@ -185,10 +201,11 @@ struct ChatToolUsePartView: View {
         guard let data = raw.data(using: .utf8),
               let obj = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]),
               let pretty = try? JSONSerialization.data(
-                withJSONObject: obj,
-                options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed]
+                  withJSONObject: obj,
+                  options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed]
               ),
-              let s = String(data: pretty, encoding: .utf8) else {
+              let s = String(data: pretty, encoding: .utf8)
+        else {
             return raw
         }
         return s
@@ -215,17 +232,20 @@ struct ChatToolUsePartView: View {
         }
         // Read tools (= magnifying glass = data lookup)
         if lower.contains("read") || lower.contains("list") || lower.contains("search")
-            || lower.contains("find") || lower.contains("query") || lower.contains("grep") {
+            || lower.contains("find") || lower.contains("query") || lower.contains("grep")
+        {
             return "magnifyingglass"
         }
         // Write / edit tools (= pencil = mutation)
         if lower.contains("write") || lower.contains("edit") || lower.contains("append")
-            || lower.contains("create") || lower.contains("delete") || lower.contains("move") {
+            || lower.contains("create") || lower.contains("delete") || lower.contains("move")
+        {
             return "square.and.pencil"
         }
         // Shell / process (= terminal)
         if lower.contains("shell") || lower.contains("process") || lower.contains("exec")
-            || lower.contains("bash") || lower.contains("command") {
+            || lower.contains("bash") || lower.contains("command")
+        {
             return "terminal"
         }
         // Calculator / math (= function notation)
@@ -234,7 +254,8 @@ struct ChatToolUsePartView: View {
         }
         // Web tools (= globe)
         if lower.contains("web") || lower.contains("fetch") || lower.contains("http")
-            || lower.contains("url") {
+            || lower.contains("url")
+        {
             return "globe"
         }
         // Fallback (= generic tool glyph = product "Settings"
@@ -257,6 +278,19 @@ struct ChatToolUsePartView: View {
         case .complete: return "checkmark"
         case .error: return "xmark"
         }
+    }
+
+    /// The output as the writer reads it.
+    ///
+    /// A tool's output can be a diff payload (= = and the chat's own
+    /// result card unwraps a diff before it shows it), = = so the call
+    /// card shows the same text the writer saw there, = = and not a raw
+    /// JSON blob.
+    nonisolated static func displayText(for result: String) -> String {
+        if let diff = ChatToolResultPartView.extractDiffPayload(from: result) {
+            return diff.body
+        }
+        return result
     }
 
     /// T47-TOOL-DURATION (2026-09-18): format a tool execution
@@ -296,7 +330,7 @@ struct ChatToolUsePartView: View {
 
 // MARK: - Tool-result part (= hermes ToolResultMessagePart)
 
-/// Render a `.toolResult(ToolResultPart)` part (= the result of a
-/// tool execution = Hermes ToolResultMessagePart). Sits visually
-/// below the matching `.toolUse` card (= a "sibling" pair = the
-/// same visual treatment + a checkmark icon when succeeded / a
+// Render a `.toolResult(ToolResultPart)` part (= the result of a
+// tool execution = Hermes ToolResultMessagePart). Sits visually
+// below the matching `.toolUse` card (= a "sibling" pair = the
+// same visual treatment + a checkmark icon when succeeded / a

@@ -17,18 +17,17 @@
 //   12. testFinalizerPostTurn         — post-turn finalizer normalizes
 //
 
-import Testing
 import Foundation
+import Testing
 import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ConversationLoopRunTurn ()")
 struct ConversationLoopRunTurnTests {
-
     // MARK: - Test 1: Simple chat
 
     @Test("runTurn returns the LLM response for a simple text-only conversation")
-    func testRunSimpleChat() async throws {
+    func runSimpleChat() async throws {
         let connector = MockLLMConnector(response: "echo: hi")
         let loop = ConversationLoop(connection: connector)
 
@@ -41,9 +40,11 @@ struct ConversationLoopRunTurnTests {
     // MARK: - Test 2: Single tool call
 
     @Test("runTurn dispatches a single tool_use and re-invokes the LLM with the result")
-    func testRunWithSingleToolCall() async throws {
+    func runWithSingleToolCall() async throws {
         struct Echo: Tool, Sendable {
-            func execute(input: String) async throws -> String { "echo-result" }
+            func execute(input _: String) async throws -> String {
+                "echo-result"
+            }
         }
         let scripts: [LLMResponse] = [
             LLMResponse(
@@ -55,7 +56,7 @@ struct ConversationLoopRunTurnTests {
                 id: "r2", model: "mock",
                 blocks: [.text("done")],
                 stopReason: .endTurn, usage: LLMUsage(inputTokens: 0, outputTokens: 0)
-            )
+            ),
         ]
         let connector = MockLLMConnector(scriptedResponses: scripts)
         let loop = ConversationLoop(connection: connector)
@@ -68,7 +69,7 @@ struct ConversationLoopRunTurnTests {
         #expect(result.messages.count >= 4)
         #expect(result.messages.last?.role == .assistant)
         // The final assistant message must be "done".
-        if case .text(let text) = result.messages.last?.blocks[0] ?? .text("") {
+        if case let .text(text) = result.messages.last?.blocks[0] ?? .text("") {
             #expect(text == "done")
         }
     }
@@ -76,7 +77,7 @@ struct ConversationLoopRunTurnTests {
     // MARK: - Test 3: Multiple tool calls (sequential)
 
     @Test("runTurn dispatches multiple tool_use blocks sequentially via executeSequential")
-    func testRunWithMultipleToolCalls() async throws {
+    func runWithMultipleToolCalls() async throws {
         struct Echo: Tool, Sendable {
             func execute(input: String) async throws -> String {
                 let stripped = input
@@ -90,7 +91,7 @@ struct ConversationLoopRunTurnTests {
                 id: "r1", model: "mock",
                 blocks: [
                     .toolUse(id: "t1", name: "Echo", input: "{\"text\":\"first\"}"),
-                    .toolUse(id: "t2", name: "Echo", input: "{\"text\":\"second\"}")
+                    .toolUse(id: "t2", name: "Echo", input: "{\"text\":\"second\"}"),
                 ],
                 stopReason: .toolUse, usage: LLMUsage(inputTokens: 0, outputTokens: 0)
             ),
@@ -98,7 +99,7 @@ struct ConversationLoopRunTurnTests {
                 id: "r2", model: "mock",
                 blocks: [.text("ok")],
                 stopReason: .endTurn, usage: LLMUsage(inputTokens: 0, outputTokens: 0)
-            )
+            ),
         ]
         let connector = MockLLMConnector(scriptedResponses: scripts)
         let loop = ConversationLoop(connection: connector)
@@ -112,10 +113,10 @@ struct ConversationLoopRunTurnTests {
         // Tool result messages must be present (in order).
         let toolResults = result.messages.filter { $0.role == .tool }
         #expect(toolResults.count == 2)
-        if case .toolResult(_, let out1) = toolResults[0].blocks[0] {
+        if case let .toolResult(_, out1, _) = toolResults[0].blocks[0] {
             #expect(out1 == "echo:first")
         }
-        if case .toolResult(_, let out2) = toolResults[1].blocks[0] {
+        if case let .toolResult(_, out2, _) = toolResults[1].blocks[0] {
             #expect(out2 == "echo:second")
         }
     }
@@ -123,9 +124,11 @@ struct ConversationLoopRunTurnTests {
     // MARK: - Test 4: Parallel tool calls (concurrent)
 
     @Test("ToolExecutor.executeConcurrent honours permission gate + formatter")
-    func testRunWithParallelToolCalls() async throws {
+    func runWithParallelToolCalls() async throws {
         struct Echo: Tool, Sendable {
-            func execute(input: String) async throws -> String { "ok" }
+            func execute(input _: String) async throws -> String {
+                "ok"
+            }
         }
         let formatter: @Sendable (String, String) -> String = { output, name in
             "[parallel:\(name):\(output)]"
@@ -139,7 +142,7 @@ struct ConversationLoopRunTurnTests {
             role: .assistant,
             blocks: [
                 .toolUse(id: "t1", name: "Echo", input: "{}"),
-                .toolUse(id: "t2", name: "Skip", input: "{}")
+                .toolUse(id: "t2", name: "Skip", input: "{}"),
             ]
         )
         var messages: [LLMMessage] = [msg]
@@ -150,10 +153,10 @@ struct ConversationLoopRunTurnTests {
             tools: ["Echo": Echo()]
         )
         #expect(messages.count == 3)
-        if case .toolResult(_, let o1) = messages[1].blocks[0] {
+        if case let .toolResult(_, o1, _) = messages[1].blocks[0] {
             #expect(o1 == "[parallel:Echo:ok]")
         }
-        if case .toolResult(_, let o2) = messages[2].blocks[0] {
+        if case let .toolResult(_, o2, _) = messages[2].blocks[0] {
             #expect(o2 == "skipped")
         }
     }
@@ -161,12 +164,12 @@ struct ConversationLoopRunTurnTests {
     // MARK: - Test 5: Compression triggered
 
     @Test("runTurn compresses the message history via ConversationCompression")
-    func testCompressionTriggered() async throws {
+    func compressionTriggered() async throws {
         let connector = MockLLMConnector(response: "ok")
         let compressor = ContextCompressor(
             policy: ContextCompressor.Policy(
                 keepRecentTurns: 2,
-                maxTokens: 1_000  // artificially low to force compression
+                maxTokens: 1000 // artificially low to force compression
             )
         )
         let compression = ConversationCompression(compressor: compressor)
@@ -177,7 +180,7 @@ struct ConversationLoopRunTurnTests {
 
         // Build a long history (10 user + 10 assistant messages).
         var history: [LLMMessage] = []
-        for i in 0..<10 {
+        for i in 0 ..< 10 {
             history.append(LLMMessage.user("msg \(i)"))
             history.append(LLMMessage.assistant("reply \(i)"))
         }
@@ -193,7 +196,7 @@ struct ConversationLoopRunTurnTests {
     // MARK: - Test 6: Retry on classifier error (429 → success)
 
     @Test("LLMConnectorErrorClassifier.isTransient returns true for 429")
-    func testRetryOnClassifierError() {
+    func retryOnClassifierError() {
         let transient429 = LLMConnectorError.transport(
             provider: "mock", statusCode: 429, body: "rate limit"
         )
@@ -208,7 +211,7 @@ struct ConversationLoopRunTurnTests {
     // MARK: - Test 7: Retry exhausted (non-transient)
 
     @Test("LLMConnectorErrorClassifier.isTransient returns false for 400")
-    func testRetryExhausted() {
+    func retryExhausted() {
         let nonTransient400 = LLMConnectorError.transport(
             provider: "mock", statusCode: 400, body: "bad request"
         )
@@ -223,7 +226,7 @@ struct ConversationLoopRunTurnTests {
     // MARK: - Test 7b: A spent Token Plan is not transient
 
     @Test("LLMConnectorErrorClassifier.isTransient returns false for a 429 with a spent Token Plan")
-    func testSpentTokenPlanIsNotTransient() {
+    func spentTokenPlanIsNotTransient() {
         // The provider's real body, verbatim: the allowance is exhausted,
         // so retrying cannot help.
         let spentPlanBody = #"{"type":"error","error":{"type":"rate_limit_error","message":"已达到 Token Plan 用量上限：请升级 Token Plan 套餐或购买积分补充用量。 (2056)"},"http_code":"429"}"#
@@ -242,7 +245,7 @@ struct ConversationLoopRunTurnTests {
     // MARK: - Test 8: TurnContext restore (fresh each turn)
 
     @Test("Each turn starts with a fresh TurnContext (= retry-counter reset)")
-    func testTurnContextRestore() async throws {
+    func turnContextRestore() async throws {
         let connector = MockLLMConnector(response: "echo")
         let loop = ConversationLoop(connection: connector)
 
@@ -262,7 +265,7 @@ struct ConversationLoopRunTurnTests {
     // MARK: - Test 9: Message sanitization repair
 
     @Test("MessageSanitization.sanitizeText strips control chars from user input")
-    func testMessageSanitizationRepair() {
+    func messageSanitizationRepair() {
         let dirty = "hello\u{0}world\u{0007}\u{7F}"
         let clean = MessageSanitization.sanitizeText(dirty)
         #expect(!clean.contains("\u{0}"))
@@ -275,9 +278,9 @@ struct ConversationLoopRunTurnTests {
     // MARK: - Test 10: Interrupted tool call recovery
 
     @Test("ToolExecutor handles an interrupted tool call gracefully")
-    func testInterruptedToolCallRecovery() async throws {
+    func interruptedToolCallRecovery() async throws {
         struct Boom: Tool, Sendable {
-            func execute(input: String) async throws -> String {
+            func execute(input _: String) async throws -> String {
                 throw ToolExecutorError.toolFailed(name: "Boom", underlying: "interrupted")
             }
         }
@@ -296,7 +299,7 @@ struct ConversationLoopRunTurnTests {
         )
         // 1 assistant + 1 tool result with error message.
         #expect(messages.count == 2)
-        if case .toolResult(_, let output) = messages[1].blocks[0] {
+        if case let .toolResult(_, output, _) = messages[1].blocks[0] {
             #expect(output.contains("Boom"))
         }
     }
@@ -304,12 +307,17 @@ struct ConversationLoopRunTurnTests {
     // MARK: - Test 11: ShellHook fire (pre + post turn)
 
     @Test("ShellHookChain fires preTurn + postTurn around runTurn")
-    func testShellHookFire() async throws {
+    func shellHookFire() async throws {
         actor HookRecorder {
             var preTurns: [String] = []
             var postTurns: [String] = []
-            func recordPre(_ s: String) { preTurns.append(s) }
-            func recordPost(_ s: String) { postTurns.append(s) }
+            func recordPre(_ s: String) {
+                preTurns.append(s)
+            }
+
+            func recordPost(_ s: String) {
+                postTurns.append(s)
+            }
         }
         let recorder = HookRecorder()
 
@@ -317,12 +325,13 @@ struct ConversationLoopRunTurnTests {
             let name: String
             let recorder: HookRecorder
             func preToolCall(_: ToolCall) async throws {}
-            func postToolCall(_: ToolCall, result: ToolResult) async throws {}
+            func postToolCall(_: ToolCall, result _: ToolResult) async throws {}
             func preLLMCall(_: LLMRequest) async throws {}
-            func postLLMCall(_: LLMRequest, response: LLMResponse) async throws {}
+            func postLLMCall(_: LLMRequest, response _: LLMResponse) async throws {}
             func preTurn(_ userMessage: String) async throws {
                 await recorder.recordPre(userMessage)
             }
+
             func postTurn(_ response: LLMResponse) async throws {
                 await recorder.recordPost(response.model)
             }
@@ -345,7 +354,7 @@ struct ConversationLoopRunTurnTests {
     // MARK: - Test 12: Finalizer post-turn
 
     @Test("TurnFinalizer drops empty text blocks from the final response")
-    func testFinalizerPostTurn() {
+    func finalizerPostTurn() {
         let response = LLMResponse(
             id: "r1",
             model: "mock",
@@ -356,7 +365,11 @@ struct ConversationLoopRunTurnTests {
         let finalized = TurnFinalizer.finalize(response: response)
         // canonicalize drops empty .text blocks but keeps order.
         let nonEmptyTexts = finalized.blocks.compactMap { block -> String? in
-            if case .text(let s) = block, !s.isEmpty { return s } else { return nil }
+            if case let .text(s) = block, !s.isEmpty {
+                return s
+            } else {
+                return nil
+            }
         }
         #expect(nonEmptyTexts == ["hello", "world"])
     }

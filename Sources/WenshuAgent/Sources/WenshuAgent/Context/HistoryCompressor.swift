@@ -35,9 +35,9 @@ public enum CompressionOutcome: Sendable, Equatable {
 
     public var messages: [LLMMessage] {
         switch self {
-        case .unnecessary(let messages): return messages
-        case .pruned(let messages, _): return messages
-        case .summarised(let messages, _, _): return messages
+        case let .unnecessary(messages): return messages
+        case let .pruned(messages, _): return messages
+        case let .summarised(messages, _, _): return messages
         }
     }
 }
@@ -65,7 +65,7 @@ public struct CompressionBudget: Sendable, Equatable {
     public init(
         protectHead: Int = 4,
         protectTail: Int = 8,
-        protectTailTokens: Int = 4_000,
+        protectTailTokens: Int = 4000,
         threshold: Double = ContextOverrides.compressionThreshold,
         keepFraction: Double = ContextOverrides.keepFraction,
         pruneToolResults: Bool = true
@@ -100,10 +100,10 @@ public struct HistoryCompressor: Sendable {
         var chars = 0
         for block in message.blocks {
             switch block {
-            case .text(let text): chars += text.count
-            case .thinking(let text, _): chars += text.count
-            case .toolUse(_, _, let input): chars += input.count
-            case .toolResult(_, let output): chars += output.count
+            case let .text(text): chars += text.count
+            case let .thinking(text, _): chars += text.count
+            case let .toolUse(_, _, input): chars += input.count
+            case let .toolResult(_, output, _): chars += output.count
             }
         }
         return chars / 4 + 8
@@ -142,14 +142,18 @@ public struct HistoryCompressor: Sendable {
             }
             var changed = false
             let rewritten = message.blocks.map { block -> LLMBlock in
-                guard case .toolResult(let id, let output) = block else { return block }
+                guard case let .toolResult(id, output, isError) = block else { return block }
                 // Keep a short head so the model can still tell what the call
                 // produced; drop the megabyte of log behind it.
                 let preview = String(output.prefix(200))
                 guard preview.count < output.count else { return block }
                 pruned += 1
                 changed = true
-                return .toolResult(toolUseID: id, output: "\(preview)\n[trimmed \(output.count) chars]")
+                return .toolResult(
+                    toolUseID: id,
+                    output: "\(preview)\n[trimmed \(output.count) chars]",
+                    isError: isError
+                )
             }
             result.append(changed ? LLMMessage(role: message.role, blocks: rewritten) : message)
         }
@@ -173,7 +177,9 @@ public struct HistoryCompressor: Sendable {
         while tail < maxTail {
             let next = messages.count - tail - 1
             let cost = estimate(messages[next])
-            if tailTokens + cost > tailBudget, tail > 0 { break }
+            if tailTokens + cost > tailBudget, tail > 0 {
+                break
+            }
             tailTokens += cost
             tail += 1
         }
@@ -237,7 +243,7 @@ public struct HistoryCompressor: Sendable {
                 : .unnecessary(messages: messages)
         }
 
-        let middle = Array(pruned[window.start..<window.end])
+        let middle = Array(pruned[window.start ..< window.end])
         guard let summary = await summarise(middle), !summary.isEmpty else {
             return .pruned(
                 messages: repairToolPairs(in: pruned),
@@ -297,8 +303,12 @@ public struct HistoryCompressor: Sendable {
         // First pass: what was asked for, and what came back.
         for message in messages {
             for block in message.blocks {
-                if case .toolUse(let id, _, _) = block { pendingUseIDs.insert(id) }
-                if case .toolResult(let id, _) = block { resolved.insert(id) }
+                if case let .toolUse(id, _, _) = block {
+                    pendingUseIDs.insert(id)
+                }
+                if case let .toolResult(id, _, _) = block {
+                    resolved.insert(id)
+                }
             }
         }
         let unanswered = pendingUseIDs.subtracting(resolved)
@@ -312,11 +322,11 @@ public struct HistoryCompressor: Sendable {
             var changed = false
             for block in message.blocks {
                 switch block {
-                case .toolUse(let id, _, _) where unanswered.contains(id):
+                case let .toolUse(id, _, _) where unanswered.contains(id):
                     // Drop the call whose result the compression removed.
                     changed = true
                     continue
-                case .toolResult(let id, _) where orphaned.contains(id):
+                case let .toolResult(id, _, _) where orphaned.contains(id):
                     // Drop the result whose call is not in this transcript.
                     changed = true
                     continue
@@ -324,7 +334,7 @@ public struct HistoryCompressor: Sendable {
                     rewritten.append(block)
                 }
             }
-            if rewritten.isEmpty && !message.blocks.isEmpty && changed {
+            if rewritten.isEmpty, !message.blocks.isEmpty, changed {
                 continue
             }
             result.append(changed ? LLMMessage(role: message.role, blocks: rewritten) : message)

@@ -34,6 +34,7 @@
 import Foundation
 
 // MARK: - Placeholder types
+
 //
 // These exist solely so the ShellHook protocol is self-contained. They
 // mirror the conceptual shape used by ToolExecutor / LLMConnector but
@@ -58,7 +59,7 @@ public struct ToolCall: Sendable, Equatable {
 }
 
 /// Placeholder for a tool execution result (= post-tool-call payload).
-/// Future: real struct will wrap `LLMBlock.toolResult(toolUseID:output:)`
+/// Future: real struct will wrap `LLMBlock.toolResult(toolUseID:output:isError:)`
 /// or the tool's raw return value, plus an `isError` flag.
 public struct ToolResult: Sendable, Equatable {
     public let toolCallID: String
@@ -132,7 +133,9 @@ public actor ShellHookChain {
 
     /// Append a hook to the chain. Duplicate `name` is allowed (= caller's
     /// responsibility to deduplicate before registering).
-    public func register(_ hook: ShellHook) { hooks.append(hook) }
+    public func register(_ hook: ShellHook) {
+        hooks.append(hook)
+    }
 
     /// Remove the first hook whose `name` matches the given hook's `name`.
     public func unregister(_ hook: ShellHook) {
@@ -140,39 +143,56 @@ public actor ShellHookChain {
     }
 
     /// Remove every registered hook (= useful for tests + hot reload).
-    public func unregisterAll() { hooks.removeAll() }
+    public func unregisterAll() {
+        hooks.removeAll()
+    }
 
     /// Snapshot of currently-registered hooks (= in registration order).
-    public var current: [ShellHook] { hooks }
+    public var current: [ShellHook] {
+        hooks
+    }
 
     // MARK: - Fire methods
 
     public func firePreToolCall(_ call: ToolCall) async throws {
-        for hook in hooks { try await hook.preToolCall(call) }
+        for hook in hooks {
+            try await hook.preToolCall(call)
+        }
     }
 
     public func firePostToolCall(_ call: ToolCall, result: ToolResult) async throws {
-        for hook in hooks { try await hook.postToolCall(call, result: result) }
+        for hook in hooks {
+            try await hook.postToolCall(call, result: result)
+        }
     }
 
     public func firePreLLMCall(_ request: LLMRequest) async throws {
-        for hook in hooks { try await hook.preLLMCall(request) }
+        for hook in hooks {
+            try await hook.preLLMCall(request)
+        }
     }
 
     public func firePostLLMCall(_ request: LLMRequest, response: LLMResponse) async throws {
-        for hook in hooks { try await hook.postLLMCall(request, response: response) }
+        for hook in hooks {
+            try await hook.postLLMCall(request, response: response)
+        }
     }
 
     public func firePreTurn(_ userMessage: String) async throws {
-        for hook in hooks { try await hook.preTurn(userMessage) }
+        for hook in hooks {
+            try await hook.preTurn(userMessage)
+        }
     }
 
     public func firePostTurn(_ response: LLMResponse) async throws {
-        for hook in hooks { try await hook.postTurn(response) }
+        for hook in hooks {
+            try await hook.postTurn(response)
+        }
     }
 }
 
 // MARK: - H8 Hermes-Python gap port (= 1:1 port of hermes
+
 //         `agent/shell_hooks.py` payload + response + allowlist
 //         helpers).
 //
@@ -198,9 +218,8 @@ public actor ShellHookChain {
 // traceability back to `/Volumes/ANAN/.hermes/agent/
 // shell_hooks.py`).
 
-extension ShellHookChain {
-
-    // MARK: -- H8.1 payload serialization (= hermes L536-L553)
+public extension ShellHookChain {
+    // MARK: - - H8.1 payload serialization (= hermes L536-L553)
 
     /// Pure-function: render the stdin JSON payload for a shell
     /// hook (= hermes `_serialize_payload` at
@@ -209,8 +228,8 @@ extension ShellHookChain {
     /// Unserialisable values are stringified via `JSONEncoder`
     /// fallback (= wenshu uses `String(describing:)` instead of
     /// hermes's Python `default=str`; = same effect).
-    public static func serializePayload(event: String, kwargs: [String: Any]) -> String {
-        let topLevelKeys: Set<String> = [
+    static func serializePayload(event: String, kwargs: [String: Any]) -> String {
+        let topLevelKeys: Set = [
             "tool_name", "args", "session_id", "parent_session_id",
         ]
         var extras: [String: Any] = [:]
@@ -240,7 +259,7 @@ extension ShellHookChain {
         return String(data: data, encoding: .utf8) ?? "{}"
     }
 
-    // MARK: -- H8.2 block message (= hermes L555-L564)
+    // MARK: - - H8.2 block message (= hermes L555-L564)
 
     /// Pure-function: return a validated string block message,
     /// falling back to the default (= hermes `_block_message` at
@@ -249,7 +268,7 @@ extension ShellHookChain {
     /// Accepts two candidate fields (= primary wins over secondary)
     /// so callers can express field-priority differences between
     /// the two hook wire formats.
-    public static func blockMessage(primary: Any?, secondary: Any?) -> String {
+    static func blockMessage(primary: Any?, secondary: Any?) -> String {
         if let raw = primary as? String, !raw.isEmpty {
             return raw
         }
@@ -259,7 +278,7 @@ extension ShellHookChain {
         return "Shell hook blocked the request."
     }
 
-    // MARK: -- H8.3 response parsing (= hermes L566-L625)
+    // MARK: - - H8.3 response parsing (= hermes L566-L625)
 
     /// Pure-function: translate stdout JSON into a wire-shape
     /// dict (= hermes `_parse_response` at
@@ -274,7 +293,7 @@ extension ShellHookChain {
     ///      = translated to canonical `{"action": "continue", ...}`.
     ///   3. `pre_llm_call` = `{"context": "..."}` = passed through
     ///      unchanged.
-    public static func parseResponse(event: String, stdout: String) -> [String: Any]? {
+    static func parseResponse(event: String, stdout: String) -> [String: Any]? {
         let trimmed = stdout.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         guard let data = trimmed.data(using: .utf8) else { return nil }
@@ -308,7 +327,8 @@ extension ShellHookChain {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if action == "continue" || action == "block" {
                 if let message = (parsed["message"] as? String) ?? (parsed["reason"] as? String),
-                   !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                   !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                {
                     return ["action": "continue", "message": message.trimmingCharacters(in: .whitespacesAndNewlines)]
                 }
             }
@@ -316,14 +336,15 @@ extension ShellHookChain {
         }
 
         if let context = parsed["context"] as? String,
-           !context.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+           !context.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
             return ["context": context]
         }
 
         return nil
     }
 
-    // MARK: -- H8.4 allowlist path (= hermes L627-L630)
+    // MARK: - - H8.4 allowlist path (= hermes L627-L630)
 
     /// Pure-function: return the per-user shell-hook allowlist
     /// file path (= hermes `allowlist_path` at
@@ -332,7 +353,7 @@ extension ShellHookChain {
     /// Wenshu-side wins: returns the macOS
     /// `~/Library/Application Support/wenshu/` path (= matches
     /// the wenshu `.ws` bundle path from AGENTS.md §11).
-    public static func allowlistPath() -> URL {
+    static func allowlistPath() -> URL {
         let base: URL
         if let appSupport = try? FileManager.default.url(
             for: .applicationSupportDirectory,
@@ -348,12 +369,12 @@ extension ShellHookChain {
         return base.appendingPathComponent("shell-hooks-allowlist.json")
     }
 
-    // MARK: -- H8.5 load allowlist (= hermes L632-L644)
+    // MARK: - - H8.5 load allowlist (= hermes L632-L644)
 
     /// Pure-function: return the parsed allowlist, or an empty
     /// skeleton if absent (= hermes `load_allowlist` at
     /// `agent/shell_hooks.py` L632-L644).
-    public static func loadAllowlist() -> [String: Any] {
+    static func loadAllowlist() -> [String: Any] {
         let path = allowlistPath()
         guard let data = try? Data(contentsOf: path),
               let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -368,7 +389,7 @@ extension ShellHookChain {
         return raw
     }
 
-    // MARK: -- H8.6 save allowlist (= hermes L646-L676)
+    // MARK: - - H8.6 save allowlist (= hermes L646-L676)
 
     /// Pure-function: atomically persist the allowlist
     /// (= hermes `save_allowlist` at
@@ -377,7 +398,7 @@ extension ShellHookChain {
     /// Wenshu-side wins: uses Foundation's
     /// `FileManager.replaceItem` for atomic write (= the macOS
     /// equivalent of Python's `mkstemp + os.replace`).
-    public static func saveAllowlist(_ data: [String: Any]) throws {
+    static func saveAllowlist(_ data: [String: Any]) throws {
         let path = allowlistPath()
         try FileManager.default.createDirectory(
             at: path.deletingLastPathComponent(),
@@ -390,12 +411,12 @@ extension ShellHookChain {
         try jsonData.write(to: path, options: .atomic)
     }
 
-    // MARK: -- H8.7 is allowlisted (= hermes L678-L687)
+    // MARK: - - H8.7 is allowlisted (= hermes L678-L687)
 
     /// Pure-function: return true when the (event, command) pair
     /// is in the allowlist (= hermes `_is_allowlisted` at
     /// `agent/shell_hooks.py` L678-L687).
-    public static func isAllowlisted(event: String, command: String) -> Bool {
+    static func isAllowlisted(event: String, command: String) -> Bool {
         let data = loadAllowlist()
         guard let approvals = data["approvals"] as? [[String: Any]] else {
             return false
