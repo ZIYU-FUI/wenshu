@@ -152,7 +152,18 @@ struct ChatMessageView: View {
             //   - All wenshu-side chrome (= source label row + 9 icon +
             //     status dot + paperplane + checkmarks + PLAN badge) is
             //     REMOVED in this commit (= C1 of the cleanup arc).
-            if message.isPlaceholder {
+            // The placeholder row is for the moment BEFORE the first part
+            // arrives (= a slow provider, a queued turn). Once the row
+            // carries parts, it renders them: the parts ARE the reply, and
+            // the writer watches them arrive.
+            //
+            // The flag alone cannot decide this. `isPlaceholder` is set
+            // when the row is created and nothing in the tree ever
+            // clears it, so a flag-only test kept the pulse row on
+            // screen for the whole round and the reply appeared in one
+            // render at the end. The parts are the fact; the flag only
+            // says the row was born empty.
+            if message.isPlaceholder && message.parts.isEmpty {
                 // C-8c (refactor chat-mvvm-3layer): placeholder
                 // row extracted to its own leaf view
                 // (Views/Chat/ChatMessagePlaceholderRow.swift).
@@ -162,7 +173,11 @@ struct ChatMessageView: View {
                 // stay private to ChatMessageView.swift (=
                 // hermes 1:1 leaf boundary).
                 ChatMessagePlaceholderRow(
-                    hintText: message.content,
+                    // The row's own hint. It is NOT the row's content: the
+                    // row is born empty (= the content would synthesize a
+                    // .text part, = the row would look like it already
+                    // held a reply), so the hint is the view's own text.
+                    hintText: String(localized: "chatview.ai_thinking"),
                     timestamp: message.timestamp
                 ) {
                     StatusPulse()
@@ -266,17 +281,16 @@ struct ChatMessageView: View {
                     message: message,
                     // MC2.1 streaming fix: `isStreaming` stays true
                     // for the full streaming lifecycle (= .streaming
-                    // state) AND the initial placeholder. The
-                    // previous `message.isPlaceholder` only was
-                    // true during the placeholder row (= flipped
-                    // off the instant the first streamCallback
-                    // replaced the placeholder with the real
-                    // message). After that flip ChatTextPartView's
-                    // `.contentTransition` degraded from
-                    // `.interpolate` to `.identity` AND the
-                    // streaming cursor wasn't drawn. Combined: the
-                    // user saw the text appear in one render
-                    // (= the user's '' report).
+                    // state) AND the initial placeholder.
+                    //
+                    // The previous comment here claimed the placeholder
+                    // flag "flipped off the instant the first
+                    // streamCallback replaced the placeholder with the
+                    // real message". No such flip existed: the flag was
+                    // written once at creation and never cleared, so the
+                    // placeholder row stayed on screen for the whole
+                    // round. The frame writer now clears it on the same
+                    // message once the row holds a part.
                     //
                     // Hermes: assistant-message.tsx:346
                     // checks `s.message.status?.type === 'running'`

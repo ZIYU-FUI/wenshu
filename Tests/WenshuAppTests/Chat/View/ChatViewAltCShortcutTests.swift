@@ -6,13 +6,12 @@
 //  message content; = complement to T66 ⌘⇧D).
 //
 
-import Testing
 import Foundation
+import Testing
 @testable import WenshuApp
 
 @Suite("ChatView alt-c shortcut (T85)")
 struct ChatViewAltCShortcutTests {
-
     /// T85 contract: ⌥C shortcut registered.
     @Test func alt_c_shortcut_registered() throws {
         let src = try SourceLocator.readGroup(prefixed: "ChatView")
@@ -22,24 +21,28 @@ struct ChatViewAltCShortcutTests {
     /// T85 contract: Button body uses NSPasteboard to copy.
     @Test func body_copies_last_sealed_message() throws {
         let src = try SourceLocator.readGroup(prefixed: "ChatView")
-        let btnPos = src.range(of: "Button(\"Copy last sealed message\")")!
+        let btnPos = try #require(src.range(of: "Button(\"Copy last sealed message\")"))
         let endOffset = min(src.distance(from: src.startIndex, to: btnPos.upperBound) + 1500,
                             src.distance(from: src.startIndex, to: src.endIndex))
         let startOffset = src.distance(from: src.startIndex, to: btnPos.lowerBound)
         let blockStartIdx = src.index(src.startIndex, offsetBy: startOffset)
         let blockEndIdx = src.index(src.startIndex, offsetBy: endOffset)
-        let block = String(src[blockStartIdx..<blockEndIdx])
+        let block = String(src[blockStartIdx ..< blockEndIdx])
         #expect(block.contains("NSPasteboard.general"))
         #expect(block.contains("pb.clearContents()"))
         #expect(block.contains("pb.setString(lastAssistant, forType: .string)"))
-        #expect(block.contains("$0.source == .wenshu"))
-        #expect(block.contains("!$0.isPlaceholder"))
+        // The rule is the MODEL's (= = "the last sealed message"), = =
+        // so the shortcut asks the model, = = and the model's own rule
+        // (= = the row is not arriving any more, = = not "not a
+        // placeholder") is tested as a behaviour in
+        // `ChatSealedMessageRuleTests`.
+        #expect(block.contains("vm.lastSealedMessage"))
     }
 
     /// T85 contract: button is visually hidden.
     @Test func alt_c_button_is_visually_hidden() throws {
         let src = try SourceLocator.readGroup(prefixed: "ChatView")
-        let altCIdx = src.range(of: ".keyboardShortcut(\"c\", modifiers: [.option])")!
+        let altCIdx = try #require(src.range(of: ".keyboardShortcut(\"c\", modifiers: [.option])"))
         let after = src[altCIdx.upperBound...]
         #expect(after.contains(".frame(width: 0, height: 0)"))
         #expect(after.contains(".opacity(0)"))
@@ -78,7 +81,7 @@ struct ChatViewAltCShortcutTests {
 
     /// T85 contract: HStack invariant preserved.
     @Test func hstack_invariant_preserved() throws {
-        // 
+        //
         // row out of ChatView.swift into ChatInputBarView.swift (= the top
         // layer; = the user-interactive controls). The hidden Button("Copy last sealed message") Button
         // (= a hidden keyboard-shortcut Button outside the visible input

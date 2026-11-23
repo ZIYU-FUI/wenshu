@@ -87,13 +87,28 @@ extension ChatViewModel {
         // text jumps, the animations restart, and the reader sees a
         // flicker. Writing the changed fields of the same message keeps
         // the row's identity, so only the text is drawn again.
-        messages[idx].content = ChatMessagePart.joinedText(accumulator.parts)
-        messages[idx].thinking = accumulator.snapshotThinking()
-        messages[idx].parts = Self.carryingReaderChoices(
+        let parts = Self.carryingReaderChoices(
             accumulator.snapshotParts(),
             over: messages[idx].parts
         )
+        messages[idx].content = ChatMessagePart.joinedText(parts)
+        messages[idx].thinking = accumulator.snapshotThinking()
+        messages[idx].parts = parts
         messages[idx].streamState = .streaming
+        // The row stops being a placeholder once it holds a part. The
+        // flag is set when the row is created and was never cleared, so
+        // the transcript showed the pulse row for the whole round and
+        // the reply landed in one render at the end.
+        //
+        // It is cleared HERE, on the same message, and not at the end of
+        // the turn: replacing the row at the end would clear it, but it
+        // would also rebuild the row the reader is watching. Clearing it
+        // in place keeps the row's identity and the reader's per-part
+        // choices (which thinking block is open) intact across the
+        // switch from the placeholder to the parts.
+        if !parts.isEmpty {
+            messages[idx].isPlaceholder = false
+        }
     }
 
     /// Puts the reader's own choices back on the parts a stream frame

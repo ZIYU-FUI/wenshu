@@ -242,7 +242,10 @@ extension ChatView {
         // shortcut; ⌥C is more discoverable as "Alt-Copy" = a "quick copy"
         // affordance). Hidden Button pattern.
         Button("Copy last sealed message") {
-            if let lastAssistant = vm.messages.last(where: { $0.source == .wenshu && !$0.isPlaceholder })?.content {
+            // The model owns the rule (= = what "the last sealed
+            // message" means), = = so the shortcut and its test say the
+            // same thing.
+            if let lastAssistant = vm.lastSealedMessage?.content {
                 let pb = NSPasteboard.general
                 pb.clearContents()
                 pb.setString(lastAssistant, forType: .string)
@@ -397,7 +400,9 @@ extension ChatView {
         // = the ⌥-modifier triple for chat input affordances. Hidden Button
         // pattern.
         Button("Append last assistant to input") {
-            if let lastAssistant = vm.messages.last(where: { $0.source == .wenshu && !$0.isPlaceholder })?.content {
+            // The same rule as the copy above (= = the model's), = = so
+            // the input never receives a reply that is still arriving.
+            if let lastAssistant = vm.lastSealedMessage?.content {
                 if vm.inputText.isEmpty {
                     vm.inputText = lastAssistant
                 } else {
