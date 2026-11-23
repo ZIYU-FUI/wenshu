@@ -93,7 +93,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | 4.3 | 7 domain repositories (memory / chat / todo / kanban / link / providerKey / preference) wrap 10 of the 21 models; the other 11 are read directly off the container. Each exposes a `.shared` singleton; WSRepositoryContainer bundles all 7. | Sources/WenshuData/Sources/WenshuData/Repositories/WSRepositoryContainer.swift. |
 | 4.4 | Migration: ModelsSchemaV1 (VersionedSchema). Additive changes need no plan; a non-additive one (rename, type change, cardinality flip) requires a declared next version. | Sources/WenshuData/Sources/WenshuData/ModelsSchema.swift. |
 | 4.5 | Cross-isolation Sendable: @Model classes Sendable by SwiftData inference. Background writes via ModelActor or @MainActor repos, never a detached task on the context. | wenshu-swift-standards.md §4. |
-| 4.6 | Search: Core Spotlight (CSSearchableIndex + CSSearchQuery). NO GRDB / NO FTS5. | Features/Library/Service/CSSearchableIndexSearch.swift. |
+| 4.6 | Search: Core Spotlight (CSSearchableIndex + CSUserQuery). The index entry carries title + contentDescription + textContent + keywords. NO GRDB / NO FTS5. | Features/Library/Service/CSSearchableIndexSearch.swift. |
 
 ## §5 Third-party library policy
 
