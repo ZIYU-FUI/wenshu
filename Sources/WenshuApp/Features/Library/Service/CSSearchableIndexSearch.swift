@@ -30,22 +30,15 @@
 // actor's executor. = A slow Spotlight therefore costs the caller the
 // deadline, = and never the app.
 
-import Foundation
 import CoreSpotlight
+import Foundation
 
 /// Search result (= 1:1 with FullTextSearch.SearchResult).
 struct CSSearchResult: Equatable, Sendable {
     let docId: String
-    let snippet: String       // <mark>...</mark> wrapped excerpt
-    let rank: Double          // system relevance score or token-overlap
-    let line: Int             // not used by Spotlight (kept for parity)
-
-    init(docId: String, snippet: String, rank: Double, line: Int) {
-        self.docId = docId
-        self.snippet = snippet
-        self.rank = rank
-        self.line = line
-    }
+    let snippet: String // <mark>...</mark> wrapped excerpt
+    let rank: Double // system relevance score or token-overlap
+    let line: Int // not used by Spotlight (kept for parity)
 }
 
 /// Domain name registered with CSSearchableIndex.
@@ -80,11 +73,41 @@ struct SearchDocMirrorEntry: Equatable, Sendable {
     let docId: String
     let title: String
     let body: String
-    let tokens: [String]   // pre-tokenized for token-overlap ranking
+    let tokens: [String] // pre-tokenized for token-overlap ranking
     /// Display title for this doc entry (= falls back to the docId
     /// when the title is empty).
     var displayTitle: String {
         title.isEmpty ? docId : title
+    }
+}
+
+/// The index entry for one document.
+///
+/// product: `title` and `textContent` are the two attributes the system's
+/// semantic index processes (= the rest of the metadata is for display), and
+/// `keywords` carries the document's title as one whole term (= a coined
+/// name stays findable whatever the system's tokenizer does with it).
+enum SpotlightIndexEntry {
+    /// The attribute set for one document.
+    static func attributeSet(title: String, body: String) -> CSSearchableItemAttributeSet {
+        let attributeSet = CSSearchableItemAttributeSet(contentType: .text)
+        attributeSet.title = title
+        attributeSet.contentDescription = body
+        attributeSet.textContent = body
+        attributeSet.keywords = title.isEmpty ? [] : [title]
+        return attributeSet
+    }
+
+    /// The query context for one question.
+    ///
+    /// product: ranked results are the system's own relevance order, = and
+    /// the attributes fetched are the two the hit's snippet reads.
+    static func queryContext(limit: Int) -> CSUserQueryContext {
+        let context = CSUserQueryContext()
+        context.fetchAttributes = ["title", "contentDescription"]
+        context.enableRankedResults = true
+        context.maxRankedResultCount = limit
+        return context
     }
 }
 
@@ -103,17 +126,21 @@ struct SearchDocMirrorEntry: Equatable, Sendable {
 /// does not order the collector's writes by itself).**
 private final class SpotlightQuery: @unchecked Sendable {
     /// The system index's query.
-    private let query: CSSearchQuery
+    private let query: CSUserQuery
 
     /// The hits the query produced (= they arrive on the index's own
     /// queue, = so they are read behind the lock).
     private let lock = NSLock()
     private var collected: [CSSearchableItem] = []
 
-    /// - Parameter queryString: The index query (= the same shape the
-    ///   old code used).
-    init(queryString: String) {
-        query = CSSearchQuery(queryString: queryString, queryContext: nil)
+    /// - Parameters:
+    ///   - userQueryString: The question as a person wrote it.
+    ///   - limit: How many ranked results the index may answer with.
+    init(userQueryString: String, limit: Int) {
+        query = CSUserQuery(
+            userQueryString: userQueryString,
+            userQueryContext: SpotlightIndexEntry.queryContext(limit: limit)
+        )
     }
 
     /// Ask the index, = and report the answer.
@@ -185,20 +212,14 @@ actor CSSearchableIndexSearch {
     }
 
     /// Index one document (= upsert: remove then insert).
-    /// product: `CSSearchableItem` attributes = title (title), contentDescription (body),
-    /// identifier (= docId), domainIdentifier (= CSSearchDomain.domainIdentifier).
+    /// product: the index entry carries title, contentDescription, textContent
+    /// and keywords (= SpotlightIndexEntry.attributeSet); = the identifier
+    /// (= docId) and the domain (= CSSearchDomain.domainIdentifier) belong to
+    /// the CSSearchableItem that carries it.
     func index(docId: String, title: String, body: String) throws {
         // Update mirror first (= always in sync, even if Spotlight write fails).
         let tokens = TokenOverlapRanking.tokenize(body + " " + title)
         mirror[docId] = SearchDocMirrorEntry(docId: docId, title: title, body: body, tokens: tokens)
-
-        // Build CSSearchableItemAttributeSet (= Apple Spotlight index entry).
-        // The actual CSSearchableItem is constructed inside flushPending() to
-        // batch with the other pending entries (= product recommendation).
-        let attrSet = CSSearchableItemAttributeSet(contentType: .text)
-        attrSet.title = title
-        attrSet.contentDescription = body
-        attrSet.identifier = docId
 
         // Coalesce into pendingIndex (= batch flush on next `flush()` or search()).
         // product: CSSearchableIndex.indexSearchableItems accepts batches of 100s;
@@ -271,10 +292,13 @@ actor CSSearchableIndexSearch {
         }
     }
 
-    /// Query Apple Spotlight via CSSearchQuery.
+    /// Query Apple Spotlight via CSUserQuery.
     ///
-    /// product (macOS 27): `CSSearchQuery.init(queryString:queryContext:)` +
-    /// `start()` is Void (= error surfaces via completionHandler).
+    /// product (macOS 27): `CSUserQuery.init(userQueryString:userQueryContext:)`
+    /// takes the question as a person wrote it, = and the system's query
+    /// understanding answers it. = A metadata query string matches a literal
+    /// substring only, = and a question is not a substring of any document,
+    /// = so the question itself is what the index receives.
     ///
     /// **⇒ THE WAIT DOES NOT HOLD THE ACTOR.** = The old wait was a
     /// `DispatchGroup.wait()` on this actor's own executor, = so a
@@ -285,8 +309,7 @@ actor CSSearchableIndexSearch {
     /// = the index answers on its own queue; = and an index that never
     /// answers costs the caller the deadline, = not the app.
     private func querySpotlight(query: String, limit: Int) async -> [CSSearchResult] {
-        let queryString = "contentDescription == \"*\(query)*\"c OR title == \"*\(query)*\"c"
-        let spotlight = SpotlightQuery(queryString: queryString)
+        let spotlight = SpotlightQuery(userQueryString: query, limit: limit)
 
         let outcome = await SpotlightQueryWait.awaitOutcome { done in
             spotlight.start(onAnswer: done)
@@ -356,15 +379,12 @@ actor CSSearchableIndexSearch {
     private func flushPending() throws {
         if !pendingIndex.isEmpty {
             let attrSets = pendingIndex.map { entry -> CSSearchableItem in
-                let attrSet = CSSearchableItemAttributeSet(contentType: .text)
-                attrSet.title = entry.title
-                attrSet.contentDescription = entry.body
-                let item = CSSearchableItem(
+                let attrSet = SpotlightIndexEntry.attributeSet(title: entry.title, body: entry.body)
+                return CSSearchableItem(
                     uniqueIdentifier: CSSearchDomain.itemIdentifier(for: entry.docId),
                     domainIdentifier: CSSearchDomain.domainIdentifier,
                     attributeSet: attrSet
                 )
-                return item
             }
             CSSearchableIndex.default().indexSearchableItems(attrSets) { error in
                 if let error {
@@ -413,7 +433,9 @@ enum TokenOverlapRanking {
                 }
             }
         }
-        if !current.isEmpty { tokens.append(current) }
+        if !current.isEmpty {
+            tokens.append(current)
+        }
         return tokens
     }
 
@@ -422,7 +444,9 @@ enum TokenOverlapRanking {
         guard scalar.value < 0x80 else { return false }
         // ASCII letter range = U+0041..U+005A (upper) + U+0061..U+007A (lower).
         let v = scalar.value
-        if (v >= 0x41 && v <= 0x5A) || (v >= 0x61 && v <= 0x7A) { return true }
+        if (v >= 0x41 && v <= 0x5A) || (v >= 0x61 && v <= 0x7A) {
+            return true
+        }
         return digits.contains(scalar)
     }
 
@@ -432,8 +456,8 @@ enum TokenOverlapRanking {
     private static func isCJKScalar(_ scalar: Unicode.Scalar) -> Bool {
         let v = scalar.value
         return (v >= 0x4E00 && v <= 0x9FFF) ||
-               (v >= 0x3400 && v <= 0x4DBF) ||
-               (v >= 0xF900 && v <= 0xFAFF)   // CJK Compatibility Ideographs
+            (v >= 0x3400 && v <= 0x4DBF) ||
+            (v >= 0xF900 && v <= 0xFAFF) // CJK Compatibility Ideographs
     }
 
     /// Score doc against query tokens (= Jaccard-style overlap).
@@ -444,7 +468,7 @@ enum TokenOverlapRanking {
         var hits = 0.0
         for qt in querySet {
             if let count = docCounts[qt] {
-                hits += min(Double(count), 2.0)   // cap per-token contribution
+                hits += min(Double(count), 2.0) // cap per-token contribution
             }
         }
         // Normalize by query length (= longer queries are less specific).
@@ -459,7 +483,7 @@ enum TokenOverlapRanking {
             if let range = lower.range(of: token) {
                 let start = lower.index(range.lowerBound, offsetBy: -contextChars, limitedBy: lower.startIndex) ?? lower.startIndex
                 let end = lower.index(range.upperBound, offsetBy: contextChars, limitedBy: lower.endIndex) ?? lower.endIndex
-                let snippet = String(body[start..<end])
+                let snippet = String(body[start ..< end])
                 return "<mark>\(token)</mark> \(snippet)"
             }
         }

@@ -133,6 +133,28 @@ struct RetrievalQualityTests {
                 "the bigram tokenizer must not rank worse than the character one here")
     }
 
+    @Test("the query-time expander holds its recorded recall")
+    func expanderHoldsItsBaseline() {
+        let table = RankerTable()
+        let expander = table.row(named: RankerTable.expanderName)
+        #expect(expander.recallAt1 >= RankerTable.expanderBaselineRecallAt1,
+                "the expander must not fall below its recorded recall@1")
+    }
+
+    @Test("one weighted query outranks the expander on this corpus")
+    func referenceOutranksExpander() {
+        let table = RankerTable()
+        let reference = table.row(named: RankerTable.appleWordName)
+        let expander = table.row(named: RankerTable.expanderName)
+        // One query per term, interleaved, gives every term the same weight,
+        // = so a common term's top answers take the front rows. = The
+        // weighted single query is ahead, = and this assertion is the one
+        // that says so; = a change that closes the gap asks for the decision
+        // to be made again, = not for the gap to be absorbed.
+        #expect(reference.recallAt1 > expander.recallAt1,
+                "the weighted query must stay ahead of the expander until the decision is made again")
+    }
+
     @Test("putting the title into the searched text does not lower the ranking")
     func titleInSearchedTextHelps() {
         let table = RankerTable()
@@ -162,10 +184,12 @@ struct RankerTable {
     static let bigramName = "bm25-bigram"
     static let appleWordName = "bm25-apple-word"
     static let bigramWithTitleName = "bm25-bigram+title"
+    static let expanderName = "bm25-apple-word+expander"
 
     /// The production ranker's recorded recall (= the gate a change to the
     /// library's search path must not fall below).
     static let productionBaselineRecallAt1 = 0.66
+    static let expanderBaselineRecallAt1 = 0.41
     static let productionBaselineRecallAt3 = 0.91
 
     let rows: [RankerResult]
@@ -229,10 +253,92 @@ struct RankerTable {
                 score: { doc, queryTokens in bigramWithTitleModel.score(of: doc, queryTokens: queryTokens) },
                 queryTokens: { RankerTable.tokenizeBigram($0) }
             ),
+            // The query-time expander: one independent query per term, and
+            // the answers interleaved.
+            RankerTable.measureExpanded(
+                name: RankerTable.expanderName,
+                docs: docs,
+                queries: queries,
+                model: appleWordModel,
+                tokenizer: RankerTable.tokenizeAppleWord
+            ),
         ]
     }
 
     // MARK: Ranking one corpus
+
+    /// Rank every document for every query with a query-time expander: the
+    /// question's terms each get their own independent query, and the
+    /// per-term answers are interleaved (= a rare term's answer cannot be
+    /// crowded out by a common term's).
+    ///
+    /// This is the shape another project's retriever uses, and it is the
+    /// measurement that decides whether the app builds one.
+    static func measureExpanded(
+        name: String,
+        docs: [RetrievalQualityCorpus.Document],
+        queries: [RetrievalQualityCorpus.Query],
+        model: BM25Model,
+        tokenizer: (String) -> [String]
+    ) -> RankerResult {
+        var at1 = 0, at3 = 0, at5 = 0, bridgeAt1 = 0, bridgeAt3 = 0, bridgeTotal = 0
+        for query in queries {
+            let terms = tokenizer(query.text)
+            // One independent query per term.
+            let perTerm: [[RetrievalQualityCorpus.Document]] = terms.map { term in
+                docs
+                    .map { (doc: $0, value: model.score(of: $0, queryTokens: [term])) }
+                    .sorted { $0.value > $1.value }
+                    .map(\.doc)
+            }
+            // The answers interleave (= round robin over the terms).
+            var interleaved: [RetrievalQualityCorpus.Document] = []
+            var seen = Set<String>()
+            var index = 0
+            while interleaved.count < docs.count {
+                var progressed = false
+                for list in perTerm where index < list.count {
+                    if seen.insert(list[index].path).inserted {
+                        interleaved.append(list[index])
+                    }
+                    progressed = true
+                }
+                if !progressed {
+                    break
+                }
+                index += 1
+            }
+            let paths = interleaved.map(\.path)
+            let rank = paths.firstIndex(of: query.goldPath) ?? -1
+            if rank == 0 {
+                at1 += 1
+            }
+            if rank >= 0 && rank < 3 {
+                at3 += 1
+            }
+            if rank >= 0 && rank < 5 {
+                at5 += 1
+            }
+            if query.kind == .bridge {
+                bridgeTotal += 1
+                if rank == 0 {
+                    bridgeAt1 += 1
+                }
+                if rank >= 0 && rank < 3 {
+                    bridgeAt3 += 1
+                }
+            }
+        }
+        let n = Double(max(1, queries.count))
+        return RankerResult(
+            name: name,
+            recallAt1: Double(at1) / n,
+            recallAt3: Double(at3) / n,
+            recallAt5: Double(at5) / n,
+            bridgeAt1: Double(bridgeAt1) / Double(max(1, bridgeTotal)),
+            bridgeAt3: Double(bridgeAt3) / Double(max(1, bridgeTotal))
+        )
+    }
 
     /// Rank every document for every query and read the recall off the gold.
     static func measure(

@@ -20,7 +20,6 @@ import Testing
 
 @Suite("CSSearchableIndexSearch (v1.55 Core Spotlight)")
 struct CSSearchableIndexSearchTests {
-
     // MARK: - TokenOverlapRanking tests
 
     @Test("tokenize ASCII splits on non-alphanumeric")
@@ -146,6 +145,37 @@ struct CSSearchableIndexSearchTests {
         #expect(CSSearchDomain.docId(from: foreign) == nil)
     }
 
+    // MARK: - The index entry's own shape
+
+    @Test("the index entry carries the body as text content and the title as a keyword")
+    func indexEntryCarriesTheSemanticFields() {
+        let entry = SpotlightIndexEntry.attributeSet(title: "猪-屠户", body: "商代屠户，负责三牲祭祀。")
+        #expect(entry.title == "猪-屠户")
+        #expect(entry.contentDescription == "商代屠户，负责三牲祭祀。")
+        // The system's semantic index processes the text content (= the body
+        // has to be there, = not only in the description).
+        #expect(entry.textContent == "商代屠户，负责三牲祭祀。")
+        // The title rides along as one whole term (= a coined name stays
+        // findable whatever the system's tokenizer does with it).
+        #expect(entry.keywords == ["猪-屠户"])
+    }
+
+    @Test("an index entry without a title carries no keyword")
+    func indexEntryWithoutATitle() {
+        let entry = SpotlightIndexEntry.attributeSet(title: "", body: "正文。")
+        #expect((entry.keywords ?? []).isEmpty)
+        #expect(entry.textContent == "正文。")
+    }
+
+    @Test("the query context asks for ranked results and the snippet's attributes")
+    func queryContextAsksForRankedResults() {
+        let context = SpotlightIndexEntry.queryContext(limit: 20)
+        #expect(context.enableRankedResults)
+        #expect(context.maxRankedResultCount == 20)
+        #expect(context.fetchAttributes.contains("title"))
+        #expect(context.fetchAttributes.contains("contentDescription"))
+    }
+
     // MARK: - CSSearchableIndexSearch actor tests
 
     @Test("bootstrap is non-fatal even when mirror empty")
@@ -164,7 +194,7 @@ struct CSSearchableIndexSearchTests {
         // as long as the result contains doc-1 OR Spotlight is empty (= fallback).
         let results = try await search.search(query: "alpha")
         // We assert the actor did not throw (= either path succeeds).
-        _ = results   // type-level assertion; = no crash
+        _ = results // type-level assertion; = no crash
     }
 
     @Test("remove deletes from mirror")
@@ -195,7 +225,7 @@ struct CSSearchableIndexSearchTests {
         let search = CSSearchableIndexSearch()
         try await search.bootstrap()
         // Index 30 docs all matching "wenshu".
-        for i in 0..<30 {
+        for i in 0 ..< 30 {
             try await search.index(
                 docId: "doc-\(i)",
                 title: "Doc \(i)",
