@@ -1,4 +1,4 @@
-# ADR-0034: The search layer's split — the system index recalls, the app measures its own ranking
+# ADR-0034: The search layer's split — the app's own corpus answers, and the harness measures it
 
 > Status: accepted
 > Date: 2026-11-23
@@ -6,98 +6,100 @@
 
 ## Context
 
-The library's search answered from two halves, and only one of them worked.
+The library's search answered from its own corpus, and nothing measured it.
 
-The system half asked the system index with a metadata query string that matched a
-literal substring of the title or the body. A question is not a substring of any
-document, so for a natural-language question that half answered nothing, and the
-answer the user saw came entirely from the app's own mirror.
+The ranking is `TokenOverlapRanking`: per-character tokens for Chinese, a token
+overlap with no inverse document frequency, and — in the library's own search —
+the title counted twice the body. A character that appears in every document
+counts as much as one that appears in one.
 
-The mirror half ranked with a token overlap: one token's contribution was capped
-at two occurrences and the total was normalised by the query's token count. No
-term was weighed by how rare it was, so a character that appears in every document
-counted as much as one that appears in one. The tokenizer split Chinese text into
-single characters, which is the granularity at which the distinction between a
-common character and a rare one is smallest.
+Nothing asked whether the right document came back. The suites covered the
+tokenizer, the scorer, the mirror round-trip and the view's behaviour; none of
+them asked the question.
 
-Nothing measured either half. The suites covered the tokenizer, the scorer, the
-mirror round-trip and the view's behaviour; none of them asked whether the right
-document came back. The retrieval-quality harness now answers that, over a
-59-document fixture (19 answering, 40 noise) with 12 questions and one
-unambiguous anchor per question:
-
-| ranker | recall@1 | bridge@1 |
-| --- | --- | --- |
-| the production ranker (token overlap) | 0.67 | 0.67 |
-| the same tokens, weighed by rarity | 0.83 | 1.00 |
-| Apple's own Chinese word tokenizer, weighed by rarity | 0.92 | 1.00 |
-| one independent query per term, interleaved | 0.42 | 0.00 |
-
-The gap is the missing term weighting, and it is worth most on the bridge
-questions, where the answer shares only a rare term with the question.
-
-The last row is the shape another project's retriever uses, and it is the worst
-of the six. One independent query per term gives every term the same weight, so
-a common term's top answers take the front rows, and the interleaving puts them
-there. The mechanism that makes that shape work is a seed selection and a
-scoring of the terms it activates, and neither of those is free to copy.
-
-Apple's own documentation states which attributes the system's semantic index
-processes: the title and the text content. The app was putting the body in the
-content description, so the body never reached the semantic index.
+There is a second half to the story, and it is not the app's search. The app
+publishes every document to the system search index (`CSSearchableIndexSearch`)
+and then does not read it: the library's own search is deliberately not the
+system index, for two reasons the code states (`ReferenceLibrarySearch.swift`):
+the system index is a mirror of the session and is empty after a relaunch
+until the documents are written again, and the system index answers by waiting
+on Spotlight, which hangs the app when Spotlight is slow. So the app writes to
+the system index and answers from its own corpus.
 
 ## Decision
 
-The search layer splits into three parts, and each part has one owner.
+Two things, and one thing that is explicitly not claimed.
 
-1. **The system index recalls.** The index entry carries the title, the content
-   description, the text content (the body, which is the attribute the system's
-   semantic index processes), and the document's title as one whole keyword (so a
-   coined name stays findable whatever the system's tokenizer does with it). The
-   question reaches the system as the question itself, through `CSUserQuery`,
-   with the system's own ranked order, and no model of any kind.
-2. **The app's mirror answers the fallback.** It stays the half the app always
-   has: a system index that is slow, off, or without query understanding costs
-   latency, not the answer.
-3. **The harness measures the app's own ranking.** The mirror's score is
-   measured on every run against a recorded floor, so a change to the search path
-   cannot lower the answer without the build saying so.
+1. **The harness measures the app's own search.** Over a synthetic corpus of 59
+   documents (19 that answer a question, 40 that speak the question's own
+   high-frequency words without answering it), 12 questions and one anchor
+   token per question that occurs in exactly one document, the harness calls
+   the app's own search functions and reads the recall off the gold:
+
+   | ranker | recall@1 | recall@3 | bridge@1 |
+   | --- | --- | --- | --- |
+   | the production library search (`ReferenceLibrarySearch.search`) | 0.75 | 0.83 | 0.67 |
+   | the production mirror search (`MirrorRanking.rank`) | 0.83 | 0.92 | 0.67 |
+   | BM25 over the same per-character tokens | 0.83 | 0.92 | 1.00 |
+   | BM25 over adjacent character pairs | 0.83 | 0.92 | 1.00 |
+   | BM25 over Apple's own Chinese word tokenizer | 0.92 | 1.00 | 1.00 |
+   | BM25 over the same bigrams, with the title searched too | 0.83 | 0.92 | 1.00 |
+   | one independent query per term, interleaved | 0.42 | 0.67 | 0.00 |
+
+   The first two rows call the app's functions. They do not re-declare them:
+   the first version of this harness re-declared the ranking in the test file,
+   and a change to the app's ranking left the table exactly where it was — the
+   table measured the copy, and the copy even gave a different number (0.67
+   against 0.75), because the copy's tie order was the copy's own. So the
+   production ranking and the production tokenization now live where the
+   harness can call them (`MirrorRanking`), and the floors in the harness are
+   the numbers those functions produced.
+
+2. **The gap the numbers name.** Weighing a term by how rare it is is worth
+   most on the bridge questions — the ones whose answer shares only a rare term
+   with the question: 0.67 → 1.00 there, against 0.75 → 0.83 overall. The gap
+   is the missing inverse document frequency, and closing it is the next change,
+   measured by the harness this branch lands.
+
+3. **What is NOT claimed.** The system index is written by the app and is not
+   read by it. The index entry now carries the document's text as `textContent`
+   (the system's own header calls that attribute "the text content of the
+   document" — `CSSearchableItemAttributeSet_Messaging.h`) and the document's
+   title as one whole keyword, and the question reaches the index as a question
+   through `CSUserQuery` with the system's own ranked order. **None of that
+   changes what the user sees today**, because the library's own search answers
+   from the corpus and not from the index. It is a foundation for the reader
+   that does not exist yet (the agent's corpus retrieval), and this ADR does
+   not count it as a gain.
 
 ## Consequences
 
-Easier: the system's half of the answer starts working for a natural-language
-question wherever the system's query understanding is available; the app's own
-ranking has a number behind it for the first time; a future change to the search
-path has a gate to pass.
+Easier: the app's own search now has a number, and a floor that a change to the
+ranking cannot cross without the build saying so; the system's index carries
+the attributes it reads, and the question reaches it whole, so the later reader
+does not have to start from a blank index.
 
-Harder: the system's half is ranked by the system, so the app cannot explain
-that order in detail, and it needs the system's query understanding to be useful
-for a question (a single term answers on its own; a whole sentence does not).
-
-Locked in: the app's model layer stays provider-based, and the retrieval path
-takes no model at all — the system's index answers the question, and the app's
-model layer is not part of the retrieval path.
-
-The index instance is still the default one. A named index is Apple's
-recommendation for shipped content, and it needs a pass that re-donates every
-document the app has already indexed, so it arrives with that pass and not
-before it.
+Harder: the two production rows measure a synthetic corpus, not the user's
+library, so they bound the ranking's behaviour rather than describe it; and the
+system-index half of the app is still a write with no reader.
 
 ## Alternatives considered
 
 - **A query-time expander that activates terms from the seeds and queries each
   one on its own.** Measured on the same fixture: recall@1 0.42 against the
-  reference ranker's 0.92, and bridge@1 0.00 against 1.00. One independent
-  query per term gives every term the same weight, so a common term's top
-  answers take the front rows. The shape works in the design it came from
-  because that design also selects the seeds and scores the terms it activates;
-  copying the querying half alone is a loss, so the app does not build it.
+  weighted query's 0.92, and bridge@1 0.00 against 1.00. One independent query
+  per term gives every term the same weight, so a common term's top answers
+  take the front rows. The shape works in the design it came from because that
+  design also selects the seeds and scores the terms it activates; copying the
+  querying half alone is a loss, so the app does not build it.
 - **Apple's Chinese word tokenizer as the app's tokenizer.** Measured: it wins
   on this corpus (0.92 against 0.83), and it loses on a corpus whose coined
   names it cannot know. It is not the app's tokenizer, because the app's corpus
   is made of coined names.
-- **Apple's sentence embeddings as the app's ranker.** Measured: they do not
-  separate a near-paraphrase from an unrelated sentence on this corpus, so they
-  do not rank.
 - **A full-text engine of the app's own** (the design another project uses).
   Barred by the storage rule: no SQLite, no FTS5, no GRDB.
+- **Reading the library's search from the system index.** Rejected on the two
+  grounds the code already states (the index is empty after a relaunch; waiting
+  on Spotlight can hang the app). The system's half earns its place at the
+  agent's corpus retrieval, where a union with the app's own answer is worth
+  more than either half alone.

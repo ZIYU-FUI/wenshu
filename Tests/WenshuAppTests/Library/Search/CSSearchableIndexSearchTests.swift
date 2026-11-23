@@ -171,7 +171,11 @@ struct CSSearchableIndexSearchTests {
     func queryContextAsksForRankedResults() {
         let context = SpotlightIndexEntry.queryContext(limit: 20)
         #expect(context.enableRankedResults)
-        #expect(context.maxRankedResultCount == 20)
+        // The system's ranked count is a cap it applies BEFORE the app's own
+        // domain filter (= `CSUserQueryContext` has no `filterQueries`; = that
+        // attribute belongs to the older `CSSearchQuery`), = so it carries
+        // headroom over the app's own cut.
+        #expect(context.maxRankedResultCount == 40)
         #expect(context.fetchAttributes.contains("title"))
         #expect(context.fetchAttributes.contains("contentDescription"))
     }

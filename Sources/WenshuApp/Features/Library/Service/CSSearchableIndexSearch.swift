@@ -81,10 +81,75 @@ struct SearchDocMirrorEntry: Equatable, Sendable {
     }
 }
 
+/// The mirror's own ranking (= the half the app answers with when the
+/// system index is unavailable, or has not caught up with a document yet).
+///
+/// **⇒ It is a separate type (= and not a private method of the actor)
+/// so the retrieval-quality harness can measure THIS ranking and not a
+/// copy of it.** = A harness that re-declares the ranking measures
+/// nothing: = a change to the code here leaves the harness's number
+/// exactly where it was.
+enum MirrorRanking {
+    /// The mirror entry for one document (= the production tokenization).
+    ///
+    /// **⇒ The production tokenization lives HERE (= and not in the actor's
+    /// write path) so the harness measures it and not a copy of it.**
+    static func entry(docId: String, title: String, body: String) -> SearchDocMirrorEntry {
+        SearchDocMirrorEntry(
+            docId: docId,
+            title: title,
+            body: body,
+            tokens: TokenOverlapRanking.tokenize(body + " " + title)
+        )
+    }
+
+    /// Rank the mirror's entries against a query, best first.
+    ///
+    /// - Parameters:
+    ///   - entries: The mirror's documents.
+    ///   - query: What the user typed.
+    ///   - limit: How many hits the caller wants.
+    static func rank(
+        entries: [SearchDocMirrorEntry],
+        query: String,
+        limit: Int
+    ) -> [CSSearchResult] {
+        let queryTokens = TokenOverlapRanking.tokenize(query)
+        guard !queryTokens.isEmpty else { return [] }
+
+        var scored: [(docId: String, snippet: String, rank: Double)] = []
+        for entry in entries {
+            let score = TokenOverlapRanking.score(queryTokens: queryTokens, docTokens: entry.tokens)
+            if score > 0 {
+                let snippet = TokenOverlapRanking.highlight(
+                    queryTokens: queryTokens,
+                    body: entry.body,
+                    contextChars: 32
+                )
+                scored.append((docId: entry.docId, snippet: snippet, rank: score))
+            }
+        }
+        // Two documents of the same score sort by their id (= the mirror's
+        // own order is a dictionary's, = so without this the same query
+        // could answer in two different orders).
+        scored.sort { lhs, rhs in
+            if lhs.rank != rhs.rank {
+                return lhs.rank > rhs.rank
+            }
+            return lhs.docId < rhs.docId
+        }
+        return scored.prefix(limit).map {
+            CSSearchResult(docId: $0.docId, snippet: $0.snippet, rank: $0.rank, line: -1)
+        }
+    }
+}
+
 /// The index entry for one document.
 ///
-/// product: `title` and `textContent` are the two attributes the system's
-/// semantic index processes (= the rest of the metadata is for display), and
+/// product: `textContent` is the attribute the system's own header calls
+/// "the text content of the document" (= `CSSearchableItemAttributeSet.h`:
+/// `//Contains the text content of the document.`), = so the document's
+/// text reaches the system index and not only a description of it, = and
 /// `keywords` carries the document's title as one whole term (= a coined
 /// name stays findable whatever the system's tokenizer does with it).
 enum SpotlightIndexEntry {
@@ -102,11 +167,18 @@ enum SpotlightIndexEntry {
     ///
     /// product: ranked results are the system's own relevance order, = and
     /// the attributes fetched are the two the hit's snippet reads.
+    ///
+    /// **⇒ The system's ranked count is a cap the system applies BEFORE
+    /// the app's own domain filter** (= `CSUserQueryContext` has no
+    /// `filterQueries`; = that attribute belongs to the older
+    /// `CSSearchQuery`). = So the count carries headroom over the app's
+    /// own cut (= which happens after the filter), = and a foreign item
+    /// inside the cap cannot cost the app one of its own hits.
     static func queryContext(limit: Int) -> CSUserQueryContext {
         let context = CSUserQueryContext()
         context.fetchAttributes = ["title", "contentDescription"]
         context.enableRankedResults = true
-        context.maxRankedResultCount = limit
+        context.maxRankedResultCount = limit * 2
         return context
     }
 }
@@ -218,8 +290,8 @@ actor CSSearchableIndexSearch {
     /// the CSSearchableItem that carries it.
     func index(docId: String, title: String, body: String) throws {
         // Update mirror first (= always in sync, even if Spotlight write fails).
-        let tokens = TokenOverlapRanking.tokenize(body + " " + title)
-        mirror[docId] = SearchDocMirrorEntry(docId: docId, title: title, body: body, tokens: tokens)
+        let mirrorEntry = MirrorRanking.entry(docId: docId, title: title, body: body)
+        mirror[docId] = mirrorEntry
 
         // Coalesce into pendingIndex (= batch flush on next `flush()` or search()).
         // product: CSSearchableIndex.indexSearchableItems accepts batches of 100s;
@@ -353,26 +425,7 @@ actor CSSearchableIndexSearch {
     /// disabled by the user (= CSSearchQuery returns []) and even for
     /// a document the system indexer has not caught up with yet.
     private func queryFallback(query: String, limit: Int) throws -> [CSSearchResult] {
-        guard !mirror.isEmpty else { return [] }
-        let queryTokens = TokenOverlapRanking.tokenize(query)
-        guard !queryTokens.isEmpty else { return [] }
-
-        var scored: [(docId: String, snippet: String, rank: Double)] = []
-        for entry in mirror.values {
-            let score = TokenOverlapRanking.score(queryTokens: queryTokens, docTokens: entry.tokens)
-            if score > 0 {
-                let snippet = TokenOverlapRanking.highlight(
-                    queryTokens: queryTokens,
-                    body: entry.body,
-                    contextChars: 32
-                )
-                scored.append((docId: entry.docId, snippet: snippet, rank: score))
-            }
-        }
-        scored.sort { $0.rank > $1.rank }
-        return scored.prefix(limit).map {
-            CSSearchResult(docId: $0.docId, snippet: $0.snippet, rank: $0.rank, line: -1)
-        }
+        MirrorRanking.rank(entries: Array(mirror.values), query: query, limit: limit)
     }
 
     /// Flush pending index/remove batches to Spotlight.

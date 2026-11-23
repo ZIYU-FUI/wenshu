@@ -5,23 +5,37 @@
 // cover the tokenizer, the scorer, the mirror round-trip and the view's
 // behaviour, and none of them answers "does the right document come back".
 // This harness is that number, over one synthetic corpus with one gold per
-// query, and it compares five rankers on the same documents:
+// query, and it compares seven rankers on the same documents:
 //
-//   wenshu-token-overlap  the production scorer, as the library runs it today
-//                         (per-character tokens, title weighted twice the body,
-//                         no inverse document frequency)
-//   bm25-character        BM25 with inverse document frequency, over the same
-//                         per-character tokens the production tokenizer emits
-//   bm25-bigram           BM25 over adjacent character pairs (= a Chinese
-//                         bigram tokenizer, which needs no dictionary)
-//   bm25-apple-word       BM25 over Apple's own word tokenizer, which knows
-//                         Chinese words but no coined proper noun
-//   bm25-bigram+title     the same, with the title inside the searched text
-//                         (= what an indexed keyword buys)
+//   wenshu-library            the production search the library's own view
+//                             runs (= `ReferenceLibrarySearch.search`),
+//                             called
+//   wenshu-mirror             the production search the mirror falls back
+//                             to (= `MirrorRanking.rank`), called
+//   bm25-character            BM25 with inverse document frequency, over the
+//                             same per-character tokens the production
+//                             tokenizer emits
+//   bm25-bigram               BM25 over adjacent character pairs (= a Chinese
+//                             bigram tokenizer, which needs no dictionary)
+//   bm25-apple-word           BM25 over Apple's own word tokenizer, which
+//                             knows Chinese words but no coined proper noun
+//   bm25-bigram+title         the same, with the title inside the searched text
+//                             (= what an indexed keyword buys)
+//   bm25-apple-word+expander  one independent query per term, and the
+//                             answers interleaved (= the shape another
+//                             project's retriever uses)
 //
-// The corpus is written so the rankers separate: half of it answers a
-// question and half speaks the question's own high-frequency words without
-// answering it, so a ranker with no inverse document frequency drowns.
+// **⇒ THE TWO PRODUCTION ROWS CALL THE APP'S OWN SEARCH.** = The first
+// version of this harness re-declared the production ranking in the test
+// file, = and a change to the app's ranking left this table exactly where
+// it was: = the table measured the copy and not the app. = A row that
+// re-declares the ranking measures nothing, = so the production rows ask
+// the app's own functions for their answer.
+//
+// The corpus is written so the rankers separate: 19 of its 59 documents
+// answer a question and 40 speak the question's own high-frequency words
+// without answering it, so a ranker with no inverse document frequency
+// drowns.
 //
 // The harness runs in-process and reads no system index, so it is stable in
 // CI. A system-index probe is a separate instrument, because Core Spotlight
@@ -101,27 +115,35 @@ struct RetrievalQualityTests {
         print("")
     }
 
-    @Test("the production ranker holds its recorded recall")
-    func productionHoldsItsBaseline() {
+    @Test("the production library search holds its recorded recall")
+    func libraryHoldsItsBaseline() {
         let table = RankerTable()
-        let production = table.row(named: RankerTable.productionName)
-        #expect(production.recallAt1 >= RankerTable.productionBaselineRecallAt1,
-                "the production ranker must not fall below its recorded recall@1")
-        #expect(production.recallAt3 >= RankerTable.productionBaselineRecallAt3,
-                "the production ranker must not fall below its recorded recall@3")
+        let library = table.row(named: RankerTable.libraryName)
+        #expect(library.recallAt1 >= RankerTable.libraryBaselineRecallAt1,
+                "the production library search must not fall below its recorded recall@1")
+        #expect(library.recallAt3 >= RankerTable.libraryBaselineRecallAt3,
+                "the production library search must not fall below its recorded recall@3")
     }
 
-    @Test("the reference ranker with inverse document frequency is ahead of the production scorer")
+    @Test("the production mirror search holds its recorded recall")
+    func mirrorHoldsItsBaseline() {
+        let table = RankerTable()
+        let mirror = table.row(named: RankerTable.mirrorName)
+        #expect(mirror.recallAt1 >= RankerTable.mirrorBaselineRecallAt1,
+                "the production mirror search must not fall below its recorded recall@1")
+    }
+
+    @Test("the reference ranker with inverse document frequency is ahead of the production library search")
     func referenceBeatsProduction() {
         let table = RankerTable()
-        let production = table.row(named: RankerTable.productionName)
+        let library = table.row(named: RankerTable.libraryName)
         let reference = table.row(named: RankerTable.bigramName)
         // The corpus is written so a ranker that weighs a term by how rare it
         // is outranks one that only counts how often a query token appears.
-        #expect(reference.recallAt1 >= production.recallAt1,
-                "the reference ranker must not fall behind the production scorer")
-        #expect(reference.bridgeAt1 >= production.bridgeAt1,
-                "the reference ranker must not fall behind the production scorer on the bridge shape")
+        #expect(reference.recallAt1 >= library.recallAt1,
+                "the reference ranker must not fall behind the production library search")
+        #expect(reference.bridgeAt1 >= library.bridgeAt1,
+                "the reference ranker must not fall behind the production library search on the bridge shape")
     }
 
     @Test("the character tokenizer does not outrank the bigram one on this corpus")
@@ -177,20 +199,30 @@ struct RankerResult: Sendable {
     let bridgeAt3: Double
 }
 
-/// The five rankers, measured over the same corpus.
+/// The seven rankers, measured over the same corpus.
 struct RankerTable {
-    static let productionName = "wenshu-token-overlap"
+    /// The production search the library's own view runs.
+    static let libraryName = "wenshu-library"
+    /// The production search the mirror falls back to.
+    static let mirrorName = "wenshu-mirror"
     static let characterName = "bm25-character"
     static let bigramName = "bm25-bigram"
     static let appleWordName = "bm25-apple-word"
     static let bigramWithTitleName = "bm25-bigram+title"
     static let expanderName = "bm25-apple-word+expander"
 
-    /// The production ranker's recorded recall (= the gate a change to the
-    /// library's search path must not fall below).
-    static let productionBaselineRecallAt1 = 0.66
+    /// The production library search's recorded recall (= the gate a change
+    /// to the library's ranking must not cross).
+    ///
+    /// **⇒ The floor is the number the app's own function produced on this
+    /// corpus (= 0.75, = and not the 0.67 a copy of the ranking gave: = the
+    /// copy's tie order was the copy's own, = and a tie is exactly where a
+    /// ranking's copy stops measuring the ranking).**
+    static let libraryBaselineRecallAt1 = 0.75
+    static let libraryBaselineRecallAt3 = 0.83
+    /// The production mirror search's recorded recall.
+    static let mirrorBaselineRecallAt1 = 0.83
     static let expanderBaselineRecallAt1 = 0.41
-    static let productionBaselineRecallAt3 = 0.91
 
     let rows: [RankerResult]
 
@@ -208,23 +240,34 @@ struct RankerTable {
         let appleWordModel = BM25Model(documents: docs, tokenizer: RankerTable.tokenizeAppleWord)
         let bigramWithTitleModel = BM25Model(documents: docs, tokenizer: RankerTable.tokenizeBigram, includeTitle: true)
 
+        // The corpus as the app's own search sees it.
+        let library = RankerTable.libraryCorpus(docs: docs)
+        let mirrorEntries = docs.map {
+            MirrorRanking.entry(docId: $0.path, title: $0.title, body: $0.body)
+        }
+
         rows = [
-            // The production ranker, as the library runs it today: the
-            // production tokenizer, the production score, the title weighted
-            // twice the body, and no inverse document frequency.
-            RankerTable.measure(
-                name: RankerTable.productionName,
-                docs: docs,
-                queries: queries,
-                score: { doc, queryTokens in
-                    let titleTokens = TokenOverlapRanking.tokenize(doc.title)
-                    let bodyTokens = TokenOverlapRanking.tokenize(doc.body)
-                    let titleScore = TokenOverlapRanking.score(queryTokens: queryTokens, docTokens: titleTokens)
-                    let bodyScore = TokenOverlapRanking.score(queryTokens: queryTokens, docTokens: bodyTokens)
-                    return titleScore * 2 + bodyScore
-                },
-                queryTokens: { TokenOverlapRanking.tokenize($0) }
-            ),
+            // The production library search (= what the library's own view
+            // runs today): the app's own function, asked for its answer.
+            RankerTable.measureOrdered(
+                name: RankerTable.libraryName,
+                queries: queries
+            ) { question in
+                ReferenceLibrarySearch.search(
+                    query: question,
+                    references: library.references,
+                    bodyOf: { library.bodyOf($0) }
+                ).map { library.pathOf($0.reference.id) }
+            },
+            // The production mirror search (= what the app answers with when
+            // the system index is unavailable): the app's own function.
+            RankerTable.measureOrdered(
+                name: RankerTable.mirrorName,
+                queries: queries
+            ) { question in
+                MirrorRanking.rank(entries: mirrorEntries, query: question, limit: docs.count)
+                    .map(\.docId)
+            },
             RankerTable.measure(
                 name: RankerTable.characterName,
                 docs: docs,
@@ -265,7 +308,97 @@ struct RankerTable {
         ]
     }
 
+    // MARK: The corpus as the app's own search sees it
+
+    /// The corpus as `ReferenceLibrarySearch` sees it: one `Reference` per
+    /// document, and the body the app would read for it.
+    struct LibraryCorpus {
+        let references: [Reference]
+        private let paths: [UUID: String]
+        private let bodies: [UUID: String]
+
+        init(
+            references: [Reference],
+            paths: [UUID: String],
+            bodies: [UUID: String]
+        ) {
+            self.references = references
+            self.paths = paths
+            self.bodies = bodies
+        }
+
+        /// The corpus document a hit's reference is.
+        func pathOf(_ id: UUID) -> String {
+            paths[id] ?? ""
+        }
+
+        /// The body of one corpus document.
+        func bodyOf(_ reference: Reference) -> String? {
+            bodies[reference.id]
+        }
+    }
+
+    /// Build the corpus the app's own library search can search.
+    static func libraryCorpus(docs: [RetrievalQualityCorpus.Document]) -> LibraryCorpus {
+        var paths: [UUID: String] = [:]
+        var bodies: [UUID: String] = [:]
+        var references: [Reference] = []
+        for doc in docs {
+            let reference = Reference(title: doc.title)
+            paths[reference.id] = doc.path
+            bodies[reference.id] = doc.body
+            references.append(reference)
+        }
+        return LibraryCorpus(references: references, paths: paths, bodies: bodies)
+    }
+
     // MARK: Ranking one corpus
+
+    /// Measure a ranker that answers the way the app answers: it is given
+    /// the question and the corpus, and it returns the documents in the
+    /// order the app would show them.
+    ///
+    /// **⇒ The production rows use this (= they ask the app's own search
+    /// for its answer), = so a change to the app's ranking moves this
+    /// table.**
+    static func measureOrdered(
+        name: String,
+        queries: [RetrievalQualityCorpus.Query],
+        answer: (String) -> [String]
+    ) -> RankerResult {
+        var at1 = 0, at3 = 0, at5 = 0, bridgeAt1 = 0, bridgeAt3 = 0, bridgeTotal = 0
+        for query in queries {
+            let paths = answer(query.text)
+            let rank = paths.firstIndex(of: query.goldPath) ?? -1
+            if rank == 0 {
+                at1 += 1
+            }
+            if rank >= 0 && rank < 3 {
+                at3 += 1
+            }
+            if rank >= 0 && rank < 5 {
+                at5 += 1
+            }
+            if query.kind == .bridge {
+                bridgeTotal += 1
+                if rank == 0 {
+                    bridgeAt1 += 1
+                }
+                if rank >= 0 && rank < 3 {
+                    bridgeAt3 += 1
+                }
+            }
+        }
+        let n = Double(max(1, queries.count))
+        return RankerResult(
+            name: name,
+            recallAt1: Double(at1) / n,
+            recallAt3: Double(at3) / n,
+            recallAt5: Double(at5) / n,
+            bridgeAt1: Double(bridgeAt1) / Double(max(1, bridgeTotal)),
+            bridgeAt3: Double(bridgeAt3) / Double(max(1, bridgeTotal))
+        )
+    }
 
     /// Rank every document for every query with a query-time expander: the
     /// question's terms each get their own independent query, and the
