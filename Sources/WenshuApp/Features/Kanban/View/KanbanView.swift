@@ -280,11 +280,11 @@ struct KanbanView: View {
             // user is switching tabs.
             let buckets = await Self.parseBodies(tasks)
             // ⇒ ⇒ ⇒ AND A STALE READ IS DROPPED: = = the parse is the
-            // long part of the read, = = so the board can be asked
-            // for another book while it runs. = = ⇒ ⇒ ⇒ The read
-            // that started first must not answer for the book
-            // that came second (= = = = or the board would draw
-            // = = = = book A's cards under book B's name).
+            // long part of the read, = = so the board can be asked for
+            // another book while it runs. = = ⇒ ⇒ ⇒ The read that
+            // started first must not answer for the book that came
+            // second (= = or the board would draw book A's cards under
+            // book B's name).
             guard loadCounter.isCurrent(generation) else { return }
             cardsByStatus = buckets
             loadError = nil
@@ -305,14 +305,12 @@ struct KanbanView: View {
     /// = = stays free for the frames that draw the board.
     ///
     /// = = ⇒ ⇒ ⇒ AND WHY A DETACHED TASK IS THE RIGHT DOOR HERE: = =
-    /// = = ⇒ ⇒ ⇒ AGENTS.md 4.5's rule is about background WRITES (= =
-    /// = = ⇒ ⇒ ⇒ "never a detached task on the context" = = = = the
-    /// = = ⇒ ⇒ ⇒ SwiftData context). = = ⇒ ⇒ ⇒ This parse writes
-    /// = = ⇒ ⇒ ⇒ NOTHING (= = it reads plain strings and returns plain
-    /// = = ⇒ ⇒ ⇒ values), = = = = so the context's rule does not reach
-    /// = = ⇒ ⇒ ⇒ it. = = ⇒ ⇒ ⇒ And the house's own background READ
-    /// = = ⇒ ⇒ ⇒ uses this exact shape (= = `CoverIndex.prefill` walks
-    /// = = ⇒ ⇒ ⇒ the covers in a detached task).
+    /// AGENTS.md 4.5's rule is about background WRITES (= = "never a
+    /// detached task on the context" = = the SwiftData context). = = This
+    /// parse writes NOTHING (= = it reads plain strings and returns
+    /// plain values), = = so the context's rule does not reach it. = = And
+    /// the house's own background READ uses this exact shape (= =
+    /// `CoverIndex.prefill` walks the covers in a detached task).
     ///
     /// = = The markdown goes through the same inline-markdown parser
     /// = = chat uses (= `ChatTextPartView.parseMarkdown`), = = so
@@ -503,16 +501,16 @@ private struct KanbanCard: View {
 
 /// Which read of the board is the current one.
 ///
-/// = = ⇒ AND IT IS A COUNTER, NOT THE BOOK: = = the board can be asked
-/// = = ⇒ for two books in a row (= = the user switched books while the
-/// = = ⇒ first read was still running), = = and the first read can land
-/// = = ⇒ SECOND. = = ⇒ ⇒ ⇒ So every read takes the next number, = =
-/// = = ⇒ ⇒ and only the newest number may write (= = = = or the board
-/// = = ⇒ ⇒ would draw book A's cards under book B's name).
+/// ⇒ ⇒ ⇒ AND IT IS A COUNTER, NOT THE BOOK: = = the board can be asked
+/// for two books in a row (= = the user switched books while the first
+/// read was still running), = = and the first read can land SECOND. = =
+/// ⇒ ⇒ ⇒ So every read takes the next number, = = and only the newest
+/// number may write (= = or the board would draw book A's cards under
+/// book B's name).
 ///
-/// = = ⇒ ⇒ ⇒ AND IT IS A REFERENCE: = = the board is a View STRUCT, = =
-/// = = ⇒ ⇒ ⇒ and a struct's own counter would need a mutating self = =
-/// = = ⇒ ⇒ ⇒ = = = = which an async read cannot have.
+/// ⇒ ⇒ ⇒ AND IT IS A REFERENCE: = = the board is a View STRUCT, = = and
+/// a struct's own counter would need a mutating self = = = which an
+/// async read cannot have.
 @MainActor
 final class KanbanLoadCounter {
     /// The newest read that started.

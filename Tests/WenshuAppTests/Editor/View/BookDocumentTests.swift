@@ -3,21 +3,28 @@
 //
 //  Tests for the book scope's ONE list (= read once, off the main thread).
 //
-//  Coverage (= 9 tests):
-//    1.  the head read holds the card when the head carries the H1 and 200+
-//        characters after it
+//  Coverage (= 12 tests, = = and the list below is derived from the
+//  file, = = so a test added here and not there is visible):
+//    1.  the head read holds the card when the head carries the H1 and
+//        200+ characters after it
 //    2.  the head read falls back when the head has no H1 in it
 //    3.  the head read falls back when the body after the H1 is shorter
 //        than the summary's window
 //    4.  the head read drops a trailing incomplete character (= = and a
 //        CJK head is still a head)
-//    5.  the loader's document = = the whole-body loader's document (= =
-//        the card a book document draws is unchanged)
+//    5.  the head door's CARD = = the whole file's card (= = the card a
+//        book document draws is unchanged)
 //    6.  the loader reads the book's .md files from the book's directory
 //    7.  the store lands the documents and names the book they belong to
 //    8.  the store does not read twice for the same key
-//    9.  the store drops a stale read (= = the read that started first and
-//        landed second does not answer the newer scope)
+//    9.  the store's write is guarded (= = so a stale read cannot answer
+//        for the newer scope)
+//    10. the store drops a stale read (= = the read that started first
+//        and landed second does not answer the newer scope)
+//    11. the material column's body does not walk the disk (= = the tab
+//        switch keeps its frame)
+//    12. the chrome's card count reads the store (= = so the count and
+//        the grid cannot drift)
 //
 //  ⇒ ⇒ ⇒ AND THE SOURCE-LEVEL MARKERS: = = the material column's body
 //  must NOT walk the disk (= = that walk is what cost the tab

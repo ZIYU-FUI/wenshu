@@ -13,18 +13,16 @@
 //  the SAME book a SECOND time per pass.
 //
 //  ⇒ ⇒ ⇒ MEASURED on the real library (= = the probe
-//  ⇒ ⇒ ⇒ ⇒ ⇒ `Tools/wenshu-devtool/probes/card_surfaces_load_cost.swift`
-//  ⇒ ⇒ ⇒ ⇒ ⇒ reads the numbers, = = so they are the probe's and the
-//  ⇒ ⇒ ⇒ ⇒ ⇒ probe is how they are re-measured): = = one body pass
-//  ⇒ ⇒ ⇒ ⇒ ⇒ walked the book TWICE (= = the grid and the chrome's
-//  ⇒ ⇒ ⇒ ⇒ ⇒ count), = = read 123854 bytes, = = and the walk's p95
-//  ⇒ ⇒ ⇒ ⇒ ⇒ sits in the MILLISECONDS. = = Apple's own line is 5ms
-//  ⇒ ⇒ ⇒ ⇒ ⇒ of main-thread work in one frame (= = Xcode's "Improving
-//  ⇒ ⇒ ⇒ ⇒ ⇒ app responsiveness" article), = = so the pass was over
-//  ⇒ ⇒ ⇒ ⇒ ⇒ the line at p95. = = And the pass runs in the frame that
-//  ⇒ ⇒ ⇒ ⇒ ⇒ draws the chat zone's tab switch (= = the tree's
-//  ⇒ ⇒ ⇒ ⇒ ⇒ selection follows the chat tab, = = so the material
-//  ⇒ ⇒ ⇒ ⇒ ⇒ column's walk lands in the tab switch's frame).
+//  `Tools/wenshu-devtool/probes/card_surfaces_load_cost.swift` reads the
+//  numbers, = = so they are the probe's and the probe is how they are
+//  re-measured): = = one body pass walked the book TWICE (= = the grid
+//  and the chrome's count), = = read 123854 bytes, = = and the walk's
+//  p95 sits in the MILLISECONDS. = = Apple's own line is 5ms of
+//  main-thread work in one frame (= = Xcode's "Improving app
+//  responsiveness" article), = = so the pass was over the line at p95.
+//  = = And the pass runs in the frame that draws the chat zone's tab
+//  switch (= = the tree's selection follows the chat tab, = = so the
+//  material column's walk lands in the tab switch's frame).
 //
 //  ⇒ ⇒ ⇒ So the walk moves HERE: OFF the main thread (= the disk ask
 //  is the expensive part, = = and the main thread is what the
@@ -310,8 +308,8 @@ enum BookDocumentLoader {
 /// = = when the load lands.
 ///
 /// = = ⇒ AND THE COUNT READS THIS SAME LIST: = = the chrome's card count
-/// = = = = the grid's list = = so one walk answers both questions (= =
-/// = = the one-door rule) = = and the two answers cannot drift apart.
+/// = = the grid's list = = so one walk answers both questions (= = the
+/// = = one-door rule) = = and the two answers cannot drift apart.
 @MainActor
 @Observable
 final class BookDocumentStore {
@@ -373,14 +371,12 @@ final class BookDocumentStore {
     /// = = free for the frame that drew the chat zone's tab switch.
     ///
     /// = = ⇒ ⇒ ⇒ AND WHY A DETACHED TASK IS THE RIGHT DOOR HERE: = =
-    /// = = ⇒ ⇒ ⇒ AGENTS.md 4.5's rule is about background WRITES (= =
-    /// = = ⇒ ⇒ ⇒ "never a detached task on the context" = = = = the
-    /// = = ⇒ ⇒ ⇒ SwiftData context). = = ⇒ ⇒ ⇒ This read writes
-    /// = = ⇒ ⇒ ⇒ NOTHING (= = it reads files and returns plain values),
-    /// = = = = so the context's rule does not reach it. = = ⇒ ⇒ ⇒ And
-    /// = = ⇒ ⇒ ⇒ the house's own background READ uses this exact shape
-    /// = = ⇒ ⇒ ⇒ (= = `CoverIndex.prefill` walks the covers in a
-    /// = = ⇒ ⇒ ⇒ detached task).
+    /// AGENTS.md 4.5's rule is about background WRITES (= = "never a
+    /// detached task on the context" = = the SwiftData context). = = This
+    /// read writes NOTHING (= = it reads files and returns plain
+    /// values), = = so the context's rule does not reach it. = = And the
+    /// house's own background READ uses this exact shape (= =
+    /// `CoverIndex.prefill` walks the covers in a detached task).
     ///
     /// = = ⇒ AND THE KEY IS THE GUARD: = = a caller whose key is already
     /// = = loaded does not read again (= = so the pane's task and a
@@ -424,8 +420,8 @@ final class BookDocumentStore {
         // while the read runs (= = the user picked another book),
         // and the read that started first can land SECOND. = = So
         // the read asks "is my key still the current one?" = = and
-        // drops its result when it is not (= = = = the old book's
-        // documents must never answer the new book's scope).
+        // drops its result when it is not (= = the old book's documents
+        // must never answer the new book's scope).
         guard currentLoadGeneration == generation else { return }
         // The identity and the documents land TOGETHER (= = no await
         // between them), = = so a reader never sees one book's name over

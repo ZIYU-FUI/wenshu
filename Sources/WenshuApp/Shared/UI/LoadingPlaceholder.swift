@@ -22,9 +22,13 @@
 //  = = it is "the app is starting", = = not "content arriving").
 //
 //  ⇒ ⇒ ⇒ So the loading picture is ONE component, here, and every zone
-//  asks it for the shape its own content will take (= = and for
-//  its own row anatomy, = = because the inspector's card and the
-//  sidebar's tree row are NOT the same shape). = ⇒ ⇒ ⇒ ⇒ ⇒ AND THE SHAPE IS WHAT THE PLACEHOLDER RESERVES (= = the = ⇒ ⇒ ⇒ ⇒ ⇒ content arrives into the space the placeholder already = ⇒ ⇒ ⇒ ⇒ ⇒ holds, = = so nothing around the zone moves).
+//  asks it for the shape its own content will take (= = and for its own
+//  row anatomy, = = because the inspector's card and the sidebar's tree
+//  row are NOT the same shape).
+//
+//  ⇒ ⇒ ⇒ AND THE SHAPE IS WHAT THE PLACEHOLDER RESERVES (= = the
+//  content arrives into the space the placeholder already holds, = = so
+//  nothing around the zone moves).
 //
 //  ⇒ ⇒ ⇒ AND THE COMPONENT IS THE TWIN OF `EmptyStateView` (= the
 //  project's one "there is nothing here" surface): a zone is either

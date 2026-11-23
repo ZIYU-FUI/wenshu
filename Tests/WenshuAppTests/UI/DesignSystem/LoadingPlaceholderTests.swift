@@ -6,19 +6,26 @@
 //  wenshu test convention): the shape vocabulary is a value type, so it
 //  is built directly, and the wiring is read off the source.
 //
-//  Coverage:
-//      1. The shape vocabulary is exactly three shapes (= rows / cards /
-//         block) = = and no zone invents its own.
-//      2. The component uses Apple's phase animator for its motion (= not
-//         a hand-rolled timer and not a custom gradient).
-//      3. The component draws no glyph and no text (= a placeholder
-//         carries no message).
-//      4. Every zone-level loading branch asks THIS component (= the
-//         six bare spinners are gone).
-//      5. The inline activity indicators that are NOT zones (= a badge,
-//         a diagnostics row, an import row) keep Apple's own indicator.
-//      6. The design tokens the placeholder needs exist (= the bar
-//         heights are tokens and not literals in the view).
+//  Coverage (= 13 tests, = = and the list below is derived from the
+//  file, = = so a test added here and not there is visible):
+//      1.  the shape vocabulary is exactly four shapes (= rows / cards /
+//          groups / block) = = and no zone invents its own
+//      2.  a row shape carries its count and its unit
+//      3.  the two row anatomies are DIFFERENT (= the inspector's card
+//          and the sidebar's tree row)
+//      4.  a group shape carries its count (= the board's own groups)
+//      5.  a card shape carries the zone's own grid and the card count
+//      6.  the motion is Apple's phase animator (= not a hand-rolled
+//          timer)
+//      7.  the placeholder draws no glyph and no text
+//      8.  every zone whose content arrives draws this component
+//      9.  the zone-level spinners are gone (= = the base's four are
+//          gone, = = and one zone that had no loading state has one)
+//      10. the board's read captures the book before its yield
+//      11. an inline activity indicator stays Apple's (= = it is not a
+//          zone)
+//      12. the placeholder's metrics are tokens (= = not literals)
+//      13. the placeholder's own tokens are defined
 //
 
 import Foundation
@@ -180,7 +187,11 @@ struct LoadingPlaceholderTests {
         #expect(bookRead.lowerBound < yield.lowerBound,
                 "the board must capture the book BEFORE its yield")
         // ⇒ ⇒ ⇒ AND THE WRITE IS GUARDED: = = the read that started
-        // first can land second (= = and it must not write). = ⇒ ⇒ ⇒ ⇒ ⇒ The invariant is the ORDER (= = the guard before = ⇒ ⇒ ⇒ ⇒ ⇒ the write), = = not the guard's presence (= = the = ⇒ ⇒ ⇒ ⇒ ⇒ error branch carries the same guard, = = so its = ⇒ ⇒ ⇒ ⇒ ⇒ presence alone would pass on a board whose write = ⇒ ⇒ ⇒ ⇒ ⇒ is unguarded).
+        // first can land second (= = and it must not write). = = ⇒ ⇒ ⇒
+        // The invariant is the ORDER (= = the guard before the write),
+        // = = not the guard's presence (= = the error branch carries the
+        // same guard, = = so its presence alone would pass on a board
+        // whose write is unguarded).
         let guardRange = try #require(
             source.range(of: "guard loadCounter.isCurrent(generation) else { return }")
         )

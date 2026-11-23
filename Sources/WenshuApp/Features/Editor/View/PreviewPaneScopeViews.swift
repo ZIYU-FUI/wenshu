@@ -85,11 +85,11 @@ extension PreviewPane {
     /// folder.
     @ViewBuilder
     func bookScopeView(bookId: UUID, folderName: String?) -> some View {
-        // ⇒ ⇒ ⇒ THE DOCUMENTS COME FROM THE STORE, AND THE BODY READS = ⇒ ⇒ ⇒ NO DISK: = = SwiftUI re-evaluates a body on every
-        // observation tick (= every store mutation, = = every
-        // selection change, = = every parent re-render), = = so a
-        // disk walk here runs hundreds of times per second while
-        // the book is selected.
+        // ⇒ ⇒ ⇒ THE DOCUMENTS COME FROM THE STORE, AND THE BODY READS NO
+        // DISK: = = SwiftUI re-evaluates a body on every observation
+        // tick (= every store mutation, = = every selection change, = =
+        // every parent re-render), = = so a disk walk here runs hundreds
+        // of times per second while the book is selected.
         //
         // ⇒ ⇒ ⇒ MEASURED, = = on the real library (= = the probe
         // = `Tools/wenshu-devtool/probes/card_surfaces_load_cost.swift`
