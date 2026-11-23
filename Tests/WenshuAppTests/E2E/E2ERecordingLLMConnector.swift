@@ -23,9 +23,10 @@ import WenshuAgent
 /// endpoint with the keychain's key. The boss opts in with
 /// `WENSHU_LIVE_API_TESTS=1`.
 ///
-/// It is shared (= = the three live suites each ask the same question),
+/// It is shared (= = the two live suites read their fixture from here),
 /// = = so it lives here with the other shared fixture.
 enum E2EShared {
+    /// The .ws repository root the two live suites run against.
     static var anbaiqiangWSRoot: URL {
         return SourceLocator.repoRoot.appendingPathComponent(".scratch/anbaiqiang.ws")
     }

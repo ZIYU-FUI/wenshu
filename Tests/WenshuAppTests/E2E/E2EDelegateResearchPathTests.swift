@@ -122,8 +122,8 @@ struct E2EDelegateResearchPathTests {
         let recording = RecordingLLMConnector(wrapping: realConnector)
         let loop = ConversationLoop(connection: recording)
 
-        // Step 3: vague prompt (= same wording as autoTriggerResearch; =
-        // the LLM must detect the two given names as concrete nouns).
+        // Step 3: vague prompt (= same wording as autoTriggerResearch; the
+        // name is withheld, a profession and a birthplace are given).
         let userMessage = """
         我想写一部小说，主角名字还没想好。
         设定是入殓师职业，出生在沧州。
@@ -221,8 +221,4 @@ struct E2EDelegateResearchPathTests {
             #expect(task.title.hasPrefix("research: "))
         }
     }
-}
-
-private extension E2EMemoryAndLLMFlowTests {
-    // the .ws repository root this suite uses (= a copy, = = isolated).
 }
