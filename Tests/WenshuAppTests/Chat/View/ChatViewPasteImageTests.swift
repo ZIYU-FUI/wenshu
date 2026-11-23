@@ -2,8 +2,7 @@
 //  ChatViewPasteImageTests.swift · Wenshu · T38-PASTE-IMAGE (2026-09-18)
 //
 //  Verifies that ChatView.swift handles ⌘V on an image from
-//  the clipboard (= the standard Apple Messages / Slack /
-//  Discord affordance). Strategy: source inspection (= the
+//  the clipboard). Strategy: source inspection (= the
 //  onPasteCommand handler is value-typed; the runtime clipboard
 //  can't be exercised in a unit test).
 //

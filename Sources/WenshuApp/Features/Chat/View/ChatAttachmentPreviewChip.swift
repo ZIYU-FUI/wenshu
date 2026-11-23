@@ -9,7 +9,7 @@ import SwiftUI
 /// ChatAttachmentPreviewChip = draft state; ChatMessageView =
 /// committed-message state).
 ///
-/// Visual: Apple Messages / Slack attachment preview pattern. 48 PT
+/// Visual (= what this view implements): 48 PT
 /// square thumbnail on the leading side, 8 PT gap, then a small
 /// ✕ button (SF Symbols 6 `xmark`) that calls the `onClear` closure. The
 /// whole chip is wrapped in `.regularMaterial` (= macOS 27 Liquid

@@ -5,8 +5,7 @@
 //  filtered list of hub commands above the chat TextField when the
 //  user types `/` (= filtered by the prefix after `/`).
 //
-//  product convention: inline suggestion popup (= same pattern as
-//  macOS Mail / Messages / Slack slash command menus). Hidden when
+//  inline suggestion popup above the field. Hidden when
 //  no commands match. Tap a row to insert the full command into
 //  the input (= `/commandName ` = trailing space so the user can
 //  start typing the remainder immediately).

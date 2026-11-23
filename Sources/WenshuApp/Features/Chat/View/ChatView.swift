@@ -9,17 +9,7 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "chatview")
 struct ChatView: View {
     /// The chat view's model. It owns the transcript, the input text and the send
     /// path.
-    /// The chat's model, observed.
-    ///
-    /// `@Bindable` holds the model AND observes it (= = the tree's own
-    /// way, = = and the way the chat's input bar does it).
-    /// MEASURED: a plain `onChange(of: vm.someProperty)` on a
-    /// `@State`-held `@Observable` model never fired (= = the change does
-    /// not reach the view), = = and a SECOND copy of the model (= = a
-    /// `@Bindable` beside the `@State`) is a DIFFERENT observation of
-    /// the same instance, = = so a change the test made was invisible to
-    /// the view. One property, observed once.
-    @Bindable var vm: ChatViewModel
+    @State var vm: ChatViewModel
     /// Focus management for the input box: when no provider key is configured the
     /// chat input is disabled AND loses focus (= no cursor blinking, no keyboard
     /// capture).
@@ -58,13 +48,6 @@ struct ChatView: View {
     /// re-evaluate the body and pick up the freshly-configured key: the
     /// empty-state overlay disappears and the chat input row enables.
     @State private var keychainRevision: Int = 0
-    /// Where the reader is in the transcript.
-    ///
-    /// The viewport's geometry, reduced to what the follow gate needs:
-    /// the distance between the last message's bottom edge and the
-    /// viewport's bottom edge (= = zero when the reader is at the
-    /// bottom), the offset, and the content's height.
-    @State private var transcriptScroll = ChatTranscriptBottom.ScrollState()
     // Reactive check: is the current model usable?: the vm's snapshot of the
     // model id lags when the key is configured from Settings, so the input was
     // disabling itself even though the user had just set a key. Read the same
@@ -78,7 +61,7 @@ struct ChatView: View {
         _ = keychainRevision
         // The input row is disabled while no provider key is configured, and
         // while a turn is in flight (= the second send is refused rather than
-        // racing the first = Apple Messages behavior). A view-body computed
+        // racing the first). A view-body computed
         // property cannot `await` the provider list, so the sync-cached variant
         // on the public facade is read: the cache is warmed at app launch and
         // refreshed on every keychain change notification.
@@ -96,7 +79,7 @@ struct ChatView: View {
         // via `.task` after init (= can't read @Environment inside init). Either
         // way, currentModel routes through AppState.llmModel.
         if let vm = vm {
-            _vm = Bindable(wrappedValue: vm)
+            _vm = State(initialValue: vm)
         } else {
             // InitialMessages via.task async load (avoids init race) scope for
             // this ticket. AUDIT.md §2.2 partial: resolve the conductor from the
@@ -105,13 +88,7 @@ struct ChatView: View {
             // `WenshuAppDelegate.sharedConductor` (= deprecation bridge).
             let resolved = conductor ?? WenshuAgent.shared.currentConductorSync()
             let wiredConductor = ChatView.conductorRegisteringParagraphAI(resolved)
-            _vm = Bindable(
-                wrappedValue: ChatViewModel(
-                    conductor: wiredConductor,
-                    sessionId: sessionId,
-                    initialMessages: []
-                )
-            )
+            _vm = State(initialValue: ChatViewModel(conductor: wiredConductor, sessionId: sessionId, initialMessages: []))
         }
     }
 
@@ -181,23 +158,6 @@ struct ChatView: View {
     }
 
     var body: some View {
-        // Whether the way back is offered (= = the reader is away from
-        // the bottom). It is read ONCE, = = here, = = because the
-        // control's own condition (= = inside the overlay) is not a
-        // dependency the body takes: MEASURED, the control never
-        // appeared while the condition lived in the overlay.
-        let offersWayBack = vm.offersWayBack
-        // The request to go back is READ here, = = so the view knows
-        // about it: a modifier's argument (= = `.task(id:)`) is not a
-        // dependency the body takes, = = so without this read the view
-        // would not re-evaluate when the request changed, = = and the
-        // task would never restart. MEASURED: the scroll never
-        // happened.
-        let _ = vm.jumpToNewestRequest
-        // The newest block's key is READ here, = = so the view knows
-        // when the reply grew (= = the follow's trigger; = = see the
-        // `.task(id:)` above).
-        let _ = vm.messages.last?.streamFollowKey
         // Listen for the global defocus notification, and align the transcript to
         // the leading edge: `VStack`'s default horizontal alignment is `.center`,
         // which is right for a single column that should be centered in a wider
@@ -231,89 +191,7 @@ struct ChatView: View {
                     // chat column is one continuous surface instead of a
                     // flat fill painted under the scrolling content.
                     .scrollContentBackground(.hidden)
-                    //
-                    // The viewport's bottom edge is the content's bottom
-                    // edge (= = the last line stays visible when the
-                    // column re-wraps and the content grows).
-                    //
-                    // MEASURED: without it, the transcript's own suite
-                    // fails its width invariant (= = the last line falls
-                    // below the viewport when the column narrows).
                     .defaultScrollAnchor(.bottom)
-                    //
-                    // The viewport is ALSO bound to the ROW the reader
-                    // is looking at.
-                    //
-                    // Apple's `scrollPosition(id:anchor:)` binds the
-                    // scroll view to the id of the row at the anchor,
-                    // and its own documentation says the binding "is
-                    // updated when a scroll view within this view
-                    // scrolls" (= = the reader's own scroll writes it
-                    // back).
-                    //
-                    // It is what the follow names (= = the clearance
-                    // row, = = the content's bottom edge), = = and it is
-                    // what holds the reader's place while the content
-                    // grows underneath them.
-                    //
-                    // MEASURED on macOS 27.2.1: with the bottom anchor
-                    // alone, a reader who had scrolled up was dragged
-                    // back to the bottom by the arriving reply (= = their
-                    // offset jumped from 480 to 1200, = = the new
-                    // maximum); with the row binding naming the
-                    // reader's row, their offset stayed put (= = 272
-                    // while the content grew).
-                    .scrollPosition(id: $vm.anchoredRowID, anchor: .bottom)
-                    //
-                    // Where the reader is.
-                    //
-                    // The viewport's geometry, reduced to what the follow
-                    // gate needs: the distance between the content's
-                    // bottom edge and the viewport's bottom edge (= = zero
-                    // when the reader is at the bottom), the offset, and
-                    // the content's height.
-                    .onScrollGeometryChange(for: ChatTranscriptBottom.ScrollState.self) { geometry in
-                        ChatTranscriptBottom.ScrollState(
-                            offset: geometry.contentOffset.y,
-                            distanceFromBottom: ChatTranscriptBottom.distanceFromBottom(
-                                contentSize: geometry.contentSize,
-                                visibleRect: geometry.visibleRect,
-                                bottomInset: ChatTranscriptBottom.bottomInset
-                            ),
-                            contentHeight: geometry.contentSize.height
-                        )
-                    } action: { _, current in
-                        // The viewport's own reading (= = how far the
-                        // reader is from the last message).
-                        //
-                        // It is the TRUTH about the viewport, = = and it
-                        // is not the gate (= = the gate is the reader's
-                        // own place, = = below): a reply arriving under
-                        // the reader moves this number without moving
-                        // the reader.
-                        transcriptScroll = current
-                    }
-                    //
-                    // The reader's own place.
-                    //
-                    // Apple's `scrollPosition(id:)` writes the binding
-                    // back when the reader scrolls (= = its own
-                    // documentation says so), = = so the row it names
-                    // is the row the reader is looking at.
-                    //
-                    // THAT is the gate: the content growing under the
-                    // reader moves every distance, = = but it does not
-                    // move the row the reader is looking at.
-                    .onChange(of: vm.anchoredRowID) { _, row in
-                        // The distance comes from the view's own newest
-                        // geometry (= = the scroll callback's last
-                        // reading), = = not from the model (= = the
-                        // model's copy is written by the same callback,
-                        // and reading it back here would hand the gate
-                        // the number from before the last frame).
-                        vm.readerMoved(to: row, distance: transcriptScroll.distanceFromBottom)
-                    }
-                    //
                     // The transcript follows the newest content: when the
                     // newest block of the last message changes (= the
                     // assistant's streaming reply growing), the viewport
@@ -331,77 +209,16 @@ struct ChatView: View {
                     // text also means a tool card that lands at the end of a
                     // reply is scrolled to, which is what "follow the newest
                     // content" says it should do.
-                    //
-                    // `.task(id:)` carries it, = = not `onChange`:
-                    // MEASURED, `onChange` over a model's `@Observable`
-                    // property never fired here (= = the view was not
-                    // re-evaluated, = = so the follow never happened).
-                    // The key is READ in the body (= = see below), = = so
-                    // the view knows the newest block changed.
-                    .task(id: vm.messages.last?.streamFollowKey) {
-                        followNewestContent(proxy)
+                    .onChange(of: vm.messages.last?.streamFollowKey) { _, _ in
+                        if let last = vm.messages.last {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        }
                     }
-                    //
-                    // The content's height changed (= = the bubbles
-                    // re-wrapped because the column's width changed).
-                    //
-                    // The transcript's own invariant: the offset must
-                    // follow the content's height, or the last line
-                    // falls below the viewport.
-                    //
-                    // The bottom anchor carries the width change (= =
-                    // when the column narrows, the content grows, = =
-                    // and the anchor keeps the bottom at the viewport's
-                    // bottom). What it does NOT carry is the arriving
-                    // reply: MEASURED, with the bottom anchor alone, a
-                    // reader who had scrolled up was dragged back down
-                    // (= = their offset jumped from 480 to 1200, = = the
-                    // new maximum). = = So the follow is the app's own
-                    // (= = it runs only while the reader is at the
-                    // bottom, = = and a reader who is reading history
-                    // keeps their place).
-                    .onChange(of: transcriptScroll.contentHeight) { _, _ in
-                        followNewestContent(proxy)
-                    }
-                    // The reader asked to go back to the newest content
-                    // (= = the floating control's click). The request
-                    // lives in the model (= = "the reader wants the
-                    // newest content" is a fact about the conversation,
-                    // = = not about the viewport), = = and the view is
-                    // what turns it into a scroll.
-                    //
-                    // `.task(id:)` is what carries it, = = not
-                    // `onChange`: MEASURED, `onChange` over a model's
-                    // `@Observable` property never fired here (= = the
-                    // view was not re-evaluated, = = so the scroll never
-                    // happened), = = and `.task(id:)` restarts when the
-                    // id changes, = = which is Apple's own pattern for
-                    // "something happened, = = do it now".
-                    .task(id: vm.jumpToNewestRequest) {
-                        guard vm.jumpToNewestRequest > 0 else { return }
-                        followNewestContent(proxy, force: true)
-                    }
-            }
-            // The way back to the newest content, floating above the
-            // composer. It appears only while the reader is away from
-            // the bottom, and it takes no room while it is hidden (= =
-            // it cannot swallow a click meant for the transcript).
-            //
-            // It sits on the VIEW, = = not on the transcript: the
-            // transcript is a computed property, = = and a condition it
-            // does not read does not make it re-evaluate. MEASURED: the
-            // control never appeared when the condition lived there.
-            .overlay(alignment: .bottom) {
-                if offersWayBack {
-                    ChatScrollToBottomButton {
-                        vm.requestJumpToNewest()
-                    }
-                    .padding(.bottom, DesignTokens.spacingStandard)
-                }
             }
             // Chat input bar (= the top layer of the 3-layer UI split per the
             // spec) floats over this ScrollView via.safeAreaInset(edge:.bottom);
-            // = product Messages / Slack chat input pattern.
+            // = the two fields and the send button styled by Apple's
+            // guidance (see OOB.md #2026-11-23).
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 ChatInputBarView(
                     vm: vm,
@@ -519,33 +336,7 @@ struct ChatView: View {
                 ForEach(vm.messages) { message in
                     transcriptRow(message)
                 }
-                // The blank space below the last message (= = the input
-                // bar's height), as a row OF the content.
-                //
-                // A bottom margin on the scroll content sits OUTSIDE the
-                // content's own height, = = so the content's bottom edge is below
-                // the last message's, = = and no row's bottom edge was
-                // the content's bottom edge (= = the viewport's anchor,
-                // = = which names a ROW, = = could not put the content's
-                // bottom edge at the viewport's bottom edge).
-                //
-                // As a row of the content, it IS the content's bottom
-                // edge, = = and the anchor names it.
-                //
-                // The row is the input bar's height, = = and the stack's
-                // spacing (8 PT) sits before it, = = so the blank space
-                // below the last message is the same 88 PT the margin
-                // gave (= = the margin is gone, = = so the two must not
-                // both be there).
-                Color.clear
-                    .frame(height: DesignTokens.chatInputBarHeight)
-                    .id(ChatTranscriptBottom.clearanceID)
             }
-            // The rows are the scroll view's targets, = = so the binding
-            // can name the row the reader is looking at (= = Apple's
-            // `scrollPosition(id:)` needs `scrollTargetLayout()` to know
-            // what the ids belong to).
-            .scrollTargetLayout()
             // The transcript's padding, minus the bottom: the bottom padding puts
             // the content's bottom edge BELOW the last message's, so the chat's
             // scroll to the last message lands short of the maximum offset, and a
@@ -553,6 +344,13 @@ struct ChatView: View {
             // anchor holds only while the offset IS the maximum).
             .padding(.horizontal, DesignTokens.spacingStandard)
             .padding(.top, DesignTokens.spacingStandard)
+            // The bottom margin is the input bar's height, so the
+            // transcript's last message peeks behind the input bar.
+            .contentMargins(
+                .bottom,
+                DesignTokens.chatInputBarHeight + DesignTokens.spacingStandard,
+                for: .scrollContent
+            )
             // — add 10 PT top spec.
             .padding(.top, 10)
             // The cleanup keeps the row
