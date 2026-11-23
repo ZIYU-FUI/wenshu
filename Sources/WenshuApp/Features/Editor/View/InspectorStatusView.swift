@@ -59,8 +59,13 @@ struct InspectorStatusView: View {
         if scope == nil {
             emptyState
         } else if !model.isLoaded {
-            ProgressView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // The tasks have not landed yet (= the registry read is
+            // still running). The rows the list will hold are reserved
+            // (= the project's one loading placeholder), so the column
+            // reads as WORKING while they arrive.
+            LoadingPlaceholder(.rows(count: 3, unit: .inspectorCard))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(DesignTokens.spacingStandard)
         } else if model.tasks.isEmpty {
             emptyState
         } else {

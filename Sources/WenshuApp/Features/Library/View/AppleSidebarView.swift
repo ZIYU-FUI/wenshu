@@ -233,8 +233,13 @@ struct AppleSidebarView: View {
                 // newValue).
                 }  // end VStack(spacing: 0) { title + Divider + List }
             } else {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // The tree has not landed yet (= the library's books
+                // are still loading). The rows the tree will hold are
+                // reserved (= the project's one loading placeholder), so
+                // the column reads as WORKING while they arrive.
+                LoadingPlaceholder(.rows(count: 4, unit: .sidebarRow))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(DesignTokens.spacingStandard)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {

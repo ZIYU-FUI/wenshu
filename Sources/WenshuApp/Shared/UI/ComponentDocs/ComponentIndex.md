@@ -181,6 +181,25 @@ Each component has:
 - **Purpose**: Standard selected state background (= product .thinMaterial accent overlay)
 - **Use when**: Any view has a selected/unselected state (= tabs, list items, etc.)
 
+### 4.4 LoadingPlaceholder (= the project's ONE loading skeleton)
+- **Path**: `Sources/WenshuApp/Shared/UI/LoadingPlaceholder.swift`
+- **Purpose**: The one surface a zone draws while its content is arriving (= the project's skeleton mechanism; = the twin of `EmptyStateView`, which is the one surface a zone draws when it has nothing).
+- **Use when**: A zone's content is LOADING and its shape is known. The zone asks for the shape its own content will take (= and for its own row anatomy, = = the inspector's card and the sidebar's tree row are not the same shape), so the content arrives into the space the placeholder already holds (= nothing around the zone moves). = = It does NOT promise the content's exact height (= = the count is not knowable before the load, = = so the reserved extent is the unit repeated).
+- **API**:
+  ```swift
+  // A list of rows (= the inspector's card rows, the sidebar's tree rows)
+  LoadingPlaceholder(.rows(3))
+
+  // A grid of cards (= the material column's grid; = the zone's OWN grid,
+  // = so the reserved space is the space the cards will fill)
+  LoadingPlaceholder(.cards(columns: adaptiveColumns(width: width), count: 4))
+
+  // A pane whose content has no shape yet
+  LoadingPlaceholder(.block)
+  ```
+- **Don't use when**: The zone is doing an activity of UNKNOWN duration that is NOT "content arriving" (= the app's launch shell) = = keep Apple's indeterminate `ProgressView` there (= the HIG progress-indicators article's own case). Also not for an inline activity inside a surface (= a badge, a diagnostics row, an import row) = = Apple's indicator is right at that size.
+- **Motion**: Apple's own phase animator walking the opacity between two values (= no hand-rolled timer, = no custom shimmer gradient; = Apple ships no skeleton API, = = the geometry and the timing are ours, recorded as ours per AGENTS.md 1.17).
+
 ---
 
 ## 🖱️ LEVEL 5: Interaction 组件

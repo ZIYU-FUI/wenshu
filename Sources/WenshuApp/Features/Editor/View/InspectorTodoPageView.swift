@@ -59,8 +59,13 @@ struct InspectorTodoPageView: View {
     @ViewBuilder
     private var content: some View {
         if !model.isLoaded {
-            ProgressView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // The plan has not landed yet (= the store read is still
+            // running). The rows the list will hold are reserved (= the
+            // project's one loading placeholder), so the column does not
+            // jump when they arrive.
+            LoadingPlaceholder(.rows(count: 3, unit: .inspectorCard))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(DesignTokens.spacingStandard)
         } else if model.todos.isEmpty {
             emptyState
         } else {

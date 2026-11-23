@@ -139,6 +139,24 @@ enum DesignTokens {
     static let textChrome: HierarchicalShapeStyle = .secondary
     static let textMetadata: HierarchicalShapeStyle = .tertiary
     static let textPlaceholder: HierarchicalShapeStyle = .quaternary
+    /// The loading placeholder's text-bar height (= 10 PT).
+    ///
+    /// = = The bar stands in for one line of words (= the title row or
+    /// = = the summary row of a card) = = so it reads as a line of text
+    /// = = rather than as a hairline or a slab. The number is the
+    /// = = app's own (= Apple ships no skeleton API = = there is no
+    /// = = Apple number to copy; see `LoadingPlaceholder`'s docblock).
+    static let skeletonTextBarHeight: CGFloat = 10
+
+    /// The loading placeholder's leading text-bar height (= 12 PT).
+    ///
+    /// = = The leading bar stands in for a row's FIRST line of words
+    /// = = (= the title) = = and the second bar stands in for the row's
+    /// = = detail line. = = The title is the larger of the two = = so
+    /// = = the reserved row reads as a title over a detail, the way
+    /// = = the real card does.
+    static let skeletonTextBarHeightLarge: CGFloat = 12
+
     /// The AppKit preferred-font scale, read from the SDK's own
     /// `NSFont.preferredFont(forTextStyle:)`. Pinning editor and chrome to it
     /// stops the chat zone drifting to ad-hoc `Font.system(size:)` calls.

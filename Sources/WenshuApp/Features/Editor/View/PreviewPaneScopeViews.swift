@@ -151,9 +151,20 @@ extension PreviewPane {
             // empty, = = the list is not here yet. = = Showing the empty
             // state here would tell the user the library holds nothing
             // (= = and it does).
-            ProgressView()
-                .controlSize(.small)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            //
+            // ⇒ ⇒ ⇒ The cards the grid will hold are reserved (= the
+            // project's one loading placeholder) = = so the grid does not
+            // jump when the list arrives. = = The grid is the column's
+            // OWN grid (= the same adaptive columns the cards arrive
+            // in) = = so the reserved space is the space the cards
+            // will fill.
+            GeometryReader { geometry in
+                LoadingPlaceholder(
+                    .cards(columns: adaptiveColumns(width: geometry.size.width), count: 4)
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(DesignTokens.spacingStandard)
+            }
         } else if documents.isEmpty {
             emptyState(
                 icon: "books.vertical",

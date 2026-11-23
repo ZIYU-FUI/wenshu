@@ -67,6 +67,20 @@ struct KanbanView: View {
     @State private var cardsByStatus: [KanbanStatus: [KanbanCardContent]] = [:]
     @State private var loadError: String? = nil
 
+    /// Whether the board's read is still running.
+    ///
+    /// = = The read crosses an await (= = the store read and the
+    /// = = markdown parse), = = so the board's cards land a frame or
+    /// = = more after the request. = = While it runs the board draws
+    /// = = the project's one loading placeholder = = so the column
+    /// = = says "the work is arriving" and not "this session has no
+    /// = = work".
+    @State private var isLoading = false
+
+    /// The board's read counter (= a reference, = so the read can move
+    /// = = it without a View struct needing a mutating self).
+    @State private var loadCounter = KanbanLoadCounter()
+
     /// kanban-detail-sheet 2026-09-28: nil means no sheet is open.
     /// The identity is the task itself (= sheet(items:) requires
     /// Identifiable input on macOS).
@@ -92,15 +106,17 @@ struct KanbanView: View {
         // The board follows the focused session (= one board per
         // session), so a new session means a new board.
         .onAppear {
-            reloadFromStore()
+            Task { await reloadFromStore() }
         }
-        .onChange(of: focusedBookID) { _, _ in reloadFromStore() }
+        .onChange(of: focusedBookID) { _, _ in
+            Task { await reloadFromStore() }
+        }
         // apple-001 HIG absent batch: .refreshable (iOS
-        // pull-to-refresh; the macOS HIG publishes no such standard).
+        // pull-to-refresh; = the macOS HIG publishes no such standard).
         // On macOS this becomes a
         // refresh button in the toolbar (= Cmd-R equivalent). The
         // reloadFromStore() action re-reads the board from the store.
-        .refreshable { reloadFromStore() }
+        .refreshable { await reloadFromStore() }
         // kanban-detail-sheet 2026-09-28: tapping a KanbanCard opens
         // this read-only body modal. the product sheet (= no
         // custom chrome wrapper). .sheet(item:) gives us the task
@@ -124,7 +140,17 @@ struct KanbanView: View {
 
     @ViewBuilder
     private var content: some View {
-        if cardCount == 0 {
+        if isLoading {
+            // The board's read is still running (= the store read and
+            // the markdown parse). The rows the board will hold are
+            // reserved (= the project's one loading placeholder), so the
+            // column reads as WORKING while they arrive = = and the column
+            // says "the work is arriving" and not "this session has no
+            // work".
+            LoadingPlaceholder(.groups(count: KanbanStatus.boardOrder.count))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(DesignTokens.spacingStandard)
+        } else if cardCount == 0 {
             EmptyStateView(
                 icon: "rectangle.split.3x1",
                 title: String(localized: "kanban.empty.title"),
@@ -187,9 +213,39 @@ struct KanbanView: View {
     /// The read is where the board's per-task work happens (= ONCE per
     /// task, = not once per body pass): the body's markdown is parsed
     /// here, = so a body pass draws the parsed text and parses nothing.
-    private func reloadFromStore() {
+    ///
+    /// ⇒ ⇒ ⇒ THE READ IS ASYNC AND THE BOARD SAYS SO WHILE IT RUNS:
+    /// = = the read crosses an await (= = the store read and the
+    /// = = markdown parse are both off the frame that started the
+    /// = = read), = = so the board's cards land a frame or more after
+    /// = = the request. = = A board that drew its cards only at the
+    /// = = end would show an EMPTY board for those frames = = and an
+    /// = = empty board says "this session has no work" = = which is a
+    /// = = different claim from "this session's work is still
+    /// = = arriving". = = So the board holds a loading state and
+    /// = = draws the project's one loading placeholder in it.
+    ///
+    /// ⇒ ⇒ ⇒ AND THE MARKDOWN IS PARSED OFF THE MAIN ACTOR: = = the
+    /// = = parse is pure text work (= `parseMarkdown` is nonisolated
+    /// = = and the task that carries it is Sendable), = = so it runs
+    /// = = on a background task = = and the main thread is free for
+    /// = = the frame that drew the tab switch.
+    private func reloadFromStore() async {
+        isLoading = true
+        // ⇒ ⇒ ⇒ AND THE BOOK IS READ NOW, NOT AFTER THE YIELD: = = the
+        // ⇒ ⇒ ⇒ board can be asked for two books in a row (= = the user
+        // ⇒ ⇒ ⇒ switched books while the first read was still running),
+        // ⇒ ⇒ ⇒ and a read that read the book AFTER its yield would
+        // ⇒ ⇒ ⇒ answer for the WRONG book.
+        let bookID = focusedBookID?.rawValue
+        let generation = loadCounter.next()
+        // The read yields first (= the house's own discipline in
+        // `loadShelfBooksAsync` and in `LibraryDocumentStore`), = so
+        // the board can finish rendering the frame it is on before the
+        // work starts.
+        await Task.yield()
         do {
-            let tasks = try store.list(bookID: focusedBookID?.rawValue).map { model in
+            let tasks = try store.list(bookID: bookID).map { model in
                 KanbanTask(
                     id: model.id,
                     title: model.title,
@@ -211,28 +267,77 @@ struct KanbanView: View {
             // The body's markdown is parsed HERE (= once per task, = at
             // the load), = so a body pass draws the parsed text and
             // parses nothing.
-            var buckets: [KanbanStatus: [KanbanCardContent]] = [:]
-            for task in tasks {
+            //
+            // ⇒ ⇒ ⇒ AND THE PARSE RUNS OFF THE MAIN ACTOR: = = the
+            // body text is a plain string and the parser is
+            // nonisolated, = = so the parse needs no actor to
+            // hand the text over. = = The library-level board
+            // holds 542 tasks (= = 490 of them carry a body, = =
+            // per the repo's own sweep, = =
+            // docs/agents/2026-11-13-render-path-full-sweep.md),
+            // and 490 markdown parses spend milliseconds = = and
+            // that is not the main thread's job while the
+            // user is switching tabs.
+            let buckets = await Self.parseBodies(tasks)
+            // ⇒ ⇒ ⇒ AND A STALE READ IS DROPPED: = = the parse is the
+            // ⇒ ⇒ ⇒ long part of the read, = = so the board can be asked
+            // ⇒ ⇒ ⇒ for another book while it runs. = = ⇒ ⇒ ⇒ The read
+            // ⇒ ⇒ ⇒ that started first must not answer for the book
+            // ⇒ ⇒ ⇒ that came second (= = = = or the board would draw
+            // ⇒ ⇒ ⇒ = = = = book A's cards under book B's name).
+            guard loadCounter.isCurrent(generation) else { return }
+            cardsByStatus = buckets
+            loadError = nil
+            isLoading = false
+        } catch {
+            guard loadCounter.isCurrent(generation) else { return }
+            loadError = String(describing: error)
+            isLoading = false
+        }
+    }
+
+    /// Parse every task's markdown OFF the main actor and bucket the
+    /// cards by status.
+    ///
+    /// = = The parse is pure text work (= `parseMarkdown` is
+    /// = = nonisolated and the task that carries it is Sendable), = =
+    /// = = so it runs on a background task = = and the main thread
+    /// = = stays free for the frames that draw the board.
+    ///
+    /// = = ⇒ ⇒ ⇒ AND WHY A DETACHED TASK IS THE RIGHT DOOR HERE: = =
+    /// = = ⇒ ⇒ ⇒ AGENTS.md 4.5's rule is about background WRITES (= =
+    /// = = ⇒ ⇒ ⇒ "never a detached task on the context" = = = = the
+    /// = = ⇒ ⇒ ⇒ SwiftData context). = = ⇒ ⇒ ⇒ This parse writes
+    /// = = ⇒ ⇒ ⇒ NOTHING (= = it reads plain strings and returns plain
+    /// = = ⇒ ⇒ ⇒ values), = = = = so the context's rule does not reach
+    /// = = ⇒ ⇒ ⇒ it. = = ⇒ ⇒ ⇒ And the house's own background READ
+    /// = = ⇒ ⇒ ⇒ uses this exact shape (= = `CoverIndex.prefill` walks
+    /// = = ⇒ ⇒ ⇒ the covers in a detached task).
+    ///
+    /// = = The markdown goes through the same inline-markdown parser
+    /// = = chat uses (= `ChatTextPartView.parseMarkdown`), = = so
+    /// = = wenshu keeps ONE markdown pipeline across the app (= no
+    /// = = per-surface parser).
+    @Sendable
+    private static func parseBodies(
+        _ tasks: [KanbanTask]
+    ) async -> [KanbanStatus: [KanbanCardContent]] {
+        let parsed = await Task.detached(priority: .userInitiated) {
+            tasks.map { task in
                 let parsedBody: AttributedString?
                 if let body = task.body, !body.isEmpty {
-                    // Per iron-rule I-4 (= wenshu-comment-policy): the
-                    // body goes through the same inline-markdown parser
-                    // chat uses (= ChatTextPartView.parseMarkdown), =
-                    // so wenshu keeps ONE markdown pipeline across the
-                    // app (= no per-surface parser).
                     parsedBody = ChatTextPartView.parseMarkdown(body)
                 } else {
                     parsedBody = nil
                 }
-                buckets[task.status, default: []].append(
-                    KanbanCardContent(task: task, parsedBody: parsedBody)
-                )
+                return KanbanCardContent(task: task, parsedBody: parsedBody)
             }
-            cardsByStatus = buckets
-            loadError = nil
-        } catch {
-            loadError = String(describing: error)
+        }.value
+        var buckets: [KanbanStatus: [KanbanCardContent]] = [:]
+        for card in parsed {
+            buckets[card.task.status, default: []].append(card)
         }
+        return buckets
     }
 
 
@@ -244,7 +349,7 @@ struct KanbanView: View {
         } catch {
             loadError = String(describing: error)
         }
-        reloadFromStore()
+        Task { await reloadFromStore() }
     }
 }
 
@@ -393,5 +498,35 @@ private struct KanbanCard: View {
             }
         }
         .hoverWash()
+    }
+}
+
+
+/// Which read of the board is the current one.
+///
+/// = = ⇒ AND IT IS A COUNTER, NOT THE BOOK: = = the board can be asked
+/// = = ⇒ for two books in a row (= = the user switched books while the
+/// = = ⇒ first read was still running), = = and the first read can land
+/// = = ⇒ SECOND. = = ⇒ ⇒ ⇒ So every read takes the next number, = =
+/// = = ⇒ ⇒ and only the newest number may write (= = = = or the board
+/// = = ⇒ ⇒ would draw book A's cards under book B's name).
+///
+/// = = ⇒ ⇒ ⇒ AND IT IS A REFERENCE: = = the board is a View STRUCT, = =
+/// = = ⇒ ⇒ ⇒ and a struct's own counter would need a mutating self = =
+/// = = ⇒ ⇒ ⇒ = = = = which an async read cannot have.
+@MainActor
+final class KanbanLoadCounter {
+    /// The newest read that started.
+    private(set) var generation = 0
+
+    /// The next generation (= the one the caller owns).
+    func next() -> Int {
+        generation += 1
+        return generation
+    }
+
+    /// Whether the given generation is still the current one.
+    func isCurrent(_ generation: Int) -> Bool {
+        self.generation == generation
     }
 }
