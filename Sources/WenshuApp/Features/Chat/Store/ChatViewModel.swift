@@ -39,8 +39,8 @@ final class ChatViewModel {
         //
         // So the rule asks the question the shortcut actually means:
         // is this row still arriving? A row that is streaming is not
-        // sealed; a row that is not (= = final, = = restored, = =
-        // failed) is.
+        // sealed; a row that is not (= = final, = = restored) is. A failed
+        // turn leaves no wenshu row at all: it is replaced by a .system row.
         messages.last { $0.source == .wenshu && !$0.isPlaceholder && $0.streamState != .streaming }
     }
 
