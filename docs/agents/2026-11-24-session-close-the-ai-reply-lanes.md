@@ -1,4 +1,4 @@
-# Session close — the AI-reply chain's five lanes, and the landing that carries them (2026-11-24)
+# Session close — the AI-reply chain's five lanes, and the landing that carried them (2026-11-24)
 
 This document closes one scope: the Hermes Desktop's **AI reply side** — what
 the reader sees while the assistant answers, and after it finishes. Five lanes
@@ -43,27 +43,28 @@ The shape that was measured, not chosen:
   file). `nfi-loc-check` reads "14 row(s) checked: = 11 the change added, = 3
   whose named file the change rewrote and did not add" = = exit 0.
 - **The branch's base is `main`**, so the landing is a **fast-forward**:
-  `git merge-tree --write-tree <main> <tip>` = = rc 0 (= = no conflict at all),
-  and `main`'s content is carried by ancestry rather than by a merge.
+  `git merge-tree --write-tree 37a8f04bf2 79ec0f390a` = = rc 0 (= = no conflict at
+  all), and `main`'s content is carried by ancestry rather than by a merge.
 - **The registry's own parentheticals were re-published with it.** Eight rows
   describe `ChatViewModel.swift` with the label "(now ChatViewModel.swift, N
   LOC, under cap)"; the file is 351 lines in this tree, and the label read
   252 (= = the count of the tree the rows were written in). The label is a
   claim about a file, so it was re-published to the file the tree actually has.
 
-## 3. What the branch's lane commits change
+## 3. What the lane commits changed
 
-`git diff --shortstat <main>...c3f59ea158` = = "23 files changed, 2660
+`git diff --shortstat 37a8f04bf2..c3f59ea158` = = "23 files changed, 2660
 insertions(+), 151 deletions(-)": 16 `Sources/` files, 6 `Tests/` files, and
 the registry. Ten files are new (= = `SubAgentActivityLine.swift`,
 `SubAgentRunner+Storage.swift`, `ChatScrollToBottomButton.swift`,
 `ChatTranscriptBottom.swift`, `ChatView+Transcript.swift`, and five test
 files); the rest are rewrites.
 
-That range ends at the commit that carries the three lane commits, so the
-figure does not move when this record's own commits are added on top of it
-(= = a whole-tip figure would restate itself on every commit that carries
-this file).
+Both ends of that range are fixed shas (= = the `main` the branch was cut
+from, and the commit that carries the three lane commits), so the figure does
+not move when this record's own commits sit on top of it, and it reads the
+same after the landing (= = a range that named `main` would print nothing
+once `main` IS this branch).
 
 ## 4. The gates, as they read at this tip
 
@@ -77,7 +78,7 @@ this file).
 | `--check pollution` | `the change adds no forbidden vocabulary (main...HEAD)` | 0 |
 | `--check markdown-newline` | `the change drops no .md's trailing newline (2 changed .md file(s) checked)` | 0 |
 | `nfi-loc-check.py --base main` | `14 row(s) checked: = 11 the change added, = 3 whose named file the change rewrote` | 0 |
-| `git merge-tree --write-tree <main> <tip>` | wrote a tree, no conflict output | 0 |
+| `git merge-tree --write-tree 37a8f04bf2 79ec0f390a` | wrote a tree, no conflict output | 0 |
 
 The reviewer re-ran the gates in the card's own worktree, with the worktree
 clean before and after and its `HEAD` = = the named sha, and wrote no file in
@@ -94,9 +95,14 @@ tip (= = the differences are additions).
 - **The rendered look is the boss's to see.** No screenshot was taken and none
   is claimed (= = rule 7.7); a live-app proof would need the boss to launch
   the app.
-- **The landing is not asserted here.** This document records the branch, the
-  review, and the shape; the fast-forward, the push and the server's read-back
-  are the landing card's steps.
+- **The landing is asserted here, with its own measurement.** The branch
+  `wt/chat-ai-reply-batch-2026-11-23` was landed into `main` by fast-forward
+  (= = `git merge --ff-only`, one parent, no merge commit), and both remotes
+  carry it: the push line read `37a8f04bf2..79ec0f390a  main -> main` on each
+  of them, and each server's read-back printed
+  `79ec0f390a44297548d5fa87d7b5a1ecf11bc4e5  refs/heads/main` (read on
+  2026-11-24, without a pipe into `tail`/`head`, because a pipe reports its
+  own rc and hides a remote failure).
 - **The turn-outcome feature is not part of this scope.** It has no lane, no
   card and no branch anywhere on the board (= = the six-number scope this
   session inherited named five features with lanes; the sixth never became a
@@ -113,5 +119,7 @@ tip (= = the differences are additions).
 - The branch: `wt/chat-ai-reply-batch-2026-11-23`, published on `origin`.
 - The registry: this document's own row, appended at the END of the table, and
   the three lane rows the driver resolved.
-- The board: the landing card carries the review verdict and, after the
-  landing, the push line and the dated read-back of both remotes' `main`.
+- The board: the landing card (`t_c56d6f30`) carries the review verdict, the
+  push line and the dated read-back of both remotes' `main`.
+- The two remotes' `main`: `79ec0f390a44297548d5fa87d7b5a1ecf11bc4e5` = = the
+  commit this record's own tree is on.
