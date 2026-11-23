@@ -53,6 +53,105 @@ final class ChatViewModel {
     var attachedImagePath: String?
     var isSending: Bool = false
     var lastError: String?
+    /// The row the transcript's viewport is anchored to.
+    ///
+    /// Apple's `scrollPosition(id:)` binds the scroll view to the id of
+    /// the row at the anchor, = = and its own documentation says the
+    /// binding "is updated when a scroll view within this view scrolls"
+    /// (= = the reader's own scroll writes it back).
+    ///
+    /// It names the newest message (= = the follow's target), = = so the
+    /// reader's place is the row they are looking at, = = and the
+    /// content growing underneath them does not move the viewport.
+    /// MEASURED: with the bottom anchor alone, the arriving reply
+    /// dragged a reader who had scrolled up back to the bottom (= = their
+    /// offset jumped from 480 to 1200, = = the new maximum).
+    var anchoredRowID: UUID?
+
+    /// Whether the reader is at the bottom of the transcript.
+    ///
+    /// The follow's gate: while the reader is at the bottom the
+    /// transcript follows the newest content; while they are away, the
+    /// arriving reply must not drag them down (= = and the floating
+    /// control offers the way back).
+    ///
+    /// It is the reader's OWN place (= = the row their viewport is
+    /// bound to), = = and not a number derived from the content's
+    /// height: the content growing underneath the reader moves every
+    /// distance, = = so only the reader's own scroll says where they
+    /// are.
+    var readerIsAtBottom: Bool = true
+
+    /// The reader scrolled away from the bottom.
+    ///
+    /// The transcript's follow stops while the reader is away, = = so
+    /// the arriving reply does not drag them down.
+    func readerLeftTheBottom() {
+        readerIsAtBottom = false
+    }
+
+    /// The reader is at the bottom again (= = they came back, = = or the
+    /// app's own follow put them there).
+    func readerReturnedToTheBottom() {
+        readerIsAtBottom = true
+    }
+
+    /// The reader's place moved.
+    ///
+    /// - Parameters:
+    ///   - row: the row the reader's viewport is bound to (= = the row
+    ///     at the viewport's bottom edge).
+    ///   - distance: how far the last message's bottom edge is below
+    ///     the viewport's bottom edge.
+    func readerMoved(to row: UUID?, distance: CGFloat) {
+        // The clearance row IS the content's bottom edge (= = the
+        // reader is parked at the bottom: the viewport's bottom edge
+        // is the content's bottom edge).
+        if row == ChatTranscriptBottom.clearanceID {
+            readerReturnedToTheBottom()
+            return
+        }
+        // Another row: the reader is looking at an earlier one. The
+        // band decides how far away counts (= = a reader who nudged the
+        // scroll by a hair is still at the bottom).
+        //
+        // The distance is NOT written here: it belongs to the viewport's
+        // geometry (= = the view writes it from the scroll geometry),
+        // and a stale number written back over a fresh one would make
+        // the gate read yesterday's viewport. MEASURED: that was worth
+        // 535 points of distance (= = the gate said "away" while the
+        // reader sat at the newest content).
+        readerIsAtBottom = distance <= ChatTranscriptBottom.atBottomBand
+    }
+
+    /// Whether the way back to the newest content is offered.
+    ///
+    /// True while the reader is away from the bottom. The view draws
+    /// the control from this, = = and the test reads it from here, = =
+    /// because the control's own presence in a rendered tree is a
+    /// rendering question (= = MEASURED: an offscreen host's
+    /// accessibility tree does not publish the control's element).
+    var offersWayBack: Bool {
+        !readerIsAtBottom
+    }
+
+    /// The reader asked to go back to the newest content.
+    ///
+    /// A counter, = = not a flag: a flag would fire only once, = = and
+    /// the reader can ask again and again.
+    func requestJumpToNewest() {
+        jumpToNewestRequest &+= 1
+    }
+
+    /// The reader asked to go back to the newest content.
+    ///
+    /// Set by the transcript's floating control (= = the way back). The
+    /// view reads it and scrolls the viewport. It lives here (= = in the
+    /// model, = = not in the view) because "the reader wants the newest
+    /// content" is a fact about the conversation, = = not about the
+    /// viewport: the same request means the same thing in any surface
+    /// that shows the conversation.
+    var jumpToNewestRequest: Int = 0
 
     /// The coalescing buffer for the reply in flight.
     ///
