@@ -10,6 +10,40 @@ import WenshuData
 @MainActor
 @Observable
 final class ChatViewModel {
+    /// The last message whose turn is OVER (= = the reply is final).
+    ///
+    /// "Sealed" means the row is NOT arriving any more: not streaming
+    /// (= = a row that is still receiving is no longer a placeholder,
+    /// = = because the placeholder flag is cleared on the FIRST FRAME,
+    /// = = and "the last sealed message" would be a half-written
+    /// reply).
+    ///
+    /// It is deliberately NOT "the state is `.sealed`": a restored
+    /// session's rows carry the DEFAULT state (= `.idle`), = = because
+    /// the persisted read mapping never writes the state (= = the store
+    /// keeps a message's words, = = not the fact that it was streaming
+    /// when it was written).
+    ///
+    /// The shortcut asks the model (= = not the view), = = so the rule
+    /// is one rule, = = and it can be tested as a behaviour.
+    var lastSealedMessage: ChatMessage? {
+        // "Sealed" = = the turn is not arriving any more.
+        //
+        // It is NOT "the state is .sealed": a restored session's rows
+        // carry the DEFAULT state (= .idle), = = because the persisted
+        // read mapping never writes the state (= the store keeps a
+        // message's words, = = not the fact that it was streaming when
+        // it was written). MEASURED: with the rule "the state is
+        // .sealed", a restored session had NO sealed message at all
+        // (= = ⌥C and ⌥A went silent after a restart).
+        //
+        // So the rule asks the question the shortcut actually means:
+        // is this row still arriving? A row that is streaming is not
+        // sealed; a row that is not (= = final, = = restored, = =
+        // failed) is.
+        messages.last { $0.source == .wenshu && !$0.isPlaceholder && $0.streamState != .streaming }
+    }
+
     var messages: [ChatMessage] = []
     var inputText: String = ""
     // Absolute path of an image the user attached via the chat input row's

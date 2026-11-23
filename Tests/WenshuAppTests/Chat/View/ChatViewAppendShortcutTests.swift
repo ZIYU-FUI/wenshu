@@ -6,13 +6,12 @@
 //  content to the current chat input text).
 //
 
-import Testing
 import Foundation
+import Testing
 @testable import WenshuApp
 
 @Suite("ChatView append-last-assistant shortcut (T104)")
 struct ChatViewAppendShortcutTests {
-
     /// T104 contract: ⌥A shortcut registered.
     @Test func alt_a_shortcut_registered() throws {
         let src = try SourceLocator.readGroup(prefixed: "ChatView")
@@ -22,15 +21,19 @@ struct ChatViewAppendShortcutTests {
     /// T104 contract: Button body appends last assistant to input.
     @Test func body_appends_last_assistant_to_input() throws {
         let src = try SourceLocator.readGroup(prefixed: "ChatView")
-        let btnPos = src.range(of: "Button(\"Append last assistant to input\")")!
+        let btnPos = try #require(src.range(of: "Button(\"Append last assistant to input\")"))
         let startOffset = src.distance(from: src.startIndex, to: btnPos.upperBound)
         let endOffset = min(startOffset + 2000,
                             src.distance(from: src.startIndex, to: src.endIndex))
         let startIdx = src.index(src.startIndex, offsetBy: startOffset)
         let endIdx = src.index(src.startIndex, offsetBy: endOffset)
-        let block = String(src[startIdx..<endIdx])
-        #expect(block.contains("$0.source == .wenshu"))
-        #expect(block.contains("!$0.isPlaceholder"))
+        let block = String(src[startIdx ..< endIdx])
+        // The rule is the MODEL's (= = "the last sealed message"), = =
+        // so the shortcut asks the model, = = and the model's own rule
+        // (= = the row is not arriving any more, = = not "not a
+        // placeholder") is tested as a behaviour in
+        // `ChatSealedMessageRuleTests`.
+        #expect(block.contains("vm.lastSealedMessage"))
         #expect(block.contains("vm.inputText = lastAssistant") || block.contains("vm.inputText += "))
         #expect(block.contains("inputFocused = true"))
         #expect(block.contains("wenshuLogger.info(\"[wenshu.append]"))
@@ -39,7 +42,7 @@ struct ChatViewAppendShortcutTests {
     /// T104 contract: button is visually hidden.
     @Test func append_button_is_visually_hidden() throws {
         let src = try SourceLocator.readGroup(prefixed: "ChatView")
-        let altAIdx = src.range(of: ".keyboardShortcut(\"a\", modifiers: [.option])")!
+        let altAIdx = try #require(src.range(of: ".keyboardShortcut(\"a\", modifiers: [.option])"))
         let after = src[altAIdx.upperBound...]
         #expect(after.contains(".frame(width: 0, height: 0)"))
         #expect(after.contains(".opacity(0)"))
@@ -83,7 +86,7 @@ struct ChatViewAppendShortcutTests {
 
     /// T104 contract: HStack invariant preserved.
     @Test func hstack_invariant_preserved() throws {
-        // 
+        //
         // row out of ChatView.swift into ChatInputBarView.swift (= the top
         // layer; = the user-interactive controls). The hidden Button("Append last assistant to input") Button
         // (= a hidden keyboard-shortcut Button outside the visible input

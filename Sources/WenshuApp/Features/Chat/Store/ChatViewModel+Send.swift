@@ -189,7 +189,12 @@ extension ChatViewModel {
 
         // append AI placeholder message (name + avatar + "AI thinking..." in list immediately)
         let placeholderId = UUID()
-        let placeholder = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: "AI 思考中…", isPlaceholder: true)
+        // The row is born EMPTY (= no content, no parts): the placeholder
+        // row's hint is the view's own text, and a row that carried the
+        // hint as its content would synthesize a .text part (= the
+        // initializer does that when the content is not empty), so the
+        // row would look like it already held a reply.
+        let placeholder = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: "", isPlaceholder: true)
         messages.append(placeholder)
 
         // Route through ChatRepositoryProtocol (= the data-layer seam). The Live

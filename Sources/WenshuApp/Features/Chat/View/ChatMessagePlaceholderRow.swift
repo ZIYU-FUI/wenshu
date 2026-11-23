@@ -4,7 +4,7 @@
 //  Apple MVVM canonical leaf view for the "AI thinking…" placeholder
 //  row that appears in the chat transcript while a streaming reply
 //  is in flight (= before the first block arrives). Lifted out of
-//  ChatMessageView (= 921 lines today) so:
+//  ChatMessageView so:
 //
 //  - ChatMessageView body shrinks further.
 //  - The placeholder is independently testable + Xcode-previewable.
@@ -12,17 +12,18 @@
 //    for compression status) plug in by adding leaves next to this.
 //
 // :
-//  UI-only (= no business logic). The "what is being thought about"
-//  string lives on ChatMessage.content (= the placeholder's payload;
-//  = business layer owns it). The pulse animation + elapsed timer
-//  are pure rendering concerns.
+//  UI-only (= no business logic). The row's payload is EMPTY by
+//  construction (= the row is born with no content and no parts), = =
+//  and the hint is the CALLER's own localized text (= the view that
+//  shows the placeholder decides what it says). The pulse animation +
+//  elapsed timer are pure rendering concerns.
 //
 //  hermes 1:1 (= status.tsx ResponseLoadingIndicator + status-pulse.tsx):
 //    - 3×3 PT rounded-2PT square that pulses opacity every 400 ms,
 //      sleeping 5 s between pulses (= StatusPulse private struct in
 //      ChatMessageView.swift = the canonical wenshu 1:1 impl).
-//    - Followed by hint text (the ChatMessage.content payload =
-//      usually "AI …").
+//    - Followed by hint text (the caller's own localized text = =
+//      usually "AI …"; = = the row's payload is empty).
 //    - Followed by an elapsed-since-timestamp timer (= the activity
 //      indicator; = updates every 0.5s).
 //
@@ -85,7 +86,9 @@ struct ChatMessagePlaceholderRow<Pulse: View>: View {
     /// "1h 5m" (= hermes ActivityTimerText format). Mirrors
     /// the static helper that used to live on ChatMessageView.
     nonisolated static func formatElapsed(_ seconds: TimeInterval) -> String {
-        if seconds < 0 { return "0.0s" }
+        if seconds < 0 {
+            return "0.0s"
+        }
         if seconds < 60.0 {
             return String(format: "%.1fs", seconds)
         }
