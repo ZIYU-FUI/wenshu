@@ -152,8 +152,10 @@ struct CSSearchableIndexSearchTests {
         let entry = SpotlightIndexEntry.attributeSet(title: "猪-屠户", body: "商代屠户，负责三牲祭祀。")
         #expect(entry.title == "猪-屠户")
         #expect(entry.contentDescription == "商代屠户，负责三牲祭祀。")
-        // The system's semantic index processes the text content (= the body
-        // has to be there, = not only in the description).
+        // The body's text goes in as the text content (= the attribute the
+        // system's own header calls "the text content of the document", =
+        // `CSSearchableItemAttributeSet_Messaging.h`), = and not only in the
+        // description.
         #expect(entry.textContent == "商代屠户，负责三牲祭祀。")
         // The title rides along as one whole term (= a coined name stays
         // findable whatever the system's tokenizer does with it).
@@ -171,13 +173,19 @@ struct CSSearchableIndexSearchTests {
     func queryContextAsksForRankedResults() {
         let context = SpotlightIndexEntry.queryContext(limit: 20)
         #expect(context.enableRankedResults)
-        // The system's ranked count is a cap it applies BEFORE the app's own
-        // domain filter (= `CSUserQueryContext` has no `filterQueries`; = that
-        // attribute belongs to the older `CSSearchQuery`), = so it carries
-        // headroom over the app's own cut.
-        #expect(context.maxRankedResultCount == 40)
+        #expect(context.maxRankedResultCount == 20)
         #expect(context.fetchAttributes.contains("title"))
         #expect(context.fetchAttributes.contains("contentDescription"))
+    }
+
+    @Test("the query context filters by the app's own domain")
+    func queryContextFiltersByDomain() {
+        let context = SpotlightIndexEntry.queryContext(limit: 20)
+        // The domain filter is the QUERY's own (= = `filterQueries` is on
+        // `CSSearchQueryContext`, = = and `CSUserQueryContext` inherits it),
+        // = = so the system's cap lands on the app's own hits and the app's
+        // own cut after the query can be the limit itself.
+        #expect(context.filterQueries == ["domainIdentifier == '\(CSSearchDomain.domainIdentifier)'"])
     }
 
     // MARK: - CSSearchableIndexSearch actor tests

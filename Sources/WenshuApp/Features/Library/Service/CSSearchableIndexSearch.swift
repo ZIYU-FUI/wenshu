@@ -147,7 +147,7 @@ enum MirrorRanking {
 /// The index entry for one document.
 ///
 /// product: `textContent` is the attribute the system's own header calls
-/// "the text content of the document" (= `CSSearchableItemAttributeSet.h`:
+/// "the text content of the document" (= `CSSearchableItemAttributeSet_Messaging.h`:
 /// `//Contains the text content of the document.`), = so the document's
 /// text reaches the system index and not only a description of it, = and
 /// `keywords` carries the document's title as one whole term (= a coined
@@ -168,17 +168,24 @@ enum SpotlightIndexEntry {
     /// product: ranked results are the system's own relevance order, = and
     /// the attributes fetched are the two the hit's snippet reads.
     ///
-    /// **⇒ The system's ranked count is a cap the system applies BEFORE
-    /// the app's own domain filter** (= `CSUserQueryContext` has no
-    /// `filterQueries`; = that attribute belongs to the older
-    /// `CSSearchQuery`). = So the count carries headroom over the app's
-    /// own cut (= which happens after the filter), = and a foreign item
-    /// inside the cap cannot cost the app one of its own hits.
+    /// **⇒ THE DOMAIN FILTER IS THE QUERY'S OWN, = = NOT A FILTER THE APP
+    /// RUNS AFTERWARDS.** = = `filterQueries` is declared on
+    /// `CSSearchQueryContext` (= SDK `CSSearchQuery.h`:33) = = and
+    /// `CSUserQueryContext` inherits it (= SDK `CSSearchQuery.h`:24), = = so
+    /// the system's own cap lands on the ALREADY FILTERED set (= = the app's
+    /// hits, = = not a mix of the app's and a foreign item's), = = and the
+    /// app's own cut after the query can be the limit itself. = =
+    /// ⇒ ⇒ ⇒ The predicate was MEASURED, = = not read off the header: = =
+    /// ⇒ ⇒ ⇒ a named index holding four items with one searchable word
+    /// ⇒ ⇒ ⇒ (= = three under this app's domain, = = one under a foreign
+    /// ⇒ ⇒ ⇒ one) answered four hits with no filter, = = and three (= = all
+    /// ⇒ ⇒ ⇒ this app's) with this predicate.
     static func queryContext(limit: Int) -> CSUserQueryContext {
         let context = CSUserQueryContext()
         context.fetchAttributes = ["title", "contentDescription"]
         context.enableRankedResults = true
-        context.maxRankedResultCount = limit * 2
+        context.maxRankedResultCount = limit
+        context.filterQueries = ["domainIdentifier == '\(CSSearchDomain.domainIdentifier)'"]
         return context
     }
 }
