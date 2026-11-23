@@ -171,15 +171,19 @@ enum SpotlightIndexEntry {
     /// **⇒ THE DOMAIN FILTER IS THE QUERY'S OWN, = = NOT A FILTER THE APP
     /// RUNS AFTERWARDS.** = = `filterQueries` is declared on
     /// `CSSearchQueryContext` (= SDK `CSSearchQuery.h`:33) = = and
-    /// `CSUserQueryContext` inherits it (= SDK `CSSearchQuery.h`:24), = = so
+    /// `CSUserQueryContext` inherits it (= SDK `CSUserQuery.h`:25), = = so
     /// the system's own cap lands on the ALREADY FILTERED set (= = the app's
     /// hits, = = not a mix of the app's and a foreign item's), = = and the
     /// app's own cut after the query can be the limit itself. = =
-    /// ⇒ ⇒ ⇒ The predicate was MEASURED, = = not read off the header: = =
-    /// ⇒ ⇒ ⇒ a named index holding four items with one searchable word
-    /// ⇒ ⇒ ⇒ (= = three under this app's domain, = = one under a foreign
-    /// ⇒ ⇒ ⇒ one) answered four hits with no filter, = = and three (= = all
-    /// ⇒ ⇒ ⇒ this app's) with this predicate.
+    /// ⇒ ⇒ ⇒ The predicate's shape (= = a metadata predicate on the item's
+    /// ⇒ ⇒ ⇒ domain identifier, = = the one this app's own items carry) is
+    /// ⇒ ⇒ ⇒ pinned by the contract test (= = `queryContextFiltersByDomain`).
+    /// ⇒ ⇒ ⇒ ⇒ ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ AND NOTHING HERE CLAIMS A READING OF A
+    /// ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ STORE'S ANSWER**: = = a reading taken on a named index
+    /// ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ is not a reading of the default index (= = which holds
+    /// ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ the user's own documents, = = and a probe must not
+    /// ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ write there), = = so the tree claims the API's shape
+    /// ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ and not the system's answer to it.
     static func queryContext(limit: Int) -> CSUserQueryContext {
         let context = CSUserQueryContext()
         context.fetchAttributes = ["title", "contentDescription"]
