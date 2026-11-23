@@ -6,12 +6,33 @@
 //
 //  WHY THIS FILE EXISTS
 //
-//  Every zone in the workspace that waits for data draws its own
+//  Every zone whose content ARRIVES INTO AN EMPTY PANE draws its own
 //  loading picture: four naked `ProgressView()` calls (= the inspector's
 //  status page, = = the inspector's todo page, = = the material column's
-//  whole-library scope and the sidebar tree) and one board with no loading
-//  state at all. = = Five zones = = five shapes, = = five spinners, = =
-//  and a column that reads differently from its neighbour.
+//  scopes and the sidebar tree) and one board with no loading state at
+//  all = = five zones, = = six call sites, = = three shapes (= the rows
+//  carry two anatomies, = = the inspector's card and the sidebar's tree
+//  row are not the same shape), = = and a column that reads differently
+//  from its neighbour.
+//
+//  ⇒ ⇒ ⇒ AND THE CHAT ZONE IS THE ONE ZONE THAT DOES NOT DRAW A
+//  = = LOADING PICTURE: = = its transcript never waits on content for
+//  = = a perceptible time (= = a scope change REPLACES the
+//  = = conversation on screen (= = the rows are swapped in place), = =
+//  = = and a first load's wait is the model list's network discovery
+//  = = (= = whose result is the model picker, = = not the
+//  = = transcript)), = = and a chat row's geometry is not knowable
+//  = = before the load (= = each bubble takes its width from its
+//  = = words, = = and a row is either the user's glass card or plain
+//  = = assistant text) = = so the mechanism has no honest unit to
+//  = = reserve for it.
+//  = = ⇒ ⇒ ⇒ AND THE CHAT'S OWN STREAMING ROW IS A DIFFERENT THING:
+//  = = ⇒ ⇒ ⇒ the "AI thinking" row a streaming reply shows (= = its
+//  = = ⇒ ⇒ ⇒ own pulse and its own elapsed timer) = = is an inline
+//  = = ⇒ ⇒ ⇒ activity with text inside a message, = = not a zone
+//  = = ⇒ ⇒ ⇒ waiting for its content, = = so the contract's own rule
+//  = = ⇒ ⇒ ⇒ keeps it out of here (= = a skeleton carries no words,
+//  = = ⇒ ⇒ ⇒ and a label on a skeleton is a spinner with extra steps).
 //
 //  ⇒ ⇒ ⇒ AND THE OTHER SPINNERS ARE INLINE ACTIVITIES: = = the tree
 //  holds a badge, = = a diagnostics row, = = an import row, = =
@@ -72,10 +93,18 @@
 //  DESIGN CONTRACT (= what each caller MUST honor)
 //
 //  - The shape MUST match the content that replaces it (= the card
-//    grid draws `.cards` with the zone's OWN grid = = the row lists
-//    draw `.rows` = = a pane whose content has no shape yet draws
-//    `.block`). A mismatch = = the content arrives and the zone
-//    reflows = = which is the jump the component exists to prevent.
+//  grid draws `.cards` with the zone's OWN grid = = the row lists
+//  draw `.rows`). A mismatch = = the content arrives and the zone
+//  reflows = = which is the jump the component exists to prevent.
+//  - A zone whose arriving content has NO knowable shape draws
+//  nothing here (= the chat zone's transcript = = its rows' widths
+//  come from the words that have not arrived yet) = = and a zone
+//  whose content is REPLACED rather than arriving into an empty
+//  pane draws nothing here either (= the same transcript on a scope
+//  change = = the conversation on screen is swapped in place).
+//  - An inline activity with words in it is not this (= the chat's
+//  own streaming row = = its pulse and its elapsed timer) = = it
+//  lives inside a message and it says what it is.
 //  - The placeholder is a PLACEHOLDER, not a message: it carries no
 //    text and no glyph (= a zone that has nothing to say while it
 //    waits says nothing = = and a skeleton with a label is a spinner
@@ -148,9 +177,6 @@ struct LoadingPlaceholder: View {
         ///   the column the groups will fill).
         case groups(count: Int)
 
-        /// One filled area (= a pane whose content has no shape yet).
-        case block
-
         /// Every shape the placeholder can be asked for.
         ///
         /// = = The census of the shapes lives HERE (= next to the
@@ -161,7 +187,6 @@ struct LoadingPlaceholder: View {
             .rows(count: 1, unit: .inspectorCard),
             .cards(columns: [GridItem(.flexible())], count: 1),
             .groups(count: 1),
-            .block,
         ]
     }
 
@@ -215,6 +240,9 @@ struct LoadingPlaceholder: View {
     /// The shape being reserved.
     let shape: Shape
 
+    /// Whether the system asked the app to stop its motion.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /// The placeholder for a shape.
     ///
     /// = = The init takes the shape alone (= the memberwise init would
@@ -235,11 +263,42 @@ struct LoadingPlaceholder: View {
     /// = = cycle is the app's own (= the loading article's "showing
     /// = = placeholder text, graphics, or animations as content
     /// = = loads").
+    ///
+    /// = = ⇒ ⇒ ⇒ AND REDUCE MOTION STOPS THE BREATHING: = = the
+    /// = = ⇒ ⇒ ⇒ system's Reduce Motion setting asks the app to stop
+    /// = = ⇒ ⇒ ⇒ moving what does not need to move (= = the setting
+    /// = = ⇒ ⇒ ⇒ exists for the users who get motion sick from it),
+    /// = = ⇒ ⇒ ⇒ and a breathing placeholder IS moving = = so the
+    /// = = ⇒ ⇒ ⇒ blocks hold the dim opacity and stop there (= = the
+    /// = = ⇒ ⇒ ⇒ zone still reads as working = = it just does not
+    /// = = ⇒ ⇒ ⇒ move). = = The rest of the app already honors the
+    /// = = ⇒ ⇒ ⇒ same setting (= the chat's status pulse and the
+    /// = = ⇒ ⇒ ⇒ tool card), = = so this is the project's one
+    /// = = ⇒ ⇒ ⇒ reading of it, = = not a new one.
     var body: some View {
-        blocks
-            .phaseAnimator([PlaceholderPhase.dim, .lit]) { content, phase in
-                content.opacity(phase.opacity)
-            }
+        let motion = Self.motion(reduceMotion: reduceMotion)
+        if motion.cycle.isEmpty {
+            blocks.opacity(motion.resting)
+        } else {
+            blocks
+                .phaseAnimator(motion.cycle) { content, opacity in
+                    content.opacity(opacity)
+                }
+        }
+    }
+
+    /// The opacity the blocks hold, and the cycle they walk.
+    ///
+    /// - Parameter reduceMotion: whether the system's Reduce Motion
+    ///   setting is on.
+    /// - Returns: the resting opacity, and the breathing cycle (= empty
+    ///   when the system asks the app to stop moving).
+    static func motion(reduceMotion: Bool) -> (resting: Double, cycle: [Double]) {
+        let dim = PlaceholderPhase.dim.opacity
+        let lit = PlaceholderPhase.lit.opacity
+        return reduceMotion
+            ? (resting: dim, cycle: [])
+            : (resting: dim, cycle: [dim, lit])
     }
 
     /// The phase (= the two opacities the blocks breathe between).
@@ -279,12 +338,6 @@ struct LoadingPlaceholder: View {
                     groupBlock
                 }
             }
-        case .block:
-            RoundedRectangle(
-                cornerRadius: DesignTokens.surfaceCornerRadiusCard,
-                style: .continuous
-            )
-            .fill(DesignTokens.textPlaceholder)
         }
     }
 

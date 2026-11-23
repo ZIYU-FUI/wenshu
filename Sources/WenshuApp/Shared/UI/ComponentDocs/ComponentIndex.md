@@ -191,17 +191,14 @@ Each component has:
   LoadingPlaceholder(.rows(count: 3, unit: .inspectorCard))
 
   // A grid of cards (= the material column's grid; = the zone's OWN grid,
-  // = so the reserved space is the space the cards will fill)
+  // so the reserved space is the space the cards will fill)
   LoadingPlaceholder(.cards(columns: adaptiveColumns(width: width), count: 4))
 
   // A set of groups (= the board's own status groups)
   LoadingPlaceholder(.groups(count: 8))
-
-  // A pane whose content has no shape yet
-  LoadingPlaceholder(.block)
   ```
-- **Don't use when**: The zone is doing an activity of UNKNOWN duration that is NOT "content arriving" (= the app's launch shell) = = keep Apple's indeterminate `ProgressView` there (= the HIG progress-indicators article's own case). Also not for an inline activity inside a surface (= a badge, a diagnostics row, an import row) = = Apple's indicator is right at that size.
-- **Motion**: Apple's own phase animator walking the opacity between two values (= no hand-rolled timer, = no custom shimmer gradient; = Apple ships no skeleton API, = = the geometry and the timing are ours, recorded as ours per AGENTS.md 1.17).
+- **Don't use when**: The zone is doing an activity of UNKNOWN duration that is NOT "content arriving" (= the app's launch shell) = = keep Apple's indeterminate `ProgressView` there (= the HIG progress-indicators article's own case). Also not for an inline activity inside a surface (= a badge, a diagnostics row, an import row) = = Apple's indicator is right at that size. Also not for a zone whose arriving content has NO knowable shape, or whose content is REPLACED rather than arriving into an empty pane (= the chat zone's transcript = = its rows' widths come from words that have not arrived, = = and a scope change swaps the conversation on screen) = = the component's own contract names that exclusion.
+- **Motion**: Apple's own phase animator walking the opacity between two values (= no hand-rolled timer, = no custom shimmer gradient; = Apple ships no skeleton API, = = the geometry and the timing are ours, recorded as ours per AGENTS.md 1.17). The system's Reduce Motion setting stops the breathing (= the blocks hold one opacity), = = the same setting the chat's status pulse and tool card already honor.
 
 ---
 

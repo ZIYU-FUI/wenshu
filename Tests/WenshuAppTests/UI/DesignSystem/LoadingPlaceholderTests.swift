@@ -6,10 +6,10 @@
 //  wenshu test convention): the shape vocabulary is a value type, so it
 //  is built directly, and the wiring is read off the source.
 //
-//  Coverage (= 13 tests, = = and the list below is derived from the
+//  Coverage (= 16 tests, = = and the list below is derived from the
 //  file, = = so a test added here and not there is visible):
-//      1.  the shape vocabulary is exactly four shapes (= rows / cards /
-//          groups / block) = = and no zone invents its own
+//      1.  the shape vocabulary is exactly three shapes (= rows / cards /
+//          groups) = = and no zone invents its own
 //      2.  a row shape carries its count and its unit
 //      3.  the two row anatomies are DIFFERENT (= the inspector's card
 //          and the sidebar's tree row)
@@ -26,6 +26,11 @@
 //          zone)
 //      12. the placeholder's metrics are tokens (= = not literals)
 //      13. the placeholder's own tokens are defined
+//      14. every shape in the vocabulary has a zone that asks for it
+//      15. the motion stops when the system asks it to (= = Reduce
+//          Motion)
+//      16. the chat zone draws no placeholder (= = and the contract
+//          says why)
 //
 
 import Foundation
@@ -38,30 +43,27 @@ import Testing
 struct LoadingPlaceholderTests {
     // MARK: - The shape vocabulary
 
-    @Test("The placeholder has exactly four shapes (= rows / cards / groups / block)")
+    @Test("The placeholder has exactly three shapes (= rows / cards / groups)")
     func shapeVocabulary() throws {
         // The shapes are the ones the workspace's zones actually hold:
-        // a list of rows, a grid of cards, a list of groups (= the board's
-        // status groups), and a pane with no shape yet.
+        // a list of rows, a grid of cards, and a list of groups (= the
+        // board's status groups).
         // ⇒ The shape is not Equatable (= a card shape carries the
         // zone's own grid), = = so the census counts the CASES.
         var rows = 0
         var cards = 0
         var groups = 0
-        var blocks = 0
         var censusNames: [String] = []
         for shape in LoadingPlaceholder.Shape.shapeCases {
             switch shape {
             case .rows: rows += 1; censusNames.append("rows")
             case .cards: cards += 1; censusNames.append("cards")
             case .groups: groups += 1; censusNames.append("groups")
-            case .block: blocks += 1; censusNames.append("block")
             }
         }
         #expect(rows == 1)
         #expect(cards == 1)
         #expect(groups == 1)
-        #expect(blocks == 1)
 
         // ⇒ ⇒ ⇒ AND THE CENSUS COVERS THE ENUM: = = the census is a
         // list of examples, = = so nothing forces a new case into it.
@@ -80,8 +82,8 @@ struct LoadingPlaceholderTests {
         // with the enum's, = = so a census that forgot a shape IS caught
         // here.
         #expect(Set(censusNames) == Set(enumCases))
-        #expect(Set(enumCases) == ["rows", "cards", "groups", "block"])
-        #expect(enumCases.count == 4)
+        #expect(Set(enumCases) == ["rows", "cards", "groups"])
+        #expect(enumCases.count == 3)
     }
 
     /// The enum's case names, read from the source.
@@ -217,6 +219,61 @@ struct LoadingPlaceholderTests {
         }
     }
 
+    @Test("Every shape in the vocabulary has a zone that asks for it")
+    func everyShapeHasAZone() throws {
+        // ⇒ ⇒ ⇒ AND NO SHAPE IS SPECULATIVE: = = a shape nobody asks
+        // for is API the app does not need (= = and the census would
+        // have locked it in = = so this test reads the CALL SITES, = =
+        // not the enum, = = and a shape with no caller IS caught here).
+        // ⇒ ⇒ ⇒ The comparison is TWO-WAY: = = every shape the enum
+        // ⇒ ⇒ ⇒ declares must be asked for (= = and the call sites
+        // ⇒ ⇒ ⇒ must name shapes the enum declares), = = so neither
+        // ⇒ ⇒ ⇒ side can drift alone.
+        // ⇒ ⇒ ⇒ The chat zone's transcript is NOT one of them (= = its
+        // ⇒ ⇒ ⇒ rows' widths come from the words that have not
+        // ⇒ ⇒ ⇒ arrived, = = and a scope change REPLACES the
+        // ⇒ ⇒ ⇒ conversation on screen), = = so the zone draws nothing
+        // ⇒ ⇒ ⇒ here (= = and the component's own contract says so).
+        let source = try SourceLocator.read(
+            "Sources/WenshuApp/Shared/UI/LoadingPlaceholder.swift"
+        )
+        let declared = Set(Self.shapeCaseNames(in: source))
+        let asked = try Self.loadingPlaceholderCallSites()
+        #expect(
+            declared == asked,
+            Comment("the shapes the zones ask for must be the shapes the enum declares (= declared \(declared.sorted()), asked for \(asked.sorted()))")
+        )
+    }
+
+    /// The shape names the zones ask for, read off the call sites.
+    ///
+    /// ⇒ ⇒ ⇒ AND WHY THE CALL SITES: = = the census is a list of
+    /// ⇒ ⇒ ⇒ examples, = = so it cannot tell a shape in use from a
+    /// ⇒ ⇒ ⇒ shape nobody wanted (= = and a shape nobody wanted is
+    /// ⇒ ⇒ ⇒ API the app does not need).
+    private static func loadingPlaceholderCallSites() throws -> Set<String> {
+        var names: Set<String> = []
+        for path in zoneLoadingSites {
+            let source = try SourceLocator.read(path)
+            // ⇒ ⇒ ⇒ The shape name follows the opening parenthesis, = =
+            // and it may sit on the NEXT line (= = so the whole file is
+            // = = scanned, = = not one line at a time).
+            var search = source.startIndex
+            while let open = source.range(of: "LoadingPlaceholder(", range: search ..< source.endIndex) {
+                let tail = source[open.upperBound...]
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if tail.hasPrefix(".") {
+                    let name = tail.dropFirst().prefix { $0.isLetter || $0 == "_" }
+                    if !name.isEmpty {
+                        names.insert(String(name))
+                    }
+                }
+                search = open.upperBound
+            }
+        }
+        return names
+    }
+
     // MARK: - The board's read cannot answer for the wrong book
 
     @Test("The board's read captures the book before its yield (= so a second read owns the write)")
@@ -290,5 +347,71 @@ struct LoadingPlaceholderTests {
         #expect(DesignTokens.skeletonTextBarHeight == 10)
         #expect(DesignTokens.skeletonTextBarHeightLarge == 12)
         #expect(DesignTokens.inspectionMarkerColumnWidth == 16)
+    }
+
+    // MARK: - The motion answers the system
+
+    @Test("The motion stops when the system asks it to (= = Reduce Motion)")
+    func motionStopsUnderReduceMotion() throws {
+        // ⇒ ⇒ ⇒ AND THE SYSTEM'S SETTING IS HONORED: = = Reduce Motion
+        // = = exists for the users who get motion sick from movement, = =
+        // = = and a breathing placeholder IS movement = = so the cycle
+        // = = is empty under the setting (= = the blocks hold one
+        // = = opacity and stop there).
+        let still = LoadingPlaceholder.motion(reduceMotion: true)
+        #expect(still.cycle.isEmpty,
+                "the placeholder must not breathe when the system asks it to stop")
+        #expect(still.resting > 0,
+                "the placeholder must still be visible under Reduce Motion")
+
+        // ⇒ ⇒ ⇒ AND IT BREATHES WHEN THE SYSTEM DOES NOT ASK: = = the
+        // = = cycle is the two opacities the phase animator walks.
+        let moving = LoadingPlaceholder.motion(reduceMotion: false)
+        #expect(moving.cycle.count == 2,
+                "the placeholder breathes between two opacities")
+        #expect(moving.cycle.contains { $0 != moving.resting },
+                "the breathing cycle must actually change the opacity")
+        // ⇒ ⇒ ⇒ AND THE VIEW READS THE SETTING: = = the decision above
+        // = = is only the app's if the view passes the environment's
+        // = = value into it.
+        let source = try SourceLocator.read(
+            "Sources/WenshuApp/Shared/UI/LoadingPlaceholder.swift"
+        )
+        #expect(source.contains("accessibilityReduceMotion"),
+                "the placeholder must read the system's Reduce Motion setting")
+    }
+
+    // MARK: - The chat zone's exclusion is a decision, not an omission
+
+    @Test("The chat zone draws no placeholder (= = and the contract says why)")
+    func theChatZoneDrawsNoPlaceholder() throws {
+        // ⇒ ⇒ ⇒ AND THE EXCLUSION IS STATED: = = the chat zone's
+        // = = transcript is the one zone that waits on content and
+        // = = draws no picture, = = so the reason lives in the
+        // = = component's own contract (= = and a reader can find it
+        // = = there, = = not by wondering).
+        let source = try SourceLocator.read(
+            "Sources/WenshuApp/Shared/UI/LoadingPlaceholder.swift"
+        )
+        #expect(source.contains("chat zone"),
+                "the component's contract must name the chat zone's exclusion")
+        #expect(source.contains("REPLACES") || source.contains("REPLACED"),
+                "the exclusion must say that the chat's content is replaced, not filled")
+        // ⇒ ⇒ ⇒ AND NO CHAT FILE ASKS FOR A SHAPE: = = the exclusion
+        // = = and the tree agree (= = the contract does not exclude a
+        // = = zone that is in fact drawing one).
+        let chatRoot = SourceLocator.repoRoot
+            .appendingPathComponent("Sources/WenshuApp/Features/Chat")
+        let chatFiles = try FileManager.default
+            .subpathsOfDirectory(atPath: chatRoot.path)
+            .filter { $0.hasSuffix(".swift") }
+        for file in chatFiles {
+            let text = try String(
+                contentsOf: chatRoot.appendingPathComponent(file),
+                encoding: .utf8
+            )
+            #expect(!text.contains("LoadingPlaceholder("),
+                    "\(file) must not draw a loading placeholder (= the zone is excluded)")
+        }
     }
 }
