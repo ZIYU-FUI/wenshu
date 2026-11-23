@@ -39,7 +39,7 @@ struct LoadingPlaceholderTests {
     // MARK: - The shape vocabulary
 
     @Test("The placeholder has exactly four shapes (= rows / cards / groups / block)")
-    func shapeVocabulary() {
+    func shapeVocabulary() throws {
         // The shapes are the ones the workspace's zones actually hold:
         // a list of rows, a grid of cards, a list of groups (= the board's
         // status groups), and a pane with no shape yet.
@@ -49,18 +49,63 @@ struct LoadingPlaceholderTests {
         var cards = 0
         var groups = 0
         var blocks = 0
+        var censusNames: [String] = []
         for shape in LoadingPlaceholder.Shape.shapeCases {
             switch shape {
-            case .rows: rows += 1
-            case .cards: cards += 1
-            case .groups: groups += 1
-            case .block: blocks += 1
+            case .rows: rows += 1; censusNames.append("rows")
+            case .cards: cards += 1; censusNames.append("cards")
+            case .groups: groups += 1; censusNames.append("groups")
+            case .block: blocks += 1; censusNames.append("block")
             }
         }
         #expect(rows == 1)
         #expect(cards == 1)
         #expect(groups == 1)
         #expect(blocks == 1)
+
+        // ⇒ ⇒ ⇒ AND THE CENSUS COVERS THE ENUM: = = the census is a
+        // list of examples, = = so nothing forces a new case into it.
+        // The enum is read from the SOURCE, = = so a shape the census
+        // forgot IS caught here (= = and that is what the component's
+        // own doc block promises).
+        let source = try String(
+            contentsOf: SourceLocator.repoRoot.appendingPathComponent(
+                "Sources/WenshuApp/Shared/UI/LoadingPlaceholder.swift"
+            ),
+            encoding: .utf8
+        )
+        let enumCases = Self.shapeCaseNames(in: source)
+        // ⇒ ⇒ ⇒ AND THE CENSUS COVERS THE ENUM (= = not merely "the
+        // enum has four cases"): = = the census's own names are compared
+        // with the enum's, = = so a census that forgot a shape IS caught
+        // here.
+        #expect(Set(censusNames) == Set(enumCases))
+        #expect(Set(enumCases) == ["rows", "cards", "groups", "block"])
+        #expect(enumCases.count == 4)
+    }
+
+    /// The enum's case names, read from the source.
+    ///
+    /// ⇒ ⇒ ⇒ AND WHY IT IS READ FROM THE SOURCE: = = the census is a
+    /// list of examples the component carries, = = so nothing in the
+    /// compiler ties the enum's cases to it. = = ⇒ ⇒ ⇒ The source is
+    /// what makes the pair checkable.
+    private static func shapeCaseNames(in source: String) -> [String] {
+        // ⇒ ⇒ ⇒ AND THE BODY IS BOUNDED: = = the enum's closing brace
+        // ends it (= = none of its cases carries one), = = so the switch
+        // arms in the view's own body (= = which also start with "case ")
+        // stay out.
+        guard let enumBody = source.components(separatedBy: "enum Shape {").last?
+            .components(separatedBy: "}").first
+        else { return [] }
+        return enumBody
+            .split(separator: "\n")
+            .compactMap { line in
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                guard trimmed.hasPrefix("case ") else { return nil }
+                let rest = trimmed.dropFirst("case ".count)
+                return rest.prefix { $0.isLetter }.description
+            }
     }
 
     @Test("A row shape carries its count (= the list's own count) and its unit")

@@ -154,8 +154,9 @@ struct LoadingPlaceholder: View {
         /// Every shape the placeholder can be asked for.
         ///
         /// = = The census of the shapes lives HERE (= next to the
-        /// = = shapes themselves) = = so a fourth shape cannot be added
-        /// = = without the census changing with it.
+        /// = = shapes themselves) = = and the suite reads the enum
+        /// = = beside it, = = so a shape cannot be added without the
+        /// = = census changing with it.
         @MainActor static let shapeCases: [Shape] = [
             .rows(count: 1, unit: .inspectorCard),
             .cards(columns: [GridItem(.flexible())], count: 1),

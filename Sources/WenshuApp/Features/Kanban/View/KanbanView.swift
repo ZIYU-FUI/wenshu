@@ -271,13 +271,13 @@ struct KanbanView: View {
             // ⇒ ⇒ ⇒ AND THE PARSE RUNS OFF THE MAIN ACTOR: = = the
             // body text is a plain string and the parser is
             // nonisolated, = = so the parse needs no actor to
-            // hand the text over. = = The library-level board
-            // holds 542 tasks (= = 490 of them carry a body, = =
-            // per the repo's own sweep, = =
-            // docs/agents/2026-11-13-render-path-full-sweep.md),
-            // and 490 markdown parses spend milliseconds = = and
-            // that is not the main thread's job while the
-            // user is switching tabs.
+            // hand the text over. = = The library-level board holds
+            // hundreds of cards (= = the probe
+            // `Tools/wenshu-devtool/probes/card_surfaces_load_cost.swift`
+            // counts them on the user's own library, = = and it prices
+            // the parse of the ones carrying a body), = = and that parse
+            // spends milliseconds = = and that is not the main thread's
+            // job while the user is switching tabs.
             let buckets = await Self.parseBodies(tasks)
             // ⇒ ⇒ ⇒ AND A STALE READ IS DROPPED: = = the parse is the
             // long part of the read, = = so the board can be asked for
