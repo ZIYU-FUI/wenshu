@@ -83,12 +83,16 @@ struct BookDocumentTests {
 
     // MARK: - The loader
 
-    @Test("the loader's document = = the whole-body loader's document (= = the card is unchanged)")
-    func theHeadReadAndTheWholeBodyReadAgree() throws {
+    @Test("the head door's CARD = = the whole file's card (= = the card is unchanged)")
+    func theHeadDoorShowsTheSameCardTheWholeFileWould() throws {
         let dir = try makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
         let url = dir.appendingPathComponent("章节.md")
-        let body = "# 章节标题\n\n" + String(repeating: "文", count: 400)
+        // ⇒ ⇒ ⇒ A FILE LONGER THAN THE HEAD: = = the head door has to
+        // ⇒ ⇒ ⇒ read a HEAD, = = so the card's fields come out of it
+        // ⇒ ⇒ ⇒ (= = and the answer is compared with the card the WHOLE
+        // ⇒ ⇒ ⇒ file produces).
+        let body = "# 章节标题\n\n" + String(repeating: "文", count: 4000)
         try Data(body.utf8).write(to: url)
 
         let bookId = UUID()
@@ -97,17 +101,18 @@ struct BookDocumentTests {
             folderName: "chapters",
             url: url
         )
-        let wholeDoc = BookDocumentHead.document(
-            bookId: bookId,
-            folderName: "chapters",
-            url: url
-        )
-        #expect(headDoc != nil)
-        #expect(wholeDoc != nil)
-        #expect(headDoc?.tags == wholeDoc?.tags)
-        #expect(headDoc?.body == wholeDoc?.body)
-        #expect(headDoc?.fileName == wholeDoc?.fileName)
-        #expect(headDoc?.id == wholeDoc?.id)
+        // = = The whole file's card (= = what the card showed before the
+        // = = head read existed).
+        let wholeText = try String(contentsOf: url, encoding: .utf8)
+        let (wholeH1, wholeBody) = PreviewPaneOps.splitFirstH1(wholeText)
+
+        let card = try #require(headDoc)
+        #expect(card.tags == (wholeH1.map { [$0] } ?? []))
+        #expect(card.fileName == url.lastPathComponent)
+        // = = The card's summary is the head of the body (= = the first
+        // = = 200 characters), = = so the head door's summary must be
+        // = = the whole file's summary.
+        #expect(card.body.prefix(200) == wholeBody.prefix(200))
     }
 
     @Test("the loader reads the book's .md files from the book's directory")
@@ -200,6 +205,30 @@ struct BookDocumentTests {
             folderName: nil
         )
         #expect(store.documents.count == firstCount)
+        // ⇒ ⇒ ⇒ AND THE SECOND CALL DID NOT START A READ: = = the
+        // read counter is the observable (= = the count of the documents
+        // cannot tell a second walk from a first one, = = because both
+        // walks answer with the same list).
+        #expect(store.currentLoadGeneration == 1,
+                "the same key must be read once (= = so the second call must not start a read)")
+    }
+
+    @Test("the store's write is guarded (= = so a stale read cannot answer for the newer scope)")
+    func theStoresWriteIsGuarded() throws {
+        let source = try String(
+            contentsOf: sourceURL("Sources/WenshuApp/Features/Editor/View/PreviewPaneBookDocuments.swift"),
+            encoding: .utf8
+        )
+        // ⇒ ⇒ ⇒ THE ORDER IS THE INVARIANT: = = the guard has to come
+        // BEFORE the write (= = = and the guard's PRESENCE is not the
+        // invariant, = = because the error path carries the same guard,
+        // = = so its presence alone would pass on an unguarded write).
+        let guardRange = try #require(
+            source.range(of: "guard currentLoadGeneration == generation else { return }")
+        )
+        let writeRange = try #require(source.range(of: "documents = loaded"))
+        #expect(guardRange.lowerBound < writeRange.lowerBound,
+                "the store's write must be guarded (= = so a stale read cannot answer for the newer scope)")
     }
 
     @Test("the store drops a stale read (= = the read that started first and landed second does not answer the newer scope)")

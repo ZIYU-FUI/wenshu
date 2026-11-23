@@ -12,14 +12,19 @@
 //  while the book was selected = = and the chrome's card count walked
 //  the SAME book a SECOND time per pass.
 //
-//  ⇒ ⇒ ⇒ MEASURED on the real library: one body pass = min 821us /
-//  median 2634us / p95 8087us of main-thread work, and 115832
-//  bytes read per pass. = = Apple's hitch line is 5000us of
-//  main-thread work in one frame, = = so the pass was over the
-//  line at p95. = = And the pass runs in the frame that draws
-//  the chat zone's tab switch (= the tree's selection follows
-//  the chat tab, = = so the material column's walk lands in the
-//  tab switch's frame).
+//  ⇒ ⇒ ⇒ MEASURED on the real library (= = the probe
+//  ⇒ ⇒ ⇒ ⇒ ⇒ `Tools/wenshu-devtool/probes/card_surfaces_load_cost.swift`
+//  ⇒ ⇒ ⇒ ⇒ ⇒ reads the numbers, = = so they are the probe's and the
+//  ⇒ ⇒ ⇒ ⇒ ⇒ probe is how they are re-measured): = = one body pass
+//  ⇒ ⇒ ⇒ ⇒ ⇒ walked the book TWICE (= = the grid and the chrome's
+//  ⇒ ⇒ ⇒ ⇒ ⇒ count), = = read 123854 bytes, = = and the walk's p95
+//  ⇒ ⇒ ⇒ ⇒ ⇒ sits in the MILLISECONDS. = = Apple's own line is 5ms
+//  ⇒ ⇒ ⇒ ⇒ ⇒ of main-thread work in one frame (= = Xcode's "Improving
+//  ⇒ ⇒ ⇒ ⇒ ⇒ app responsiveness" article), = = so the pass was over
+//  ⇒ ⇒ ⇒ ⇒ ⇒ the line at p95. = = And the pass runs in the frame that
+//  ⇒ ⇒ ⇒ ⇒ ⇒ draws the chat zone's tab switch (= = the tree's
+//  ⇒ ⇒ ⇒ ⇒ ⇒ selection follows the chat tab, = = so the material
+//  ⇒ ⇒ ⇒ ⇒ ⇒ column's walk lands in the tab switch's frame).
 //
 //  ⇒ ⇒ ⇒ So the walk moves HERE: OFF the main thread (= the disk ask
 //  is the expensive part, = = and the main thread is what the

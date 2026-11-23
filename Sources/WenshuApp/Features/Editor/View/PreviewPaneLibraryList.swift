@@ -237,25 +237,6 @@ enum LibraryDocumentLoader {
     /// head) = = falls back to the whole file, = = and a head that would
     /// cut a multi-byte character in half falls back too. = = The card
     /// then shows exactly what it showed before.
-    /// Read one .md's CARD metadata (= = its head, = = not its whole
-    /// body).
-    ///
-    /// = = The card needs three things from the file: = = the title (= =
-    /// = the file name), = = the chip tag (= the file's first H1) and = =
-    /// = the summary (= the first 200 characters after that H1). = = All
-    /// = = three live in the file's HEAD.
-    ///
-    /// = = ⇒ The body is NOT read here. = = The document's body is read
-    /// = = when the document is OPENED (= = `CardOpenOps.loadBookDocBody`,
-    /// = = which reads the file from disk), = = so a truncated body never
-    /// = = reaches the editor.
-    ///
-    /// = = ⇒ The head is EXACT: = = the file's first H1 may sit anywhere,
-    /// = = so a head with no H1 in it (= = and the file is longer than the
-    /// = = head) falls back to the whole file, = = and a head that would
-    /// = = cut a multi-byte character in half falls back too. = = The card
-    /// = = then shows exactly what it showed before.
-    ///
     /// = = ⇒ AND THE HEAD READ IS ONE DOOR: = = `BookDocumentHead` owns
     /// = = it (= = the book scope reads the same way), = = so the two
     /// = = scopes cannot drift on what a head means.

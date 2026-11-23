@@ -445,10 +445,12 @@ fact("C multiplier removed", "\(taskRows.count) card bodies -> ~15")
 
 // MARK: - D. the board's markdown parse count per body pass
 
-/// The board's card body parses its markdown IN the body (= so the parse
-/// runs again on every body pass). = = The chat's own parse is the
-/// production parser (= `ChatTextPartView.parseMarkdown`), = and its
-/// measured unit cost on this corpus is what the probe prices.
+/// The board parses its cards' markdown ONCE per board load (= = the load
+/// builds `KanbanCardContent` with the parsed body, = = so the card body
+/// only DRAWS it). = = The chat's own parse is the production parser
+/// (= `ChatTextPartView.parseMarkdown`), = = and its measured unit cost on
+/// this corpus is what the probe prices (= = what the board's load costs,
+/// = = and on this branch that load runs OFF the main actor).
 func parseAllBodies() -> Int {
     var parsed = 0
     for row in tasksWithBody {
@@ -463,9 +465,9 @@ func parseAllBodies() -> Int {
 }
 
 print("")
-print("=== D. the inspector board: markdown parses per body pass ===")
-bench("D1 parse every task body (the current shape)", 40) { parseAllBodies() }
-fact("D multiplier", "\(tasksWithBody.count) parses per body pass (= inside the card body)")
+print("=== D. the inspector board: the markdown parse its load does ===")
+bench("D1 parse every task body (= the board's load-time parse)", 40) { parseAllBodies() }
+fact("D multiplier", "\(tasksWithBody.count) parses per board LOAD (= = not per body pass)")
 
 print("")
 print("=== the totals a body pass costs today ===")
@@ -478,14 +480,16 @@ print("  = AFTER: 0 whole-library walks per body pass (= the ONE list is walked"
 print("           once per library change, = = and the chrome count reads it)")
 print("  = AFTER: the walk reads each .md's HEAD (= = 8 KB), = = not its body")
 print("  = AFTER: the scope draws ONE grid (= = the ONE list, = = not two)")
-print("inspector board (= as main has it, = = this branch does not carry that fix):")
+print("inspector board (= on this branch):")
 print("  = 1 store read (once, on appear) = = NOT the per-pass cost")
-print("  = \(taskRows.count) card bodies + \(tasksWithBody.count) markdown parses per body pass")
-print("inspector status page (= as main has it):")
-print("  = the whole ScrollView is inside TimelineView(.periodic(by: 1))")
-print("  = so EVERY card's body re-runs every second (= the draw cost)")
-print("inspector todo page (= as main has it):")
-print("  = a plain VStack (= every card built per body pass) + the array is")
-print("    reassigned every second (= every row's identity churns)")
+print("  = the board's LOAD parses \(tasksWithBody.count) markdown bodies OFF the main actor")
+print("  = = and the card bodies only draw the parsed body (= = 0 parses per body pass)")
+print("  = = the card bodies themselves: \(taskRows.count) built by a plain VStack, ~15 by the LazyVStack")
+print("inspector status page (= on this branch):")
+print("  = the page loads from the registry's change stream (= = no periodic")
+print("    re-render of the whole ScrollView)")
+print("inspector todo page (= on this branch):")
+print("  = the rows live in a LazyVStack (= = only the visible window is built)")
+print("  = and the page refreshes on a TARGETED notification (= = not every second)")
 print("")
 print("probe done.")

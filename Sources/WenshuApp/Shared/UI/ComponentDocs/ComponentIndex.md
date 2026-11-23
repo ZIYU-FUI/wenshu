@@ -188,7 +188,7 @@ Each component has:
 - **API**:
   ```swift
   // A list of rows (= the inspector's card rows, the sidebar's tree rows)
-  LoadingPlaceholder(.rows(3))
+  LoadingPlaceholder(.rows(count: 3, unit: .inspectorCard))
 
   // A grid of cards (= the material column's grid; = the zone's OWN grid,
   // = so the reserved space is the space the cards will fill)

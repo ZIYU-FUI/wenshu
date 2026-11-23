@@ -233,10 +233,10 @@ struct KanbanView: View {
     private func reloadFromStore() async {
         isLoading = true
         // ⇒ ⇒ ⇒ AND THE BOOK IS READ NOW, NOT AFTER THE YIELD: = = the
-        // ⇒ ⇒ ⇒ board can be asked for two books in a row (= = the user
-        // ⇒ ⇒ ⇒ switched books while the first read was still running),
-        // ⇒ ⇒ ⇒ and a read that read the book AFTER its yield would
-        // ⇒ ⇒ ⇒ answer for the WRONG book.
+        // board can be asked for two books in a row (= = the user
+        // switched books while the first read was still running),
+        // and a read that read the book AFTER its yield would
+        // answer for the WRONG book.
         let bookID = focusedBookID?.rawValue
         let generation = loadCounter.next()
         // The read yields first (= the house's own discipline in
@@ -280,11 +280,11 @@ struct KanbanView: View {
             // user is switching tabs.
             let buckets = await Self.parseBodies(tasks)
             // ⇒ ⇒ ⇒ AND A STALE READ IS DROPPED: = = the parse is the
-            // ⇒ ⇒ ⇒ long part of the read, = = so the board can be asked
-            // ⇒ ⇒ ⇒ for another book while it runs. = = ⇒ ⇒ ⇒ The read
-            // ⇒ ⇒ ⇒ that started first must not answer for the book
-            // ⇒ ⇒ ⇒ that came second (= = = = or the board would draw
-            // ⇒ ⇒ ⇒ = = = = book A's cards under book B's name).
+            // long part of the read, = = so the board can be asked
+            // for another book while it runs. = = ⇒ ⇒ ⇒ The read
+            // that started first must not answer for the book
+            // that came second (= = = = or the board would draw
+            // = = = = book A's cards under book B's name).
             guard loadCounter.isCurrent(generation) else { return }
             cardsByStatus = buckets
             loadError = nil

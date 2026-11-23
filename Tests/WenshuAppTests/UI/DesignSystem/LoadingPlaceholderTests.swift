@@ -72,11 +72,11 @@ struct LoadingPlaceholderTests {
     @Test("The two row anatomies are DIFFERENT (= the inspector's card and the sidebar's row)")
     func theTwoRowAnatomiesAreDifferent() {
         // ⇒ ⇒ ⇒ The two rows the app has are NOT the same shape: = = the
-        // ⇒ ⇒ ⇒ inspector's card leads with a 16 PT marker column and
-        // ⇒ ⇒ ⇒ carries two text rows, = = and the sidebar's tree row
-        // ⇒ ⇒ ⇒ leads with an 18 PT icon and carries one title. = = ⇒ ⇒
-        // ⇒ ⇒ ⇒ One hard-wired row would match neither, = = and the
-        // ⇒ ⇒ ⇒ reserved row would be the wrong height.
+        // inspector's card leads with a 16 PT marker column and
+        // carries two text rows, = = and the sidebar's tree row
+        // leads with an 18 PT icon and carries one title. = = ⇒ ⇒
+        // One hard-wired row would match neither, = = and the
+        // reserved row would be the wrong height.
         #expect(LoadingPlaceholder.Row.inspectorCard.leadingWidth
             != LoadingPlaceholder.Row.sidebarRow.leadingWidth)
         #expect(LoadingPlaceholder.Row.inspectorCard.bars.count
@@ -173,19 +173,14 @@ struct LoadingPlaceholderTests {
             "Sources/WenshuApp/Features/Kanban/View/KanbanView.swift"
         )
         // ⇒ ⇒ ⇒ The book is read BEFORE the yield: = = a read that read
-        // ⇒ ⇒ ⇒ the book after its yield would answer for the book the
-        // ⇒ ⇒ ⇒ user has already switched to.
+        // the book after its yield would answer for the book the
+        // user has already switched to.
         let bookRead = try #require(source.range(of: "let bookID = focusedBookID?.rawValue"))
         let yield = try #require(source.range(of: "await Task.yield()"))
         #expect(bookRead.lowerBound < yield.lowerBound,
                 "the board must capture the book BEFORE its yield")
         // ⇒ ⇒ ⇒ AND THE WRITE IS GUARDED: = = the read that started
-        // ⇒ ⇒ ⇒ first can land second (= = and it must not write).
-        // ⇒ ⇒ ⇒ ⇒ ⇒ The invariant is the ORDER (= = the guard before
-        // ⇒ ⇒ ⇒ ⇒ ⇒ the write), = = not the guard's presence (= = the
-        // ⇒ ⇒ ⇒ ⇒ ⇒ error branch carries the same guard, = = so its
-        // ⇒ ⇒ ⇒ ⇒ ⇒ presence alone would pass on a board whose write
-        // ⇒ ⇒ ⇒ ⇒ ⇒ is unguarded).
+        // first can land second (= = and it must not write). = ⇒ ⇒ ⇒ ⇒ ⇒ The invariant is the ORDER (= = the guard before = ⇒ ⇒ ⇒ ⇒ ⇒ the write), = = not the guard's presence (= = the = ⇒ ⇒ ⇒ ⇒ ⇒ error branch carries the same guard, = = so its = ⇒ ⇒ ⇒ ⇒ ⇒ presence alone would pass on a board whose write = ⇒ ⇒ ⇒ ⇒ ⇒ is unguarded).
         let guardRange = try #require(
             source.range(of: "guard loadCounter.isCurrent(generation) else { return }")
         )

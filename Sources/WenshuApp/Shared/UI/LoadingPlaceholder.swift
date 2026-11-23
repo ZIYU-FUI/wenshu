@@ -7,17 +7,24 @@
 //  WHY THIS FILE EXISTS
 //
 //  Every zone in the workspace that waits for data draws its own
-//  loading picture: six naked `ProgressView()` calls and one board with no
-//  loading state at all. Six zones = six shapes, six spinners, and a
-//  column that reads differently from its neighbour.
+//  loading picture: four naked `ProgressView()` calls (= the inspector's
+//  status page, = = the inspector's todo page, = = the material column's
+//  whole-library scope and the sidebar tree) and one board with no loading
+//  state at all. = = Five zones = = five shapes, = = five spinners, = =
+//  and a column that reads differently from its neighbour.
+//
+//  ⇒ ⇒ ⇒ AND THE OTHER SPINNERS ARE INLINE ACTIVITIES: = = the tree
+//  holds a badge, = = a diagnostics row, = = an import row, = =
+//  a card, = = a batch's progress row and the migration panel, = =
+//  = = and each of them carries a label or sits inside a control,
+//  = = so the contract's last rule keeps them on Apple's own
+//  indicator (= = the app's launch shell is the seventh, = = and
+//  = = it is "the app is starting", = = not "content arriving").
 //
 //  ⇒ ⇒ ⇒ So the loading picture is ONE component, here, and every zone
-//  ⇒ ⇒ ⇒ asks it for the shape its own content will take (= = and for
-//  ⇒ ⇒ ⇒ its own row anatomy, = = because the inspector's card and the
-//  ⇒ ⇒ ⇒ sidebar's tree row are NOT the same shape).
-//  content is what the placeholder reserves (= the content arrives
-//  into the space the placeholder already holds = = so nothing around
-//  the zone moves).
+//  asks it for the shape its own content will take (= = and for
+//  its own row anatomy, = = because the inspector's card and the
+//  sidebar's tree row are NOT the same shape). = ⇒ ⇒ ⇒ ⇒ ⇒ AND THE SHAPE IS WHAT THE PLACEHOLDER RESERVES (= = the = ⇒ ⇒ ⇒ ⇒ ⇒ content arrives into the space the placeholder already = ⇒ ⇒ ⇒ ⇒ ⇒ holds, = = so nothing around the zone moves).
 //
 //  ⇒ ⇒ ⇒ AND THE COMPONENT IS THE TWIN OF `EmptyStateView` (= the
 //  project's one "there is nothing here" surface): a zone is either
@@ -81,7 +88,7 @@
 //
 //  ```swift
 //  if !model.isLoaded {
-//      LoadingPlaceholder(.rows(3))
+//      LoadingPlaceholder(.rows(count: 3, unit: .inspectorCard))
 //          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 //  } else if model.tasks.isEmpty {
 //      emptyState
@@ -207,7 +214,7 @@ struct LoadingPlaceholder: View {
     ///
     /// = = The init takes the shape alone (= the memberwise init would
     /// = = ask for the label) = = so a call site reads
-    /// = = `LoadingPlaceholder(.rows(3))`.
+    /// = = `LoadingPlaceholder(.rows(count: 3, unit: .inspectorCard))`.
     init(_ shape: Shape) {
         self.shape = shape
     }
