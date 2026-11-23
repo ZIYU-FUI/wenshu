@@ -95,13 +95,17 @@ extension PreviewPane {
         // = `Tools/wenshu-devtool/probes/card_surfaces_load_cost.swift`
         // = reads the numbers): = = one body pass walked the book TWICE
         // = (= = the grid and the chrome's count), = = read 123854
-        // = bytes, = = and the walk's p95 sits in the MILLISECONDS.
-        // = = Apple's own line is 5ms of main-thread work in one frame
+        // = bytes, = = and the walk's own p95 is about 1.4ms. = =
+        // = Apple's own line is 5ms of main-thread work in one frame
         // = (= = Xcode's "Improving app responsiveness" article), = =
-        // = so the pass was over the line at p95. = = And the pass ran
-        // = in the frame that drew the chat zone's tab switch (= = the
-        // = tree's selection follows the chat tab, = = so the material
-        // = column's scope changes in that frame).
+        // = so one pass fits inside it. = = ⇒ ⇒ ⇒ The cost that
+        // = crossed the line was the PASS ITSELF: = = SwiftUI
+        // = re-evaluates the body on every observation tick (= =
+        // = hundreds of times a second), = = and every one of those
+        // = passes ran inside the frame that drew the chat zone's tab
+        // = switch. = = ⇒ ⇒ ⇒ And the fix takes the pass out of that
+        // = frame (= = the walks per body pass become 0, = = and the
+        // = bytes per body pass become 0).
         //
         // ⇒ ⇒ ⇒ The read now happens ONCE per scope change (= = in the
         // scope's `.task(id:)`), = = off the main thread (= = on a

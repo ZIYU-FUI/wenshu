@@ -194,6 +194,9 @@ Each component has:
   // = so the reserved space is the space the cards will fill)
   LoadingPlaceholder(.cards(columns: adaptiveColumns(width: width), count: 4))
 
+  // A set of groups (= the board's own status groups)
+  LoadingPlaceholder(.groups(count: 8))
+
   // A pane whose content has no shape yet
   LoadingPlaceholder(.block)
   ```

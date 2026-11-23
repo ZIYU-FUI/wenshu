@@ -96,9 +96,8 @@ struct BookDocumentTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         let url = dir.appendingPathComponent("章节.md")
         // ⇒ ⇒ ⇒ A FILE LONGER THAN THE HEAD: = = the head door has to
-        // ⇒ ⇒ ⇒ read a HEAD, = = so the card's fields come out of it
-        // ⇒ ⇒ ⇒ (= = and the answer is compared with the card the WHOLE
-        // ⇒ ⇒ ⇒ file produces).
+        // read a HEAD, = = so the card's fields come out of it (= = and
+        // the answer is compared with the card the WHOLE file produces).
         let body = "# 章节标题\n\n" + String(repeating: "文", count: 4000)
         try Data(body.utf8).write(to: url)
 

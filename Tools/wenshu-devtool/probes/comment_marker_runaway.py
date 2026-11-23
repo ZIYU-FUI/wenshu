@@ -65,18 +65,32 @@ def comment_rows(text: str) -> list[tuple[int, str]]:
 
 def marker_on_every_line(path: str, rows: list[tuple[int, str]]) -> list[tuple[int, str]]:
     """A paragraph (= a run of consecutive comment lines) whose EVERY line
-    carries a marker = = the third runaway the house names."""
+    carries a marker = = the third runaway the house names.
+
+    = = ⇒ ⇒ ⇒ AND THE BLOCK CLOSES ON TWO SIGNALS: = = a row whose line
+    = = ⇒ ⇒ ⇒ number is not the previous row's + 1 (= = something else
+    = = ⇒ ⇒ ⇒ sits between them), = = and a row whose comment body is
+    = = ⇒ ⇒ ⇒ empty (= = a blank comment line). = = Without them the
+    = = ⇒ ⇒ ⇒ block would never close (= = the rows are only the comment
+    = = ⇒ ⇒ ⇒ lines, = = so every one of them is non-empty), = = and the
+    = = ⇒ ⇒ ⇒ check would read the WHOLE FILE as one paragraph.
+    """
     out = []
     block: list[tuple[int, str]] = []
-    for row in list(rows) + [(0, "")]:
-        i, line = row
-        if line.strip():
-            block.append(row)
-            continue
-        if len(block) >= 2:
-            if all("⇒ ⇒ ⇒" in l for _, l in block):
+    previous = 0
+    for i, line in rows:
+        body = line.split("//", 1)[1] if "//" in line else ""
+        empty = not body.strip()
+        gap = previous != 0 and i != previous + 1
+        if empty or gap:
+            if len(block) >= 2 and all("⇒ ⇒ ⇒" in l for _, l in block):
                 out.append((block[0][0], block[-1][0]))
-        block = []
+            block = []
+        if not empty:
+            block.append((i, line))
+        previous = i
+    if len(block) >= 2 and all("⇒ ⇒ ⇒" in l for _, l in block):
+        out.append((block[0][0], block[-1][0]))
     return out
 
 
@@ -110,9 +124,13 @@ def main() -> int:
             capture_output=True, text=True, check=True,
         ).stdout.split()
         moved = 0
+        compared = 0
+        skipped: list[str] = []
         for n in names:
             if not n.endswith(".swift"):
+                skipped.append(n)
                 continue
+            compared += 1
             before = subprocess.run(
                 ["git", "show", f"{base}:{n}"], capture_output=True, text=True
             ).stdout
@@ -124,7 +142,13 @@ def main() -> int:
             if b != a:
                 moved += 1
                 print(f"{n}: the CODE moved (= = a comment-only pass must not move it)")
-        print(f"= = the code lines are byte-identical in {len(names)} file(s): {moved == 0}")
+        print(
+            f"= = the code lines are byte-identical in {compared} file(s): {moved == 0}"
+        )
+        if skipped:
+            print(f"= = the paths the proof did not compare ({len(skipped)}):")
+            for n in skipped:
+                print(f"  = = {n}")
         return 1 if moved else 0
     if args and args[0] == "--diff":
         base, head = args[1], args[2]

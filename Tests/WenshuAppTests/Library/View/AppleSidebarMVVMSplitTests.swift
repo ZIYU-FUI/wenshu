@@ -331,11 +331,12 @@ struct AppleSidebarMVVMSplitTests {
         // SwiftUI re-evaluates a body on every observation tick, = = so
         // a walk here ran hundreds of times per second (= = the probe
         // `Tools/wenshu-devtool/probes/card_surfaces_load_cost.swift`
-        // measures it: = = the walk's p95 sits in the MILLISECONDS, = =
-        // over Apple's own 5ms of main-thread work in one frame, = = and
-        // it ran in the frame that drew the chat zone's tab switch). = =
-        // The body reads the STORE (= = the one list the store's own
-        // task loaded, = = off the main thread).
+        // measures it: = = one walk's p95 is about 1.4ms, = = so one
+        // pass fits inside Apple's own 5ms of main-thread work in one
+        // frame, = = and it was the PASS ITSELF (= = hundreds of times
+        // a second) that landed in the frame drawing the chat zone's
+        // tab switch). = = The body reads the STORE (= = the one list
+        // the store's own task loaded, = = off the main thread).
         #expect(!scopeViews.contains("PreviewPaneOps.loadBookDocs(bookStore: bookStore, bookId: bookId, folderName: folderName)"),
                 "the preview pane's book scope MUST NOT walk the disk in its body (= the walk belongs to the store's own task)")
         #expect(scopeViews.contains("bookDocuments.documents"),
