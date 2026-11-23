@@ -121,5 +121,26 @@ tip (= = the differences are additions).
   the three lane rows the driver resolved.
 - The board: the landing card (`t_c56d6f30`) carries the review verdict, the
   push line and the dated read-back of both remotes' `main`.
-- The two remotes' `main`: `79ec0f390a44297548d5fa87d7b5a1ecf11bc4e5` = = the
-  commit this record's own tree is on.
+- The two remotes' `main`: `3c52985d7b8a337a742703cc299a0541518a78ab` = = the
+  commit this record's own tree is on (= = the branch's fast-forward, plus this
+  record's own landing commit).
+
+## 7. The trace, one row per requirement
+
+Every requirement this scope inherited, the commit that carries it, the
+independent verdict that cleared it, and the server-side proof that it is on
+`main` (= = read back from the remote, not from the local clone).
+
+| # | requirement | the commit that carries it | the independent verdict | the server's proof |
+| --- | --- | --- | --- | --- |
+| 1 | the reply is drawn while it streams | `f635f261b5` | `t_022108d0` APPROVED at `f635f261b5` | on `origin/main` = = `git merge-base --is-ancestor f635f261b5 origin/main` = = rc 0 |
+| 2 | the tool card settles its own call | `22277b9032` + `c3202a5144` | `t_419a320b` APPROVED at `c9d5b0c69f` (= = after `t_ea0a890b`, `t_6cf31ac5`, `t_8fda5fe0`) | on `origin/main` = = rc 0 for both |
+| 3 | the reasoning trace reads inside a bounded rectangle | `603442485f` (= = a cherry-pick of `78c1b09fc1`) | `t_1702fd97` APPROVED at `78c1b09fc1` | on `origin/main` = = rc 0 |
+| 4 | the transcript knows where the reader is, and offers the way back | `c3f59ea158` (= = a cherry-pick of `81e2da0760`) | `t_05f39c04` APPROVED at `81e2da0760` | on `origin/main` = = rc 0 |
+| 5 | the sub-agent card says what the agent just did | `a0865c4fa1` (= = a cherry-pick of `19c6d1c264`) | `t_a9b7f4b7` APPROVED at `19c6d1c264` | on `origin/main` = = rc 0 |
+| — | the five lanes as ONE branch, and this record | `79ec0f390a` | `t_f0b926e4` APPROVED at `74a33187ac`, then `t_e4b56df9` APPROVED at `79ec0f390a` | `origin/main` = = `3c52985d7b`, which has `79ec0f390a` as an ancestor = = rc 0 |
+| — | the landing itself (= = the fast-forward, the two pushes, the read-backs) | `3c52985d7b` | the landing card `t_c56d6f30` (this card's own scope; a landing writes docs and refs, so it owes no lane verdict) | `origin/main` = = `old-origin/main` = = local `main` = = `3c52985d7b8a337a742703cc299a0541518a78ab` (read 2026-11-24 03:10:43 CST, no pipe) |
+
+**What is NOT in this table.** The turn-outcome feature (= = the sixth item of
+the scope this session inherited) has no lane, no card and no commit: it was
+never built, so no row can claim it.
