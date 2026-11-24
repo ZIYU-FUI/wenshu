@@ -69,6 +69,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import card_gate_command  # noqa: E402  (sibling module, same directory)
 import product_lines  # noqa: E402  (sibling module, same directory)
 import ticket_tier  # noqa: E402  (sibling module, same directory)
 
@@ -172,15 +173,13 @@ GATE_REFUSAL_RE = re.compile(
 #   python3 Tools/.../tests/test_x.py     (= the devtool's own suite)
 #   pytest / python3 -m pytest             (= a python test run)
 #   a markdown link check                   (= a docs gate)
-NAMED_OTHER_GATE_RE = re.compile(
-    r"python3\s+\S*tests?/test_\S+\.py"
-    r"|python3\s+-m\s+pytest"
-    r"|\bpytest\b"
-    r"|markdown[- ]link[- ]check"
-    r"|\bglossary\b.*\bcheck\b"
-    r"|\bdictionary\b.*\bcheck\b",
-    re.I,
-)
+# The reader of "the card names its own gate command" is SHARED with the
+# pre-review gate (= `card_gate_command.py`), because the two gates used
+# to answer differently about the same card: this gate accepted a card
+# that names its own command, and the pre-review gate refused it (= it
+# read only `swift test --filter` lines), so a card that writes no Swift
+# code could never satisfy both. One reader, one answer.
+from card_gate_command import OWN_COMMAND as NAMED_OTHER_GATE_RE  # noqa: E402
 
 
 def _hermes() -> str | None:
@@ -293,7 +292,7 @@ def gate_demands(body: str) -> dict:
                 continue
             demands.append(stripped)
     named = FILTERED_SUITE_RE.findall(body)
-    named_other = NAMED_OTHER_GATE_RE.findall(body)
+    named_other = card_gate_command.named_own_commands(body)
     return {
         "wide": bool(demands),
         "named_filters": named,

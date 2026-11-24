@@ -62,20 +62,25 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.join(os.getcwd(), "Tools", "wenshu-devtool"))
+import card_gate_command  # noqa: E402  (sibling module, same directory)
+
 REPO = os.getcwd()
 DEVTOOL = os.path.join(REPO, "Tools", "wenshu-devtool")
 
 # The marker swift test prints when the filter matched no test case.
 NO_MATCH = "No matching test cases were run"
 
-# A filter the card writes. = Both quote styles are accepted: = a card
-# written with double quotes names the same suite as one written with
-# single quotes, = and a reader that takes only one of them turns the
-# card's own gate into a filter that ran nothing.
-FILTER = re.compile(r"swift test --filter\s+(['\"])(.+?)\1")
-
-# The phrase that says the card names a filter at all.
-FILTER_PHRASE = "swift test --filter"
+# The reader of "what gate does this card ask for?" is SHARED with the
+# width gate (= `card_gate_command.py`), because the two gates used to
+# answer differently about the same card: the width gate accepted a card
+# that names its OWN gate command, and this gate read only `swift test
+# --filter` lines, so a card that writes no Swift code could never
+# satisfy both (= measured on board wenshu-par 2026-11-24: 819 cards name
+# the devtool or Scripts/ in their body, and 433 carry a comment that
+# quotes the suite rule). One reader, one answer.
+FILTER = card_gate_command.FILTER
+FILTER_PHRASE = card_gate_command.FILTER_PHRASE
 
 # = = = THERE IS NO CJK PATTERN IN THIS FILE. = = =
 # = = = The comment-level CJK rule has ONE implementation, = = = the judge
@@ -233,10 +238,28 @@ def main():
             failures.append((f"the card's unreadable filter line: {line}", ""))
 
     filters = list(dict.fromkeys(args.filter + card_filters))
-    if not filters:
-        print("  no suite was named, = so no suite was measured:")
-        print("    the card's GATES must name the suite that owns each file it writes.")
-        failures.append(("no suite was measured", "the card names no `swift test --filter` line"))
+
+    # = = = THE CARD'S OWN GATE COMMAND RUNS TOO. = = = = = = = = = = = = =
+    # = = = = A card that writes NO Swift code has no Swift suite to = = = =
+    # = = = = filter: its gate is the command that owns what it writes = = = =
+    # = = = = (= the devtool's own test script, a pytest run, a docs link = = =
+    # = = = = check). The width gate reads that card as NAMED (= = = = = = = =
+    # = = = = `gate_width_gate.py`'s `named_other`), so this gate refused a = =
+    # = = = = card the other gate accepted, and the house reference calls = = =
+    # = = = = that a GATE GAP and not a card defect (= = = = = wenshu-parallel-dev/ =
+    # = = = = references/card-body-authoring.md). So the card's own command = =
+    # = = = is RUN here, and it must MEASURE something (= = = = a command that =
+    # = = = = printed nothing measured nothing). = = = = = = = = = = = = = = =
+    card_commands = []
+    if args.card:
+        card_commands = card_gate_command.own_commands(open(args.card, encoding="utf-8").read())
+
+    if not filters and not card_commands:
+        print("  no gate was named, = so nothing was measured:")
+        print("    the card's GATES must name the gate that owns each file it writes:")
+        print("    a filtered Swift suite, or = = = = = the card's own gate command.")
+        failures.append(("no gate was measured",
+                         "the card names no `swift test --filter` line and no own gate command"))
 
     for name in filters:
         code, out = sh(f"swift test --filter '{name}'")
@@ -251,6 +274,17 @@ def main():
         elif measured == 0:
             print("    the run reported no test, = so it measured NOTHING")
             failures.append((f"swift test --filter '{name}'", "the run reported no test"))
+
+    for command in card_commands:
+        code, out = sh(command)
+        measured = bool(out.strip())
+        print(f"  the card's own gate ({command}): exit {code}"
+              f" {'measured' if measured else 'MEASURED NOTHING'}")
+        if code != 0:
+            failures.append((f"the card's own gate: {command}", out[-800:]))
+        elif not measured:
+            failures.append((f"the card's own gate: {command}",
+                             "the command printed nothing, = so it measured nothing"))
 
     # RULE 4: the vendored engine has its own suite, = and a change that
     # touches the vendored tree runs it.
