@@ -17,11 +17,10 @@
 //  Apple ships `zip` on every macOS install and EPUBKit would add
 //  an SPM dep for ~30 lines of zip orchestration).
 //
-//  PDF path: writes a minimal PDF (= one page per chapter, =
-//  the chapter body wrapped in a PDF text-show operation). Uses
-//  PDFKit (= built into macOS, no SPM dep). The PDF is functional
-//  (= not pageless Apple-style); future tickets can replace this
-//  with WKWebView-rendered PDFs for richer typography.
+//  PDF path: sets each chapter in the book's own style sheet and
+//  flows it across as many pages as its lines need (= TextKit lays
+//  the column out, the export cuts it at whole lines). PDFKit writes
+//  the pages (= built into macOS, no SPM dep).
 //
 //  Combined MD path: writes one `<chapter-title>.md` per chapter
 //  inside a destination folder (= the user picks the folder via
@@ -31,7 +30,6 @@
 
 import Foundation
 import AppKit
-import PDFKit
 
 /// Book export sub-format (= surfaced in the sheet's book section
 /// picker). Reuses the enum declared in ExportSheet.swift (= that
@@ -116,6 +114,7 @@ actor BookExportEngine {
 
         let chaptersDir = bookDir.appendingPathComponent("chapters", isDirectory: true)
         let indexURL = bookDir.appendingPathComponent("chapters.json")
+        let sheet = Self.readStyleSheet(in: bookDir)
 
         // The folder on disk is the truth; the index enriches it.
         //
@@ -143,6 +142,7 @@ actor BookExportEngine {
         case .pdf:
             return writePDF(
                 chapters: chapters,
+                sheet: sheet,
                 destination: destinationURL
             )
         case .combinedMd:
@@ -292,46 +292,29 @@ actor BookExportEngine {
 
     // MARK: PDF
 
-    /// Write a minimal PDF (= one page per chapter) using PDFKit's
-    /// `PDFDocument` + `PDFPage(image:)` pattern. Each page renders
-    /// the chapter title + body via an `NSAttributedString` drawn into
-    /// an `NSImage` (= the product pattern for rasterizing
-    /// attributed text into a PDF page).
+    /// The sheet the book is set to, read off its own `book.json`. A
+    /// folder that carries no readable record exports at the print
+    /// baseline, which is the sheet a book without one reads.
+    private static func readStyleSheet(in bookDir: URL) -> BookStyleSheet {
+        let url = bookDir.appendingPathComponent("book.json")
+        guard let data = try? Data(contentsOf: url),
+              let book = try? JSONDecoder().decode(Book.self, from: data) else {
+            return .default
+        }
+        return book.effectiveStyleSheet
+    }
+
+    /// Write the book as a PDF. The typesetter sets the chapters in the
+    /// book's own sheet and returns the number of pages it drew.
     private func writePDF(
         chapters: [ResolvedChapter],
+        sheet: BookStyleSheet,
         destination: URL
     ) -> URL {
-        let pdfDoc = PDFDocument()
-
-        for (index, chapter) in chapters.enumerated() {
-            let body = chapter.body
-
-            // Render the chapter text into an NSImage (= US Letter
-            // @ 72 DPI; = 612 × 792 = the PDF page unit).
-            let pageSize = CGSize(width: 612, height: 792)
-            let image = NSImage(size: pageSize)
-            image.lockFocus()
-            let titleAttr: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: 18, weight: .bold),
-                .foregroundColor: NSColor.black,
-            ]
-            let bodyAttr: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: 12),
-                .foregroundColor: NSColor.black,
-            ]
-            NSString(string: chapter.title)
-                .draw(at: NSPoint(x: 50, y: 720), withAttributes: titleAttr)
-            NSString(string: body)
-                .draw(in: NSRect(x: 50, y: 50, width: 512, height: 660), withAttributes: bodyAttr)
-            image.unlockFocus()
-
-            guard let page = PDFPage(image: image) else { continue }
-            pdfDoc.insert(page, at: index)
-        }
-
-        // Save the document to the destination URL (= product
-        // canonical PDFKit save path).
-        pdfDoc.write(to: destination)
+        BookPDFTypesetter.write(
+            chapters: chapters.map { (title: $0.title, body: $0.body) },
+            sheet: sheet,
+            to: destination)
         return destination
     }
 
