@@ -281,7 +281,7 @@ enum PreviewPaneOps {
     /// assets column's bottom chrome footer displays the
     /// total card count for the active scope (= the chrome
     /// text reads "N 项"; = same 1:1 visual recipe the
-    /// sidebar '+' button / chat token-count footer /
+    /// sidebar '+' button / chat context meter /
     /// editor status bar use via the shared
     /// `ChromeBottomFooter` component). This helper resolves
     /// the count for a given scope (= applies the same scope

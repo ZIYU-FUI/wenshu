@@ -1,5 +1,5 @@
 // Sources/WenshuApp/UI/Chrome/ChromeBottomFooter.swift 2026-10-12: the editor status bar
-// (`EditorStatusBarView`) and the chat token-count footer
+// (`EditorStatusBarView`) and the chat context meter
 // (`ChatInputBarView.tokenCountFooter`) have been diverging across 5 visual round-
 // trips. The boss's 2026-10-12 directive "你去看一下聊天区的底栏的写法. 照抄就行了, 那是已经实现过的逻辑" — and the
 // alternate "或者你把聊天区的低栏 抽象个组件. 让编辑器区直接应用也可以" — converge on the same solution: extract

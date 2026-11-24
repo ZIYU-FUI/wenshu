@@ -22,7 +22,7 @@
 // `VStack { Divider; content; .frame(maxWidth:
 // .infinity, alignment: .leading); .padding(
 // .vertical, 8); .padding(.horizontal, 8) }
-// .background(.bar)` shell the chat token-count
+// .background(.bar)` shell the chat context meter
 // footer and the editor status bar use; = single
 // source of truth for the bottom-chrome shape; = no
 // visual drift across the three column-bottom rows

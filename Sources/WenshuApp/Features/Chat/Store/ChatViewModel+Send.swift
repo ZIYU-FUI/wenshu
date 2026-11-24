@@ -359,7 +359,7 @@ extension ChatViewModel {
             } catch {
                 Self.logSwallowedPersistenceFailure(operation: "append agent message", error: error)
             }
-            recomputeContextUsed()
+            await refreshContextUsage()
 
             // Trigger summary generation (LLM + saveSummary + deleteOldMessages
             // order) route through ChatRepositoryProtocol (= data-layer seam).

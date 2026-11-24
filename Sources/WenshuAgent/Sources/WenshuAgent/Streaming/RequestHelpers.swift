@@ -204,7 +204,10 @@ public enum RequestHelpers {
             usage = Self.usage(
                 from: usageDict,
                 inputKey: "input_tokens",
-                outputKey: "output_tokens"
+                outputKey: "output_tokens",
+                // The Anthropic shape reports the cached prefix beside
+                // the input count (= the two do not overlap).
+                cacheTokensIncludedInInput: false
             )
         }
 
@@ -387,17 +390,25 @@ public enum RequestHelpers {
     /// caller passes the keys its provider uses. The cache counts are
     /// read by `cacheCounts(from:)`, which understands both provider
     /// shapes.
+    ///
+    /// `cacheTokensIncludedInInput` says whether the provider counts the
+    /// cached prefix inside its input count. The OpenAI-compatible shape
+    /// does (= the cached count is a subset of the input count); the
+    /// Anthropic shape reports the cached prefix beside the input count,
+    /// so the two do not overlap.
     static func usage(
         from usage: [String: Any],
         inputKey: String,
-        outputKey: String
+        outputKey: String,
+        cacheTokensIncludedInInput: Bool = true
     ) -> LLMUsage {
         let cache = cacheCounts(from: usage)
         return LLMUsage(
             inputTokens: usage[inputKey] as? Int ?? 0,
             outputTokens: usage[outputKey] as? Int ?? 0,
             cacheReadTokens: cache.read,
-            cacheCreationTokens: cache.creation
+            cacheCreationTokens: cache.creation,
+            cacheTokensIncludedInInput: cacheTokensIncludedInInput
         )
     }
 

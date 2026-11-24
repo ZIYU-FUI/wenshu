@@ -6,13 +6,26 @@
 import Foundation
 
 extension ConversationLoop {
+    /// The composed prompt, and the sizes of the parts that went into it.
+    ///
+    /// The text is what the provider receives. The sizes are what the
+    /// meter's breakdown reports: the memory is prefetched into the
+    /// dynamic tier, so a caller that only had the composed text could
+    /// not tell the memory's share from the rest of the prompt.
+    struct ComposedSystemPrompt: Sendable {
+        /// The prompt the provider receives (= nil when there is none).
+        let text: String?
+        /// The tokens the prefetched memories contributed.
+        let memoryTokens: Int
+    }
+
     /// Composes the effective system prompt via the PromptBuilder. The
     /// adapters read live data, and this method reads it from those adapters.
     func composeSystemPrompt(
         override: String?,
         persistent: String?,
         settings: AgentSettings = .init()
-    ) async -> String? {
+    ) async -> ComposedSystemPrompt {
         // Determine the ephemeral hint source (= which string flows into
         // the dynamic tier's "Context: ..." section).
         let ephemeralHint = override ?? persistent ?? ""
@@ -70,13 +83,160 @@ extension ConversationLoop {
         // the conversation without a system prompt; connector handles the
         // default).
         if ephemeralHint.isEmpty {
-            return stable.isEmpty ? nil : stable
+            return ComposedSystemPrompt(
+                text: stable.isEmpty ? nil : stable,
+                memoryTokens: ContextUsageMeasure.tokens(
+                    prefetched.map(\.snippet).joined(separator: "\n")
+                )
+            )
         }
 
         // Join stable + dynamic with the canonical separator (= same separator
         // SystemPrompt.build uses; matches PromptBuilder's buildOpenAISystem /
         // buildGeminiSystemInstruction output).
-        return stable + "\n\n---\n\n" + dynamic
+        return ComposedSystemPrompt(
+            text: stable + "\n\n---\n\n" + dynamic,
+            memoryTokens: ContextUsageMeasure.tokens(
+                prefetched.map(\.snippet).joined(separator: "\n")
+            )
+        )
+    }
+
+    /// Trim the turn's accumulated tool results to the turn's cap.
+    ///
+    /// The request carries every result the turn has produced, so the
+    /// results are trimmed oldest-first until their total fits the cap.
+    /// The newest results are the ones the model still needs, so they
+    /// survive longest. A result that is already inside the cap is left
+    /// alone.
+    ///
+    /// The trimmed result keeps a head and gains a marker saying how much
+    /// was dropped, so the model reads that the result was cut rather
+    /// than believing the cut text is the whole result.
+    static func trimTurnToolResults(
+        _ messages: [LLMMessage],
+        budget: ToolResultBudget
+    ) -> [LLMMessage] {
+        // The tool results in the order they arrived, with the text each
+        // one carries.
+        let results: [(index: Int, output: String)] = messages.enumerated().compactMap { index, message in
+            guard message.role == .tool else { return nil }
+            var output = ""
+            for block in message.blocks {
+                if case let .toolResult(_, text, _) = block {
+                    output += text
+                }
+            }
+            return (index, output)
+        }
+        let total = results.reduce(0) { $0 + $1.output.count }
+        guard total > budget.maxTurnCharacters else { return messages }
+
+        // The results that keep their whole text are the newest ones:
+        // they are the ones the model still needs. The oldest give way.
+        var keptCount = 0
+        var keptTotal = 0
+        for result in results.reversed() {
+            guard keptTotal + result.output.count <= budget.maxTurnCharacters else { break }
+            keptTotal += result.output.count
+            keptCount += 1
+        }
+        var cutIndices = Array(results.dropLast(keptCount).map(\.index))
+        let outputByIndex = Dictionary(uniqueKeysWithValues: results.map { ($0.index, $0.output) })
+
+        // Every cut result needs room for its marker (= the text that
+        // says how much of the result was dropped). The markers are
+        // reserved before the previews are handed out, so the turn's
+        // total stays inside the cap; when the markers alone do not fit
+        // beside the kept results, one more of the newest kept results
+        // gives way.
+        var markerTotal = cutIndices.reduce(0) { total, index in
+            total + Self.trimMarker(dropped: (outputByIndex[index] ?? "").count).count
+        }
+        while keptCount > 0, keptTotal + markerTotal > budget.maxTurnCharacters {
+            // The oldest of the kept results gives way, so the markers
+            // have somewhere to sit.
+            let freed = results[results.count - keptCount]
+            keptCount -= 1
+            keptTotal -= freed.output.count
+            cutIndices.append(freed.index)
+            markerTotal += Self.trimMarker(dropped: freed.output.count).count
+        }
+
+        // What is left of the cap after the kept results and the markers
+        // are paid for. It goes to the previews, and the newest cut
+        // result gets it first (= it is the closest to the model's
+        // attention). A cut result therefore keeps as much of itself as
+        // the turn's cap has room for, not a fixed-size excerpt.
+        var previewAllowance = max(0, budget.maxTurnCharacters - keptTotal - markerTotal)
+        var replacements: [Int: String] = [:]
+        for index in cutIndices.reversed() {
+            let output = outputByIndex[index] ?? ""
+            let room = min(output.count, previewAllowance)
+            previewAllowance -= room
+            let preview = String(output.prefix(room))
+            replacements[index] = preview + Self.trimMarker(dropped: output.count - room)
+        }
+
+        return messages.enumerated().map { index, message in
+            guard let replacement = replacements[index] else { return message }
+            let rewritten = message.blocks.map { block -> LLMBlock in
+                guard case let .toolResult(id, _, isError) = block else { return block }
+                return .toolResult(
+                    toolUseID: id,
+                    output: replacement,
+                    isError: isError
+                )
+            }
+            return LLMMessage(role: message.role, blocks: rewritten)
+        }
+    }
+
+    /// The marker that tells the reader the result was cut.
+    ///
+    /// It names how much was DROPPED (= the result's own size minus what
+    /// the reader still sees), so the model reads that the text it sees
+    /// is a cut of a larger result rather than the whole result, and the
+    /// number it reads is the number that was dropped.
+    static func trimMarker(dropped: Int) -> String {
+        "\n[trimmed \(dropped) chars]"
+    }
+
+    /// Record what the request's prompt carried.
+    ///
+    /// The reading is what the chat zone's meter shows: the provider's
+    /// own count of the prompt, and the measured size of the parts that
+    /// made it up.
+    func recordContextUsage(
+        conversationId: String,
+        messages: [LLMMessage],
+        systemPrompt: ComposedSystemPrompt,
+        toolSchemas: [ToolRegistrySchema],
+        usage: LLMUsage
+    ) async {
+        let measured = ContextUsageMeasure.messageTokens(messages)
+        let systemTokens = ContextUsageMeasure.tokens(systemPrompt.text ?? "")
+        let categories: [ContextUsageCategory] = [
+            ContextUsageCategory(id: .systemPrompt, tokens: systemTokens),
+            ContextUsageCategory(
+                id: .toolSchemas,
+                tokens: ContextUsageMeasure.toolSchemaTokens(toolSchemas)
+            ),
+            ContextUsageCategory(id: .messages, tokens: measured.conversation),
+            ContextUsageCategory(id: .toolResults, tokens: measured.toolResults),
+            ContextUsageCategory(id: .memory, tokens: systemPrompt.memoryTokens),
+        ]
+        await ContextUsageRecorder.shared.record(
+            conversationId: conversationId,
+            snapshot: ContextUsageSnapshot(
+                promptTokens: usage.promptTokens,
+                completionTokens: usage.outputTokens,
+                cacheReadTokens: usage.cacheReadTokens,
+                cacheCreationTokens: usage.cacheCreationTokens,
+                contextWindow: connector.contextWindow,
+                categories: categories
+            )
+        )
     }
 
     /// Compress the history when it has grown past the budget.

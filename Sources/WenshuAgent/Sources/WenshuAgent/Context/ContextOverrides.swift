@@ -116,3 +116,18 @@ public enum ContextOverrides {
         return stored
     }
 }
+
+/// The fraction of the context window at which the agent compresses.
+///
+/// The gauge's warning point is this number, so it is read LIVE: the
+/// user installs their own threshold in Settings, and the meter has to
+/// warn where the compressor acts, not where the built-in default is.
+/// A stored value would freeze the built-in number at build time, and
+/// the meter would disagree with the compressor for every user who
+/// moved the threshold.
+public enum ContextCompressionThreshold {
+    /// The installed threshold (= the compressor's own number).
+    public static var fraction: Double {
+        ContextOverrides.compressionThreshold
+    }
+}

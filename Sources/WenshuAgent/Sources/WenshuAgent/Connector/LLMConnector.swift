@@ -185,6 +185,21 @@ public extension LLMConnector {
     /// refuses the prompt.
     static var defaultContextWindow: Int { 200_000 }
 
-    /// Connectors that do not know better answer with the shared default.
-    var contextWindow: Int { Self.defaultContextWindow }
+    /// The window this connector's provider publishes.
+    ///
+    /// The provider table is the one place that knows what each provider's
+    /// models accept (= `Provider.defaultContextWindowTokens`), so a
+    /// connector reads its own row instead of carrying a second copy of the
+    /// number. A connector whose id names no provider answers with the
+    /// shared default.
+    var providerContextWindow: Int {
+        Provider.by(slug: connectorID)?.defaultContextWindowTokens
+            ?? Self.defaultContextWindow
+    }
+
+    /// Connectors that do not know better answer with the provider's own
+    /// published window.
+    var contextWindow: Int {
+        providerContextWindow
+    }
 }

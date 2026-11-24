@@ -148,8 +148,9 @@ public enum AnthropicSSEDecoder {
     /// last one (= `message_delta`), so both shapes are read from the
     /// event's own `usage` object.
     ///
-    /// The cached prefix is counted by the provider INSIDE the input
-    /// count, so the cached count is kept in its own field.
+    /// The cached prefix is counted by the provider BESIDE the input
+    /// count (= the Anthropic shape), so the cached count is kept in its
+    /// own field and the input count says only what was not cached.
     ///
     /// The counters are published to the running turn's collector, so
     /// the turn that owns this stream reports the provider's numbers
@@ -159,7 +160,8 @@ public enum AnthropicSSEDecoder {
         let usage = RequestHelpers.usage(
             from: usageDict,
             inputKey: "input_tokens",
-            outputKey: "output_tokens"
+            outputKey: "output_tokens",
+            cacheTokensIncludedInInput: false
         )
         StreamUsageScope.collector?.merge(usage)
         return usage

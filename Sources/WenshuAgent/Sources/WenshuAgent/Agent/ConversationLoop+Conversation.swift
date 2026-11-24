@@ -61,11 +61,12 @@ public extension ConversationLoop {
         // land in follow-on tickets), so the dynamic tier reduces to the
         // ephemeral hint as a final block. The placeholder Swift template no
         // longer appears anywhere in the source tree.
-        let effectiveSystemPrompt = await composeSystemPrompt(
+        let composed = await composeSystemPrompt(
             override: systemMessage,
             persistent: systemPrompt,
             settings: settings
         )
+        let effectiveSystemPrompt = composed.text
 
         // Build call options (= model defaults to first defaultModel of the
         // active connector profile; per-call override lands in the PromptCaching
@@ -101,6 +102,19 @@ public extension ConversationLoop {
         let cacheConversationId = TurnScope.currentSessionID ?? resolvedTaskId
         await PromptCacheRecorder.shared.record(
             conversationId: cacheConversationId,
+            usage: response.usage
+        )
+
+        // The meter's reading for this request: the provider's own count
+        // of the prompt, and the measured size of the parts that made it
+        // up. Recorded on every request, so the reading describes the
+        // last request the provider actually received (= the largest one
+        // a turn produced).
+        await recordContextUsage(
+            conversationId: cacheConversationId,
+            messages: messages,
+            systemPrompt: composed,
+            toolSchemas: toolSchemas,
             usage: response.usage
         )
 

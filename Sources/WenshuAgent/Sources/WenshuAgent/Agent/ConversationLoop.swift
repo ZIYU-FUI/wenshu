@@ -149,7 +149,7 @@ public actor ConversationLoop {
                         override: systemMessage,
                         persistent: systemPrompt,
                         settings: settings
-                    ) ?? ""
+                    ).text ?? ""
                 ) ?? conversationHistory
 
                 // "Building prompt" + "Calling LLM". Prompt construction and the
@@ -245,7 +245,7 @@ public actor ConversationLoop {
                                 override: systemMessage,
                                 persistent: systemPrompt,
                                 settings: settings
-                            ),
+                            ).text,
                             temperature: nil,
                             reasoningEffort: UserDefaults.standard.string(
                                 forKey: "wenshu.llm.reasoningEffort"
@@ -300,6 +300,15 @@ public actor ConversationLoop {
                 // executor is built fresh inside every round, so a counter
                 // there would die with the round.
                 let safetyLedger = ToolSafetyLedger(policy: ToolSafetyPolicy.values)
+                // The turn's ledger of the tool output it has spent. It
+                // lives HERE for the same reason (= the executor is built
+                // fresh every round), and it is shared so the cap covers
+                // the whole turn rather than one round.
+                let resultLedger = ToolResultLedger(
+                    budget: ToolResultBudget.turnBudget(
+                        forWindow: connector.contextWindow
+                    )
+                )
                 while let assistant = result.messages.last,
                       assistant.blocks.contains(where: {
                           if case .toolUse = $0 {
@@ -321,7 +330,10 @@ public actor ConversationLoop {
                         label: "Executing tools (turn \(turnCount))",
                         etaSeconds: nil
                     )
-                    let executor = ToolExecutor(safetyLedger: safetyLedger)
+                    let executor = ToolExecutor(
+                        safetyLedger: safetyLedger,
+                        resultLedger: resultLedger
+                    )
                     // Forward the stream callback so ToolExecutor
                     // emits.toolUse +.toolResult blocks to ChatView (= the
                     // ChatToolUsePartView / ChatToolResultPartView cards appear
@@ -342,15 +354,26 @@ public actor ConversationLoop {
                         label: "Calling LLM (turn \(turnCount))",
                         etaSeconds: 4
                     )
+                    // The request carries every result this turn has
+                    // produced so far, so the turn's accumulated tool
+                    // output is checked against the turn's cap BEFORE
+                    // the request goes out. Without this check a turn
+                    // that calls many tools sends a prompt the provider
+                    // refuses, and the refusal is what the user sees.
+                    result.messages = Self.trimTurnToolResults(
+                        result.messages,
+                        budget: resultLedger.budget
+                    )
                     let reasoningEffort = UserDefaults.standard.string(forKey: "wenshu.llm.reasoningEffort")
+                    let composed = await composeSystemPrompt(
+                        override: systemMessage,
+                        persistent: systemPrompt,
+                        settings: settings
+                    )
                     let options = LLMCallOptions(
                         model: defaultModelForConnector(),
                         maxTokens: maxTokens,
-                        systemPrompt: await composeSystemPrompt(
-                            override: systemMessage,
-                            persistent: systemPrompt,
-                            settings: settings
-                        ),
+                        systemPrompt: composed.text,
                         temperature: nil,
                         reasoningEffort: reasoningEffort,
                         tools: toolSchemas
@@ -359,6 +382,13 @@ public actor ConversationLoop {
                         messages: result.messages,
                         options: options,
                         streamCallback: streamCallback
+                    )
+                    await recordContextUsage(
+                        conversationId: TurnScope.currentSessionID ?? resolvedTaskId,
+                        messages: result.messages,
+                        systemPrompt: composed,
+                        toolSchemas: toolSchemas,
+                        usage: nextResponse.usage
                     )
                     let nextAssistant = LLMMessage(role: .assistant, blocks: nextResponse.blocks)
                     result.messages.append(nextAssistant)
@@ -384,7 +414,7 @@ public actor ConversationLoop {
                         override: systemMessage,
                         persistent: systemPrompt,
                         settings: settings
-                    ) ?? ""
+                    ).text ?? ""
                 )
 
                 // "Persisting memory". Write the turn's off-by-default users see

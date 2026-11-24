@@ -91,12 +91,12 @@ struct ChatInputBarView: View {
     }
 
     var body: some View {
-        // 2026-09-23: restored the token-usage bottom bar
-        // (= the token line stays under the input bar). The manual compress button
-        // is NOT restored (= ConversationLoop.swift:512 runs ConversationCompression.
-        // historyAfterCompression on every turn = automatic compression;
-        // = no production caller for manualTrigger, so the bar has no
-        // manual trigger of its own.
+        // The context meter lives under the input bar (= the bar stays
+        // under the input field). The manual compress button is NOT
+        // restored (= ConversationLoop.swift:512 runs
+        // ConversationCompression.historyAfterCompression on every turn =
+        // automatic compression; = no production caller for
+        // manualTrigger, so the bar has no manual trigger of its own.
         //
         //
         // Structure (top to bottom):
@@ -106,9 +106,10 @@ struct ChatInputBarView: View {
         //                              ⌃ + 🎯 + ✈️)
         //   3. Divider               (= sidebar-bottom-accessory separator;
         //                              = matches NewLibraryOutlineView L1776)
-        //   4. tokenCountFooter      (= "0 tokens used" / "N tokens used" /
-        //                              orange warning when over threshold;
-        //                              = visual only; = no action button)
+        //   4. tokenCountFooter      (= the context meter: a capacity gauge
+        //                              beside the reading, and a click on
+        //                              the gauge opens the breakdown
+        //                              popover)
         //
         // Failed sends get no inline banner here: `0f48a3b6a` added
         // a detailed-log affordance alongside the error line and
@@ -123,43 +124,20 @@ struct ChatInputBarView: View {
         }
     }
 
-    // MARK: - Token count footer (= visual only)
+    // MARK: - Context meter (= the gauge + its breakdown)
 
-    /// Token-usage bottom bar (= "N tokens used" = live context budget
-    /// indicator; = always visible = the user always knows how much
-    /// room they have).
+    /// The context meter in the chat zone's bottom bar.
     ///
-    /// Visual-only footer (= no action button; = the auto-trigger path
-    /// via ConversationLoop.swift:512 handles compression on every turn;
-    /// = no manual trigger wired). Three states:
-    ///   1. No messages        → not rendered (= only show when there's
-    ///                              something to count; = the empty state
-    ///                              is silence not a confusing "0 tokens")
-    ///   2. Below threshold   → "N tokens used" in `.secondary` tone
-    ///   3. Over threshold    → "N / M tokens (P%)" in `.orange` tone
+    /// It carries an Apple capacity gauge (= a level indicator whose fill
+    /// stops at the value's place on the path) beside the number, and a
+    /// click on the gauge opens the breakdown popover (= the prompt's
+    /// parts). Clicking opens one popover at a time (= the HIG's rule).
+    ///
+    /// The number it shows is the provider's own count of the last
+    /// request's prompt, measured against the window the agent
+    /// compresses against (= the same number on both sides), so the fill
+    /// means the same thing the compression does.
     private var tokenCountFooter: some View {
-        // 2026-10-12: spec = match the sidebar's bottom
-        // "+ " button style/size verbatim (= the 'style, size copy verbatim'
-        // ' = 'just copy the style and size from the sidebar').
-        // Reference: NewLibraryOutlineView.swift L1760 `sidebarBottomNewButton`.
-        // Same primitives (= product sidebar-bottom-accessory pattern):
-        //   - Divider above
-        //   - HStack(spacing: DesignTokens.spacingTight) for label (= just the Text here; = the
-        //     "+ " button has `Image + Text`; = we have no action
-        //     button = just the text label)
-        //   - Text.font(.callout) (= NOT .footnote; = matches the
-        //     sidebar's exact text size)
-        //   - .frame(maxWidth: .infinity, alignment: .leading) (= the
-        //     sidebar uses Spacer() implicitly via the .leading frame;
-        //     = no Spacer() needed here)
-        //   - .padding(.vertical, 8) + .padding(.horizontal, 8)
-        //     (= same 8 PT all-around padding the sidebar uses; = no
-        //     10 PT mismatch)
-        //   - .foregroundStyle(.secondary) for the below-threshold label
-        //     (= matches sidebar Image + .secondary; = the orange over-
-        //     threshold branch keeps its warning tone).
-        // T33-ALWAYS-SHOW-COMPRESSION behavior — always visible
-        // (= the user always knows how much room they have).
         // 2026-10-12: refactored to go through the shared
         // `ChromeBottomFooter` component (= the same shell
         // the editor status bar now uses; = single source of
@@ -172,35 +150,8 @@ struct ChatInputBarView: View {
         // for the chat footer, 3-chunk Inspector status row
         // for the editor).
         ChromeBottomFooter {
-            HStack(spacing: DesignTokens.spacingTight) {
-                if vm.contextUsed >= tokenCompressionContextThreshold {
-                    // Over-threshold warning (orange).
-                    // (2026-09-23): localized.
-                    // en: "%d / %d tokens (%d%%)" / zh-Hans: " %d / %d tokens（%d%%）".
-                    Text(String.localizedStringWithFormat(NSLocalizedString("chat.input.tokens_used.over_threshold", comment: ""), vm.contextUsed,
-                                       tokenCompressionContextThreshold,
-                                       percentOfThreshold))
-                        .font(.callout)
-                        .foregroundStyle(.orange)
-                } else {
-                    // Below threshold (quiet secondary).
-                    // 2026-09-23: 'change the context-usage text to Chinese'.
-                    // en: "%d tokens used" / zh-Hans: " %d tokens".
-                    Text(String.localizedStringWithFormat(NSLocalizedString("chat.input.tokens_used", comment: ""), vm.contextUsed))
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            ChatContextGaugeView(snapshot: vm.contextUsage)
         }
-    }
-
-    /// 30,000 token compression threshold (= the budget at
-    /// which ConversationCompression kicks in for summarization).
-    private let tokenCompressionContextThreshold: Int = 30_000
-
-    /// Percentage of compression threshold used (= integer 0-100+).
-    private var percentOfThreshold: Int {
-        Int((Double(vm.contextUsed) / Double(max(tokenCompressionContextThreshold, 1))) * 100)
     }
 
     // MARK: - Attachment preview chip

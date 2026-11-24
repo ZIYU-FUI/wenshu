@@ -3,7 +3,6 @@
 // properties stay in ChatViewModel.swift (= = an extension cannot hold them).
 
 import Foundation
-import os.log
 import WenshuAgent
 import WenshuData
 
@@ -49,6 +48,9 @@ extension ChatViewModel {
         sessionId = Self.makeSessionID(for: bookID)
         // Fire-and-forget reload against the new scope.
         Task { await self.loadHistory() }
+        // The reading belongs to the conversation that produced it, so
+        // the new scope's reading is the one that shows.
+        Task { await self.refreshContextUsage() }
     }
 
     /// Updates the active scope to a whole conversation scope.
@@ -75,6 +77,9 @@ extension ChatViewModel {
         sessionId = scope.sessionID
         // Fire-and-forget reload against the new scope.
         Task { await self.loadHistory() }
+        // The reading belongs to the conversation that produced it, so
+        // the new scope's reading is the one that shows.
+        Task { await self.refreshContextUsage() }
     }
 
     func switchModel(_ id: String) {
@@ -119,35 +124,28 @@ extension ChatViewModel {
         if !availableModels.contains(currentModel) {
             availableModels = [currentModel] + availableModels
         }
-        recomputeContextUsed()
+        await refreshContextUsage()
     }
 
-    /// recomputeContextUsed: the conversation's CURRENT context usage
-    /// (real LLM API usage, replaces the chars/4 heuristic).
+    /// The last request's context reading.
     ///
-    /// The number is the LATEST turn's `usage.totalTokens`, not the sum
-    /// over the turns. Each turn's `totalTokens` is the provider's report
-    /// for that request, and its INPUT side is the whole conversation so
-    /// far — so adding the turns together counted the history once per
-    /// turn and grew quadratically. Four turns of a 1,000-token
-    /// conversation reported 10,000 tokens of context when the context was
-    /// 1,000.
+    /// The reading comes from the agent's recorder, which holds the
+    /// provider's own count of the last request's prompt and the measured
+    /// size of the parts that made it up. The chat's session id is the
+    /// conversation key the recorder uses, so the reading is this
+    /// conversation's own.
     ///
-    /// That also matches what the number is compared against: the chat
-    /// footer compares it with `tokenCompressionContextThreshold`, which
-    /// is a CONTEXT-WINDOW limit, not a spend limit. A cumulative number
-    /// measured against a window limit is the wrong unit.
-    ///
-    /// The latest turn with a token count is the one that was sent with
-    /// the most history, so it is the one that reports the most context
-    /// in use. Messages without a token count (= the user's own turns,
-    /// which the provider does not bill as a separate request, and
-    /// messages from before usage was recorded) are skipped.
-    func recomputeContextUsed() {
-        contextUsed = messages.last(where: { ($0.tokens ?? 0) > 0 })?.tokens ?? 0
-        let totalContext = contextUsed
-        let messageCount = messages.count
-        Logger(subsystem: "com.wenshu.app", category: "chat.context")
-            .info("[wenshu.context] context usage after recompute: total=\(totalContext, privacy: .public) messages=\(messageCount, privacy: .public)")
+    /// The recorder's most recent reading is the fallback, because a
+    /// turn that runs before the recorder has been read (= the very first
+    /// turn of a session) still has a reading to show.
+    func refreshContextUsage() async {
+        let own = await ContextUsageRecorder.shared.snapshot(
+            conversationId: sessionId.rawValue
+        )
+        if let own {
+            contextUsage = own
+            return
+        }
+        contextUsage = await ContextUsageRecorder.shared.mostRecentSnapshot()
     }
 }

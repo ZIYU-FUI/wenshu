@@ -71,21 +71,44 @@ public struct LLMUsage: Sendable, Equatable {
     /// A write costs more than plain input and a read costs less, so the
     /// pair is what says whether the cache paid for itself.
     public let cacheCreationTokens: Int
+    /// Whether the provider counts the cached prefix inside the input
+    /// count.
+    ///
+    /// The providers disagree: the OpenAI-compatible shape counts the
+    /// cached prefix inside `input_tokens` (= the cached count is a
+    /// subset of it), while the Anthropic shape reports the cached
+    /// prefix beside the input count (= the two do not overlap). The
+    /// window's occupancy needs the total, so it needs to know which
+    /// shape it is reading.
+    public let cacheTokensIncludedInInput: Bool
 
     public init(
         inputTokens: Int,
         outputTokens: Int,
         cacheReadTokens: Int = 0,
-        cacheCreationTokens: Int = 0
+        cacheCreationTokens: Int = 0,
+        cacheTokensIncludedInInput: Bool = true
     ) {
         self.inputTokens = inputTokens
         self.outputTokens = outputTokens
         self.cacheReadTokens = cacheReadTokens
         self.cacheCreationTokens = cacheCreationTokens
+        self.cacheTokensIncludedInInput = cacheTokensIncludedInInput
     }
 
     public var totalTokens: Int {
         inputTokens + outputTokens
+    }
+
+    /// The tokens the provider received as the prompt.
+    ///
+    /// This is the number the window's occupancy is measured against:
+    /// a provider that reports the cached prefix beside the input count
+    /// has still received those tokens, and a provider that counts the
+    /// cached prefix inside the input count has already reported them.
+    public var promptTokens: Int {
+        guard !cacheTokensIncludedInInput else { return inputTokens }
+        return inputTokens + cacheReadTokens + cacheCreationTokens
     }
 }
 

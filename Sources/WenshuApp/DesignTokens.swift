@@ -50,6 +50,27 @@ enum DesignTokens {
     /// is '.small', and '.small' is 8 PT.
     static let zoneContentInset: CGFloat = 8
 
+    /// Width of the chat zone's context gauge (= 64 PT).
+    ///
+    /// The HIG publishes no figure for a capacity gauge's width (= a
+    /// level indicator sizes to the space it is given), so this is the
+    /// product's own figure: the gauge is a compact readout beside the
+    /// footer's text label, not a wide meter.
+    static let contextGaugeWidth: CGFloat = 64
+
+    /// Height of the chat zone's context gauge (= 8 PT).
+    ///
+    /// A hairline-scale readout (= a level indicator in a bar whose own
+    /// content row is a few points tall), so the fill reads at a glance
+    /// without taking the row.
+    static let contextGaugeHeight: CGFloat = 8
+
+    /// Width of the context breakdown's popover (= 260 PT).
+    ///
+    /// The popover carries a number of rows (= the prompt's parts), so it
+    /// is wide enough to hold a row's label and its count on one line.
+    static let contextBreakdownPopoverWidth: CGFloat = 260
+
     // MARK: - Spacing (= internal 8 PT grid; base step measured, see below)
 
     /// Hairline spacing (= 1 PT): the gap the autocomplete field and the

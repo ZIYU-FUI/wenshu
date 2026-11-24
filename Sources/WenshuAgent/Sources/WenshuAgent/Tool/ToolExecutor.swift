@@ -80,6 +80,14 @@ public actor ToolExecutor {
     /// behaves as it did before.
     public let safetyLedger: ToolSafetyLedger
 
+    /// The turn's ledger of the tool output it has spent.
+    ///
+    /// A tool result enters the message list, and every later request in
+    /// the same turn re-sends that list whole. The ledger is what stops
+    /// one result (= or one turn's worth of them) from growing the prompt
+    /// past what the provider accepts.
+    public let resultLedger: ToolResultLedger
+
     /// Output truncator (= hermes tool_result_storage.enforce_turn_budget).
     /// Invoked AFTER `tool.execute(input:)`, BEFORE post hooks fire.
     /// Return the (possibly truncated) output string.
@@ -131,7 +139,9 @@ public actor ToolExecutor {
         preDispatchValidator: @escaping @Sendable (String, [String: String]) async throws -> [String: String] = ToolExecutor.defaultPathGuardValidator,
         postDispatchValidator: @escaping @Sendable (String, String) async throws -> String = ToolExecutor.defaultPostDispatchValidator,
         // The turn's ledger (= see the property).
-        safetyLedger: ToolSafetyLedger = ToolSafetyLedger()
+        safetyLedger: ToolSafetyLedger = ToolSafetyLedger(),
+        // The turn's tool-output ledger (= see the property).
+        resultLedger: ToolResultLedger = ToolResultLedger()
     ) {
         self.hookChain = hookChain
         self.dispatchHookChain = dispatchHookChain
@@ -142,6 +152,7 @@ public actor ToolExecutor {
         self.preDispatchValidator = preDispatchValidator
         self.postDispatchValidator = postDispatchValidator
         self.safetyLedger = safetyLedger
+        self.resultLedger = resultLedger
     }
 
     // MARK: - Default helper closures (= hermes-equivalent fallbacks)
@@ -268,10 +279,17 @@ public actor ToolExecutor {
             }
 
             // steps 7+8: truncator + post-dispatch validator.
-            let truncated = outputTruncator(output, toolName)
+            //
+            // The ledger trims the result to the per-result cap and
+            // charges it to the turn, so one oversized result cannot
+            // grow the prompt past what the provider accepts. The
+            // truncator runs on what the ledger produced, so a caller's
+            // own truncator (= one that shortens a result for its own
+            // reasons) still has the last word.
+            let trimmed = outputTruncator(resultLedger.admit(output), toolName)
             let validatedOutput: String
             do {
-                validatedOutput = try await postDispatchValidator(toolName, truncated)
+                validatedOutput = try await postDispatchValidator(toolName, trimmed)
             } catch {
                 validatedOutput = "Error: post-dispatch validation failed: \(error.localizedDescription)"
                 didError = true

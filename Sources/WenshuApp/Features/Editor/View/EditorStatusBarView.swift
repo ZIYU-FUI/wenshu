@@ -44,7 +44,7 @@ struct EditorStatusBarView: View {
         // RATIONALE: the editor status
         // bar uses the shared
         // `ChromeBottomFooter` shell (= the
-        // same shell the chat token-count
+        // same shell the chat context meter
         // footer uses; = the wenshu 1:1
         // macOS sidebar-bottom-accessory
         // chrome surface; = the two

@@ -69,6 +69,27 @@ struct ContextOverridesReachTheRuntimeTests {
         #expect(!relaxed.needsCompression(messages, contextWindow: 10_000))
     }
 
+    @Test("The meter's warning point is the installed threshold")
+    func theGaugeReadsTheInstalledThreshold() {
+        // The meter warns where the compressor acts, so the number it
+        // reads has to be the installed one (= a value frozen at the
+        // built-in default would leave the meter disagreeing with the
+        // compressor for every user who moved the threshold).
+        defer { ContextOverrides.install(ContextOverrides.Values()) }
+
+        ContextOverrides.install(ContextOverrides.Values(compressionThreshold: 0.5))
+        #expect(
+            abs(ContextCompressionThreshold.fraction - 0.5) < 0.0001,
+            "the meter must warn at the installed threshold: \(ContextCompressionThreshold.fraction)"
+        )
+
+        ContextOverrides.install(ContextOverrides.Values(compressionThreshold: 0.95))
+        #expect(
+            abs(ContextCompressionThreshold.fraction - 0.95) < 0.0001,
+            "the meter must follow the threshold as it changes: \(ContextCompressionThreshold.fraction)"
+        )
+    }
+
     @Test("A threshold outside (0, 1] falls back to the default")
     func outOfRangeThresholdFallsBack() {
         defer { ContextOverrides.install(ContextOverrides.Values()) }

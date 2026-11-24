@@ -174,14 +174,15 @@ final class ChatViewModel {
     /// and this property reads it.
     let appState: AppState?
     var availableModels: [String] = []
-    var contextUsed: Int = 0
-    /// The context window of the active model, in tokens. The provider's published
-    /// figure is 1,000,000; the public endpoint enforces a lower input cap than
-    /// the published one, so a turn larger than that may be refused by the vendor.
-    /// The budget here follows the published figure, so context budgeting matches
-    /// the documentation. The provider's model list does not report a context
-    /// length, so there is no field to query.
-    var contextMax: Int = 1_000_000
+
+    /// The last request's context reading (= what the provider received, and
+    /// the parts that made it up).
+    ///
+    /// The reading comes from the agent's recorder, so it is the
+    /// provider's own count of the prompt: the window's occupancy is
+    /// measured against the same number the agent compresses against, and
+    /// the parts say which part of the prompt is filling it.
+    var contextUsage: ContextUsageSnapshot?
 
     /// The conductor the chat path runs the turn on. It is patched when the
     /// AppDelegate publishes one: a chat hung because the field was still nil at

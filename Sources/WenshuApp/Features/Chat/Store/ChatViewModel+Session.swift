@@ -11,7 +11,9 @@ extension ChatViewModel {
     func startNewSession() {
         // 1. Clear in-memory state (= visual reset).
         messages = []
-        contextUsed = 0
+        // The context reading belongs to the conversation that produced
+        // it, so a new session starts without one.
+        contextUsage = nil
         // 2. Generate new sessionId (= UUID-based).
         let newId = SessionID(rawValue: "s_" + UUID().uuidString.prefix(12).lowercased())
         sessionId = newId
@@ -22,8 +24,7 @@ extension ChatViewModel {
         let logger = Logger(subsystem: "com.wenshu.app", category: "chat")
         let sessionIdRaw = sessionId.rawValue
         let messageCount = messages.count
-        let contextUsedLocal = contextUsed
-        logger.info("[wenshu.chat] startNewSession: id=\(sessionIdRaw, privacy: .public) messages=\(messageCount, privacy: .public) contextUsed=\(contextUsedLocal, privacy: .public)")
+        logger.info("[wenshu.chat] startNewSession: id=\(sessionIdRaw, privacy: .public) messages=\(messageCount, privacy: .public)")
     }
 
     func clear() {
