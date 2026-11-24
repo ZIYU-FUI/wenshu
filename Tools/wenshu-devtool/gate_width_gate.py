@@ -69,6 +69,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import board_read  # noqa: E402  (sibling module, same directory)
 import card_gate_command  # noqa: E402  (sibling module, same directory)
 import product_lines  # noqa: E402  (sibling module, same directory)
 import ticket_tier  # noqa: E402  (sibling module, same directory)
@@ -342,13 +343,28 @@ def contract_errors(body: str, created_at: int | None = None) -> list[str]:
 
 
 def card_body(card_id: str, board: str = BOARD) -> tuple[str, int | None]:
-    """The card's body text and its creation epoch, or ("", None)."""
+    """The card's body text and its creation epoch, or ("", None).
+
+    The CLI's `show` output is the primary read and the board file is the
+    fallback, for the same reason the sweep needs it: a delegated lane is
+    refused the CLI. The fallback is the STRONGER read of the two (= the
+    row's own `body` and `created_at`, not a body scraped between printed
+    markers and an epoch poked out of prose with a regex), so a card whose
+    `show` text this function failed to cut was still measured rather than
+    skipped.
+    """
     rc, out = _run_hermes(["--board", board, "show", card_id])
     if rc != 0:
-        return "", None
+        card = board_read.one_card(board, card_id)
+        if card is None:
+            return "", None
+        return str(card.get("body") or ""), card.get("created_at")
     i = out.find("\nBody:\n")
     if i < 0:
-        return "", None
+        card = board_read.one_card(board, card_id)
+        if card is None:
+            return "", None
+        return str(card.get("body") or ""), card.get("created_at")
     body = out[i + 7 :]
     for marker in ("\nComments (", "\nEvents", "\nRun History"):
         j = body.find(marker)
@@ -442,20 +458,17 @@ def main() -> int:
     elif args.card:
         rows.append(report_card(args.card, args.board))
     else:
-        rc, out = _run_hermes(["--board", args.board, "list", "--json"])
-        if rc != 0:
-            if not args.json:
-                print("=== the board could not be read ===")
-            return 2
-        try:
-            data = json.loads(out)
-        except json.JSONDecodeError:
-            if not args.json:
-                print("=== the board could not be read ===")
-            return 2
-        if isinstance(data, dict):
-            data = data.get("tasks", [])
-        if not isinstance(data, list):
+        # ONE reader for the board's card list, shared with the tier
+        # contract's sweep: the CLI first, then the board's own file opened
+        # READ-ONLY. The CLI is a read, but it runs through the command the
+        # kernel gates for write access, so a delegated child (the review
+        # lane) was refused here and `gate_width_gate.py --check` -- one of
+        # the two commands this card's own HOW TO VERIFY tells the reviewer
+        # to run -- ended on "the board could not be read". Measured on
+        # 2026-11-24 over the 1124 cards of board `wenshu-par`. A gate the
+        # reviewing lane cannot run is a gate nobody ran.
+        data = board_read.cards(args.board)
+        if data is None:
             if not args.json:
                 print("=== the board could not be read ===")
             return 2

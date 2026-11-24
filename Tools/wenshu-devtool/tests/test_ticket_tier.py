@@ -94,16 +94,38 @@ def tier_of_body(tool, body: str) -> str:
         Path(path).unlink(missing_ok=True)
 
 
+def reader_module(tool):
+    """The shared board reader `ticket_tier` delegates to, as a live module.
+
+    `ticket_tier.py` imports `board_read` itself, so the module is already in
+    `sys.modules` under that name and patching it is patching exactly the
+    object the tool calls — not a second copy loaded from disk.
+    """
+    name = getattr(tool.board_read, "__name__", "board_read")
+    return sys.modules.get(name, tool.board_read)
+
+
 def run_check(tool, cli, argv: list[str]) -> tuple[int, str, str]:
     """Run the tool's own main() over a stubbed CLI, and capture its streams.
 
     The board reader shells out to the hermes CLI, so the sweep is exercised
     through the real main() with the CLI stood in for. The live board is
     never read, and the tool's own exit code is the thing under test.
+
+    **THE STUB GOES ON `board_read`, NOT ONLY ON `ticket_tier`.** The card list
+    moved to the shared reader on 2026-11-24 (`ticket_tier.kanban_cards` is a
+    delegate now), so patching `tool.subprocess` alone would let the sweep fall
+    through to the REAL hermes CLI and read the live board from a test that
+    claims not to — which is exactly how the three "a readable board still
+    exits 0" cases went red. Both modules are patched, because a card-list call
+    that ever moves back would then still be stubbed.
     """
     saved_argv = sys.argv
+    reader = reader_module(tool)
     saved_subprocess = tool.subprocess
+    saved_reader_subprocess = reader.subprocess
     tool.subprocess = cli
+    reader.subprocess = cli
     sys.argv = ["ticket_tier.py", *argv]
     out = io.StringIO()
     err = io.StringIO()
@@ -113,6 +135,7 @@ def run_check(tool, cli, argv: list[str]) -> tuple[int, str, str]:
     finally:
         sys.argv = saved_argv
         tool.subprocess = saved_subprocess
+        reader.subprocess = saved_reader_subprocess
     return code, out.getvalue(), err.getvalue()
 
 
@@ -1616,12 +1639,16 @@ def main() -> int:
         saved_env = os.environ.get("HERMES_HOME")
         os.environ["HERMES_HOME"] = str(home)
         saved_cli = tool.subprocess
+        reader = reader_module(tool)
+        saved_reader = reader.subprocess
         try:
             tool.subprocess = listing
+            reader.subprocess = listing
             code, out, err = run_check(tool, listing, ["--check", "--board", "wenshu-par"])
             cards = tool.kanban_cards("wenshu-par")
         finally:
             tool.subprocess = saved_cli
+            reader.subprocess = saved_reader
             if saved_env is None:
                 os.environ.pop("HERMES_HOME", None)
             else:

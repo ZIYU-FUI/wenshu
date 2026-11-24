@@ -78,6 +78,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import wave_gate  # noqa: E402  (sibling module, same directory)
 import effort_budget_gate  # noqa: E402  (sibling module, same directory)
 import product_lines  # noqa: E402  (sibling module, same directory)
+import board_read  # noqa: E402  (sibling module, same directory)
 import plan_gate  # noqa: E402  (sibling module, same directory)
 import review_handoff_gate  # noqa: E402  (sibling module, same directory)
 import ownership_gate  # noqa: E402  (sibling module, same directory)
@@ -1391,95 +1392,16 @@ def kanban_cards(board: str | None = None) -> list[dict] | None:
     be the same value, so a board that could not be read looked exactly like
     a clean board and the sweep reported an agreement it never verified.
 
-    None is returned for every way the read can fail: the CLI refusing (a
-    mistyped board slug, a missing binary), a payload that is not a card
-    list, and a payload that is not JSON. The shape matches the review
-    gate's board reader, so the two gates read a board the same way.
+    The read itself is `board_read.cards`, ONE reader for the whole tool
+    (= the CLI first, the board file opened read-only as fallback). This
+    tool used to shell out to `hermes kanban list --json` and nothing else.
+    That command is a read, but it runs through the CLI the kernel gates for
+    write access, so inside a delegated child (= the review lane) it was
+    refused, and `--check --live` -- the command the tier contract tells an
+    author to run -- could not run there at all. A check a lane cannot run
+    is a check that gate was never measured on.
     """
-    args = ["hermes", "kanban"]
-    if board:
-        args += ["--board", board]
-    args += ["list", "--json"]
-    try:
-        out = subprocess.run(args, cwd=REPO, capture_output=True, text=True)
-    except OSError as exc:
-        print(f"the board could not be read: {exc}", file=sys.stderr)
-        return None
-    if out.returncode != 0:
-        detail = out.stderr.strip() or out.stdout.strip()
-        print(f"the board could not be read: {detail}", file=sys.stderr)
-        return None
-    try:
-        data = json.loads(out.stdout)
-    except json.JSONDecodeError:
-        print("the board could not be read: the CLI printed no card list", file=sys.stderr)
-        return None
-    if isinstance(data, dict):
-        data = data.get("tasks", [])
-    if not isinstance(data, list):
-        print("the board could not be read: the CLI printed no card list", file=sys.stderr)
-        return None
-    cards = list(data)
-    _attach_runs(cards, board)
-    return cards
-
-
-def _board_db_path(board: str) -> Path | None:
-    """The board's database file, or None when it cannot be found.
-
-    ``HERMES_HOME`` points at the PROFILE's directory, not at the home that
-    holds the boards, so the profile's own copy is tried first and the shared
-    home second (the same search the review gate does, = a wrong path here
-    means no run history at all).
-    """
-    candidates = []
-    env = os.environ.get("HERMES_HOME")
-    if env:
-        candidates.append(Path(env))
-    candidates.append(Path.home() / ".hermes")
-    for home in candidates:
-        candidate = home / "kanban" / "boards" / board / "kanban.db"
-        if candidate.is_file():
-            return candidate
-    return None
-
-
-def _attach_runs(cards: list[dict], board: str | None) -> None:
-    """Give every card its run history, because the board's LIST view has none.
-
-    ``hermes kanban list --json`` does not carry a card's runs, and the type
-    derivation needs them: a card whose every run carries the reviewer's
-    profile has NO implementation phase, and that is what separates a review
-    card from a build card sitting in the review lane. With the runs
-    missing, that judgement could never fire, and a card that the board
-    itself calls a review card was derived as a build card (= it owed a
-    verdict it was about to give). The read is from the board's own record,
-    which is the same record the review gate reads.
-    """
-    if not board:
-        return
-    db_path = _board_db_path(board)
-    if db_path is None:
-        return
-    try:
-        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=30)
-    except sqlite3.Error:
-        return
-    try:
-        rows = conn.execute(
-            "SELECT task_id, profile FROM task_runs "
-            "WHERE profile IS NOT NULL AND profile != ''"
-        ).fetchall()
-    except sqlite3.Error:
-        return
-    finally:
-        conn.close()
-    runs: dict[str, list[dict]] = {}
-    for task_id, profile in rows:
-        runs.setdefault(str(task_id), []).append({"profile": str(profile)})
-    for card in cards:
-        card_id = str(card.get("id") or "")
-        card["runs"] = runs.get(card_id, [])
+    return board_read.cards(board)
 
 
 def card_from_file(path: str) -> dict:

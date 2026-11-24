@@ -52,28 +52,35 @@ does not exist yet, = and no log under `.gate-logs/` names a merged sha,
   system disk. That row exits 1, = = and it exits 1 because the tree is
   wrong, = = not because this wave is. = = The fix is card `006`.
 
-### The suite census, scoped
+### The suite census, measured
 
-The directory `Tools/wenshu-devtool/tests/` holds **40** `test_*.py`, and
-this wave **adds 9** of them (= `test_card_contract_gates`,
-`test_card_gate_command`, `test_closeout_gate`, `test_land_card_cas`,
-`test_merge_drivers`, `test_ownership_gate`, `test_plan_gate`,
-`test_process_data_gate`, `test_review_handoff_gate`). The twelve suites
-this wave OWNS OR REWRITES all exit 0 at the tip (= `test_merge_drivers`,
-`test_land_card_cas`, `test_review_handoff_gate`, `test_closeout_gate`,
-`test_plan_gate`, `test_wave_gate`, `test_gate_width_gate`,
-`test_pre_review_gate`, `test_comment_lineage_gate`,
-`test_card_gate_command`, `test_ticket_tier`, `test_card_contract_gates`),
-and the nine it adds exit 0.
+The census is NOT counted by hand any more. Every `test_*.py` in
+`Tools/wenshu-devtool/tests/` was RUN at this tip (= **41** files), and the
+diff names its own share of them mechanically (= `git diff --name-only
+--diff-filter=A main` and `--diff-filter=M main`):
 
-⇒ ⇒ ⇒ **AND TWO SUITES IN THAT DIRECTORY ARE RED, = = AND THEY ARE RED ON
-`main` TOO.** `test_inventory_measure.py` (= 2 matcher cases: the guard
-run from a subdirectory, = = and the added-comment-lines ticket-id census)
-and `measure_loc_cap_window.py` (= a repo path with a trailing newline
-handed to `subprocess`). Both exit 1 at this tip AND on a detached
-worktree of `main`, = = so this branch did not cause them. They are named
-here so the next session does not rediscover them, = = and so that "every
-suite in the directory exits 0" is never claimed for this scope.
+| What the diff does | Its suites | Their state at this tip |
+| --- | --- | --- |
+| ADDS | 10 (= `test_board_read`, `test_card_contract_gates`, `test_card_gate_command`, `test_closeout_gate`, `test_land_card_cas`, `test_merge_drivers`, `test_ownership_gate`, `test_plan_gate`, `test_process_data_gate`, `test_review_handoff_gate`) | all exit 0 |
+| REWRITES | 3 (= `test_comment_lineage_gate`, `test_pre_review_gate`, `test_ticket_tier`) | all exit 0 |
+| neither (= it changes a tool a suite reads) | the other 28 | all exit 0 |
+
+⇒ ⇒ ⇒ **ONE SUITE IN THE DIRECTORY IS RED, = = AND IT IS RED ON `main` TOO.**
+`test_inventory_measure.py` exits 1 at this tip AND in a detached worktree of
+`main` (= `git worktree add --detach <scratch>/wt-main-redcheck main`), = = so
+this branch did not cause it. The measure script
+`tests/measure_loc_cap_window.py` (= NOT a `test_*.py` suite, = = so it is not
+in the 41) is red the same way, = = named here so the next session does not
+rediscover it.
+
+⇒ ⇒ ⇒ **AND HOW THE FIRST CUT OF THIS CENSUS WAS WRONG, = = TWICE.** The
+number was hand-counted (= "twelve owned or rewrites, = = nine adds") where the
+diff says 10 + 3. And the loop that collected the codes was
+`python3 "$s" >/dev/null 2>&1; printf "%s rc=%s" "$(basename $s .py)" "$?"`:
+bash expands the command substitution BEFORE `$?`, = = so the code it printed
+was `basename`'s (= always 0) and a whole log read green over a red suite. The
+runner is now `run-suites.sh` in the scratch dir, = = which stores `rc=$?`
+before it substitutes anything.
 
 ## 2. Record the verdict on the board
 
@@ -150,9 +157,12 @@ sha only when nothing else moved `main` in between.
 
 ## 7. Sweep the board's open columns
 
-DONE for this scope: every card that names this scope is terminal. The
-board's other open columns are another lane's business (= the sweep names
-them, = = it does not close a sibling's card).
+DONE for this scope, with ONE open card named on purpose: the round-2
+review card under `213cd47253`, which is the card §8 waits on (= = a review
+card that is terminal BEFORE the verdict lands is a scope that closed
+itself). Every OTHER card that names this scope is terminal. The board's
+other open columns are another lane's business (= the sweep names them, = =
+it does not close a sibling's card).
 
 ## 8. THE CARD YOU DISPATCHED IS YOURS TO LAND
 
@@ -224,6 +234,35 @@ were inside this scope (= rule 1.16). What each one moved:
    twelve suites this wave owns or rewrote, = = and the nine it adds, = =
    all exit 0), = = and the two suites that are red in the directory are
    named with the evidence that they are red on `main` too.
+
+4. **A delegated review lane could not run the board's two checks AT ALL.**
+   The lane's `hermes` refuses the kanban subcommand (=
+   `kanban: delegate_task child contexts cannot mutate Kanban tasks or
+   boards`), = = and both `ticket_tier.py --check --live` and
+   `gate_width_gate.py --check` read the board through that CLI, = = so in the
+   lane each died at `=== the board could not be read ===` with exit 2 instead
+   of reporting anything. ⇒ ⇒ ⇒ The board now has ONE reader with a real
+   fallback, = = `board_read.py`: = = the CLI first, = = then the board's own
+   SQLite file opened `mode=ro` (= physically unable to move a task), = = and
+   an unreadable board is `None` and NOT `[]`, = = because a board that was
+   never read used to look exactly like a clean one. ⇒ ⇒ ⇒ Measured under a
+   stub that refuses every kanban call: = = the width gate's two paths agree on
+   the LIVE board's **982 rows, same ids, 0 field differences**; = = the tier
+   sweep's two outputs are **byte-identical** (2037 B each); = = and both
+   commands now reach a real verdict in the lane instead of a read failure. ⇒ ⇒
+   ⇒ Two regressions the fix itself caused, = = both caught by measurement and
+   both pinned now: = = the fallback first read FEWER COLUMNS than the CLI, = =
+   so two live cards were derived `T3` by the file and `T2` by the CLI (the
+   reader now carries the CLI's own field set and decodes a BLOB body to text);
+   and deleting `ticket_tier._attach_runs` removed the ONLY evidence that
+   separates a review card from a build card (= `list --json` carries no runs),
+   so `attach_runs` moved INTO the reader and both paths call it. ⇒ ⇒ ⇒ AND THE
+   TEST SEAM MOVED WITH IT: = = `test_ticket_tier.py` patched
+   `ticket_tier.subprocess`, = = which after the delegation is not the module
+   that shells out, = = so seven of its cases fell through to the REAL board
+   while claiming not to. = = The suite now patches the reader's own seam
+   (= `reader_module(tool)`), = = and a stub that does not reach the shipped
+   code is the failure mode to watch for in every delegation like this one.
 
 ⇒ ⇒ ⇒ AND THE REVIEW'S OWN NOT-BLOCKING FINDINGS, = = each one a defect in
 this wave's own diff, = = were closed here too: the citation row's
