@@ -108,26 +108,17 @@ struct InspectorTodoPageView: View {
     /// open).
     private var todoList: some View {
         ScrollView {
-            // One glass container for the page's glass surfaces (= the
-            // system's own grouping for glass, = so the cards blend
-            // into one another the way the system's grouped surfaces
-            // do). The spacing EQUALS the card spacing (= a larger
-            // container spacing makes neighbouring glass blend at
-            // rest, = and the cards would melt into one sheet while
-            // the column sits still).
-            GlassEffectContainer(spacing: DesignTokens.spacingTight) {
-                // A LAZY stack (= Apple's own container for a long
-                // list in a scroll view), = so a body pass builds the
-                // cards that are on screen and not every card in the
-                // plan.
-                LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                    ForEach(model.todos) { todo in
-                        InspectorTodoCard(todo: todo)
-                    }
+            // A LAZY stack (= Apple's own container for a long
+            // list in a scroll view), = so a body pass builds the
+            // cards that are on screen and not every card in the
+            // plan.
+            LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                ForEach(model.todos) { todo in
+                    InspectorTodoCard(todo: todo)
                 }
-                .padding(.horizontal, DesignTokens.spacingStandard)
-                .padding(.bottom, DesignTokens.spacingStandard)
             }
+            .padding(.horizontal, DesignTokens.spacingStandard)
+            .padding(.bottom, DesignTokens.spacingStandard)
         }
     }
 }
@@ -148,9 +139,7 @@ private struct InspectorTodoCard: View {
         // reads as its own step here, = the plan's own words carry the
         // step, = not an indent in the card).
         InspectorCard(
-            marker: AnyView(stateMarker),
-            hasStatusEdge: true,
-            statusEdgeColor: AnyShapeStyle(InspectorTodoStateStyle.tone(for: todo.status).style)
+            marker: AnyView(stateMarker)
         ) {
             Text(todo.title)
                 .font(.body.weight(.medium))

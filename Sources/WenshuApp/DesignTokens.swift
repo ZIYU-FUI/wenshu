@@ -258,10 +258,6 @@ enum DesignTokens {
     /// than the sidebar (= the sidebar token keeps its own meaning).
     static let kanbanColumnWidth: CGFloat = 256
 
-    /// Kanban card status edge width (= 2 PT, the Hermes board's card
-    /// left edge). The edge carries the column's status color.
-    static let kanbanCardStatusEdgeWidth: CGFloat = 2
-
     /// The column a card's state marker sits in (= 16 PT = the width of the
     /// widest inline-small symbol the column's cards wear; the symbols' ink
     /// measures 14 to 15 PT at the 14 PT point size, and a column narrower

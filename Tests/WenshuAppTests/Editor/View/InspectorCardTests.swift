@@ -27,36 +27,104 @@ struct InspectorCardTests {
         "Sources/WenshuApp/Features/Kanban/View/KanbanView.swift",
     ]
 
-    @Test("The shared card is Apple's Liquid Glass (= the glassEffect modifier)")
-    func sharedCardIsLiquidGlass() throws {
+    @Test("The shared card wears the app's own content-area material (= not glass)")
+    func sharedCardWearsTheContentAreaMaterial() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCard.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains(".glassEffect("),
-                "the shared card must be Apple's Liquid Glass (= .glassEffect)")
-        #expect(content.contains(".regular"),
-                "the shared card must use Apple's regular glass variant")
-        #expect(!content.contains(".background("),
-                "the shared card must not hand-draw a background (= the system draws the glass)")
-        #expect(!content.contains(".stroke("),
-                "the shared card must not hand-draw an edge (= the system draws the glass edge)")
+        #expect(content.contains("ContentAreaMaterial.surface"),
+                "the shared card must wear the app's own content-area material (= the surface the column's bottom bar wears)")
+        #expect(!content.contains(".glassEffect("),
+                "the shared card must not wear a glass surface (= a glass surface's value tracks the wallpaper behind the window, = so the card's tone changed with the desktop rather than with the app)")
+        #expect(!content.contains(".regularMaterial"),
+                "the shared card must not wear a SwiftUI material (= that one is behind-window on macOS, = so it would paint the desktop through the app's own content)")
     }
 
-    @Test("The glass is tinted white (= the glass scatters white light)")
-    func theGlassIsTinted() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCard.swift")
+    @Test("The material is the CONTENT-AREA one, in the WITHIN-WINDOW blending")
+    func theMaterialSamplesTheAppNotTheDesktop() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/ContentAreaMaterial.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains(".tint(.white.opacity(0.30))"),
-                "the glass must be tinted white (= an untinted glass over a flat ground leaves the ground showing through and the card disappears into it)")
+        #expect(content.contains(".underWindowBackground"),
+                "the material must be the under-window one (= the layer under the window's own content), = so it shows the column it sits in")
+        #expect(content.contains(".withinWindow"),
+                "the material must blend WITHIN the window (= = so it samples the app's own content behind it, = = and the desktop never reaches it)")
+        #expect(content.contains(".active"),
+                "the material must be in its active state (= the state the app's own chrome wears)")
     }
 
-    @Test("The shared card is the system's own shape (= Apple's shape factory)")
-    func sharedCardUsesApplesShape() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCard.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains(".rect(cornerRadius:"),
-                "the glass must wear Apple's own shape factory (= .rect(cornerRadius:))")
+    @Test("The material is ONE recipe (= the card and the bottom bar share it)")
+    func theMaterialHasOneRecipe() throws {
+        let card = try String(
+            contentsOf: SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCard.swift"),
+            encoding: .utf8
+        )
+        let footer = try String(
+            contentsOf: SourceLocator.url("Sources/WenshuApp/Features/Chrome/View/ChromeBottomFooter.swift"),
+            encoding: .utf8
+        )
+        #expect(card.contains("ContentAreaMaterial.surface"),
+                "the card must wear the shared material")
+        #expect(footer.contains("ContentAreaMaterial.surface"),
+                "the bottom bar must wear the SAME shared material (= a rule that lives in each door separately is a rule that drifts)")
+        #expect(!card.contains("NSVisualEffectView"),
+                "the card must not carry its own material recipe (= the shared file owns it)")
+        #expect(!footer.contains("NSVisualEffectView"),
+                "the bottom bar must not carry its own material recipe (= the shared file owns it)")
+    }
+
+    @Test("The card carries NO coloured edge (= the state rides on the glyph and the words)")
+    func theCardCarriesNoColouredEdge() throws {
+        let card = try String(
+            contentsOf: SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCard.swift"),
+            encoding: .utf8
+        )
+        #expect(!card.contains("hasStatusEdge"),
+                "the card must not carry a status edge (= the band was the card's loudest element while saying the same thing the state glyph beside the title already said)")
+        #expect(!card.contains("statusEdgeColor"),
+                "the card must not carry a status edge colour (= the band was the card's loudest element while saying the same thing the state glyph beside the title already said)")
+        #expect(!card.contains("kanbanCardStatusEdgeWidth"),
+                "the card must not carry a status edge (= the band was the card's loudest element while saying the same thing the state glyph beside the title already said)")
+        // The token itself is gone (= a token with no caller is dead code).
+        let tokens = try String(
+            contentsOf: SourceLocator.url("Sources/WenshuApp/DesignTokens.swift"),
+            encoding: .utf8
+        )
+        #expect(!tokens.contains("kanbanCardStatusEdgeWidth"),
+                "the status edge token must be deleted (= a token with no caller is dead code)")
+    }
+
+    @Test("No page passes the card a status edge (= the edge API is gone)")
+    func noPagePassesAStatusEdge() throws {
+        for page in Self.cardPages {
+            let content = try String(contentsOf: SourceLocator.url(page), encoding: .utf8)
+            #expect(!content.contains("hasStatusEdge"),
+                    "\(page) must not pass a status edge (= the card carries no edge)")
+            #expect(!content.contains("statusEdgeColor"),
+                    "\(page) must not pass a status edge colour (= the card carries no edge)")
+        }
+    }
+
+    @Test("The card's edge and its clip share ONE shape (= the hairline follows the corner)")
+    func theEdgeAndTheClipShareOneShape() throws {
+        let content = try String(
+            contentsOf: SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCard.swift"),
+            encoding: .utf8
+        )
+        #expect(content.contains("cardShape.strokeBorder("),
+                "the card's edge must be drawn with the card's own shape")
+        #expect(content.contains(".clipShape(cardShape)"),
+                "the card's clip must be the card's own shape (= the hairline and the corner are one shape)")
         #expect(content.contains("DesignTokens.surfaceCornerRadiusCard"),
                 "the card's radius must come from the design tokens")
+        // The clip comes AFTER the edge (= the material's blur is a
+        // rectangle, = = and the clip is what rounds it).
+        guard let edge = content.range(of: "cardShape.strokeBorder("),
+              let clip = content.range(of: ".clipShape(cardShape)")
+        else {
+            Issue.record("The card's edge or its clip is gone.")
+            return
+        }
+        #expect(edge.lowerBound < clip.lowerBound,
+                "the clip must come after the edge (= the material's blur is a rectangle, = = and the clip is what rounds it)")
     }
 
     @Test("Every page's cards wear the shared surface")
@@ -75,19 +143,20 @@ struct InspectorCardTests {
             let url = SourceLocator.url(page)
             let content = try String(contentsOf: url, encoding: .utf8)
             #expect(!content.contains("controlBackgroundColor"),
-                    "\(page) must not hand-draw a card fill (= the shared glass draws it)")
+                    "\(page) must not hand-draw a card fill (= the shared material draws it)")
             #expect(!content.contains(".stroke(.separator"),
-                    "\(page) must not hand-draw a card edge (= the shared glass draws it)")
+                    "\(page) must not hand-draw a card edge (= the shared card draws it)")
         }
     }
 
-    @Test("Each page's glass sits in one container (= the system's grouping for glass)")
-    func eachPageWrapsItsGlassInAContainer() throws {
+    @Test("No page carries a glass container (= the container groups glass, = and there is no glass)")
+    func noPageCarriesAGlassContainer() throws {
         for page in Self.cardPages {
-            let url = SourceLocator.url(page)
-            let content = try String(contentsOf: url, encoding: .utf8)
-            #expect(content.contains("GlassEffectContainer("),
-                    "\(page) must group its glass in one container (= Apple's guidance)")
+            let content = try String(contentsOf: SourceLocator.url(page), encoding: .utf8)
+            #expect(!content.contains("GlassEffectContainer("),
+                    "\(page) must not carry a glass container (= the container groups glass surfaces, = = and the column's cards wear no glass)")
+            #expect(!content.contains(".glassEffect("),
+                    "\(page) must not wear a glass surface (= the column's cards wear the content-area material)")
         }
     }
 

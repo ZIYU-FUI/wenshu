@@ -516,7 +516,9 @@ struct ChromeBottomFooterSurfaceTests {
     /// apply here).
     @Test("The interior seam's material samples the app, not the desktop")
     func theInteriorSeamMaterialSamplesTheAppNotTheDesktop() throws {
-        let code = try footerCode()
+        // The RECIPE lives in the shared file (= one surface for the card
+        // and the band), so the recipe is read there.
+        let code = try code(of: "Sources/WenshuApp/Shared/UI/ContentAreaMaterial.swift")
         guard let material = code.range(of: "view.material = ") else {
             Issue.record("The interior seam's material no longer names its AppKit material.")
             return

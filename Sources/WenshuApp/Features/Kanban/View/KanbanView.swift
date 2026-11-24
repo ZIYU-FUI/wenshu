@@ -22,7 +22,8 @@
 //   count) with the cards folding away under it. A group with no
 //   cards shows its header and nothing else.
 // - Each task card: title first, then the body preview. The card
-//   carries a colored left edge in its group's status color.
+//   carries no colour of its own (= the group above it wears the
+//   status colour on its own label).
 //
 //  The USER does not schedule: the status is the scheduler's, so the
 //  card carries no status control and no way to move itself. The card
@@ -162,30 +163,26 @@ struct KanbanView: View {
             // and the stack scrolls down (= the board reads as one
             // surface, not eight independent scrollers).
             ScrollView(.vertical, showsIndicators: false) {
-                // One glass container for the board's glass surfaces (= 
-                // the system's own grouping for glass). The spacing
-                // EQUALS the card spacing (= a larger container spacing
-                // makes neighbouring glass blend at rest, = and the
-                // cards would melt into one sheet while the board sits
-                // still).
-                GlassEffectContainer(spacing: DesignTokens.spacingTight) {
-                    VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
-                        ForEach(KanbanStatus.boardOrder, id: \.self) { status in
-                            KanbanGroup(
-                                status: status,
-                                cards: cardsByStatus[status] ?? [],
-                                onDelete: { task in
-                                    deleteTask(task)
-                                },
-                                // kanban-detail-sheet 2026-09-28:
-                                // open request bubbles up to KanbanView
-                                // (= the View owns the sheetTask state).
-                                onOpen: { task in onOpenSheet(task) }
-                            )
-                        }
+                // One vertical stack of the board's groups (= the
+                // groups fill the column's width and the stack scrolls
+                // down = = the board reads as one surface, = not eight
+                // independent scrollers).
+                VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
+                    ForEach(KanbanStatus.boardOrder, id: \.self) { status in
+                        KanbanGroup(
+                            status: status,
+                            cards: cardsByStatus[status] ?? [],
+                            onDelete: { task in
+                                deleteTask(task)
+                            },
+                            // kanban-detail-sheet 2026-09-28:
+                            // open request bubbles up to KanbanView
+                            // (= the View owns the sheetTask state).
+                            onOpen: { task in onOpenSheet(task) }
+                        )
                     }
-                    .padding(.vertical, DesignTokens.spacingIconic)
                 }
+                .padding(.vertical, DesignTokens.spacingIconic)
             }
         }
     }
@@ -427,8 +424,9 @@ private struct KanbanGroup: View {
 // MARK: - Card
 
 /// Single kanban task card. Title first, then the body preview. The
-/// card carries a colored left edge in its group's status color, so a
-/// card reads as belonging to its group at a glance.
+/// card carries no status colour of its own (= the group it sits in
+/// wears the colour on its own label, = = so a card reads as belonging
+/// to its group from the group above it).
 ///
 /// The card answers the mouse two ways (= the board's own interaction
 /// language):
@@ -451,14 +449,12 @@ private struct KanbanCard: View {
         // The shared card (= the same card the column's other two pages
         // wear). The card carries no status symbol (= the user does not
         // schedule, = the card's group says the state, = and the group
-        // wears the colour on the card's edge), = but the marker column
+        // wears the colour on its own label), = but the marker column
         // still holds its width (= so the board's cards and the plan's
         // cards and the sub-agent's cards all start their words at the
         // same place).
         InspectorCard(
-            marker: AnyView(EmptyView()),
-            hasStatusEdge: true,
-            statusEdgeColor: card.task.status.boardTone
+            marker: AnyView(EmptyView())
         ) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                 // The title comes FIRST: it is what the user scans the

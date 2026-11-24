@@ -81,27 +81,13 @@ enum ChromeBottomFooterSurface {
 enum ChromeBottomFooterMaterial {
     /// Apple's content-area material (= = the one `NSColor.h` names for
     /// a background drawn over content).
+    ///
+    /// ⇒ THE RECIPE LIVES IN ONE FILE: = = the material is drawn over the
+    /// app's own content by `Shared/UI/ContentAreaMaterial.swift`, = = and
+    /// this door and the column's cards both wear THAT one, = = so the two
+    /// surfaces cannot drift into two greys.
     static var contentArea: some View {
-        ContentAreaSurface()
-    }
-}
-
-/// The content-area material, = = in the WITHIN-WINDOW blending (= = it
-/// samples the app's OWN content behind the band, = = not the desktop
-/// behind the window).
-private struct ContentAreaSurface: NSViewRepresentable {
-    func makeNSView(context _: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = .underWindowBackground
-        view.blendingMode = .withinWindow
-        view.state = .active
-        return view
-    }
-
-    func updateNSView(_ view: NSVisualEffectView, context _: Context) {
-        view.material = .underWindowBackground
-        view.blendingMode = .withinWindow
-        view.state = .active
+        ContentAreaMaterial.surface
     }
 }
 

@@ -95,22 +95,17 @@ struct InspectorStatusView: View {
     /// rebuilds every card on the page).
     private var taskList: some View {
         ScrollView {
-            // One glass container for the page's glass surfaces (=
-            // the system's own grouping for glass). The spacing
-            // EQUALS the card spacing (= a larger container spacing
-            // makes neighbouring glass blend at rest, = and the
-            // cards would melt into one sheet while the column
-            // sits still).
-            GlassEffectContainer(spacing: DesignTokens.spacingTight) {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                    ForEach(model.tasks) { task in
-                        InspectorStatusTaskCard(task: task) {
-                            model.selection = InspectorStatusSelection(id: task.id)
-                        }
+            // A LAZY stack (= Apple's own container for a long list in a
+            // scroll view), = so a body pass builds the cards that are
+            // on screen and not every card on the page.
+            LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                ForEach(model.tasks) { task in
+                    InspectorStatusTaskCard(task: task) {
+                        model.selection = InspectorStatusSelection(id: task.id)
                     }
                 }
-                .padding(DesignTokens.spacingStandard)
             }
+            .padding(DesignTokens.spacingStandard)
         }
     }
 }
