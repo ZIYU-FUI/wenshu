@@ -94,6 +94,23 @@ def tier_of_body(tool, body: str) -> str:
         Path(path).unlink(missing_ok=True)
 
 
+def draft_from_text(tool, body: str) -> tuple[dict, list[str]]:
+    """The card dict and the contract findings for a DRAFT body file.
+
+    Draft mode is the documented pre-flight, so these cases go through the real entry
+    point (`card_from_file`) and not through a dict assembled by hand: an author runs the
+    command on a file, and a test that skips the file skips the thing the author hits.
+    """
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as handle:
+        handle.write(body)
+        path = handle.name
+    try:
+        card = tool.card_from_file(path)
+        return card, tool.find_contract_errors(card)
+    finally:
+        Path(path).unlink(missing_ok=True)
+
+
 def reader_module(tool):
     """The shared board reader `ticket_tier` delegates to, as a live module.
 
@@ -1219,6 +1236,25 @@ def main() -> int:
         tool.report(build_draft)["runtime_text"],
         tool.TIERS["T1"]["runtime_text"],
     )
+
+    # 11e. A DRAFT IS CREDITED WITH THE TAG IT ALREADY CARRIES. Draft mode is the
+    # documented pre-flight (`--body card.md`), and a draft has no board row to read a
+    # title from, so its title is the body's own first heading. Until this case pair
+    # `card_from_file` returned an empty title, `declared_tier("")` was always None, and
+    # the finding `title carries no tier tag` fired on EVERY draft — a pre-flight an
+    # author could not satisfy by construction, which trains the author to distrust the
+    # green lines. The pair below is the whole contract: a tagged draft is not charged,
+    # an untagged draft still is.
+    tagged_draft = f"# [T1] the draft that carries its tag\n\n{ONE_FILE}"
+    untagged_draft = f"# the draft that carries no tag anywhere\n\n{ONE_FILE}"
+    card_tagged, errors_tagged = draft_from_text(tool, tagged_draft)
+    check("a draft's title is read from its first heading",
+          card_tagged["title"], "[T1] the draft that carries its tag")
+    check("a draft whose first line carries the tier tag is not charged a missing tag",
+          any("carries no tier tag" in e for e in errors_tagged), False)
+    _card_plain, errors_plain = draft_from_text(tool, untagged_draft)
+    check("a draft with no tag anywhere is still charged",
+          any("carries no tier tag" in e for e in errors_plain), True)
 
     # 11d. A FINISHED review card owes nothing more, so the review lane's
     # floor is not measured against its cap. Measured 2026-10-31: with the

@@ -79,6 +79,7 @@ import wave_gate  # noqa: E402  (sibling module, same directory)
 import effort_budget_gate  # noqa: E402  (sibling module, same directory)
 import product_lines  # noqa: E402  (sibling module, same directory)
 import board_read  # noqa: E402  (sibling module, same directory)
+import card_title  # noqa: E402  (sibling module, same directory)
 import plan_gate  # noqa: E402  (sibling module, same directory)
 import review_handoff_gate  # noqa: E402  (sibling module, same directory)
 import ownership_gate  # noqa: E402  (sibling module, same directory)
@@ -1405,9 +1406,20 @@ def kanban_cards(board: str | None = None) -> list[dict] | None:
 
 
 def card_from_file(path: str) -> dict:
-    """A card-shaped dict from a body file, for classifying a draft."""
+    """A card-shaped dict from a body file, for classifying a draft.
+
+    The TITLE is read from the body, because a draft has no board row to carry one and
+    the tier model puts the tier in the title. `card_title` is the one reader of that
+    line, = shared with the effort-budget gate, = so a body that opens with
+    `# [T2] ...` is credited by both gates or charged by both. Before this, this
+    function passed an empty string, = so the documented pre-flight could never exit 0
+    for a card whose tag lives where the model says it lives: the finding fired on
+    every draft, = and a gate that charges what the author already did teaches the
+    author to distrust the green ones.
+    """
     body = Path(path).read_text(encoding="utf-8")
-    return {"id": path, "title": "", "body": body, "status": "draft"}
+    return {"id": path, "title": card_title.title_from_body(body), "body": body,
+            "status": "draft"}
 
 
 def report(card: dict) -> dict:
@@ -1437,6 +1449,11 @@ def report(card: dict) -> dict:
         "label": contract["label"],
         "reasons": reasons,
         "declared_tier": declared_tier(card.get("title") or ""),
+        # WHERE the declared tier was read from, because the author of a draft has no
+        # board row to look at: the readout must say which line it believed.
+        "title_source": ("the body's first heading"
+                         if card.get("status") == "draft" and card.get("title")
+                         else ("the board row" if card.get("title") else "nowhere")),
         "kind": kind,
         "declared_kind": declared_type(str(card.get("title") or "")),
         "runtime_seconds": card.get("max_runtime_seconds"),
@@ -1459,6 +1476,7 @@ def print_card(row: dict) -> None:
         f"      cap {row['runtime_text']}  retries {row['retries']}  "
         f"body {row['body_len']}/{row['body_max']}  "
         f"gate {row['gate_width']}  declared {row['declared_tier'] or '-'}"
+        + (f" (read from {row['title_source']})" if row.get("declared_tier") else "")
     )
     kind = row.get("kind")
     if kind:

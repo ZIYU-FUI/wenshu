@@ -98,6 +98,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import card_title  # noqa: E402  (sibling module, same directory)
 import product_lines  # noqa: E402  (sibling module, same directory)
 
 REPO = Path(__file__).resolve().parents[2]
@@ -220,25 +221,13 @@ def _body_text(card: dict) -> str:
 
 def _card_from_file(path: str) -> dict:
     text = Path(path).read_text(encoding="utf-8")
-    # A draft body file may carry a title line; the title is the first
-    # non-empty line that is not a markdown heading.
-    title = ""
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped:
-            continue
-        if stripped.startswith("# "):
-            # The card's own H1 is its title. A draft body that opens with
-            # "# [T2] The window ..." carries the tier tag there.
-            title = stripped[2:].strip()
-            break
-        if stripped.startswith("#"):
-            continue
-        title = stripped
-        break
+    # The title is read by `card_title`, ONE reader shared with the tier tool, so the
+    # two gates cannot answer differently about the same body file. A draft's title is
+    # its first heading; a body that opens with prose has no title, and this tool's
+    # research check still reads the body itself.
     return {
         "id": f"file:{path}",
-        "title": title,
+        "title": card_title.title_from_body(text),
         "body": text,
         "status": "draft",
         "assignee": None,
