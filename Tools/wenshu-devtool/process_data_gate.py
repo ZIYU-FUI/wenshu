@@ -174,6 +174,50 @@ def size_of(path: Path) -> str:
     return out.stdout.split()[0] if out.stdout.split() else "(unknown)"
 
 
+def size_of_family(paths: list[Path]) -> str:
+    """The family's TOTAL size, in the units `du -sh` prints.
+
+    The paths are measured in chunks, because one `du` with tens of
+    thousands of arguments exceeds the argument limit and then measures
+    NOTHING (= = the shell's glob never expands, = = the number reads 0,
+    = = and a report that says "0" for 28,000 directories is a report that
+    lies). A chunk that cannot be measured is counted as 0 and the total
+    says it was not complete, because a partial total is better than a
+    false one.
+    """
+    if not paths:
+        return "(none)"
+    total = 0
+    complete = True
+    for start in range(0, len(paths), 500):
+        chunk = paths[start:start + 500]
+        try:
+            out = subprocess.run(
+                ["du", "-sk", "--", *[str(p) for p in chunk]],
+                capture_output=True, text=True, timeout=900,
+            )
+        except (OSError, subprocess.SubprocessError):
+            complete = False
+            continue
+        for line in out.stdout.splitlines():
+            head = line.split("\t")[0].strip()
+            if head.isdigit():
+                total += int(head)
+            else:
+                complete = False
+    size = human_kib(total)
+    return size if complete else f"{size} (incomplete)"
+
+
+def human_kib(kib: int) -> str:
+    """A KiB count in the units `du -sh` prints."""
+    for unit, scale in (("T", 1024 ** 3), ("G", 1024 ** 2), ("M", 1024), ("K", 1)):
+        if kib >= scale:
+            value = kib / scale
+            return f"{value:.0f}{unit}" if value >= 10 else f"{value:.1f}{unit}"
+    return f"{kib}B"
+
+
 def system_volumes(mount_reader=mount_of) -> dict:
     """The volumes that ARE the system disk (= = `/` and its data volume).
 
@@ -212,27 +256,37 @@ def process_paths(repo: Path, home: Path) -> list[tuple[str, Path]]:
                 (f"profile {profile} {name}/", home / "profiles" / profile / name)
             )
     paths.append(("TMPDIR (the current scratch dir)", Path(tempfile.gettempdir())))
-    # The APP's own scratch on the system disk. The app creates one
-    # directory per tool registry under a hardcoded `/tmp` at launch (= six
-    # of them, each named with a fresh UUID) and never removes it, so every
-    # run of the app during development leaves a directory on the system
-    # disk behind. Measured 2026-11-24: 31956 such directories, 626 MiB.
-    # The gate names the path so the leak is visible in the same report as
-    # every other process path (= = the fix is the app's, and the gate does
-    # not pretend otherwise).
-    paths.append(("app scratch under /tmp (the tool registry roots)", Path("/tmp/wenshu-toolregistry-*")))
+    # The scratch under a hardcoded `/tmp`, and it is NOT only the app's.
+    # TWO sources write there, and the second one is the bigger:
+    #   - the APP's runtime fallbacks: six sites that create one directory
+    #     per tool registry, each named with a fresh UUID
+    #     (`ReferenceLibraryTool.swift:263`, `BookEntityTool.swift:427`,
+    #     `BookManagerTool.swift:454`, `EditChapterTool.swift:85`,
+    #     `BookOutlineTool.swift:372`, `BookChapterToolRegistry.swift:72`).
+    #   - the TEST SUITE: dozens of files under `Tests/WenshuAppTests/`
+    #     that create `/tmp/wenshu-<name>-<UUID>` and never remove it.
+    # Measured 2026-11-24: 28060 such directories on the system disk, = the
+    # test suite's, = not the app's (= the app's own six patterns matched
+    # ZERO of them, = so a row watching only those six watched nothing
+    # while the leak ran on). The row watches the family's real shape, and
+    # it names the path so the leak is visible in the same report as every
+    # other process path (= = the fix is the tree's, and the gate does not
+    # pretend otherwise).
+    paths.append(("scratch under /tmp (the app's and the test suite's hardcoded roots)",
+                  Path("/tmp/wenshu-*")))
     return paths
 
 
-def measure(paths, mount_reader=None, size_reader=None) -> dict:
+def measure(paths, mount_reader=None, size_reader=None, family_size_reader=None) -> dict:
     """The report: one row per path, with its volume and its size.
 
-    The two readers are parameters (= = the disk-reading is one small
+    The readers are parameters (= = the disk-reading is one small
     function, so a suite can drive the gate with a fixture disk instead of
     the machine's own).
     """
     mount_reader = mount_reader or mount_of
     size_reader = size_reader or size_of
+    family_size_reader = family_size_reader or size_of_family
     volumes = system_volumes(mount_reader)
     system_ids = {info["container"] for info in volumes.values()}
     system_devices = {info["device"] for info in volumes.values()}
@@ -241,10 +295,12 @@ def measure(paths, mount_reader=None, size_reader=None) -> dict:
         row = {"label": label, "path": str(path)}
         if any(ch in str(path) for ch in "*?["):
             # A PATTERN row (= = a family of paths, not one path). The
-            # app's tool registry leaves one directory per run under a
-            # hardcoded `/tmp`, so there is no single path to measure: the
-            # row counts the matches, sums their sizes, and names the
-            # volume their PARENT is on (= = the volume every match is on,
+            # hardcoded `/tmp` roots leave one directory per run, so there
+            # is no single path to measure: the row counts the matches,
+            # sums THEIR sizes (= = one match's size is not the family's
+            # size, = = and a row that prints one match's number under a
+            # family's label is a row that lies), and names the volume
+            # their PARENT is on (= = the volume every match is on,
             # because a directory's volume is its parent's).
             matches = sorted(glob.glob(str(path)))
             row.update({
@@ -272,7 +328,7 @@ def measure(paths, mount_reader=None, size_reader=None) -> dict:
                     "volume": info["mount"],
                     "device": info["device"],
                     "container": info["container"],
-                    "size": size_reader(Path(matches[0])),
+                    "size": family_size_reader([Path(m) for m in matches]),
                     "where": "system disk" if on_system else "data disk",
                 })
             rows.append(row)

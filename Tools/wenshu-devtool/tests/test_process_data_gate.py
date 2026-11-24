@@ -240,21 +240,59 @@ def main() -> int:
         check("the json carries the path count", payload["paths"], 15)
         check("the json carries the note", "boss's call" in payload["note"], True)
 
-        # ---- case 10: the app's own /tmp scratch is a PATTERN row ------
-        # The app creates one directory per tool registry under a hardcoded
-        # `/tmp` at launch and never removes it, so there is no single path
-        # to measure (= = there is a FAMILY of paths). The row counts the
-        # matches and names the volume their parent is on, so the leak that
-        # filled the system disk is visible in the same report as every
-        # other process path.
+        # ---- case 10: the hardcoded /tmp scratch is a PATTERN row ------
+        # TWO sources write there: the app's six runtime fallbacks, and the
+        # test suite's dozens of `/tmp/wenshu-<name>-<UUID>` roots. The
+        # second is the bigger, and the first one's own pattern matched
+        # ZERO of the directories on the machine (= = a row that watched
+        # only the app's six watched nothing while the leak ran on). So the
+        # row watches the family's REAL shape, counts the matches, sums
+        # THEIR sizes, and names the volume their parent is on.
         pattern_rows = [r for r in payload["rows"] if "matches" in r]
-        check("the report has the app's /tmp scratch row", len(pattern_rows), 1)
+        check("the report has the /tmp scratch row", len(pattern_rows), 1)
         if pattern_rows:
             row = pattern_rows[0]
-            check("the pattern row names the app's scratch", "/tmp/wenshu-" in row["path"], True)
+            check("the pattern row names the scratch family's real shape",
+                  row["path"], "/tmp/wenshu-*")
             check("the pattern row counts its matches", isinstance(row["matches"], int), True)
-        check("the app's /tmp scratch is in the measured paths",
-              any("toolregistry" in r["path"] for r in payload["rows"]), True)
+        check("the /tmp scratch is in the measured paths",
+              any(r["path"] == "/tmp/wenshu-*" for r in payload["rows"]), True)
+        check("the row does not watch only the app's six",
+              any("toolregistry" in r["path"] for r in payload["rows"]), False)
+
+        # ---- case 11: a pattern row sums ITS matches' sizes -----------
+        # One match's size is not a family's size, and a row that prints
+        # one match's number under a family's label lies. The family
+        # reader is a parameter, so the fixture drives it.
+        family_root = root / "family"
+        for i in range(3):
+            d = family_root / f"wenshu-thing-{i}"
+            d.mkdir(parents=True)
+            (d / "payload").write_text("x" * 1024)
+        seen: list[list[Path]] = []
+
+        def family_reader(paths):
+            seen.append(list(paths))
+            return "3M"
+
+        # The family's PARENT is what the row measures the volume of, so
+        # the fixture's mount reader has to know it (= = an unknown path
+        # is an unreadable volume, = = and the row stops before it has a
+        # size, = = which is the truth it must tell).
+        family_volumes = dict(volumes)
+        family_volumes[str(family_root)] = dict(DATA_DISK)
+        report = pdg.measure(
+            [("fixture family", family_root / "wenshu-thing-*")],
+            mount_reader=fake_mount_reader(family_volumes),
+            size_reader=sizer,
+            family_size_reader=family_reader,
+        )
+        fam_rows = [r for r in report["rows"] if "matches" in r]
+        check("the fixture family has one row", len(fam_rows), 1)
+        if fam_rows:
+            check("the family row counts every match", fam_rows[0]["matches"], 3)
+            check("the family row sums its matches", fam_rows[0]["size"], "3M")
+        check("the family reader saw every match", len(seen[0]) if seen else 0, 3)
 
     print()
     if FAILURES:
