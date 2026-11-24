@@ -61,6 +61,7 @@ system disk (the row names it), 2 = the disk could not be measured.
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 import re
 import subprocess
@@ -211,6 +212,15 @@ def process_paths(repo: Path, home: Path) -> list[tuple[str, Path]]:
                 (f"profile {profile} {name}/", home / "profiles" / profile / name)
             )
     paths.append(("TMPDIR (the current scratch dir)", Path(tempfile.gettempdir())))
+    # The APP's own scratch on the system disk. The app creates one
+    # directory per tool registry under a hardcoded `/tmp` at launch (= six
+    # of them, each named with a fresh UUID) and never removes it, so every
+    # run of the app during development leaves a directory on the system
+    # disk behind. Measured 2026-11-24: 31956 such directories, 626 MiB.
+    # The gate names the path so the leak is visible in the same report as
+    # every other process path (= = the fix is the app's, and the gate does
+    # not pretend otherwise).
+    paths.append(("app scratch under /tmp (the tool registry roots)", Path("/tmp/wenshu-toolregistry-*")))
     return paths
 
 
@@ -229,6 +239,44 @@ def measure(paths, mount_reader=None, size_reader=None) -> dict:
     rows = []
     for label, path in paths:
         row = {"label": label, "path": str(path)}
+        if any(ch in str(path) for ch in "*?["):
+            # A PATTERN row (= = a family of paths, not one path). The
+            # app's tool registry leaves one directory per run under a
+            # hardcoded `/tmp`, so there is no single path to measure: the
+            # row counts the matches, sums their sizes, and names the
+            # volume their PARENT is on (= = the volume every match is on,
+            # because a directory's volume is its parent's).
+            matches = sorted(glob.glob(str(path)))
+            row.update({
+                "exists": bool(matches),
+                "matches": len(matches),
+                "path": str(path),
+                "volume": "(unreadable)",
+                "device": "(unreadable)",
+                "container": "",
+                "size": "(none)",
+                "where": "(absent)",
+            })
+            if matches:
+                parent = Path(matches[0]).parent
+                try:
+                    info = mount_reader(parent)
+                except (OSError, ValueError) as exc:
+                    row.update({"volume": "(unreadable)", "device": "(unreadable)",
+                                "where": "system disk", "note": str(exc)})
+                    rows.append(row)
+                    continue
+                on_system = (info["container"] in system_ids
+                             or info["device"] in system_devices)
+                row.update({
+                    "volume": info["mount"],
+                    "device": info["device"],
+                    "container": info["container"],
+                    "size": size_reader(Path(matches[0])),
+                    "where": "system disk" if on_system else "data disk",
+                })
+            rows.append(row)
+            continue
         if not path.exists():
             row.update({"exists": False, "size": "(absent)", "where": "(absent)"})
             rows.append(row)
@@ -275,6 +323,8 @@ def print_report(report: dict) -> None:
         print(f"      path={row['path']}")
         print(f"      volume={row.get('volume', '(absent)')}  "
               f"device={row.get('device', '(absent)')}  size={row.get('size')}")
+        if "matches" in row:
+            print(f"      matches={row['matches']}")
         print(f"      where={row.get('where')}")
     print(f"  {report['note']}")
 

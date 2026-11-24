@@ -55,7 +55,13 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.dirname(HERE)
 sys.path.insert(0, TOOLS)
-from comment_lineage import classify, is_comment, measure, main  # noqa: E402
+from comment_lineage import (  # noqa: E402
+    classify,
+    comment_text,
+    is_comment,
+    measure,
+    main,
+)
 
 ARMS = os.path.join(HERE, "comment_lineage_arms.txt")
 ALIAS = {"1.1": "1.1/7.5", "1.5": "1.5", "1.6": "1.6"}
@@ -83,6 +89,85 @@ def parse_arms():
             path = path.strip()
         arms.append((kind.strip().rstrip(":"), exp.strip(), text, path))
     return arms
+
+
+# = = = THE READER'S FIXTURES. = = = They moved here with the reader: = = = the
+# = = = gate that ran before the review lane used to carry a second reader of
+# = = = comments (= a second CJK pattern, = = = a narrower character class, = = =
+# = = = a two-dot window), = = = and the two readers disagreed on every live
+# = = = branch. = = = One rule, = = = one reader, = = = one verdict.
+CJK_LITERAL_WITH_TRAILING_COMMENT = 'let u = "https://example.com/唐朝"  // the link'
+CJK_IN_TRAILING_COMMENT = "let size = 11  // the body is 通用"
+CJK_IN_BLOCK_COMMENT = "/* the body is 通用 */"
+CJK_IN_BLOCK_COMMENT_WITH_URL = "let x = 1  /* the body is 通用 = see http://example.com */"
+CJK_IN_BLOCK_COMMENT_WITH_TRAILING_NOTE = "let x = 1  /* the body is 通用 */  // a trailing note"
+CJK_IN_BLOCK_COMMENT_AFTER_URL = "let x = 1  /* see http://example.com = the body is 通用 */"
+CJK_IN_MULTILINE_LITERAL = 'let doc = """\n[链接](https://example.com/通用)\n"""  // the note'
+SWIFT = "Sources/WenshuApp/Demo.swift"
+
+
+def case_reader():
+    """The reader: what is a comment, and what TEXT of it is charged.
+
+    The unit charged is the COMMENT TEXT, = not the whole line: = so a CJK
+    string literal in code stays a literal (= 1.1's data exemption), = and a
+    trailing comment is read (= the shape the old whole-line-only reader
+    MISSED, = and the reason the two arms disagreed).
+    """
+    text, _ = comment_text("// the sheet's own face", SWIFT)
+    check("case 12: a whole-line comment is a comment",
+          text is not None and "the sheet's own face" in text, f"text={text!r}")
+
+    text, _ = comment_text("let x = 1  // the body's own size", SWIFT)
+    check("case 12b: a TRAILING comment is a comment (= the shape the old reader missed)",
+          text is not None and "the body's own size" in text, f"text={text!r}")
+
+    text, _ = comment_text('let url = "https://example.com/a"  // the link', SWIFT)
+    check("case 12c: a `//` inside a string literal is not the comment's start",
+          text is not None and text.strip() == "// the link", f"text={text!r}")
+
+    text, _ = comment_text('case .general: return "通用"', SWIFT)
+    check("case 12d: a CJK string literal is NOT a comment (= the literals stay)",
+          text is None, f"text={text!r}")
+
+    text, _ = comment_text(CJK_LITERAL_WITH_TRAILING_COMMENT, SWIFT)
+    check("case 12e: a CJK literal beside a trailing comment stays a literal",
+          text is not None and "唐朝" not in text, f"text={text!r}")
+
+    text, _ = comment_text(CJK_IN_TRAILING_COMMENT, SWIFT)
+    check("case 12f: a CJK in a TRAILING comment IS charged",
+          text is not None and "通用" in text, f"text={text!r}")
+
+    text, _ = comment_text(CJK_IN_BLOCK_COMMENT, SWIFT)
+    check("case 12g: a CJK in a BLOCK comment IS charged",
+          text is not None and "通用" in text, f"text={text!r}")
+
+    for fixture, label in (
+        (CJK_IN_BLOCK_COMMENT_WITH_URL, "= the block holds a URL"),
+        (CJK_IN_BLOCK_COMMENT_WITH_TRAILING_NOTE, "= a trailing note follows the block"),
+        (CJK_IN_BLOCK_COMMENT_AFTER_URL, "= the CJK sits after the URL"),
+    ):
+        text, _ = comment_text(fixture, SWIFT)
+        check(f"case 12h: a CJK in a BLOCK comment beside a `//` IS charged ({label})",
+              text is not None and "通用" in text, f"text={text!r}")
+
+    state = {}
+    first, state = comment_text('let doc = """', SWIFT, state)
+    second, state = comment_text("[链接](https://example.com/通用)", SWIFT, state)
+    third, state = comment_text('"""  // the note', SWIFT, state)
+    check("case 12i: a `//` inside a MULTILINE literal is NOT a comment",
+          (first is None or "链接" not in first)
+          and (second is None or "通用" not in second),
+          f"first={first!r} second={second!r}")
+    check("case 12j: and the comment AFTER the literal is still a comment",
+          third is not None and "the note" in third, f"third={third!r}")
+
+    text, _ = comment_text("# the shell's own note", "Scripts/x.sh")
+    check("case 12k: `#` is a comment in .sh",
+          text is not None and "the shell's own note" in text, f"text={text!r}")
+    text, _ = comment_text("#expect(x == 1)", SWIFT)
+    check("case 12l: `#expect` in a Swift file is CODE (= not a comment)",
+          text is None, f"text={text!r}")
 
 
 def case_arms():
@@ -409,6 +494,7 @@ def case_tagged_row_key():
 def run():
     print(f"comment_lineage_arms.txt: {len(parse_arms())} arms")
     arms = case_arms()
+    case_reader()
     case_carve(arms)
     case_end_to_end()
     case_carve_switch()

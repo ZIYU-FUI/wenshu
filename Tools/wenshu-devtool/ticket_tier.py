@@ -78,6 +78,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import wave_gate  # noqa: E402  (sibling module, same directory)
 import effort_budget_gate  # noqa: E402  (sibling module, same directory)
 import product_lines  # noqa: E402  (sibling module, same directory)
+import plan_gate  # noqa: E402  (sibling module, same directory)
+import ownership_gate  # noqa: E402  (sibling module, same directory)
 
 # The repo root. Derived from this file's own location, so the tool works
 # in whatever checkout it is run from (= a card's worktree, the shared
@@ -1270,6 +1272,41 @@ def find_contract_errors(card: dict) -> list[str]:
     if effort_budget_gate.is_subject(card.get("created_at")):
         for finding in effort_budget_gate.contract_errors(card):
             errors.append(finding)
+
+    # THE PLAN-OF-RECORD GATE, AT THE POINT A CARD IS TYPED.
+    #
+    # "Write a plan when a new requirement arrives" was a rule with no
+    # teeth: nothing in the tree read a plan. Measured 2026-11-24: 9 specs
+    # existed under `.scratch/`, and 0 `issues/` directories and 0
+    # `_index.md` (= the plan stopped at the spec, = = and the ticket set
+    # was never cut, = = so the scope's edges were never written down).
+    #
+    # A card names its plan of record by the `.scratch/<scope>/` path it
+    # carries, and `plan_gate.py` reads that plan in the SHARED checkout
+    # (= never in a card's worktree: = = a 245-line spec written into a
+    # worktree's `.scratch/` died with the worktree). The gate is
+    # `plan_gate.py`'s, so the plan has ONE reader.
+    #
+    # A card that names NO scope is not judged here: = = a card that is a
+    # bug fix, = = a review card, = = or a card for work that carries no
+    # new requirement is not a plan's business. The rule fires on the
+    # cards that CLAIM a plan of record, = = because those are the ones
+    # that promise a plan exists.
+    if plan_gate.is_subject(card.get("created_at")):
+        errors.extend(plan_gate.contract_errors(body))
+
+    # THE FILE-OWNERSHIP GATE, AT THE POINT A CARD IS TYPED.
+    #
+    # Two live cards that write one file cannot land in any order without
+    # a text conflict, = = and the collision is knowable from the card
+    # bodies (= = `wave_gate.py` reads them) BEFORE the wave starts. The
+    # collision was reported by a gate nobody ran on the dispatch path,
+    # = = so the report existed and the card still went out.
+    #
+    # The reader is `wave_gate.files_of`, = = and the collision set is
+    # `ownership_gate`'s, = = so the written-file set has ONE answer.
+    if ownership_gate.is_subject(card.get("created_at")):
+        errors.extend(ownership_gate.contract_errors(card))
 
     return errors
 

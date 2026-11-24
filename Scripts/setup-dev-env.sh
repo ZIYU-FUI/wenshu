@@ -46,16 +46,10 @@ swift build
 #    These are LOCAL settings (= .git/config, not committed), so a fresh
 #    clone has to install them.
 echo ">>> installing local git settings"
-git config merge.xcstrings.driver "python3 Scripts/merge-xcstrings.py %O %A %B"
-git config merge.nfi-registry.driver "python3 Scripts/merge-nfi-registry.py %O %A %B"
-# rerere records how a conflict was resolved once and replays it the next
-# time the same conflict appears on the same file. Without it, the recurring
-# magnets (the string catalog, the NFI registry, AGENTS.md, Package.swift)
-# cost one resolution per card instead of one per wave.
-git config rerere.enabled true
-echo "    merge.xcstrings.driver  = $(git config --get merge.xcstrings.driver)"
-echo "    merge.nfi-registry.driver = $(git config --get merge.nfi-registry.driver)"
-echo "    rerere.enabled           = $(git config --get rerere.enabled)"
+# The merge drivers live in their own script (= no brew, no swift build),
+# so a fresh clone can wire them on their own. This call keeps the ONE
+# command that prepares a machine, and the wiring itself has one home.
+bash Scripts/install-merge-drivers.sh
 
 echo ">>> wenshu dev environment ready."
 echo "    Next: swift test (run the full test suite)"

@@ -44,7 +44,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-INSTALLER = "Scripts/setup-dev-env.sh"
+INSTALLER = "Scripts/install-merge-drivers.sh"
 
 
 class WiringError(RuntimeError):

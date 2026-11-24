@@ -25,6 +25,9 @@ The cases are the ways the gate can be wrong:
   8. the gate is a REPORT: it names the move as the boss's call and moves
      nothing (= = the fixture tree is byte-for-byte the same after a run).
   9. --json carries the same numbers the text report prints.
+  10. a path that is a PATTERN (= = a family of paths) is one row that
+      counts its matches and names the volume their parent is on (= = the
+      app's own `/tmp` scratch, which the app leaves behind on every run).
 
 Run:  python3 Tools/wenshu-devtool/tests/test_process_data_gate.py
 Exit: 0 = every case passed, 1 = at least one case failed.
@@ -234,8 +237,24 @@ def main() -> int:
             [sys.executable, str(TOOL), "--repo", str(repo), "--json"],
             capture_output=True, text=True, timeout=900, env=env)
         payload = json.loads(r_json.stdout)
-        check("the json carries the path count", payload["paths"], 14)
+        check("the json carries the path count", payload["paths"], 15)
         check("the json carries the note", "boss's call" in payload["note"], True)
+
+        # ---- case 10: the app's own /tmp scratch is a PATTERN row ------
+        # The app creates one directory per tool registry under a hardcoded
+        # `/tmp` at launch and never removes it, so there is no single path
+        # to measure (= = there is a FAMILY of paths). The row counts the
+        # matches and names the volume their parent is on, so the leak that
+        # filled the system disk is visible in the same report as every
+        # other process path.
+        pattern_rows = [r for r in payload["rows"] if "matches" in r]
+        check("the report has the app's /tmp scratch row", len(pattern_rows), 1)
+        if pattern_rows:
+            row = pattern_rows[0]
+            check("the pattern row names the app's scratch", "/tmp/wenshu-" in row["path"], True)
+            check("the pattern row counts its matches", isinstance(row["matches"], int), True)
+        check("the app's /tmp scratch is in the measured paths",
+              any("toolregistry" in r["path"] for r in payload["rows"]), True)
 
     print()
     if FAILURES:

@@ -76,7 +76,19 @@ FILTER = re.compile(r"swift test --filter\s+(['\"])(.+?)\1")
 
 # The phrase that says the card names a filter at all.
 FILTER_PHRASE = "swift test --filter"
-CJK = re.compile(r"[一-鿿]")
+
+# = = = THERE IS NO CJK PATTERN IN THIS FILE. = = =
+# = = = The comment-level CJK rule has ONE implementation, = = = the judge
+# = = = (= Tools/wenshu-devtool/comment_lineage.py), = = = and this gate calls
+# = = = it. = = = The second arm that used to live here had its own character
+# = = = class, = = = its own window (= a two-dot diff, = = = so a moving base
+# = = = charged the branch for a sibling's prose), = = = and no whitelist
+# = = = (= so the project's own literals were violations here and clean there).
+# = = = Measured 2026-11-24 on the ten live branches: = = = the two arms
+# = = = disagreed on EVERY one of them (= = = the judge charged 0-19 lines, = = =
+# = = = the audit charged 2-31), = = = and on the repo's own truth table the
+# = = = audit arm charged a row the judge calls clean. = = = One rule, = = =
+# = = = one implementation, = = = one verdict.
 
 
 def sh(command, cwd=REPO, timeout=3600):
@@ -183,184 +195,6 @@ def filters_from_card(text):
     return filters, unparsed
 
 
-def blank_strings(line, in_multiline=False):
-    """The line with its string literals blanked, = so a `//` inside a
-    string is not read as a comment. = A string that is never closed on
-    the line runs to the end of it, = which is how Swift reads it too.
-
-    = A MULTILINE literal (= three double quotes) = is blanked as one:
-    = the scanner toggles on the quote one at a time, = so the triple
-    leaves its state wrong (= and a `//` after it would be read as a
-    comment). = So the triple is matched as a unit.
-
-    = Returns (blanked, in_multiline): = the state says whether a
-    multiline literal is OPEN at the end of the line, = because such a
-    literal SPANS lines (= and the line after it is still inside the
-    literal, = so a `//` there is not a comment either).
-    """
-    out = []
-    in_string = False
-    escaped = False
-    index = 0
-    while index < len(line):
-        char = line[index]
-        if in_multiline:
-            if line.startswith('"""', index):
-                out.append(" ")
-                out.append(" ")
-                out.append(" ")
-                in_multiline = False
-                index += 3
-                continue
-            out.append(" ")
-            index += 1
-            continue
-        if escaped:
-            out.append(" ")
-            escaped = False
-            index += 1
-            continue
-        if char == "\\" and in_string:
-            out.append(" ")
-            escaped = True
-            index += 1
-            continue
-        if line.startswith('"""', index):
-            out.append(" ")
-            out.append(" ")
-            out.append(" ")
-            in_multiline = True
-            index += 3
-            continue
-        if char == '"':
-            in_string = not in_string
-            out.append(" ")
-            index += 1
-            continue
-        out.append(" " if in_string else char)
-        index += 1
-    return "".join(out), in_multiline
-
-
-def comment_parts(added_lines):
-    """The COMMENT part of every added line that carries one.
-
-    = The CJK audit greps the COMMENT PART, = not the whole raw line: =
-    a line whose CJK sits inside a string literal AND which carries a
-    trailing comment (= the repository's own idiom, = e.g. a model's
-    `displayName` with a note beside it) = would otherwise be reported
-    as CJK-in-a-comment, = and the literal does not stay.
-
-    = The string literals are blanked first, = so a `//` inside a
-    literal is not read as a comment's start, = and the comment's own
-    text is what comes back. = The multiline state is carried across the
-    lines, = because a multiline literal spans them.
-
-    Returns a list of (line, comment_part) pairs.
-    """
-    parts = []
-    in_block = False
-    in_multiline = False
-    for raw in added_lines:
-        scrubbed, in_multiline = blank_strings(raw, in_multiline)
-        is_comment = in_block
-        index = 0
-        while index < len(scrubbed):
-            if in_block:
-                end = scrubbed.find("*/", index)
-                if end == -1:
-                    is_comment = True
-                    index = len(scrubbed)
-                    break
-                in_block = False
-                index = end + 2
-                continue
-            block = scrubbed.find("/*", index)
-            line_marker = scrubbed.find("//", index)
-            if line_marker != -1 and (block == -1 or line_marker < block):
-                is_comment = True
-                index = len(scrubbed)
-                break
-            if block != -1:
-                in_block = True
-                is_comment = True
-                index = block + 2
-                continue
-            break
-        if in_block:
-            is_comment = True
-        if not is_comment:
-            continue
-        # The comment part starts at the comment's OWN marker: = a block
-        # comment that opens BEFORE a `//` on the same line is a block
-        # comment, = and its own text is what the CJK audit must read.
-        # (Reading from the `//` alone misses a CJK inside the block.)
-        marker = scrubbed.find("//")
-        block = scrubbed.find("/*")
-        if block != -1 and (marker == -1 or block < marker):
-            parts.append((raw, raw[block:]))
-            continue
-        if marker != -1:
-            parts.append((raw, raw[marker:]))
-            continue
-        parts.append((raw, raw))
-    return parts
-
-
-def comment_lines(added_lines):
-    """The added lines that are COMMENT lines, = and only those.
-
-    A comment line is one whose text is a comment: = a whole-line `//`,
-    = a trailing `//` after code (= the style the repository uses in 543
-    lines across 184 files), = or a line inside a `/* */` block. = A `//`
-    inside a string literal is NOT a comment, = so the scanner blanks the
-    string literals before it looks for the marker.
-    """
-    comments = []
-    in_block = False
-    in_multiline = False
-    for raw in added_lines:
-        scrubbed, in_multiline = blank_strings(raw, in_multiline)
-        is_comment = in_block
-        index = 0
-        while index < len(scrubbed):
-            if in_block:
-                end = scrubbed.find("*/", index)
-                if end == -1:
-                    is_comment = True
-                    index = len(scrubbed)
-                    break
-                in_block = False
-                index = end + 2
-                continue
-            block = scrubbed.find("/*", index)
-            line_marker = scrubbed.find("//", index)
-            if line_marker != -1 and (block == -1 or line_marker < block):
-                is_comment = True
-                break
-            if block != -1:
-                in_block = True
-                is_comment = True
-                index = block + 2
-                continue
-            break
-        if in_block:
-            is_comment = True
-        if is_comment:
-            comments.append(raw)
-    return comments
-
-
-def cjk_audit(base):
-    """§7.5: zero new CJK in the COMMENTS this change adds."""
-    diff = sh(f"git diff {base} HEAD -- '*.swift'")[1]
-    added = [line[1:] for line in diff.split("\n") if line.startswith("+") and not line.startswith("+++")]
-    comments = [line for line, part in comment_parts(added) if CJK.search(part)]
-    if comments:
-        return 1, "CJK comment lines added:\n" + "\n".join("  " + line[:110] for line in comments)
-    return 0, f"no new CJK comment line ({len(added)} added line(s) scanned)"
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", required=True)
@@ -449,10 +283,18 @@ def main():
     elif "not a pass" in out:
         print("    this window added no comment line, = the rule was NOT measured here")
 
-    code, out = cjk_audit(args.base)
-    print(f"  the CJK audit: exit {code} ({out.splitlines()[0] if out else ''})")
-    if code != 0:
-        failures.append(("the CJK audit", out))
+    # = = THE CJK COMMENT RULE HAS NO SECOND ARM. = = The judge above IS the
+    # = = one implementation: = = one window (= the merge-base), = = one
+    # = = character class, = = one whitelist (= the project's own literals),
+    # = = one severity contract. = = The arm that used to live here had its own
+    # = = window (= a two-dot diff, = = so a moving base charged the branch for
+    # = = a sibling's prose), = = its own narrower character class, = = and no
+    # = = whitelist (= so the project's own literals were violations here and
+    # = = clean there). = = Measured 2026-11-24: = = the two arms disagreed on
+    # = = EVERY one of the repo's live branches, = = and the arm charged a row
+    # = = the repo's own arms table declares CLEAN. = = A rule with two arms is
+    # = = a rule with two answers, = = and an author who satisfies one is
+    # = = bounced by the other.
 
     code, out = sh(f"python3 {DEVTOOL}/verify-dead.py")
     dead = [line for line in out.split("\n") if "DEAD" in line]

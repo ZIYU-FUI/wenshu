@@ -102,8 +102,9 @@ echo "clean"
 
 attempt=1
 while [ $attempt -le $MAX_ATTEMPTS ]; do
-  echo "=== ATTEMPT $attempt: rebase onto current main ($(git -C "$REPO" rev-parse --short main))"
-  if ! git -C "$WT" rebase main > "$LOGDIR/${CARD}_rebase.log" 2>&1; then
+  EXPECTED_MAIN="$(git -C "$REPO" rev-parse main)"
+  echo "=== ATTEMPT $attempt: rebase onto current main ($(git -C "$REPO" rev-parse --short "$EXPECTED_MAIN"))"
+  if ! git -C "$WT" rebase "$EXPECTED_MAIN" > "$LOGDIR/${CARD}_rebase.log" 2>&1; then
     echo "REBASE CONFLICT:"; cat "$LOGDIR/${CARD}_rebase.log"
     git -C "$WT" rebase --abort
     echo "RESULT: SKIP ($CARD) reason=REBASE_CONFLICT"; exit 30
@@ -116,20 +117,65 @@ while [ $attempt -le $MAX_ATTEMPTS ]; do
   grc=$?
   if [ $grc -ne 0 ]; then echo "RESULT: SKIP ($CARD) reason=GATE_FAILED"; exit 40; fi
 
-  echo "--- step 5: fast-forward merge"
-  cd "$REPO" || exit 2
-  if ! git merge --ff-only "$BRANCH" > "$LOGDIR/${CARD}_merge.log" 2>&1; then
-    echo "MERGE FAILED (not fast-forward): main moved again; re-rebase and re-run gates"
-    cat "$LOGDIR/${CARD}_merge.log"
-    attempt=$((attempt+1))
+  # = = = = THE LANDING MOVES main AND NOTHING ELSE. = = = = = = = = =
+  # = = = = The old step ran `git merge --ff-only` INSIDE the shared = = = = =
+  # = = = = checkout (= the checkout every session reads and writes), = = = = =
+  # = = = = so two sessions landing at once fought over one working = = = = =
+  # = = = = tree, and a merge that succeeded half-way left the shared = = = = =
+  # = = = = checkout's files on a branch the next session did not = = = = =
+  # = = = = expect. = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  # = = = = Now NOTHING is merged anywhere: the branch was already = = = = =
+  # = = = = rebased onto main above, and `main`'s REF is moved by = = = = =
+  # = = = = compare-and-swap against the sha this attempt read (= = = = = the
+  # = = = = sha it rebased onto). = = = = = = = = = = = = = = = = = = = = = = =
+  # = = = = The swap names the sha it expects, so a `main` that moved = = = = =
+  # = = = = under us makes the swap FAIL (= = = = = the ref is not changed) = =
+  # = = = = instead of overwriting the other session's landing, and the = = =
+  # = = = = loop rebases onto the new main and RE-RUNS the gates. = = = = = =
+  # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+  # = = = = The shared checkout's FILES are never written by this script; = =
+  # = = = = the ref moves, and whoever works in that checkout reads the = = =
+  # = = = = new `main` on its next command (= = = = = `git reset --hard` if =
+  # = = = = = it wants its files to match). = = = = = = = = = = = = = = = = =
+  echo "--- step 5: the landed sha, then move main by compare-and-swap"
+  echo "expected main (the main this attempt rebased onto): $EXPECTED_MAIN"
+  # NOTHING is merged here. The old step ran `git merge --ff-only` inside
+  # the SHARED checkout (= the checkout every session reads and writes), so
+  # two sessions landing at once fought over one working tree. A
+  # fast-forward merge moves a ref AND writes the tree, and the tree write
+  # is the part that must not happen in the shared checkout.
+  #
+  # The branch was rebased onto $EXPECTED_MAIN above, so its tip already
+  # carries main, and the compare-and-swap below moves main to that tip.
+  MERGED_SHA="$(git -C "$WT" rev-parse "$BRANCH")"
+  if ! git -C "$WT" merge-base --is-ancestor "$EXPECTED_MAIN" "$MERGED_SHA"; then
+    echo "THE CARD'S BRANCH DOES NOT CARRY MAIN: the landing refuses"
+    echo "RESULT: SKIP ($CARD) reason=NOT_FF_IN_WORKTREE"
+    exit 31
+  fi
+  # THE COMPARE-AND-SWAP: `git update-ref refs/heads/main NEW OLD` moves the
+  # ref ONLY when it still points at OLD. A `main` that moved under this
+  # landing makes the swap fail (= the ref is not changed) instead of
+  # overwriting the other session's landing.
+  if ! git -C "$REPO" update-ref refs/heads/main "$MERGED_SHA" "$EXPECTED_MAIN" \
+       > "$LOGDIR/${CARD}_update_ref.log" 2>&1; then
+    echo "MAIN MOVED UNDER THIS LANDING: the compare-and-swap refused to move main"
+    cat "$LOGDIR/${CARD}_update_ref.log"
+    # The next attempt rebases onto the NEW main and RE-RUNS the gates
+    # (= a rebase can invalidate what a gate proved).
+    attempt=$((attempt + 1))
     continue
   fi
-  cat "$LOGDIR/${CARD}_merge.log"
-  LOCAL_SHA="$(git rev-parse main)"
+  cat "$LOGDIR/${CARD}_update_ref.log"
+  LOCAL_SHA="$(git -C "$REPO" rev-parse main)"
+  echo "main moved by compare-and-swap: $EXPECTED_MAIN -> $LOCAL_SHA"
   break
 done
 
-if [ -z "${LOCAL_SHA:-}" ]; then echo "RESULT: SKIP ($CARD) reason=NOT_FF_AFTER_${MAX_ATTEMPTS}_ATTEMPTS"; exit 50; fi
+if [ -z "${LOCAL_SHA:-}" ]; then
+  echo "RESULT: SKIP ($CARD) reason=MAIN_MOVED_DURING_LANDING (after $MAX_ATTEMPTS attempts)"
+  exit 50
+fi
 
 echo "--- step 6: push"
 if ! git push origin main > "$LOGDIR/${CARD}_push.log" 2>&1; then

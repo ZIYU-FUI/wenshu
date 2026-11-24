@@ -416,6 +416,51 @@ def scope_of_card(card_id: str, board: str, checkout: Path) -> tuple[str, list[s
     return "", candidates, slug
 
 
+# The contract epoch. A card created before this date is reported, never
+# blocked: the cards already on the board were typed under the old rule,
+# and rewriting them is not this tool's business (= the same shape as
+# effort_budget_gate.EVIDENCE_CONTRACT_FROM).
+PLAN_CONTRACT_FROM = 1795449600  # 2026-11-24 00:00 CST
+
+
+def is_subject(created_at: int | None) -> bool:
+    """Is this card under the plan contract?
+
+    A card with no creation time is treated as a subject: a card the board
+    cannot date is a card the board cannot excuse.
+    """
+    if created_at is None:
+        return True
+    return int(created_at) >= PLAN_CONTRACT_FROM
+
+
+def contract_errors(body: str, repo: Path | None = None) -> list[str]:
+    """Every way the card's plan of record is missing or incomplete.
+
+    A card that names NO scope is not judged: a bug fix, a review card, or
+    a card for work that carries no new requirement is not a plan's
+    business. The rule fires on the cards that CLAIM a plan of record, and
+    those are the ones that promise a plan exists.
+
+    The plan is read in the SHARED checkout, so a card's worktree never
+    decides whether a plan exists.
+    """
+    scopes = extract_scopes(body)
+    if not scopes:
+        return []
+    repo = Path(repo).resolve() if repo else REPO
+    errors: list[str] = []
+    for scope in scopes:
+        report = check_scope(repo, scope)
+        if report["ok"]:
+            continue
+        errors.append(
+            f"the plan of record for scope {scope} is incomplete: "
+            + "; ".join(report["findings"])
+        )
+    return errors
+
+
 def print_report(report: dict) -> None:
     """Print the plan the gate read, the scope it read it for, and the verdict."""
     print(f"=== plan gate: scope {report['scope']}")

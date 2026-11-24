@@ -16,14 +16,14 @@ and each one is measured against the gate's own claims:
      single quotes).
   5. a card's filter line the reader CANNOT parse is named (= the card
      asked for a gate that did not run, = and the reader must say so).
-  6. a whole-line comment is a comment.
-  7. a TRAILING comment is a comment (= the style the repository uses in
-     543 lines across 184 files, = and the shape the old reader missed).
-  8. a line inside a block comment is a comment.
-  9. a `//` inside a string literal is NOT a comment.
- 10. a CJK string literal is NOT a comment (= the literals stay: = a
-     model's displayName, = a test fixture's prose).
- 11. a CJK literal in a comment IS caught (= the CJK audit's whole job).
+  6. THE COMMENT RULES HAVE ONE IMPLEMENTATION. = The reader that decides
+     what a comment is, = the CJK pattern, = and the audit of the comment
+     rules live in the judge (= `comment_lineage.py`), = and this gate
+     carries none of them: = a rule with two arms is a rule with two
+     answers, = and the author who satisfies one is bounced by the other
+     (= measured 2026-11-24 on every live branch).
+  7. the gate CALLS that one implementation (= the judge is on the path
+     a branch takes to the review lane).
 
 Run:  python3 Tools/wenshu-devtool/tests/test_pre_review_gate.py
 Exit: 0 = every case passed, 1 = at least one case failed.
@@ -127,45 +127,6 @@ A verdict on a card whose suite is named in a table.
 | `swift test --filter 'StyleSheetWiringTests'` | the suite that passes |
 """
 
-# A CJK literal on a line that ALSO carries a trailing comment. = The
-# literal is not a comment, = so the audit must not report it.
-#
-# = The literal is a URL, = so it carries a `//` of its OWN, = and the
-# CJK sits AFTER that `//`. = That is what pins the blanking: = without
-# it, = the reader would take the URL's `//` as the comment's start, =
-# and the CJK would land inside the "comment part" (= and be reported).
-CJK_LITERAL_WITH_TRAILING_COMMENT = 'let u = "https://example.com/唐朝"  // the link'
-CJK_IN_TRAILING_COMMENT = 'let size = 11  // the body is 通用'
-CJK_IN_BLOCK_COMMENT = "/* the body is 通用 */"
-# A BLOCK comment that opens BEFORE a `//` on the same line. = The
-# comment part must start at the comment's OWN marker (= the `/*`), = so
-# the CJK inside the block is read; = reading from the `//` instead
-# slices the part from the wrong marker and misses the CJK.
-#
-# = The first line carries a URL inside the block (= the repository's own
-# idiom: = 58 tracked Swift lines carry both `/*` and `//`), = so it is
-# the shape that hides the CJK twice over.
-CJK_IN_BLOCK_COMMENT_WITH_URL = "let x = 1  /* the body is 通用 = see http://example.com */"
-# The same shape, = with a trailing note after the block.
-CJK_IN_BLOCK_COMMENT_WITH_TRAILING_NOTE = "let x = 1  /* the body is 通用 */  // a trailing note"
-# The same shape, = with the CJK after the URL (= so the `//` inside the
-# block is the FIRST `//` on the line).
-CJK_IN_BLOCK_COMMENT_AFTER_URL = "let x = 1  /* see http://example.com = the body is 通用 */"
-# A MULTILINE literal (= = three double quotes) = whose own text holds a
-# `//`. = The scanner that toggles on the quote one at a time leaves its
-# state wrong after the triple, = so the `//` inside the literal would be
-# read as a comment's start.
-#
-# = The literal SPANS the lines (= = that is what a multiline literal
-# is), = so the state must be carried across them: = the line that
-# OPENS it is followed by a line whose `//` is still inside the literal.
-# = The CJK sits AFTER that `//` (= = inside the URL), = so the case
-# tells the two behaviours apart: = with the state carried the line is
-# blanked (= no comment at all), = and without it the `//` starts a
-# "comment" that holds the CJK.
-CJK_IN_MULTILINE_LITERAL = 'let doc = """\n[链接](https://example.com/通用)\n"""  // the note'
-
-
 def main() -> int:
     print("test_pre_review_gate: the pre-review gate's own cases")
 
@@ -213,54 +174,6 @@ def main() -> int:
         f"unparsed={unparsed}",
     )
 
-    # 6. a whole-line comment is a comment.
-    comments = gate.comment_lines(["// the sheet's own face", "let x = 1"])
-    case(
-        "a whole-line comment is a comment",
-        comments == ["// the sheet's own face"],
-        f"comments={comments}",
-    )
-
-    # 7. a trailing comment is a comment (= the shape the old reader missed).
-    comments = gate.comment_lines(["let x = 1  // the body's own size"])
-    case(
-        "a TRAILING comment is a comment",
-        comments == ["let x = 1  // the body's own size"],
-        f"comments={comments}",
-    )
-
-    # 8. a line inside a block comment is a comment.
-    comments = gate.comment_lines(["/* the sheet's own", "   face */", "let x = 1"])
-    case(
-        "a line inside a block comment is a comment",
-        comments == ["/* the sheet's own", "   face */"],
-        f"comments={comments}",
-    )
-
-    # 9. a `//` inside a string literal is not a comment.
-    comments = gate.comment_lines(['let url = "https://example.com/a"  // the link'])
-    case(
-        "a `//` inside a string literal is NOT a comment (= the trailing comment still is)",
-        comments == ['let url = "https://example.com/a"  // the link'],
-        f"comments={comments}",
-    )
-
-    # 10. a CJK string literal is not a comment (= the literals stay).
-    comments = gate.comment_lines(['case .general: return "通用"'])
-    case(
-        "a CJK string literal is NOT a comment (= the literals stay)",
-        comments == [],
-        f"comments={comments}",
-    )
-
-    # 11. a CJK literal in a comment IS caught.
-    comments = gate.comment_lines(["// the body's own size (= 行距 1.55)"])
-    case(
-        "a CJK literal in a comment IS caught (= the CJK audit's whole job)",
-        len(comments) == 1,
-        f"comments={comments}",
-    )
-
     # 12. a PROSE mention is not a gate line (= and is not named).
     filters, unparsed = gate.filters_from_card(CARD_PROSE_ONLY)
     case(
@@ -286,58 +199,33 @@ def main() -> int:
         f"filters={filters} unparsed={unparsed}",
     )
 
-    # 14. a CJK literal on a line that carries a trailing comment (= the
-    #     literal is NOT reported: = the comment part is what is read).
-    audited = [line for line, part in gate.comment_parts([CJK_LITERAL_WITH_TRAILING_COMMENT]) if gate.CJK.search(part)]
+    # 19. THE COMMENT RULES HAVE ONE IMPLEMENTATION, = and this file is the
+    #     proof: = the gate that runs BEFORE the review lane must not carry a
+    #     second reader of comments, = a second CJK pattern, = or a second
+    #     audit of the same rule. = = A rule with two arms is a rule with two
+    #     answers, = and the author who satisfies one is bounced by the other
+    #     (= measured 2026-11-24: = the two arms disagreed on EVERY live
+    #     branch, = and one arm charged a row the repo's own arms table
+    #     declares CLEAN).
+    own_source = TOOL.read_text(encoding="utf-8")
+    judge_source = (TOOL.parent / "comment_lineage.py").read_text(encoding="utf-8")
     case(
-        "a CJK literal beside a trailing comment is NOT reported (= the literals stay)",
-        audited == [],
-        f"audited={audited}",
+        "the pre-review gate carries NO second comment-rule implementation",
+        "cjk_audit" not in own_source
+        and "CJK = re.compile" not in own_source
+        and "def comment_parts" not in own_source
+        and "def comment_lines" not in own_source,
+        "the gate still carries its own reader or pattern",
+    )
+    case(
+        "and the ONE implementation is the judge (= the gate calls it)",
+        "comment_lineage.py" in own_source
+        and "CJK = re.compile" in judge_source
+        and "def comment_text" in judge_source,
+        "the judge does not carry the pattern or the reader",
     )
 
-    # 15. a CJK in a TRAILING comment IS reported (= the other half).
-    audited = [line for line, part in gate.comment_parts([CJK_IN_TRAILING_COMMENT]) if gate.CJK.search(part)]
-    case(
-        "a CJK in a TRAILING comment IS reported (= the comment part is what is read)",
-        len(audited) == 1,
-        f"audited={audited}",
-    )
-
-    # 16. a CJK in a BLOCK comment IS reported (= the other half).
-    audited = [line for line, part in gate.comment_parts([CJK_IN_BLOCK_COMMENT]) if gate.CJK.search(part)]
-    case(
-        "a CJK in a BLOCK comment IS reported (= the comment part is what is read)",
-        len(audited) == 1,
-        f"audited={audited}",
-    )
-
-    # 17. a `//` inside a MULTILINE literal is NOT a comment (= the
-    #     triple quote must be matched as a unit).
-    audited = [
-        line for line, part in gate.comment_parts(CJK_IN_MULTILINE_LITERAL.split("\n")) if gate.CJK.search(part)
-    ]
-    case(
-        "a `//` inside a MULTILINE literal is NOT a comment (= the triple is matched as one)",
-        audited == [],
-        f"audited={audited}",
-    )
-
-    # 18. a CJK in a BLOCK comment that opens BEFORE a `//` on the same
-    #     line IS reported (= the comment part starts at the comment's
-    #     OWN marker, = not at the first `//` on the line).
-    for fixture, label in (
-        (CJK_IN_BLOCK_COMMENT_WITH_URL, "= the block holds a URL"),
-        (CJK_IN_BLOCK_COMMENT_WITH_TRAILING_NOTE, "= a trailing note follows the block"),
-        (CJK_IN_BLOCK_COMMENT_AFTER_URL, "= the CJK sits after the URL"),
-    ):
-        audited = [line for line, part in gate.comment_parts([fixture]) if gate.CJK.search(part)]
-        case(
-            f"a CJK in a BLOCK comment beside a `//` IS reported ({label})",
-            len(audited) == 1,
-            f"audited={audited}",
-        )
-
-    # 19. a suite named in a MARKDOWN TABLE ROW is lifted (= a table row
+    # 20. a suite named in a MARKDOWN TABLE ROW is lifted (= a table row
     #     is a declaration, = and dropping it would measure nothing).
     filters, unparsed = gate.filters_from_card(CARD_TABLE_ROW)
     case(
