@@ -27,6 +27,9 @@ log that names the merged sha is under `.gate-logs/`.
   `--check loc-cap` = 0.
 - `python3 Tools/wenshu-devtool/agents_gate.py` = the file is loadable and
   true.
+- `python3 Tools/wenshu-devtool/nfi-loc-check.py --base main` = 21 rows
+  checked (= 17 this change added, = 4 whose named file it rewrote), every
+  row carrying its own count.
 - Every suite under `Tools/wenshu-devtool/tests/` exits 0 (= 17 suites,
   including the five this wave adds).
 
@@ -107,6 +110,7 @@ retry lands the card ON TOP of the other session's commit.
 | 5. The review lane hands work back by VERDICT, never by a card | `ed9699e9ce` (= `review_handoff_gate.py`), `08194f914c` (= its contract on the dispatch path) | `t_ae96d17c` | `review_handoff_gate.py` prints the 41 cards a review lane created for an implementer, naming each one's creator, assignee and the verdict of the review card it answered; `test_review_handoff_gate.py` exits 0 |
 | 6. Every byte of process data goes to the data disk | `2563d13cb3` (= `process_data_gate.py` + its suite) | `t_ae96d17c` | `process_data_gate.py` prints every process path with the volume the MOUNT TABLE says it is on; 14 paths measured, 0 on the system disk |
 | 7. The two gates that read a card's GATES answer the same way | `868f581669` + `be63281946` + `315d1b9103` (= `card_gate_command.py`) | `t_ae96d17c` | `test_card_gate_command.py` = 16 cases; over the board's 981 cards the width gate raises NO new finding and 18 false ones are withdrawn |
+| (rule 1.7, = the registration the seven rows above owe) | `b63cbf6e86` (= 17 registry rows + the devtool README's six sections) | `t_ae96d17c` | `nfi-loc-check.py --base main` = `21 row(s) checked: = 17 the change added, = 4 whose named file the change rewrote and did not add`, exit 0; the registry gate scopes itself to the keys the change ADDED, = so an unregistered file is invisible to it, = and only the registry itself closes that hole |
 
 ## A defect found while landing, in its own row
 
