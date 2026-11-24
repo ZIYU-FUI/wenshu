@@ -160,21 +160,39 @@ def branch_base():
     return BASE_COMMIT
 
 
-# = = THE COMMIT WHOSE DIFF THIS SUITE MEASURES: = = the parent of the
-# = = branch's FIRST commit. = = It is written down rather than computed
-# = = from the merge-base, = = because the merge-base MOVES: = = once the
-# = = branch is on `main`, = = the merge-base IS `HEAD`, = = the diff is
-# = = empty, = = and the added-lines certificate silently measures ZERO
-# = = lines = = = = a green that says nothing. = = This SHA does not move.
-# = =
-# = = AND IT IS THE REBASE'S STARTING POINT, = = not the branch's old
-# = = = = base. = = After a rebase the branch's tip CARRIES `main`'s
-# = = = = commits, = = so `git diff <old base> HEAD` also shows what `main`
-# = = = = changed in the meantime (= = 79 ticket ids this branch never
-# = = = = wrote), = = and the certificate charged the branch for another
-# = = = = lane's lines. = = The branch's OWN diff is measured against the
-# = = = = commit the branch started from.
-BASE_COMMIT = "77635be756560dd670a37f9346701a77d78c20b2"
+# = = THE WINDOW THIS SUITE MEASURES = = the commits the change owns, and never a date.
+#
+# = = WHY THE PIN IS GONE. = = The base used to be a sha written down in this file, chosen
+# = = because the merge-base MOVES (= once a branch is on `main`, the merge-base IS `HEAD`, the
+# = = diff is empty, and the added-lines certificate would measure ZERO lines). = = A frozen
+# = = base fixes that by breaking something worse: = = every lane that lands after the pin
+# = = falls inside the window, = = so the certificate charges this branch for other people's
+# = = merged work. = = Measured at this tip: the pinned window was 559 commits wide, 19,715
+# = = added comment lines, and 222 charges, none of them written by the branch under review;
+# = = the window the repository's own lineage rule defines charges 0.
+#
+# = = THE VACUUM IS ANSWERED BY THE PRINT, NOT BY THE PIN. = = The case says out loud which
+# = = window it measured and how many comment lines that window added, = = so a green over
+# = = zero lines is visible as what it is (= a change that wrote no comment line at all) = =
+# = = instead of being quietly bought with a stale date.
+def measure_window() -> tuple[str, str, int]:
+    """`(base, why, commits)` — the window the added-lines certificate owns.
+
+    = = A branch that is ahead of `main` owns `merge-base..HEAD`: that is exactly its own
+    commits, = = and a rebase cannot smuggle another lane's lines into it. = = A tree with no
+    branch under review (= `main`, = = or a detached tip) = = owns its own last commit, which
+    is a real window with real lines in it and never the empty one the pin feared.
+    """
+    import subprocess
+
+    def git(*args: str) -> str:
+        return subprocess.run(["git", *args], cwd=str(REPO), capture_output=True,
+                              text=True).stdout.strip()
+
+    ahead = git("rev-list", "--count", "main..HEAD") or "0"
+    if ahead != "0":
+        return git("merge-base", "main", "HEAD"), "the branch's own commits ahead of main", int(ahead)
+    return git("rev-parse", "HEAD^"), "no branch window: the tip's own commit", 1
 
 
 def check_added_comment_lines():
@@ -187,8 +205,9 @@ def check_added_comment_lines():
     """
     import subprocess
 
+    base, why, commits = measure_window()
     diff = subprocess.run(
-        ["git", "diff", branch_base(), "--", "*.swift"],
+        ["git", "diff", f"{base}..HEAD", "--", "*.swift"],
         cwd=str(REPO),
         capture_output=True,
         text=True,
@@ -198,10 +217,12 @@ def check_added_comment_lines():
         for line in diff.split("\n")
         if line.startswith("+") and not line.startswith("+++")
     ]
+    comment_lines = [ln for ln in added if ln.strip().startswith("//")]
+    # = = THE WINDOW IS PART OF THE RESULT, = = because a census that does not say what it
+    # = = looked at cannot be re-checked by the reader who disagrees with it.
+    print(f"  window: {why} ({commits} commit(s)), {len(comment_lines)} added comment line(s)")
     offenders = []
-    for line in added:
-        if not line.strip().startswith("//"):
-            continue
+    for line in comment_lines:
         for match in TICKET_ID.finditer(line):
             offenders.append((match.group(0), line.strip()[:80]))
     if offenders:
@@ -844,40 +865,70 @@ def check_the_tip_read_survives_the_tree():
 
 
 def check_the_guard_does_not_depend_on_where_it_stands():
-    """The guard must read the tree it MEANS, = = not the tree under the
-    caller's feet.
+    """The guard reads the tree it MEANS, = = not the tree under the caller's feet.
 
-    = = WHY THIS CASE EXISTS: = = `production_files` and `read` ask git
-    for a tree, = = and git answers about the directory the process
-    stands in. = = So a guard that ran from a subdirectory asked about a
-    different tree, = = found no receipts in it, = = and said so. = = That
-    is a false reading, = = not a failure of the tree.
+    = = WHY THIS CASE EXISTS. = = `production_files` and `package_test_files` ask git for a
+    tree, = = and git answers a pathspec against the directory the process stands in. = = So
+    asked from `Tools/wenshu-devtool`, = = `-- Sources/` matched nothing, = = `-- Tests/`
+    matched nothing, = = the census printed "0 production files", every production file then
+    looked untested, = = and the run exited 0. = = Measured: 601 files from the repository
+    root and 0 from the subdirectory, = = same command, same tree, same minute.
 
-    = = ⇒ SO THE CASE RUNS THE GUARD FROM A SUBDIRECTORY. = = A child
-    process, = = with a marker that stops it from running this case
-    again, = = so the case cannot recurse.
+    = = WHY THE ORACLE IS THE READERS AND NOT THE PRINTED CENSUS. = = The first cut of this
+    case ran the whole tool from both directories and compared its output, = = which is the
+    right question inside a measurement that takes minutes twice (= a 601-file census and a
+    verify-dead worktree) = = in a suite the battery gives 600 seconds to. = = The two readers
+    ARE the defect's site, = = so they are what the case asks, = = from a real child process
+    whose working directory is the subdirectory. = = A marker stops the child from running
+    this case again, = = so it cannot recurse.
     """
+    import subprocess
+
     if os.environ.get("WENSHU_INVENTORY_GUARD_CHILD") == "1":
         return []
 
-    subdir = REPO / "Tools" / "wenshu-devtool"
-    env = dict(os.environ)
-    env["WENSHU_INVENTORY_GUARD_CHILD"] = "1"
-    run = subprocess.run(
-        [sys.executable, str(Path(__file__).resolve())],
-        cwd=str(subdir),
-        capture_output=True,
-        text=True,
-        env=env,
+    # The tool's file name carries a hyphen, so it is loaded by PATH and not imported by name:
+    # `import inventory_measure` is a ModuleNotFoundError that would read as a guard defect.
+    probe = (
+        "import json,sys,importlib.util;"
+        "spec=importlib.util.spec_from_file_location('inv',%r);"
+        "m=importlib.util.module_from_spec(spec);sys.modules['inv']=m;spec.loader.exec_module(m);"
+        "print(json.dumps({'root':len(m.production_files('HEAD')),"
+        "'tests':len(m.package_test_files('HEAD')),"
+        "'repo':str(m.REPO)}))" % str(TOOL)
     )
-    if run.returncode == 0:
-        return []
-    return [
-        "the guard fails when it is run from a subdirectory (= = it reads the "
-        "tree by the CALLER's directory, = = and not by the repository it "
-        "means): "
-        + (run.stdout + run.stderr).strip().splitlines()[-1][:300]
-    ]
+
+    def read_from(cwd: Path) -> dict:
+        import json
+
+        r = subprocess.run([sys.executable, "-c", probe], cwd=str(cwd),
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            return {"error": (r.stdout + r.stderr).strip()[-200:]}
+        try:
+            return json.loads(r.stdout.strip().splitlines()[-1])
+        except Exception as exc:  # an unreadable child is a finding, never a silence
+            return {"error": f"{type(exc).__name__}: {exc}"}
+
+    at_root = read_from(REPO)
+    at_sub = read_from(REPO / "Tools" / "wenshu-devtool")
+    if "error" in at_root or "error" in at_sub:
+        return [f"the guard could not be read from both directories: root={at_root} "
+                f"subdirectory={at_sub}"]
+    failures: list[str] = []
+    if at_root["root"] == 0:
+        failures.append("the guard reads NO production file even from the repository root, "
+                        "so the census is measuring nothing and does not say so")
+    if at_root["repo"] != at_sub["repo"]:
+        failures.append("the guard resolves a different repository depending on where it stands: "
+                        f"root says {at_root['repo']!r}, subdirectory says {at_sub['repo']!r}")
+    for key, label in (("root", "production files"), ("tests", "test files")):
+        if at_root[key] != at_sub[key]:
+            failures.append(
+                f"the guard reads {at_root[key]} {label} from the repository root and "
+                f"{at_sub[key]} from a subdirectory (= the same tree asked twice; a pathspec "
+                f"resolved against the caller's feet, not against the repository)")
+    return failures
 
 
 def main():

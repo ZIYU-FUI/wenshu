@@ -4,25 +4,15 @@
 # register of debts, not a mute button: deleting a line is how a fixed suite returns to
 # being enforced, and the battery prints `known-red=<n>` so a reader sees the size of it.
 #
+# A paid debt LEAVES the ledger in the commit that pays it. Ticket 011 is that commit for
+# `test_inventory_measure`: the guard now names the repository the caller stands in, and
+# the added-lines certificate measures the branch's own window instead of a base pinned
+# in a file, so the suite is green and the battery enforces it again.
+#
 # A live entry is a BARE line naming the suite; everything else on the line or after it is a
 # comment. Both entries below were red on `main` before this wave and neither was invented to
 # buy a green: the battery that surfaces them is ticket 009, which exited 0 whatever its lines
-# said, so both reds were invisible to anything that branches on the exit code.
-
-test_inventory_measure
-#   Red on `main` before this wave and red at this tip: the suite's own matcher prints TWO failing
-#   cases. They are named here by what they assert, not by what they counted, because the count is a
-#   property of the tree the suite is run against and not of the debt:
-#
-#     - `the guard fails when it is run from a subdirectory` (= the tool asks git about the
-#       directory the caller stands in, and not about the repository it means);
-#     - `the branch's added comment lines carry <n> ticket id(s)` (= the case diffs a base PINNED
-#       IN ITS FILE, so as `main` moves the window it measures moves with it and <n> moves with the
-#       window).
-#
-#   Read both live with `python3 Tools/wenshu-devtool/tests/test_inventory_measure.py`; the number
-#   it prints today is the number of the tree you are standing in. Nothing in this entry diagnoses
-#   either side, and an entry is a debt, not a cause. Tracked as ticket 011.
+# said, so the red was invisible to anything that branches on the exit code.
 
 test_probe_index
 #   Red at `bbc2434997`: `probe file has no index row: card_hover_stability.swift`. The

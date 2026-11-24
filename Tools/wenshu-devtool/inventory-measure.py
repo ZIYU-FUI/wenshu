@@ -67,6 +67,56 @@ TICKET_ID = re.compile(
 RECEIPT = re.compile(r"rationale lines collapsed")
 
 
+def repo_root() -> pathlib.Path:
+    """THE REPOSITORY THE CALLER MEANS: the toplevel above the directory it stands in.
+
+    Two wrong answers bracket this. Asking NOTHING (the defect this fixes): a
+    `git <cmd> -- Sources/` with no repository resolves the pathspec against the
+    process's own directory, so asked from `Tools/wenshu-devtool` it matched
+    NOTHING, the census printed "0 production files", every file looked
+    untested, and the run exited 0. Asking the SCRIPT (the first fix, wrong in
+    the other direction): `__file__`'s repository is not the caller's when the
+    caller means another tree, and one caller does: the suite runs this tool
+    against a temporary FIXTURE repository whose `--base` sha exists nowhere
+    else, so a script that insists on its own home asks the wrong tree for that
+    sha and dies inside `check=True`.
+
+    The toplevel answers the question actually asked: a subdirectory names its
+    repository, a fixture names the fixture, and every pathspec is then resolved
+    against that root rather than whichever directory the shell happened to be in.
+    """
+    out = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return pathlib.Path(out.stdout.strip())
+
+
+REPO = repo_root()
+
+# THE REPOSITORY IS THE TOPLEVEL OF THE DIRECTORY THE CALLER STANDS IN.
+#
+# = = WHY NOT THE CALLER'S DIRECTORY ITSELF. = = `git ls-tree <base> -- Sources/` answers a
+# pathspec against the directory the process stands in, = = so asked from a subdirectory the
+# same command matched NOTHING: = = the census printed "0 production files", = = every
+# production file then looked untested (the `Tests/` ls-tree matched nothing either), = =
+# and the run exited 0. = = Measured: 601 files from the root, 0 from `Tools/wenshu-devtool`.
+# A number that moves with where you stand is not a measurement.
+#
+# = = WHY NOT THE SCRIPT'S OWN REPOSITORY EITHER. = = Resolving the tree from `__file__`
+# breaks the caller that means a DIFFERENT repository, = = and one does: = = this suite runs
+# the tool against a temporary fixture repo with a `--base` that exists only there, = = so a
+# script that insists on the repository it lives in asks the wrong tree for that sha and dies
+# inside `check=True`. = = The toplevel answers the question the caller actually asks: = = a
+# subdirectory names its repository, = = a fixture names the fixture.
+#
+# Once it is known, EVERY git read names it, = = so no pathspec is ever resolved against a
+# working directory again.
+
+
+
 def production_files(base, cwd=None):
     """Every `.swift` under `Sources/`, minus the package-local `Tests/`.
 
@@ -77,7 +127,7 @@ def production_files(base, cwd=None):
     """
     out = subprocess.run(
         ["git", "ls-tree", "-r", "--name-only", base, "--", "Sources/"],
-        capture_output=True, text=True, check=True, cwd=cwd,
+        capture_output=True, text=True, check=True, cwd=cwd or str(REPO),
     ).stdout.splitlines()
     return [p for p in out if p.endswith(".swift") and "/Tests/" not in p]
 
@@ -85,7 +135,7 @@ def production_files(base, cwd=None):
 def package_test_files(base, cwd=None):
     out = subprocess.run(
         ["git", "ls-tree", "-r", "--name-only", base, "--", "Sources/"],
-        capture_output=True, text=True, check=True, cwd=cwd,
+        capture_output=True, text=True, check=True, cwd=cwd or str(REPO),
     ).stdout.splitlines()
     return [p for p in out if p.endswith(".swift") and "/Tests/" in p]
 
@@ -94,7 +144,7 @@ def read(base, path, cwd=None):
     """One file's text at `base`, read from the repository `cwd` names."""
     return subprocess.run(
         ["git", "show", f"{base}:{path}"],
-        capture_output=True, text=True, check=True, cwd=cwd,
+        capture_output=True, text=True, check=True, cwd=cwd or str(REPO),
     ).stdout
 
 
@@ -165,6 +215,7 @@ def changed_files(base, tip):
         ["git", "diff", "--name-only", base, tip],
         capture_output=True,
         text=True,
+        cwd=str(REPO),
     ).stdout
     return {line.strip() for line in out.splitlines() if line.strip()}
 
@@ -203,10 +254,18 @@ def main():
         files = production_files(base)
         scoped = False
     print(f"base: {base}")
+    print(f"tree read: {REPO} (= the repository the caller stands in, not the pathspec it stands on)")
     if scoped:
         print(f"scope: the {len(files)} named file(s)")
     else:
         print(f"production .swift files (Sources/, minus */Tests/): {len(files)}")
+    if not scoped and not files:
+        # An empty file set is not a clean tree: it is a question nobody answered. Every row
+        # below would print zero, the exit would be 0, and a caller that branches on the code
+        # would read that as a pass on a tree it never looked at.
+        print("\nREFUSED: the census read no production file at all, so nothing was measured. "
+              f"Check that {REPO} is the repository you mean and that `Sources/` exists at {base}.")
+        sys.exit(94)
     print()
 
     # 1. malformed doc comments: a comment line that starts `// /` (a
@@ -494,14 +553,8 @@ def main():
     # = = that has to be ON DISK (= = for verify-dead) must be the SAME
     # = = repository's. = = Otherwise a run against another repository
     # = = builds a worktree of the wrong one.
-    repo = pathlib.Path(
-        subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-    )
+    repo = REPO  # the same toplevel the census reads (= ONE answer about which repository a
+    # = = run means; a second `rev-parse` here would be a second reader of the same question)
     with tempfile.TemporaryDirectory() as tmp:
         # The path has to be RESOLVED: the tool compares the paths it is
         # given against the git root it reports, and on macOS the
@@ -534,7 +587,7 @@ def main():
     test_files = package_test_files(base)
     test_files += subprocess.run(
         ["git", "ls-tree", "-r", "--name-only", base, "--", "Tests/"],
-        capture_output=True, text=True, check=True,
+        capture_output=True, text=True, check=True, cwd=str(REPO),
     ).stdout.splitlines()
     test_files = [f for f in test_files if f.endswith(".swift")]
     blobs = [read(base, f) for f in test_files]
