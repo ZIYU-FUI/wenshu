@@ -33,6 +33,9 @@ pins the properties that make the agreement hold:
   6. a card that names NO gate at all is named by neither (= the width gate
      reports "unstated", and the pre-review gate reports "no gate was
      measured").
+  7. a command the card WRAPPED across lines is ONE command, and the
+     command the execution view returns carries no newline (= a command is
+     run, and a command with a newline in it is two commands).
 
 Run:  python3 Tools/wenshu-devtool/tests/test_card_gate_command.py
 Exit: 0 = every case passed, 1 = at least one case failed.
@@ -194,7 +197,35 @@ def main() -> int:
         False,
     )
 
-    # ---- case 7: a prose-only gate is narrow but not yet runnable --------
+    # ---- case 7: a WRAPPED command is one command -----------------------
+    # = = = A card that writes "python3" on one line and the path on the = =
+    # = = = next names ONE gate. The recognition view reads it as one, and = =
+    # = = = the execution view returns it as ONE LINE (= a command is run, = =
+    # = = = and a command with a newline in it is two commands). = = = = = = =
+    wrapped = """# A card
+
+## GATES TO RUN
+
+- `bash
+  Tools/wenshu-devtool/tests/test_nfi_registry.sh`
+"""
+    check(
+        "the recognition view reads a wrapped command",
+        cgc.named_own_commands(wrapped),
+        ["bash Tools/wenshu-devtool/tests/test_nfi_registry.sh"],
+    )
+    check(
+        "the execution view returns a wrapped command as ONE line",
+        cgc.own_commands(wrapped),
+        ["bash Tools/wenshu-devtool/tests/test_nfi_registry.sh"],
+    )
+    check(
+        "the execution view's command carries no newline",
+        any("\n" in c for c in cgc.own_commands(wrapped)),
+        False,
+    )
+
+    # ---- case 8: a prose-only gate is narrow but not yet runnable --------
     # = = = The width gate reads the prose as narrow (= it does not accuse
     # = = = the card of asking for the whole suite). The pre-review gate
     # = = = still has nothing to run, and says so. The house reference
