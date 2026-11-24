@@ -112,6 +112,19 @@ struct SidebarTreeView: View {
             }
         }
         .listStyle(.sidebar)
+        // ⇒ ⇒ ⇒ THE TABLE IS DRAWN BY THE PART IT SHOWS: = the three
+        // parts are three UNRELATED hierarchies, = so a row of the part
+        // being left must not become the row the part being entered
+        // draws. = ⇒ ⇒ ⇒ The table recycles its cells, = so a cell
+        // that carried a row of one hierarchy keeps that row's pixels
+        // under the next hierarchy's row (= the rows of one part are
+        // drawn ON TOP of the rows of another part, = and the tree's
+        // own rows are unreadable). = ⇒ ⇒ ⇒ The identity is the PART
+        // (= not the tree's shape), = so a change BELOW the top still
+        // diffs in place (= the row under the user survives it), = and a
+        // change of hierarchy rebuilds the table (= no cell of the
+        // other part is left to be recycled).
+        .id(workspaceUI.currentSidebarPart)
         // The path to the selected row opens when the row is asked for
         // (= the conversation names it) and when the rows arrive (= the
         // tree is loaded after the launch's restored selection).
