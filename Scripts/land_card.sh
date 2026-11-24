@@ -17,6 +17,77 @@ resolve_worktree() {
   printf '%s\n' "$wt"
 }
 
+worktree_for_branch() {
+  # = = ⇒ THE TREE THAT LANDS IS THE TREE THE BRANCH IS CHECKED OUT IN, = = = =
+  # = = = = and NOTHING else answers that question. = = ⇒ The card's own
+  # = = = = `workspace_path` says WHO reviewed, = = = = which for a review card
+  # = = = = is a different tree from the one under review: = = = = the review
+  # = = = = lane's worktree sits on the derived branch at `main`, = = = = so it
+  # = = = = has never contained the commits being landed. = = ⇒ Landing read
+  # = = = = that path, = = = = rebased a tree that did not hold the work, = = = =
+  # = = = = ran its gates over a window whose two ends were the SAME commit, =
+  # = = = = and took `added comment lines: 0` for a pass. = = ⇒ So the
+  # = = = = registered worktree whose `branch` line IS this branch is the
+  # = = = = target, = = = = matched by branch identity and not by sha, = = = =
+  # = = = = because a detached tree sitting on the same commit is not ON the
+  # = = = = branch and cannot rebase it. = = ⇒ No such worktree is a REFUSAL
+  # = = = = that names the branch, = = = = never a fallback to the card's path:
+  # = = = = a landing that guesses a tree is the defect this function exists
+  # = = = = to remove.
+  local branch="$1" line path head wthead
+  path=""; head=""
+  while IFS= read -r line; do
+    case "$line" in
+      "worktree "*) path="${line#worktree }" ;;
+      "HEAD "*) head="${line#HEAD }" ;;
+      "branch refs/heads/$branch")
+        printf '%s\n' "$path"
+        return 0
+        ;;
+    esac
+  done < <(git -C "$REPO" worktree list --porcelain)
+  return 1
+}
+
+assert_lane_has_commits() {
+  # = = ⇒ A LANE WITH NOTHING IN IT IS NOT A LANE. = = ⇒ `main..BRANCH`
+  # = = = = counting zero means the branch carries no commit that `main`
+  # = = = = lacks, = = = = so every gate that reads a `base..head` window over
+  # = = = = it measures NOTHING and reports a clean run, = = = = and the
+  # = = = = landing then "succeeds" having moved `main` to a sha it already
+  # = = = = held. = = ⇒ The count is printed in the refusal, = = = = because
+  # = = = = the honest reading of an empty lane is usually "the wrong branch
+  # = = = = was named", = = = = and a reader with the number can tell the two
+  # = = = = apart.
+  local base="$1" branch="$2" card="$3" count
+  count="$(git -C "$REPO" rev-list --count "$base..$branch" 2>/dev/null)" || count="?"
+  if [ "$count" = "0" ]; then
+    echo "RESULT: SKIP ($card) reason=EMPTY_LANE ($branch carries 0 commits that $base does not; there is nothing here for a gate to measure)"
+    return 22
+  fi
+  echo "--- the lane: $count commit(s) ahead of $base"
+  return 0
+}
+
+assert_gated_tree_is_the_branch() {
+  # = = ⇒ THE TREE THE GATES RAN IN IS THE TREE THAT LANDS, = = = = or the
+  # = = = = gates proved nothing about this landing. = = ⇒ Checked AFTER the
+  # = = = = rebase (= = = = when a rebased branch's tip and its worktree's HEAD
+  # = = = = must be the same object) = = = = and again AFTER `main` moved.
+  # = = ⇒ A mismatch means the resolution and the ref disagree, = = = = which
+  # = = = is the shape of the incident this refuses: = = = = a verdict earned
+  # = = = = in someone else's tree.
+  local wt="$1" branch="$2" card="$3" wt_head branch_head
+  wt_head="$(git -C "$wt" rev-parse HEAD 2>/dev/null)" || wt_head=""
+  branch_head="$(git -C "$REPO" rev-parse "$branch" 2>/dev/null)" || branch_head=""
+  if [ -z "$wt_head" ] || [ "$wt_head" != "$branch_head" ]; then
+    echo "RESULT: SKIP ($card) reason=GATED_TREE_NOT_THE_BRANCH (the worktree $wt is at ${wt_head:-unreadable} and $branch is at ${branch_head:-unreadable})"
+    return 23
+  fi
+  return 0
+}
+
+
 # = = ⇒ AND THE RESOLUTION CAN BE ASKED FOR ON ITS OWN, = = = = so a test can
 # = = = = run the SHELL'S OWN block (= = and not a copy of it). = = ⇒ The DOOR
 # = = = = sets a flag and does NOT exit, = = = = so the flow below runs and
@@ -56,13 +127,32 @@ CARD="${1:-}"; BRANCH="${2:-}"; shift 2
 # = = = = the flow below uses it, = = = = and the door prints it. = = ⇒ A test
 # = = = = that reverses THIS line reverses the landing itself, = = = = not a
 # = = = = test-only path.
-WT="$(resolve_worktree "$CARD" "$REPO")"
+CARD_WT="$(resolve_worktree "$CARD" "$REPO")"
 if [ "$RESOLVE_ONLY" = "1" ]; then
-  printf '%s\n' "$WT"
+  printf '%s\n' "$CARD_WT"
   exit 0
 fi
-if [ "$WT" != "$REPO/.worktrees/$CARD" ]; then
-  echo "--- the card's own worktree: $WT"
+# = = ⇒ WHAT LANDS IS DECIDED BY THE BRANCH, = = = = and what REVIEWED is a
+# = = = = different question. = = ⇒ `CARD_WT` answers the second (the card's
+# = = = = own `workspace_path`), = = = = and it used to answer the first too, =
+# = = = = which is how a REVIEW card = = = = whose workspace is the review
+# = = = = lane's own tree = = = = sent the landing to rebase a tree that had
+# = = = = never contained the commits under review. = = ⇒ The gate then read a
+# = = = = window whose two ends were the same commit, = = = = printed that it
+# = = = = had measured nothing, = = = = and the landing called that a pass.
+# = = ⇒ So the target is resolved from the branch's own registration, = = = =
+# = = = = and when no registered worktree is on the branch, = = = = NOTHING is
+# = = = = rebased, = = = = gated, = = = = moved or pushed: = = = = the refusal
+# = = = = names the branch it could not find. = = ⇒ The card's tree is still
+# = = = = printed, = = = = because a reader wants to know who reviewed.
+WT="$(worktree_for_branch "$BRANCH")"
+if [ -z "$WT" ]; then
+  echo "RESULT: SKIP ($CARD) reason=NO_WORKTREE_ON_BRANCH ($BRANCH is not checked out in any registered worktree, so the tree the gates would run in does not exist)"
+  exit 21
+fi
+if [ "$CARD_WT" != "$WT" ]; then
+  echo "--- the card's own worktree (WHO reviewed): $CARD_WT"
+  echo "--- the branch's worktree  (WHAT lands):   $WT"
 fi
 LOGDIR="${LOGDIR:-$REPO/.gate-logs}"
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-4}"
@@ -91,6 +181,16 @@ if [ "$pfc" -ne 0 ]; then echo "RESULT: SKIP ($CARD) reason=PREFLIGHT_FAILED (me
 if echo "$pf" | grep -q 'a card that writes code needs one approving verdict'; then echo "RESULT: SKIP ($CARD) reason=NO_VERDICT"; exit 11; fi
 if ! echo "$pf" | grep -q '^CLEAN'; then echo "RESULT: SKIP ($CARD) reason=PREFLIGHT_NOT_CLEAN"; exit 12; fi
 if [ "$PREFLIGHT_ONLY" = "1" ]; then
+  # = = ⇒ THE REHEARSAL OWES THE SAME THREE ANSWERS AS THE RUN. = = ⇒ A
+  # = = = = rehearsal that skips what the real landing checks is a rehearsal
+  # = = = = that passes for a reason the run will not accept, = = = = which is
+  # = = = = exactly how an empty lane reached the merge step once. = = ⇒ So the
+  # = = = = target above is already resolved (= or this never got here), = = = =
+  # = = = and the lane's count and the tree's identity are asserted HERE, = = = =
+  # = = = with the same refusals and the same codes.
+  REHEARSAL_MAIN="$(git -C "$REPO" rev-parse main)"
+  assert_lane_has_commits "$REHEARSAL_MAIN" "$BRANCH" "$CARD" || exit $?
+  assert_gated_tree_is_the_branch "$WT" "$BRANCH" "$CARD" || exit $?
   echo "RESULT: PREFLIGHT_ONLY ($BRANCH) pfrc=$pfc decision=PROCEED"
   exit 0
 fi
@@ -104,6 +204,12 @@ attempt=1
 while [ $attempt -le $MAX_ATTEMPTS ]; do
   EXPECTED_MAIN="$(git -C "$REPO" rev-parse main)"
   echo "=== ATTEMPT $attempt: rebase onto current main ($(git -C "$REPO" rev-parse --short "$EXPECTED_MAIN"))"
+  # = = ⇒ BEFORE ANYTHING IS REBASED OR GATED, = = = = the lane must have
+  # = = = = something in it. = = ⇒ An empty lane is not a clean lane: = = = = a
+  # = = = = `base..head` window whose ends are the same commit measures
+  # = = = = nothing, = = = = and the gate that prints that fact and exits 0
+  # = = = = makes the landing read as proof.
+  assert_lane_has_commits "$EXPECTED_MAIN" "$BRANCH" "$CARD" || exit $?
   if ! git -C "$WT" rebase "$EXPECTED_MAIN" > "$LOGDIR/${CARD}_rebase.log" 2>&1; then
     echo "REBASE CONFLICT:"; cat "$LOGDIR/${CARD}_rebase.log"
     git -C "$WT" rebase --abort
@@ -111,11 +217,25 @@ while [ $attempt -le $MAX_ATTEMPTS ]; do
   fi
   cat "$LOGDIR/${CARD}_rebase.log"
   echo "rebased head: $(git -C "$WT" log --oneline -1)"
+  assert_gated_tree_is_the_branch "$WT" "$BRANCH" "$CARD" || exit $?
+  # = = ⇒ THIS IS THE SHA THE GATES ARE ABOUT TO RUN AGAINST, = = = = and it
+  # = = = = is written down BEFORE they run. = = ⇒ A branch ref that moves
+  # = = = = while the gates are running (= a sibling commit landing in the
+  # = = = = same lane, = = = = or a rewrite) = = = = would otherwise be merged
+  # = = = = on the strength of a verdict that never saw it.
+  GATED_SHA="$(git -C "$WT" rev-parse HEAD)"
 
   echo "--- step 4: card gates (attempt $attempt)"
   PER_CMD_TIMEOUT=300 bash "$(dirname "$0")/gate_run.sh" "$WT" "${CARD}_a${attempt}" "$@"
   grc=$?
   if [ $grc -ne 0 ]; then echo "RESULT: SKIP ($CARD) reason=GATE_FAILED"; exit 40; fi
+  # = = ⇒ THE GATED TREE IS RE-READ AFTER THE GATES RETURN, = = = = and a tree
+  # = = = = that moved underneath them invalidates the verdict just earned. =
+  # = ⇒ The loop rebases again rather than merging what it no longer proved.
+  if [ "$(git -C "$WT" rev-parse HEAD)" != "$GATED_SHA" ]; then
+    echo "RESULT: SKIP ($CARD) reason=THE_BRANCH_MOVED_DURING_THE_GATES ($BRANCH was at $GATED_SHA when the gates started and is at $(git -C "$WT" rev-parse HEAD) now; the verdict just earned is not a verdict on this tip)"
+    exit 41
+  fi
 
   # = = = = THE LANDING MOVES main AND NOTHING ELSE. = = = = = = = = =
   # = = = = The old step ran `git merge --ff-only` INSIDE the shared = = = = =
@@ -147,7 +267,15 @@ while [ $attempt -le $MAX_ATTEMPTS ]; do
   #
   # The branch was rebased onto $EXPECTED_MAIN above, so its tip already
   # carries main, and the compare-and-swap below moves main to that tip.
-  MERGED_SHA="$(git -C "$WT" rev-parse "$BRANCH")"
+  # = = ⇒ WHAT IS LANDED IS THE TREE THE GATES JUST RAN IN, = = = = read from
+  # = = = = that worktree's HEAD, = = = = and NOT from the branch ref. = = ⇒ The
+  # = = = = ref can move between the last gate and this swap (= a sibling
+  # = = = = session committing into the same branch, = = = = which is exactly
+  # = = = = what the review lane does while a landing is in flight), = = = = and
+  # = = = = reading it here would land a commit no gate ever saw. = = ⇒ The
+  # = = = = assertion below refuses that instead, = = = = naming both shas.
+  assert_gated_tree_is_the_branch "$WT" "$BRANCH" "$CARD" || exit $?
+  MERGED_SHA="$GATED_SHA"
   if ! git -C "$WT" merge-base --is-ancestor "$EXPECTED_MAIN" "$MERGED_SHA"; then
     echo "THE CARD'S BRANCH DOES NOT CARRY MAIN: the landing refuses"
     echo "RESULT: SKIP ($CARD) reason=NOT_FF_IN_WORKTREE"
@@ -169,6 +297,14 @@ while [ $attempt -le $MAX_ATTEMPTS ]; do
   cat "$LOGDIR/${CARD}_update_ref.log"
   LOCAL_SHA="$(git -C "$REPO" rev-parse main)"
   echo "main moved by compare-and-swap: $EXPECTED_MAIN -> $LOCAL_SHA"
+  # = = ⇒ AND RE-ASSERTED ON THE MERGED COMMIT: = = = = what `main` now points
+  # = = = = at has to be the very tree the gates were run in, = = = = or the
+  # = = = = verdict on the record is not the verdict on the landing.
+  if [ "$LOCAL_SHA" != "$GATED_SHA" ]; then
+    echo "RESULT: SKIP ($CARD) reason=LANDED_IS_NOT_THE_GATED_TREE (main is at $LOCAL_SHA, the gated tree is at $GATED_SHA)"
+    exit 24
+  fi
+  echo "--- the gated tree is what landed: $GATED_SHA"
   break
 done
 
