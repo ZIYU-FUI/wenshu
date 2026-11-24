@@ -33,12 +33,19 @@ import SwiftUI
 /// it reads as a row of its column instead of a plate pasted onto it): = =
 /// MEASURED on screen in the real app (= = both appearances, = = and the
 /// capture's foreground PROVEN to be the app before its pixels were read):
-/// = = the window-edge bars resolve to 28 (dark) / 255 (light), = = and
-/// this material resolves to 48 (dark) / 222 (light), = = so it sits
-/// BETWEEN its own column's ground (= = 78 dark / 190 light) and the bars'
-/// value, = = and the STEP against that ground is 30 (dark) / 32 (light) = =
-/// where the opaque plate's was 50 (dark) / 67 (light) (= = a white slab in
-/// the light appearance, = = the foreign plate).
+/// = = AT THE COLUMN'S BOTTOM BAND (= = where the band lives, = = and
+/// each number read against the ground AT THAT BAND): = = the window-edge
+/// bars resolve to 28 (dark) / 255 (light), = = this material resolves to
+/// 48 (dark) / 222 (light), = = and the ground at that band resolves to
+/// 78 (dark) / 190 (light), = = so the material sits BETWEEN that ground
+/// and the bars' value, = = and the STEP against it is 30 (dark) / 32
+/// (light) = = where the opaque plate's was 50 (dark) / 67 (light) (= = a
+/// white slab in the light appearance, = = the foreign plate). = = ⇒ AND
+/// THE SAME MATERIAL READS DIFFERENTLY WHERE THE CARDS ARE (= = because a
+/// translucent material samples whatever is BEHIND it): = = in the
+/// inspector column's card area the card's interior reads 48 (dark) / 234
+/// (light) against its own surround's 44 (dark) / 226 (light) (= = the
+/// card file carries those numbers, = = with their own sampling point).
 ///
 /// WHY A MATERIAL AND NOT A COLOUR: = the window is TRANSLUCENT (= one
 /// behind-window material at the root), = = so a colour painted on top of

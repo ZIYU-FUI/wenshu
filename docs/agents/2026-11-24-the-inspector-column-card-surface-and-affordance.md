@@ -25,9 +25,19 @@ Underneath the hover question sat a second one: the card's own surface was
 Apple's Liquid Glass, and that surface's value TRACKED THE WALLPAPER behind
 the window (= 255 on a pale desktop, = 244 on a dark one, = 228 on another).
 So the card's tone changed with the DESKTOP rather than with the app, and
-over the column's pale ground the white 30% tint made the card DARKER than
-that ground (= 228 against 255) = a recessed grey slab instead of a card on
-the column.
+the white 30% tint made the card read DARKER than the ground behind it
+(= the audit's capture measured the glass card at 228 against the 255 PAGE
+ground) = a recessed grey slab instead of a card on the column.
+
+⇒ ⇒ ⇒ AND EVERY MEASUREMENT BELOW NAMES ITS SAMPLING POINT, = = because
+this scope's material is TRANSLUCENT (= = it samples whatever is BEHIND it),
+= = so the same material reads differently in different places. ⇒ ⇒ ⇒ The
+TWO SETS ARE: the card's own interior against the ground right around the
+card (= = read in the inspector column's card area), = = and the material's
+own value at the column's bottom band (= = read where the band lives, = =
+the footer's own numbers, = = in the footer's own file). ⇒ ⇒ ⇒ They are
+not two answers to one question: = = they are one material read at two
+points, = = and no name in this document points at two values.
 
 ## 2. ROOT CAUSE
 
@@ -111,8 +121,9 @@ CoreGraphics decode of the PNG (= never a hand-rolled decoder).
 
 | What | Before | After |
 | --- | --- | --- |
-| the card's surface | Apple's Liquid Glass with a white 30% tint (= the surface's value tracked the wallpaper: 255 / 244 / 228 on three desktops) | the app's own content-area material: 48 (dark) / 234 (light) |
-| the card's interior against its column's ground | 228 against 255 (= 27 BELOW the ground = a recessed slab) | 48 against 44 (dark), 234 against 226 (light) (= ABOVE the ground) |
+| the card's surface | Apple's Liquid Glass with a white 30% tint (= the surface's value tracked the wallpaper: 255 / 244 / 228 on three desktops) | the app's own content-area material (= a translucent surface that samples the app's own content behind it) |
+| the card's interior against the ground right around the card (= = read in the inspector column's card area) | the audit's capture: the glass card at 228 against the 255 PAGE ground (= 27 BELOW it = a recessed slab) | 48 against 44 (dark), 234 against 226 (light) (= 4 and 8 ABOVE its own surround) |
+| the material's own value at the column's bottom band (= = read where the band lives, = = against the ground AT that band) | unchanged (= = the band already wore it) | 48 against 78 (dark), 222 against 190 (light) (= BETWEEN that ground and the window's bottom edge) |
 | the coloured leading band | a 2 PT status bar, = = an unclipped overlay whose square corners protrude past the card's rounded corner | none: the card's surface is greyscale end to end (= saturation 0 at every sampled pixel) |
 | the hover wash | painted under the card, = = invisible | painted over the material in the card's own shape: 23 levels over 92% of the card's pixels (= = the whole card answers) |
 | the wash's strength | `.tertiary` (= 25% alpha) although the file said `.quaternary` | `.quaternary` (= 9.8% alpha in both appearances) |

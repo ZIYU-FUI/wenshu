@@ -33,14 +33,19 @@
 //  a pale desktop, = 244 on a dark one, = 228 on another), = = so the card's
 //  tone changed with the DESKTOP rather than with the app, = = and a white
 //  30% tint over a pale ground made the card DARKER than the ground
-//  (= 228 against 255, = = so it read as a recessed grey slab instead of a
-//  card on the column). = ⇒ ⇒ ⇒ AND THE CONTENT-AREA MATERIAL IS THE ONE
-//  THAT SHOWS THE COLUMN IT SITS IN: = = measured on the real app's own
-//  screen, = = it resolves to 48 (dark) / 222 (light), = = so it sits
-//  BETWEEN its column's ground (= 78 dark / 190 light) and the window's
-//  bottom edge (= 28 dark / 255 light), = = and the step against its own
-//  ground is 30 (dark) / 32 (light), = = where an opaque plate's step was
-//  50 (dark) / 67 (light) (= = a white slab pasted onto the column).
+//  behind it (= the audit's capture measured the glass card at 228 against
+//  the 255 PAGE ground, = = so it read as a recessed grey slab instead of
+//  a card on the column). = ⇒ ⇒ ⇒ AND THE CONTENT-AREA MATERIAL IS THE ONE
+//  THAT SHOWS THE COLUMN IT SITS IN: = = MEASURED on the real app's own
+//  screen, = = IN THE INSPECTOR COLUMN'S CARD AREA (= = where the cards
+//  live, = = and each number read against the ground right around that
+//  card): = = the card's interior resolves to 48 (dark) / 234 (light)
+//  against that surround's 44 (dark) / 226 (light), = = so the card
+//  reads 4 (dark) / 8 (light) ABOVE its own ground (= = it reads as a
+//  card on the column, = = and not as a plate pasted onto it). = = ⇒ The
+//  SAME material reads 48 / 222 at the column's bottom band (= = the
+//  footer's own numbers, = = in the footer's own file), = = because a
+//  translucent material samples whatever is BEHIND it.
 //
 //  ⇒ ⇒ ⇒ AND THE CARD CARRIES NO COLOURED EDGE: = = the band down the
 //  leading edge was the card's loudest element while saying the same
