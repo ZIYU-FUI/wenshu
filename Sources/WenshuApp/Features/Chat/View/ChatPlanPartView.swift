@@ -10,6 +10,9 @@
 //      = the chat bubble color stays neutral = no product conflict)
 //    - Numbered steps in monospaced font (= the canonical code-block
 //      "step list" visual; = matches Xcode's task list pattern).
+//    - The card's title in the headline style (= a card's title has to
+//      outrank its provenance strip, which stays caption-scale; = the
+//      two were the same 11 PT until the title was read as chrome).
 //    - 'Approve' / 'Decline' buttons at the bottom (= the standard
 //      modal-action footer pattern; = same shape as Mail's rule
 //      confirmation dialog).
@@ -66,9 +69,9 @@ struct ChatPlanPartView: View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             // Header: 'Plan: <query>' + connector label.
             HStack(spacing: DesignTokens.spacingTight) {
-                SFIcon("list.bullet.rectangle", style: .inlineSmall, color: Color.accentColor, matchingText: .caption)
+                SFIcon("list.bullet.rectangle", style: .inlineSmall, color: Color.accentColor, matchingText: .headline)
                 Text("Plan: \(plan.query)")
-                    .font(.caption.monospaced())
+                    .font(.headline.monospaced())
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                 // T32-STEP-COUNT-CHIP (2026-09-18): a small "(N steps)"
