@@ -60,6 +60,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -370,6 +371,23 @@ def change_id(sha: str, main: str = "main") -> str | None:
     return hashlib.sha256(body.encode("utf-8", "surrogateescape")).hexdigest()
 
 
+def _index_blob_line(line: str) -> str | None:
+    """The blob hash a binary section's index line carries, or None.
+
+    The mode can be on the next line (= "new file mode"), so the index
+    line carries only the two blob hashes. A DELETION carries its
+    payload in the OLD half (= the new half is all zeros), so keep
+    whichever half holds the bytes. Keeping the wrong one gives every
+    deleted file of that path one identity.
+    """
+    parts = line.split()
+    if len(parts) >= 2 and ".." in parts[1]:
+        old_blob, new_blob = parts[1].split("..", 1)
+        keep = old_blob if set(new_blob) == {"0"} else new_blob
+        return "index " + keep
+    return None
+
+
 def _change_body(diff: str) -> str:
     """The diff text that IS the change, section by section.
 
@@ -410,22 +428,200 @@ def _change_body(diff: str) -> str:
             if line.startswith("index "):
                 if not binary:
                     continue
-                parts = line.split()
-                # The mode can be on the next line (= "new file mode"), so
-                # the index line carries only the two blob hashes.
-                if len(parts) >= 2 and ".." in parts[1]:
-                    old_blob, new_blob = parts[1].split("..", 1)
-                    # A DELETION carries its payload in the OLD half (=
-                    # the new half is all zeros), so keep whichever half
-                    # holds the bytes. Keeping the wrong one gives every
-                    # deleted file of that path one identity.
-                    keep = old_blob if set(new_blob) == {"0"} else new_blob
-                    line = "index " + keep
-                else:
+                blob = _index_blob_line(line)
+                if blob is None:
                     continue
+                line = blob
             kept.append(line)
         kept.append("")
     return "\n".join(kept)
+
+
+#: The merge drivers whose records ARE the rows of a one-line-per-record
+#: table, so a row that only changed its place is not an edit. The
+#: registry table is the one: its rows are single lines and its driver
+#: merges them by key.
+#:
+#: The unit of the cancellation is the DIFF LINE, so a driver whose
+#: records SPAN LINES cannot be here. In the string catalog a record is a
+#: nested object whose value sits on a line of its own, so trading two
+#: values moves those two lines byte-identically: cancelling the pair
+#: would call a TRADED CATALOG the same edit, and an approval would bind
+#: a catalog nobody approved. Measured 2026-11-25: the wide constant
+#: bound exactly that tip (the lane-edit ids came out equal and the
+#: reader answered `relocated`), and the narrow one fails closed.
+KEY_LEVEL_MERGE_DRIVERS = ("nfi-registry",)
+
+
+def _section_paths(header: str) -> list[str]:
+    """The paths a diff section's header names.
+
+    The header is git's own ``a/<path> b/<path>``. A path git quotes
+    (= it holds a space or a non-ASCII byte) is left alone here, so the
+    fallback is the safe one: a path the reader cannot name is a path
+    whose rows are not cancelled.
+    """
+    if '"' in header:
+        return []
+    parts = header.split(" b/")
+    old = parts[0][2:] if parts[0].startswith("a/") else ""
+    new = parts[1] if len(parts) > 1 else ""
+    return [p for p in (old, new) if p]
+
+
+def _diff_paths(base: str, sha: str) -> list[str] | None:
+    """The paths a sha's change touches, or None when they cannot be read."""
+    out = _git_out(["diff", "--name-only", "-z", f"{base}..{sha}"])
+    if out is None:
+        return None
+    return [p for p in out.split("\0") if p]
+
+
+def _keyed_paths(paths: list[str]) -> set[str]:
+    """The paths git merges by KEY.
+
+    The merge attribute names the driver, and the driver names the
+    identity: a driver that merges by key gives a row its identity from
+    its key, so the row's place in the file is not part of it.
+    """
+    if not paths:
+        return set()
+    out = _git_out(
+        ["check-attr", "merge", "-z", "--stdin"], stdin="\0".join(paths) + "\0"
+    )
+    if not out:
+        return set()
+    fields = out.split("\0")
+    keyed: set[str] = set()
+    for i in range(0, len(fields) - 2, 3):
+        path, attribute, value = fields[i], fields[i + 1], fields[i + 2]
+        if attribute == "merge" and value in KEY_LEVEL_MERGE_DRIVERS:
+            keyed.add(path)
+    return keyed
+
+
+def _cancel_pairs(adds: list[str], removes: list[str]) -> tuple[list[str], list[str]]:
+    """The added and the removed lines that are NOT the same bytes.
+
+    A row that MOVED shows up as the same bytes added once and removed
+    once: the diff writes the two with opposite signs, so the signs are
+    compared away and the BYTES decide. Those pairs are the relocation:
+    the rows did not change, only where they sit. Everything else is
+    the edit, and it is kept.
+    """
+    def content(line: str) -> str:
+        return line[1:]
+
+    shared = Counter(content(line) for line in adds) & Counter(
+        content(line) for line in removes
+    )
+    if not shared:
+        return adds, removes
+
+    def keep(lines: list[str]) -> list[str]:
+        left = dict(shared)
+        kept: list[str] = []
+        for line in lines:
+            key = content(line)
+            if left.get(key, 0) > 0:
+                left[key] -= 1
+                continue
+            kept.append(line)
+        return kept
+
+    return keep(adds), keep(removes)
+
+
+def _relocation_body(diff: str, keyed: set[str]) -> tuple[str, int]:
+    """The change a diff carries, with a keyed file's row movement removed.
+
+    Returns the body and the number of content lines that survived.
+
+    ONLY a keyed file's rows are cancelled. In every other file the
+    place of a line IS the meaning, so a reordering there is a real
+    change and it stays one: a gate that called it a relocation would
+    clear a branch nobody reviewed.
+    """
+    kept: list[str] = []
+    survived = 0
+    for part in diff.split("diff --git ")[1:]:
+        section = "diff --git " + part
+        # Split on "\\n" ONLY: ``str.splitlines()`` also splits on \\r (and
+        # on \\x0b \\x0c \\x1c \\x1d \\x1e \\x85 and two Unicode ones), so a
+        # lone \\r inside a line would be dropped and the line cut in
+        # half (= a second collision of the same shape).
+        section_lines = section.split("\n")
+        binary = any(line.startswith("Binary files ") for line in section_lines)
+        paths = _section_paths(section_lines[0])
+        cancels = (not binary) and any(p in keyed for p in paths)
+        adds: list[str] = []
+        removes: list[str] = []
+        in_hunk = False
+        for line in section_lines:
+            if line.startswith("@@"):
+                in_hunk = True
+                continue
+            if line.startswith("index "):
+                if not binary:
+                    continue
+                blob = _index_blob_line(line)
+                if blob is None:
+                    continue
+                kept.append(blob)
+                survived += 1
+                continue
+            if in_hunk and (line.startswith("+") or line.startswith("-")):
+                # The "--- a/x" and "+++ b/x" file headers sit BEFORE the
+                # first hunk, so only a line inside a hunk is content.
+                if line.startswith("+"):
+                    adds.append(line)
+                else:
+                    removes.append(line)
+                continue
+            kept.append(line)
+        if cancels:
+            adds, removes = _cancel_pairs(adds, removes)
+        kept.extend(adds)
+        kept.extend(removes)
+        survived += len(adds) + len(removes)
+        kept.append("")
+    return "\n".join(kept), survived
+
+
+def lane_edit_id(sha: str, main: str = "main") -> str | None:
+    """The identity of the edit a sha carries, with a row move removed.
+
+    The strict identity (``change_id``) is the whole diff, so it moves
+    when the FILE moves: a rebase onto a main that reordered a keyed
+    table leaves two of main's own rows behind as byte-identical
+    add/remove pairs, and those pairs are inside the lane's diff even
+    though the lane never touched them. The lane's own edit did not
+    change, and its verdict is still good.
+
+    So the identity here drops a keyed file's row movement, and keeps
+    everything else verbatim: the file, the lines, the whitespace, the
+    binary payload. A sha whose whole edit is a row movement carries no
+    edit at all and has no identity here (= there is nothing for a
+    verdict to approve, and the caller falls back to the strict rule).
+
+    The cancellation runs PER FILE SECTION, so a keyed row that was
+    deleted and re-added byte-identically is invisible to this identity.
+    That is the point of a key-identity table (= the row is the same row),
+    and the strict rule still refuses such a sha.
+    """
+    base = _merge_base(main, sha)
+    if base is None:
+        return None
+    diff = _git_out(["diff", "-U0", "--no-color", "--full-index", f"{base}..{sha}"])
+    if diff is None or not diff.strip():
+        return None
+    paths = _diff_paths(base, sha)
+    if paths is None:
+        return None
+    body, survived = _relocation_body(diff, _keyed_paths(paths))
+    if not body.strip() or survived == 0:
+        return None
+    return hashlib.sha256(body.encode("utf-8", "surrogateescape")).hexdigest()
 
 
 def patch_id(sha: str, main: str = "main") -> str | None:
@@ -471,16 +667,53 @@ def branch_tip_history(branch: str, limit: int = 12) -> list[str]:
     return shas
 
 
+def match_lines(rows: list[dict], matched_sha: str) -> list[str]:
+    """The lines the reader prints for the cards that cover a sha.
+
+    WHICH sha was asked about, WHICH sha the verdict approved, and
+    WHICH rule bound them. A reader that says only "matched by change"
+    cannot tell a rebase that carried the same edit from a rebase that
+    carried the same edit with a keyed table's rows in a new place, and
+    the printed line is the only place a human sees it.
+    """
+    lines: list[str] = []
+    for row in rows:
+        lines.append(f"CARD {row['card']}")
+        lines.append(f"  verdict: {row['status']} by {row['reviewer']}")
+        lines.append(f"  matched sha: {matched_sha}")
+        lines.append(f"  approved sha: {row['approved_sha']}")
+        if row["how"] == "sha":
+            lines.append(
+                "  matched by sha (= the card names this exact commit)"
+            )
+        elif row["how"] == "change":
+            lines.append(
+                "  matched by change (= the branch was rebased; the change is the same)"
+            )
+        elif row["how"] == "relocated":
+            lines.append(
+                "  matched by relocation (= the branch was rebased; the lane's "
+                "own rows are the same, only their place moved)"
+            )
+    return lines
+
+
 def matching_cards(
-    cards: list[dict], target_sha: str, branch: str | None = None
+    cards: list[dict], target_sha: str, branch: str | None = None,
+    main: str = "main",
 ) -> list[tuple[str | None, str | None, str | None, str]]:
     """The review cards whose verdict covers the sha a branch points at.
 
-    Two ways to cover it. The same commit id (= the card was written for
-    this exact tip), or the same CHANGE (= the branch was rebased since,
-    which rewrites the commit id and leaves the edit alone). The second
-    one is what stops somebody else landing their work from voiding a
-    verdict that is still good.
+    Three ways to cover it. The same commit id (= the card was written
+    for this exact tip), the same CHANGE (= the branch was rebased
+    since, which rewrites the commit id and leaves the edit alone), or
+    the same EDIT with a keyed table's row movement removed (= the
+    branch was rebased onto a main that had reordered the table, so the
+    lane's own diff carries MAIN's rows as byte-identical add/remove
+    pairs while the lane's own rows are untouched). The second one stops
+    somebody else landing their work from voiding a verdict that is
+    still good; the third one stops a rebase from voiding it when the
+    lane writes the table.
 
     THE ORDER IS THE AUTHORITY. The caller takes the FIRST card, so the
     order must put the card that governs the branch first: a card that
@@ -497,7 +730,25 @@ def matching_cards(
     is what makes ``head -1`` correct.
 
     Returns ``(card id, verdict status, reviewer, how)`` for every card
-    that covers it, where ``how`` is ``"sha"`` or ``"change"``.
+    that covers it, where ``how`` is ``"sha"``, ``"change"`` or
+    ``"relocated"``.
+    """
+    return [
+        (row["card"], row["status"], row["reviewer"], row["how"])
+        for row in matching_cards_detailed(cards, target_sha, branch, main)
+    ]
+
+
+def matching_cards_detailed(
+    cards: list[dict], target_sha: str, branch: str | None = None,
+    main: str = "main",
+) -> list[dict]:
+    """The same lookup, with the sha each verdict names.
+
+    The reader has to print WHICH sha it asked about and WHICH sha the
+    verdict approved, so the rule that bound them is readable. The
+    four-tuple above cannot carry that, and the printed line is the
+    only place a human sees it.
     """
     history = branch_tip_history(branch) if branch else []
     # THE BRANCH'S OWN HISTORY, not the sha being asked about, is what the
@@ -513,7 +764,9 @@ def matching_cards(
     _prime_review_claims(cards)
     target_cid: str | None = None
     target_cid_done = False
-    found: list[tuple[str | None, str | None, str | None, str]] = []
+    target_eid: str | None = None
+    target_eid_done = False
+    found: list[dict] = []
     for card in cards:
         # ``review_cards_for`` returns RAW task rows (= no ``task``
         # key). ``card_kind`` reads the body and the title out of
@@ -543,10 +796,14 @@ def matching_cards(
         # direction, and the priming above makes it a cache read.
         if _same_sha(sha, target_sha) and _claims_commit(sha):
             verdict = verdict_from_doc(doc)
-            found.append((
-                card.get("id"), verdict.get("status"), verdict.get("reviewer"), "sha",
-                _verdict_time(doc),
-            ))
+            found.append({
+                "card": card.get("id"),
+                "status": verdict.get("status"),
+                "reviewer": verdict.get("reviewer"),
+                "how": "sha",
+                "approved_sha": sha,
+                "time": _verdict_time(doc),
+            })
             continue
         # Not the same commit id. Is it the same CHANGE? Only a sha this
         # branch used to point at can be (= the reflog), and the change
@@ -554,23 +811,43 @@ def matching_cards(
         if not any(_same_sha(sha, h) for h in history):
             continue
         if not target_cid_done:
-            target_cid = change_id(target_sha)
+            target_cid = change_id(target_sha, main)
             target_cid_done = True
-        if target_cid is None:
-            continue
-        card_cid = change_id(sha)
-        if card_cid is None or card_cid != target_cid:
-            continue
+        card_cid = change_id(sha, main) if target_cid is not None else None
+        if card_cid is not None and card_cid == target_cid:
+            how = "change"
+        else:
+            # The strict identity says the two edits differ. The lane's
+            # OWN edit may still be the same edit: a rebase onto a main
+            # that reordered a keyed table leaves MAIN's own rows behind
+            # as byte-identical add/remove pairs, and those pairs sit in
+            # the lane's diff without the lane having touched them. The
+            # relaxed identity drops that movement and asks again.
+            if not target_eid_done:
+                target_eid = lane_edit_id(target_sha, main)
+                target_eid_done = True
+            if target_eid is None:
+                continue
+            card_eid = lane_edit_id(sha, main)
+            if card_eid is None or card_eid != target_eid:
+                continue
+            how = "relocated"
         verdict = verdict_from_doc(doc)
-        found.append((
-            card.get("id"), verdict.get("status"), verdict.get("reviewer"), "change",
-            _verdict_time(doc),
-        ))
+        found.append({
+            "card": card.get("id"),
+            "status": verdict.get("status"),
+            "reviewer": verdict.get("reviewer"),
+            "how": how,
+            "approved_sha": sha,
+            "time": _verdict_time(doc),
+        })
     # THE AUTHORITY ORDER IS THE VERDICT'S OWN TIME, because EVERY card
     # in this list covers the SAME EDIT: the "sha" group names the sha
     # the branch points at, and the "change" group names a sha the
     # branch used to point at whose change identity agrees (= the same
-    # edit, under an older commit id). The groups say HOW a card matched
+    # edit, under an older commit id); the "relocated" group names a sha
+    # whose own edit agrees once a keyed table's row movement is
+    # dropped. The groups say HOW a card matched
     # (= by id or by edit), not WHICH edit it is about, so they cannot
     # outrank the time.
     #
@@ -584,8 +861,11 @@ def matching_cards(
     #
     # The group is the TIE-BREAK: at the same time, the card that names
     # the current sha is the more specific answer about what will land.
-    found.sort(key=lambda row: (-(row[4] or 0), 0 if row[3] == "sha" else 1))
-    return [(row[0], row[1], row[2], row[3]) for row in found]
+    found.sort(key=lambda row: (
+        -(row["time"] or 0),
+        {"sha": 0, "change": 1, "relocated": 2}[row["how"]],
+    ))
+    return found
 
 
 def _verdict_time(doc: dict) -> int:
@@ -1480,6 +1760,10 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="check every card")
     parser.add_argument("--assignee", help="the implementer profile, for the body check")
     parser.add_argument("--board", default=BOARD, help="board slug")
+    parser.add_argument(
+        "--main", default="main",
+        help="the upstream the branch's change is measured against",
+    )
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     args = parser.parse_args()
 
@@ -1557,12 +1841,9 @@ def main() -> int:
             # get must not read as a refusal the caller can ignore.
             print("BOARD UNREADABLE: the board could not be read")
             return 2
-        found = matching_cards(cards, sha_filter, args.branch)
-        for card_id, status, reviewer, how in found:
-            print(f"CARD {card_id}")
-            print(f"  verdict: {status} by {reviewer}")
-            if how == "change":
-                print("  matched by change (= the branch was rebased; the change is the same)")
+        found = matching_cards_detailed(cards, sha_filter, args.branch, args.main)
+        for line in match_lines(found, sha_filter):
+            print(line)
         if not found:
             # The two ways this lookup comes back empty are NOT the same
             # fact, and printing one sentence for both sent branches to be

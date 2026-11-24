@@ -1823,6 +1823,356 @@ def main() -> int:
         True,
     )
 
+    # ---- case 13: a rebase that moved a KEYED table's rows ----
+    # Measured 2026-11-25 on the retrieval lane: a rebase onto a main
+    # that had reordered the registry left two of MAIN's own rows behind
+    # as byte-identical add/remove pairs, so the lane's whole-diff
+    # identity moved and its approval died with it, even though the
+    # lane's own rows were untouched (14 of its 15 files are
+    # byte-identical blobs at both shas). These cases build that shape:
+    # a table merged BY KEY, a lane that adds a row, a main that moves a
+    # row, and a tip that carries the lane's own edit.
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        run = lambda *a: subprocess.run(
+            ["git", *a], cwd=repo, capture_output=True, text=True, check=True
+        )
+        run("init", "-q", "-b", "main")
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        cwd_before = Path.cwd()
+        os.chdir(repo)
+        # The table is merged BY KEY (= the driver's own identity), so a
+        # row's place in the file is not part of the row.
+        (repo / ".gitattributes").write_text("table.md merge=nfi-registry\n")
+        (repo / "table.md").write_text("row one\nrow two\n")
+        run("add", "-A")
+        run("commit", "-qm", "base")
+        # the lane's own edit: one row added
+        run("checkout", "-qb", "feature")
+        (repo / "table.md").write_text("row one\nrow two\nrow three\n")
+        run("add", "-A")
+        run("commit", "-qm", "the lane's row")
+        approved = run("rev-parse", "HEAD").stdout.strip()
+        # somebody else lands: main moves a row of the same table
+        run("checkout", "-q", "main")
+        (repo / "table.md").write_text("row two\nrow one\n")
+        run("add", "-A")
+        run("commit", "-qm", "main moved a row")
+        # the branch is rebased onto that main: the lane's own row comes
+        # with it, and the row main moved sits in its new place
+        run("checkout", "-q", "-b", "rebased", "main")
+        (repo / "table.md").write_text("row one\nrow two\nrow three\n")
+        run("add", "-A")
+        run("commit", "-qm", "the rebased lane")
+        rebased = run("rev-parse", "HEAD").stdout.strip()
+        # the branch points at the rebased tip, and its reflog still
+        # holds the sha the card names (= what the reader looks at)
+        run("update-ref", "-m", "rebase (finish): onto main",
+            "refs/heads/feature", rebased)
+        check(
+            "R: the fixture's reflog holds the approved sha",
+            approved in tool.branch_tip_history("feature"),
+            True,
+        )
+        check(
+            "R: the strict identity moved (= the whole diff is different)",
+            tool.change_id(approved) != tool.change_id(rebased),
+            True,
+        )
+        check(
+            "R: the lane's own edit is the same once the row movement is "
+            "dropped",
+            tool.lane_edit_id(approved) == tool.lane_edit_id(rebased),
+            True,
+        )
+        reloc_card = {
+            "id": "t_reloc",
+            "title": f"[T2][{REVIEW_TAG}] x",
+            "body": f"## WHAT TO BUILD\n\nA verdict on `{approved}`.\n\n"
+                    "## REVIEW HANDOFF\n\nnone\n",
+            "runs": [{"id": 1, "profile": "wenshu-review", "outcome": "completed",
+                      "ended_at": 10, "metadata": {"review_outcome": "approved"}}],
+            "events": [], "created_at": 10,
+        }
+        found = tool.matching_cards([reloc_card], rebased, "feature")
+        check(
+            "R: the approval binds across the rebase",
+            [(f[0], f[3]) for f in found],
+            [("t_reloc", "relocated")],
+        )
+        lines = tool.match_lines(
+            tool.matching_cards_detailed([reloc_card], rebased, "feature"), rebased
+        )
+        check(
+            "R: the reader says which sha it asked about",
+            any(line.strip() == f"matched sha: {rebased}" for line in lines),
+            True,
+        )
+        check(
+            "R: and which sha the verdict approved",
+            any(line.strip() == f"approved sha: {approved}" for line in lines),
+            True,
+        )
+        check(
+            "R: and which rule bound them",
+            any("matched by relocation" in line for line in lines),
+            True,
+        )
+        # a lane edit that REALLY changed must not be covered
+        (repo / "table.md").write_text(
+            "row one\nrow two\nrow three\nrow four\n")
+        run("add", "-A")
+        run("commit", "-qm", "a different edit")
+        different = run("rev-parse", "HEAD").stdout.strip()
+        check(
+            "R: a verdict does NOT cover a branch whose own edit changed",
+            tool.matching_cards([reloc_card], different, "feature"),
+            [],
+        )
+        # a row that changed by one space is a real change
+        (repo / "table.md").write_text("row one\nrow two\nrow three \n")
+        run("add", "-A")
+        run("commit", "-qm", "a reworded row")
+        reworded = run("rev-parse", "HEAD").stdout.strip()
+        check(
+            "R: a row that changed by one space is NOT the same edit",
+            tool.lane_edit_id(reworded) == tool.lane_edit_id(approved),
+            False,
+        )
+        # a DIFFERENT lane edit: the lane's own row is REPLACED by another
+        # row, so the tip's edit is not the approved one plus more
+        (repo / "table.md").write_text("row one\nrow two\nrow five\n")
+        run("add", "-A")
+        run("commit", "-qm", "a different lane edit")
+        other_edit = run("rev-parse", "HEAD").stdout.strip()
+        check(
+            "R: a verdict does NOT cover a branch carrying a DIFFERENT lane "
+            "edit",
+            tool.matching_cards([reloc_card], other_edit, "feature"),
+            [],
+        )
+        # a lane whose whole edit is a row movement carries no edit, so
+        # there is nothing for a verdict to approve
+        run("checkout", "-q", "-b", "mover", "main~1")
+        (repo / "table.md").write_text("row two\nrow one\n")
+        run("add", "-A")
+        run("commit", "-qm", "a lane that only moves a row")
+        moved = run("rev-parse", "HEAD").stdout.strip()
+        check(
+            "R: a lane whose whole edit is a row movement has no identity",
+            tool.lane_edit_id(moved),
+            None,
+        )
+        os.chdir(cwd_before)
+
+    # ---- case 13b: the same movement in a file with NO key ----
+    # A file that is not merged by key has no key: the place of its
+    # lines IS the meaning, so a movement there is a real change and the
+    # gate must keep it one (= it must not clear a branch nobody
+    # reviewed).
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        run = lambda *a: subprocess.run(
+            ["git", *a], cwd=repo, capture_output=True, text=True, check=True
+        )
+        run("init", "-q", "-b", "main")
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        cwd_before = Path.cwd()
+        os.chdir(repo)
+        (repo / "prog.py").write_text("a = 1\nb = 2\n")
+        run("add", "-A")
+        run("commit", "-qm", "base")
+        run("checkout", "-qb", "feature")
+        (repo / "prog.py").write_text("a = 1\nb = 2\nc = 3\n")
+        run("add", "-A")
+        run("commit", "-qm", "the lane's line")
+        approved = run("rev-parse", "HEAD").stdout.strip()
+        run("checkout", "-q", "main")
+        (repo / "prog.py").write_text("b = 2\na = 1\n")
+        run("add", "-A")
+        run("commit", "-qm", "main moved a line")
+        run("checkout", "-q", "-b", "rebased", "main")
+        (repo / "prog.py").write_text("a = 1\nb = 2\nc = 3\n")
+        run("add", "-A")
+        run("commit", "-qm", "the rebased lane")
+        rebased = run("rev-parse", "HEAD").stdout.strip()
+        run("update-ref", "-m", "rebase (finish): onto main",
+            "refs/heads/feature", rebased)
+        check(
+            "R: a movement in a file with no key is NOT the same edit",
+            tool.lane_edit_id(approved) == tool.lane_edit_id(rebased),
+            False,
+        )
+        plain_card = {
+            "id": "t_plain",
+            "title": f"[T2][{REVIEW_TAG}] x",
+            "body": f"## WHAT TO BUILD\n\nA verdict on `{approved}`.\n\n"
+                    "## REVIEW HANDOFF\n\nnone\n",
+            "runs": [{"id": 1, "profile": "wenshu-review", "outcome": "completed",
+                      "ended_at": 10, "metadata": {"review_outcome": "approved"}}],
+            "events": [], "created_at": 10,
+        }
+        check(
+            "R: and the approval does NOT bind it",
+            tool.matching_cards([plain_card], rebased, "feature"),
+            [],
+        )
+        os.chdir(cwd_before)
+
+    # ---- case 13c: a record that SPANS LINES ----
+    # The cancellation's unit is the DIFF LINE, so it may only run where a
+    # record IS a line. The string catalog's records are nested objects
+    # whose value sits on a line of its own, so trading two values moves
+    # those two lines byte-identically: a rule that cancelled the pair
+    # would call a TRADED CATALOG the same edit, and an approval would
+    # bind a catalog nobody approved. Measured 2026-11-25 on the review
+    # lane: the wide constant did exactly that. This case pins the shape,
+    # so the constant cannot be widened silently.
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        run = lambda *a: subprocess.run(
+            ["git", *a], cwd=repo, capture_output=True, text=True, check=True
+        )
+        run("init", "-q", "-b", "main")
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        cwd_before = Path.cwd()
+        os.chdir(repo)
+        (repo / ".gitattributes").write_text("catalog.xcstrings merge=xcstrings\n")
+
+        def catalog(a: str, b: str) -> str:
+            """A catalog whose records are nested objects, one value per line."""
+            return (
+                '{\n  "KEY A" : {\n    "value" : "VALUE ' + a + '"\n  },\n'
+                '  "KEY B" : {\n    "value" : "VALUE ' + b + '"\n  }\n}\n'
+            )
+
+        (repo / "catalog.xcstrings").write_text(catalog("x", "y"))
+        run("add", "-A")
+        run("commit", "-qm", "base")
+        run("checkout", "-qb", "feature")
+        (repo / "catalog.xcstrings").write_text(
+            catalog("x", "y").replace(
+                "  }\n}\n",
+                '  },\n  "KEY C" : {\n    "value" : "VALUE z"\n  }\n}\n',
+            )
+        )
+        run("add", "-A")
+        run("commit", "-qm", "the added record")
+        approved = run("rev-parse", "HEAD").stdout.strip()
+        # the tip TRADES the two values: the two value lines move, and
+        # they move byte-identically
+        (repo / "catalog.xcstrings").write_text(
+            catalog("y", "x").replace(
+                "  }\n}\n",
+                '  },\n  "KEY C" : {\n    "value" : "VALUE z"\n  }\n}\n',
+            )
+        )
+        run("add", "-A")
+        run("commit", "-qm", "the traded values")
+        traded = run("rev-parse", "HEAD").stdout.strip()
+        catalog_card = {
+            "id": "t_xc",
+            "title": f"[T2][{REVIEW_TAG}] x",
+            "body": f"## WHAT TO BUILD\n\nA verdict on `{approved}`.\n\n"
+                    "## REVIEW HANDOFF\n\nnone\n",
+            "runs": [{"id": 1, "profile": "wenshu-review", "outcome": "completed",
+                      "ended_at": 10, "metadata": {"review_outcome": "approved"}}],
+            "events": [], "created_at": 10,
+        }
+        check(
+            "R: a record that spans lines: the strict rule sees the trade",
+            tool.change_id(approved) != tool.change_id(traded),
+            True,
+        )
+        check(
+            "R: and the approval does NOT bind a traded catalog",
+            tool.matching_cards([catalog_card], traded, "feature"),
+            [],
+        )
+        os.chdir(cwd_before)
+
+    # ---- case 13d: the reader names the rule for EVERY match ----
+    # Three ways to cover a sha, and each of them says so in the output:
+    # the exact commit, the same change after a rebase, and the same edit
+    # after the table's rows moved. A reader that printed the rule only
+    # for some of them would leave the reader guessing which one bound
+    # the verdict.
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        run = lambda *a: subprocess.run(
+            ["git", *a], cwd=repo, capture_output=True, text=True, check=True
+        )
+        run("init", "-q", "-b", "main")
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        cwd_before = Path.cwd()
+        os.chdir(repo)
+        # the lane edits ONE ordinary file (= no keyed table in its diff,
+        # so its whole diff survives the rebase unchanged)
+        (repo / "notes.txt").write_text("one\n")
+        run("add", "-A")
+        run("commit", "-qm", "base")
+        run("checkout", "-qb", "feature")
+        (repo / "notes.txt").write_text("one\ntwo\n")
+        run("add", "-A")
+        run("commit", "-qm", "the lane's edit")
+        approved = run("rev-parse", "HEAD").stdout.strip()
+        # somebody else lands, on a file the lane never touched
+        run("checkout", "-q", "main")
+        (repo / "other.txt").write_text("elsewhere\n")
+        run("add", "-A")
+        run("commit", "-qm", "main moved on")
+        run("checkout", "-q", "-b", "rebased", "main")
+        (repo / "notes.txt").write_text("one\ntwo\n")
+        run("add", "-A")
+        run("commit", "-qm", "the rebased lane")
+        rebased = run("rev-parse", "HEAD").stdout.strip()
+        run("update-ref", "-m", "rebase (finish): onto main",
+            "refs/heads/feature", rebased)
+        change_card = {
+            "id": "t_change",
+            "title": f"[T2][{REVIEW_TAG}] x",
+            "body": f"## WHAT TO BUILD\n\nA verdict on `{approved}`.\n\n"
+                    "## REVIEW HANDOFF\n\nnone\n",
+            "runs": [{"id": 1, "profile": "wenshu-review", "outcome": "completed",
+                      "ended_at": 10, "metadata": {"review_outcome": "approved"}}],
+            "events": [], "created_at": 10,
+        }
+        check(
+            "R: the same change after a rebase is covered",
+            [(f[0], f[3]) for f in tool.matching_cards([change_card], rebased, "feature")],
+            [("t_change", "change")],
+        )
+        change_lines = tool.match_lines(
+            tool.matching_cards_detailed([change_card], rebased, "feature"), rebased
+        )
+        check(
+            "R: and the reader says the change rule",
+            any("matched by change" in line for line in change_lines),
+            True,
+        )
+        check(
+            "R: an exact commit match is covered by the sha rule",
+            [(f[0], f[3]) for f in tool.matching_cards([change_card], approved, "feature")],
+            [("t_change", "sha")],
+        )
+        sha_lines = tool.match_lines(
+            tool.matching_cards_detailed([change_card], approved, "feature"), approved
+        )
+        check(
+            "R: and the reader says the sha rule too",
+            any("matched by sha" in line for line in sha_lines),
+            True,
+        )
+        os.chdir(cwd_before)
+
     print()
     if FAILURES:
         print(f"review_gate: {len(FAILURES)} case(s) FAILED")
