@@ -13,14 +13,13 @@
 //    9. testExecute_upsertAction_parsesAndRuns
 //
 
-import Testing
 import Foundation
+import Testing
 @testable import WenshuApp
 
 @Suite("ReferenceLibraryTool (v2.0)")
 @MainActor
 struct ReferenceLibraryToolTests {
-
     // MARK: - Helpers
 
     private static func makeReferenceStore() throws -> FileSystemReferenceStore {
@@ -35,7 +34,7 @@ struct ReferenceLibraryToolTests {
 
     // MARK: - Test 1: create
 
-    @Test func testCreateReference_persistsBody() async throws {
+    @Test func createReference_persistsBody() async throws {
         let actor = try Self.makeActor()
         let descriptor = try await actor.createReference(
             title: "Ming tax system",
@@ -53,7 +52,7 @@ struct ReferenceLibraryToolTests {
 
     // MARK: - Test 2: read
 
-    @Test func testReadReference_returnsBodyAndMetadata() async throws {
+    @Test func readReference_returnsBodyAndMetadata() async throws {
         let actor = try Self.makeActor()
         let created = try await actor.createReference(
             title: "Beijing history",
@@ -67,7 +66,7 @@ struct ReferenceLibraryToolTests {
 
     // MARK: - Test 3: update
 
-    @Test func testUpdateReference_replacesBodyAndMetadata() async throws {
+    @Test func updateReference_replacesBodyAndMetadata() async throws {
         let actor = try Self.makeActor()
         let created = try await actor.createReference(
             title: "Topic",
@@ -88,7 +87,7 @@ struct ReferenceLibraryToolTests {
 
     // MARK: - Test 4: delete
 
-    @Test func testDeleteReference_removesBodyAndIndex() async throws {
+    @Test func deleteReference_removesBodyAndIndex() async throws {
         let actor = try Self.makeActor()
         let created = try await actor.createReference(
             title: "Scrapped",
@@ -103,7 +102,7 @@ struct ReferenceLibraryToolTests {
 
     // MARK: - Test 5: list
 
-    @Test func testListReferences_filtersByLayerAndDefaultsToUserFacing() async throws {
+    @Test func listReferences_filtersByLayerAndDefaultsToUserFacing() async throws {
         let store = try Self.makeReferenceStore()
         let actor = ReferenceLibraryActor(referenceStore: store)
         _ = try await actor.createReference(title: "Raw1", bodyMarkdown: "r1", layer: "raw")
@@ -130,7 +129,7 @@ struct ReferenceLibraryToolTests {
 
     // MARK: - Test 6: find
 
-    @Test func testFindReference_resolvesByCaseInsensitiveTitle() async throws {
+    @Test func findReference_resolvesByCaseInsensitiveTitle() async throws {
         let actor = try Self.makeActor()
         let created = try await actor.createReference(
             title: "Qing Dynasty Salt Policy",
@@ -145,7 +144,7 @@ struct ReferenceLibraryToolTests {
 
     // MARK: - Test 7: CORE boss directive — upsert updates the existing doc
 
-    @Test func testUpsert_existingTitleUpdatesSameDocument() async throws {
+    @Test func upsert_existingTitleUpdatesSameDocument() async throws {
         let store = try Self.makeReferenceStore()
         let actor = ReferenceLibraryActor(referenceStore: store)
 
@@ -177,7 +176,7 @@ struct ReferenceLibraryToolTests {
 
     // MARK: - Test 8: upsert with a new title creates a fresh doc
 
-    @Test func testUpsert_newTitleCreatesNewDocument() async throws {
+    @Test func upsert_newTitleCreatesNewDocument() async throws {
         let actor = try Self.makeActor()
         let first = try await actor.upsertReference(
             title: "Topic A",
@@ -196,7 +195,7 @@ struct ReferenceLibraryToolTests {
 
     // MARK: - Test 9: LLM dispatcher (upsert action)
 
-    @Test func testExecute_upsertAction_parsesAndRuns() async throws {
+    @Test func execute_upsertAction_parsesAndRuns() async throws {
         let store = try Self.makeReferenceStore()
         let actor = ReferenceLibraryActor(referenceStore: store)
         let tool = ReferenceLibraryTool(actor: actor)
@@ -208,5 +207,67 @@ struct ReferenceLibraryToolTests {
         #expect(output.contains("\"action\":\"upsert\""))
         #expect(output.contains("\"title\":\"Ming tax\""))
         #expect(output.contains("\"created\":true"))
+    }
+
+    // MARK: - Test 10: search answers a question across files
+
+    @Test func searchAction_answersAcrossMoreThanOneFile() async throws {
+        let store = try Self.makeReferenceStore()
+        let actor = ReferenceLibraryActor(referenceStore: store)
+        let tool = ReferenceLibraryTool(actor: actor)
+
+        _ = try await actor.createReference(
+            title: "Ming tax system",
+            bodyMarkdown: "# Ming tax\n\nThe Ming dynasty taxed the salt trade.",
+            layer: "raw"
+        )
+        _ = try await actor.createReference(
+            title: "Salt merchants",
+            bodyMarkdown: "# Salt merchants\n\nMerchants who sold salt paid a toll.",
+            layer: "raw"
+        )
+
+        let output = try await tool.execute(input: """
+        {"action":"search","query":"salt"}
+        """)
+        #expect(output.contains("\"ok\":true"))
+        #expect(output.contains("\"action\":\"search\""))
+
+        // **⇒ THE ANSWER MUST COME FROM MORE THAN ONE FILE.** = A
+        // question that spans documents is the whole reason this
+        // action exists, = and an answer that names one file is the
+        // old `find` wearing a different verb.
+        let paths = output
+            .split(separator: "\"path\":\"")
+            .dropFirst()
+            .compactMap { $0.split(separator: "\"").first.map(String.init) }
+        #expect(paths.count >= 2)
+        #expect(Set(paths).count >= 2)
+        #expect(output.contains("\"fragments\":["))
+        #expect(output.contains("salt"))
+    }
+
+    // MARK: - Test 11: search reads, it does not write
+
+    @Test func searchAction_leavesTheLibraryUnchanged() async throws {
+        let store = try Self.makeReferenceStore()
+        let actor = ReferenceLibraryActor(referenceStore: store)
+        let tool = ReferenceLibraryTool(actor: actor)
+
+        let created = try await actor.createReference(
+            title: "Ming tax system",
+            bodyMarkdown: "# Ming tax\n\nThe Ming dynasty taxed the salt trade.",
+            layer: "raw"
+        )
+        let before = try await actor.listReferences(layer: "raw")
+
+        _ = try await tool.execute(input: """
+        {"action":"search","query":"salt"}
+        """)
+
+        let after = try await actor.listReferences(layer: "raw")
+        #expect(after.count == before.count)
+        let body = await actor.readBodyForTest(id: created.id)
+        #expect(body == "# Ming tax\n\nThe Ming dynasty taxed the salt trade.")
     }
 }

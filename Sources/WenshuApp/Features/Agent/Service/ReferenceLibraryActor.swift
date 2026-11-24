@@ -55,6 +55,22 @@ final class ReferenceLibraryActor {
         referenceStore.referenceLibraryRoot
     }
 
+    /// The corpus the agent's search answers over.
+    ///
+    /// **⇒ THE READ IS THE STRICT ONE.** = The strict read says a
+    /// layer it could not decode, = and the forgiving one says an
+    /// empty library. = For a question (= "what does the library know
+    /// about X?") = the second answer is a lie, = because the library
+    /// may hold the answer in a layer that failed to load.
+    ///
+    /// The accessor is here, = beside the store it reads, = because the
+    /// store is private to this file = and a search that asked the
+    /// store a second way would be a second answer to "what does the
+    /// library hold".
+    func loadCorpusReportingFailure() throws -> [Reference] {
+        try referenceStore.loadAllReferencesReportingFailure()
+    }
+
     /// Test-only body accessor.
     func readBodyForTest(id: UUID) async -> String? {
         referenceStore.loadReferenceBody(id: id)

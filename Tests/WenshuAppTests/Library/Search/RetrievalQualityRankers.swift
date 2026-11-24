@@ -1,7 +1,7 @@
 //
 // RetrievalQualityRankers.swift · Wenshu · the rankers the harness measures
 //
-// The harness's own machinery: the seven rankers it compares, the corpus
+// The harness's own machinery: the eight rankers it compares, the corpus
 // model it builds over the fixture, and the tokenizations those rankers
 // use.
 //
@@ -30,12 +30,21 @@ struct RankerResult: Sendable {
     let bridgeAt3: Double
 }
 
-/// The seven rankers, measured over the same corpus.
+/// The eight rankers, measured over the same corpus.
 struct RankerTable {
     /// The production search the library's own view runs.
     static let libraryName = "wenshu-library"
-    /// The production search the mirror falls back to.
+    /// The production mirror search.
     static let mirrorName = "wenshu-mirror"
+    /// The union of the app's own ranking and the index's ranking.
+    ///
+    /// **⇒ THE ROW IS THE PROOF THAT THE MERGE IS WORTH IT.** = The
+    /// agent's answer is the two rankings merged, = and a merge that
+    /// ranked the answer worse than either half would be a merge that
+    /// costs the agent what one half already gave it. = So the union
+    /// is a row of the same table, = measured by the same questions,
+    /// over the same documents.
+    static let unionName = "wenshu-union"
     static let characterName = "bm25-character"
     static let bigramName = "bm25-bigram"
     static let appleWordName = "bm25-apple-word"
@@ -60,12 +69,71 @@ struct RankerTable {
     static let mirrorBaselineRecallAt1 = 10.0 / 12.0
     static let mirrorBaselineRecallAt3 = 11.0 / 12.0
     static let mirrorBaselineRecallAt5 = 12.0 / 12.0
+    /// The union's recorded recall (= the gate a change to the merge
+    /// must not cross).
+    ///
+    /// **⇒ THE FLOOR IS A FRACTION OF THE FIXTURE'S TWELVE QUESTIONS**,
+    /// (= and not the rounded number the table prints: = = 11 of 12 is
+    /// 0.9166..., = = and a floor of 0.92 would sit ABOVE it).
+    ///
+    /// **⇒ AND THE FLOOR IS A MEASUREMENT, = = NOT A PLACEHOLDER.** = The
+    /// first version of this floor was `0.0`, = and a floor of zero gates
+    /// nothing: = the union row then printed the library row's own
+    /// numbers (= 0.75 / 0.92 / 1.00 / 0.67) = and the gate was green
+    /// over a merge that was the corpus half's order with a name on it.
+    /// = **⇒ So the floor is what the merge produced** (= 10 of 12 at
+    /// one, = 12 of 12 at three and at five), = = and the test that says
+    /// so is `the union is neither half's order`.
+    static let unionBaselineRecallAt1 = 10.0 / 12.0
+    static let unionBaselineRecallAt3 = 12.0 / 12.0
+    static let unionBaselineRecallAt5 = 12.0 / 12.0
     static let expanderBaselineRecallAt1 = 0.41
 
     let rows: [RankerResult]
 
     func row(named name: String) -> RankerResult {
         rows.first { $0.name == name }!
+    }
+
+    /// How many documents the corpus half names for each fixture question.
+    ///
+    /// **⇒ THIS IS THE SHAPE THE MERGE RULE EXISTS FOR, = = SO IT IS
+    /// MEASURED AND NOT QUOTED.** = The rationale every record gives for not
+    /// letting the corpus half's order lead is that the corpus half names
+    /// EVERY document it matched while the answer names at most
+    /// `ReferenceCorpusSearch.defaultLimit`, = and a rationale that only lives
+    /// in prose is a rationale nobody can re-check (= it is exactly how a
+    /// number goes stale: the corpus, the scoring or the limit moves and the
+    /// sentence stays). = ⇒ The case that reads these counts is
+    /// `the corpus half names more documents than the answer can carry`.
+    static func corpusHalfNameCounts() -> [Int] {
+        RetrievalQualityCorpus.queries.map { mergeOrders(question: $0.text).corpus.count }
+    }
+
+    /// The merge's three orders for one question: = the corpus half's,
+    /// the index half's, = and the union's.
+    ///
+    /// **⇒ THE ROW AND THE GATE READ THE SAME MERGE.** = The union row
+    /// and the copy test both come through here, = so a test that says
+    /// "the union is neither half's order" is looking at the very
+    /// orders the row prints.
+    static func mergeOrders(question: String) -> (corpus: [String], index: [String], union: [String]) {
+        let docs = RetrievalQualityCorpus.documents
+        let library = RankerTable.libraryCorpus(docs: docs)
+        let mirrorEntries = docs.map {
+            MirrorRanking.entry(docId: $0.path, title: $0.title, body: $0.body)
+        }
+        let corpus = ReferenceLibrarySearch.search(
+            query: question,
+            references: library.references,
+            bodyOf: { library.bodyOf($0) }
+        ).map { library.pathOf($0.reference.id) }
+        let index = MirrorRanking.rank(
+            entries: mirrorEntries,
+            query: question,
+            limit: ReferenceCorpusSearch.defaultLimit
+        ).map(\.docId)
+        return (corpus, index, ReferenceRankFusion.merge(corpus: corpus, index: index))
     }
 
     init() {
@@ -105,6 +173,35 @@ struct RankerTable {
             ) { question in
                 MirrorRanking.rank(entries: mirrorEntries, query: question, limit: docs.count)
                     .map(\.docId)
+            },
+            // The union of the two production rankings (= what the agent's
+            // corpus answer is): the app's own merge, called.
+            //
+            // **⇒ THE INDEX HALF IS THE MIRROR HERE, = = AND THAT IS NOT
+            // A STAND-IN, = = IT IS THE INDEX'S OWN RANKING.** = The
+            // system index answers from its in-process mirror and from
+            // Spotlight, = and the mirror's ranking is the app's own
+            // `MirrorRanking`. = The harness runs in-process (= it reads
+            // no system index, = so it is stable in CI), = so the index
+            // half it can measure IS the mirror half, = and the merge
+            // that matters is measured over exactly the two rankings the
+            // agent's answer fuses.
+            //
+            // **⇒ THE INDEX HALF IS CUT TO THE ANSWER'S LENGTH, = = BECAUSE
+            // THAT IS THE SHAPE THE AGENT'S ANSWER HAS.** = The agent
+            // asks the index for at most as many documents as the answer
+            // names (= `ReferenceLibraryActor+Search` passes the answer's
+            // own limit to the index), = and the merge reads the index's
+            // answer as it is. = **⇒ A harness that fed the merge the
+            // index's WHOLE ranking would measure a merge the app never
+            // runs** (= and an index half that names every document of the
+            // corpus is a half that can bury the corpus half, = which is
+            // a number the merge would then be scored on).
+            RankerTable.measureOrdered(
+                name: RankerTable.unionName,
+                queries: queries
+            ) { question in
+                RankerTable.mergeOrders(question: question).union
             },
             RankerTable.measure(
                 name: RankerTable.characterName,

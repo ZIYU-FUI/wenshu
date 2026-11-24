@@ -38,7 +38,7 @@ extension ReferenceLibraryActor {
             return Self.encodeFailure(
                 action: nil,
                 error: ReferenceLibraryError.invalidInput(
-                    reason: "missing or unknown 'action' (expected: create / read / update / delete / list / find / upsert)"
+                    reason: "missing or unknown 'action' (expected: create / read / update / delete / list / find / upsert / extend / search)"
                 )
             )
         }
@@ -198,6 +198,19 @@ extension ReferenceLibraryActor {
                     url: url
                 )
                 return Self.encodeSuccess(action: action, reference: reference, created: false)
+
+            case .search:
+                let query = envelope["query"] as? String ?? ""
+                guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    return Self.encodeFailure(
+                        action: action,
+                        error: .invalidInput(
+                            reason: "search requires 'query' (= the question, in words)"
+                        )
+                    )
+                }
+                let hits = try await searchReferences(query: query)
+                return Self.encodeSuccessSearch(action: action, query: query, hits: hits)
             }
         } catch let error as ReferenceLibraryError {
             return Self.encodeFailure(action: action, error: error)
@@ -279,6 +292,38 @@ extension ReferenceLibraryActor {
             "ok": true,
             "action": action.rawValue,
             "references": references.map { descriptorToJSON($0) },
+        ]
+        return encodeJSON(payload)
+    }
+
+    /// The answer to a question over the library.
+    ///
+    /// **⇒ THE FRAGMENTS CARRY THE EVIDENCE, = AND THE PATH SAYS WHERE
+    /// THE EVIDENCE LIVES.** = A hit without a path is a title, = and
+    /// the caller would have to search the filesystem for the body it
+    /// was just handed. = **⇒ AND THE FRAGMENTS ARE SENTENCES, = NOT
+    /// THE MARKUP THE INDEX CARRIES**: = the index's own snippet wraps
+    /// the match in `<mark>` tags (= an HTML artefact of a UI that
+    /// renders it), = and the caller is an LLM reading text, = so the
+    /// markup is stripped at the boundary where the text is handed on.
+    private static func encodeSuccessSearch(
+        action: ReferenceLibraryAction,
+        query: String,
+        hits: [ReferenceCorpusHit]
+    ) -> String {
+        let payload: [String: Any] = [
+            "ok": true,
+            "action": action.rawValue,
+            "query": query,
+            "hits": hits.map { hit in
+                [
+                    "id": hit.id.uuidString,
+                    "title": hit.title,
+                    "layer": ReferenceDescriptor.wireLayer(hit.layer),
+                    "path": hit.path,
+                    "fragments": hit.fragments,
+                ] as [String: Any]
+            },
         ]
         return encodeJSON(payload)
     }

@@ -61,6 +61,15 @@ enum CSSearchDomain {
         return String(itemIdentifier.dropFirst("wenshu-doc-".count))
     }
 
+    /// The prefix a reference document's docId carries.
+    ///
+    /// **⇒ THE PREFIX IS NAMED HERE, = = AND BOTH THE WRITING AND THE
+    /// READING OF IT COME FROM HERE.** = A reader that has to strip
+    /// the prefix to find the document again must strip exactly what
+    /// the writer put there, = and one place that owns the string is
+    /// the only way the two cannot drift apart.
+    static let referenceDocIdPrefix = "reference-"
+
     /// The docId of a reference document (= its id behind a prefix).
     ///
     /// The prefix tells a search hit WHICH kind of document it is: a
@@ -69,7 +78,7 @@ enum CSSearchDomain {
     /// docId, so it survives the Spotlight round-trip
     /// (`itemIdentifier` -> `docId`).
     static func referenceDocId(for id: UUID) -> String {
-        "reference-\(id.uuidString)"
+        "\(referenceDocIdPrefix)\(id.uuidString)"
     }
 }
 

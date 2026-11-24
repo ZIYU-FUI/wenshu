@@ -80,22 +80,45 @@ enum ReferenceBodyStore {
             .appendingPathComponent("\(id.uuidString).md", isDirectory: false)
     }
 
-    /// Read a body, = truth first.
+    /// Read a body, = and the file it was read from.
     ///
     /// The mirror is the fallback, = and only when the truth is
     /// ABSENT. = A mirror that is present but older is not read: = the
     /// truth is the truth, = and the mirror is written beside it.
+    ///
+    /// **⇒ THE FILE COMES WITH THE TEXT, = = AND THAT IS WHY THIS
+    /// EXISTS.** = A caller that reports "the body is here" has to
+    /// name the file it read, = and a file named by a second rule
+    /// (= "the truth is always at `references/<uuid>.md`") is a file
+    /// that may not hold what the caller read: = a library that
+    /// predates the truth location holds the body in the MIRROR, = and
+    /// a path that names the truth would send the reader to a file
+    /// that is not there. = So one read answers both questions.
+    nonisolated static func readSource(
+        id: UUID,
+        layer: ReferenceLayer,
+        referenceLibraryRoot: URL
+    ) -> (body: String, url: URL)? {
+        let truth = truthURL(id: id, referenceLibraryRoot: referenceLibraryRoot)
+        if let body = try? String(contentsOf: truth, encoding: .utf8) {
+            return (body, truth)
+        }
+        let mirror = mirrorURL(id: id, layer: layer, referenceLibraryRoot: referenceLibraryRoot)
+        guard let body = try? String(contentsOf: mirror, encoding: .utf8) else { return nil }
+        return (body, mirror)
+    }
+
+    /// Read a body, = truth first.
     nonisolated static func read(
         id: UUID,
         layer: ReferenceLayer,
         referenceLibraryRoot: URL
     ) -> String? {
-        let truth = truthURL(id: id, referenceLibraryRoot: referenceLibraryRoot)
-        if let body = try? String(contentsOf: truth, encoding: .utf8) {
-            return body
-        }
-        let mirror = mirrorURL(id: id, layer: layer, referenceLibraryRoot: referenceLibraryRoot)
-        return try? String(contentsOf: mirror, encoding: .utf8)
+        readSource(
+            id: id,
+            layer: layer,
+            referenceLibraryRoot: referenceLibraryRoot
+        )?.body
     }
 
     /// Write a body, = to the truth and to the mirror.

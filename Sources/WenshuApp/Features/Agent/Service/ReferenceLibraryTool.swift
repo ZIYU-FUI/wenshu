@@ -92,6 +92,11 @@ enum ReferenceLibraryAction: String, Sendable, Codable, CaseIterable, Equatable 
     /// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     /// / of creating duplicates).
     case extend
+    /// Answer a question over the whole library (= the read-only
+    /// counter of `find`, which locates ONE document BY TITLE: = this
+    /// one names the documents that hold the answer, = across files, =
+    /// with the sentences that hold it).
+    case search
 }
 
 // MARK: - Errors
@@ -152,7 +157,7 @@ enum ReferenceLibraryError: Error, LocalizedError, Sendable, Equatable {
 
 actor ReferenceLibraryTool: Tool {
     let name = "reference_library"
-    let description = "Library-public reference CRUD with self-evolution support. LLM-friendly verbs: create / read / update / delete / list / find / upsert / extend. **Self-evolution protocol (= (see OOB.md #2026-09-25) directive)**: before creating a brand-new entry, ALWAYS `find` by title (= case-insensitive exact) to check whether the noun already exists in `raw` or `entities`. If found, prefer `extend` (id + section_title + section_body) over `create` — extend appends (= or merges if section_title already exists) a new `## <section_title>` section WITHOUT rewriting the prior body. This is the self-evolution mechanism: the first time the user mentions a noun, `create` writes the initial document; subsequent turns that add context (= 'the user later defines the protagonist lives in Ming-dynasty Xi'an' or 'the user mentions a Xi'an water-basin lamb dish') call `extend` so each refinement accumulates in its own section instead of clobbering the base research. Tags are unioned across extends; = summary / source / url only overwrite when explicitly provided."
+    let description = "Library-public reference CRUD with self-evolution support. LLM-friendly verbs: create / read / update / delete / list / find / upsert / extend / search. **⇒ USE `search` TO ASK A QUESTION ABOUT THE LIBRARY** (= `find` locates ONE document BY TITLE, = which needs the title already; = `search` answers a QUESTION across every document, = and returns the files and the sentences that hold the answer = the agent does not have to guess titles or read whole documents). **Self-evolution protocol (= (see OOB.md #2026-09-25) directive)**: before creating a brand-new entry, ALWAYS `find` by title (= case-insensitive exact) to check whether the noun already exists in `raw` or `entities`. If found, prefer `extend` (id + section_title + section_body) over `create` — extend appends (= or merges if section_title already exists) a new `## <section_title>` section WITHOUT rewriting the prior body. This is the self-evolution mechanism: the first time the user mentions a noun, `create` writes the initial document; subsequent turns that add context (= 'the user later defines the protagonist lives in Ming-dynasty Xi'an' or 'the user mentions a Xi'an water-basin lamb dish') call `extend` so each refinement accumulates in its own section instead of clobbering the base research. Tags are unioned across extends; = summary / source / url only overwrite when explicitly provided."
 
     private let actor: ReferenceLibraryActor
 
@@ -191,8 +196,12 @@ extension ReferenceLibraryTool {
                     inputSchema: [
                         "action": ToolRegistrySchemaProperty(
                             type: "string",
-                            description: "The reference operation to perform. Self-evolution pattern: use `find` first (= returns the existing id), then `extend` (= id + section_title + section_body) instead of `create`/`upsert`. Use `create` only when `find` returns no match (= first time we hear the noun).",
-                            enumValues: ["create", "read", "update", "delete", "list", "find", "upsert", "extend"]
+                            description: "The reference operation to perform. Self-evolution pattern: use `find` first (= returns the existing id), then `extend` (= id + section_title + section_body) instead of `create`/`upsert`. Use `create` only when `find` returns no match (= first time we hear the noun). Use `search` to ASK a question over the whole library (= returns the documents that hold the answer, with the sentences that hold it).",
+                            enumValues: ["create", "read", "update", "delete", "list", "find", "upsert", "extend", "search"]
+                        ),
+                        "query": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "The question, in words (= the whole question, not a title). Required for action='search'. Answers with the documents that hold the answer, = each with its file path and the sentences that hold it."
                         ),
                         "id": ToolRegistrySchemaProperty(
                             type: "string",

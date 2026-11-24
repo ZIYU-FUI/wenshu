@@ -5,13 +5,15 @@
 // cover the tokenizer, the scorer, the mirror round-trip and the view's
 // behaviour, and none of them answers "does the right document come back".
 // This harness is that number, over one synthetic corpus with one gold per
-// query, and it compares seven rankers on the same documents:
+// query, and it compares eight rankers on the same documents:
 //
 //   wenshu-library            the production search the library's own view
 //                             runs (= `ReferenceLibrarySearch.search`),
 //                             called
 //   wenshu-mirror             the production search the mirror falls back
 //                             to (= `MirrorRanking.rank`), called
+//   wenshu-union              the production merge of the two above (= the
+//                             agent's corpus answer), called
 //   bm25-character            BM25 with inverse document frequency, over the
 //                             same per-character tokens the production
 //                             tokenizer emits
@@ -45,6 +47,7 @@
 //
 
 import Testing
+@testable import WenshuApp
 
 @Suite("Retrieval quality (the library's ranking, measured)")
 struct RetrievalQualityTests {
@@ -137,6 +140,114 @@ struct RetrievalQualityTests {
         // first.** = = A floor on one column is a floor on one column.
         #expect(mirror.recallAt5 >= RankerTable.mirrorBaselineRecallAt5,
                 "the production mirror search must not fall below its recorded recall@5")
+    }
+
+    @Test("the union of the two rankings holds its recorded recall")
+    func unionHoldsItsBaseline() {
+        let table = RankerTable()
+        let union = table.row(named: RankerTable.unionName)
+        #expect(union.recallAt1 >= RankerTable.unionBaselineRecallAt1,
+                "the union must not fall below its recorded recall@1")
+        #expect(union.recallAt3 >= RankerTable.unionBaselineRecallAt3,
+                "the union must not fall below its recorded recall@3")
+        #expect(union.recallAt5 >= RankerTable.unionBaselineRecallAt5,
+                "the union must not fall below its recorded recall@5")
+    }
+
+    @Test("the corpus half names more documents than the answer can carry")
+    func corpusHalfNamesMoreDocumentsThanTheAnswerCarries() throws {
+        // The shape the merge rule exists for (= ADR-0034 and the fusion
+        // file both cite it, = so it is measured here rather than quoted).
+        let counts = RankerTable.corpusHalfNameCounts()
+        print("  corpus half names per question: \(counts.map { String($0) }.joined(separator: " ")) (= the answer carries at most \(ReferenceCorpusSearch.defaultLimit))")
+        let fewest = try #require(counts.min(), "twelve questions must give twelve counts")
+        let most = try #require(counts.max(), "twelve questions must give twelve counts")
+        #expect(
+            fewest > ReferenceCorpusSearch.defaultLimit,
+            "if the corpus half ever names no more than the answer carries, a merge that lets its order lead is no longer losing anything, and the rule needs re-arguing: \(counts)"
+        )
+        #expect(
+            fewest >= 19 && most <= 41,
+            "the range the records cite is 19 to 41; if the measurement moved, the records move with it: \(counts)"
+        )
+    }
+
+    @Test("the union is neither half's order")
+    func unionIsNeitherHalfsOrder() {
+        // **⇒ A MERGE THAT COPIES ONE HALF MEASURES NOTHING.** = The
+        // first version of the merge kept the corpus half's order, = and
+        // the union row then printed the library row's own numbers (= 0.75
+        // / 0.92 / 1.00 / 0.67) = = and every floor was green over a row
+        // that was a copy of another row. = **⇒ So the gate is the merge
+        // ITSELF: = the union's order must be its own**, = and it must be
+        // the index half's order just as little (= a merge that copied
+        // the index half would bury the corpus half the same way).
+        var sameAsCorpus = 0
+        var sameAsIndex = 0
+        for query in RetrievalQualityCorpus.queries {
+            let orders = RankerTable.mergeOrders(question: query.text)
+            if orders.union == orders.corpus {
+                sameAsCorpus += 1
+            }
+            if orders.union == orders.index {
+                sameAsIndex += 1
+            }
+        }
+        #expect(sameAsCorpus == 0,
+                "the union's order must not be the corpus half's order (= a merge that keeps one half's order is that half's answer with a name on it)")
+        #expect(sameAsIndex == 0,
+                "the union's order must not be the index half's order (= the corpus half answers every question, = so an order that ignores it is not an answer)")
+    }
+
+    @Test("the index half's documents reach the answer")
+    func indexHalfReachesTheAnswer() {
+        // **⇒ THE INDEX HALF MUST NOT BE READ AND THEN DROPPED.** = The
+        // merge's job is to put a document the corpus half's terms never
+        // met into the answer, = and a merge that kept the corpus half's
+        // order put every one of them behind the corpus half's own
+        // (= 19 to 41) documents, = which is past the answer's limit.
+        // = **⇒ So the answer must hold documents the corpus half's own
+        // first eight did not hold.**
+        var questionsWithAnIndexOnlyDocument = 0
+        for query in RetrievalQualityCorpus.queries {
+            let orders = RankerTable.mergeOrders(question: query.text)
+            let corpusTop = Set(orders.corpus.prefix(ReferenceCorpusSearch.defaultLimit))
+            let answer = orders.union.prefix(ReferenceCorpusSearch.defaultLimit)
+            if answer.contains(where: { !corpusTop.contains($0) }) {
+                questionsWithAnIndexOnlyDocument += 1
+            }
+        }
+        // **⇒ THE FLOOR IS A COUNT OF THE FIXTURE'S TWELVE QUESTIONS**,
+        // (= and the number measured is ten: = = the two questions where
+        // it does not hold are the two whose gold document both halves
+        // rank first).
+        #expect(questionsWithAnIndexOnlyDocument >= 10,
+                "the answer must hold documents the corpus half's own first eight did not hold, = on at least ten of the fixture's twelve questions")
+    }
+
+    @Test("the union is not worse than the app's own ranking")
+    func unionNotWorseThanLibrary() {
+        let table = RankerTable()
+        let union = table.row(named: RankerTable.unionName)
+        let library = table.row(named: RankerTable.libraryName)
+        // **⇒ THE UNION MAY NOT COST THE AGENT WHAT ONE HALF GAVE IT.**
+        // = The merge adds the index's documents, = and a merge that
+        // ranked the corpus half's own documents below the corpus
+        // half's order would take away a rank the corpus half earned.
+        // = So the union's first hit is at least as good as the corpus
+        // half's, = and its first three are at least as good.
+        //
+        // **⇒ AND THE MERGE MAY NOT REPLACE THE CORPUS HALF EITHER.**
+        // = Measured: the union's order equals the corpus half's order
+        // on none of the fixture's twelve questions, = and that is what
+        // the test beside this one says. = **⇒ So this assertion is not
+        // the one that catches a merge that copied a half** (= the one
+        // beside it is), = and it is here because the number the corpus
+        // half earned is the corpus half's to keep.
+        #expect(union.recallAt1 >= library.recallAt1,
+                "the union must not rank the first hit worse than the app's own ranking does")
+        #expect(union.recallAt3 >= library.recallAt3,
+                "the union must not rank the first three hits worse than the app's own ranking does")
     }
 
     @Test("the reference ranker with inverse document frequency is ahead of the production library search")
