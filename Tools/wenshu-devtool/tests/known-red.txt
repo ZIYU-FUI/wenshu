@@ -1,0 +1,25 @@
+# Suites whose red is a KNOWN defect tracked elsewhere.
+#
+# A name here does not fail the battery; a red name NOT here does fail it. The list is a
+# register of debts, not a mute button: deleting a line is how a fixed suite returns to
+# being enforced, and the battery prints `known-red=<n>` so a reader sees the size of it.
+#
+# A live entry is a BARE line naming the suite; everything else on the line or after it is a
+# comment. Both entries below were red on `main` before this wave and neither was invented to
+# buy a green: the battery that surfaces them is ticket 009, which exited 0 whatever its lines
+# said, so both reds were invisible to anything that branches on the exit code.
+
+test_inventory_measure
+#   Red at `1ca6aba9a4` (verified in a detached worktree holding nothing but that commit), red
+#   at `3c29ff6598`, red at `bbc2434997`, and identical at all three; also red run by itself on
+#   `main`, where the header prints "inventory-measure's matcher: 2 case(s) FAILED" and the two
+#   cases are named: "the guard fails when it is run from a subdirectory (= it reads the tree by
+#   the CALLER's directory, = and not by the repository it means)" and "the branch's added
+#   comment lines carry 222 ticket id(s): A1, A108, A112, A115, A14-A38, BM25, round-7 ...".
+#   Both are the suite's own matcher output. Nothing here diagnoses either: which expectation is
+#   stale is unknown, and this line is a debt, not a cause. Tracked as ticket 011.
+
+test_probe_index
+#   Red at `bbc2434997`: `probe file has no index row: card_hover_stability.swift`. The
+#   registry is right to complain — the probe exists, and no row and no close-out doc records a
+#   measurement behind it. Tracked as ticket 012.
