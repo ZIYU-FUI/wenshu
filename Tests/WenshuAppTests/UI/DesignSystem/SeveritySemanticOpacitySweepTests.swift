@@ -1,31 +1,15 @@
 //
-//  SeveritySemanticOpacitySweepTests.swift · Wenshu · v3.0
+//  SeveritySemanticOpacitySweepTests.swift · Wenshu
 //
-//  Per Q112 standing rule (= boss 2026-10-02 OOB sweep closure mode).
+//  Severity is a rank, not a color. The four levels read as neutral
+//  subtle, neutral medium, warning and critical; the warning and critical
+//  chips take the app's hero accent wash as their opacity, so an urgent
+//  chip is the same strength as every other accent-filled surface rather
+//  than a fifth value somebody picked.
 //
-//  Sweep round 74 migrated TodoListView's chipStyle to AnyShapeStyle
-//  + DesignTokens.accentTintOpacityHero. TodoListView was later
-//  deleted with the right-rail todo chain (= PaneView ->
-//  DynamicZoneView -> TodoListView), so its chipStyle test went with
-//  it. The 2 remaining tests guard the severity-opacity invariants
-//  that still have live owners.
-//
-//  Apple HIG semantic mapping (= severity hierarchy):
-//  - `.low`    → AnyShapeStyle(.secondary.opacity(0.15))   (= neutral subtle)
-//  - `.medium` → AnyShapeStyle(.secondary.opacity(0.2))    (= neutral medium)
-//  - `.high`   → AnyShapeStyle(.orange.opacity(accentTintOpacityHero))  (= warning)
-//  - `.urgent` → AnyShapeStyle(.red.opacity(accentTintOpacityHero))    (= critical)
-//
-//  Other severity-opacity sites preserved at call site:
-//  - LongFormGuardrailsView L227-229 (.strict/.warn/.off) → 0.18 literal
-//  - ReaderExperienceView L207-209 (score-based) → 0.22 literal
-//  - GenreFitView L216-218 (score-based) → 0.22 literal
-//  - ChatToolUsePartView L169/171 (.green/.red) → 0.06 literal
-//  - BookSettingConstraintsView L284 (.red) → 0.15 literal
-//
-//  These preserved values are wenshu-specific severity tiers
-//  (= Apple HIG has no canonical severity opacity scale).
-
+//  Score-based and guardrail opacities stay at their own call sites: they
+//  come out of the reader's numbers, and a token would pretend they came
+//  from the design system.
 import Testing
 import SwiftUI
 import Foundation
@@ -34,7 +18,7 @@ import Foundation
 @Suite("Severity semantic opacity sweep (= LongFormGuardrailsView badge)")
 struct SeveritySemanticOpacitySweepTests {
 
-    @Test("accentTintOpacityHero = 0.18 (round 73 + 74 unified value)")
+    @Test("accentTintOpacityHero is one value across the hero surfaces")
     func accentTintOpacityHeroUnifiedValue() throws {
         let url = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")

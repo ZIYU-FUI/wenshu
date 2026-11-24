@@ -1,51 +1,36 @@
 //
-//  FrameMagicSweepTests.swift · Wenshu · v3.0
+//  FrameMagicSweepTests.swift · Wenshu
 //
-//  Per Q112 standing rule expanded (= sweep round 9 = boss 2026-10-02
-//  OOB "继续"; = sweep magic-number .frame(width: N) literals to
-//  DesignTokens tokens).
+//  A frame a surface shares with another surface is a token: a list row's
+//  leading icon column, a step-number column, an attachment thumbnail, a
+//  bullet dot. Each figure is Apple's size for that element, and the
+//  suite fails on a `.frame(width: <literal>)` in a swept file.
 //
-//  4 new DesignTokens added (= Apple HIG measured values, not wenshu
-//  ad-hoc):
-//    - listRowLeadingIconColumnWidth (18) — Apple HIG sidebar list row
-//    - stepNumberColumnWidth (22) — Apple HIG list row trailing number
-//    - attachmentThumbnailSize (48) — Apple HIG inline attachment
-//    - bulletDotSize (3) — Apple HIG inline bullet indicator
-//
-//  Plus 2 existing tokens reused:
-//    - bulletSizeSmall (14) — Apple HIG small bullet indicator column
-//      (used for ChatToolUsePartView status pulse column)
-//    - PreviewPane 64×64 hero card thumbnail preserved (= sweep
-//      boundary exception per round 6 + round 9)
-//
-//  Sites swept: 6 (= 1 ChatToolUsePartView L68 status pulse + 1
-//  ChatPlanPartView L182 step number + 2 ChatAttachmentPreviewChip
-//  L57+L65 attachment thumbnail + 1 ChatMessageView L594 bullet dot +
-//  1 SidebarRowView L96 leading icon column).
-//
+//  A hero card's thumbnail is not swept. The PreviewPane's 64×64 image is
+//  a hero surface, and a hero sizes itself by its own composition.
 
 import Foundation
 import Testing
 @testable import WenshuApp
 
-@Suite("Round 9 frame magic-number sweep")
+@Suite("Frame magic-number sweep")
 struct FrameMagicSweepTests {
 
-    @Test("Round 9 — DesignTokens defines 4 new layout tokens")
+    @Test("DesignTokens defines 4 new layout tokens")
     func designTokensDefinesNewLayoutTokens() throws {
         let url = SourceLocator.url("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("static let listRowLeadingIconColumnWidth: CGFloat = 18"),
-                "listRowLeadingIconColumnWidth (18) must be defined (= round 9 new)")
+                "listRowLeadingIconColumnWidth (18) must be defined")
         #expect(content.contains("static let stepNumberColumnWidth: CGFloat = 22"),
-                "stepNumberColumnWidth (22) must be defined (= round 9 new)")
+                "stepNumberColumnWidth (22) must be defined")
         #expect(content.contains("static let attachmentThumbnailSize: CGFloat = 48"),
-                "attachmentThumbnailSize (48) must be defined (= round 9 new)")
+                "attachmentThumbnailSize (48) must be defined")
         #expect(content.contains("static let bulletDotSize: CGFloat = 3"),
-                "bulletDotSize (3) must be defined (= round 9 new)")
+                "bulletDotSize (3) must be defined")
     }
 
-    @Test("Round 9 — production code has no naked .frame(width: <int>) literals in swept files")
+    @Test("Production code has no naked .frame(width: <int>) literals in swept files")
     func productionCodeHasNoMagicFrame() throws {
         let sweptFiles = [
             "Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift",
@@ -65,7 +50,7 @@ struct FrameMagicSweepTests {
             let pattern = #"\.frame\(width: [0-9]+(?:, height: [0-9]+)?(?:, alignment: [^)]+)?\)"#
             let match = content.range(of: pattern, options: .regularExpression)
             #expect(match == nil,
-                    "\(path) must drop naked .frame(width: N) magic literal (= round 9 sweep target)")
+                    "\(path) must drop naked .frame(width: N) magic literal")
         }
     }
 
@@ -92,11 +77,11 @@ struct FrameMagicSweepTests {
             .joined(separator: "\n")
     }
 
-    @Test("Round 9 — PreviewPane 64×64 hero card thumbnail preserved as sweep boundary exception")
+    @Test("PreviewPane 64×64 hero card thumbnail preserved as sweep boundary exception")
     func previewPaneHeroCardException() throws {
-        // The hero card moved out of `PreviewPane.swift` and into
-        // `PreviewPaneCard.swift` (= the A33 extraction), so the boundary
-        // exception follows it: the 64 PT hero card thumbnail (= the
+        // The hero card is `PreviewPaneCard.swift`'s own file, so the
+        // boundary exception is read there: the 64 PT hero card thumbnail
+        // (= the
         // .resizable() + .aspectRatio() + .symbolRenderingMode(.monochrome)
         // pattern = SFIcon does not own hero card surfaces) now lives in
         // the card file.

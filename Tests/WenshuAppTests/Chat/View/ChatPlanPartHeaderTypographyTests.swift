@@ -18,13 +18,14 @@ import Foundation
 @Suite("ChatPlanPartView header typography")
 struct ChatPlanPartHeaderTypographyTests {
 
-    /// A card's title has to be a heading. The headline style is larger
-    /// AND heavier than the caption-scale chrome around it, so the rank
-    /// is a fact about the pair, not about one line.
+    /// A card's title has to be a heading. The rank is Apple's: the
+    /// headline role is the emphasized one and the caption2 role is the
+    /// smallest caption, so the pair needs no size kept by the app.
     @Test("The plan title outranks its chrome")
     func planTitleOutranksItsChrome() throws {
-        #expect(WenshuTextStyle.headline.pointSize > WenshuTextStyle.caption2.pointSize,
-                "the ranks the header is written against (= headline 13 PT over the caption-scale provenance strip)")
+        #expect(WenshuTextStyle.headline.font == .headline
+                && WenshuTextStyle.caption2.font == .caption2,
+                "the two rows name Apple's emphasized role and Apple's smallest caption role (= the app keeps no size table of its own to be outranked by)")
 
         let content = try Self.source()
         #expect(Self.fontLine(after: ##"Text("Plan: \(plan.query)")"##, in: content) == ".font(.headline.monospaced())",
@@ -32,8 +33,8 @@ struct ChatPlanPartHeaderTypographyTests {
         #expect(content.contains("matchingText: .headline"),
                 "the symbol beside the title wears the title's style (= a caption-scale glyph next to a headline reads as chrome, not as a title)")
 
-        // The provenance strip stays caption-scale: it is subordinate to
-        // the title by size, so the two cannot meet again in the middle.
+        // The provenance strip stays on the smallest caption role: it is
+        // subordinate to the title by role, so the two cannot meet again.
         let chrome = Self.fontLines(in: content).filter { $0.hasPrefix(".font(.caption2") }
         #expect(chrome.count >= 4,
                 "the step count, the provider, the model id and the elapsed time stay caption2 (= the rank is one title over a strip, not four more sizes)")

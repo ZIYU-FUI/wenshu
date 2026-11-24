@@ -157,12 +157,6 @@ enum DesignTokens {
     /// = = the real card does.
     static let skeletonTextBarHeightLarge: CGFloat = 12
 
-    /// The AppKit preferred-font scale, read from the SDK's own
-    /// `NSFont.preferredFont(forTextStyle:)`. Pinning editor and chrome to it
-    /// stops the chat zone drifting to ad-hoc `Font.system(size:)` calls.
-    static let bodyFontSize: CGFloat = NSFont.preferredFont(forTextStyle: .body).pointSize
-    static let captionFontSize: CGFloat = NSFont.preferredFont(forTextStyle: .caption1).pointSize
-    static let caption2FontSize: CGFloat = NSFont.preferredFont(forTextStyle: .caption2).pointSize
     /// The foreground colour of a status (= `.tertiary`). Replaces
     /// `.foregroundStyle(.tertiary)` in 16 files.
     static let statusForeground: HierarchicalShapeStyle = .tertiary

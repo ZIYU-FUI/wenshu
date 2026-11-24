@@ -1,34 +1,17 @@
 //
-//  AccentTintOpacityShadowOffsetSweepTests.swift · Wenshu · v3.0
+//  AccentTintOpacityShadowOffsetSweepTests.swift · Wenshu
 //
-//  Per Q112 standing rule (= boss 2026-10-02 OOB "继续" arc).
-//  Sweep round 28 + 29 verified: wenshu tree has zero magic
-//  `.opacity(0.12)` / `.opacity(0.18)` accent tints + zero
-//  magic `.shadow(...y: 4)` / `.shadow(...y: 2)` offsets.
-//
-//  Swept sites (= 1):
-//  - Sources/WenshuApp/Features/Kanban/View/KanbanView.swift
-//    L523 .opacity(0.18) →
-//    .opacity(DesignTokens.accentTintOpacityHero)
-//
-//  New DesignTokens (= 3):
-//  - accentTintOpacityHero (0.18) — Apple HIG Liquid Glass
-//    hero-card gradient start
-//  - surfaceShadowOffsetWindow (4) — Apple HIG macOS window
-//    chrome shadow offset
-//  - surfaceShadowOffsetButton (2) — Apple HIG macOS button
-//    shadow offset
-//
-//  accentTintOpacitySubtle (0.12) was deleted with its last
-//  caller (= the status-badge wrapper this sweep used to read);
-//  = the subtle accent overlay has no production site left.
+//  Two values the app decided once and then repeated: the wash an
+//  accent-filled surface sits on, and the vertical offset a window or a
+//  button casts. Each is a DesignTokens figure now, and a call site that
+//  spells one again is a second opinion nobody reconciled.
 
 import Testing
 import SwiftUI
 import Foundation
 @testable import WenshuApp
 
-@Suite("Sweep round 28 + 29 — accent-tint opacity + shadow offset tokens")
+@Suite("Accent-tint opacity + shadow offset tokens")
 struct AccentTintOpacityShadowOffsetSweepTests {
 
     @Test("Swept sites use DesignTokens for accent opacity + shadow offset")

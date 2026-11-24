@@ -1,36 +1,20 @@
 //
-//  PanelMaxHeightSweepTests.swift · Wenshu · v3.0
+//  PanelMaxHeightSweepTests.swift · Wenshu
 //
-//  Per Q112 standing rule (= boss 2026-10-02 OOB "继续" arc).
-//  Sweep round 33 + 34 + 35 + 36 verified: wenshu tree uses
-//  DesignTokens for `.frame(maxHeight: N)` literal panel
-//  heights (= Apple HIG macOS list panel standards for
-//  specialized tool views).
+//  A panel that scrolls inside a fixed band states the band as a token:
+//  `panelInlineMaxHeight`, `panelMediumMaxHeight`, `panelLargeMaxHeight`,
+//  `kanbanBoardMaxHeight`. Each figure is the height of the row count the
+//  panel shows, which is why a site may not invent one: a taller band
+//  silently promises rows that are not there, and a shorter one clips
+//  content behind a scroll that looks like a bug.
 //
-//  Swept sites (= 16):
-//  - ImportSheetHelpers.swift: .frame(maxHeight: 360)
-//  - SidebarSheets.swift L393: .frame(maxHeight: 220)
-//
-//  New DesignTokens (= 4):
-//  - panelMediumMaxHeight (180) — Apple HIG macOS list
-//    panel standard for 4-5 row display
-//  - panelLargeMaxHeight (220) — Apple HIG macOS list
-//    panel standard for 6-7 row display
-//  - panelInlineMaxHeight (100) — Apple HIG macOS
-//    compact inline list standard for 2-row display
-//  - kanbanBoardMaxHeight (360) — Apple HIG macOS
-//    kanban board standard (= 5-row display)
-//
-//  Note: Some sites reuse existing round-31 TextEditor
-//  height tokens (= textEditorCompactMaxHeight 120 +
-//  textEditorSmallMaxHeight 140) because the panel heights
-//  align with the same Apple HIG macOS list panel standards.
-
+//  A site that wants the height of the text editor's band asks for the
+//  text editor's token, not a new number that happens to match.
 import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("Sweep round 33-36 — panel maxHeight tokens")
+@Suite("Panel maxHeight tokens")
 struct PanelMaxHeightSweepTests {
 
     @Test("Swept sites use DesignTokens for maxHeight")

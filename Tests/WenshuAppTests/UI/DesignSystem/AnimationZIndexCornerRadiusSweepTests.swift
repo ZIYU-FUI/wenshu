@@ -1,34 +1,21 @@
 //
-//  AnimationZIndexCornerRadiusSweepTests.swift · Wenshu · v3.0
+//  AnimationZIndexCornerRadiusSweepTests.swift · Wenshu
 //
-//  Per Q112 standing rule (= boss 2026-10-02 OOB "继续" arc).
-//  Sweep round 38 verified:
-//  - Zero .cornerRadius(N) deprecated API (= all migrated to
-//    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.X)))
-//  - .animation(duration: N) literals preserved (= SwiftUI
-//    idiomatic micro-interaction durations; = no canonical
-//    Apple HIG value to tokenize)
-//  - .zIndex(N) literal: 3 sites = all comment-only
-//    documentation (= historical record from the v2.x
-//    "latest user row" pattern; = not actual code use)
-//  - .transition(.X) sites all use SwiftUI canonical enum
-//    (.opacity + .wenshuThinkingAppear wenshu custom) =
-//    preserved
-//  - .aspectRatio(N, contentMode: .X) sites all use either
-//    DesignTokens.presetThumbnailAspectRatio (round 32) or
-//    contentMode-only (.fit / .fill) = preserved
+//  Four shapes that look like style numbers and are not a token's job:
+//  `.animation` durations, `.zIndex`, `.transition`, `.aspectRatio`.
 //
-//  Swept sites (= 1):
-//  - SubAgentProgressView.swift L109:
-//    .cornerRadius(DesignTokens.surfaceCornerRadiusProgressCard)
-//    → .clipShape(RoundedRectangle(cornerRadius:
-//    DesignTokens.surfaceCornerRadiusProgressCard))
+//  What this suite insists on: a corner radius is clipped through
+//  `.clipShape(RoundedRectangle(cornerRadius: DesignTokens.X))` rather
+//  than drawn with the deprecated `.cornerRadius` modifier; a thumbnail's
+//  aspect ratio is `DesignTokens.presetThumbnailAspectRatio`; and a layer
+//  order, a duration and a transition stay per-site decisions, because
+//  Apple ships no scale to tokenize them against.
 
 import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("Sweep round 38 — deprecated API + zIndex/transition/aspectRatio sweep")
+@Suite("Deprecated API + zIndex/transition/aspectRatio sweep")
 struct AnimationZIndexCornerRadiusSweepTests {
 
     @Test("Zero .cornerRadius(N) deprecated API in source tree")

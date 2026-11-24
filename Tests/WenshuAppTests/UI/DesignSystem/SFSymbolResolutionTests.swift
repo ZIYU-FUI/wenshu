@@ -1,56 +1,32 @@
 //
 //  SFSymbolResolutionTests.swift · WenshuAppTests
 //
-//  Every SF Symbol name the app renders must EXIST in the system
-//  symbol set.
+//  Every SF Symbol name the app renders must exist in the system symbol
+//  set.
 //
 //  WHY THIS TEST EXISTS
-//  The main window's toolbar crashed the app with EXC_BREAKPOINT when
-//  the app's preferences changed. The chain (from the crash report's
-//  asiBacktraces) was:
+//  The main window's toolbar crashed the app with EXC_BREAKPOINT when the
+//  app's preferences changed. A preference change re-renders the toolbar,
+//  and one of its items carried the name "sidebar-right". That name does
+//  not exist: the system symbol is "sidebar.right", with a dot.
 //
-//    NSHostingView.preferencesDidChange
-//      -> AppKitWindowController.hostingView(_:didChangePreferences:)
-//      -> updateToolbarBridge(hosting:preferences:)
-//      -> AppKitToolbarStrategy.willReturnUpdates(preferences:)
-//      -> Toolbar.LocationStorage.updated(...)
-//      -> NSHostingView.setNeedsUpdateConstraints
-//      -> -[NSView _informContainerThatSubviewsNeedUpdateConstraints]
-//      -> -[NSWindow(NSDisplayCycle) _postWindowNeedsUpdateConstraints]
-//         -> NSGenericException -> SIGTRAP
+//  AppKit resolves the name on every render. An unresolvable name is
+//  re-resolved on every layout pass and the toolbar item's size never
+//  settles, so the window keeps asking for another constraint pass until
+//  AppKit's budget for that pass runs out and it raises — the exception
+//  arrives as a crash report, not as a message about a symbol name.
 //
-//  The preference change re-rendered the main window's toolbar, and the
-//  toolbar's inspector toggle carried the symbol name "sidebar-right".
-//  That name does not exist: the system symbol is "sidebar.right" (a
-//  dot). AppKit resolves the name on every render, so an unresolvable
-//  name is re-resolved on every layout pass, and the toolbar item's
-//  size never settles. The window then kept asking for another
-//  "Update Constraints in Window" pass until AppKit's budget (the
-//  number of views in the window) ran out and AppKit raised.
-//
-//  The toggle button that carried the name is gone (= the boss removed
-//  it on 2026-11-10), = so the pin below no longer reads that one
-//  button: = it reads EVERY source file, = because the failure was
-//  never about which button carried the name.
-//
-//  The single-letter typo was invisible in review because the compiler
-//  cannot check a string literal against the system symbol set. THIS
-//  test is that check: it resolves every symbol name the app renders
-//  against the live system symbol set, so a name that does not exist
-//  fails here instead of in a crash report.
+//  The compiler cannot check a string literal against the system symbol
+//  set, which is why a one-character typo survives review. This suite is
+//  that check: it resolves every name the app renders against the live
+//  symbol set, so a name that does not exist fails here instead.
 //
 //  WHAT IT COVERS
-//  1. Every literal passed to SFIcon / Image(systemName:) /
-//     Label(systemImage:) across Sources/ resolves.
-//  2. No source file names the exact typo that shipped (= the
-//     regression this test was written for): = the inspector toggle
-//     button itself is gone (= the boss removed it on 2026-11-10), = so
-//     the pin reads every source file instead of one toggle's.
-//  3. The app renders no symbol name whose only difference from a real
-//     one is a hyphen where the real one has a dot (= the exact shape
-//     of this bug).
-//
-
+//  A name is read from every source file, not from the one control that
+//  shipped the typo = the failure was never about which control carried
+//  the name. The exact name that shipped is pinned, and so is its shape:
+//  no name whose only difference from a real symbol is a hyphen where the
+//  real one has a dot.
 import AppKit
 import Foundation
 import Testing

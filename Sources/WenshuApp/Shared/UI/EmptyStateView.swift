@@ -160,11 +160,9 @@ struct EmptyStateView: View {
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: DesignTokens.guardrailSheetWidth)
                 }
-                // Body (= product .callout = 12 PT secondary =
-                // Apple's standard secondary text). The .tertiary
-                // tone + center alignment signals "this is
-                // supporting detail" (= Apple Mail / Notes /
-                // Pages convention).
+                // The detail line is the callout role in a
+                // tertiary tone, centered: one supporting line,
+                // not a second body.
                 Text(detail)
                     .font(.callout)
                     .foregroundStyle(DesignTokens.statusForeground)

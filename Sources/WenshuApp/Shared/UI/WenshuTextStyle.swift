@@ -1,92 +1,69 @@
 //
 //  WenshuTextStyle.swift
 //
-//  Text style enum + View extension extracted from IconStyles.swift (= §6.6
-//  god-class split: 88 LOC of text-related code moved out). The
-//  `WenshuTextStyle` enum is the canonical source for wenshu's text
-//  styles (= 9 cases spanning the product sizes + a few wenshu-
-//  specific tuning knobs). The `View.wenshuFont(...)` modifier is the
-//  presentational helper (= wraps `SwiftUI.View.font(_:)` with the
-//  WenshuTextStyle).
+//  The product's named text roles, and the one modifier that applies them.
+//  Each case is a SwiftUI text style and nothing more: the case owns the
+//  role's name, the size and weight belong to the style, which is why this
+//  file states no point size. A role that wants a measured number asks the
+//  rendering that produced it.
 //
 
 import SwiftUI
 
 // MARK: - wenshuFont
 
-/// Convenience modifier that applies a `WenshuTextStyle` (= the app's
-/// own text-style API; the HIG names no API). `.wenshuFont(.body)` is
-/// `.font(DesignTokens.statusFont)` (= 13 PT ad-hoc) collapsed into
-/// one call site: system body, same 13 PT default, same Dynamic Type
-/// semantics.
+/// Applies one of the product's named roles. `.wenshuFont(.body)` is the
+/// same call as `.font(.body)` through the enum, so a role can be passed
+/// around as a value instead of re-typed at every site.
 ///
 /// Used by: status bar text, hotkey columns, tab titles.
 extension View {
     func wenshuFont(_ style: WenshuTextStyle) -> some View {
         self.font(style.font)
     }
-}// MARK: - WenshuTextStyle
+}
 
-/// product text-style enum. Each case carries the SwiftUI text-style
-/// API (= `.body` / `.callout` / `.caption` / `.title2` / `.footnote`)
-/// + the point size (= SwiftUI default; = product default).
-///
-/// The case names walk product text-style terminology (= the 2026-09-15
-/// 2026-10-01 = "  HIG "; =  case  = Apple
-/// Text Style ).
+// MARK: - WenshuTextStyle
+
+/// The product's named text roles, each one a SwiftUI text style.
 enum WenshuTextStyle: Sendable, Equatable, CaseIterable {
 
-    /// system `\.largeTitle` (= SwiftUI `.font(.largeTitle)`, default 26 PT).
-    /// Used by: top-level page hero text.
+    /// system `.largeTitle`. Used by: top-level page hero text.
     case largeTitle
 
-    /// system `\.title` (= SwiftUI `.font(.title)`, default 22 PT).
-    /// Used by: section titles (= h1).
+    /// system `.title`. Used by: a section title (= h1).
     case title
 
-    /// system `\.title2` (= SwiftUI `.font(.title2)`, default 17 PT).
-    /// Used by: secondary section titles (= h2).
+    /// system `.title2`. Used by: a secondary section title (= h2).
     case title2
 
-    /// system `\.title3` (= SwiftUI `.font(.title3)`, default 15 PT).
-    /// Used by: tertiary section titles (= h3).
+    /// system `.title3`. Used by: a tertiary section title (= h3).
     case title3
 
-    /// system `\.headline` (= SwiftUI `.font(.headline)`, default 13 PT
-    /// semibold). Used by: list row emphasis.
+    /// system `.headline` — the emphasized role. Used by: a card's own title,
+    /// list row emphasis.
     case headline
 
-    /// system `\.body` (= SwiftUI `.font(.body)`, default 13 PT regular).
-    /// Apple-shipped Mail / Notes body text.
-    /// Used by: status bar text (= former `statusFont` 13 PT),
-    /// kanban card body.
+    /// system `.body`. Used by: status bar text, kanban card body.
     case body
 
-    /// system `\.callout` (= SwiftUI `.font(.callout)`, default 12 PT).
-    /// Apple-shipped inline button label.
-    /// Used by: hotkey combo label (= former `hotkeyComboFont` 12 PT),
-    /// pane tab title (= former `tabTitleFont` 12 PT).
+    /// system `.callout`. Used by: hotkey combo label, inline instruction.
     case callout
 
-    /// system `\.subheadline` (= SwiftUI `.font(.subheadline)`, default 11 PT).
-    /// Used by: secondary metadata.
+    /// system `.subheadline`. Used by: secondary metadata.
     case subheadline
 
-    /// system `\.caption` (= SwiftUI `.font(.caption)`, default 11 PT regular).
-    /// Apple-shipped inline footnote.
-    /// Used by: runtime CWD display chip (= former `runtimeCwdChipFont`
-    /// 11 PT), inline metadata captions.
+    /// system `.caption`. Used by: a footnote line, inline metadata.
     case caption
 
-    /// system `\.caption2` (= SwiftUI `.font(.caption2)`, default 11 PT).
-    /// Used by: very small captions.
+    /// system `.caption2`. Used by: a caption under an icon, chrome detail
+    /// text.
     case caption2
 
-    /// system `\.footnote` (= SwiftUI `.font(.footnote)`, default 10 PT).
-    /// Used by: footnote text.
+    /// system `.footnote`. Used by: footnote text.
     case footnote
 
-    /// SwiftUI text-style API (= the system text styles).
+    /// The SwiftUI text style the role names.
     var font: Font {
         switch self {
         case .largeTitle: .largeTitle
@@ -100,20 +77,6 @@ enum WenshuTextStyle: Sendable, Equatable, CaseIterable {
         case .caption: .caption
         case .caption2: .caption2
         case .footnote: .footnote
-        }
-    }
-
-    /// System default point size (= SwiftUI text-style default).
-    var pointSize: CGFloat {
-        switch self {
-        case .largeTitle: 26
-        case .title: 22
-        case .title2: 17
-        case .title3: 15
-        case .headline, .body: 13
-        case .callout: 12
-        case .subheadline, .caption, .caption2: 11
-        case .footnote: 10
         }
     }
 }

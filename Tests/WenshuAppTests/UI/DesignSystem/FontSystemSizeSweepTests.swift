@@ -15,10 +15,10 @@ import Foundation
 import Testing
 @testable import WenshuApp
 
-@Suite("Round 7 font sweep (= .system(size:) monospaced → .caption/.caption2 + .monospaced())")
+@Suite("Font sweep (= .system(size:) monospaced → .caption/.caption2 + .monospaced())")
 struct FontSystemSizeSweepTests {
 
-    @Test("Round 7 — ChatToolDiffPreview diff line viewer uses Apple HIG caption2 + monospaced()")
+    @Test("ChatToolDiffPreview diff line viewer uses Apple HIG caption2 + monospaced()")
     func chatToolDiffPreviewUsesCaption2Monospaced() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreview.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
@@ -28,7 +28,7 @@ struct FontSystemSizeSweepTests {
                 "ChatToolDiffPreview must not size a text style by hand")
     }
 
-    @Test("Round 7 — ChatToolDiffPreviewSheet diff body viewer uses Apple HIG caption + monospaced()")
+    @Test("ChatToolDiffPreviewSheet diff body viewer uses Apple HIG caption + monospaced()")
     func chatToolDiffPreviewSheetUsesCaptionMonospaced() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreviewSheet.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
@@ -38,7 +38,7 @@ struct FontSystemSizeSweepTests {
                 "ChatToolDiffPreviewSheet must not size a text style by hand")
     }
 
-    @Test("Round 7 — IconStyles.swift preserves the internal .font(.system(size:)) for SFIcon")
+    @Test("IconStyles.swift preserves the internal .font(.system(size:)) for SFIcon")
     func iconStylesInternalSystemSizePreserved() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let content = try String(contentsOf: url, encoding: .utf8)

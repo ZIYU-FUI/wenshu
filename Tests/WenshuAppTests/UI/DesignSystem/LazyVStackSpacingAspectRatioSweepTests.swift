@@ -1,42 +1,21 @@
 //
-//  LazyVStackSpacingAspectRatioSweepTests.swift · Wenshu · v3.0
+//  LazyVStackSpacingAspectRatioSweepTests.swift · Wenshu
 //
-//  Per Q112 standing rule (= boss 2026-10-02 OOB "继续" arc).
-//  Sweep round 32 verified: wenshu tree uses DesignTokens for
-//  LazyVStack spacing (= missed by round 11 stack-spacing sweep
-//  because LazyVStack uses the same spacing parameter as VStack
-//  but only LazyVStack was scanned separately) + aspectRatio
-//  magic (= Apple HIG classic photo / preview thumbnail
-//  standard).
+//  `LazyVStack` takes the same spacing parameter as `VStack` and has to be
+//  scanned on its own, because a lazy stack is the one a long list builds
+//  row by row and its spacing is the figure a reader would otherwise
+//  re-type per row. Its spacing comes from the spacing tokens; a
+//  thumbnail's aspect ratio comes from
+//  `DesignTokens.presetThumbnailAspectRatio`, Apple's preview-thumbnail
+//  ratio.
 //
-//  Swept sites (= 6):
-//    LazyVStack(spacing: 6) → spacingTight
-//    LazyVStack(spacing: 4) → spacingIconic
-//    LazyVStack(spacing: 6) → spacingTight
-//  - ChatView.swift L329:
-//    LazyVStack(spacing: 8, pinnedViews:) → spacingStandard
-//  - KanbanView.swift L366:
-//    LazyVStack(spacing: 6) → spacingTight
-//  - PresetCard.swift L32:
-//    .aspectRatio(4.0 / 3.0, contentMode: .fit) →
-//    .aspectRatio(DesignTokens.presetThumbnailAspectRatio,
-//    contentMode: .fit)
-//
-//  New DesignTokens (= 1):
-//  - presetThumbnailAspectRatio (4.0 / 3.0) — Apple HIG
-//    classic photo / preview thumbnail standard (= macOS 26+
-//    Finder preview thumbnail ratio)
-//
-//  Preserved sites (= 1, Apple SwiftUI canonical):
-//  - CommandPaletteView.swift L154:
-//    LazyVStack(spacing: 0) (= canonical SwiftUI no-spacing
-//    inline stacking pattern)
-
+//  `LazyVStack(spacing: 0)` is the canonical no-gap stack and stays a
+//  literal.
 import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("Sweep round 32 — LazyVStack spacing + aspectRatio tokens")
+@Suite("LazyVStack spacing + aspectRatio tokens")
 struct LazyVStackSpacingAspectRatioSweepTests {
 
     @Test("Swept sites use DesignTokens for LazyVStack spacing + aspectRatio")

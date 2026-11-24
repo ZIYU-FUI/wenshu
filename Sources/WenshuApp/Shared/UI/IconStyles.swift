@@ -8,10 +8,11 @@
 // call site spells its own size or weight: a value wanted twice belongs in
 // this file, and a value wanted once is still not written at the call site.
 //
-// A case here is a real AppKit or SwiftUI surface, and its doc comment names
-// that surface and the Apple figure behind it. `IconStylesTests` reads those
-// figures back out of this file and compares them with `IconStyle.pointSize`,
-// so a tier can only be retuned by moving its own number.
+// A case here is a real AppKit or SwiftUI surface. Its doc comment names that
+// surface, and the size it draws is either an Apple control metric the comment
+// cites or this tier's own number. `IconStylesTests` reads those figures back
+// out of this file and compares them with `IconStyle.pointSize`, so a tier can
+// only be retuned by moving its own number.
 //
 // What this file does not own: the size of a container. A hot area, a tile, a
 // row's leading column and a thumbnail's frame are layout, and they stay in
@@ -307,8 +308,8 @@ struct SFIcon: View {
     /// optical-size strategy from `wenshu-apple-api-first`). A CALLER
     /// passes the point size its own glyph needs (= one icon that must
     /// optical-match the icons around it, = measured for that case).
-    /// The factory's own size is `style.pointSize`, the Apple default for
-    /// the zone (= 14 PT for `.inlineSmall`). The override replaces it
+    /// The factory's own size is `style.pointSize`, the zone's number
+    /// (= 14 PT for `.inlineSmall`). The override replaces it
     /// inside that one `.font` expression, so the caller keeps the whole
     /// rendering pipeline (= `.symbolRenderingMode` + `.foregroundStyle`).
     /// nil = use `style.pointSize`. A symbol that sits beside text names
@@ -319,9 +320,9 @@ struct SFIcon: View {
     /// strategy `pointSizeOverride` serves, on the weight axis).
     ///
     /// The library sidebar's pinyin letter-circle glyphs are `.sidebarTree`
-    /// (= 16 PT) and need the SF Symbols 6 `.thin` weight, the next
-    /// thinnest Apple ships: a monogram is read as a letterform, not as an
-    /// icon. Weight is a property of the ZONE, so a call site that needs
+    /// (= 16 PT) and are drawn at the `.thin` weight that ruling names: a
+    /// monogram is read as a letterform, not as an icon. Weight is a property
+    /// of the ZONE, so a call site that needs
     /// another weight at the zone's size had either to reach past the
     /// factory for a naked `Image(systemName:)` or to lose the weight.
     ///
@@ -337,17 +338,15 @@ struct SFIcon: View {
     /// and its weight. Naming the style here makes the glyph and the label
     /// beside it one piece of type, at one size and at Apple's own weight for
     /// that style; a zone tier cannot do it, because the factory cannot know
-    /// what text the call site happens to sit next to (= `.inlineSmall` is
-    /// 14 PT and a caption is 10 PT, so a symbol sizing off the tier draws
-    /// larger than its own label).
+    /// what text the call site happens to sit next to (= a 14 PT tier font
+    /// outdraws the caption role the label beside it wears).
     ///
     /// When this is named it decides the font on its own. `style.pointSize`,
     /// `pointSizeOverride` and `weightOverride` are the zone's answer to the
     /// same question, and two fonts on one symbol resolve to the first one
-    /// applied (= `.inlineSmall` is 14 PT and a caption is 11, so the tier's
-    /// font under a named style would draw the glyph larger than its own
-    /// label). `IconStylesTests` reads the pairing back out of the call
-    /// sites it covers.
+    /// applied, so a tier font left under a named style would silently win
+    /// over the label the glyph belongs to. `IconStylesTests` reads the
+    /// pairing back out of the call sites it covers.
     let matchingText: WenshuTextStyle?
 
     init(

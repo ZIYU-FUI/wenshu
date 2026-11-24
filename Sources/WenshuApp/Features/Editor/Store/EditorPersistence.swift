@@ -121,10 +121,7 @@ enum EditorPersistence {
         // `rename(2)`). The total cost of the write
         // path is well under 200 μs (= the user
         // does not perceive any UI hitch on a
-        // 3-second debounce tick). An earlier archived round cut the
-        // chat padding to 0 PT and the body text to 13 PT; that work
-        // was the real user-perceived perf win (= the editor
-        // body now scrolls smoothly). This
+        // 3-second debounce tick). This
         // function's skip-on-content-equal is the
         // secondary perf win (= no IO, no SwiftData
         // round-trip) and the primary correctness

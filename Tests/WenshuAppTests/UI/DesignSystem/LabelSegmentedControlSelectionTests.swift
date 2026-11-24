@@ -1,35 +1,20 @@
 //  LabelSegmentedControlSelectionTests.swift · Wenshu
 //
-//  The close-document path's second invariant: a segmented control
-//  must never report a selected segment that names a DIFFERENT value
-//  than the one it is bound to.
+//  A segmented control must never report a selected segment that names a
+//  different value than the one it is bound to.
 //
-//  Why this is its own file (= the wenshu test convention: 1 source +
-//  1 test per ticket): `LabelSegmentedControl` is used by the editor's
-//  tab strip (= whose labels are the open documents' ids) and by the
-//  library sidebar's switcher. Both bind a value that can stop
-//  naming a segment: the editor's tab strip binds the active
-//  document's id, and closing that document removes the id from the
-//  label list.
+//  AppKit covers one half of this by itself: when the segment COUNT
+//  shrinks, `NSSegmentedControl` clamps `selectedSegment` to -1, and -1
+//  is what it reports when nothing is selected.
 //
-//  Measured 2026-10-27 with a headless AppKit probe (the same shape
-//  the app uses):
-//    - `NSSegmentedControl` clamps `selectedSegment` to -1 when the
-//      segment COUNT shrinks (= 3 -> 2 -> 1 -> 0), so an index that
-//      pointed past the end never survived the shrink;
-//    - -1 is what the control reports when nothing is selected, and
-//      writing -1 is accepted;
-//    - the control's own size collapses to a 0x0 intrinsic size when
-//      its count reaches zero (= the size collapse the close-document
-//      crash is made of).
-//
-//  So the count-shrink case is AppKit's to handle, and it does. The
-//  app's own bug was the OTHER case: the bound value stopped naming
-//  a segment WITHOUT the count shrinking (= the value changed to one
-//  that is not in the list), and the control kept drawing the old
-//  segment. The bound value said one thing and the drawn selection
-//  said another.
-
+//  The other half is the app's. A bound value can stop naming a segment
+//  with the count unchanged (= the value moves to one that is not in the
+//  list), and the control keeps drawing the old selection: the binding
+//  says one thing, the drawn segment says another. Both binders are
+//  exposed = the editor's tab strip binds the active document's id, the
+//  library sidebar's switcher binds the shelf. A control whose count
+//  reaches zero also collapses to a 0×0 intrinsic size, which is where a
+//  layout that trusts the size goes wrong.
 import AppKit
 import Foundation
 import SwiftUI

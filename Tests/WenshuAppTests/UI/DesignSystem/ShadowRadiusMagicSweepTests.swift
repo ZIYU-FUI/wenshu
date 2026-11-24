@@ -1,42 +1,31 @@
 //
-//  ShadowRadiusMagicSweepTests.swift · Wenshu · v3.0
+//  ShadowRadiusMagicSweepTests.swift · Wenshu
 //
-//  Per Q112 standing rule expanded (= sweep round 12 = boss 2026-10-02
-//  OOB "继续"; = sweep magic-number .shadow(radius: N) literals to
-//  DesignTokens tokens).
+//  Two shadows, both of them chrome: what a floating panel casts and what
+//  a button casts. Each is the Apple measurement for that control, held in
+//  a `DesignTokens` radius, and the suite fails on a
+//  `.shadow(radius: <literal>)`.
 //
-//  2 new DesignTokens added (= Apple HIG measured values, not wenshu
-//  ad-hoc):
-//    - surfaceShadowRadiusWindow (12) — Apple HIG macOS window chrome shadow
-//    - surfaceShadowRadiusButton (8) — Apple HIG macOS button shadow
-//
-//  Sites swept: 2 (= LayoutEditBar L76 floating edit-bar shadow +
-//  EditorPaperCanvas L80 editor paper canvas shadow).
-//
-//  Note: opacity literal values (.opacity(0.5), .opacity(0.12), etc.)
-//  are NOT swept (= per round 12 decision: opacity is a SwiftUI
-//  idiomatic literal, no Apple HIG canonical opacity scale exists;
-//  = preserving the literal pattern as SwiftUI idiomatic).
-//
-
+//  A shadow's opacity is not swept: SwiftUI spells it inline as idiom and
+//  Apple ships no opacity scale to put it in a token.
 import Foundation
 import Testing
 @testable import WenshuApp
 
-@Suite("Round 12 shadow radius magic-number sweep")
+@Suite("Shadow radius magic-number sweep")
 struct ShadowRadiusMagicSweepTests {
 
-    @Test("Round 12 — DesignTokens defines 2 new shadow radius tokens")
+    @Test("DesignTokens defines 2 new shadow radius tokens")
     func designTokensDefinesNewShadowRadiusTokens() throws {
         let url = SourceLocator.url("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("static let surfaceShadowRadiusWindow: CGFloat = 12"),
-                "surfaceShadowRadiusWindow (12) must be defined (= round 12 new)")
+                "surfaceShadowRadiusWindow (12) must be defined")
         #expect(content.contains("static let surfaceShadowRadiusButton: CGFloat = 8"),
-                "surfaceShadowRadiusButton (8) must be defined (= round 12 new)")
+                "surfaceShadowRadiusButton (8) must be defined")
     }
 
-    @Test("Round 12 — production code has no naked .shadow(radius: <int>) literals")
+    @Test("Production code has no naked .shadow(radius: <int>) literals")
     func productionCodeHasNoMagicShadowRadius() throws {
         let sweptFiles = [
             "Sources/WenshuApp/Features/Editor/View/EditorPaperCanvas.swift",
@@ -50,7 +39,7 @@ struct ShadowRadiusMagicSweepTests {
             // sweep target.
             let pattern = #"radius: [0-9]+[,\s]"#
             #expect(content.range(of: pattern, options: .regularExpression) == nil,
-                    "\(path) must drop naked .shadow(radius: N) magic literal (= round 12 sweep target)")
+                    "\(path) must drop naked .shadow(radius: N) magic literal")
         }
     }
 }

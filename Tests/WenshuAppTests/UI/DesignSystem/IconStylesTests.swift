@@ -1,25 +1,16 @@
 //
-//  IconStylesTests.swift · Wenshu · v3.0
+//  IconStylesTests.swift · Wenshu
 //
 //  IconStyles.swift is the central abstraction (= SFIcon + IconStyle +
 //  IconColor + IconRendering + WenshuTextStyle). A factory's contract is
 //  checkable without a window: value types are constructed directly, and
 //  what a View body wires is read out of the source text.
 //
-//  Coverage:
-//      1. IconStyle.pointSize = Apple-default (= not wenshu-invented)
-//      2. IconStyle.fontWeight = .regular everywhere (no .thin anywhere)
-//      3. IconStyle.isHitArea = true for .hitArea / .toolbarButton
-//      4. IconStyle.allCases = the zone list the factory declares
-//      5. WenshuTextStyle.font = SwiftUI text-style API verbatim
-//      6. WenshuTextStyle.pointSize = Apple default (= not ad-hoc)
-//      7. SFIcon source declares @MainActor + the canonical initializer
-//      8. SFIcon source applies the .hierarchical default at <38 PT zone
-//      9. SFIcon source applies the .monochrome default at ≥38 PT zone
-//     10. IconColor.style = SwiftUI semantic color, no ad-hoc RGB
-//     11. View extension `wenshuFont(_:)` exists and pins the case body
-//
-
+//  What the suite holds the factory to: a tier's size is the Apple figure
+//  its name claims and its own doc comment states; the weight is uniform;
+//  a glyph set beside text wears that text's style; the rendering default
+//  follows the zone; and the colours come from the system rather than an
+//  opacity somebody picked.
 import Foundation
 import SwiftUI
 import Testing
@@ -154,23 +145,6 @@ struct IconStylesTests {
         #expect(WenshuTextStyle.caption.font == .caption)
         #expect(WenshuTextStyle.caption2.font == .caption2)
         #expect(WenshuTextStyle.footnote.font == .footnote)
-    }
-
-    // MARK: - WenshuTextStyle.pointSize = Apple-default (= not ad-hoc)
-
-    @Test("WenshuTextStyle.pointSize = SwiftUI text-style default (= Apple HIG text style default)")
-    func wenshuTextStylePointSize() {
-        #expect(WenshuTextStyle.largeTitle.pointSize == 26)
-        #expect(WenshuTextStyle.title.pointSize == 22)
-        #expect(WenshuTextStyle.title2.pointSize == 17)
-        #expect(WenshuTextStyle.title3.pointSize == 15)
-        #expect(WenshuTextStyle.headline.pointSize == 13)
-        #expect(WenshuTextStyle.body.pointSize == 13)
-        #expect(WenshuTextStyle.callout.pointSize == 12)
-        #expect(WenshuTextStyle.subheadline.pointSize == 11)
-        #expect(WenshuTextStyle.caption.pointSize == 11)
-        #expect(WenshuTextStyle.caption2.pointSize == 11)
-        #expect(WenshuTextStyle.footnote.pointSize == 10)
     }
 
     // MARK: - WenshuTextStyle.allCases coverage

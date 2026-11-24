@@ -1,38 +1,21 @@
 //
 //  LoadingPlaceholderTests.swift · Wenshu
 //
-//  The project's ONE loading placeholder (= the skeleton mechanism every
-//  zone that waits for content asks). Tests = source-level (= per the
-//  wenshu test convention): the shape vocabulary is a value type, so it
-//  is built directly, and the wiring is read off the source.
+//  The project's one loading placeholder: the skeleton every zone that
+//  waits for content asks for. The tests are source-level, the way this
+//  project's view tests are written = the shape vocabulary is a value type
+//  and gets built directly, the wiring is read out of the source.
 //
-//  Coverage (= 16 tests, = = and the list below is derived from the
-//  file, = = so a test added here and not there is visible):
-//      1.  the shape vocabulary is exactly three shapes (= rows / cards /
-//          groups) = = and no zone invents its own
-//      2.  a row shape carries its count and its unit
-//      3.  the two row anatomies are DIFFERENT (= the inspector's card
-//          and the sidebar's tree row)
-//      4.  a group shape carries its count (= the board's own groups)
-//      5.  a card shape carries the zone's own grid and the card count
-//      6.  the motion is Apple's phase animator (= not a hand-rolled
-//          timer)
-//      7.  the placeholder draws no glyph and no text
-//      8.  every zone whose content arrives draws this component
-//      9.  the zone-level spinners are gone (= = the base's four are
-//          gone, = = and one zone that had no loading state has one)
-//      10. the board's read captures the book before its yield
-//      11. an inline activity indicator stays Apple's (= = it is not a
-//          zone)
-//      12. the placeholder's metrics are tokens (= = not literals)
-//      13. the placeholder's own tokens are defined
-//      14. every shape in the vocabulary has a zone that asks for it
-//      15. the motion stops when the system asks it to (= = Reduce
-//          Motion)
-//      16. the chat zone draws no placeholder (= = and the contract
-//          says why)
-//
-
+//  What the suite holds: the vocabulary is exactly three shapes, and no
+//  zone invents a fourth. A row carries its count and its unit, a group
+//  its count, a card the zone's own grid and count, and the sidebar tree
+//  row and the inspector card are different anatomies rather than one
+//  shape stretched to fit two surfaces. The placeholder draws no glyph and
+//  no text, its metrics are tokens, and its motion is Apple's phase
+//  animator — which stops when the system asks for reduced motion. Every
+//  zone whose content arrives asks for this component instead of running a
+//  spinner of its own; the chat zone is the exception, and its test states
+//  why.
 import Foundation
 import SwiftUI
 import Testing

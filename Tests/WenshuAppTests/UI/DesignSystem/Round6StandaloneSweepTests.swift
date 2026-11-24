@@ -1,46 +1,25 @@
 //
-//  Round6StandaloneSweepTests.swift · Wenshu · v3.0
+//  Round6StandaloneSweepTests.swift · Wenshu
 //
-//  Per Q112 standing rule expanded (= round 6 sweep: standalone
-//  Image(systemName:) sites OUTSIDE Label icon slot / Button /
-//  comment contexts).
+//  A symbol that sits directly in an `HStack`, a `VStack` or a button's
+//  label, with an `imageScale` chain on it, is a glyph the call site
+//  sized by hand. Those sites come through `SFIcon`; the `Label` icon
+//  slot is the other sweep's subject.
 //
-//  This is the round 6 sweep (= boss 2026-10-02 OOB "继续"; =
-//  sweep multi-site view files that had remaining standalone Image
-//  sites that were NOT in the Label icon slot pattern that round 5
-//  swept; = these are the standalone = in HStack / VStack / Button
-//  label content with .imageScale modifier chain).
-//
-//  Sweep files (24 total, 49 sites swept):
-//    MemoryRetrievalPanel (1) / PaneTabBar (2) / ShellMiddleColumn (1)
-//    / ShellDetailColumn (10) / RuntimeCWDDisplayChip (1)
-//    / ChatMessageHoverActions (2) / ChatToolUsePartView (2 - 1 swept, 1 exception)
-//    / ChatPlanPartView (3) / PreviewSortMenuButton (1) / LayoutPicker (2)
-//    / SidebarSheets (3) / KanbanView (1) / CommandPaletteView (2)
-//    / ForeshadowingGraphWindow (1) / CanvasWindow (2) / CronWindow (1)
-//    / LibraryRootView (1)
-//
-//  Exceptions correctly preserved (= outside v3.0 sweep scope):
-//    - ChatToolUsePartView L57: wenshu self-implemented pulse
-//      animation chain (.animation + .opacity modifier chain) —
-//      SFIcon doesn't own the animation hook.
-//    - PreviewPane L1566: 64 PT hero card with .resizable + .aspectRatio
-//      + .frame(width:64, height:64) + .symbolRenderingMode(.monochrome)
-//      — sweep boundary (= hero surface not toolbar/inline).
-//    - ShellPlaceholder L20: ContentUnavailableView with .imageScale(.large)
-//      — Apple HIG canonical 38 PT icon.
-//
-
+//  Three shapes are preserved deliberately: a self-implemented animation
+//  chain whose hook the factory does not own; a hero card that sizes its
+//  own thumbnail; and Apple's `ContentUnavailableView`, which draws its
+//  glyph at the system default.
 import Foundation
 import SwiftUI
 import Testing
 @testable import WenshuApp
 
-@Suite("Round 6 sweep (= standalone Image(systemName:) sites outside Label icon slot)")
+@Suite("Standalone Image(systemName:) sites outside the Label icon slot")
 struct Round6StandaloneSweepTests {
 
     static let exceptionSites: [String] = [
         "Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift:57", // pulse animation chain
-        "Sources/WenshuApp/Workspace/PreviewPane.swift:1570", // 64 PT hero card icon (= was L1566 in the pre-§11 sweep commit)
+        "Sources/WenshuApp/Workspace/PreviewPane.swift:1570", // the hero card's glyph: a hero surface, not a toolbar or an inline row
     ]
 }

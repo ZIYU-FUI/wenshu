@@ -1,46 +1,21 @@
 //
-//  DeadDesignTokensSweepTests.swift · Wenshu · v3.0
+//  DeadDesignTokensSweepTests.swift · Wenshu
 //
-//  Per Q112 standing rule (= boss 2026-10-02 OOB "继续" arc).
-//  Sweep round 37 verified: wenshu DesignTokens has zero
-//  dead active tokens (= 0 callers in production source).
+//  A token no production code asks for is not a value waiting to be used;
+//  it is a value that will be used wrongly, because the next reader
+//  assumes something depends on it and copies it.
 //
-//  10 dead DesignTokens deleted in round 37 (= 0 callers):
-//  1. formLabelWidth (60) — Apple HIG inline form label standard
-//  2. settingsRowSpacing (8) — Apple HIG settings row standard
-//  3. runtimeCwdChipFont — deleted in commit T18 (= v3.0 sweep
-//     migrated the 2 callers in RuntimeCWDDisplayChip.swift
-//     into SwiftUI's .font(.caption2))
-//  4. hotkeyComboFont — deleted during v3.0 sweep migration
-//  5. tabTitleFont — deleted during v3.0 sweep migration
-//  6. chatInputMinWidth (80) — Apple HIG chat input column minimum
-//  7. toolbarBandHeight (32) — Apple HIG toolbar band standard
-//  8. popoverMaxHeight (320) — Apple HIG popover max-height
-//  9. chipAvatarSize (110x80) — Apple HIG chip avatar standard
-//  10. formColumnWidth (120) — Apple HIG form column minimum
-//
-//  2 more dead DesignTokens deleted with the icon wrappers that
-//  were their last production caller:
-//  11. chromeHeight (30) — deleted with the general-list-row
-//      wrapper (= the row was its only caller)
-//  12. accentTintOpacitySubtle (0.12) — deleted with the
-//      status-badge wrapper (= the badge was its only caller)
-//
-//  Note: runtimeCwdChipFont, hotkeyComboFont, tabTitleFont are gone
-//  from DesignTokens.swift completely -- the declaration AND the
-//  `Token was:` history comment (the A112 docblock collapse removed the
-//  history comment too). They are NOT active tokens (= no `static let`
-//  declaration), and the sweep asserts they stay that way.
-//
-//  Other dead tokens deleted in earlier arcs (= total = 13):
-//  - Round 26: tabCloseGlyphFontSize, systemMessageFill,
-//    bubblePaddingHorizontal, surfaceCornerRadiusBadge
+//  The suite reads DesignTokens and fails on any token with no caller. It
+//  also fails on a name that survives only as a declaration someone
+//  stopped wiring: the sweep asserts absence, so a half-deleted token that
+//  still declares itself is caught here rather than found by a future
+//  autocomplete.
 
 import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("Sweep round 37 — dead DesignTokens sweep")
+@Suite("Dead DesignTokens sweep")
 struct DeadDesignTokensSweepTests {
 
     @Test("9 dead tokens deleted from DesignTokens")
@@ -65,7 +40,7 @@ struct DeadDesignTokensSweepTests {
         ] {
             #expect(
                 !content.contains("static let \(token)"),
-                "DesignTokens should NOT define \(token) (deleted in round 37)"
+                "DesignTokens should NOT define \(token): nothing in production asks for it"
             )
         }
     }
@@ -148,11 +123,10 @@ struct DeadDesignTokensSweepTests {
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: tokensPath, encoding: .utf8)
 
-        // The A112 docblock collapse removed the `Token was:` history
-        // comments with the declarations, so the old assertion ("the
-        // history comment is preserved") no longer describes the source.
-        // What the sweep actually protects is that these three tokens
-        // do not come back as ACTIVE tokens.
+        // What the sweep protects is that these three names do not come
+        // back as active declarations. Nothing in production asks for
+        // them, and a token that only a comment remembers is a token the
+        // next reader will copy as if something depended on it.
         for token in ["runtimeCwdChipFont", "hotkeyComboFont", "tabTitleFont"] {
             #expect(
                 !content.contains("static let \(token)"),

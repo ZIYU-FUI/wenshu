@@ -1,54 +1,20 @@
 //
-//  LabelIconSlotSweepTests.swift · Wenshu · v3.0
+//  LabelIconSweepTests.swift · Wenshu
 //
-//  Per Q112 standing rule expanded (= Label icon slot sweep + 15 view
-//  files / 26 sites / 1 commit batch).
+//  A `Label`'s icon slot is drawn by the factory, not by a naked
+//  `Image(systemName:)` with an `imageScale` chain on it.
 //
-//  This is the round 5 sweep (= boss 2026-10-02 OOB "采纳你的建议"; =
-//  re-evaluate the `Label { Text } icon: { Image(systemName: ...).imageScale(.small) }`
-//  pattern that round 3 had SKIPPED). The re-evaluation finds:
+//  `.imageScale(.small)` is a size nobody named: it equals the slot's own
+//  default, so it changes nothing, and it bypasses the semantic colour
+//  `SFIcon` applies. The slot's glyph therefore comes in as
+//  `SFIcon(name, style:, color:, matchingText:)`, which is the shape this
+//  suite reads out of the files that hold a Label icon slot today.
 //
-//  - The .imageScale(.small) modifier on Label's icon slot is a forced
-//  14 PT icon size (= the same as Label's default icon slot size). It
-//  is redundant (= no-op visually) AND it bypasses the SFIcon factory.
-//  So the v3.0 sweep applies (= replace `Image(systemName: x).imageScale(.small)`
-//  with `SFIcon(x, style: .inlineSmall, color: IconColor.tint)` to
-//  enforce the semantic color token policy).
-//
-//  - The .imageScale(.large) modifier (= 28 PT) on ContentUnavailableView
-//  icon slots (= ShellPlaceholder L20) is HIG canonical (= Apple's
-//    ContentUnavailableView is sweep exception) — REMOVED in
-//    commit 65ae2d2b6 (2026-10-03) when ShellPlaceholder.swift
-//    was deleted (= 26-line duplicate of EmptyStateView).
-//    EmptyStateView has no Image(systemName:) in any Label slot,
-//    so the sweep invariant holds without a ShellPlaceholder check.
-//    ContentUnavailableView uses 38 PT glyph = the system default). The
-//    v3.0 sweep SKIPS this case (= outside the central SFIcon factory
-//    scope; = Apple first-party surface).
-//
-//  Sweep files (= the files that hold a Label icon slot today, = 5 slots
-//    across 3 call-site files):
-//    PromptCacheStatusView (3)
-//    ChatPlanPartView (1)
-//    SettingView (1)
-//
-//  InspectorView held a fourth (= the inspector toggle's own Label,
-//  = removed on 2026-11-10 when the toggle button itself went: = the
-//  column's visibility is now the section switch's job alone).
-//
-//  The `SFLabelRow` factory's own slot (= `IconStylesViews.swift`) is
-//  NOT one of the swept files: the factory draws the slot's frame and
-//  the call site supplies the glyph, so its `icon: { }` block carries
-//  no call-site glyph to count.
-//
-//  The list was REBUILT on 2026-11-02 from the tree, because the old
-//  list named `KanbanView.swift`, which holds no Label icon slot at all
-//  (= its one `icon:` is `EmptyStateView`'s String parameter, and
-//  `EmptyStateView` renders that through `SFIcon(icon, style:
-//  .emptyStateHero, ...)` itself). The invariant the sweep protects did
-//  not change; only the file that carried it moved.
-//
-
+//  Two shapes stay outside the rule, on purpose. `ContentUnavailableView`
+//  is Apple's first-party surface and draws its own glyph at the system
+//  default. `SFLabelRow`'s slot belongs to the factory itself: it draws
+//  the frame and the caller supplies the glyph, so there is no call-site
+//  glyph to count there.
 import Foundation
 import SwiftUI
 import Testing
@@ -77,17 +43,10 @@ struct LabelIconSlotSweepTests {
             // The sweep replaced it with `icon: { SFIcon("<x>", style: .inlineSmall, color: IconColor.tint) }`.
             let badPattern = #"icon: \{ Image\(systemName:\s*"[^"]+"\s*\)\s*\.imageScale\(\.small\)\s*\}"#
             #expect(content.range(of: badPattern, options: .regularExpression) == nil,
-                    "\(entry.path) must drop `icon: { Image(systemName: x).imageScale(.small) }` pattern (= Label icon slot sweep round 5)")
+                    "\(entry.path) must draw its Label icon slot through the factory instead of an `imageScale` chain")
         }
     }
 
-    // ShellPlaceholder L20 exception test REMOVED 2026-10:
-    // ShellPlaceholder.swift was deleted in commit 65ae2d2b6 (2026-10-03)
-    // (= 26-line duplicate of EmptyStateView). The sweep invariant
-    // is held by EmptyStateView's actual code.
-    //
-    // (= see file header for details; = the test ran for 6+ weeks but
-    // became orphan once the source file was deleted.)
     //
     // EmptyStateView has no naked Image(systemName:) in any Label slot;
     // = the sweep closes itself with no ShellPlaceholder check needed.

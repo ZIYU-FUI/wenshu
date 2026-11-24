@@ -1,41 +1,16 @@
 //
-//  ColorSweepArcClosureTests.swift · Wenshu · v3.0
+//  ColorSweepArcClosureTests.swift · Wenshu
 //
-//  Per Q112 standing rule (= boss 2026-10-02 OOB sweep closure mode).
+//  Where a color may come from. This suite allows three sources and no
+//  others: a SwiftUI semantic style (`.secondary`, `.tint`,
+//  `.windowBackground`, `.tertiary`, `.quaternary`), a system semantic
+//  color (`.red`, `.green`, `.orange`, `.blue`), or an AppKit color that
+//  SwiftUI cannot reach any other way — `Color(nsColor:)` behind an
+//  NSButton, a `cgColor` for a canvas, an `AnyShapeStyle` where a
+//  hierarchical style has no opacity overload.
 //
-//  Color sweep arc closure (= rounds 73-75).
-//
-//  This test verifies the FINAL color sweep state (= 53 .opacity literals,
-//  175 Color.X sites, 12 Color(nsColor:) sites, 0 raw RGB literals):
-//
-//  Round 73 — accentTintOpacityHero kanban migration:
-//  - 2 sites: KanbanView L450 + KanbanTicketDetailSheet L74
-//  - All .tint.opacity(0.18) sites use DesignTokens.accentTintOpacityHero
-//  - 3 sites total use accentTintOpacityHero (= 2 kanban + 1 PreviewPane)
-//
-//  Round 74 — TodoListView chipStyle AnyShapeStyle migration:
-//  - 1 source file (TodoListView.swift) + 1 test file (atomic-coupled)
-//  - chipStyle signature: (String, Color, Color) → (String, Color, AnyShapeStyle)
-//  - 4 priority cases use AnyShapeStyle wrapper (= preserves ShapeStyle
-//    identity so future code can swap to .tertiary)
-//  - 2 cases (.high + .urgent) reuse DesignTokens.accentTintOpacityHero
-//  - TodoListView was later deleted with the right-rail todo chain;
-//    the severity-opacity invariants it carried are now guarded by
-//    SeveritySemanticOpacitySweepTests (= ReaderExperienceView +
-//    the accentTintOpacityHero token).
-//
-//  Round 75 — closure verification:
-//  - 0 raw RGB / gray / hue / hex color literals
-//  - 0 wenshu-specific custom Color tokens (= all deleted per §11.26)
-//  - All colors via SwiftUI canonical shape-style
-//    (.secondary / .tint / .windowBackground / .tertiary / .quaternary
-//     + semantic .red / .green / .orange / .blue)
-//  - Color(nsColor:) usage = canonical Apple API entry points only
-//    (= AppKit layer / NSButton / AnyShapeStyle context for SwiftUI limitation)
-//  - NSColor.X usage = canonical AppKit entry points only
-//    (= NSButton contentTintColor / NSColor.clear.cgColor / canvas drawing)
-//  - Severity opacity tiers (.06 / .18 / .22) preserved at call site
-//    (= Apple HIG has no canonical severity opacity scale)
+//  A raw RGB, gray, hue or hex literal is none of those, and it fails
+//  here.
 
 import Testing
 import SwiftUI
@@ -43,7 +18,7 @@ import AppKit
 import Foundation
 @testable import WenshuApp
 
-@Suite("Color sweep arc closure — rounds 73-75")
+@Suite("Color sweep arc closure")
 struct ColorSweepArcClosureTests {
 
     @Test("Zero raw RGB Color(red:green:blue:) literals")

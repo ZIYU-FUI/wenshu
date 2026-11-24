@@ -120,16 +120,10 @@ struct WenshuMarkdownEditor: View {
         NativeTextViewWrapper(
             text: $text,
             configuration: adjustedConfiguration,
-            // Pass fontSize so the engine base font matches the
-            // product `body` text style (= 13 PT on macOS 27).
-            // Without this, `NativeTextViewWrapper` defaults to
-            // 16 PT and the multiplier math produces H1 = 16 ×
-            // (17/13) = 20.9 PT (= still visually dominant vs
-            // sidebar/kanban `.headline` = 13 PT). With
-            // `fontSize = 13` here, the engine base = 13 PT, the
-            // multiplier H1 = 17/13 ≈ 1.308 gives H1 = 13 × 1.308
-            // = 17 PT = matches Apple `.title2` = the canonical
-            // H1 size.
+            // Pass fontSize: the heading sizes are ratios of the
+            // engine's base, so a base the wrapper picks for itself
+            // scales every heading with it. With the sheet's base
+            // named here, the body and its headings move together.
             fontName: EngineStyleSheetBridge.fontName(for: styleSheet),
             fontSize: EngineStyleSheetBridge.fontSize(for: styleSheet),
             documentId: surface.draftId,

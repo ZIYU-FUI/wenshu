@@ -1,44 +1,23 @@
 //
-//  WindowBackgroundShapeStyleSweepTests.swift · Wenshu · v3.0
+//  WindowBackgroundShapeStyleSweepTests.swift · Wenshu
 //
-//  Per Q112 standing rule (= boss 2026-10-02 OOB "继续" arc).
-//  Sweep round 27 verified: wenshu tree uses SwiftUI built-in
-//  `.windowBackground` shape-style (= macOS 13+ native) instead
-//  of `Color(nsColor: .windowBackgroundColor)` magic literal,
-//  except where the AnyShapeStyle + .opacity combination
-//  requires the NSColor-backed Color (= Apple SwiftUI limit:
-//  HierarchicalShapeStyle.windowBackground has no .opacity
-//  overload, so AnyShapeStyle(.windowBackground.opacity(N))
-//  fails to type-resolve).
+//  A window's background is SwiftUI's own `.windowBackground` style, not
+//  `Color(nsColor: .windowBackgroundColor)`. The style follows the window,
+//  whatever sits behind it and whatever the system decides next; the
+//  AppKit color is a snapshot of one appearance.
 //
-//  Swept sites (= 5):
-//  - Sources/WenshuApp/Views/CommandPalette/CommandPaletteView.swift
-//    L189 (.background { Color.windowBackground } → .background(.windowBackground))
-//  - Sources/WenshuApp/Workspace/LayoutPicker/ZoneEditor.swift
-//    L96 (.background { Color.windowBackground } → .background(.windowBackground))
-//    L371 (.background { Color.windowBackground } → .background(.windowBackground))
-//  - Sources/WenshuApp/Features/Library/View/BookEditorSheet.swift
-//    L152 (.background { Color.windowBackground } → .background(.windowBackground))
-//  - Sources/WenshuApp/Shared/UI/LibraryRootView.swift
-//    L144 (.containerBackground { Color.windowBackground }
-//       → .containerBackground(.windowBackground, for: .window))
-//
-//  Preserved sites (= 2, Apple SwiftUI limitation):
-//  - Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift
-//    L163 AnyShapeStyle(Color(nsColor: .windowBackgroundColor).opacity(0.12))
-//  - Sources/WenshuApp/Features/Chat/View/ChatToolResultPartView.swift
-//    L234 AnyShapeStyle(Color(nsColor: .windowBackgroundColor).opacity(0.12))
-//  (= HierarchicalShapeStyle.windowBackground.opacity(N) fails
-//   Swift type-check; = Apple SwiftUI idiom requires Color +
-//   NSColor.windowBackgroundColor literal in AnyShapeStyle context)
-
+//  One case keeps the AppKit-backed form, and the suite allows exactly
+//  that and nothing else: `.windowBackground` is a hierarchical style with
+//  no `.opacity`, so an `AnyShapeStyle` wash of the window color has to be
+//  built from `Color`. That the shorthand fails to type-check is part of
+//  what the third test pins.
 import Testing
 import SwiftUI
 import AppKit
 import Foundation
 @testable import WenshuApp
 
-@Suite("Sweep round 27 — .windowBackground shape-style sweep")
+@Suite(".windowBackground shape-style sweep")
 struct WindowBackgroundShapeStyleSweepTests {
 
     @Test("AnyShapeStyle sites preserve Color(nsColor: .windowBackgroundColor).opacity(N) (= Apple SwiftUI limitation)")

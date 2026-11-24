@@ -1,41 +1,25 @@
 //
-//  AccentTintOpacitySweepTests.swift · Wenshu · v3.0
+//  AccentTintOpacitySweepTests.swift · Wenshu
 //
-//  Per Q112 standing rule (= boss 2026-10-02 OOB sweep round 73).
+//  The hero accent wash — the tint an accent-filled pill, badge or card
+//  sits on — is one value, `DesignTokens.accentTintOpacityHero`, and every
+//  surface that wants it asks for it by name.
 //
-//  Sweep round 73: tokenize remaining `.tint.opacity(0.18)` sites
-//  (= kanban status badge background = hero accent tint pattern).
+//  The figure is the app's own: Apple ships no accent-wash scale. That is
+//  the reason it may not be repeated at a call site. Three surfaces
+//  reading 0.18 by hand are three surfaces that can drift apart with
+//  nothing left to compare them against.
 //
-//  This test verifies the FINAL tokenization state for the
-//  `.tint.opacity(DesignTokens.accentTintOpacityHero)` pattern:
-//
-//  - KanbanView.swift: `.background(.tint.opacity(DesignTokens.accentTintOpacityHero), in: Capsule())`
-//  - KanbanTicketDetailSheet.swift: `.background(.tint.opacity(DesignTokens.accentTintOpacityHero), in: Capsule())`
-//  - PreviewPane.swift: `Color.accentColor.opacity(DesignTokens.accentTintOpacityHero)` (round 28 baseline)
-//
-//  Why this matters:
-//  - The .tint.opacity(0.18) literal is the canonical "hero accent tint"
-//    pattern (= 18% hero accent for badge / pill / chip backgrounds).
-//  - Apple's HIG has no canonical opacity scale for "hero accent" — wenshu
-//    invented 0.18 as a sensible middle-ground between subtle (0.12) and
-//    prominent (0.25+).
-//  - Pre-v3.0 call sites hardcoded 0.18 (= 2 sites). Round 28 added
-//    `DesignTokens.accentTintOpacityHero` but only PreviewPane adopted it.
-//  - Round 73 migrates the 2 kanban sites so all 3 hero-accent call sites
-//    share one DesignTokens token (= canonical + auditable).
-//
-//  Pre-v3.0 round 28 boundary (= preserved): the SwiftUI idiomatic opacity
-//  literal (.tint.opacity(0.X)) is NOT itself deprecated — only the magic
-//  0.X literal is the tokenization target. Sites that need a value NOT in
-//  the DesignTokens opacity scale (= 0.15 / 0.22 / 0.4 / etc.) preserve
-//  their literal at call site (= wenshu-specific visual decisions).
+//  A bare `.opacity(0.X)` elsewhere is not a defect. SwiftUI spells an
+//  opacity inline as idiom; what gets tokenized is a value the app has
+//  decided is canonical.
 
 import Testing
 import SwiftUI
 import Foundation
 @testable import WenshuApp
 
-@Suite("Sweep round 73 — accentTintOpacityHero kanban migration")
+@Suite("AccentTintOpacityHero kanban migration")
 struct AccentTintOpacitySweepTests {
 
     @Test("Zero magic .tint.opacity(0.18) literal")
