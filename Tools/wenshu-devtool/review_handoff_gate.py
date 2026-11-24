@@ -72,6 +72,24 @@ IMPLEMENTER_PROFILES = ("pocock", "wenshu-dev")
 SKIP_EVENT = "skipped_nonspawnable"
 
 
+# The epoch the hand-off contract starts at (= when this wave landed the
+# gate). The cards already on the board were created under the old flow,
+# and rewriting them is not this tool's business (= the report names them
+# instead).
+HANDOFF_CONTRACT_FROM = 1795449600  # 2026-11-24 00:00 CST
+
+
+def is_subject(created_at: int | None) -> bool:
+    """Whether this card is judged by the hand-off contract.
+
+    None (= a card that does not exist yet) is judged: a card that is
+    being created must satisfy the contract now.
+    """
+    if created_at is None:
+        return True
+    return created_at >= HANDOFF_CONTRACT_FROM
+
+
 def board_db_path(board: str = product_lines.DEFAULT_BOARD) -> Path:
     """The board's database file (= = the one the flow writes)."""
     return Path(product_lines.board_db(board))
@@ -214,6 +232,34 @@ def collect(conn: sqlite3.Connection) -> dict:
         "cards": len(rows),
         "rows": rows,
     }
+
+
+def contract_errors(card: dict) -> list[str]:
+    """Why this ONE card breaks the hand-off contract.
+
+    The collector answers "what does the board hold?", and this answers
+    "may this card go out?", so the same rule is read on the dispatch
+    path and not only in a report. A card created by a review-lane
+    profile and addressed to an implementer profile is the card that
+    restates a verdict the board already holds (= the verdict IS the
+    hand-off, = AGENTS.md 1.14), and the board's dispatcher spawns only
+    the profiles in `dispatch_profiles`, so such a card is never spawned
+    and waits for ever.
+
+    The card dict carries `created_by` and `assignee` (= the live board's
+    own JSON), so the rule needs no board read.
+    """
+    creator = str(card.get("created_by") or "").strip()
+    assignee = str(card.get("assignee") or "").strip()
+    if creator in REVIEW_PROFILES and assignee in IMPLEMENTER_PROFILES:
+        return [
+            f"a card created by {creator} and addressed to {assignee} restates "
+            "a verdict the board already holds (= the verdict IS the hand-off, "
+            "= AGENTS.md 1.14), and the board's dispatcher spawns only "
+            f"{', '.join(REVIEW_PROFILES)}, so this card can never move: state "
+            "the finding in the verdict and in the review card's comment"
+        ]
+    return []
 
 
 def print_report(report: dict, db: Path) -> None:

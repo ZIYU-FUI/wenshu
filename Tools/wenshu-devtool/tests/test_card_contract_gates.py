@@ -15,6 +15,9 @@ and that each one fires for its own reason:
    done card will not land again)
 5. both gates are off for a card created before the contract epoch (= the
    cards already on the board are not this wave's business)
+6. the hand-off gate refuses a card a review lane created for an implementer
+   (= the finding restated in a card the board cannot spawn), and it is
+   wired into the same card contract
 
 The gates' OWN suites prove their answers; this suite proves the wiring.
 """
@@ -30,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import ownership_gate  # noqa: E402
 import plan_gate  # noqa: E402
+import review_handoff_gate  # noqa: E402
 import ticket_tier  # noqa: E402
 
 FAILURES: list[str] = []
@@ -241,6 +245,49 @@ def main() -> int:
                 )
             ),
         ),
+    )
+
+    # --- case 6: the hand-off contract -------------------------------
+    # = = = A card the review lane created for an implementer is the = = =
+    # = = = finding done twice: once in the verdict, and once in a card = = =
+    # = = = the board cannot spawn (= the dispatcher spawns only the = = =
+    # = = = review profile). = = =
+    handoff_card = card("## WHAT TO BUILD\n\nA rework of the review's finding.\n")
+    handoff_card["created_by"] = "wenshu-review"
+    handoff_card["assignee"] = "pocock"
+    errors = review_handoff_gate.contract_errors(handoff_card)
+    check(
+        "case 6: a review-lane card for an implementer is a contract error",
+        any("restates a verdict" in e for e in errors),
+        str(errors),
+    )
+    wired = ticket_tier.find_contract_errors(handoff_card)
+    check(
+        "case 6: the hand-off gate is wired into the card contract",
+        any("restates a verdict" in e for e in wired),
+        str(wired),
+    )
+    own_card = card("## WHAT TO BUILD\n\nA rework of the review's finding.\n")
+    own_card["created_by"] = "wenshu-review"
+    own_card["assignee"] = "wenshu-review"
+    check(
+        "case 6: a review card for the review lane is quiet",
+        review_handoff_gate.contract_errors(own_card) == [],
+        str(review_handoff_gate.contract_errors(own_card)),
+    )
+    check(
+        "case 6: the hand-off gate is off for a card created before the epoch",
+        not review_handoff_gate.is_subject(
+            review_handoff_gate.HANDOFF_CONTRACT_FROM - 1
+        ),
+        True,
+    )
+    check(
+        "case 6: the hand-off gate is on for a card created after the epoch",
+        review_handoff_gate.is_subject(
+            review_handoff_gate.HANDOFF_CONTRACT_FROM + 1
+        ),
+        True,
     )
 
     print()

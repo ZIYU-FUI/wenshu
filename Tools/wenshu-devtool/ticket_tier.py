@@ -79,6 +79,7 @@ import wave_gate  # noqa: E402  (sibling module, same directory)
 import effort_budget_gate  # noqa: E402  (sibling module, same directory)
 import product_lines  # noqa: E402  (sibling module, same directory)
 import plan_gate  # noqa: E402  (sibling module, same directory)
+import review_handoff_gate  # noqa: E402  (sibling module, same directory)
 import ownership_gate  # noqa: E402  (sibling module, same directory)
 
 # The repo root. Derived from this file's own location, so the tool works
@@ -1307,6 +1308,20 @@ def find_contract_errors(card: dict) -> list[str]:
     # `ownership_gate`'s, = = so the written-file set has ONE answer.
     if ownership_gate.is_subject(card.get("created_at")):
         errors.extend(ownership_gate.contract_errors(card))
+
+    # THE HAND-OFF CONTRACT, AT THE POINT A CARD IS TYPED.
+    #
+    # The review lane hands work back by VERDICT (= = AGENTS.md 1.14), so a
+    # card it creates for an implementer is the finding done twice: once in
+    # the verdict, and once in a card the board cannot spawn (= the board's
+    # `dispatch_profiles` name the review lane only, so the dispatcher wrote
+    # `skipped_nonspawnable` on 28 of them, measured 2026-11-24).
+    #
+    # The report (`review_handoff_gate.py`) says how many such cards the
+    # board holds. The contract here says whether THIS card may go out, so
+    # the rule is on the dispatch path and not only in a report.
+    if review_handoff_gate.is_subject(card.get("created_at")):
+        errors.extend(review_handoff_gate.contract_errors(card))
 
     return errors
 
