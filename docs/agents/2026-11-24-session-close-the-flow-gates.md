@@ -32,6 +32,13 @@ log that names the merged sha is under `.gate-logs/`.
   row carrying its own count.
 - Every suite under `Tools/wenshu-devtool/tests/` exits 0 (= 17 suites,
   including the five this wave adds).
+- `python3 Tools/wenshu-devtool/process_data_gate.py` = 15 paths measured.
+  The flow's own fourteen are on the data disk (= the repo's `.scratch`,
+  `.worktrees`, `.gate-logs`, the board's workspaces and database, the two
+  profiles' eight directories, = = and `TMPDIR`). The fifteenth is the
+  scratch under a hardcoded `/tmp`: 28060 directories, 633 MiB, on the
+  system disk. That row exits 1, = = and it exits 1 because the tree is
+  wrong, = = not because this wave is. = = The fix is card `006`.
 
 ## 2. Record the verdict on the board
 
@@ -108,7 +115,7 @@ retry lands the card ON TOP of the other session's commit.
 | 4b. The merge driver travels with the repo | `2563d13cb3` (= `Scripts/install-merge-drivers.sh` + `merge_drivers.py`'s remedy) | `t_ae96d17c` | `test_merge_drivers.py` = a fresh clone audits UNWIRED, the installer wires it, and the wired clone merges two catalog keys with BOTH surviving |
 | 4c. Two cards writing one file are refused before dispatch | `2563d13cb3` (= `ownership_gate.py` + the card contract) | `t_ae96d17c` | `test_ownership_gate.py` = 8 cases; `test_card_contract_gates.py` proves the wiring reaches `ticket_tier.find_contract_errors` |
 | 5. The review lane hands work back by VERDICT, never by a card | `ed9699e9ce` (= `review_handoff_gate.py`), `08194f914c` (= its contract on the dispatch path) | `t_ae96d17c` | `review_handoff_gate.py` prints the 41 cards a review lane created for an implementer, naming each one's creator, assignee and the verdict of the review card it answered; `test_review_handoff_gate.py` exits 0 |
-| 6. Every byte of process data goes to the data disk | `2563d13cb3` (= `process_data_gate.py` + its suite), `868f581669`'s sibling `6f2c1e9ab4` (= the row's pattern and its size) | `t_ae96d17c` | `process_data_gate.py` prints every process path with the volume the MOUNT TABLE says it is on; 15 paths measured, = = the flow's OWN fourteen all on the data disk, = = and the fifteenth (= the scratch under a hardcoded `/tmp`) naming 28060 directories on the system disk, = = which is the defect in the row below |
+| 6. Every byte of process data goes to the data disk | `2563d13cb3` (= `process_data_gate.py` + its suite), `95a913f662` (= the row's pattern and its size) | `t_ae96d17c` | `process_data_gate.py` prints every process path with the volume the MOUNT TABLE says it is on; 15 paths measured, = = the flow's OWN fourteen all on the data disk, = = and the fifteenth (= the scratch under a hardcoded `/tmp`) naming 28060 directories on the system disk, = = which is the defect in the row below |
 | 7. The two gates that read a card's GATES answer the same way | `868f581669` + `be63281946` + `315d1b9103` (= `card_gate_command.py`) | `t_ae96d17c` | `test_card_gate_command.py` = 16 cases; over the board's 981 cards the width gate raises NO new finding and 18 false ones are withdrawn |
 | (rule 1.7, = the registration the seven rows above owe) | `b63cbf6e86` (= 17 registry rows + the devtool README's six sections) | `t_ae96d17c` | `nfi-loc-check.py --base main` = `21 row(s) checked: = 17 the change added, = 4 whose named file the change rewrote and did not add`, exit 0; the registry gate scopes itself to the keys the change ADDED, = so an unregistered file is invisible to it, = and only the registry itself closes that hole |
 
