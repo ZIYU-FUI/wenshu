@@ -1,17 +1,16 @@
 //
 //  IconStylesTests.swift · Wenshu · v3.0
 //
-//  Per Q112 = 1 source + 1 test per ticket. IconStyles.swift is a
-//  central abstraction (= SFIcon + IconStyle + IconColor + IconRendering
-//  + WenshuTextStyle). Tests = source-level (= per wenshu test
-//  convention): value-type direct construction + source-content
-//  assertions for the View body wiring.
+//  IconStyles.swift is the central abstraction (= SFIcon + IconStyle +
+//  IconColor + IconRendering + WenshuTextStyle). A factory's contract is
+//  checkable without a window: value types are constructed directly, and
+//  what a View body wires is read out of the source text.
 //
 //  Coverage:
 //      1. IconStyle.pointSize = Apple-default (= not wenshu-invented)
 //      2. IconStyle.fontWeight = .regular everywhere (no .thin anywhere)
 //      3. IconStyle.isHitArea = true for .hitArea / .toolbarButton
-//      4. IconStyle.allCases = 11 (= 1:1 with the Apple-HIG surface list)
+//      4. IconStyle.allCases = the zone list the factory declares
 //      5. WenshuTextStyle.font = SwiftUI text-style API verbatim
 //      6. WenshuTextStyle.pointSize = Apple default (= not ad-hoc)
 //      7. SFIcon source declares @MainActor + the canonical initializer
@@ -93,8 +92,8 @@ struct IconStylesTests {
 
     // MARK: - IconStyle.fontWeight (uniform .regular)
 
-    // a per-tier weight split has no register row and HIG bans thin labels
-    // (= craft audit 2026-11-21 T4/X7).
+    // A per-tier weight split has no register: one glyph set drawn at two
+    // weights reads as two different icon families.
 
     @Test("IconStyle.fontWeight = .regular for the >=38 PT zone (= hero / avatar / cover)")
     func fontWeightRegularForLargeZones() {
@@ -277,6 +276,27 @@ struct IconStylesTests {
         #expect(!iconContent.contains("Apple System Settings 10-pane"),
                 "the icon factory must not attribute a 10-pane count to Apple's System Settings (= that app's layout is not ours to count)")
     }
+    /// A tier's doc comment describes the number the tier carries. The
+    /// comment is the documentation a reader trusts, the switch is what
+    /// draws, and only one of them can be right.
+    @Test("A case's doc comment states its own point size")
+    func caseDocsStateTheirOwnPointSize() throws {
+        let content = try String(
+            contentsOf: SourceLocator.url("Sources/WenshuApp/Shared/UI/IconStyles.swift"),
+            encoding: .utf8
+        )
+        let drawn = Self.drawnPointSize(of: content)
+        for style in IconStyle.allCases {
+            let stated = Self.ptFigures(in: Self.docComment(ofCase: style, in: content))
+            let name = String(describing: style)
+            #expect(drawn[name] != nil, "\(name): the factory's switch has no size for this tier")
+            for figure in stated {
+                #expect(figure == style.pointSize,
+                        "\(style)'s doc comment states \(figure) PT while the tier draws \(style.pointSize) PT (= the comment and the number it describes have to move together)")
+            }
+        }
+    }
+
     // MARK: - A symbol beside text wears that text's own style
 
     @Test("The factory wears the text style it is given instead of the tier's font")
@@ -373,5 +393,51 @@ struct IconStylesTests {
         let window = content[call.upperBound...].prefix(400)
         guard let at = window.range(of: ".font(.") else { return nil }
         return window[at.upperBound...].prefix(while: { $0.isLetter || $0.isNumber }).lowercased()
+    }
+    /// The switch's lines, trimmed, in file order.
+    private static func lines(_ content: String) -> [String] {
+        content.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+    }
+
+    /// The point size each tier draws, read off the factory's own switch: a
+    /// row of the form `case .tier: 14`.
+    private static func drawnPointSize(of content: String) -> [String: CGFloat] {
+        var table: [String: CGFloat] = [:]
+        for line in Self.lines(content) {
+            guard line.hasPrefix("case .") else { continue }
+            let body = line.dropFirst("case .".count)
+            guard let colon = body.firstIndex(of: ":") else { continue }
+            let name = String(body[..<colon])
+            let digits = body[body.index(after: colon)...].trimmingCharacters(in: .whitespaces)
+            if let value = Double(digits) { table[name] = CGFloat(value) }
+        }
+        return table
+    }
+
+    /// The doc comment sitting on a `case <name>` declaration.
+    private static func docComment(ofCase style: IconStyle, in content: String) -> String {
+        let lines = Self.lines(content)
+        let declaration = "case \(String(describing: style))"
+        guard let at = lines.firstIndex(of: declaration) else { return "" }
+        var doc: [String] = []
+        var cursor = at - 1
+        while cursor >= 0, lines[cursor].hasPrefix("///") {
+            doc.insert(String(lines[cursor].dropFirst(3).dropFirst()), at: 0)
+            cursor -= 1
+        }
+        return doc.joined(separator: "\n")
+    }
+
+    /// The `N PT` figures a block of text states.
+    private static func ptFigures(in text: String) -> [CGFloat] {
+        var found: [CGFloat] = []
+        var rest = Substring(text)
+        while let at = rest.range(of: " PT") {
+            let head = rest[rest.startIndex..<at.lowerBound]
+            let digits = head.reversed().prefix(while: { $0.isNumber || $0 == "." })
+            if let value = Double(String(digits.reversed())) { found.append(CGFloat(value)) }
+            rest = rest[at.upperBound...]
+        }
+        return found
     }
 }

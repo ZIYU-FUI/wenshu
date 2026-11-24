@@ -132,24 +132,17 @@ struct EmptyStateView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 2x icon size (= 76 PT) + thinnest stroke (= .thin weight =
-            // the canonical macOS 27 inspector / empty-state icon
-            // weight; = matches the SF Symbols 6 3rd-generation
-            // palette-rendering default).
+            // The empty state's glyph is a zone, not a label: `emptyStateHero`
+            // is the size an empty state reads at and the factory draws it at
+            // the uniform weight every other glyph in the app gets.
             //
-            // Per wenshu-icon-policy: empty-state / large icons
-            // (>=38 PT) MUST pin .symbolRenderingMode(.monochrome).
-            // SF Symbols 6 on macOS 27 silently falls back to the
-            // .fill variant when the caller passes an outline root
-            // name without setting the rendering mode (= at 76 PT
-            // the fill glyph reads as a heavy solid blob).
+            // A large outline symbol has to name its rendering mode. Left
+            // unset, SF Symbols falls back to the filled variant, and a filled
+            // glyph at this size reads as a solid blob rather than a picture of
+            // the thing that is missing.
             //
-            // The symbolEffect call was removed because macOS 27 renders
-            // the icon INVISIBLE under the IndefiniteSymbolEffect path.
-            //
-            // Per v3.0 icon system: SFIcon(.emptyStateHero) wraps the
-            // 76 PT + .monochrome + .thin-weight defaults; the call site
-            // drops the explicit .resizable / .aspectRatio / .frame chain.
+            // No `symbolEffect` on this glyph: the indefinite effect path
+            // leaves a monochrome symbol in this zone unreadable.
             SFIcon(icon, style: .emptyStateHero, color: IconColor.secondary)
             .padding(.bottom, DesignTokens.spacingSection)
             VStack(spacing: DesignTokens.spacingTight) {

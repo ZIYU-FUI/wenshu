@@ -1,60 +1,37 @@
-// IconStyles.swift · Wenshu Central SF Symbols 6 icon factory + product walk for wenshu
-// icon and text sizing (=: merge icon + font under one file;
-// every token name = product official terminology; every point value = Apple-default
-// or Apple-shipped app default; zero ad-hoc numbers). ============================ WHY
-// THIS FILE EXISTS ============================ Pre-v3.0 wenshu had 13 icon-size
-// tokens in `DesignTokens.swift` (= iconStandardSize, iconSmall, iconLargeSize,
-// iconButtonSmall, toolbarButtonCompact, paneTabHotArea, tabIconSize,
-// tabCloseFrameSize, tabCloseGlyphFontSize, emptyStateIconSize, avatarSize,
-// coverThumbnailSize, surfaceSizeMedium). The v3.0 icon sweep series (= c5b897507 +
-// f44266fb7 + ce7510708 + 1fbd0e610 + b56c3c22c + 029295b6b + 638ae8996 + ef15e4595 +
-// 40969fb0c + b9ef4ad7f + 83f5c8c78 + 4d6c02270 + d5aba1d34 + dfe599868 + d55d9b06d +
-// 5b801b8f9 + bf73ebfb4 + ae14835bf + 21ff18c43 + a39fb4f91) migrated every
-// production-code call site into IconStyle (= 11 cases: inlineSmall, small, paneTab,
-// toolbar, nav, hitArea, emptyStateHero, avatar, cover, toolbarButton, surface) and
-// deleted the 5 token definitions that became 0-reference (= iconSmall, iconLargeSize,
-// iconButtonSmall, tabIconSize, iconStandardSize, emptyStateIconSize). The remaining 6
-// DesignTokens icon-related values (= paneTabHotArea, toolbarButtonCompact,
-// surfaceSizeMedium, avatarSize, coverThumbnailSize,
-// tabCloseGlyphFontSize) are layout hit-area / container-frame sizes that SFIcon does
-// not own (= SFIcon owns the icon glyph size; = layout tokens stay in DesignTokens).
-// 1.  (central abstraction) is mandatory — without it the single point of truth is
-// missing and visual hierarchy drifts. 2. token names walk product official
-// terminology (= `.hitArea` for the 28 PT macOS hit-area minimum, `.paneTab` for the
-// NSToolbar item default, `.toolbar` for ControlSize.small). 3. point values follow
-// Apple-default (= Apple-shipped apps) values, not wenshu-invented numbers. Empty-
-// state = 76 (= Apple ContentUnavailableView default). paneTab = 18 (= Apple NSToolbar
-// item macOS 14+ default). toolbar = 22 (= .controlSize (.small)). hero / cover /
-// avatar =.thin weight (= SF Symbols 6 weight split rule for
-// the ≥38 PT zone). 4. font styles walk product text-style APIs (= .body, .callout,
-// .caption). Status font = .body (= 13 PT). Hotkey font = .callout + monospaced. Tab
-// title font = .callout + monospaced. Each IconStyle case carries a doc-comment that
-// names the exact AppKit/SwiftUI surface (= NSToolbar item / ControlSize.small /
-// ContentUnavailableView / hit-area minimum) and the existing wenshu call sites
-// that consume it. The comment policy applies (= engineering facts only, no ticket /
-// status / Q-numbers / version narrative). ============================ MIGRATION RULE
-// ============================ The v3.0 sweep migrated `DesignTokens.tabIconSize` (18
-// PT) and `DesignTokens.iconStandardSize` (16 PT) into the `IconStyle` enum (=
-// `.paneTab = 18` and `.inlineSmall = 14` cover the previous call sites). The tokens
-// were deleted in this same PR series; SFIcon is now the sole canonical surface.
-// ============================ USAGE NOTES ============================ Production
-// call sites migrate from: Image(systemName: "paperplane")
-// .symbolRenderingMode(.hierarchical) .foregroundStyle(.tint) To: SFIcon("paperplane",
-// style: .paneTab, color: .tint) Future ticket: sweep all 166 call sites to SFIcon,
-// one surface per PR (= see the the per-commit 1-source-1-test rule <QQ-coupling>
-// ladder in the per-case doc below).
+// IconStyles.swift · Wenshu — the one place a symbol's size, weight,
+// colour and rendering are decided.
+//
+// Every symbol in the app is drawn through `SFIcon`, and every value it can
+// take is named here: a zone tier (`IconStyle`) for the surface the glyph
+// sits in, a text style (`WenshuTextStyle`) for the label it sits beside, an
+// `IconColor` rung for the semantic colour, and an `IconRendering` mode. No
+// call site spells its own size or weight: a value wanted twice belongs in
+// this file, and a value wanted once is still not written at the call site.
+//
+// A case here is a real AppKit or SwiftUI surface, and its doc comment names
+// that surface and the Apple figure behind it. `IconStylesTests` reads those
+// figures back out of this file and compares them with `IconStyle.pointSize`,
+// so a tier can only be retuned by moving its own number.
+//
+// What this file does not own: the size of a container. A hot area, a tile, a
+// row's leading column and a thumbnail's frame are layout, and they stay in
+// `DesignTokens`; the glyph drawn inside them is decided here.
+//
+// A naked `Image(systemName:)` outside this file is the form the factory
+// exists to replace: it takes a size and a weight nobody named, and it drops
+// the rendering pipeline the factory owns (= `.symbolRenderingMode` and
+// `.foregroundStyle`).
 
 import SwiftUI
 import AppKit
 // MARK: - IconStyle
 
-/// product / Apple-shipped app icon-style enum. Each case carries the
-/// point size + a uniform `.regular` weight (= the factory rule of the
-/// 2026-11-21 craft audit, T4/X7; a call-site that wants another weight
-/// carries its own ordered override).
-/// The case names walk product official terminology (= `hitArea` for macOS
-/// macOS hit-area minimum; `paneTab` for NSToolbar item default; `toolbar` for
-/// `.controlSize(.small)`; etc.).
+/// The zone tiers a symbol can be drawn in. Each case carries the point
+/// size of the surface it names, and the weight is uniform `.regular`: a
+/// call site that needs another weight orders it, it does not invent a tier.
+/// The case names walk the surfaces they came from (= `hitArea` is Apple's
+/// macOS hit-area minimum, `paneTab` an NSToolbar item, `toolbar` a
+/// `.controlSize(.small)` control).
 enum IconStyle: Sendable, Equatable, CaseIterable {
 
     /// List row leading inline icon (= the product's own row-icon size
@@ -75,24 +52,17 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// NSToolbar item default icon (= the actual rendered size of an NSToolbar
     /// item icon on macOS 14+ when paired with regular toolbar density; =
     /// measured on Mail / Safari / Xcode).
-    /// product source: `NSToolbar > Toolbar item > Default icon = 18 PT`
-    /// .
+    /// product source: `NSToolbar > Toolbar item > Default icon = 18 PT`.
     /// Used by: pane tab bars, pane close-button glyph, font-format
     /// toolbar buttons (= FormatToolbarButtons), inline format toolbar (=
     /// ParagraphAIToolbarButtons). Weight: .regular.
     case paneTab
 
-    /// macOS standard toolbar button icon (= SwiftUI `.controlSize(.small)`
-    /// point size). Chat-input bar action icons live here.
+    /// A `.controlSize(.small)` toolbar glyph: the figure the `Label`-form
+    /// buttons beside it resolve to, which is what lets a row of toolbar
+    /// buttons read as one row.
     /// product source: `ControlSize.small` / SwiftUI `.controlSize(.small)` /
-    /// macOS standard toolbar button icon = 18 PT. (= Updated 2026-10-12 from
-    /// the prior 22 PT; = the prior value was the NSToolbar item macOS 14+
-    /// default but over-shot the SwiftUI `.controlSize(.small)` toolbar button
-    /// — the brain icon (mental-model glyph) over-shot the
-    /// `.controlSize(.small)` toolbar button at 22 PT; = 18 PT is the macOS
-    /// standard toolbar item. the visual mismatch against the sibling
-    /// `Label`-form export button = 18 PT; = 18 is the canonical macOS
-    /// `.controlSize(.small)` toolbar glyph.)
+    /// macOS standard toolbar button icon = 18 PT.
     /// Used by: chat input bar buttons (= ChatInputBarView GlassIconButton),
     /// format toolbar (kicker / superscript / etc.). Weight: .regular.
     case toolbar
@@ -117,25 +87,25 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     case hitArea
 
     /// ContentUnavailableView default icon size (= the empty-state hero zone).
-    /// Thin weight per SF Symbols 6 weight split rule
-    /// for the ≥38 PT zone.
+    /// The empty state is a zone, not a label: its glyph is sized by the
+    /// zone and weighted like every other glyph.
     /// product source: `ContentUnavailableView > Default icon zone = 76 PT`
     /// (= Apple's documented default for the "no content here" affordance).
     /// Used by: EmptyStateView (the canonical wenshu empty state across all 12
     /// specialized tools + editor zone + PreviewPane + ChatView chat-zone
-    /// "configure LLM" empty state). Weight: .regular (T4/X7).
+    /// "configure LLM" empty state). Weight: .regular.
     case emptyStateHero
 
     /// List row avatar / thumbnail size (= NSTableView thumbnail row standard).
     /// product source: `NSTableView > Row thumbnail size = 64 PT` (= Apple's
     /// default for list-row thumbnails; = Mail / Finder row icon zone).
     /// Used by: book cover thumbnails in PlaceholderView, character portrait
-    /// icons, kanban card hero. Weight: .regular (T4/X7).
+    /// icons, kanban card hero. Weight: .regular.
     case avatar
 
     /// CoverFlow thumbnail size (= Apple-shipped Finder cover preview
     /// standard). product source: `Finder > CoverFlow preview = 192 PT`.
-    /// Used by: onboarding cover preview (= LibraryRootView). Weight: .regular (T4/X7).
+    /// Used by: onboarding cover preview (= LibraryRootView). Weight: .regular.
     case cover
 
     /// Toolbar button hot area (= `.controlSize(.regular)` = 32 PT).
@@ -209,10 +179,10 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
         }
     }
 
-    /// Symbol weight = uniform `.regular` across every zone: the HIG keeps
-    /// label and dark-ground glyph weights at regular (= thin strokes on a
-    /// dark ground smear; = the 2026-11-21 craft audit rule T4/X7). A zone
-    /// that wants another weight orders it at its own call site.
+    /// Symbol weight is uniform `.regular` across every zone: a glyph set
+    /// beside label text keeps label weight (= thin strokes on a dark ground
+    /// smear). A zone that wants another weight orders it at its own call
+    /// site.
     var fontWeight: Font.Weight {
         .regular
     }
@@ -229,7 +199,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// size, weight, and scale.
     var symbolWeight: NSFont.Weight {
         .regular
-    } // AppKit mirror of fontWeight (T4/X7)
+    } // the AppKit mirror of `fontWeight`
 }
 
 // MARK: - Sidebar slot (only meaningful on .sidebar)
@@ -263,13 +233,11 @@ enum IconColor: Sendable, Equatable {
     case tint           // = .tint (= SwiftUI environment tint = follows role)
     case red, green, orange, blue
 
-    /// SwiftUI semantic color resolver (= `Color` to be passed to
-    /// `.foregroundStyle(_:)`). The tertiary / quaternary rungs are the
-    /// system label colors themselves. Measured on this machine 2026-11-21:
-    /// tertiaryLabel = α 0.26, quaternaryLabel = α 0.10 (= the old hand-rolled
-    /// `primary.opacity(0.45 / 0.15)` matched neither value, and raw opacity
-    /// on primary ignores dark mode, increase contrast, and every appearance
-    /// override). Craft audit rule C2.
+    /// The `Color` to hand `.foregroundStyle(_:)`. Every rung is a system
+    /// color: the tertiary and quaternary rungs ARE `tertiaryLabelColor` and
+    /// `quaternaryLabelColor`, not an opacity painted onto the primary one.
+    /// An opacity of one's own choosing ignores dark mode, increased
+    /// contrast, and whatever else the appearance already decides.
     var style: Color {
         switch self {
         case .primary: Color.primary
@@ -339,30 +307,27 @@ struct SFIcon: View {
     /// optical-size strategy from `wenshu-apple-api-first`). A CALLER
     /// passes the point size its own glyph needs (= one icon that must
     /// optical-match the icons around it, = measured for that case).
-    /// The factory's `style.pointSize` is the Apple default
-    /// (= 14 PT for `.inlineSmall`); = the override lets that one caller
-    /// pass its measured value without losing the SFIcon rendering
-    /// pipeline (= `.symbolRenderingMode` + `.foregroundStyle`). nil =
-    /// use `style.pointSize`. The override is set on the `Image` (= applied
-    /// AFTER the factory's `.font(.system(size:))` = SwiftUI modifier
-    /// order = the override wins).
+    /// The factory's own size is `style.pointSize`, the Apple default for
+    /// the zone (= 14 PT for `.inlineSmall`). The override replaces it
+    /// inside that one `.font` expression, so the caller keeps the whole
+    /// rendering pipeline (= `.symbolRenderingMode` + `.foregroundStyle`).
+    /// nil = use `style.pointSize`. A symbol that sits beside text names
+    /// `matchingText` instead, which sizes it off the label.
     let pointSizeOverride: CGFloat?
 
     /// Optional per-call weight override (= the same 1:1 per-icon optical
     /// strategy `pointSizeOverride` serves, on the weight axis).
     ///
-    /// RATIONALE 2026-11-02: the library sidebar's pinyin letter-circle
-    /// glyphs need the SF Symbols 6 `.thin` weight (= the second-thinnest
-    /// weight Apple ships, = the canonical body-content weight for
-    /// reading-heavy surfaces), but they are 18 PT, = one tier above every
-    /// `.regular` style the factory offers. The weight was a property of
-    /// the STYLE alone, so a call site that needed `.thin` at 18 PT had
-    /// either to reach past the factory for a naked `Image(systemName:)`
-    /// (= the v3.0 sweep's blocked form) or to lose the weight.
+    /// The library sidebar's pinyin letter-circle glyphs are `.sidebarTree`
+    /// (= 16 PT) and need the SF Symbols 6 `.thin` weight, the next
+    /// thinnest Apple ships: a monogram is read as a letterform, not as an
+    /// icon. Weight is a property of the ZONE, so a call site that needs
+    /// another weight at the zone's size had either to reach past the
+    /// factory for a naked `Image(systemName:)` or to lose the weight.
     ///
-    /// nil = use `style.fontWeight`. The override is set on the `Image`
-    /// (= applied AFTER the factory's `.font(.system(size:weight:))` =
-    /// SwiftUI modifier order = the override wins).
+    /// nil = use `style.fontWeight`. The override enters the same `.font`
+    /// expression as the size, so it never splits a glyph's size from its
+    /// weight.
     let weightOverride: Font.Weight?
 
     /// The text style the symbol sits BESIDE (= nil for a symbol that stands
@@ -376,11 +341,13 @@ struct SFIcon: View {
     /// 14 PT and a caption is 10 PT, so a symbol sizing off the tier draws
     /// larger than its own label).
     ///
-    /// When this is named it decides the font on its own: `style.pointSize`,
+    /// When this is named it decides the font on its own. `style.pointSize`,
     /// `pointSizeOverride` and `weightOverride` are the zone's answer to the
     /// same question, and two fonts on one symbol resolve to the first one
-    /// applied. Measured on macOS 27: a symbol in `.caption2` occupies
-    /// 12.5 PT, the same symbol in a 14 PT zone font occupies 16 PT.
+    /// applied (= `.inlineSmall` is 14 PT and a caption is 11, so the tier's
+    /// font under a named style would draw the glyph larger than its own
+    /// label). `IconStylesTests` reads the pairing back out of the call
+    /// sites it covers.
     let matchingText: WenshuTextStyle?
 
     init(

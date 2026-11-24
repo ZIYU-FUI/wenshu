@@ -1,24 +1,15 @@
 //
-//  FontSystemSizeSweepTests.swift · Wenshu · v3.0
+//  FontSystemSizeSweepTests.swift · Wenshu
 //
-//  Per Q112 standing rule expanded (= sweep round 7 = boss 2026-10-02
-//  OOB "继续"). The 2 remaining `.font(.system(size: <X>, design: .monospaced))`
-//  patterns (= wenshu-ad-hoc monospaced digit text styles) swept to
-//  Apple HIG built-in:
-//    - `.font(.system(size: 11, weight: .regular, design: .monospaced))`
-//      → `.font(.caption2.monospaced())` (= Apple HIG caption2 = 11 PT + monospaced digit)
-//    - `.font(.system(size: 12, weight: .regular, design: .monospaced))`
-//      → `.font(.caption.monospaced())` (= Apple HIG caption = 12 PT + monospaced digit)
+//  Monospaced digits in running text are a text style with a design, not a
+//  hand-tuned size: `.caption2.monospaced()` and `.caption.monospaced()` are
+//  the two sizes a diff viewer reads at, and each carries its own size and
+//  weight from the text-style table.
 //
-//  Sites swept (2 total):
-//    - ChatToolDiffPreview.swift L87 (caption2 = diff line viewer)
-//    - ChatToolDiffPreviewSheet.swift L90 (caption = diff body viewer)
-//
-//  Site preserved (= IconStyles.swift L357 — internal SFIcon factory
-//  cannot use the built-in pattern because IconStyle.pointSize is a
-//  dynamic value):
-//    - IconStyles.swift:357 — `.font(.system(size: style.pointSize, weight: style.fontWeight))`
-//
+//  The icon factory is the exception the third test pins: it sizes a glyph
+//  off `IconStyle.pointSize`, a value the caller picks, so no fixed text
+//  style can stand in for `.font(.system(size:))` there.
+
 
 import Foundation
 import Testing
@@ -32,9 +23,9 @@ struct FontSystemSizeSweepTests {
         let url = SourceLocator.url("Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreview.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains(".font(.caption2.monospaced())"),
-                "ChatToolDiffPreview diff line viewer must use Apple HIG .caption2.monospaced() (= 11 PT monospaced)")
+                "ChatToolDiffPreview's diff lines read at the caption2 size with monospaced digits")
         #expect(!content.contains(".font(.system(size: 11"),
-                "ChatToolDiffPreview must drop .font(.system(size: 11)) wenshu-ad-hoc (= v3.0 round 7 sweep)")
+                "ChatToolDiffPreview must not size a text style by hand")
     }
 
     @Test("Round 7 — ChatToolDiffPreviewSheet diff body viewer uses Apple HIG caption + monospaced()")
@@ -42,9 +33,9 @@ struct FontSystemSizeSweepTests {
         let url = SourceLocator.url("Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreviewSheet.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains(".font(.caption.monospaced())"),
-                "ChatToolDiffPreviewSheet diff body viewer must use Apple HIG .caption.monospaced() (= 12 PT monospaced)")
+                "ChatToolDiffPreviewSheet's diff body reads at the caption size with monospaced digits")
         #expect(!content.contains(".font(.system(size: 12"),
-                "ChatToolDiffPreviewSheet must drop .font(.system(size: 12)) wenshu-ad-hoc (= v3.0 round 7 sweep)")
+                "ChatToolDiffPreviewSheet must not size a text style by hand")
     }
 
     @Test("Round 7 — IconStyles.swift preserves the internal .font(.system(size:)) for SFIcon")
@@ -52,6 +43,6 @@ struct FontSystemSizeSweepTests {
         let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains(".font(.system(size: pointSizeOverride ?? style.pointSize"),
-                "IconStyles.swift SFIcon factory must keep .font(.system(size:)) with the dynamic-size expression (= IconStyle.pointSize is dynamic; = the canonical built-in is not available for dynamic sizing; = round 7 sweep exception)")
+                "The icon factory sizes a glyph off IconStyle.pointSize, a value the caller picks, so no fixed text style can stand in for it")
     }
 }
