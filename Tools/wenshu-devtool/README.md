@@ -416,6 +416,108 @@ and green on a compliant one that actually added a comment line. `pre_review_gat
 runs the judge on every card, which is where it stops being an instrument
 somebody may remember to point.
 
+## Plan-of-record gate
+
+Another separate tool, because the plan of record lives OUTSIDE the tracked
+tree (= in the shared checkout's untracked `.scratch/`) and a card that names a
+scope is executable only when that scope's plan holds together. It answers one
+question: does the plan exist, and is it whole?
+
+- **the spec** exists and carries the four canonical sections (= business /
+  current state / apple canonical / after-fix; = the Chinese spelling is
+  accepted, = because two of the repo's own specs use it). A missing section is
+  NAMED.
+- **the tickets** = an `issues/` directory holding at least one `NNN-slug.md`.
+- **the index** = `issues/_index.md` exists, and every `blocked-by` edge in it
+  names a ticket that EXISTS. A dangling edge is NAMED.
+
+The plan is read from the SHARED checkout, never from a card worktree: a
+245-line spec written into a worktree's `.scratch/` died with the worktree, and
+a gate that reads the worktree cannot see the plan at all.
+
+```bash
+python3 Tools/wenshu-devtool/plan_gate.py --scope 2026-11-24-flow-gates
+python3 Tools/wenshu-devtool/plan_gate.py --card t_1234abcd --json
+```
+
+## Closeout gate
+
+Another separate tool, because the closeout must fire on a scope's STATE and
+not on a keyword: a scope whose tickets have all landed owes the eight closeout
+steps, and a scope that has not landed owes nothing. "Landed" = the ticket's
+branch tip is an ANCESTOR of `main` (= ancestry, = not tips).
+
+Each of the eight steps prints one line: its name, PASS or MISSING, and the
+evidence it actually read (= a path, a sha, a board row id, a volume).
+Evidence is never invented: a missing step names what it looked for.
+
+```bash
+python3 Tools/wenshu-devtool/closeout_gate.py --scope 2026-11-24-flow-gates
+python3 Tools/wenshu-devtool/closeout_gate.py --scope 2026-11-24-flow-gates --json
+```
+
+## Review-lane hand-off gate
+
+Another separate tool, because it reads the BOARD instead of the source tree.
+The board's `dispatch_profiles` name the review lane only, so a card the review
+lane addresses to an implementer is NEVER spawned: the dispatcher writes
+`skipped_nonspawnable` on it and it waits for ever. Measured on board
+`wenshu-par`, 2026-11-24: 41 such cards. The finding was made twice = once in
+the verdict, once in a card that cannot move.
+
+The gate names each card, its creator, its assignee, its status, and the
+verdict of the review card it answered. It READS the board (= sqlite3 in
+read-only mode) and writes nothing.
+
+```bash
+python3 Tools/wenshu-devtool/review_handoff_gate.py
+python3 Tools/wenshu-devtool/review_handoff_gate.py --json
+```
+
+## Process-data gate
+
+Another separate tool, because it reads the MOUNT TABLE and not the tree. A
+process path's `/Users/...` prefix says nothing: `~/.hermes` is a symlink onto
+the data disk, so the system disk is decided by the container id the mount
+table reports (= `/` and `/System/Volumes/Data` are the SAME container; =
+`/Volumes/ANAN` is the data disk).
+
+It prints every path this repo's flow writes, with the volume it is on and its
+size, and exits 1 when one of them is on the system disk. It is a REPORT:
+moving the board's own files is the boss's call.
+
+```bash
+python3 Tools/wenshu-devtool/process_data_gate.py
+python3 Tools/wenshu-devtool/process_data_gate.py --json
+```
+
+## File-ownership gate
+
+Another separate tool, because a merge driver settles the CONTENT of an
+overlapping file, and never the question of WHO writes it. Two live cards
+naming one file is refused before dispatch (= by the card contract), so the
+collision is caught while it is still cheap.
+
+```bash
+python3 Tools/wenshu-devtool/ownership_gate.py t_1234abcd
+```
+
+## Card-gate reader
+
+A module, not a command: `card_gate_command.py` is the ONE reader of "what
+gate does this card ask for?", and the two gates that read a card's GATES both
+import it. The width gate asks it whether the card NAMES a gate (= the
+recognition view = the whole body); the pre-review gate asks it which gate to
+RUN (= the execution view = the `## GATES TO RUN` section). One reader, so the
+two cannot answer differently about the same card: a card the width gate
+accepted is a card the pre-review gate can run.
+
+```bash
+# the two consumers, = and the reader's own cases
+python3 Tools/wenshu-devtool/gate_width_gate.py --check --json
+python3 Tools/wenshu-devtool/tests/test_card_gate_command.py
+```
+
 ## Review-lane cost meter
 
 A separate tool, because it reads the BOARD and the REVIEWER PROFILE rather
