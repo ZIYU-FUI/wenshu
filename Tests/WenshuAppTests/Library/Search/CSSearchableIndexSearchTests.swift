@@ -89,14 +89,76 @@ struct CSSearchableIndexSearchTests {
         #expect(twoScore == 1.0)
     }
 
-    @Test("score caps per-token contribution at 2")
-    func scorePerTokenCap() {
-        // Doc has "foo" 5 times. Cap should clamp at 2.0 contribution per token.
-        let docTokens = ["foo", "foo", "foo", "foo", "foo", "bar"]
-        let queryTokens = ["foo"]
-        let cappedScore = TokenOverlapRanking.score(queryTokens: queryTokens, docTokens: docTokens)
-        // With cap at 2.0 and normalization by 1 query token → score = 2.0
-        #expect(cappedScore == 2.0)
+    @Test("a term's contribution saturates instead of counting")
+    func scorePerTokenSaturation() {
+        // BM25's tf term with k1 = 1.2 and no corpus to normalise against:
+        // one occurrence is worth exactly one, five are worth less than 2.2,
+        // and each further occurrence buys LESS than the one before it.
+        let one = TokenOverlapRanking.termContribution(occurrences: 1, docLength: 6, averageLength: 0)
+        let two = TokenOverlapRanking.termContribution(occurrences: 2, docLength: 6, averageLength: 0)
+        let four = TokenOverlapRanking.termContribution(occurrences: 4, docLength: 6, averageLength: 0)
+        let five = TokenOverlapRanking.termContribution(occurrences: 5, docLength: 6, averageLength: 0)
+        #expect(one == 1.0)
+        #expect(two == (2 * 2.2) / (2 + 1.2))
+        #expect(five < 2.2)
+        // Saturating, in the sense that matters: the gain from the fifth
+        // occurrence is smaller than the gain from the second.
+        #expect(two - one > five - four)
+    }
+
+    @Test("a document that repeats a common term does not beat one that holds a rare term")
+    func rareTermOutweighsRepeatedCommonTerm() {
+        // The shape the bridge questions lost on: the query's rare term sits
+        // in one document of the four, and its common term in three. A
+        // document holding the rare term once must outrank a document holding
+        // the common term twice.
+        let documents: [[String]] = [["曜"], ["神", "神"], ["神", "庙"], ["神", "像"]]
+        let query = ["神", "曜"]
+        let statistics = TokenOverlapRanking.corpusStatistics(
+            documents: documents,
+            queryTokens: query
+        )
+        let rareDoc = TokenOverlapRanking.score(
+            queryTokens: query, docTokens: ["曜"], statistics: statistics
+        )
+        let commonDoc = TokenOverlapRanking.score(
+            queryTokens: query, docTokens: ["神", "神"], statistics: statistics
+        )
+        #expect(rareDoc > commonDoc)
+    }
+
+    @Test("rarity falls with how many documents hold the term")
+    func weightsFallWithDocumentFrequency() throws {
+        // One document holds the rare term; nine hold the common one. The
+        // first must be weighed higher, and the average length must be the
+        // corpus's own (= ten documents of one token each).
+        let documents = [["专名"]] + Array(repeating: ["常用"], count: 9)
+        let statistics = TokenOverlapRanking.corpusStatistics(
+            documents: documents,
+            queryTokens: ["专名", "常用"]
+        )
+        let rare = try #require(statistics.weights["专名"])
+        let common = try #require(statistics.weights["常用"])
+        #expect(rare > common)
+        #expect(statistics.averageLength == 1.0)
+    }
+
+    @Test("a long document pays for its length")
+    func lengthNormalisation() {
+        // Two documents that each hold the term ONCE. The one that is long
+        // next to the corpus's average had more chances to mention it, so it
+        // ranks below the short one (= which the count-only ranking read as a
+        // tie and settled by input order).
+        let statistics = TokenOverlapRanking.CorpusStatistics(weights: [:], averageLength: 10)
+        let short = TokenOverlapRanking.score(
+            queryTokens: ["词"], docTokens: ["词", "的"], statistics: statistics
+        )
+        let long = TokenOverlapRanking.score(
+            queryTokens: ["词"],
+            docTokens: ["词"] + Array(repeating: "的", count: 39),
+            statistics: statistics
+        )
+        #expect(short > long)
     }
 
     @Test("highlight wraps first matching token in <mark>")

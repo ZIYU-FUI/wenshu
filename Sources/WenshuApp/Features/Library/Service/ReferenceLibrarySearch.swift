@@ -85,16 +85,57 @@ enum ReferenceLibrarySearch {
         let queryTokens = TokenOverlapRanking.tokenize(query)
         guard !queryTokens.isEmpty else { return [] }
 
-        var hits: [Hit] = []
+        // **⇒ The weight of a term is a property of the corpus the user is
+        // actually searching.** A word that appears in every document carries
+        // no information; a word that appears in one is what tells the answer
+        // apart from the noise. So the weights are built from the ADMITTED
+        // documents only (= a document the narrowing excluded must not move
+        // the ranking of a document it kept).
+        var candidates: [Candidate] = []
         for reference in references {
             // **⇒ The narrowing asks ITSELF** (= one answer to "does
             // this document survive", = and the search does not keep a
             // second copy of the rule).
             guard narrowing.admits(reference, ownerOf: ownerOf) else { continue }
+            let body = bodyOf(reference)
+            candidates.append(
+                Candidate(
+                    reference: reference,
+                    body: body,
+                    titleTokens: TokenOverlapRanking.tokenize(reference.title),
+                    bodyTokens: body.map { TokenOverlapRanking.tokenize($0) } ?? []
+                )
+            )
+        }
+
+        // The rarity is a property of the DOCUMENT, so it is weighed once
+        // over title-plus-body; the length is a property of the FIELD, so
+        // each field is normalised against its own average (= a short title
+        // is not evidence of a short document).
+        let statistics = TokenOverlapRanking.corpusStatistics(
+            documents: candidates.map(\.allTokens),
+            queryTokens: queryTokens
+        )
+        let titleStatistics = TokenOverlapRanking.CorpusStatistics(
+            weights: statistics.weights,
+            averageLength: TokenOverlapRanking.averageLength(
+                of: candidates.map(\.titleTokens)
+            )
+        )
+        let bodyStatistics = TokenOverlapRanking.CorpusStatistics(
+            weights: statistics.weights,
+            averageLength: TokenOverlapRanking.averageLength(
+                of: candidates.map(\.bodyTokens)
+            )
+        )
+
+        var hits: [Hit] = []
+        for candidate in candidates {
             guard let hit = match(
-                reference: reference,
+                candidate,
                 queryTokens: queryTokens,
-                body: bodyOf(reference)
+                titleStatistics: titleStatistics,
+                bodyStatistics: bodyStatistics
             ) else { continue }
             hits.append(hit)
         }
@@ -109,21 +150,52 @@ enum ReferenceLibrarySearch {
         }
     }
 
+    /// One document that survived the narrowing, with its tokens already
+    /// cut (= so the pass that weighs the terms and the pass that scores
+    /// the documents share ONE tokenisation instead of doing it twice).
+    private struct Candidate {
+        let reference: Reference
+        let body: String?
+        let titleTokens: [String]
+        let bodyTokens: [String]
+
+        /// The tokens the corpus is weighed over (= title and body as one,
+        /// because a term's rarity is a property of the document, not of
+        /// the field it sits in).
+        var allTokens: [String] {
+            titleTokens + bodyTokens
+        }
+    }
+
     /// Match one document against the query.
     ///
     /// The title counts more than the body: the title is what the
     /// user names the document by, and a document whose title holds
     /// the query is almost certainly the one they meant.
+    ///
+    /// - Parameters:
+    ///   - titleStatistics: How rare each query term is in the corpus, and
+    ///     the corpus's average TITLE length (= built once per query by
+    ///     `search`).
+    ///   - bodyStatistics: The same rarity, against the average BODY length.
     private static func match(
-        reference: Reference,
+        _ candidate: Candidate,
         queryTokens: [String],
-        body: String?
+        titleStatistics: TokenOverlapRanking.CorpusStatistics,
+        bodyStatistics: TokenOverlapRanking.CorpusStatistics
     ) -> Hit? {
-        let titleTokens = TokenOverlapRanking.tokenize(reference.title)
-        let titleScore = TokenOverlapRanking.score(queryTokens: queryTokens, docTokens: titleTokens)
-
-        let bodyTokens = body.map { TokenOverlapRanking.tokenize($0) } ?? []
-        let bodyScore = TokenOverlapRanking.score(queryTokens: queryTokens, docTokens: bodyTokens)
+        let reference = candidate.reference
+        let body = candidate.body
+        let titleScore = TokenOverlapRanking.score(
+            queryTokens: queryTokens,
+            docTokens: candidate.titleTokens,
+            statistics: titleStatistics
+        )
+        let bodyScore = TokenOverlapRanking.score(
+            queryTokens: queryTokens,
+            docTokens: candidate.bodyTokens,
+            statistics: bodyStatistics
+        )
 
         guard titleScore > 0 || bodyScore > 0 else { return nil }
 

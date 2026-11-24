@@ -8,10 +8,11 @@
 
 The library's search answered from its own corpus, and nothing measured it.
 
-The ranking is `TokenOverlapRanking`: per-character tokens for Chinese, a token
-overlap with no inverse document frequency, and — in the library's own search —
-the title counted twice the body. A character that appears in every document
-counts as much as one that appears in one.
+The ranking was `TokenOverlapRanking`: per-character tokens for Chinese, a
+token overlap with no inverse document frequency, and — in the library's own
+search — the title counted twice the body. A character that appears in every
+document counts as much as one that appears in one. (= The amendment at the end
+of this ADR records the day that stopped being true.)
 
 Nothing asked whether the right document came back. The suites covered the
 tokenizer, the scorer, the mirror round-trip and the view's behaviour; none of
@@ -103,3 +104,63 @@ system-index half of the app is still a write with no reader.
   on Spotlight can hang the app). The system's half earns its place at the
   agent's corpus retrieval, where a union with the app's own answer is worth
   more than either half alone.
+
+## Amendment — 2026-11-24: the gap this ADR named is closed, with numbers
+
+The change this file promised landed. `TokenOverlapRanking.score` now weighs
+each query term by how many documents of the corpus the caller is searching
+contain it (the inverse document frequency), and a term's contribution is
+BM25's term-frequency term: saturation for repetition (`k1 = 1.2`) plus a
+charge for the document's length against that corpus's average (`b = 0.75`).
+The scoring left the index's file. That file is 556 lines at the base, of
+which the two ranking types are 150; with this change's ranking in it the
+single file would be 669 lines, over the 600-line cap. The scoring is now
+`SearchRanking.swift` (286 lines) beside `CSSearchableIndexSearch.swift`
+(411).
+
+Measured by this file's own harness, on the same 59 documents and 12 questions.
+In the three recall columns, "before" is the number the harness records as its
+floor — which is also the number the base tree printed for that column, because
+the floor was recorded from that same reading — and "after" is what this tree
+prints. The bridge column carries no floor at all (the harness floors recall
+only, and it records no bridge floor), so its cells are the base tree's reading
+and this tree's reading, with an arrow where the two differ, and no assertion
+in the suite would notice a change to them.
+
+| the app's own row | recall@1 | recall@3 | recall@5 | bridge@1 |
+| --- | --- | --- | --- | --- |
+| the library search | 0.75 | 0.83 → 0.92 | 0.92 → 1.00 | 0.67 |
+| the mirror search | 0.83 | 0.92 → 1.00 | 1.00 | 0.67 → 1.00 |
+
+What the numbers say, and what they refuse to say:
+
+- The mirror row — the answer the app gives when the system index is not
+  available — gained recall@3 and its bridge@1. This is the row the ADR's own
+  table could not read, because the table measured a copy of the ranking rather
+  than this function.
+- The library row gained recall@3 and recall@5; its recall@1 stayed at 0.75.
+- The library row's bridge@1 stayed at 0.67, and the reason is not the missing
+  weight. The question that loses holds a term occurring in exactly one
+  document; the document that beats it puts a COMMON term in its TITLE, under
+  the rule this file records as the product's own (the title counted twice).
+  That is a title-weight question. It goes to its own card, and that card has
+  to settle a bias first: in this fixture the gold documents' titles name
+  entities and the noise documents' titles name topics, so a measurement of
+  title weight here may be reading the fixture's shape rather than the rule's.
+  This is stated as unsettled, not as measured.
+- Saturation on its own is not the term, and that was measured rather than
+  reasoned: the cut that capped repetition without charging length took the
+  mirror row's recall@5 from 1.00 to 0.92 — a document that lists all twelve
+  zodiac animals had paid nothing for its length, and it took the gold
+  document's place. The floor was not lowered to hide that; the length term is
+  what put it back, and every floor in the harness is unchanged by this
+  amendment.
+- Rarity is a property of the DOCUMENT and is computed over title and body
+  together; length is a property of the FIELD and each field is normalised
+  against its own average. Normalising a five-token title against a
+  two-hundred-token body average would read "this title is short" as evidence
+  and silently raise the title's weight, which is the one weight this file
+  says the product owns.
+- Nothing about the storage changed. This is the app's own scorer over the
+  corpus it already holds: no SQLite, no FTS5, no GRDB, and the system index
+  stays a write target.
