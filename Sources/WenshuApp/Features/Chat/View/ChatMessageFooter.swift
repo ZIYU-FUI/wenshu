@@ -63,10 +63,10 @@ struct ChatMessageFooter: View {
     var body: some View {
         HStack(spacing: DesignTokens.spacingTight) {
             // T65-CLOCK-PREFIX: clock icon before the timestamp text.
-            SFIcon("clock", style: .inlineSmall, color: IconColor.quaternary)
+            SFIcon("clock", style: .inlineSmall, color: IconColor.quaternary, matchingText: .caption2)
             // T84-DELIVERED-CHECK: checkmark after the timestamp
             // (= Apple Messages read-receipts affordance).
-            SFIcon("checkmark", style: .inlineSmall, color: IconColor.quaternary)
+            SFIcon("checkmark", style: .inlineSmall, color: IconColor.quaternary, matchingText: .caption2)
             // T26-HOVER-TIMESTAMP: compact form by default
             // (= "14:32"); expanded on hover (= "14:32 · 918").
             Text(timestamp, format: timestampDisplayFormat)
@@ -90,7 +90,7 @@ struct ChatMessageFooter: View {
             // Hidden when tokens is nil OR 0.
             if let tokens, tokens > 0 {
                 // T63-TOKEN-ICON: "number" SF Symbol prefix.
-                SFIcon("number", style: .inlineSmall, color: IconColor.quaternary)
+                SFIcon("number", style: .inlineSmall, color: IconColor.quaternary, matchingText: .caption2)
                 Text(Self.formatTokenCount(tokens))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
@@ -99,7 +99,7 @@ struct ChatMessageFooter: View {
                 // T62-TOKEN-COST: estimated USD cost
                 // (= heuristic: $3/M input + $15/M output).
                 // T64-DOLLAR-ICON: "$" SF Symbol prefix.
-                SFIcon("dollarsign.circle", style: .inlineSmall, color: IconColor.quaternary)
+                SFIcon("dollarsign.circle", style: .inlineSmall, color: IconColor.quaternary, matchingText: .caption2)
                 Text(Self.formatTokenCost(tokens))
                     .font(.caption2.monospaced())
                     .foregroundStyle(.quaternary)

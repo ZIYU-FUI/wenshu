@@ -66,7 +66,7 @@ struct ChatPlanPartView: View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
             // Header: 'Plan: <query>' + connector label.
             HStack(spacing: DesignTokens.spacingTight) {
-                SFIcon("list.bullet.rectangle", style: .inlineSmall, color: Color.accentColor)
+                SFIcon("list.bullet.rectangle", style: .inlineSmall, color: Color.accentColor, matchingText: .caption)
                 Text("Plan: \(plan.query)")
                     .font(.caption.monospaced())
                     .foregroundStyle(.primary)
@@ -102,7 +102,7 @@ struct ChatPlanPartView: View {
                 // nil (= older plans without the model field).
                 // Falls back to 'questionmark.circle' when the slug
                 // is unknown (= forward-compat for future connectors).
-                SFIcon(Self.connectorIcon(plan.connectorID), style: .inlineSmall, color: IconColor.tertiary)
+                SFIcon(Self.connectorIcon(plan.connectorID), style: .inlineSmall, color: IconColor.tertiary, matchingText: .caption2)
                 HStack(spacing: DesignTokens.spacingCaption) {
                     Text(Provider.by(slug: plan.connectorID)?.name ?? plan.connectorID)
                         .font(.caption2)

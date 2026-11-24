@@ -183,7 +183,8 @@ struct ImportTaskRow: View {
                     "ellipsis",
                     style: .toolbar,
                     color: IconColor.secondary,
-                    rendering: .variableColor
+                    rendering: .variableColor,
+                    matchingText: .caption
                 )
                 Text("分析中")
                     .font(.caption)
@@ -198,7 +199,8 @@ struct ImportTaskRow: View {
                     "arrow.down.circle.fill",
                     style: .toolbar,
                     color: Color.secondary,
-                    rendering: .variableColor
+                    rendering: .variableColor,
+                    matchingText: .caption
                 )
                 Text("写入中")
                     .font(.caption)

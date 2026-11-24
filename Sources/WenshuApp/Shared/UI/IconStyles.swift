@@ -365,13 +365,32 @@ struct SFIcon: View {
     /// SwiftUI modifier order = the override wins).
     let weightOverride: Font.Weight?
 
+    /// The text style the symbol sits BESIDE (= nil for a symbol that stands
+    /// in a zone of its own).
+    ///
+    /// A symbol is drawn from a font, so the style a symbol wears IS its size
+    /// and its weight. Naming the style here makes the glyph and the label
+    /// beside it one piece of type, at one size and at Apple's own weight for
+    /// that style; a zone tier cannot do it, because the factory cannot know
+    /// what text the call site happens to sit next to (= `.inlineSmall` is
+    /// 14 PT and a caption is 10 PT, so a symbol sizing off the tier draws
+    /// larger than its own label).
+    ///
+    /// When this is named it decides the font on its own: `style.pointSize`,
+    /// `pointSizeOverride` and `weightOverride` are the zone's answer to the
+    /// same question, and two fonts on one symbol resolve to the first one
+    /// applied. Measured on macOS 27: a symbol in `.caption2` occupies
+    /// 12.5 PT, the same symbol in a 14 PT zone font occupies 16 PT.
+    let matchingText: WenshuTextStyle?
+
     init(
         _ name: String,
         style: IconStyle,
         color: Color = Color.secondary,
         rendering: IconRendering? = nil,
         pointSizeOverride: CGFloat? = nil,
-        weightOverride: Font.Weight? = nil
+        weightOverride: Font.Weight? = nil,
+        matchingText: WenshuTextStyle? = nil
     ) {
         self.name = name
         self.style = style
@@ -379,6 +398,7 @@ struct SFIcon: View {
         self.rendering = rendering
         self.pointSizeOverride = pointSizeOverride
         self.weightOverride = weightOverride
+        self.matchingText = matchingText
     }
 
     /// Convenience initializer accepting an `IconColor` semantic token (= the
@@ -392,7 +412,8 @@ struct SFIcon: View {
         color: IconColor,
         rendering: IconRendering? = nil,
         pointSizeOverride: CGFloat? = nil,
-        weightOverride: Font.Weight? = nil
+        weightOverride: Font.Weight? = nil,
+        matchingText: WenshuTextStyle? = nil
     ) {
         self.name = name
         self.style = style
@@ -400,6 +421,7 @@ struct SFIcon: View {
         self.rendering = rendering
         self.pointSizeOverride = pointSizeOverride
         self.weightOverride = weightOverride
+        self.matchingText = matchingText
     }
 
     var body: some View {
@@ -408,8 +430,15 @@ struct SFIcon: View {
         // View`). The styledImage carries .font() for the non-sidebar tiers.
         // The .sidebar tier uses plainImage so it can call .resizable() first.
         let plainImage = Image(systemName: name)
-        let styledImage = plainImage
-            .font(.system(size: pointSizeOverride ?? style.pointSize, weight: weightOverride ?? style.fontWeight))
+        // A symbol that names the text it sits beside wears that text's own
+        // style: one Apple text style decides both the glyph's size and its
+        // weight, so the symbol and the label beside it cannot drift apart.
+        // The zone tier's font is not applied underneath it (= the first font
+        // applied to a symbol is the one it reads). The `.sidebar` tiers size
+        // the glyph to their own slot below and do not read this.
+        let styledImage: AnyView = matchingText.map { AnyView(plainImage.font($0.font)) }
+            ?? AnyView(plainImage
+                .font(.system(size: pointSizeOverride ?? style.pointSize, weight: weightOverride ?? style.fontWeight)))
 
         // .sidebar uses .monochrome so .foregroundStyle(Color.primary) surfaces as the
         // actual system primary (= black on light mode, white on dark mode).

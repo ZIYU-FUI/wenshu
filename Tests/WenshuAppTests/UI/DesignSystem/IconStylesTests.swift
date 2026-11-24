@@ -277,4 +277,100 @@ struct IconStylesTests {
         #expect(!iconContent.contains("Apple System Settings 10-pane"),
                 "the icon factory must not attribute a 10-pane count to Apple's System Settings (= that app's layout is not ours to count)")
     }
+    // MARK: - A symbol beside text wears that text's own style
+
+    @Test("The factory wears the text style it is given instead of the tier's font")
+    func factoryAppliesTheMatchingTextStyle() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/IconStyles.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        #expect(content.contains("let matchingText: WenshuTextStyle?"),
+                "the factory carries the text style a symbol sits beside")
+        #expect(content.contains("plainImage.font($0.font)"),
+                "a named text style decides the symbol's font on its own (= the style carries both its size and its weight, so the zone tier's font is never applied underneath it)")
+    }
+
+    @Test("Every symbol in a measured caption row names the text beside it")
+    func symbolsBesideTextNameTheirStyle() throws {
+        // The rows the typography audit measured: a symbol in one of them is a
+        // prefix of a caption, so its size is the caption's and not a zone's.
+        let measuredFiles = [
+            "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
+            "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
+            "Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreview.swift",
+            "Sources/WenshuApp/Features/Chat/View/ChatToolResultPartView.swift",
+            "Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift",
+            "Sources/WenshuApp/Features/Agent/View/MemoryRetrievalPanel.swift",
+            "Sources/WenshuApp/Features/Agent/View/ImportSheetViewPieces.swift",
+        ]
+        // A control's own icon slot is not a caption's neighbour: its label is
+        // the control's text, so the zone tier decides its glyph.
+        let controlSlots = ["play.fill"]
+        var matchedSymbols = 0
+        for file in measuredFiles {
+            let content = try String(contentsOf: SourceLocator.url(file), encoding: .utf8)
+            for range in Self.sfIconCallRanges(in: content) {
+                let call = String(content[range])
+                if controlSlots.contains(where: { call.contains($0) }) {
+                    #expect(!call.contains("matchingText:"),
+                            "\(file): a control's own icon slot keeps its zone tier (= naming a text style for it would size the glyph off a caption it does not sit in)")
+                    continue
+                }
+                guard let named = Self.namedTextStyle(of: call) else {
+                    Issue.record("\(file): a symbol in a caption row sizes itself off a zone tier (= no matchingText named): \(call.prefix(72))")
+                    continue
+                }
+                matchedSymbols += 1
+                if let beside = Self.firstTextStyle(after: range, in: content) {
+                    #expect(named == beside,
+                            "\(file): the symbol wears \(named) while the text beside it is \(beside)")
+                }
+            }
+        }
+        #expect(matchedSymbols == 12,
+                "the twelve measured caption-row symbols are the census this rule covers (= a new one joins it, a removed one leaves it)")
+    }
+
+    /// The range of every `SFIcon(` call in a file (= balanced parentheses,
+    /// and a call spelled inside a comment is not a call).
+    private static func sfIconCallRanges(in content: String) -> [Range<String.Index>] {
+        var found: [Range<String.Index>] = []
+        let needle = "SFIcon("
+        var cursor = content.startIndex
+        while let open = content.range(of: needle, range: cursor..<content.endIndex) {
+            cursor = open.upperBound
+            let lineStart = content[content.startIndex..<open.lowerBound]
+                .lastIndex(of: "\n").map { content.index(after: $0) } ?? content.startIndex
+            if content[lineStart..<open.lowerBound].contains("//") { continue }
+            var depth = 0
+            var scan = open.upperBound
+            while scan < content.endIndex {
+                let character = content[scan]
+                if character == "(" {
+                    depth += 1
+                } else if character == ")" {
+                    if depth == 0 {
+                        found.append(Range(uncheckedBounds: (open.lowerBound, content.index(after: scan))))
+                        break
+                    }
+                    depth -= 1
+                }
+                scan = content.index(after: scan)
+            }
+        }
+        return found
+    }
+
+    /// The text style a call names, or nil when it names none.
+    private static func namedTextStyle(of call: String) -> String? {
+        guard let at = call.range(of: "matchingText: .") else { return nil }
+        return call[at.upperBound...].prefix(while: { $0.isLetter || $0.isNumber }).lowercased()
+    }
+
+    /// The first `.font(.<style>` after a call (= the style of the text the
+    /// symbol sits beside, in the same row).
+    private static func firstTextStyle(after call: Range<String.Index>, in content: String) -> String? {
+        let window = content[call.upperBound...].prefix(400)
+        guard let at = window.range(of: ".font(.") else { return nil }
+        return window[at.upperBound...].prefix(while: { $0.isLetter || $0.isNumber }).lowercased()
+    }
 }

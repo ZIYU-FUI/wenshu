@@ -43,7 +43,8 @@ struct ChatToolResultPartView: View {
                 SFIcon(
                     toolResult.isError ? "exclamationmark.triangle" : "checkmark",
                     style: .inlineSmall,
-                    color: toolResult.isError ? Color.red : Color.green
+                    color: toolResult.isError ? Color.red : Color.green,
+                    matchingText: .caption
                 )
                 Text(toolResult.isError
                      ? String(localized: "chatview.tool_result.error")

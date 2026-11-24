@@ -20,7 +20,7 @@ struct MemoryRetrievalPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                SFIcon("brain", style: .paneTab, color: IconColor.tint)
+                SFIcon("brain", style: .paneTab, color: IconColor.tint, matchingText: .headline)
                 Text(String(localized: "b5.memoryretrievalpanel.l24.h99228791"))
                     .font(.headline)
                 Spacer()
