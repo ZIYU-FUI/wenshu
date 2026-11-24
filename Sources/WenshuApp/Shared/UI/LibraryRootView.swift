@@ -378,10 +378,13 @@ Group {
                 Text(String(localized: "onboarding.library.choose_location"))
                     .font(.title2)
                     .foregroundStyle(.secondary)
+                // A body paragraph that wraps is read left to right: its
+                // lines start at one edge, so the eye can find the next
+                // line. The block stays centered as a block.
                 Text(String(localized: "onboarding.library.welcome_blurb"))
                     .font(.body)
                     .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                    .multilineTextAlignment(.leading)
                     .frame(maxWidth: DesignTokens.onboardingWelcomeMaxWidth)
                     .padding(.horizontal, DesignTokens.spacingSection)
             }

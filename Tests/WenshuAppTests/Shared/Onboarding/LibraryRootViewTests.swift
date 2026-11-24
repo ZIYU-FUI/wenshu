@@ -52,6 +52,21 @@ struct LibraryRootViewTests {
                 "LibraryRootView must declare body returning some View")
     }
 
+    /// A wrapped paragraph is read from one edge, not down a centre
+    /// column: the welcome blurb is body copy, and its lines start at
+    /// the same left edge every time.
+    @Test("The onboarding blurb reads left-aligned")
+    func onboardingBlurbReadsLeftAligned() throws {
+        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
+        let at = source.range(of: "\"onboarding.library.welcome_blurb\"")
+        #expect(at != nil, "the onboarding screen still shows its welcome blurb")
+        let window = source[at!.lowerBound...].prefix(320)
+        #expect(window.contains(".multilineTextAlignment(.leading)"),
+                "the blurb aligns to the leading edge (= its own line starts where the last one did)")
+        #expect(!window.contains(".multilineTextAlignment(.center)"),
+                "a wrapped paragraph is not centred (= every line would start at a different place)")
+    }
+
     @Test("LibraryRootView imports SwiftUI (= canonical icon layer)")
     func testImportsSwiftUI() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
