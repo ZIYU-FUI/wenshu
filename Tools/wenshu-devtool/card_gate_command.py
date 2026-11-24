@@ -61,11 +61,25 @@ FILTER_PHRASE = "swift test --filter"
 # test script, a pytest run, a docs link check). The forms are the ones
 # this project runs as a gate. This is the SAME set the width gate reads,
 # so the two gates cannot drift apart again.
+# = = = RECOGNITION READS A WRAPPED COMMAND. = = = = = = = = = = = = = = =
+# = = = = A card that wraps its gate command (= "python3" on one line and = =
+# = = = = the path on the next) still NAMES a gate, so the recognition = =
+# = = = = pattern tolerates a line break in the separator. The EXECUTION = =
+# = = = = pattern below does not, and normalises the wrap instead, because = =
+# = = = = a newline inside the text would run `bash` with no argument and = =
+# = = = = then run the path as a second command. = = = = = = = = = = = = = = =
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# = = = The path may WRAP across lines, so the path part reads as "any = = =
+# = = = characters but a line break", and the wrap is allowed BETWEEN the = =
+# = = = command and the path. A card that writes "python3" on one line and = =
+# = = = "Tools/.../test_x.py" on the next names ONE gate. = = = = = = = = = =
+_PATH = r"[^\s\n]*tests?/test_\S+\.py"
+_SH_PATH = r"[^\s\n]*tests?/test_\S+\.sh"
 OWN_COMMAND = re.compile(
-    r"python3\s+\S*tests?/test_\S+\.py"
+    r"python3\s+" + _PATH +
     r"|python3\s+-m\s+pytest"
     r"|\bpytest\b"
-    r"|bash\s+\S*tests?/test_\S+\.sh"
+    r"|bash\s+" + _SH_PATH +
     r"|markdown[- ]link[- ]check"
     r"|\bglossary\b.*\bcheck\b"
     r"|\bdictionary\b.*\bcheck\b",
@@ -75,12 +89,17 @@ OWN_COMMAND = re.compile(
 # The gate command, captured whole (= so a gate can RUN it and not just
 # recognise it). The command is a path or a module, optionally with the
 # python that runs it.
+# The EXECUTION pattern: the same forms, with only the ones a gate can
+# RUN. A card may WRAP a command across lines, so the separator tolerates
+# a line break here too, and `_commands_in` collapses the wrap into one
+# space (= a command is run, and a command with a newline in it is two
+# commands).
 OWN_COMMAND_FULL = re.compile(
     # `python3 <path>` or `python3 -m <module>`
-    r"python3\s+(?:-m\s+)?[^\s]*tests?/test_\S+\.py"
+    r"python3\s+(?:-m\s+)?" + _PATH +
     r"|python3\s+-m\s+\S+"
     r"|\bpytest\b(?:\s+[^\s]+)*"
-    r"|bash\s+[^\s]*tests?/test_\S+\.sh"
+    r"|bash\s+" + _SH_PATH +
     r"|markdown[- ]link[- ]check\b",
     re.I,
 )
@@ -91,11 +110,16 @@ def swift_filters(body: str) -> list[str]:
     return [m.group(2) for m in FILTER.finditer(body or "")]
 
 
-def _commands_in(text: str) -> list[str]:
-    """The gate commands in this text, as the command TEXT to run."""
+def _commands_in(text: str, pattern) -> list[str]:
+    """The gate commands in this text, as the command TEXT.
+
+    A command the card WRAPPED across lines comes back as ONE line (= the
+    line break and the indent that followed it become one space), because
+    a command is run, and a command with a newline in it is two commands.
+    """
     seen: list[str] = []
-    for match in OWN_COMMAND_FULL.finditer(text or ""):
-        command = match.group(0).strip()
+    for match in pattern.finditer(text or ""):
+        command = " ".join(match.group(0).split())
         if command and command not in seen:
             seen.append(command)
     return seen
@@ -113,7 +137,7 @@ def own_commands(body: str) -> list[str]:
     Returned as the command TEXT, so the caller can run it. A command is
     returned once, in the order it first appears.
     """
-    return _commands_in(gate_scope(body or ""))
+    return _commands_in(gate_scope(body or ""), OWN_COMMAND_FULL)
 
 
 def named_own_commands(body: str) -> list[str]:
@@ -127,7 +151,7 @@ def named_own_commands(body: str) -> list[str]:
     The two views differ in WHERE they read, not in WHAT they recognise,
     so the two gates cannot answer differently about the same card.
     """
-    return _commands_in(body or "")
+    return _commands_in(body or "", OWN_COMMAND)
 
 
 def gate_scope(text: str) -> str:
