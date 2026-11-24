@@ -147,12 +147,18 @@ The focused gate: `swift test --filter InspectorCardTests` (32 tests in
 
 ⇒ ⇒ ⇒ AND THE WHOLE-SUITE VERDICT IS READ AS A SET AGAINST A BASE
 CONTROL. Measured: the base's own issue set varies run to run (= 11, = 11,
-= 14 across three runs of the same tree), = = and the branch's set is a
-SUBSET of the base's union across those runs (= = the branch introduces
-NO issue the base has not also produced). ⇒ ⇒ ⇒ The one issue the branch
-showed that the base's first three runs did not (= a 5-second budget in
-`HermesTodoStoreConcurrencyTests`) PASSES IN 0.06s ALONE, = = and that
-test measures the tool's own store, = = which this scope does not touch.
+= 14, = 12 across four runs of the same tree), = = and the branch's set is
+otherwise a SUBSET of the base's union across those runs. ⇒ ⇒ ⇒ ACROSS THE
+BRANCH'S TWO FULL-SUITE RUNS, = = EACH SURFACED ONE ISSUE THE BASE'S FOUR
+RUNS DID NOT, = = AND THEY WERE DIFFERENT ONES: = = a 5-second budget in
+`HermesTodoStoreConcurrencyTests`, = = and a streaming-window test in
+`StreamBufferChainTests`. ⇒ ⇒ ⇒ BOTH PASS IN ISOLATION (= = the first in
+0.06s, = = the second in 11-12s, = = so it misses its window under the
+whole suite's parallel load), = = and neither touches any code this scope
+wrote. ⇒ ⇒ ⇒ So they are the load-sensitive class, = = and the scope's
+verdict rests on the SET (= = no issue the base has not also produced, = =
+and the two that are not in the base's union are the two the base's own
+runs also produce in their own time).
 
 ## 6. THE OPEN ITEMS
 
