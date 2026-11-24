@@ -12,11 +12,11 @@
 //
 //  WHAT IT MEASURES
 //    Two cards, side by side, = = the SAME card with the SAME surface:
-///
-///      LEFT   the tracking area INSIDE the Button's label
-///      RIGHT  the tracking area ON the Button (= outside the label)
-///
-///    and for each one, = = over many frames with the pointer parked
+//
+//      LEFT   the tracking area INSIDE the Button's label
+//      RIGHT  the tracking area ON the Button (= outside the label)
+//
+//    and for each one, = = over many frames with the pointer parked
 //    on it, = = how many frames differ from their neighbour (= = the
 //    hover flickering).
 //
@@ -51,7 +51,7 @@ private struct VisualEffectView: NSViewRepresentable {
     let material: NSVisualEffectView.Material
     let blending: NSVisualEffectView.BlendingMode
 
-    func makeNSView(context: Context) -> NSVisualEffectView {
+    func makeNSView(context _: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
         view.material = material
         view.blendingMode = blending
@@ -59,7 +59,7 @@ private struct VisualEffectView: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+    func updateNSView(_ nsView: NSVisualEffectView, context _: Context) {
         nsView.material = material
         nsView.blendingMode = blending
         nsView.state = .active

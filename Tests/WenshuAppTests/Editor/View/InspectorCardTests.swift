@@ -237,7 +237,7 @@ struct InspectorCardTests {
         // The board's card and the status page's card open something.
         for page in [
             "Sources/WenshuApp/Features/Kanban/View/KanbanView.swift",
-            "Sources/WenshuApp/Features/Editor/View/InspectorStatusView.swift"
+            "Sources/WenshuApp/Features/Editor/View/InspectorStatusView.swift",
         ] {
             let content = try String(contentsOf: SourceLocator.url(page), encoding: .utf8)
             #expect(content.contains("onOpen:"),

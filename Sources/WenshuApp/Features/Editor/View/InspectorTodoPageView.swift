@@ -141,14 +141,14 @@ private struct InspectorTodoCard: View {
         InspectorCard(
             marker: AnyView(stateMarker)
         ) {
+            // ⇒ AND THE CARD'S WORDS ARE NOT SELECTABLE: = = a
+            // selectable text answers the pointer with a TEXT
+            // CURSOR, = = and a text cursor over a card says "this
+            // is a document", = = not "this opens something".
             Text(todo.title)
                 .font(.body.weight(.medium))
                 .foregroundStyle(InspectorTodoStateStyle.foreground(for: todo.status))
                 .lineLimit(3)
-                // ⇒ AND THE CARD'S WORDS ARE NOT SELECTABLE: = = a
-                // selectable text answers the pointer with a TEXT
-                // CURSOR, = = and a text cursor over a card says "this
-                // is a document", = = not "this opens something".
         }
     }
 
