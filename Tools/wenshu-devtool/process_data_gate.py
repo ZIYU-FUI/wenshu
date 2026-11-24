@@ -68,17 +68,21 @@ import sys
 import tempfile
 from pathlib import Path
 
-# The Hermes home that holds the board and the profiles.
-GLOBAL_HOME = Path.home() / ".hermes"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import product_lines  # noqa: E402  (sibling module, same directory)
+
+# The board slug whose workspaces the flow creates (= = the line's own board).
+BOARD = product_lines.DEFAULT_BOARD
+
+# The Hermes home that holds the board and the profiles (= = derived from the
+# board's own path, so a profile's HERMES_HOME does not move it).
+GLOBAL_HOME = Path(product_lines.board_db(BOARD)).parents[3]
 
 # The profiles this repo's flow runs under.
 PROFILES = ("pocock", "wenshu-review")
 
 # The profile dirs that grow with use (= = cache, checkpoints, snapshots, sessions).
 PROFILE_DIRS = ("cache", "checkpoints", "state-snapshots", "sessions")
-
-# The board slug whose workspaces the flow creates.
-BOARD = "wenshu-par"
 
 # The device id's container: /dev/disk3s1s1 and /dev/disk3s5 are slices of
 # the SAME container (disk3), and /dev/disk7s1 is another one (disk7).

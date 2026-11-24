@@ -72,7 +72,7 @@ IMPLEMENTER_PROFILES = ("pocock", "wenshu-dev")
 SKIP_EVENT = "skipped_nonspawnable"
 
 
-def board_db_path(board: str = "wenshu-par") -> Path:
+def board_db_path(board: str = product_lines.DEFAULT_BOARD) -> Path:
     """The board's database file (= = the one the flow writes)."""
     return Path(product_lines.board_db(board))
 
@@ -243,7 +243,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--board-db", default=None,
                     help="the board's database file (default: the flow's board)")
-    ap.add_argument("--board", default="wenshu-par", help="board slug (default: wenshu-par)")
+    ap.add_argument("--board", default=product_lines.DEFAULT_BOARD,
+                    help="board slug (default: the flow's own board)")
     ap.add_argument("--json", action="store_true", help="print the report as JSON")
     args = ap.parse_args(argv)
 
