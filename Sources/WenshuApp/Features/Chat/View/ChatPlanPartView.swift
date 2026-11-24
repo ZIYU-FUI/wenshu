@@ -10,9 +10,9 @@
 //      = the chat bubble color stays neutral = no product conflict)
 //    - Numbered steps in monospaced font (= the canonical code-block
 //      "step list" visual; = matches Xcode's task list pattern).
-//    - The card's title in the headline style (= a card's title has to
-//      outrank its provenance strip, which stays caption-scale; = the
-//      two were the same 11 PT until the title was read as chrome).
+//    - The card's title in the headline style (= a title outranks the
+//      caption-scale provenance strip under it; = the rank is the whole
+//      of what the header says with size).
 //    - 'Approve' / 'Decline' buttons at the bottom (= the standard
 //      modal-action footer pattern; = same shape as Mail's rule
 //      confirmation dialog).
@@ -67,46 +67,34 @@ struct ChatPlanPartView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-            // Header: 'Plan: <query>' + connector label.
-            HStack(spacing: DesignTokens.spacingTight) {
-                SFIcon("list.bullet.rectangle", style: .inlineSmall, color: Color.accentColor, matchingText: .headline)
-                Text("Plan: \(plan.query)")
-                    .font(.headline.monospaced())
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                // T32-STEP-COUNT-CHIP (2026-09-18): a small "(N steps)"
-                // chip immediately after the query (= gives the user
-                // an at-a-glance summary of the plan size before they
-                // expand the DisclosureGroup to see the actual steps).
-                Text("(N steps)".replacingOccurrences(
-                    of: "N", with: "\(plan.steps.count)"
-                ))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .padding(.horizontal, DesignTokens.spacingIconic)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip)
-                            .strokeBorder(.quaternary, lineWidth: DesignTokens.separatorThicknessHairline)
-                    )
-                Spacer(minLength: 0)
-                // T27-CONNECTOR-DISPLAY (2026-09-18): show the
-                // provider's friendly display name (= "Anthropic",
-                // "OpenAI Codex", "MiniMax (China)") instead of the
-                // raw slug (= "anthropic", "openai-codex", "minimax-cn").
-                // T29-CONNECTOR-ICON (2026-09-18): also show a small
-                // SF Symbol icon that identifies the provider at a
-                // glance (= the user sees the provider *and* a visual
-                // hint in the same HStack; = matches the connector-
-                // profile pattern in the Settings pane).
-                // T30-PLAN-MODEL (2026-09-18): also surface the LLM
-                // model id (= "claude-sonnet-4-20250514") so the user
-                // knows which exact model generated the plan. Falls
-                // back to the connector-only display when model is
-                // nil (= older plans without the model field).
-                // Falls back to 'questionmark.circle' when the slug
-                // is unknown (= forward-compat for future connectors).
-                SFIcon(Self.connectorIcon(plan.connectorID), style: .inlineSmall, color: IconColor.tertiary, matchingText: .caption2)
+            // The header is two rows: what the plan is, then who made
+            // it. A query needs the width the provenance would take, and
+            // the model id is not part of the plan's own sentence.
+            VStack(alignment: .leading, spacing: DesignTokens.spacingCaption) {
+                HStack(spacing: DesignTokens.spacingTight) {
+                    SFIcon("list.bullet.rectangle", style: .inlineSmall, color: Color.accentColor, matchingText: .headline)
+                    Text("Plan: \(plan.query)")
+                        .font(.headline.monospaced())
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Text("(N steps)".replacingOccurrences(
+                        of: "N", with: "\(plan.steps.count)"
+                    ))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, DesignTokens.spacingIconic)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip)
+                                .strokeBorder(.quaternary, lineWidth: DesignTokens.separatorThicknessHairline)
+                        )
+                    Spacer(minLength: 0)
+                }
+                // The provenance strip: the provider, the exact model id
+                // when the plan carries one, and how old the plan is. The
+                // connector glyph is the at-a-glance half of this row, so
+                // it is read by the row, not by the slug alone.
                 HStack(spacing: DesignTokens.spacingCaption) {
+                    SFIcon(Self.connectorIcon(plan.connectorID), style: .inlineSmall, color: IconColor.tertiary, matchingText: .caption2)
                     Text(Provider.by(slug: plan.connectorID)?.name ?? plan.connectorID)
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
@@ -118,16 +106,11 @@ struct ChatPlanPartView: View {
                             .font(.caption2.monospaced())
                             .foregroundStyle(.tertiary)
                     }
+                    Spacer(minLength: 0)
+                    Text(plan.createdAt, format: .relative(presentation: .named))
+                        .font(.caption2)
+                        .foregroundStyle(.quaternary)
                 }
-                // T32-PLAN-ELAPSED (2026-09-18): a small relative-time
-                // chip after the model id (= "3s ago", "2m ago",
-                // "1h ago"). Matches the product relative-time
-                // convention (= .relative(presentation: .named) on
-                // Date.FormatStyle). Helps the user judge whether
-                // the plan is fresh or stale.
-                Text(plan.createdAt, format: .relative(presentation: .named))
-                    .font(.caption2)
-                    .foregroundStyle(.quaternary)
             }
             // DisclosureGroup (= collapsible step list; = the
             // standard macOS expand/collapse pattern). Default = expanded

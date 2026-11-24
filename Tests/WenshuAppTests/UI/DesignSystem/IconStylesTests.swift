@@ -291,8 +291,9 @@ struct IconStylesTests {
 
     @Test("Every symbol in a measured caption row names the text beside it")
     func symbolsBesideTextNameTheirStyle() throws {
-        // The rows the typography audit measured: a symbol in one of them is a
-        // prefix of a caption, so its size is the caption's and not a zone's.
+        // The caption rows the factory is checked in: a symbol in one of
+        // them is a prefix of a caption, so its size is the caption's and
+        // not a zone's.
         let measuredFiles = [
             "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
