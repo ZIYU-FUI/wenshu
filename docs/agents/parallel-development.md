@@ -224,9 +224,28 @@ REPO=/Volumes/ANAN/Engineering/wenshu
 #    resolved in isolation, where it cannot destroy a sibling's staged work)
 git -C "$REPO/.worktrees/<task-id>" rebase main
 
-# 3. Fast-forward main into the branch (= one commit per ticket, rule 7.8)
-git -C "$REPO" merge --ff-only <branch>
+# 3. Move main BY COMPARE-AND-SWAP (= one commit per ticket, rule 7.8).
+#    The branch was rebased onto main in step 2, so its tip carries main and
+#    the swap is a genuine fast-forward. `git update-ref <ref> <new> <old>`
+#    moves the ref ONLY when it still points at <old>, so a main that moved
+#    under this landing makes the swap FAIL (= the ref is not changed)
+#    instead of overwriting the other session's landing. The landing
+#    retries on the new main and re-runs the gates (= a rebase can
+#    invalidate what a gate proved).
+#
+#    NOTHING is merged in the shared checkout: the old step ran
+#    `git merge --ff-only` there (= the checkout every session reads and
+#    writes), so two sessions landing at once fought over one working tree,
+#    and a merge that succeeded half-way left that checkout's files on a
+#    branch the next session did not expect.
+MAIN_SHA=$(git -C "$REPO" rev-parse main)
+git -C "$REPO" update-ref refs/heads/main "$(git -C "$REPO/.worktrees/<task-id>" rev-parse <branch>)" "$MAIN_SHA"
 ```
+
+`Scripts/land_card.sh` does exactly this, with the gates in between (= the
+gates run on the rebased tree, and the swap names the sha the rebase used,
+so a moving main is refused rather than overwritten). Its suite is
+`Tools/wenshu-devtool/tests/test_land_card_cas.py`.
 
 The preflight resolves the review card by the sha the branch points at (= the
 sha the card's body names under review), because under the one-developer flow
@@ -343,6 +362,17 @@ the key level, so both cards keep their row. On the current board that moved 7 p
 (every xcstrings pair) out of the collision list.
 
 The gate's test suite is `Tools/wenshu-devtool/tests/test_wave_gate.py`.
+
+### The gate reports; the card contract blocks
+
+`Tools/wenshu-devtool/ownership_gate.py` is the same write-set question,
+read on the CARD CONTRACT's path: it refuses two live cards that write one
+file, and it is wired into `ticket_tier.py`'s contract check, so a card
+that collides with a live card is refused before it is dispatched. A path
+with a merge driver is the driver's call, not the gate's.
+
+`Tools/wenshu-devtool/wave_gate.py` remains the REPORT (= the wave's plan),
+and the report is what the boss reads.
 
 ### The gate reports; it does not block
 

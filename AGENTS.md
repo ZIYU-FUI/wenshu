@@ -24,7 +24,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 1. AGENTS.md (this file) — 10 sections of project SSOT (reached via the .hermes.md pointer; see 1.9).
 2. ~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/SKILL.md — workflow entry.
 3. ~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/references/wenshu-swift-standards.md — Swift standards.
-4. .scratch/<date>-<topic>/spec.md if a ticket is open.
+4. .scratch/<date>-<topic>/spec.md if a ticket is open (= the plan of record: the four canonical sections, and its `issues/` set = the tickets cut from it).
 5. OOB.md if any rule references (see OOB.md #YYYY-MM-DD).
 
 ## §1 Hard rules (project-wide, non-negotiable)
@@ -33,7 +33,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 
 | #   | Rule | Enforcement |
 | --- | ---- | ----------- |
-| 1.1 | English-only in code, comments, commits, prompts, all .md. No CJK characters. Exempt: CJK that IS the data (= a user-facing string, a localization catalog's value, a test fixture that must read like the user's own Chinese text, a probe's label (= the literal the probe draws, not a comment that names it)), and the boss's quoted words inside `OOB.md` (= that file's whole purpose). Never exempt: prose a writer chose (= a comment, a commit message, a doc's own sentence). | CI lint-commits job (no CJK in the subject); the xianxia family by commit_filter.py + SwiftLint. Comment-level CJK is manual. |
+| 1.1 | English-only in code, comments, commits, prompts, all .md. No CJK characters. Exempt: CJK that IS the data (= a user-facing string, a localization catalog's value, a test fixture that must read like the user's own Chinese text, a probe's label (= the literal the probe draws, not a comment that names it)), and the boss's quoted words inside `OOB.md` (= that file's whole purpose). Never exempt: prose a writer chose (= a comment, a commit message, a doc's own sentence). | CI lint-commits job (no CJK in the subject); the xianxia family by commit_filter.py + SwiftLint. Comment-level CJK: `Tools/wenshu-devtool/comment_lineage.py` (= the ONE judge, and the pre-review gate runs it). |
 | 1.2 | Sole address for the user = "老板". No other forms. | Manual. commit_filter.py permits the project literals (老板 / 文枢 / 拍 / 拍板 / ※). |
 | 1.3 | Forbidden hedges (replace with yes/no/yes-yes): 可 / 应当 / 或许 / 可能 / 应该 / 建议 / 考虑 / 试图 / 尽量 / 大概 / 也许 / 或 / 任意 / 大概率 / 通常 / 一般来说. | Manual (= no machine gate). |
 | 1.4 | Forbidden xianxia vocabulary (replace with 修 / 改 / fix / 替换 / 调整): 修真 / 渡劫 / 筑基 / 返虚 / 结丹 / 金丹 / 元婴 / 飞升 / 天劫 / 雷劫 / 心魔 / 魔障. | commit_filter.py (pre-commit + commit-msg + pre-push hooks in .git/hooks/) + .swiftlint.yml xianxia_forbidden_vocab (severity error) + CI Pollution check. |
@@ -136,12 +136,12 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | 7.2 | swift test exits 0. No skipped test without // TODO + tracker id. | CI (swift test). |
 | 7.3 | 9-grep design sweep (the greps are listed in the reference). Each must return 0 on the changed view files. Enforced by 22 sweep suites in Tests/WenshuAppTests/UI/DesignSystem (swift test), never by the pre-commit hook. | wenshu-pocock-workflow/references/v3.0-design-system-rule.md |
 | 7.4 | Dual-axis audit: Standards axis (code-review + codebase-design) + Spec axis (.scratch/<date>-<topic>/spec.md). Both read-only, parallel. | docs/agents/parallel-development.md; wenshu-parallel-dev. |
-| 7.5 | CJK comment audit: zero new CJK in a comment or a commit message of a modified file (= the 1.1 data exemption applies = CJK that IS the data is not a violation). Manual: CI checks the commit subject only; no comment-level CJK gate ships in the tree. | CI lint-commits job |
+| 7.5 | CJK comment audit: zero new CJK in a comment or a commit message of a modified file (= the 1.1 data exemption applies = CJK that IS the data is not a violation). The comment-level gate SHIPS: `comment_lineage.py` is the ONE judge of the rule (= one reader, one window, one character class, one whitelist) and `pre_review_gate.py` calls it. The severity axis is the CJK axis (= `P0` = the row carries a CJK character, `P1` = it does not); the BLOCKING decision is a second, orthogonal axis (= authorship: this branch wrote the line, or it only carried it), so a line the author did not write is reported and does not block. | comment_lineage.py; pre_review_gate.py; arms in `tests/comment_lineage_arms.txt` |
 | 7.6 | No dead code. | verify-dead.py. |
 | 7.7 | UI-touching ticket: the boss looks at the running build in person. A screenshot is evidence only when asked. The worker's GUI drive = the `computer_use` tool in background delivery: never synthetic events, never the user's cursor or foreground. | wenshu_devtool.py. |
 | 7.8 | Commit hygiene: 1 commit per ticket, conventional prefix, English subject, body explains WHY. | CI lint-commits job (prefix + no CJK in the subject); commit_filter.py commit-msg hook. |
 | 7.9 | The verdict field: the REVIEWER ends with `kanban_complete(metadata={"review_outcome": "approved"})` = the field the gate reads, so a verdict in the summary alone is NO verdict. | review_gate.py. |
-| 7.10 | Named narrow gate: a card's body names the filtered suite that owns each file it writes, as a `swift test --filter <Suite>` command (a card with no Swift code names its own gate command). A T1/T2 card never asks for the whole suite. Naming no gate is a defect. | gate_width_gate.py |
+| 7.10 | Named narrow gate: a card's body names the filtered suite that owns each file it writes, as a `swift test --filter <Suite>` command (a card with no Swift code names its own gate command). A T1/T2 card never asks for the whole suite. Naming no gate is a defect. The card's gate is read by ONE reader (`card_gate_command.py`), so the width gate and the pre-review gate cannot answer differently about the same card (= a card the width gate accepted is a card the pre-review gate can run). | gate_width_gate.py; card_gate_command.py; pre_review_gate.py |
 
 ### Intake and dispatch gates (they fire before the code exists)
 
@@ -149,7 +149,13 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | --- | ---- | --------- |
 | 7.11 | Evidence budget: this gate checks rule 1.15's four lines AND the order shape (line-numbered seams, one writer per file) before a worker starts. A card that reads without a budget is a defect. | effort_budget_gate.py |
 | 7.12 | Fan-out budget: a card that opens sub-agents names disjoint scopes, one writer per file, and the parent's total call ceiling. Duplicate scopes, duplicate goals and cold-cache children are reported: Hermes does not dedupe or set a parent budget, so the card must. | session_effort_audit |
-| 7.13 | Host slots: `kanban.max_in_progress` counts running cards across EVERY board, so one busy board starves the others. An undispatched ready card is usually this cap, not a quota wall; a full host drains by itself, so never reclaim a live worker to make room. | hermes-kanban-dispatch-mechanism skill. |
+| 7.13 | Host slots: `kanban.max_in_progress` counts running cards across EVERY board, so one busy board starves the others. An undispatched ready card is usually this cap, not a quota wall; a full host drains by itself, so never reclaim a live worker to make room. |
+| 7.14 | Plan of record: a card that names a scope has a plan (= a spec with the four canonical sections + an `issues/` set of tickets + that set's index file whose blocking edges resolve) in the SHARED checkout, and the plan is read from there. The card contract refuses a scope with no plan. | plan_gate.py. |
+| 7.15 | One writer per file: two live cards that write one file are refused before dispatch (= a path with a merge driver is the driver's call). | ownership_gate.py; wave_gate.py. |
+| 7.16 | The landing moves `main` and NOTHING else: the branch is merged in the card's OWN worktree, and `main` moves by compare-and-swap against the sha it rebased onto (= a `main` that moved under the landing makes the swap fail, not overwrite the other session's landing). | Scripts/land_card.sh. |
+| 7.17 | The merge driver travels with the repo: a fresh clone wires it with `Scripts/install-merge-drivers.sh` (= git and python3 only), because `.gitattributes` names a driver and `.git/config` defines it, and git does NOT report the gap. | merge_drivers.py; Scripts/install-merge-drivers.sh. |
+| 7.18 | The verdict is the hand-off: the review lane states the finding in its verdict and creates NO card addressed to an implementer (= such a card is never spawned, because the board's dispatcher spawns only the review profile). | review_handoff_gate.py. |
+| 7.19 | The process data is on the data disk: every path this repo's flow writes is measured against the mount table (= a `/Users/...` path can be a symlink onto the data disk, so only the mount table says where a file is), and a path on the system disk is named. | process_data_gate.py. |
 
 ## §8 Workflow (universal PO methodology)
 
