@@ -454,7 +454,14 @@ private struct KanbanCard: View {
         // cards and the sub-agent's cards all start their words at the
         // same place).
         InspectorCard(
-            marker: AnyView(EmptyView())
+            marker: AnyView(EmptyView()),
+            // ⇒ THE CARD IS THE CONTROL: = = the whole card answers
+            // the click (= = its padding, = = its background, = = and
+            // the empty space beside the body preview all belong to
+            // the tap, = = not just the text), = = and the whole card
+            // answers the hover, = = and the pointer says "this opens"
+            // over the whole card.
+            onOpen: { onOpen() }
         ) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
                 // The title comes FIRST: it is what the user scans the
@@ -462,25 +469,25 @@ private struct KanbanCard: View {
                 Text(card.task.title)
                     .font(.body.weight(.medium))
                     .lineLimit(3)
-                    .textSelection(.enabled)
                 // The body's markdown arrives PARSED (= the board's
-                // load parsed it, = so the card draws text and parses
+                // load parsed it, = = so the card draws text and parses
                 // nothing). The rendered text is the shared parser's
                 // output (= unchanged).
+                //
+                // ⇒ AND THE CARD'S WORDS ARE NOT SELECTABLE: = = a
+                // selectable text answers the pointer with a TEXT
+                // CURSOR, = = and a text cursor over a card says "this
+                // is a document", = = not "this opens something". = =
+                // The whole card's words are still selectable where
+                // they belong (= = in the sheet the card opens).
                 if let parsedBody = card.parsedBody {
                     Text(parsedBody)
                         .font(.callout)
                         .foregroundStyle(DesignTokens.statusForeground)
                         .lineLimit(3)
-                        .textSelection(.enabled)
                 }
             }
         }
-        // The whole card is one tap target (= its padding, its
-        // background, and the empty space beside the body preview all
-        // belong to the tap, = not just the text).
-        .contentShape(Rectangle())
-        .onTapGesture { onOpen() }
         // The delete lives in the context menu (= the trash button that
         // used to sit in the corner is gone).
         .contextMenu {
@@ -491,7 +498,11 @@ private struct KanbanCard: View {
                 )
             }
         }
-        .hoverWash()
+        // ⇒ The card wears NO hover wash of its own: = = the shared
+        // card draws it (= = in the card's own shape, = = and over the
+        // card's material, = = which is the only place the wash can be
+        // seen at all). = = ⇒ The board's card and the column's other
+        // two pages' cards answer the pointer the SAME way.
     }
 }
 

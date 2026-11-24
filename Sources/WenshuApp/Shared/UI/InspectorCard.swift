@@ -54,6 +54,15 @@ import SwiftUI
 ///
 /// The card wears the app's own content-area material and carries a
 /// marker column, so every card in the column reads the same way.
+///
+/// ⇒ ⇒ ⇒ AND WHEN THE CARD OPENS SOMETHING, = = THE WHOLE CARD IS
+/// THE CONTROL: = = the hover answers over the whole card, = = and the
+/// click answers over the whole card, = = and the pointer says "this
+/// opens" over the whole card (= = including over the card's own
+/// words, = = which is why the card's words are not selectable text =
+/// = a selectable text answers the pointer with a text cursor, = = and
+/// a text cursor over a card says "this is a document", = = not "this
+/// opens something").
 struct InspectorCard<Content: View, Trailing: View>: View {
     /// The card's marker (= the state symbol, = a marker column of its
     /// own width so the words start at the same place in every card).
@@ -66,12 +75,34 @@ struct InspectorCard<Content: View, Trailing: View>: View {
     /// label; = nothing when the card carries no trailing piece).
     let trailing: Trailing
 
+    /// What opens the card (= nothing when the card opens nothing, = =
+    /// and a card that opens nothing must NOT wear the open card's
+    /// answers, = = because a card that lights up under the pointer
+    /// and then does nothing is a lie the user pays for).
+    let onOpen: (() -> Void)?
+
+    /// Whether the pointer is over the card (= = the card's own answer
+    /// to the pointer, = = and the card's own words draw it).
+    ///
+    /// ⇒ ⇒ ⇒ WHY THE CARD HOLDS IT AND NOT THE WASH: = = the wash
+    /// lives INSIDE the Button's label, = = and a tracking area inside
+    /// a label is rebuilt whenever the label re-renders, = = so a wash
+    /// that owned its own tracking area FLICKERS (= = the pointer
+    /// enters, = = the wash draws, = = the label re-renders, = = the
+    /// tracking area is rebuilt, = = the pointer is reported as gone,
+    /// = = the wash clears, = = = = and again). = = ⇒ The tracking
+    /// area hangs on the Button, = = outside the label, = = where a
+    /// label's re-render cannot reach it.
+    @State private var isHovering: Bool = false
+
     init(
         marker: AnyView,
+        onOpen: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content,
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.marker = marker
+        self.onOpen = onOpen
         self.content = content()
         self.trailing = trailing()
     }
@@ -87,6 +118,39 @@ struct InspectorCard<Content: View, Trailing: View>: View {
     }
 
     var body: some View {
+        if let onOpen {
+            // The card IS the control (= = the whole card is the
+            // button, = = so the click answers over the card's
+            // padding and its empty space, = = and not only over
+            // its words).
+            //
+            // ⇒ AND THE BUTTON IS PLAIN: = = the card draws its own
+            // surface, = = and a button style that drew a bezel
+            // would put Apple's own chrome on top of it.
+            //
+            // ⇒ AND THE POINTER IS THE SYSTEM'S OWN: = = a hand
+            // over a thing that opens, = = which is the one answer
+            // macOS has that says "this opens something" (= = the
+            // arrow says nothing, = = and the text cursor says the
+            // opposite).
+            Button(action: onOpen) {
+                cardSurface
+            }
+            .buttonStyle(.plain)
+            .pointerStyle(.link)
+            // ⇒ THE TRACKING AREA HANGS HERE, = = on the control
+            // and NOT inside its label, = = so the wash's own
+            // re-render cannot tear it down (= = which is what
+            // made the wash FLICKER).
+            .onHover { isHovering = $0 }
+        } else {
+            cardSurface
+        }
+    }
+
+    /// The card's own surface (= its words, = its material, = its
+    /// hairline, = and its hover wash).
+    private var cardSurface: some View {
         HStack(alignment: .top, spacing: DesignTokens.spacingIconic) {
             // The marker sits in a column of its own width, and it sits
             // at the column's LEADING edge (= the column holds the
@@ -108,6 +172,28 @@ struct InspectorCard<Content: View, Trailing: View>: View {
         .background {
             ContentAreaMaterial.surface
         }
+        // The HOVER WASH (= Apple's own .quaternary, = = the system's
+        // own hierarchical fill, = = so it adapts to light, = = to dark
+        // and to Increase Contrast by itself).
+        //
+        // ⇒ ⇒ ⇒ WHY IT IS PAINTED OVER THE MATERIAL AND NOT UNDER IT:
+        // = = the material is opaque enough to bury a wash painted
+        // under it, = = which is why the app's old hover did NOTHING on
+        // a card (= = the card's surface was drawn over the wash).
+        //
+        // ⇒ ⇒ ⇒ AND WHY IT WEARS THE CARD'S OWN CORNER: = = a wash
+        // in a smaller radius floats inside the card's rounded corner
+        // instead of following it, = = and the card's radius is the
+        // app's own token, = = not a number invented here.
+        //
+        // ⇒ ⇒ ⇒ AND WHY IT ANSWERS OVER THE WHOLE CARD: = = the wash
+        // is drawn over the card's own frame, = = so the pointer
+        // anywhere on the card lights the card, = = and not only the
+        // pointer over its words.
+        .hoverWashOverlay(
+            cornerRadius: DesignTokens.surfaceCornerRadiusCard,
+            isHovering: $isHovering
+        )
         // The card's own edge (= the system separator, = = the hairline
         // every bounded surface in the app wears). = The material paints
         // no edge of its own (= a glass surface drew one, = a material
@@ -128,10 +214,12 @@ extension InspectorCard where Trailing == EmptyView {
     /// A card that carries no trailing piece.
     init(
         marker: AnyView,
+        onOpen: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content
     ) {
         self.init(
             marker: marker,
+            onOpen: onOpen,
             content: content,
             trailing: { EmptyView() }
         )

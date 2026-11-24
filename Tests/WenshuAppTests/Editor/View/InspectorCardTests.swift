@@ -160,6 +160,102 @@ struct InspectorCardTests {
         }
     }
 
+    @Test("The card that opens something IS a button (= = the whole card answers the click)")
+    func theOpenCardIsAButton() throws {
+        let card = try String(
+            contentsOf: SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCard.swift"),
+            encoding: .utf8
+        )
+        #expect(card.contains("Button(action: onOpen)"),
+                "the card that opens something must be a button (= = so the click answers over the whole card, = = and not only over its words)")
+        #expect(card.contains(".buttonStyle(.plain)"),
+                "the card's button must be plain (= = a button style that drew a bezel would put Apple's own chrome on top of the card's own surface)")
+        #expect(card.contains("onOpen: (() -> Void)?"),
+                "the card must carry the open action (= = and a card that opens nothing must wear NO open card's answers)")
+    }
+
+    @Test("The card's pointer says 'this opens' (= = and never a text cursor)")
+    func theCardWearsTheSystemsPointer() throws {
+        let card = try String(
+            contentsOf: SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCard.swift"),
+            encoding: .utf8
+        )
+        #expect(card.contains(".pointerStyle(.link)"),
+                "the card must wear the system's own pointer (= = the one answer macOS has that says 'this opens something')")
+        // ⇒ The card's words must NOT be selectable: = = a selectable
+        // text answers the pointer with a TEXT CURSOR, = = and a text
+        // cursor over a card says "this is a document".
+        for page in Self.cardPages {
+            let content = try String(contentsOf: SourceLocator.url(page), encoding: .utf8)
+            #expect(!content.contains(".textSelection(.enabled)"),
+                    "\(page) must not make the card's words selectable (= = a selectable text answers the pointer with a text cursor, = = and a text cursor over a card says 'this is a document')")
+        }
+    }
+
+    @Test("The card's hover answers over the WHOLE card (= = and it does not flicker)")
+    func theCardAnswersTheWholeCard() throws {
+        let card = try String(
+            contentsOf: SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCard.swift"),
+            encoding: .utf8
+        )
+        #expect(card.contains("hoverWashOverlay("),
+                "the card must draw the hover wash (= = and the wash lives in the shared file, = = so the app's hover has ONE owner)")
+        #expect(card.contains("DesignTokens.surfaceCornerRadiusCard"),
+                "the card's hover wash must wear the card's own corner (= = a wash in a smaller radius floats inside the card's corner instead of following it)")
+        // ⇒ The tracking area hangs on the control and NOT inside its
+        // label: = = a tracking area inside a label is rebuilt when
+        // the label re-renders, = = and the re-render is what the
+        // hover state causes, = = so the wash FLICKERS.
+        guard let tracking = card.range(of: ".onHover { isHovering = $0 }"),
+              let button = card.range(of: "Button(action: onOpen)")
+        else {
+            Issue.record("The card's hover tracking area is gone.")
+            return
+        }
+        #expect(tracking.lowerBound > button.lowerBound,
+                "the hover tracking area must hang on the control and NOT inside its label (= = a tracking area inside a label is rebuilt by the label's own re-render, = = which is what made the wash flicker)")
+    }
+
+    @Test("The hover wash is Apple's own (= = and it is painted OVER the material)")
+    func theHoverWashIsApplesOwn() throws {
+        let wash = try String(
+            contentsOf: SourceLocator.url("Sources/WenshuApp/Shared/UI/HoverWash.swift"),
+            encoding: .utf8
+        )
+        #expect(wash.contains("AnyShapeStyle(.quaternary)"),
+                "the wash must wear Apple's own .quaternary (= = the system's hierarchical fill, = = and it adapts to light, = = to dark and to Increase Contrast by itself)")
+        #expect(!wash.contains("AnyShapeStyle(.tertiary)"),
+                "the wash must NOT wear .tertiary (= = that is 25% against .quaternary's 10%, = = and the file's own stated intent = = and Apple's own row wash = = are the 10% one)")
+        // ⇒ The wash that a card wears is painted OVER the content, = =
+        // because a material buries a wash painted under it.
+        #expect(wash.contains("func hoverWashOverlay("),
+                "the app must keep ONE hover wash (= = and the card's wears the one painted over the content)")
+    }
+
+    @Test("Every page's open card carries the open action (= = and the plan card does not)")
+    func everyOpenCardCarriesTheOpenAction() throws {
+        // The board's card and the status page's card open something.
+        for page in [
+            "Sources/WenshuApp/Features/Kanban/View/KanbanView.swift",
+            "Sources/WenshuApp/Features/Editor/View/InspectorStatusView.swift"
+        ] {
+            let content = try String(contentsOf: SourceLocator.url(page), encoding: .utf8)
+            #expect(content.contains("onOpen:"),
+                    "\(page) must give the card its open action (= = the card is the control)")
+        }
+        // ⇒ The plan's card opens NOTHING today (= = the plan lives in
+        // an in-memory store with no document behind it), = = so it
+        // carries no open action, = = and therefore no hand, = = and no
+        // hover wash (= = a card that lights up under the pointer and
+        // then does nothing is a lie the user pays for).
+        let plan = try String(
+            contentsOf: SourceLocator.url("Sources/WenshuApp/Features/Editor/View/InspectorTodoPageView.swift"),
+            encoding: .utf8
+        )
+        #expect(!plan.contains("onOpen:"),
+                "the plan's card opens nothing today (= = and a card that opens nothing must not wear the open card's answers)")
+    }
+
     @Test("Every marker of the plan wears one symbol set (= one size, = one column)")
     func everyMarkerWearsOneSymbolSet() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/InspectorTodoPageView.swift")

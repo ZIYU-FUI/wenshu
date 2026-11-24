@@ -300,67 +300,71 @@ private struct InspectorStatusTaskCard: View {
     let onOpen: () -> Void
 
     var body: some View {
-        Button(action: onOpen) {
-            // The shared card (= the same card the column's other two
-            // pages wear). The agent's name and its tool sit on the
-            // card's first line, = the state and the task's own words
-            // under it, = and the elapsed time at the trailing edge
-            // (= the card's layout is the column's layout, = and the
-            // cards differ in HEIGHT, = never in LAYOUT).
-            InspectorCard(
-                marker: AnyView(
-                    SFIcon(
-                        InspectorStatusStateStyle.icon(for: task.state),
-                        style: .inlineSmall,
-                        color: InspectorStatusStateStyle.color(for: task.state)
-                    )
+        // The shared card (= the same card the column's other two
+        // pages wear), = = and the card IS the control: = = the whole
+        // card answers the click, = = the whole card answers the
+        // hover, = = and the pointer says "this opens" over the whole
+        // card (= = the agent's name and its task sit on the card's
+        // first line, = = the state and the task's own words under it,
+        // = = and the elapsed time at the trailing edge (= the card's
+        // layout is the column's layout, = = and the cards differ in
+        // HEIGHT, = never in LAYOUT)).
+        //
+        // ⇒ A CARD WITHOUT OUTPUT CANNOT BE OPENED (= there is nothing
+        // to read), = = and it wears NO open card's answers (= = no
+        // hand, = = no hover wash, = = and no button at all), = = for
+        // the same reason the old code turned the hit test off rather
+        // than disabling the control (= = a disabled control dims the
+        // whole card, = = and a running agent that has produced nothing
+        // yet would read as finished).
+        InspectorCard(
+            marker: AnyView(
+                SFIcon(
+                    InspectorStatusStateStyle.icon(for: task.state),
+                    style: .inlineSmall,
+                    color: InspectorStatusStateStyle.color(for: task.state)
                 )
-            ) {
-                VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                    HStack(spacing: DesignTokens.spacingIconic) {
-                        Text(task.agentName)
-                            .font(.headline)
-                            .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
-                            .lineLimit(1)
-                        if let tool = task.currentTool {
-                            // The tool the agent is calling right now, in a
-                            // quieter column beside the name (= the agent's
-                            // name stays the primary content of the row).
-                            Text(InspectorStatusToolLabel.text(tool))
-                                .font(.caption2)
-                                .foregroundStyle(DesignTokens.statusForeground)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
-                    }
-                    Text(InspectorStatusStateStyle.label(for: task.state))
-                        .font(.caption)
+            ),
+            onOpen: task.output != nil ? { onOpen() } : nil
+        ) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                HStack(spacing: DesignTokens.spacingIconic) {
+                    Text(task.agentName)
+                        .font(.headline)
                         .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
-                    Text(task.taskText)
-                        .font(.callout)
-                        .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
-                        .lineLimit(3)
-                    // The activity line: = = what the agent just did,
-                    // under the task it was given. It is ALWAYS drawn
-                    // (= = the fallback says the agent has not done
-                    // anything yet), = = so the card's height does not
-                    // change while the agent runs.
-                    Text(InspectorStatusActivityStyle.text(for: task))
-                        .font(.caption2)
-                        .foregroundStyle(DesignTokens.statusForeground)
                         .lineLimit(1)
-                        .truncationMode(.middle)
+                    if let tool = task.currentTool {
+                        // The tool the agent is calling right now, in a
+                        // quieter column beside the name (= the agent's
+                        // name stays the primary content of the row).
+                        Text(InspectorStatusToolLabel.text(tool))
+                            .font(.caption2)
+                            .foregroundStyle(DesignTokens.statusForeground)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
                 }
-            } trailing: {
-                InspectorStatusElapsedLabel(task: task)
+                Text(InspectorStatusStateStyle.label(for: task.state))
+                    .font(.caption)
+                    .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
+                Text(task.taskText)
+                    .font(.callout)
+                    .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
+                    .lineLimit(3)
+                // The activity line: = = what the agent just did,
+                // under the task it was given. = It is ALWAYS drawn
+                // (= = the fallback says the agent has not done
+                // anything yet), = = so the card's height does not
+                // change while the agent runs.
+                Text(InspectorStatusActivityStyle.text(for: task))
+                    .font(.caption2)
+                    .foregroundStyle(DesignTokens.statusForeground)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
+        } trailing: {
+            InspectorStatusElapsedLabel(task: task)
         }
-        .buttonStyle(.plain)
-        // A card without output cannot be opened (= there is nothing to
-        // read). The hit test is off rather than the control disabled,
-        // because a disabled control dims the whole card (= a running
-        // agent that has produced nothing yet would read as finished).
-        .allowsHitTesting(task.output != nil)
     }
 }
 
