@@ -84,7 +84,12 @@ GATE_CONTRACT_FROM = 1793164800  # 2026-10-28 16:00 CST
 
 # A `swift test --filter <name>` invocation. The filter names the suite
 # that owns the touched file, so its presence IS the narrow gate.
-FILTERED_SUITE_RE = re.compile(r"swift\s+test[^\n]*--filter\s+\S+")
+# = = = THE PATTERN LIVES IN THE ONE READER (= `card_gate_command.py`), = =
+# = = because a second copy of it is a second answer: this gate's own copy
+# = = took the suite name UNQUOTED, = = and the reader's took only the
+# = = quoted spellings, = = so over the board's 1124 cards the two read
+# = = 288 different sets, = = and 204 live cards were accepted here and
+# = = refused by the pre-review gate. One reader, one answer.
 
 # A whole-suite demand, in prose. Four spellings, all measured on this
 # board:
@@ -275,7 +280,7 @@ def gate_demands(body: str) -> dict:
         stripped = sentence.strip()
         if not stripped:
             continue
-        if FILTERED_SUITE_RE.search(stripped):
+        if card_gate_command.FILTER.search(stripped):
             continue
         if FULL_SUITE_PHRASE_RE.search(stripped):
             # A sentence that REFUSES the whole suite is not a demand for
@@ -291,7 +296,7 @@ def gate_demands(body: str) -> dict:
             if GATE_REFUSAL_RE.search(stripped):
                 continue
             demands.append(stripped)
-    named = FILTERED_SUITE_RE.findall(body)
+    named = card_gate_command.swift_filters(body)
     named_other = card_gate_command.named_own_commands(body)
     return {
         "wide": bool(demands),

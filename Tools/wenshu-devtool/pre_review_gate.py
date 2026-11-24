@@ -79,8 +79,6 @@ NO_MATCH = "No matching test cases were run"
 # satisfy both (= measured on board wenshu-par 2026-11-24: 819 cards name
 # the devtool or Scripts/ in their body, and 433 carry a comment that
 # quotes the suite rule). One reader, one answer.
-FILTER = card_gate_command.FILTER
-FILTER_PHRASE = card_gate_command.FILTER_PHRASE
 
 # = = = THERE IS NO CJK PATTERN IN THIS FILE. = = =
 # = = = The comment-level CJK rule has ONE implementation, = = = the judge
@@ -123,83 +121,6 @@ def measure_tests(output):
     return measured, NO_MATCH in output
 
 
-def gate_scope(text):
-    """The card's GATES section, = or the whole body when it has none.
-
-    = A card's GATES section is where its gate lines live, = so the
-    reader reads that section, = and NOT the prose around it: = a WHY
-    sentence that merely MENTIONS `swift test --filter` is a sentence
-    about the gate, = not a gate, = and reading it as one made the
-    reader report a card as broken for its own explanation.
-    """
-    match = re.search(r"^##\s+GATES\b", text, re.MULTILINE | re.IGNORECASE)
-    if not match:
-        return text
-    rest = text[match.end():]
-    following = re.search(r"^##\s+", rest, re.MULTILINE)
-    return rest[:following.start()] if following else rest
-
-
-def is_gate_line(line):
-    """Does the line READ as a command to run?
-
-    = The phrase alone does not make a line a gate: = a sentence that
-    mentions it (= "the reader read only the EXIT CODE of each
-    `swift test --filter`") = is prose. = A gate line is one whose
-    text starts with the command, = or carries it after a shell
-    connective (= `cd <wt> && swift test --filter ...`).
-    """
-    core = line.strip()
-    core = re.sub(r"^[-*+]\s+", "", core)
-    core = re.sub(r"^\d+\.\s+", "", core)
-    core = core.strip()
-    # A MARKDOWN TABLE ROW is a DECLARATION, = not prose: = a gate
-    # written in a table cell is a gate the reader must lift. = So the
-    # row's own text starts the command, = whatever cell it sits in.
-    if core.startswith("|"):
-        core = core.lstrip("|").strip()
-    while core.startswith("`"):
-        core = core[1:].strip()
-    core = re.sub(r"^\$\s*", "", core)
-    index = core.find(FILTER_PHRASE)
-    if index == -1:
-        return False
-    before = core[:index].rstrip()
-    if before == "":
-        return True
-    return before.endswith(("&&", ";", "|", "||", "(", "{"))
-
-
-def filters_from_card(text):
-    """The card's own narrow suites, = and the gate lines it cannot read.
-
-    Returns (filters, unparsed_lines). = `unparsed_lines` names the
-    card's GATE lines the reader could not parse, = because a card
-    whose gate line cannot be read measures nothing, = and the reader
-    must say so rather than measure a smaller set than the card asks
-    for.
-
-    = Only the card's GATES section is read, = and only the lines in it
-    that read as commands (= a prose mention is not a gate), = so a
-    card is never failed for its own explanation, = and never measured
-    against a suite its prose quoted.
-    """
-    scope = gate_scope(text)
-    filters = []
-    unparsed = []
-    for line in scope.split("\n"):
-        if FILTER_PHRASE not in line:
-            continue
-        if not is_gate_line(line):
-            continue
-        found = FILTER.findall(line)
-        if found:
-            filters.extend(match[1] for match in found)
-        else:
-            unparsed.append(line.strip())
-    return filters, unparsed
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", required=True)
@@ -231,13 +152,12 @@ def main():
     # command line. = A filter the card names but this reader cannot parse
     # is named, = because the card asked for a gate that did not run.
     card_filters = []
+    card_body = ""
     if args.card:
-        text = open(args.card, encoding="utf-8").read()
-        card_filters, unparsed = filters_from_card(text)
+        card_body = open(args.card, encoding="utf-8").read()
+        card_filters, unparsed = card_gate_command.gate_filters(card_body)
         for line in unparsed:
             failures.append((f"the card's unreadable filter line: {line}", ""))
-
-    filters = list(dict.fromkeys(args.filter + card_filters))
 
     # = = = THE CARD'S OWN GATE COMMAND RUNS TOO. = = = = = = = = = = = = =
     # = = = = A card that writes NO Swift code has no Swift suite to = = = =
@@ -252,7 +172,31 @@ def main():
     # = = = = printed nothing measured nothing). = = = = = = = = = = = = = = =
     card_commands = []
     if args.card:
-        card_commands = card_gate_command.own_commands(open(args.card, encoding="utf-8").read())
+        card_commands = card_gate_command.own_commands(card_body)
+
+    # = = = AND WHEN THE EXECUTION VIEW FINDS NOTHING, = = = THE RECOGNITION
+    # = = = VIEW ANSWERS, = = = = = = = = = = = = = = = = = = = = = = = = =
+    # = = = THE WIDTH GATE'S ANSWER IS ABOUT THIS CARD. = = = = = = = = = =
+    # = = = = = The two gates answer the SAME question about the SAME card,
+    # = = = = = = and a card the width gate accepted is a card this gate must
+    # = = = = = MEASURE, = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # = = = = = = = = = not refuse. Measured 2026-11-24: 63 cards name their
+    # = = = = = gate in prose (= = = 58 a filter, = = = 5 an own command)
+    # = = = = = = = = = = outside the GATES section, = = = = = = = = = = = =
+    # = = = = = = and this gate refused every one of them. = = = = = = = = = =
+    # = = = = = = = = = = = The fallback is the whole body, = = = = = = = = =
+    # = = = = = = = = = = = read by the SAME reader, = = = = = = = = = = = = =
+    # = = = = = = = = = = = so the two gates still agree. = = = = = = = = = =
+    if not card_filters and not card_commands and card_body:
+        card_filters = card_gate_command.swift_filters(card_body)
+        card_commands = card_gate_command.named_own_commands(card_body)
+        if card_filters or card_commands:
+            print("  the card names its gate outside its GATES section: = = = = = =")
+            print("    measuring it, = = = = because the width gate accepts it: = = = = = =")
+            print(f"    filters: {card_filters}")
+            print(f"    commands: {card_commands}")
+
+    filters = list(dict.fromkeys(args.filter + card_filters))
 
     if not filters and not card_commands:
         print("  no gate was named, = so nothing was measured:")

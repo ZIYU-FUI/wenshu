@@ -48,11 +48,27 @@ from __future__ import annotations
 
 import re
 
-# A `swift test --filter <name>` invocation. Both quote styles are
-# accepted: a card written with double quotes names the same suite as one
-# written with single quotes, and a reader that takes only one of them
-# turns the card's own gate into a filter that ran nothing.
-FILTER = re.compile(r"swift test --filter\s+(['\"])(.+?)\1")
+# The `--filter <name>` part of a `swift test --filter <name>` invocation.
+# THREE spellings are the same invocation: the suite name quoted (either
+# style), the suite name in backticks, and the suite name BARE. A reader
+# that takes only one of them turns the card's own gate into a filter that
+# ran nothing, = = and a reader that takes only the quoted ones credits a
+# card the other gate refuses. Measured 2026-11-24 over the board's 1124
+# cards: 288 cards name a filter in a spelling the quoted-only reader did
+# not see, = = so the two gates answered differently about 204 live cards.
+FILTER = re.compile(
+    r"--filter\s+(?:(['\"])(.+?)\1|`([^\s`]+)`|([^\s`'\";|)]+))"
+)
+
+# The COMMAND the filter belongs to. A `--filter` with no `swift test` on
+# its line is a fragment of prose, = = and a card's gate is a command.
+# ⇒ ⇒ ⇒ AND EVERY filter on a line is read, = = = not only the last one:
+# a card that writes "`swift test --filter A` / `--filter B`" names TWO
+# suites, = = and SwiftPM takes both. The greedy form read such a line as
+# naming the third, = = so the reader now reads the filter part and the
+# command part SEPARATELY, = = and no caller has to know which one it is
+# looking at.
+SWIFT_TEST = re.compile(r"swift\s+test")
 
 # The phrase that says the card names a Swift filter at all.
 FILTER_PHRASE = "swift test --filter"
@@ -105,9 +121,86 @@ OWN_COMMAND_FULL = re.compile(
 )
 
 
+def _filter_name(match) -> str | None:
+    """The suite name in a filter match, whichever spelling carried it.
+
+    The three spellings are three groups of the ONE pattern, so the name
+    is read the same way every time, = = and no caller has to know which
+    group the match filled.
+    """
+    for group in (2, 3, 4):
+        if match.group(group):
+            return match.group(group)
+    return None
+
+
+def filters_in_line(line: str) -> list[str]:
+    """The suite names this ONE line asks for.
+
+    A `--filter` with no `swift test` on its line is a fragment of prose,
+    = = so the line must name the command too, = = and every filter the
+    command carries is read, = = not only the last.
+    """
+    if not SWIFT_TEST.search(line or ""):
+        return []
+    names: list[str] = []
+    for match in FILTER.finditer(line):
+        name = _filter_name(match)
+        if name and name not in names:
+            names.append(name)
+    return names
+
+
+def _wrapped_name(line: str) -> str:
+    """The suite name a WRAPPED filter carries on the NEXT line.
+
+    A card that writes `swift test --filter` and the suite name on the
+    next line names ONE suite: = = SwiftPM takes the filter and its name
+    as two arguments, = = and the wrap is the card's line break, = = not a
+    second command. Measured 2026-11-24: three live cards wrote it that
+    way, = = and a reader that reads one line at a time lost their narrow
+    gate.
+    """
+    text = (line or "").strip()
+    text = re.sub(r"^[-*+]\s+", "", text)
+    text = text.strip("`")
+    parts = text.split()
+    if not parts:
+        return ""
+    return parts[0].strip("'`\"")
+
+
+def filters_in_lines(lines: list[str]) -> list[str]:
+    """The suite names these lines ask for.
+
+    A filter whose NAME is on the next line is one filter (= see
+    `_wrapped_name`), = = and every filter the command carries is read,
+    = = not only the last.
+    """
+    names: list[str] = []
+    for index, line in enumerate(lines or []):
+        if not SWIFT_TEST.search(line or ""):
+            continue
+        found = filters_in_line(line)
+        if not found and (line or "").rstrip().endswith("--filter"):
+            if index + 1 < len(lines):
+                name = _wrapped_name(lines[index + 1])
+                if name:
+                    found = [name]
+        for name in found:
+            if name not in names:
+                names.append(name)
+    return names
+
+
 def swift_filters(body: str) -> list[str]:
-    """The `swift test --filter <suite>` names the card asks for."""
-    return [m.group(2) for m in FILTER.finditer(body or "")]
+    """The `swift test --filter <suite>` names the card asks for.
+
+    This is the RECOGNITION view (= the whole body): a card that names
+    its suite in prose has still named it, = = and the width gate's job
+    is to know that, = = not to run it.
+    """
+    return filters_in_lines((body or "").split("\n"))
 
 
 def _commands_in(text: str, pattern) -> list[str]:
@@ -179,28 +272,77 @@ def is_gate_line(line: str) -> bool:
     --filter`") is prose. A gate line is one whose text starts with the
     command, or carries it after a shell connective (= `cd <wt> && swift
     test --filter ...`).
+
+    ⇒ ⇒ ⇒ AND THE LINE MAY CARRY THE COMMAND IN FOUR WRAPPINGS, = = = and
+    the reader strips all of them before it decides: a LIST MARKER (= `- `
+    or `1. `), a MARKDOWN TABLE ROW (= a gate written in a table cell is a
+    gate the reader must lift, = = and the row's own text starts the
+    command, whatever cell it sits in), BACKTICKS, = = = and the shell's
+    own PROMPT (= `$ swift test --filter "X"`, = = and the prompt is not
+    part of the command). Measured 2026-11-24 over the board's 1124 cards:
+    the shared reader and the pre-review gate's own copy disagreed on 16
+    GATES-section lines (the prompt form) and on 625 lines the other way
+    (every own-command line), = = so a card could be accepted by one gate
+    and refused by the other.
     """
     core = (line or "").strip()
     core = re.sub(r"^[-*+]\s+", "", core)
     core = re.sub(r"^\d+\.\s+", "", core)
+    if core.startswith("|"):
+        core = core.lstrip("|").strip()
+    while core.startswith("`"):
+        core = core[1:].strip()
+    core = re.sub(r"^\$\s*", "", core)
     core = core.strip("`").strip()
     if not core:
         return False
-    if FILTER_PHRASE not in core and not OWN_COMMAND.search(core):
+    command = SWIFT_TEST.search(core)
+    own = OWN_COMMAND.search(core)
+    if command is None and own is None:
         return False
-    index = core.find(FILTER_PHRASE)
-    if index == -1:
-        index = core.lower().find("pytest")
-        if index == -1:
-            index = core.lower().find("markdown")
-            if index == -1:
-                index = core.lower().find("link-check")
-                if index == -1:
-                    index = 0
+    index = command.start() if command is not None else (own.start() if own is not None else 0)
     before = core[:index].rstrip()
     if before == "":
         return True
     return before.endswith(("&&", ";", "|", "||", "(", "{"))
+
+
+def gate_filters(body: str) -> tuple[list[str], list[str]]:
+    """The card's own narrow suites, and the gate lines it cannot read.
+
+    Returns (filters, unparsed_lines). `unparsed_lines` names the card's
+    GATE lines the reader could not parse, = = because a card whose gate
+    line cannot be read measures nothing, = = and the reader must say so
+    rather than measure a smaller set than the card asks for.
+
+    ⇒ ⇒ ⇒ THIS IS THE EXECUTION VIEW: = = = only the card's GATES section
+    is read, = = and only the lines in it that read as commands, = = so a
+    card is never failed for its own explanation, = = and never measured
+    against a suite its prose quoted. The recognition view
+    (= `swift_filters`) is the whole body, = = and the two gates ask their
+    own question of the ONE reader.
+    """
+    filters: list[str] = []
+    unparsed: list[str] = []
+    lines = gate_scope(body or "").split("\n")
+    for index, line in enumerate(lines):
+        if not SWIFT_TEST.search(line):
+            continue
+        if not is_gate_line(line):
+            continue
+        found = filters_in_line(line)
+        if not found and line.rstrip().endswith("--filter"):
+            if index + 1 < len(lines):
+                name = _wrapped_name(lines[index + 1])
+                if name:
+                    found = [name]
+        if found:
+            for name in found:
+                if name not in filters:
+                    filters.append(name)
+        else:
+            unparsed.append(line.strip())
+    return filters, unparsed
 
 
 def gate_lines(body: str) -> list[str]:

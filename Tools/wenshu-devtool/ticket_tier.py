@@ -1609,6 +1609,17 @@ def main() -> int:
 
     if args.body:
         cards = [card_from_file(args.body)]
+        # = = = AND `--body` REFUSES, = = = = = = because that is the shape
+        # = = = = = = every author is told to run (= = = = `docs/agents/
+        # = = = = = = ticket-tiers.md`, = = = = = = = `docs/agents/parallel-
+        # = = = = = = development.md`, = = = = = = = = and `.hermes.md`), = = = =
+        # = = = = = = = and a documented command that prints a finding and
+        # = = = = = = exits 0 is a command that cannot refuse. Measured
+        # = = = = = = = = = = 2026-11-24: `--body` on a card with no tier tag
+        # = = = = = = = = = = and no evidence budget printed both findings and
+        # = = = = = = = = = = exited 0, = = = = = = = = = = and `--check` was
+        # = = = = = = = = = = needed to make it refuse.
+        args.check = True
     else:
         cards = kanban_cards(args.board)
         if cards is None:

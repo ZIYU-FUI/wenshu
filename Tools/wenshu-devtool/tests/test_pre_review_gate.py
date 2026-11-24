@@ -36,6 +36,11 @@ from pathlib import Path
 
 TOOL = Path(__file__).resolve().parent.parent / "pre_review_gate.py"
 
+# The gate's own sibling reader (= `card_gate_command.py`) is on the path
+# the tool puts it on, so the suite reads the ONE reader the tool reads.
+sys.path.insert(0, str(TOOL.parent))
+import card_gate_command as cgc  # noqa: E402
+
 spec = importlib.util.spec_from_file_location("pre_review_gate", TOOL)
 assert spec is not None and spec.loader is not None
 gate = importlib.util.module_from_spec(spec)
@@ -64,7 +69,20 @@ CARD_DOUBLE = """## GATES
 - `swift test --filter "BookStyleSheetTests|EngineStyleSheetBridgeTests"`
 """
 
+# = = = A filter line with NO SUITE NAME. = = = = = = = = = = = = = = = = =
+# = = = = = = = = = = = = The old reader's fixture was an UNQUOTED name, = = =
+# = = = = = = = = = = = = and the reader now reads that spelling (= = = = = = =
+# = = = = = = = = = = = = the quoted-only reader is the one that could not
+# = = = = = = = = = = = = parse it), = = = = = = = = = = = = = = = = = = = = =
+# = = = = = = = = = = = = so the line that is still unreadable is the one
+# = = = = = = = = = = = = that names no suite at all.
 CARD_UNPARSED = """## GATES
+
+- swift test --filter
+"""
+
+# = = = THE SAME GATE, WITH THE SUITE NAME BARE. = = = = = = = = = = = = = =
+CARD_BARE_NAME = """## GATES
 
 - swift test --filter BookStyleSheetTests
 """
@@ -155,8 +173,8 @@ def main() -> int:
     )
 
     # 4. both quote styles are read.
-    single, unparsed = gate.filters_from_card(CARD_SINGLE)
-    double, unparsed_double = gate.filters_from_card(CARD_DOUBLE)
+    single, unparsed = cgc.gate_filters(CARD_SINGLE)
+    double, unparsed_double = cgc.gate_filters(CARD_DOUBLE)
     case(
         "a card's filter line is read in BOTH quote styles",
         single == ["BookStyleSheetTests|EngineStyleSheetBridgeTests"]
@@ -167,15 +185,22 @@ def main() -> int:
     )
 
     # 5. an unreadable filter line is named.
-    _, unparsed = gate.filters_from_card(CARD_UNPARSED)
+    _, unparsed = cgc.gate_filters(CARD_UNPARSED)
     case(
         "a card's filter line the reader CANNOT parse is named",
-        len(unparsed) == 1 and "BookStyleSheetTests" in unparsed[0],
+        len(unparsed) == 1 and "swift test --filter" in unparsed[0],
         f"unparsed={unparsed}",
     )
 
+    bare, bare_unparsed = cgc.gate_filters(CARD_BARE_NAME)
+    case(
+        "a filter with a BARE suite name is read (= not named unreadable)",
+        bare == ["BookStyleSheetTests"] and not bare_unparsed,
+        f"bare={bare} unparsed={bare_unparsed}",
+    )
+
     # 12. a PROSE mention is not a gate line (= and is not named).
-    filters, unparsed = gate.filters_from_card(CARD_PROSE_ONLY)
+    filters, unparsed = cgc.gate_filters(CARD_PROSE_ONLY)
     case(
         "a PROSE mention of the phrase is not a gate line (= and is not named)",
         filters == ["BookStyleSheetTests"] and not unparsed,
@@ -183,7 +208,7 @@ def main() -> int:
     )
 
     # 13. a filter QUOTED in prose is not lifted (= the card never asked for it).
-    filters, unparsed = gate.filters_from_card(CARD_PROSE_QUOTES)
+    filters, unparsed = cgc.gate_filters(CARD_PROSE_QUOTES)
     case(
         "a filter QUOTED in prose is NOT lifted (= the card never asked for that suite)",
         filters == ["BookStyleSheetTests"] and not unparsed,
@@ -192,7 +217,7 @@ def main() -> int:
 
     # 13b. a prose mention on a card with NO GATES heading (= the scope
     #      cannot help, = so the command-line check is what stops it).
-    filters, unparsed = gate.filters_from_card(CARD_NO_GATES)
+    filters, unparsed = cgc.gate_filters(CARD_NO_GATES)
     case(
         "a PROSE mention is not a gate line (= even with no GATES section)",
         filters == ["BookStyleSheetTests"] and not unparsed,
@@ -227,7 +252,7 @@ def main() -> int:
 
     # 20. a suite named in a MARKDOWN TABLE ROW is lifted (= a table row
     #     is a declaration, = and dropping it would measure nothing).
-    filters, unparsed = gate.filters_from_card(CARD_TABLE_ROW)
+    filters, unparsed = cgc.gate_filters(CARD_TABLE_ROW)
     case(
         "a suite named in a TABLE ROW is lifted (= the row is a declaration)",
         "RenamedSuitesV2" in filters and "StyleSheetWiringTests" in filters and not unparsed,

@@ -319,6 +319,22 @@ def check_scope(repo: Path, scope: str) -> dict:
                     f"the blocked-by edge {source} -> {edge['target']} names an "
                     "issue that does not exist"
                 )
+        # ⇒ ⇒ ⇒ AND EVERY INDEX ROW MUST NAME A TICKET THAT EXISTS. = = = = =
+        # = = = = A row is the plan's list of its tickets, = = = = and a row
+        # = = = = naming a ticket that is not there is a row that lies about
+        # = = = = the plan: = = the closeout gate reads the ROWS (= = = = the
+        # = = = = ticket set), = = = = so a stale row is a ticket the scope
+        # = = = = waits for that can never land. Measured 2026-11-24: card
+        # = = = = 006 was RENAMED and its index row kept the old name, = = =
+        # = = = = and the gate printed the row and the file side by side
+        # = = = = without saying they disagreed.
+        file_names = {name[:-3] if name.endswith(".md") else name for name in files}
+        for row in rows:
+            if row not in file_names:
+                findings.append(
+                    f"the index row {row} names no ticket file "
+                    "(the plan's ticket set is the index's rows)"
+                )
     else:
         findings.append(f"the plan has no issues/_index.md ({index_path})")
 

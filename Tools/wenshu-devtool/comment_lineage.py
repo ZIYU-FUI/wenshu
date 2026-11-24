@@ -385,7 +385,18 @@ def measure(repo_path, base, head="HEAD", carve=True):
         hits = classify(text, f, carve)
         for d in CITED_DATE.findall(text):
             if d not in dates and not carved(f, carve):
-                hits.append(("1.6", "citation names a date the register does not carry", "P0"))
+                # = = = THE SEVERITY IS THE CJK AXIS, = = = = = = = = = = = = =
+                # = = = = and this row carries no CJK character, = = = = = = = = =
+                # = = = = so it is a P1. Measured 2026-11-24: a line with no
+                # = = = = = = CJK (= "// see OOB.md #2099-01-01") read P0 on
+                # = = = = = = = main's judge and P1 here, = = = = = = = = = = = =
+                # = = = = = = = = and the P0 axis AGENTS.md 1.1 defines had a
+                # = = = = = = = = second trigger. The published census did not
+                # = = = = = = = = move (= every one of its 10 P0 rows carries a
+                # = = = = = = = = CJK character), = = = = = = = = = = = = = = = =
+                # = = = = = = = = = = = = but an axis with two triggers is an
+                # = = = = = = = = = = = = axis with no definition.
+                hits.append(("1.6", "citation names a date the register does not carry", "P1"))
         if not hits:
             continue
         tids = set(re.findall(r"\bt_[0-9a-fA-F]{6,10}\b", text))

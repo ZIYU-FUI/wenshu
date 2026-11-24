@@ -246,6 +246,140 @@ def main() -> int:
         False,
     )
 
+    # ---- the shapes the board measurement found ------------------------
+    # Measured 2026-11-24 over the board's 1124 cards: the two gates'
+    # readers disagreed about 204 live cards. Two shapes caused it, and
+    # both are pinned here.
+    unquoted = """# A card
+
+## GATES TO RUN
+
+- `swift test --filter SidebarIconUniformity` passes.
+"""
+    check(
+        "an UNQUOTED suite name is read as a filter",
+        cgc.swift_filters(unquoted),
+        ["SidebarIconUniformity"],
+    )
+    check(
+        "the unquoted filter is read in the GATES section too",
+        cgc.gate_filters(unquoted)[0],
+        ["SidebarIconUniformity"],
+    )
+    check(
+        "the width gate accepts the unquoted card",
+        gwg.report_body(unquoted)["gate_width"],
+        "narrow",
+    )
+    check(
+        "the pre-review gate can RUN the unquoted card's filter",
+        bool(cgc.gate_filters(unquoted)[0] or cgc.own_commands(unquoted)),
+        True,
+    )
+
+    prompted = """# A card
+
+## GATES TO RUN
+
+$ swift test --filter "PromptedSuiteTests"
+"""
+    check(
+        "a `$ `-prompted filter line is a gate line",
+        cgc.is_gate_line('$ swift test --filter "PromptedSuiteTests"'),
+        True,
+    )
+    check(
+        "the prompted filter is read in the GATES section",
+        cgc.gate_filters(prompted)[0],
+        ["PromptedSuiteTests"],
+    )
+
+    table_row = """# A card
+
+## GATES TO RUN
+
+| gate | what it runs |
+| --- | --- |
+| `swift test --filter TableSuiteTests` | the suite |
+"""
+    check(
+        "a filter in a MARKDOWN TABLE ROW is a gate line",
+        cgc.is_gate_line("| `swift test --filter TableSuiteTests` | the suite |"),
+        True,
+    )
+    check(
+        "the table row's filter is read in the GATES section",
+        cgc.gate_filters(table_row)[0],
+        ["TableSuiteTests"],
+    )
+
+    three = """# A card
+
+## GATES TO RUN
+
+- `swift test --filter FirstSuiteTests` / `--filter SecondSuiteTests` / `--filter ThirdSuiteTests`
+"""
+    check(
+        "EVERY filter on a line is read (= not only the last)",
+        cgc.swift_filters(three),
+        ["FirstSuiteTests", "SecondSuiteTests", "ThirdSuiteTests"],
+    )
+
+    prose_gate = """# A card
+
+## WHY
+
+The card's own gate is `swift test --filter ProseOnlySuiteTests`, and it
+runs from the shared checkout.
+
+## GATES TO RUN
+
+- the check that matters
+"""
+    check(
+        "a card naming its filter in PROSE is still narrow",
+        gwg.report_body(prose_gate)["gate_width"],
+        "narrow",
+    )
+    check(
+        "the recognition view finds the prose filter",
+        cgc.swift_filters(prose_gate),
+        ["ProseOnlySuiteTests"],
+    )
+    check(
+        "the execution view finds nothing (= the GATES section names none)",
+        cgc.gate_filters(prose_gate)[0],
+        [],
+    )
+    check(
+        "the fallback answers with the recognition view",
+        bool(cgc.swift_filters(prose_gate) or cgc.named_own_commands(prose_gate)),
+        True,
+    )
+
+    wrapped = """# A card
+
+## GATES TO RUN
+
+- `swift test --filter
+  'BookStyleSheetTests'`
+"""
+    check(
+        "a filter whose NAME is on the next line is ONE filter",
+        cgc.swift_filters(wrapped),
+        ["BookStyleSheetTests"],
+    )
+    check(
+        "the wrapped filter is read in the GATES section too",
+        cgc.gate_filters(wrapped)[0],
+        ["BookStyleSheetTests"],
+    )
+    check(
+        "the width gate accepts the wrapped card",
+        gwg.report_body(wrapped)["gate_width"],
+        "narrow",
+    )
+
     print()
     if FAILURES:
         print(f"{len(FAILURES)} case(s) failed: {', '.join(FAILURES)}")

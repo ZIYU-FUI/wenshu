@@ -509,8 +509,26 @@ gate does this card ask for?", and the two gates that read a card's GATES both
 import it. The width gate asks it whether the card NAMES a gate (= the
 recognition view = the whole body); the pre-review gate asks it which gate to
 RUN (= the execution view = the `## GATES TO RUN` section). One reader, so the
-two cannot answer differently about the same card: a card the width gate
-accepted is a card the pre-review gate can run.
+two cannot answer differently about the same card: a card that NAMES a gate is
+a card the pre-review gate can run.
+
+⇒ ⇒ ⇒ AND THE PRE-REVIEW GATE FALLS BACK TO THE RECOGNITION VIEW WHEN THE
+EXECUTION VIEW FINDS NOTHING, = = because a card the width gate accepted is a
+card the pre-review gate must MEASURE, = = not refuse. Measured 2026-11-24
+over the board's 1124 cards: the two readers disagreed about 204 live cards
+(= the width gate's own pattern took the suite name BARE, = = the shared
+reader's took only the quoted spellings, = = so 288 cards read differently and
+63 named their gate in prose outside the GATES section). After the one reader:
+6 cards, = = all of them the width gate's THIRD credit (= a card that calls
+its gate narrow in WORDS, = = which names no suite, = = and so has nothing to
+run).
+
+⇒ ⇒ ⇒ AND THE READER READS THE SPELLINGS A CARD REALLY WRITES: the suite
+name quoted (either style), bare, or in backticks; = = the filter on a line
+that also names `swift test`; = = every filter on a line, not only the last;
+= = a filter whose NAME is on the next line (= the card wrapped it); = = and
+a line that carries a LIST MARKER, a MARKDOWN TABLE ROW, BACKTICKS, = = or the
+shell's own `$ ` PROMPT.
 
 ```bash
 # the two consumers, = and the reader's own cases

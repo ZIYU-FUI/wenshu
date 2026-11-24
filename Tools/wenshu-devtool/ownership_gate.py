@@ -143,7 +143,14 @@ def collisions_for(
         if other["status"] not in LANDABLE_STATUSES:
             continue
         other_written, _ = wave_gate.files_of(other.get("body") or "")
-        shared = sorted(f for f in written & other_written if driver_status(f) == "none")
+        # A file whose driver is WIRED is not a collision (= the driver
+        # merges it at the key level). A file whose driver is only
+        # DECLARED is one: git has no driver to run there, = = so the two
+        # cards' texts would meet in a normal merge. The wave gate says
+        # the same (= `wave_gate.py` calls a declared-only driver a
+        # collision), = = and two answers to one question is the class
+        # this wave was cut to remove.
+        shared = sorted(f for f in written & other_written if driver_status(f) != "wired")
         if shared:
             found.append({"card": other["id"], "status": other["status"], "files": shared})
     return found
@@ -180,15 +187,15 @@ def contract_errors(
     """
     db = board_db_path(board)
     if db is None:
-        return []
+        return [f"the board {board} could not be read, = = so the collision set is unknown"]
     try:
         conn = _connect(db)
-    except sqlite3.Error:
-        return []
+    except sqlite3.Error as exc:
+        return [f"the board {board} could not be opened: {exc}"]
     try:
         cards = read_cards(conn)
-    except sqlite3.Error:
-        return []
+    except sqlite3.Error as exc:
+        return [f"the board {board} could not be read: {exc}"]
     finally:
         conn.close()
 

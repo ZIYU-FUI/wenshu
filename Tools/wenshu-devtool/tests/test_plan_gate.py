@@ -168,7 +168,13 @@ def main() -> int:
     print("plan_gate: the plan-of-record gate\n")
 
     with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
+        # The gate resolves the repo it was handed (plan_gate.main does
+        # Path(args.repo).resolve()), so the fixture root must be compared
+        # in its resolved form. Measured 2026-11-24: with TMPDIR on a
+        # symlinked root (= /tmp -> /private/tmp) the unresolved string
+        # never appears in the gate's output and the CLI case failed for a
+        # reason that had nothing to do with the plan.
+        root = Path(tmp).resolve()
 
         # 1. a complete plan passes.
         repo = root / "repo-complete"
@@ -379,6 +385,44 @@ def main() -> int:
             "a card body naming no scope names none",
             tool.extract_scopes("## WHAT TO BUILD\n\nBuild the thing.\n"),
             [],
+        )
+
+        # 12. an index row must name a ticket that EXISTS. = = = = = = = = =
+        # = = = = = A row is the plan's list of its tickets, = = = = = = = = =
+        # = = = = = and a row naming a ticket that is not there is a row that
+        # = = = = = lies about the plan: = = = = = the closeout gate reads the
+        # = = = = = ROWS (= = = = = the ticket set), = = = = = so a stale row is
+        # = = = = = a ticket the scope waits for that can never land.
+        stale = root / "repo-stale-row"
+        make_plan(
+            stale,
+            "scope-stale-row",
+            spec=english_spec(),
+            index=index_text(),
+            tickets=("001-first-ticket.md",),
+        )
+        report = tool.check_scope(stale, "scope-stale-row")
+        check("the plan with a stale index row is not ok", report["ok"], False)
+        check(
+            "the stale index row is named",
+            any(
+                "002-second-ticket" in finding and "no ticket file" in finding
+                for finding in report["findings"]
+            ),
+            True,
+        )
+        complete = root / "repo-complete-rows"
+        make_plan(
+            complete,
+            "scope-complete-rows",
+            spec=english_spec(),
+            index=index_text(),
+            tickets=("001-first-ticket.md", "002-second-ticket.md"),
+        )
+        check(
+            "a plan whose rows all name a ticket is ok",
+            tool.check_scope(complete, "scope-complete-rows")["ok"],
+            True,
         )
 
     print()
