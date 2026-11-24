@@ -30,17 +30,17 @@ struct ChatMessageFooterIconMigrationTests {
                 "ChatMessageFooter must drop naked Image(systemName:) for the v3.0 sweep")
     }
 
-    @Test("ChatMessageFooter 4 metadata icons use SFIcon(.inlineSmall, IconColor.quaternary)")
+    @Test("ChatMessageFooter 4 metadata icons wear the caption row they sit in")
     func metadataIconsUseSFIcon() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(\"clock\", style: .inlineSmall, color: IconColor.quaternary)"),
-                "ChatMessageFooter clock prefix must use SFIcon")
-        #expect(content.contains("SFIcon(\"checkmark\", style: .inlineSmall, color: IconColor.quaternary)"),
-                "ChatMessageFooter checkmark must use SFIcon")
-        #expect(content.contains("SFIcon(\"number\", style: .inlineSmall, color: IconColor.quaternary)"),
-                "ChatMessageFooter number prefix must use SFIcon")
-        #expect(content.contains("SFIcon(\"dollarsign.circle\", style: .inlineSmall, color: IconColor.quaternary)"),
-                "ChatMessageFooter dollarsign.circle prefix must use SFIcon")
+        #expect(content.contains("SFIcon(\"clock\", style: .inlineSmall, color: IconColor.quaternary, matchingText: .caption2)"),
+                "ChatMessageFooter clock prefix must name the caption row it sits in")
+        #expect(content.contains("SFIcon(\"checkmark\", style: .inlineSmall, color: IconColor.quaternary, matchingText: .caption2)"),
+                "ChatMessageFooter checkmark must name the caption row it sits in")
+        #expect(content.contains("SFIcon(\"number\", style: .inlineSmall, color: IconColor.quaternary, matchingText: .caption2)"),
+                "ChatMessageFooter number prefix must name the caption row it sits in")
+        #expect(content.contains("SFIcon(\"dollarsign.circle\", style: .inlineSmall, color: IconColor.quaternary, matchingText: .caption2)"),
+                "ChatMessageFooter dollarsign.circle prefix must name the caption row it sits in")
     }
 }

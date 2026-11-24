@@ -39,7 +39,7 @@ struct ChatMessageViewDollarIconTests {
                 // remains in ChatMessageFooter (= the test target lines 105-106).
                 let iconBlock = src[iconPos.lowerBound..<src.range(of: "Self.formatTokenCost(tokens)",
                                                                           range: iconPos.upperBound..<src.endIndex)!.lowerBound]
-                #expect(src.contains("SFIcon(\"dollarsign.circle\", style: .inlineSmall, color: IconColor.quaternary)"))
+                #expect(src.contains("SFIcon(\"dollarsign.circle\", style: .inlineSmall, color: IconColor.quaternary, matchingText: .caption2)"))
                 #expect(iconBlock.contains(".font(.caption2.monospaced())") || src.contains(".font(.caption2.monospaced())"))
     }
 

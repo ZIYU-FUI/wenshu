@@ -29,7 +29,7 @@ struct ChatMessageViewClockPrefixTests {
         // .font(.caption2) lives BELOW the icon (= on Text).
         let tokenPos = src.range(of: "Text(timestamp, format: timestampDisplayFormat)")!
         let iconBlock = src[iconPos.lowerBound..<tokenPos.lowerBound]
-        #expect(src.contains("SFIcon(\"clock\", style: .inlineSmall, color: IconColor.quaternary)"))
+        #expect(src.contains("SFIcon(\"clock\", style: .inlineSmall, color: IconColor.quaternary, matchingText: .caption2)"))
         #expect(iconBlock.contains(".font(.caption2)") || src.contains(".font(.caption2)"))
     }
 

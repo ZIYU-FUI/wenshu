@@ -27,11 +27,11 @@ struct ChatToolDiffPreviewIconMigrationTests {
                 "ChatToolDiffPreview must drop naked Image(systemName:) for the v3.0 sweep")
     }
 
-    @Test("ChatToolDiffPreview doc icon uses SFIcon style: .inlineSmall + .secondary")
+    @Test("ChatToolDiffPreview doc icon wears the caption row it sits in")
     func docIconUsesSFIcon() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreview.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(\"doc.text\", style: .inlineSmall, color: IconColor.secondary)"),
+        #expect(content.contains("SFIcon(\"doc.text\", style: .inlineSmall, color: IconColor.secondary, matchingText: .caption)"),
                 "ChatToolDiffPreview doc icon must render via SFIcon(.inlineSmall, IconColor.secondary)")
     }
 }
