@@ -17,6 +17,73 @@ resolve_worktree() {
   printf '%s\n' "$wt"
 }
 
+registry_row_keys() {
+  # = = ⇒ THE ROW KEYS OF a registry table on stdin, ONE PLACE. = = A row opens
+  # = = `| \``, and its KEY is the SECOND cell (= the file it registers), = = which
+  # = = = = is the key `Scripts/merge-nfi-registry.py` uses: = = two extracts of one
+  # = = parent are two rows, = = and a reader that keys on the parent compares a
+  # = = table against itself. = = The header and the separator do not open on a
+  # = = backtick, = = so they are dropped by the row test rather than by a count.
+  # = = Three inline attempts at this each failed quietly (= off-by-one on the
+  # = = leading pipe, an escaped pipe that reached awk doubled, a `c[2]` that was
+  # = = the parent), = = which is the shape of a check that cannot fail.
+  awk '/^\| `/ {
+    line = substr($0, 3)
+    sub(/[[:space:]]*\|[[:space:]]*$/, "", line)
+    n = split(line, c, /[[:space:]]*\|[[:space:]]*/)
+    if (n >= 2) print c[2]
+  }'
+}
+
+registry_rows_kept() {
+  # = = ⇒ A LANDING MAY NOT LOSE A REGISTRY ROW. = = = = `docs/agents/nfi.md` is
+  # = = = = append-only (= AGENTS.md 1.11), = = = = `.gitattributes` wires it to a
+  # = = = = key-level MERGE driver, = = = = and a rebase is NOT a merge: = = = = the
+  # = = = = driver is never asked, = = = = the replay lands this commit's hunk on a
+  # = = = = tail that has grown since, = = = = and rows other lanes appended vanish.
+  # = = ⇒ THE WINDOW IS THE MERGE-BASE, NEVER `main`. = = = = Asking a newer `main`
+  # = = = = what an older branch lost reads every row the branch never had as a
+  # = = = = deletion, = = = = and the same range in `--diff-filter=D` then "excuses"
+  # = = = = them all. = = ⇒ Measured: the guard printed `unexplained 0` over a
+  # = = = = twelve-row gap, = = = = which is a check that cannot fail.
+  # = = ⇒ THE LOSS AND THE EXCUSE ARE DIFFERENT QUESTIONS. = = The loss is a key the
+  # = = = = landed tree no longer carries; = = the only excuse is that the FILE the
+  # = = = = row registers is deleted by this change. = = A draft excused a row
+  # = = whenever it appeared among the rows the commit deleted (= the same set as
+  # = the loss, by construction), = = so every foreign deletion walked out forgiven.
+  # = = ⇒ EVERY EXCUSE IS PRINTED, = = = = and the refusal names the row it saved.
+  local base="$1" tip="$2" card="$3" registry="$NFI"
+  local window keys_window keys_tip deleted bare key lost=0 excused=0
+  window="$(git -C "$REPO" merge-base "$base" "$tip" 2>/dev/null)"
+  if [ -z "$window" ]; then
+    echo "RESULT: SKIP ($card) reason=REGISTRY_WINDOW_UNREADABLE (no merge-base between $base and $tip)"
+    return 1
+  fi
+  keys_window="$(git -C "$REPO" show "$window:$registry" 2>/dev/null | registry_row_keys | sort -u)"
+  keys_tip="$(git -C "$REPO" show "$tip:$registry" 2>/dev/null | registry_row_keys | sort -u)"
+  deleted="$(git -C "$REPO" diff --diff-filter=D --name-only "$window..$tip" 2>/dev/null | sort -u)"
+  while IFS= read -r key; do
+    [ -z "$key" ] && continue
+    if printf '%s\n' "$keys_tip" | grep -qxF -- "$key"; then
+      continue                      # the row is still there (= read, or rewritten)
+    fi
+    bare=$(printf '%s' "$key" | tr -d '`')
+    if printf '%s\n' "$deleted" | grep -qxF -- "$bare"; then
+      excused=$((excused + 1))
+      echo "  excused, its registered file is deleted by this change: $key"
+      continue
+    fi
+    lost=$((lost + 1))
+    echo "  A REGISTRY ROW THIS TREE WOULD LOSE: $key"
+  done <<< "$keys_window"
+  echo "--- registry window ${window:0:10}: $((lost + excused)) row(s) gone (excused $excused, unexplained $lost)"
+  if [ "$lost" -ne 0 ]; then
+    echo "RESULT: SKIP ($card) reason=REGISTRY_ROWS_LOST ($tip drops $lost registry row(s) this change never touched)"
+    return 1
+  fi
+  return 0
+}
+
 worktree_for_branch() {
   # = = ⇒ THE TREE THAT LANDS IS THE TREE THE BRANCH IS CHECKED OUT IN, = = = =
   # = = = = and NOTHING else answers that question. = = ⇒ The card's own
@@ -154,6 +221,7 @@ if [ "$CARD_WT" != "$WT" ]; then
   echo "--- the card's own worktree (WHO reviewed): $CARD_WT"
   echo "--- the branch's worktree  (WHAT lands):   $WT"
 fi
+NFI="docs/agents/nfi.md"  # = = the append-only registry: a landing keeps its rows
 LOGDIR="${LOGDIR:-$REPO/.gate-logs}"
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-4}"
 mkdir -p "$LOGDIR"
@@ -190,7 +258,7 @@ if [ "$PREFLIGHT_ONLY" = "1" ]; then
   # = = = with the same refusals and the same codes.
   REHEARSAL_MAIN="$(git -C "$REPO" rev-parse main)"
   assert_lane_has_commits "$REHEARSAL_MAIN" "$BRANCH" "$CARD" || exit $?
-  assert_gated_tree_is_the_branch "$WT" "$BRANCH" "$CARD" || exit $?
+  registry_rows_kept "$REHEARSAL_MAIN" "$(git -C "$REPO" rev-parse "$BRANCH")" "$CARD" || exit 26
   echo "RESULT: PREFLIGHT_ONLY ($BRANCH) pfrc=$pfc decision=PROCEED"
   exit 0
 fi
@@ -224,6 +292,11 @@ while [ $attempt -le $MAX_ATTEMPTS ]; do
   # = = = = same lane, = = = = or a rewrite) = = = = would otherwise be merged
   # = = = = on the strength of a verdict that never saw it.
   GATED_SHA="$(git -C "$WT" rev-parse HEAD)"
+  MERGED_SHA="$GATED_SHA"
+  # = = ⇒ ASKED AFTER THE REPLAY, = = = = because the replay is what can unmake a
+  # = = = = row, = = = = and BEFORE THE GATES AND THE SWAP, = = = = because after
+  # = = = = `main` moves there is nothing left to refuse.
+  registry_rows_kept "$EXPECTED_MAIN" "$MERGED_SHA" "$CARD" || exit 26
 
   echo "--- step 4: card gates (attempt $attempt)"
   PER_CMD_TIMEOUT=300 bash "$(dirname "$0")/gate_run.sh" "$WT" "${CARD}_a${attempt}" "$@"
