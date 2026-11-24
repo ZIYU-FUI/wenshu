@@ -110,6 +110,41 @@ HEX_TOKEN_RE = re.compile(rb"\b[0-9a-f]{7,40}\b")
 
 
 # ===========================================================================
+# THE PLAN'S OWN SCOPE DECISION
+# ===========================================================================
+# A ticket id inside the spec's Out-of-scope section: `0\d\d`, the shape this repository's
+# issue files use. A number in that section that is not an issue's id is read as a number, not
+# as a scope decision, because the ids are the section's only reference to the index.
+OUT_OF_SCOPE_HEADING = re.compile(r"^#+\s*\d*\.?\s*Out of scope", re.I | re.M)
+TICKET_ID_IN_TEXT = re.compile(r"\b(0\d\d)\b")
+
+
+def out_of_wave_ids(repo, scope):
+    """The ticket ids the plan's spec DECLARES out of this wave, by section.
+
+    `(ids, heading)`; `ids` is empty when there is no spec or no such section, and an empty
+    set means NOTHING is exempt — a gate may not invent a scope boundary it cannot quote.
+    The section is read to its next heading, because an id mentioned in a different section
+    is not a scope decision.
+    """
+    for candidate in (
+        Path(repo) / ".scratch" / scope / "spec.md",
+        Path(repo) / ".scratch" / scope / "SPEC.md",
+    ):
+        if not candidate.is_file():
+            continue
+        text = candidate.read_text(encoding="utf-8", errors="replace")
+        m = OUT_OF_SCOPE_HEADING.search(text)
+        if not m:
+            return set(), None
+        rest = text[m.end():]
+        nxt = re.search(r"^#{1,6}\s", rest, re.M)
+        section = rest[: nxt.start()] if nxt else rest
+        return set(TICKET_ID_IN_TEXT.findall(section)), text[m.start():].splitlines()[0].strip("# ").strip()
+    return set(), None
+
+
+# ===========================================================================
 # GIT
 # ===========================================================================
 def git(repo, *args):
@@ -278,12 +313,22 @@ def read_tickets(repo, scope):
             "in_index": slug in rows,
         })
     unlisted = sorted(set(files) - set(rows)) if rows else []
+    declared, section = out_of_wave_ids(repo, scope)
     for ticket in tickets:
         landed, why, tip = ticket_landed(repo, ticket)
         ticket["landed"] = landed
         ticket["why"] = why
         ticket["tip"] = tip
+        # = = ⇒ A ROW THE SPEC DECLARES OUT OF THIS WAVE IS NOT A BLOCKER, and
+        # = = = = it is not invisible either: it is printed with the section that
+        # = = = = said so. = = ⇒ A scope with no spec, or with a spec that never
+        # = = = = declared a boundary, holds every row blocking: = = = = a gate may
+        # = = = = not invent an exemption it cannot quote.
+        number = ticket["id"].split("-")[0]
+        ticket["out_of_wave"] = bool(declared) and number in declared
     return {
+        "scope_section": section,
+        "declared_out_of_wave": sorted(declared),
         "dir": str(issues),
         "index": str(index_path),
         "index_rows": len(rows),
@@ -672,7 +717,8 @@ def audit(scope, repo, board_db=None, skills=None):
     plan = read_tickets(repo, scope)
     if not plan["tickets"]:
         return None
-    not_landed = [t for t in plan["tickets"] if not t["landed"]]
+    not_landed = [t for t in plan["tickets"] if not t["landed"] and not t.get("out_of_wave")]
+    parked = [t for t in plan["tickets"] if not t["landed"] and t.get("out_of_wave")]
     last = last_landed(repo, plan["tickets"])
     report = {
         "scope": scope,
@@ -683,6 +729,7 @@ def audit(scope, repo, board_db=None, skills=None):
         "tickets": plan["tickets"],
         "landed": not not_landed,
         "not_landed": [t["id"] for t in not_landed],
+        "out_of_wave_not_landed": [t["id"] for t in parked],
         "last_landed": last,
         "steps": [],
         "missing_steps": [],
@@ -729,11 +776,21 @@ def print_report(report) -> None:
     if not report["landed"]:
         print(f"  scope {report['scope']} has NOT landed: nothing is due yet")
         for ticket in report["tickets"]:
-            if not ticket["landed"]:
+            if not ticket["landed"] and not ticket.get("out_of_wave"):
                 print(f"    not landed: {ticket['id']} ({ticket['why']})")
+        for ticket in report["tickets"]:
+            if not ticket["landed"] and ticket.get("out_of_wave"):
+                print(f"    out of wave, declared: {ticket['id']} "
+                      f"(spec \u00a7: {report['plan']['scope_section']}) "
+                      f"\u2014 not blocking, and still not landed: {ticket['why']}")
         return
+    parked = report.get("out_of_wave_not_landed") or []
     print(f"  scope {report['scope']} HAS landed ({len(report['tickets'])} "
           f"ticket(s)); the eight closeout steps:")
+    if parked:
+        print(f"  declared out of this wave and still open ({len(parked)}): "
+              + ", ".join(parked)
+              + f"  (spec \u00a7: {report['plan']['scope_section']})")
     for step in report["steps"]:
         print(f"    {step['n']} | {step['name']} | {step['verdict']} | {step['evidence']}")
     if report["missing_steps"]:

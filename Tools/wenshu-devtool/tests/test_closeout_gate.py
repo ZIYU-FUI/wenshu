@@ -446,6 +446,63 @@ def main() -> int:
         )
 
         # ------------------------------------------------------------------
+        # 6e. THE PLAN'S OWN SCOPE DECISION. A follow-up the spec declares out of
+        #     this wave is reported and does NOT hold the wave open; the same row
+        #     with no section naming it does; and a section that names no ticket
+        #     id exempts nothing. A gate that reads only the index holds a scope
+        #     open on work the scope says it is not carrying, and the pressure
+        #     that produces is to delete the row that records the exclusion.
+        # ------------------------------------------------------------------
+        follow = "003-the-follow-up-the-wave-does-not-carry"
+
+        def with_follow_up(name: str, spec: str | None) -> dict:
+            """The landed fixture, plus a ticket that will never land in this wave."""
+            f = make_repo(root / name, landed=True)
+            repo = f["repo"]
+            idx = repo / ".scratch" / SCOPE / "issues" / "_index.md"
+            idx.write_text(idx.read_text(encoding="utf-8") + f"| {follow} | new | — | — |\n",
+                           encoding="utf-8")
+            (repo / ".scratch" / SCOPE / "issues" / f"{follow}.md").write_text(
+                f"# {follow}\n\n## WHAT TO BUILD\n\n- work this wave declares it is not carrying\n",
+                encoding="utf-8")
+            if spec is not None:
+                (repo / ".scratch" / SCOPE / "spec.md").write_text(spec, encoding="utf-8")
+            return f
+
+        declared = with_follow_up("declared", (
+            "# Fixture scope\n\n## 1. Business\n\n- the thing.\n\n"
+            "## 5. Out of scope\n\n- The follow-up is ticket `003`, product code, and it is not\n"
+            "  part of this wave.\n\n## 6. Acceptance\n\n- the gates pass.\n"))
+        code, out = run_gate(tool, SCOPE, declared)
+        check("6e. a follow-up the spec declares does not hold the wave open", code, 0)
+        check("6f. and the scope reads as landed",
+              f"scope {SCOPE} HAS landed" in out, True)
+        check("6g. and the exemption is PRINTED, with the section that granted it",
+              f"out of wave, declared: {follow}" in out or "declared out of this wave" in out,
+              True)
+        check("6h. and it quotes the section's own heading",
+              "Out of scope" in out, True)
+
+        undeclared = with_follow_up("undeclared", None)
+        code, out = run_gate(tool, SCOPE, undeclared)
+        check("6i. the same row with no spec declaring it blocks", code, 0)
+        check("6j. and the scope is NOT landed", f"not landed: {follow}" in out, True)
+
+        silent = with_follow_up("silent", (
+            "# Fixture scope\n\n## 5. Out of scope\n\n- nothing here names a ticket.\n\n"
+            "## 6. Acceptance\n\n- the gates pass.\n"))
+        code, out = run_gate(tool, SCOPE, silent)
+        check("6k. a scope section that names no ticket exempts nothing",
+              f"not landed: {follow}" in out, True)
+
+        elsewhere = with_follow_up("elsewhere", (
+            "# Fixture scope\n\n## 1. Business\n\n- ticket `003` is mentioned here.\n\n"
+            "## 5. Out of scope\n\n- nothing is declared.\n"))
+        code, out = run_gate(tool, SCOPE, elsewhere)
+        check("6l. an id named OUTSIDE the scope section is not a scope decision",
+              f"not landed: {follow}" in out, True)
+
+        # ------------------------------------------------------------------
         # 7. a scope with no plan of record exits 2
         # ------------------------------------------------------------------
         code, _out = run_gate(tool, SCOPE, empty)
@@ -466,6 +523,21 @@ def main() -> int:
             (payload["landed"], payload["missing_steps"]),
             (True, []),
         )
+        buffer2 = io.StringIO()
+        with contextlib.redirect_stdout(buffer2):
+            tool.main(["--scope", SCOPE, "--repo", str(declared["repo"]),
+                       "--board", str(declared["board"]), "--skills", str(declared["skills"]),
+                       "--json"])
+        parked = json.loads(buffer2.getvalue())
+        check("8c. and the JSON report carries the declared follow-up",
+              (parked["landed"], parked["out_of_wave_not_landed"],
+               parked["plan"]["scope_section"]),
+              (True, [follow], "5. Out of scope"))
+        _code, prose = run_gate(tool, SCOPE, declared)
+        check("8d. and the prose names the same row the JSON reports",
+              "declared out of this wave and still open" in prose
+              and follow in prose,
+              True)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
