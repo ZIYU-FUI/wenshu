@@ -156,9 +156,13 @@ RUNS DID NOT, = = AND THEY WERE DIFFERENT ONES: = = a 5-second budget in
 0.06s, = = the second in 11-12s, = = so it misses its window under the
 whole suite's parallel load), = = and neither touches any code this scope
 wrote. ⇒ ⇒ ⇒ So they are the load-sensitive class, = = and the scope's
-verdict rests on the SET (= = no issue the base has not also produced, = =
-and the two that are not in the base's union are the two the base's own
-runs also produce in their own time).
+verdict rests on the SET: = = every issue the branch's two runs showed
+EITHER the base's four runs also produced, = = OR passes in isolation and
+touches no code this scope wrote. ⇒ ⇒ ⇒ AND THIS DOC CLAIMS NOTHING
+MORE FOR THE TWO THAT ARE NOT IN THE BASE'S FOUR RUNS: = = it records
+that they pass alone and that no code in this scope reaches them, = = and
+it stops there (= = a claim about what the base's own runs do would be a
+claim this doc has not measured).
 
 ## 6. THE OPEN ITEMS
 
@@ -185,13 +189,22 @@ runs also produce in their own time).
 
 | Commit | What it carries |
 | --- | --- |
-| `e1b4896a7f` | the card wears the column's own material (= the shared `ContentAreaMaterial`), = and the coloured leading band is gone (= with its token) |
-| `8e3c3aca77` | the card that opens is a button, = = the whole card answers the hover and the click, = = the pointer says "this opens", = = and the words are no longer selectable text |
+| `b63fef355f` | the card wears the column's own material (= the shared `ContentAreaMaterial`), = and the coloured leading band is gone (= with its token) |
+| `9a2b6fd827` | the card that opens is a button, = = the whole card answers the hover and the click, = = the pointer says "this opens", = = and the words are no longer selectable text |
+| `3af38bcb54` | the closure doc and its registry row (= = no production code) |
+| `bc993bf06f` | the review round's two findings closed (= = one figure set per file with its sampling point, = = and the registry's tail marker and trailing newline restored) (= = COMMENT ONLY in the code) |
+| `12d350873b` | the closure doc's §5 verdict corrected to name BOTH load-sensitive extras (= = no production code) |
 
-⇒ ⇒ ⇒ These are TWO commits for ONE scope (= = the boss's request came
-in two rounds: = = the surface and the band first, = = and then the
-pointer's answers), = = and each commit is coherent on its own. ⇒ ⇒ ⇒ The
-scope's §9 landing table names them per requirement.
+⇒ ⇒ ⇒ These are FIVE commits for ONE scope: = = TWO carry the code (= =
+the boss's request came in two rounds: = = the surface and the band
+first, = = and then the pointer's answers), = = and THREE carry the
+record (= = the doc, = = the review's findings, = = and the verdict's own
+correction). ⇒ ⇒ ⇒ ⇒ AND THE SHAS ABOVE ARE THE REBASED ONES: = = the
+scope was reviewed at `8c23920948`, = = and the branch was rebased onto
+a main that another lane had moved (= = 22 commits, = = = = the
+flow-gates scope), = = so a rebase rewrote the five shas and NOT the
+edit (= = and the card that reviewed the edit still covers the branch).
+⇒ ⇒ ⇒ The scope's §9 landing table names them per requirement.
 
 ## 8. WHAT WAS NOT TOUCHED
 
@@ -208,6 +221,44 @@ scope's §9 landing table names them per requirement.
 
 ## 9. THE LANDING TABLE
 
-Written when the scope lands (= = the merge and the push are the
-dispatcher's, = = and this table is completed by the closeout's step 6).
-The per-requirement rows are in the closeout's report.
+| The requirement this scope carried | The commit that carries it | The proof the tree holds |
+| --- | --- | --- |
+| the card's background is the column's own bottom-bar material | `b63fef355f` | the card's background is the shared `ContentAreaMaterial`, = and the band wears the same door (= = one recipe, = = two consumers) |
+| the coloured leading band is gone | `b63fef355f` | the 2 PT band and its token are deleted, = = and the 16 PT marker column stays |
+| the card that opens is a button, = = so the whole card answers the click | `9a2b6fd827` | `Button(action: onOpen)` + `.buttonStyle(.plain)`, = = and the focus ring, = = Return, = = and the VoiceOver role come from the system |
+| the whole card answers the hover | `9a2b6fd827` | the wash paints OVER the material, = = wears the card's own corner, = = and covers 92% of the card's pixels (= = and the tracking area is on the control, = = so it cannot flicker) |
+| the pointer says "this opens" and the words are not selectable text | `9a2b6fd827` | `.pointerStyle(.link)`, = and `textSelection` = 0 hits in the card and in all three pages |
+| the record carries the card's own numbers, = = each with its sampling point | `bc993bf06f` | `markdown-newline` and `nfi-loc-check` exit 0, = = and no name carries two values |
+
+⇒ ⇒ ⇒ AND THE PUSH CARRIED COMMITS THAT ARE NOT MINE. = = The GitHub
+mirror was 22 commits behind the primary remote when this scope landed
+(= = the flow-gates scope, = = another lane's, = = landed to the primary
+remote while this scope was in review), = = so the push to that mirror
+carried them too: = =
+
+= = 90afbf444d feat(devtool): add the plan-of-record gate and its suite
+= = ed9699e9ce feat(devtool): the verdict is the hand-off, and the process data stays on the data disk
+= = a3395fa831 fix(devtool): the two gates read the board slug from product_lines, not a literal
+= = 0f24a283b1 feat(tools): the closeout gate fires on the scope's state, not on a keyword
+= = 2563d13cb3 feat(devtool): the flow's rules become gates, and the process data stays on the data disk
+= = 868f581669 fix(devtool): the two gates read the card's gate the same way
+= = 315d1b9103 test(devtool): the gates' agreement about a card's gate is pinned
+= = be63281946 fix(devtool): the shared reader reads a wrapped command as one command
+= = ab57bbc45c test(devtool): a wrapped command is one command, and it is pinned
+= = a7ef754a09 docs(agents): the flow's rules name their gates, and the landing moves main by compare-and-swap
+= = 08194f914c feat(devtool): the hand-off contract is on the card's dispatch path
+= = f7fee95817 docs(agents): the flow-gates scope's closure record
+= = b63cbf6e86 docs(agents): the registry knows this wave's files, and the index finds them
+= = 48a915782b docs(agents): the closure record carries the registration's own line
+= = f7192ac496 docs(agents): the closure record's own row carries its own count
+= = 95a913f662 fix(devtool): the process-data gate watches the scratch that actually happens
+= = 76d7b3ebe6 docs(agents): the closure record names the scratch that actually happens
+= = fbe3a104b7 docs(agents): three rows carry their files' own counts again
+= = 213cd47253 fix(gates): the flow-gates review's three blockers and six findings close here
+= = 0d99bbf347 fix(gates): the board has ONE reader, and a refusing lane still reads it
+= = 08f100ba18 docs(oob): the boss's three out-of-band rulings of 2026-11-24 enter the register
+= = 3c29ff6598 test(gates): the suite battery runs from the tree, one honest exit code per suite
+
+⇒ ⇒ ⇒ They are NOT this scope's work, = = and they touch no file this
+scope wrote (= = only the registry, = = whose key-level merge kept both
+lanes' rows).
