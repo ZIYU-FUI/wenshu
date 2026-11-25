@@ -9,8 +9,12 @@ Allowed tokens (project-mandated literal characters per AGENTS.md §12):
 老板 文枢 拍 拍板 ※
 
 Source of truth: .scratch/2026-08-22-pollution-mitigation/spec.md
+
+It also carries the CHORD-GLYPH rule: a commit message that names a chord the
+tree does not bind is refused at commit-msg time. See chord_rule() below.
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -20,6 +24,219 @@ FORBIDDEN_TOKENS = [
     "元婴", "飞升", "天劫", "雷劫", "心魔", "魔障",
 ]
 PATTERN = re.compile("|".join(re.escape(t) for t in FORBIDDEN_TOKENS))
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# THE CHORD-GLYPH RULE
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# WHY: a commit message that names a chord the tree does not bind is a FALSE
+# RECORD, and a false record outlives the commit (= = it is in the history
+# forever). Measured 2026-11-25: the chord lane's tip `a708a7e590` shipped a
+# message whose own bytes carry six bare chord mentions and the sentence
+# "Every chord mention in this message carries ⇧" = = a sentence the same
+# object refutes. That tree binds the code block at `⌘⇧F` and binds `⌘K` to a
+# DIFFERENT control (focus input), so the message's "⌘K = the code block" was
+# false in substance, not merely inconsistent.
+#
+# THE TABLE: the tree's own cheat-sheet roster line IS an action-to-chord
+# table in the product's own words:
+#     "[wenshu.shortcuts] ⌘K focus input · ⌘L clear chat · ⌘⇧F code block ..."
+# It lives in the tree the commit ships, so the rule compares a message against
+# the table that tree publishes = = and it SAYS which tree it read.
+#
+# THE RULE: every phrase the table names that appears in the message belongs to
+# the chord mention it sits nearest to; that mention's chord must be one of the
+# chords the table binds for that phrase. A phrase that is nearer two mentions
+# equally judges nobody (= = an ambiguous phrase is not evidence).
+#
+# ITS SAFETY, MEASURED: over the 567 messages in this repository's history
+# whose own commit carried the roster (= = every message the rule can judge),
+# the rule refuses **0**. A rule that refuses real history is not shippable.
+#
+# ITS TEETH, MEASURED: on the defective chord message it refuses exactly the
+# two lines that carry the false claim, and it names each line.
+CHORD_ROSTER_FILE = "Sources/WenshuApp/Features/Chat/View/ChatView+KeyboardShortcuts.swift"
+CHORD_GLYPHS = "⌘⇧⌥⌃"
+CHORD_ENTRY = re.compile(r"^([⌘⇧⌥⌃]+)([A-Za-z0-9.,;=?/\]\-]+)\s+(.*)$")
+# A chord's KEY is a letter or a digit. A modifier glyph followed by prose
+# punctuation (= "carries ⇧, and the base ...") is NOT a chord mention.
+CHORD_KEY = re.compile(r"^[A-Za-z0-9]$")
+CHORD_ROSTER_CACHE = {}
+
+
+def _chord_tokens(text):
+    return [t for t in re.split(r"[^a-z0-9]+", text.lower()) if t]
+
+
+def _chord_roster(repo):
+    """[(chord, action_text)] = the tree's own cheat-sheet table at `repo`.
+
+    The table is read from the WORKING TREE (= the tree the commit ships = = the
+    tree the hook runs in), not from a caller-named tree.
+    """
+    key = os.path.abspath(repo)
+    if key in CHORD_ROSTER_CACHE:
+        return CHORD_ROSTER_CACHE[key]
+    path = os.path.join(key, CHORD_ROSTER_FILE)
+    entries = []
+    try:
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                if "[wenshu.shortcuts]" not in line:
+                    continue
+                body = line.split("[wenshu.shortcuts] ", 1)[1]
+                body = body[:body.rindex('"')]
+                for part in body.split(" · "):
+                    match = CHORD_ENTRY.match(part.strip())
+                    if match:
+                        entries.append((match.group(1) + match.group(2), match.group(3).strip()))
+                break
+    except (OSError, ValueError):
+        entries = []
+    CHORD_ROSTER_CACHE[key] = entries
+    return entries
+
+
+def _chord_line_mentions(line):
+    """[(glyphs, key, key_token_index)] = every chord mention on a line."""
+    runs = []
+    index = 0
+    while True:
+        found = [line.find(glyph, index) for glyph in CHORD_GLYPHS]
+        found = [pos for pos in found if pos != -1]
+        if not found:
+            break
+        run_start = min(found)
+        run_end = run_start
+        while run_end < len(line) and line[run_end] in CHORD_GLYPHS:
+            run_end += 1
+        index = run_end
+        after = run_end
+        while after < len(line) and line[after] == " ":
+            after += 1
+        if after < len(line) and CHORD_KEY.match(line[after]):
+            key = line[after]
+            if key.isalpha():
+                key = key.upper()
+            runs.append((line[run_start:run_end], key, run_start, run_end))
+    out = []
+    for glyphs, key, run_start, run_end in runs:
+        out.append((glyphs, key, len(_chord_tokens(line[:run_end + 1]))))
+    return out
+
+
+def _chord_phrases(line, roster):
+    """[(center_token_index, chords)] = the table's phrases found in this line.
+
+    EVERY row that matches the text is kept. The tree's own table has both
+    "clear chat" and "clear chat (in place)", and a line that says "clear chat
+    (in place)" matches BOTH = = so the mention may be either of those two
+    chords, not only the specific one. Measured: keeping only the longest
+    match refused a truthful line (= = the shorter row's chord was judged
+    against the mention that means the longer row) = = so the rule keeps the
+    UNION, which is the permissive direction: the only refusal it makes is the
+    one EVERY matching row agrees on.
+
+    A phrase's position is the span of its own tokens = = so the rule knows
+    which chord mention the phrase sits next to.
+    """
+    tokens = _chord_tokens(line)
+    positions = {}
+    for i, token in enumerate(tokens):
+        positions.setdefault(token, []).append(i)
+    spans = {}
+    for chord, action in roster:
+        action_tokens = _chord_tokens(action)
+        if not action_tokens or not all(t in positions for t in action_tokens):
+            continue
+        used = set()
+        index_list = []
+        for token in action_tokens:
+            for pos in positions[token]:
+                if pos not in used:
+                    used.add(pos)
+                    index_list.append(pos)
+                    break
+            else:
+                index_list = None
+                break
+        if not index_list:
+            continue
+        span = (min(index_list), max(index_list))
+        spans.setdefault(span, set()).add(chord)
+    return [((lo + hi) / 2.0, chords) for (lo, hi), chords in spans.items()]
+
+
+def _chord_split_near(line, roster, key_pos):
+    """Is this mention's OWN action phrase SPLIT across the wrap?
+
+    ⇒ ⇒ ⇒ WHY, MEASURED: a commit message wraps, and a phrase can straddle
+    the wrap (= = "the code" at the end of one line and "block" at the start of
+    the next). The mention then has no COMPLETE phrase of its own = = and the
+    only complete phrase near it belongs to a DIFFERENT chord. Reading that one
+    instead refuses a truthful list = = so the mention is skipped: the rule
+    cannot see the phrase, and a rule that guesses refuses true messages.
+
+    ⇒ ⇒ ⇒ AND ONLY WHEN THE SPLIT PHRASE IS NEXT TO THE MENTION: a stray
+    token elsewhere on the line (= = the word "chat" inside "fix(chat)") is
+    not this mention's phrase. Measured: the broad form (= = any partial
+    phrase anywhere on the line) skipped almost every mention, because the
+    table's actions share tokens (= = "chat" is in "new chat", "clear chat",
+    "open chat markdown").
+    """
+    tokens = _chord_tokens(line)
+    for _chord, action in roster:
+        action_tokens = set(_chord_tokens(action))
+        if not action_tokens:
+            continue
+        present = [i for i, token in enumerate(tokens) if token in action_tokens]
+        if not present or len(present) == len(action_tokens):
+            continue
+        if min(abs(i - key_pos) for i in present) <= 3:
+            return True
+    return False
+
+
+def _chord_mentions(text):
+    """[(line_no, glyph_run, key, line)] — a glyph run is consumed WHOLE."""
+    out = []
+    for line_no, line in enumerate(text.split("\n"), 1):
+        for glyphs, key, _pos in _chord_line_mentions(line):
+            out.append((line_no, glyphs, key, line))
+    return out
+
+
+def chord_rule(text, repo=None):
+    """Yield error lines for chord mentions that disagree with the tree.
+
+    `repo` defaults to the tree the hook runs in (= the tree the commit ships).
+    """
+    if repo is None:
+        repo = os.getcwd()
+    roster = _chord_roster(repo)
+    if not roster:
+        return
+    for line_no, line in enumerate(text.split("\n"), 1):
+        mentions = _chord_line_mentions(line)
+        if not mentions:
+            continue
+        for center, chords in _chord_phrases(line, roster):
+            # the phrase belongs to the NEAREST chord mention; a tie is
+            # ambiguous = = and an ambiguous phrase judges nobody.
+            ranked = sorted((abs(center - pos), i) for i, (_g, _k, pos) in enumerate(mentions))
+            if len(ranked) > 1 and abs(ranked[0][0] - ranked[1][0]) < 1e-9:
+                continue
+            glyphs, key, _pos = mentions[ranked[0][1]]
+            mention = glyphs + key
+            if mention in chords:
+                continue
+            if _chord_split_near(line, roster, mentions[ranked[0][1]][2]):
+                continue
+            said = ", ".join(sorted(chords))
+            yield (f"ERROR: chord '{mention}' in commit message:{line_no} disagrees with the tree's "
+                   f"own shortcut table (= {said}; the table read from "
+                   f"{os.path.abspath(repo)}/{CHORD_ROSTER_FILE}) | {line.strip()[:80]}")
+
 
 # Files allowed to mention forbidden vocab (they explicitly enumerate the banned list).
 # v0.23 audit #014 added PR + issue templates (which mention the list by name).
@@ -380,6 +597,10 @@ def main(hook=None, commit_msg_path=None, remote=None, remote_url=None):
         with open(commit_msg_path) as f:
             commit_msg = f.read()
         for error in scan(commit_msg, "commit message"):
+            errors.append(error)
+        # = = the chord rule reads the tree the hook runs in (= the tree this
+        # = = commit ships), so it needs no tree argument here.
+        for error in chord_rule(commit_msg):
             errors.append(error)
     else:
         # Pre-commit / default: scan staged files (= original behavior).
