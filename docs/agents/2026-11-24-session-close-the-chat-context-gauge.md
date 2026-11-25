@@ -108,8 +108,8 @@ above its own).
 
 ## The tests and the gates
 
-The scope's own suites, measured on the merged tree (the tree `main`
-held when the change landed):
+The scope's own suites, measured on the merged tree (= the tree the
+scope's commit `814d357415` names, = = and `main` held it after the landing):
 
 | Suite | Result |
 | --- | --- |
@@ -126,7 +126,7 @@ and on the merged tree:
 | Tree | Result |
 | --- | --- |
 | the base (`b18bcefd74`) | 75 tests, 9 suites, 17 issues |
-| the merged tree | 75 tests, 9 suites, 17 issues |
+| the merged tree (`814d357415`) | 75 tests, 9 suites, 17 issues |
 
 ⇒ ⇒ ⇒ AND THE HONEST CLAIM IS THE DIFFERENCE, NOT THE COUNT: the merged
 tree's failures beyond the base's are ZERO, and the sites are the same
@@ -211,11 +211,11 @@ scope's, because `main` held them when the branch was fast-forwarded:
 `7c50a443dc`, `eddcd43b39`, `5500b471bc`, `b18bcefd74`.
 
 They are another session's work, carried as maintenance of the shared
-server state and not as this scope's authorship. The set is measured per
-push, = = so a second landing measures a second set:
+server state and not as this scope's authorship. The range that prints
+exactly those nine (= = `main`'s own commits before this scope's landed):
 
 ```
-git log --oneline b18bcefd74..814d357415
+git log --oneline ea00bb94ac~1..b18bcefd74
 ```
 
 ⇒ ⇒ ⇒ AND THIS DOC CANNOT NAME ITS OWN COMMIT: the doc is committed
