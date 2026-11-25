@@ -241,9 +241,11 @@ This scope is UI-touching, so the merge gate is the boss looking at the
 running build. The record is four facts, not a verdict word:
 
 1. **Which build**: `/Volumes/ANAN/Engineering/wenshu/build/Wenshu.app`,
-   rebuilt from `7e4a2fe14d` (= the tree `main` held at the build's own
-   mtime, = = 2026-11-25 12:51:34, = = which carries the scope's commit
-   `814d357415` as an ancestor), signed ad hoc with the identifier
+   rebuilt at 2026-11-25 12:51:34 (= = the binary's own mtime) from the
+   branch that landed as `7e4a2fe14d` two minutes later (= = `main` held
+   `2c44d02d4b` at the build's mtime, = = and moved to `7e4a2fe14d` at
+   12:53:45; = = `7e4a2fe14d` carries the scope's commit `814d357415` as
+   an ancestor), signed ad hoc with the identifier
    `com.wenshu.app` (= executable `WenshuApp`, = = 38,031,600 bytes);
 2. **The bundle's own bytes carry the change**: the symbol
    `ChatContextGaugeView` is present in the bundle's binary (150 hits),
@@ -271,8 +273,10 @@ the same saved window geometry and then both processes abort):
 
 ```
 # SKIP: this command LAUNCHES the app (= the boss's look), = so the verifier
-# must not run it; = = the bundle is built and signed, = = and no instance
-# of this bundle id is running, = = so the look is not blocked.
+# must not run it; = = the bundle is built and signed, = = and an instance
+# of this bundle id IS running (= pid 4218), = = so the look is not blocked
+# (= the running instance shows the build), = = and this command must NOT be
+# run while that instance lives (= = it would abort both processes).
 open /Volumes/ANAN/Engineering/wenshu/build/Wenshu.app
 ```
 
@@ -294,9 +298,10 @@ the compressor's own threshold.
 ## The open items
 
 1. **The boss's look is PENDING** (= the bundle is built and signed, = =
-   the bytes carry the change, = = and no instance of this bundle id is
-   running, = = so the look is not blocked; = = the command and what to
-   look at are in the look's section above);
+   the bytes carry the change, = = and an instance of this bundle id IS
+   running (= pid 4218), = = so the look is not blocked; = = the command and
+   what to look at are in the look's section above, = = and that command
+   must not be run while that instance lives);
 2. **The base's own reds are not this scope's** (= 17 issues in nine
    suites on the base, = = the same 17 on the merged tree, = = and the
    merged tree's failures beyond the base's are zero). They are not fixed
