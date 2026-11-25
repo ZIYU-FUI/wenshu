@@ -124,6 +124,13 @@ swift Tools/wenshu-devtool/probes/segmented_control_material.swift
 # 14. What fills the SELECTED segment of a segmented control in a KEY window
 #     (the system accent, or a material), from rendered pixels
 swift Tools/wenshu-devtool/probes/segmented_control_selected_fill.swift
+
+# 15. Whether the chat context reading outlives the process that wrote it:
+#     three separate processes over one temporary store, through the shipping
+#     data layer. It links WenshuData, so it is compiled against a build of
+#     that package instead of run as a script, and its full recipe (build,
+#     compile, three runs, cleanup) is published in probe-index.md under its
+#     own heading, next to the verbatim output that recipe produced.
 ```
 
 The index's own test proves the index and the probes directory agree in

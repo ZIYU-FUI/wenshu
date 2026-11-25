@@ -71,31 +71,39 @@ app writes the current conversation's live reading and no other scope's.
 | after a relaunch | empty | the conversation's last reading |
 | the transcript | already durable | unchanged |
 
-Measured across a real process boundary, = = not inside one process:
+Measured across a real process boundary, = = not inside one process. The
+measurement lives in the repository now: the probe is
+`chat_context_gauge_durability.swift` under `Tools/wenshu-devtool/probes/`,
+indexed in `Tools/wenshu-devtool/probe-index.md`, so a reader rebuilds it
+instead of trusting a binary that sat in one session's scratch and is gone:
 
 ```
-PROBE=/Volumes/ANAN/.hermes/profiles/pocock/cache/scratch/meter-probe/.build/debug/meter-probe
-STORE=/Volumes/ANAN/.hermes/profiles/pocock/cache/scratch/probe-store/WenshuStore.store
-mkdir -p /Volumes/ANAN/.hermes/profiles/pocock/cache/scratch/probe-store
-"$PROBE" write "$STORE" probe-session the-reading-written-by-process-one
-"$PROBE" read  "$STORE" probe-session
-"$PROBE" read  "$STORE" never-written-session
+# SKIP: this block is the run half of the recipe published in
+# Tools/wenshu-devtool/probe-index.md (= = that recipe creates a detached
+# worktree and a temporary store, = = so the verifier must not run it), = = and
+# $WORK, = = $TREE and $STORE are defined there, = = not here.
+"$WORK/probe" write       "$TREE" "$STORE" probe-session the-reading-written-by-process-one
+"$WORK/probe" read        "$TREE" "$STORE" probe-session
+"$WORK/probe" read-absent "$TREE" "$STORE" never-written-session
 ```
 
-⇒ ⇒ ⇒ AND WHAT THAT BLOCK PRINTS (= = measured, = = and the middle line is
-the one that answers the boss's question = = because it is a DIFFERENT
-process reading the file the first one wrote):
+⇒ ⇒ ⇒ AND WHAT THAT RUN PRINTS (= = measured, = = and the middle line is the
+one that answers the boss's question = = because it is a DIFFERENT process
+reading the file the first one wrote):
 
 ```
 # SKIP: this block is the block above's OUTPUT, = = not a command, = = so the
 # verifier must not run it.
-WRITE-OK readBackInSameProcess=the-reading-written-by-process-one
-READ-OK payload=the-reading-written-by-process-one
-READ-EMPTY payload=nil
+WRITE-OK source_commit=c94c384db7bc readBackInSameProcess=the-reading-written-by-process-one
+READ-OK source_commit=c94c384db7bc payload=the-reading-written-by-process-one
+READ-EMPTY source_commit=c94c384db7bc payload=nil
 ```
 
-The probe links the real data layer (= = the one the app's store reads and
-writes), = = so what it proves is the shipping code's behaviour.
+Every line carries the tree it was taken against, = = because the probe prints
+that tree's HEAD with its own number. The probe links the real data layer (= =
+the one the app's store reads and writes), = = so what it proves is the
+shipping code's behaviour, = = and the store it writes is a fresh one inside the
+recipe's own temporary directory, = = never the user's library.
 
 ## The tests and the gates
 
@@ -119,8 +127,8 @@ Test run with 8 tests in 1 suite passed (0.082s)
 Test run with 6 tests in 1 suite passed (0.048s)
 Test run with 12 tests in 1 suite passed (0.001s)   NARROW-EXIT=0
 nfi-loc-check: every added or rewritten file's row carries its own count
-(13 row(s) checked: = 2 the change added, = = 11 rewritten)
-                                                     NFI-EXIT=0
+(13 row(s) checked: = 2 the change added, = = 11 whose named file the change
+rewrote and did not add)                          NFI-EXIT=0
 ```
 
 ⇒ ⇒ ⇒ AND THE SERVER-SIDE PROOF: = = the doc cannot state its own landing
@@ -132,24 +140,23 @@ git ls-remote origin refs/heads/main
 git merge-base --is-ancestor c94c384db7 origin/main
 ```
 
-⇒ ⇒ ⇒ AND THE REGISTRY GATE'S ROW COUNT IS BASE-RELATIVE, = = AND THE PAIR
-MUST BE PINNED, = = NOT THE BASE ALONE: = = the rows are the ones this
-change added or rewrote, = = so the reader measures them against the
-change's own base (= = `99bb9c2070`, = = the `main` the change was built
-on) AND at a tip that carries this change's own files. = = ⇒ ⇒ ⇒ AND THIS
-DOC PINS THAT TIP, = = BECAUSE A TIP THAT CARRIES THE RECORD ITSELF MOVES:
-= = the record's own registry row is one of the added keys (= = the record
-adds a row keyed by the record), = = and so is every sibling row that
-landed between the base and the tip. = = Measured: = = `c94c384db7` (= = the
-landed change) prints `13 row(s) checked: = 2 the change added, = = 11
-rewritten`, = = and a tip that carries this record prints MORE (= = 17 at
-the tree this doc was written in), = = because the record's own row and
-the sibling's rows are in that difference too. = = ⇒ ⇒ ⇒ AND A COUNT THAT
-MOVES IS NOT PUBLISHED: = = this doc publishes the pinned pair only, = =
-and the command above reads the pinned tip, = = so the figure a reader
-re-measures is the one this doc names, = = at every tree. = = ⇒ ⇒ ⇒ AND
-AGAINST A LATER `main` THE SAME COMMAND REPORTS FEWER ROWS (= = one row),
-= = because the change is already in that tree.
+⇒ ⇒ ⇒ AND THE REGISTRY GATE'S ROW COUNT IS PAIR-RELATIVE, = = SO BOTH ENDS
+ARE PINNED: = = the rows are the ones the change added or rewrote, = = so the
+figure is `--base 99bb9c2070` (= = the `main` the change was built on) read at
+the tip `c94c384db7`, = = and that pair is what the block above runs. = = ⇒ ⇒ ⇒
+WHAT A MOVING TIP DOES TO IT, = = MEASURED ON THE SAME BASE: = = at
+`4a677157a4` (= = the head of this lane when the count was read) the same
+command prints `30 row(s) checked: = 16 the change added, = = 14 whose named
+file the change rewrote and did not add`, = = because the diff from that base to
+a later `main` carries every sibling that landed in between, = = and this
+record's own registry row with them. = = ⇒ ⇒ ⇒ SO THE COUNT GROWS WITH THE TIP
+AND NEVER SHRINKS: = = an earlier round of this doc published `17` for a tip it
+did not name, = = and claimed a later `main` reports FEWER rows (= = one). = =
+Both were read off a tree that had moved, = = and the second one points the
+wrong way: = = a base-relative diff cannot get smaller by gaining commits. = =
+⇒ ⇒ ⇒ AND THE PUBLISHED FIGURE IS THE PINNED PAIR'S `13`, = = so a reader who
+moves either end moves the number with it, = = and the row that number belongs
+to is named here rather than implied.
 
 The suites carry one case the earlier round's read showed was missing: = =
 every earlier case ran against an in-memory container (= = which dies with
@@ -174,6 +181,17 @@ longer agreed with their files. = = Those cells were written before the
 late fixes landed, = = and the gate refused the branch. = = The second
 round closed it by measurement, = = and the cells now carry their files'
 own counts (= 205, = = 178, = = 220).
+
+A later round read this doc against the tree and charged two more defects,
+= = both of them this doc's own claims rather than the change's: = = the
+process-boundary probe was published as a binary under one session's scratch
+directory, = = which no reader can obtain, = = and the registry gate's row
+count was published with a tip this doc had not measured. = = Both are closed
+here by measurement rather than by wording: = = the probe is now the file
+`chat_context_gauge_durability.swift` in `Tools/wenshu-devtool/probes/`, = =
+indexed, = = registered, = = and rebuilt by the recipe this doc points to, = =
+and the row count is published as a pinned pair with both ends named, = = the
+moving tip read separately and its own number printed next to it.
 
 ## The commits this scope owns, and the ones the push carried
 

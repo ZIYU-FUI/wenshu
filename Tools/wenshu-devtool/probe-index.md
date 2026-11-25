@@ -29,6 +29,7 @@ card's commit does not touch the app source.
 | `card_surfaces_load_cost.swift` | The materials column's and the inspector's per-body-pass load, measured on the user's own library (= /Users/anbaiqiang/Documents/anbaiqiang.ws): = = the whole-library walk (= = the full-body door against the head-only door), = = the board's card construction (= = an eager column against a lazy one, = = over the real per-status groups), = = and the board's markdown parse count per body pass. It CHECKS THE PRODUCTION FRAGMENTS IT MEASURES against the live source before it reports a number (= the house rule: = a number that cannot be tied to the source is worse than no number), = = so a tree that has moved any of the four fragments reports NO NUMBER and exits 2. READ-ONLY: it reads the library and the app's own task store (= the .ws's WenshuStore.store) and prints numbers. | `parse_full_body_walk_us`, `parse_head_only_walk_us`, `card_bodies_per_body_pass_eager`, `card_bodies_per_body_pass_lazy`, `markdown_parses_per_body_pass`, plus `book_md_files`, `reference_md_files`, `book_md_bytes` and `groups` | `757cc688b509974a49464444159d43c580fea4a8` |
 | `segmented_control_segment_frames.swift` | The native segmented control's per-segment geometry and its per-segment DRAWING HOOKS, = = = so a per-tab close mark can be drawn where the tab really is. = = = It reports how many times the cell's per-segment interior hook fired, = = = the frames AppKit gave it (= = = the equal division of the control's bounds), = = = whether the control is layer-backed, = = = and whether a MARKER drawn inside that hook REACHES the pixels (= = = the question the hook has to answer before anything is drawn in it). = = The control carries the app's production parameters (= role .valueSelection, = size .small, = style .roundRect, = segment distribution .fillEqually). | `draw_segment_calls`, `control_draw_calls`, `control_is_layer_backed`, `control_bounds`, `segment_frame_<n>`, `marker_pixels`, `marker_reaches_the_pixels`, = with the parameters that decide them printed alongside | `415cda906` |
 | `symlink_walk.swift` | What `FileManager.enumerator` reports for a tree holding a plain file, two real directories, `real/a.txt`, and `linkdir -> real/`, on exactly the three resource keys the import walk reads (= `isRegularFileKey`, `isSymbolicLinkKey`, `isDirectoryKey`), and whether it descends through a symlinked directory. The probe builds its own tree in the temporary directory and deletes it; it reads no app state and writes no repo file. It asserts both readings, so an engine change that moves either stops the run. | `entries_total`, `plain_file_is_regular`, `symlink_to_regular_file_is_regular`, `symlinked_directory_is_directory`, `symlinked_directory_is_symlink`, `walk_descends_into_symlinked_directory`, plus the per-entry table | 29b5a8371f |
+| `chat_context_gauge_durability.swift` | Whether the context reading the chat bar shows outlives the process that wrote it: = one run writes a reading through the SHIPPING data layer into a store the caller names, = a SECOND run (= a different process) opens the same store and reads it back, = and a session that was never written is read as the control. = It prints no number about the gauge's pixels, = only about the row. | `WRITE-OK` / `READ-OK` / `READ-EMPTY`, = each carrying `source_commit=` plus `readBackInSameProcess=` or `payload=` | `c94c384db7bc` |
 
 | `comment_marker_runaway.py` | The house's comment-scaffold runaway, measured against the live tree: = = a run of 4+ arrows, = = a run of 4+ dashes, = = a marker on EVERY line of a paragraph, = = and a line over 100 columns. = = The comment-lineage gate charges CJK, = = ticket lineage and uncited dates, = = and it has no marker or width check, = = so a branch can be green there and still carry the runaway. = = The `--proof` mode is the other half: = = it compares the non-comment lines of two trees, = = so a comment-only pass can prove the code did not move. READ-ONLY: = = it writes no file. | `runaways`, `comment_rows`, `code_moved` | `d34741da44` |
 
@@ -858,3 +859,58 @@ symlinked_directory_is_directory: false
 symlinked_directory_is_symlink: true
 walk_descends_into_symlinked_directory: false
 ```
+
+
+### `chat_context_gauge_durability.swift`
+
+Taken against commit `c94c384db7bc` (= the tree that shipped the reading's
+persistence, so the number describes the data layer the app writes through,
+and not the commit that registers this probe).
+
+The probe links `WenshuData`, so it cannot run from a source file alone: the
+recipe builds that package at the measured tree, compiles the probe against
+that build, and runs it as three SEPARATE processes over one store the recipe
+creates under a temporary directory and deletes at the end. The probe file
+comes from the reader's own checkout, because the measured tree predates it;
+the store path and the session ids are the recipe's own, and nothing in the
+run points at the user's library.
+
+```sh
+REPO=/Volumes/ANAN/Engineering/wenshu     # a checkout that carries the probe
+MEASURED=c94c384db7                      # the data layer under measurement
+WORK=$(mktemp -d)
+git -C "$REPO" worktree add --detach "$WORK/tree" "$MEASURED"
+swift build --package-path "$WORK/tree/Sources/WenshuData" \
+  --scratch-path "$WORK/databuild"
+swiftc -O "$REPO/Tools/wenshu-devtool/probes/chat_context_gauge_durability.swift" \
+  -I "$WORK/databuild/debug" -L "$WORK/databuild/debug" -lWenshuData \
+  -o "$WORK/probe"
+mkdir -p "$WORK/store"
+STORE="$WORK/store/WenshuStore.store"
+"$WORK/probe" write "$WORK/tree" "$STORE" probe-session the-reading-written-by-process-one
+"$WORK/probe" read "$WORK/tree" "$STORE" probe-session
+"$WORK/probe" read-absent "$WORK/tree" "$STORE" never-written-session
+git -C "$REPO" worktree remove --force "$WORK/tree"
+rm -rf "$WORK"
+```
+
+Its verbatim output, with each run's exit code on the line below it:
+
+```text
+WRITE-OK source_commit=c94c384db7bc readBackInSameProcess=the-reading-written-by-process-one
+write exit: 0
+READ-OK source_commit=c94c384db7bc payload=the-reading-written-by-process-one
+read exit: 0
+READ-EMPTY source_commit=c94c384db7bc payload=nil
+read-absent exit: 0
+```
+
+⇒ ⇒ ⇒ THE MIDDLE LINE IS THE ANSWER: = = the first line's process wrote the
+reading, and the second line came from a DIFFERENT process that opened the same
+file, so the row outlives the process that made it. The third line is the
+control that keeps the second one honest: a session nobody wrote reads as
+nothing, so the middle line is not a probe reading its own memory.
+
+The run leaves nothing behind: the recipe's last two lines remove the detached
+worktree and the temporary directory that holds the build, the binary and the
+store.
