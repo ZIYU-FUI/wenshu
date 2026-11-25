@@ -189,6 +189,30 @@ matters is the one the review measured, and it is dated.
   perturbation is the answer's own first eight differing by one document between runs, and
   the floor has no room for that. It wants a card of its own (a floor with margin, or a
   measurement that does not sit exactly on its own floor).
+
+  **⇒ CLOSED** on `wt/retrieval-floor-margin-2026-11-25` (card `t_88ed3915`). = The floor reads
+  the index half's own documents now, = and it has margin: = three readings, = = "the answer holds
+  a document the index half ranked in its own first eight" (= at least 10 of the fixture's 12
+  questions), = = "the answer holds a document the index half named that the corpus half did not
+  rank in its own first six" (= at least 10 of the 12 questions; = = a merge that keeps the corpus
+  half's order reads 9), = = and "at least 82 of the fixture's 96 answer slots hold a document the
+  index half named" (= measured 87; = = a corpus-order merge reads 76).
+
+  **⇒ AND THE PERTURBATION'S CAUSE IS MEASURED, = = AND IT IS NOT THIS CARD'S TO FIX.** = The
+  corpus half's own order is not the same in every process: = its seventh and eighth slots swap
+  between runs (= the fixture's two documents of nearly equal score), = because the score is summed over a
+  `Set`'s iteration order, = and Swift gives every process its own hash seed. = The old
+  measurement's boundary sat exactly on that swap. = **⇒ The score's own accumulation is
+  production code, = = and the card that reads the index half does not touch it, = = so the order
+  that moves between processes is the next open item below.**
+- **An order that is not the same in every process.** = The library's own ranking sums a document's
+  score over the iteration order of a `Set` of query tokens, = and Swift gives every process its
+  own hash seed, = so two documents of nearly equal score can swap places between two launches of
+  the app. = Measured 2026-11-25 in the retrieval fixture: = the corpus half's seventh and eighth
+  slots swap (= the fixture's two documents of nearly equal score), = while the index half's own order does not move. = **⇒
+  ⇒ ⇒ THE USER SEES THE LIST SHUFFLE**, = = and the ranking's own tie-break (= the title) never
+  fires, = = because the scores differ in their last bits before the tie-break is reached. = It
+  wants a card of its own, = = and the floor's card did not write it.
 - A Chinese fixture arm for the fragment step: the harness measures the ranking and never calls
   `ReferenceCorpusSearch.search`, so the glue list and the held-term rule are held only by the two
   Chinese cases in the tool's own suite.

@@ -206,23 +206,80 @@ struct RetrievalQualityTests {
         // met into the answer, = and a merge that kept the corpus half's
         // order put every one of them behind the corpus half's own
         // (= 19 to 41) documents, = which is past the answer's limit.
-        // = **⇒ So the answer must hold documents the corpus half's own
-        // first eight did not hold.**
+        //
+        // **⇒ AND THE MEASUREMENT IS THE ONE THIS TEST'S NAME NAMES.**
+        // = The first version counted "the answer holds a document the
+        // corpus half's own first eight did not hold", = and that number
+        // is not a measurement of the index half at all: = the corpus
+        // half names every document it matched (= 19 to 41), = so its
+        // ninth place and every place below it are "outside the corpus
+        // half's first eight" whether the index half put them there or
+        // not. = Measured over the fixture's twelve questions it read 10
+        // or 9, = and the floor of 10 sat exactly on it: = a floor of 9
+        // would have passed a merge that dropped the index half, = and a
+        // floor of 11 would have failed a merge that did not.
+        //
+        // **⇒ WHY IT READ 9 SOMETIMES, = = MEASURED.** = The corpus
+        // half's own order is not the same in every process: = its
+        // seventh and eighth slots swap (= the fixture's two documents
+        // of nearly equal score), = because the score is accumulated over
+        // a `Set`'s iteration order (= `TokenOverlapRanking.score`), = and
+        // Swift gives every process its own hash seed. = The first
+        // version's boundary sat exactly on that swap. = **⇒ So the count
+        // is the index half's own documents**, = whose order does not
+        // move (= measured: 12 of 12, = on every run).
+        //
+        // **⇒ AND THE FLOOR IS NOT VACUOUS.** = A count of index-named
+        // documents in the answer cannot tell a merge that dropped the
+        // index half (= the two halves name the same documents often
+        // enough that a corpus-only answer still holds index-named
+        // documents: = measured, = such a merge reads 12 of 12 there
+        // too). = **⇒ So two more readings carry the teeth**: = per
+        // question, = the answer holds a document the index half named
+        // AND that the corpus half did not rank in its own first six
+        // (= measured 12 of 12; = a corpus-order merge reads 9 of 12);
+        // = and over every one of the fixture's 96 answer slots, = at
+        // least 82 must hold a document the index half named (= measured
+        // 87; = a corpus-order merge reads 76).
+        var questionsWithAnIndexNamedDocument = 0
         var questionsWithAnIndexOnlyDocument = 0
+        var answerSlots = 0
+        var indexNamedAnswerSlots = 0
         for query in RetrievalQualityCorpus.queries {
             let orders = RankerTable.mergeOrders(question: query.text)
-            let corpusTop = Set(orders.corpus.prefix(ReferenceCorpusSearch.defaultLimit))
-            let answer = orders.union.prefix(ReferenceCorpusSearch.defaultLimit)
-            if answer.contains(where: { !corpusTop.contains($0) }) {
+            let limit = ReferenceCorpusSearch.defaultLimit
+            let indexNamed = Set(orders.index.prefix(limit))
+            // **⇒ THE CORPUS HALF'S HEAD IS ITS FIRST SIX, = = AND THAT
+            // IS MEASURED, = = NOT CHOSEN.** = The swap the fixture
+            // carries is between the corpus half's seventh and eighth
+            // slots, = so a boundary at the eighth moves with it = = and
+            // a boundary at the sixth does not.
+            let corpusHead = Set(orders.corpus.prefix(6))
+            let answer = orders.union.prefix(limit)
+            if !indexNamed.isDisjoint(with: Set(answer)) {
+                questionsWithAnIndexNamedDocument += 1
+            }
+            if answer.contains(where: { indexNamed.contains($0) && !corpusHead.contains($0) }) {
                 questionsWithAnIndexOnlyDocument += 1
             }
+            for document in answer {
+                answerSlots += 1
+                if indexNamed.contains(document) {
+                    indexNamedAnswerSlots += 1
+                }
+            }
         }
-        // **⇒ THE FLOOR IS A COUNT OF THE FIXTURE'S TWELVE QUESTIONS**,
-        // (= and the number measured is ten: = = the two questions where
-        // it does not hold are the two whose gold document both halves
-        // rank first).
+        // **⇒ THE FLOORS ARE COUNTS OF THE FIXTURE**, = (= its twelve
+        // questions, = and twelve times the answer's eight documents),
+        // = and not the rounded numbers a table prints.
+        #expect(questionsWithAnIndexNamedDocument >= 10,
+                "the answer must hold documents the index half ranked in its own first eight, = on at least ten of the fixture's twelve questions")
         #expect(questionsWithAnIndexOnlyDocument >= 10,
-                "the answer must hold documents the corpus half's own first eight did not hold, = on at least ten of the fixture's twelve questions")
+                "the answer must hold a document the index half named that the corpus half did not rank in its own first six, = on at least ten of the fixture's twelve questions (= a merge that keeps the corpus half's order reads nine)")
+        #expect(answerSlots == 96,
+                "the fixture's twelve questions each answer with eight documents (= 96 slots)")
+        #expect(indexNamedAnswerSlots >= 82,
+                "at least 82 of the fixture's 96 answer slots must hold a document the index half named (= a merge that keeps the corpus half's order reads 76)")
     }
 
     @Test("the union is not worse than the app's own ranking")
