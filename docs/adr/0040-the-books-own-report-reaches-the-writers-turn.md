@@ -101,12 +101,35 @@ together.
   view, no panel, no badge, and the report is never displayed.
 - **The report is only as good as the book's own lines.** A book whose documents hold no
   field lines reports no conflict. That is a limit of the input, not a bug in the
-  report, and the reader's measurement (= 121 claims over 18 documents) is what says how
+  report, and the reader's measurement (= 121 claims over 17 documents) is what says how
   much of a book is reachable this way.
 - **One book, one report.** The report belongs to the book the turn is about, so a
   conversation about another book carries that book's report.
 
 ## The measurement this rests on
+
+### What the real book produces today
+
+The one real book in the library (= `build/wenshu-look.ws`, = = the book
+`68F9A258-ECEC-4CFE-8FB0-49409E5EB750`) was read through the shipped reader:
+
+| what | measured |
+|---|---|
+| the book's world documents the reader reads | **17** |
+| the claims it reads out of them | **121** |
+| the rules the book's own claims call for | **0** |
+| the conflicts those rules find | **0** |
+| the breaks the book's chapters produce | **0** |
+| the report | **empty** |
+
+So the two kernels now run over a real book, and what they find, today, is nothing: the
+book has no chapters yet (= its `chapters/` folder holds nothing, and its store holds no
+chapter rows), so the thread kernel has nothing to scan; = = and no subject repeats a
+property across the book's documents, so the app derives no rule and the consistency
+kernel has nothing to weigh. The writer's prompt is therefore byte-identical to what it
+was before this change, = = on this book. That is the book's state and not a defect in
+the reading: the 121 claims are what says the reader reads it, = = and a book whose
+chapters plant a thread and never pay it off produces a break.
 
 - The reader's fixtures carry the book's own Chinese lines, because the reader splits on
   the book's own punctuation and a fixture written in English would not prove the two

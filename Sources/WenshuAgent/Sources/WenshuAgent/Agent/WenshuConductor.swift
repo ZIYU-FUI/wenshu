@@ -56,11 +56,13 @@ public actor WenshuConductor {
     /// The source of the book's continuity report.
     ///
     /// The app owns the book (= it lives on disk under the library), = =
-    /// so the app reads it and hands the turn what it says. = = The
-    /// slot is written when the chat binds a book, = = the same way the
-    /// book-scoped tools are wired, = = so switching books
-    /// mid-conversation is honoured. Nil = no book is bound, = = and
-    /// the turn carries no report.
+    /// so the app reads it and hands the turn what it says. = = The slot
+    /// is written ONCE, here, at construction; = = the book a turn is
+    /// about is resolved from the turn's own scope when the provider is
+    /// read, = = the same way the book-scoped tools resolve their book
+    /// at call time. = = So a mid-conversation book switch is honoured
+    /// by that per-read resolution, = = not by rewriting this slot.
+    /// Nil = no provider at all, = = and the turn carries no report.
     public var continuityProvider: (any ContinuityProvider)?
     // AUDIT.md §2.9 partial (2026-10-16): the stream single-
     // writer fence (= hermes `stream_single_writer.py` port).
