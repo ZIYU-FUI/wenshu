@@ -183,11 +183,11 @@ enum TokenOverlapRanking {
         statistics: CorpusStatistics = .unweighted
     ) -> Double {
         guard !queryTokens.isEmpty, !docTokens.isEmpty else { return 0 }
-        let querySet = Set(queryTokens)
+        let queryTerms = Set(queryTokens).sorted()
         let docCounts = Dictionary(grouping: docTokens, by: { $0 }).mapValues(\.count)
         var hits = 0.0
         var totalWeight = 0.0
-        for qt in querySet {
+        for qt in queryTerms {
             let weight = statistics.weights[qt] ?? 1
             totalWeight += weight
             if let count = docCounts[qt] {
