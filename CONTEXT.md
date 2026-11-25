@@ -145,6 +145,16 @@
 | **LucideIconSidebar (v0.30 system-preference icon size)** | Helper that adapts sidebar icon size to macOS `NSTableViewDefaultSizeMode` (= Apple HIG Sidebars: 'A sidebar's row height, text, and glyph size depend on its overall size, which can be small, medium, or large'). Mapping: Small (rawValue 1) -> 12 PT / Medium (2) -> 14 PT (default) / Large (3) -> 18 PT. Custom Lucide icons need manual `NSTableViewDefaultSizeMode` read because SF Symbols auto-adapt via `Label` intrinsic sizing. v0.30 boss 8/30 OOB '试一下 Apple 系统设置 -> General -> Sidebar icon size' | v0.30 |
 | **NewChoiceSheet (v0.30 zone-header 新建 picker)** | SwiftUI sheet view presenting the "新建书 / 新建书架" two-button choice. Replaced the prior Menu-based picker (= `.menuStyle(.borderlessButton)` + `.menuIndicator(.hidden)` failed to render inside the `ZoneContentTabBar` trailing slot, leaving only the 入驻 Button visible). Two `.bordered` buttons side-by-side with Lucide `book-plus` / `library` icons + 110×80 PT frames. Apple HIG canonical sheet pattern (= single Button triggers sheet, sheet picks choice, sheet dismisses before opening downstream sheet). v0.30 boss 8/31 OOB (= first session in office) '顶栏右边的新建 ICON 没有了' | v0.30 |
 
+## Novel continuity domain words (2026-11-25)
+
+> The world's claims, as the book states them and as they are checked. ADR-0037.
+
+| Term | Definition | ADR |
+|------|------------|-----|
+| **Claim** | One fact the book states about its world: the subject, the property, the value, **how firmly the book states it** (= the grade), and **the moment of the story it belongs to** (= the chapter; = nil = the book's own documents, = = which stand beside the chapters rather than inside them). The moment is what keeps a world that changes over time from reading as a contradiction, and the grade keeps a hint from reading as one. `StoryFact` | ADR-0037 |
+| **Rule** | One shape the world's claims are checked against, in exactly three shapes: **one value at a moment**, **a value that never changes**, and **two attributes that cannot both hold**. `StoryRule` + `StoryRuleCheck` | ADR-0037 |
+| **Conflict** | Two claims that cannot both hold at one moment of the story. A conflict names the claims that met, and the report's order is total (= severity, rule name, subject, attribute, claims, the rule's sentence), so the same book always reads the same way. `StoryFinding` | ADR-0037 |
+
 ## Editor Zone domain words (v0.34 — boss 2026-09-02 OOB)
 
 | Term | Definition |
