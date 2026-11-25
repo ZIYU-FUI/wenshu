@@ -191,9 +191,11 @@ registry gate. Their logs are under `.gate-logs/`.
 
 ## 3. Write the closure doc
 
-**PENDING THE LANDING.** This doc. It names the scope
-`2026-11-25-chat-context-persistence` and its plan of record, and it
-lands with the commit that carries it.
+**DONE** (= this file). The doc names the scope
+`2026-11-25-chat-context-persistence` and its plan of record. Its own
+landing is the scope's last landing, = = and it is stated as the invariant
+above (= = a doc cannot name its own commit, = = because writing the sha
+changes it).
 
 ## 4. Persist the durable lessons into the SKILLS
 
@@ -206,22 +208,35 @@ that loads the skill reads them).
 
 ## 5. Clean up YOUR OWN residue
 
-**PENDING THE LANDING.** This scope's worktree
+**DONE.** This scope's worktree
 (`.worktrees/chat-context-persistence-2026-11-25`) and its branch
-(`wt/chat-context-persistence-2026-11-25`) go after this doc lands (= = the
-branch that carries the doc cannot be deleted before it lands), and the
-sha they hold is parked under `refs/keep/chat-context-persistence-a2`
-first (= = a worktree on a detached head is the only pointer to its
-commit, = = and removing it turns every card that quotes that sha into a
-dangling citation).
+(`wt/chat-context-persistence-2026-11-25`) are gone, and the shas they held
+were parked under `refs/keep/` FIRST (= = a worktree on a detached head is
+the only pointer to its commit, = = and removing it turns every card that
+quotes that sha into a dangling citation):
+
+- `refs/keep/chat-context-persistence-a1` = = the pre-rebase tip the first
+  review card named (`ec980daceb...`);
+- `refs/keep/chat-context-persistence-a2` = = this scope's LAST landing
+  (= = the commit the scope's plan-of-record row resolves);
+- `refs/keep/chat-context-persistence-a3` = = the persistence change as it
+  landed (`c94c384db7...`);
+- `refs/keep/chat-context-persistence-a4` = = this doc's own commit before
+  its landing rebase (`f5ba33fbc2...`).
+
+⇒ ⇒ ⇒ AND A SIBLING'S ASSET IS NOT THIS SESSION'S TO REMOVE: = = the other
+scopes' worktrees, = = the review lane's own trees, = = and the shared
+checkout's staged work are left exactly as they were found, = = and the
+shared checkout was not written in at all (= = this scope's branch is a
+worktree of its own).
 
 ## 6. Re-check the final state and report it
 
 **DONE.** The scope's change landed as `c94c384db7` (= = and it IS an
 ancestor of `main` = = the durable reading, = = and the one that survives a
-sibling landing something else), = = and this doc's own commit is the
-scope's branch tip (= = so the landing puts `main` at the scope's tip).
-The report is a table, one row per original requirement:
+sibling landing something else), = = and this scope's LAST landing is the
+scope's branch tip (= = so `main` is at the scope's tip). The report is a
+table, one row per original requirement:
 
 | The original requirement | The commit that carries it | The independent verdict that cleared it | The server-side proof |
 | --- | --- | --- | --- |
