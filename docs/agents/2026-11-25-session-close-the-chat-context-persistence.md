@@ -123,6 +123,15 @@ nfi-loc-check: every added or rewritten file's row carries its own count
                                                      NFI-EXIT=0
 ```
 
+⇒ ⇒ ⇒ AND THE SERVER-SIDE PROOF: = = the doc cannot state its own landing
+(= = writing the sha changes it), = = so the invariant is the check:
+
+```
+git rev-parse main
+git ls-remote origin refs/heads/main
+git merge-base --is-ancestor c94c384db7 origin/main
+```
+
 ⇒ ⇒ ⇒ AND THE REGISTRY GATE'S ROW COUNT IS BASE-RELATIVE, = = AND THE PAIR
 MUST BE PINNED, = = NOT THE BASE ALONE: = = the rows are the ones this
 change added or rewrote, = = so the reader measures them against the
@@ -253,7 +262,7 @@ once it lands). The report is a table, one row per original requirement:
 
 | The original requirement | The commit that carries it | The independent verdict that cleared it | The server-side proof |
 | --- | --- | --- | --- |
-| the chat bar's context reading is the conversation's own, and it is still there after the app is reopened (= the boss's report, = = quoted in `OOB.md`) | `c94c384db7` | the review card `t_2a00ffbe` read `approved` at this sha (= = and its first round `t_0b6b84d2` had already found all four of its claims HOLD) | `git ls-remote origin refs/heads/main` reads `c94c384db7bc3fa02572f7c61a73376cd8d7976b` |
+| the chat bar's context reading is the conversation's own, and it is still there after the app is reopened (= the boss's report, = = quoted in `OOB.md`) | `c94c384db7` | the review card `t_2a00ffbe` read `approved` at this sha (= = and its first round `t_0b6b84d2` had already found all four of its claims HOLD) | `origin/main` read `c94c384db7` at this scope's change's landing (= = and this doc's own landing moves it again, = = to the scope's tip), = = and `git merge-base --is-ancestor c94c384db7 origin/main` holds (= = the change is on the server's `main`) |
 
 ## 7. Sweep the board's open columns
 
