@@ -104,7 +104,7 @@ The tree's own gates, at the sha that landed:
 ```
 swift build
 swift test --filter 'ChatContextUsagePersistenceTests|WSChatContextUsageTests|ContextUsageRecorderTests'
-python3 ../../Tools/wenshu-devtool/nfi-loc-check.py --base main
+python3 ../../Tools/wenshu-devtool/nfi-loc-check.py --base 99bb9c2070
 ```
 
 ⇒ ⇒ ⇒ AND WHAT THEY PRINT AT THIS SHA:
@@ -117,8 +117,24 @@ Test run with 8 tests in 1 suite passed (0.082s)
 Test run with 6 tests in 1 suite passed (0.048s)
 Test run with 12 tests in 1 suite passed (0.001s)   NARROW-EXIT=0
 nfi-loc-check: every added or rewritten file's row carries its own count
-(13 row(s) checked)                                 NFI-EXIT=0
+(14 row(s) checked: = 3 the change added, = = 11 rewritten)
+                                                     NFI-EXIT=0
 ```
+
+⇒ ⇒ ⇒ AND THE REGISTRY GATE'S ROW COUNT IS BASE-RELATIVE, = = AND THE PAIR
+MUST BE PINNED, = = NOT THE BASE ALONE: = = the rows are the ones this
+change added or rewrote, = = so the reader measures them against the
+change's own base (= = `99bb9c2070`, = = the `main` the change was built
+on), = = AND against a tip that carries this record (= = the tree the
+command above runs in). = = ⇒ ⇒ ⇒ AND THE FIGURE IS 14, = = NOT 13: = = the
+record's own registry row is itself one of the added keys (= = the record
+adds a row keyed by the record), = = so a tree that carries the record
+counts one more added key than the landed commit did. = = Measured at both
+tips, against the same base: = = `c94c384db7` (= = the landed change, = =
+before this record existed) prints `13 row(s) checked: = 2 the change
+added`, = = and this tree prints `14 row(s) checked: = 3 the change added`.
+= = ⇒ ⇒ ⇒ AND AGAINST A LATER `main` THE SAME COMMAND REPORTS FEWER ROWS
+(= = one row), = = because the change is already in that tree.
 
 The suites carry one case the earlier round's read showed was missing: = =
 every earlier case ran against an in-memory container (= = which dies with
