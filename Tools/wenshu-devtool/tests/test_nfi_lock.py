@@ -362,9 +362,16 @@ def main() -> int:
         # 13: twelve simultaneous acquirers of ONE lease. Exactly one
         # wins and eleven are refused, EVERY round. The old tool created
         # the reservation's name empty and wrote the content afterwards,
-        # so a reader in that window called it corrupt: 95 of 120 rounds
-        # read one 0 and eleven 3s, and the 0-byte file that won was then
-        # a permanent freeze.
+        # so a racer arriving in that window was told the reservation was
+        # broken (= it exited 1 with "the reservation is not JSON" =,
+        # instead of naming the holder and refusing = 3). The winner's
+        # own lease was always parsable (= measured over 200 rounds of
+        # the old shape: 170 rounds carried such a racer, and 0 left an
+        # unreadable file behind), = so the defect is that a racer could
+        # meet a half-written lease AT ALL. The RATE of it is not a
+        # property of the shape (= it depends on the machine's load), =
+        # so this case asserts the OUTCOME (= one 0 and eleven 3s, every
+        # round) rather than a count of how often the old shape failed.
         rounds = 20
         bad_rounds = []
         for round_no in range(rounds):

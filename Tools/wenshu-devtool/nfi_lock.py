@@ -330,11 +330,21 @@ def publish_record(path: Path, record: dict) -> bool:
     existing target (= `O_EXCL` semantics) while the CONTENT is already
     in place, because the content is written to a temporary file first
     and the temporary file is linked into the name. The old way created
-    the name empty and wrote the content afterwards, so every reader in
-    that window saw a 0-byte file and called it corrupt: 95 of 120
-    rounds of a 12-way race read one 0 and eleven 3s, and the 0-byte
-    file that won the race was then a permanent freeze (no TTL could
-    evict it, and `release --force` refused to guess).
+    the name empty and wrote the content afterwards, so a racer that
+    arrived in that window saw a 0-byte file and called it corrupt (= it
+    exited 1 with "the reservation is not JSON" = instead of naming the
+    holder and refusing = 3). The winner's own lease was always
+    parsable (= measured over 200 rounds of the old shape: 170 rounds
+    carried a racer with that false alarm, and 0 left an unreadable
+    file behind = the winner always wrote its own content). The
+    separate, worse state = a reservation whose file carries no record
+    at all = is `read_reservation`'s, and it binds nobody.
+
+    The RATE of that false alarm is not a property of the shape (= ten
+    draws of 120 rounds read 17, 23, 24, 29, 28, 28, 36, 25, 18 and 25
+    clean, = and ten draws of 40 read 5, 10, 16, 6, 8, 7, 5, 10, 6 and 7
+    clean, = because it depends on the machine's load), = so what the
+    old shape is judged on is that it COULD happen, = not on how often.
 
     The link is the only step that can fail for a reason other than
     "somebody else holds it" (= a filesystem without hard links), so
