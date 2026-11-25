@@ -240,19 +240,30 @@ wc -l docs/agents/2026-11-24-session-close-the-chat-context-gauge.md
 This scope is UI-touching, so the merge gate is the boss looking at the
 running build. The record is four facts, not a verdict word:
 
-1. **Which build**: `/Volumes/ANAN/Engineering/wenshu/.worktrees/chat-context-gauge-closeout-2026-11-24/build/Wenshu.app`,
-   rebuilt from `1c1b019c2c` (= the tree `main` held, = = which carries
-   the scope's commit as an ancestor), signed ad hoc with the identifier
-   `com.wenshu.app`;
+1. **Which build**: `/Volumes/ANAN/Engineering/wenshu/build/Wenshu.app`,
+   rebuilt from `7e4a2fe14d` (= the tree `main` held at the build's own
+   mtime, = = 2026-11-25 12:51:34, = = which carries the scope's commit
+   `814d357415` as an ancestor), signed ad hoc with the identifier
+   `com.wenshu.app` (= executable `WenshuApp`, = = 38,031,600 bytes);
 2. **The bundle's own bytes carry the change**: the symbol
-   `ChatContextGaugeView` is present in the bundle's binary, with
-   `ContextUsageSnapshot` beside it, and a known-present symbol
-   (`ChatInputBarView`) as the control (= an instrument that selects
-   nothing and a tree that lacks the thing both print zero, = = so the
-   control is what proves the needle is real);
+   `ChatContextGaugeView` is present in the bundle's binary (150 hits),
+   with `ContextUsageSnapshot` beside it (120 hits), and a known-present
+   symbol (`ChatInputBarView`, 392 hits) as the control (= an instrument
+   that selects nothing and a tree that lacks the thing both print zero,
+   = = so the control is what proves the needle is real; = = and a symbol
+   that does not exist prints 0 against the same binary);
 3. **The boss's verdict: NOT YET GIVEN** (= never "approved");
-4. **The app was left running: no** (= and no instance of this bundle id
-   is running, = = so the look is not blocked by a sibling's instance).
+4. **An instance of this bundle id is running**: = = yes, = = pid `4218`
+   (= started 2026-11-25 21:52:27, = = from this very bundle path). ⇒ ⇒ ⇒
+   AND THIS SESSION DID NOT LAUNCH IT: = = no `open` of this bundle ran in
+   this session (= = `ps -eo pid,args | grep 'open .*Wenshu.app'` reads
+   nothing), = = so the instance belongs to another session and it is NOT
+   this session's to stop. ⇒ ⇒ ⇒ AND WHAT THAT MEANS FOR THE LOOK: = = the
+   look is not blocked (= = a running instance of the same bundle id is
+   already showing the build), = = and the command below must NOT be run
+   while that instance lives (= = `open` on a live bundle id brings the
+   running one forward, = = and a second instance of the same bundle id
+   restores the same saved window geometry and then both processes abort).
 
 ⇒ ⇒ ⇒ AND THE ONE COMMAND THAT COMPLETES IT (a PLAIN `open`; = = never
 `open -n`, = = because a second instance of the same bundle id restores
@@ -262,8 +273,18 @@ the same saved window geometry and then both processes abort):
 # SKIP: this command LAUNCHES the app (= the boss's look), = so the verifier
 # must not run it; = = the bundle is built and signed, = = and no instance
 # of this bundle id is running, = = so the look is not blocked.
-open /Volumes/ANAN/Engineering/wenshu/.worktrees/chat-context-gauge-closeout-2026-11-24/build/Wenshu.app
+open /Volumes/ANAN/Engineering/wenshu/build/Wenshu.app
 ```
+
+⇒ ⇒ ⇒ AND THE PATH THIS SECTION NAMED BEFORE (= =
+`.worktrees/chat-context-gauge-closeout-2026-11-24/build/Wenshu.app`) IS
+GONE, = = and the reason is section 5's cleanup: = = that bundle lived
+inside the scope's own worktree, = = and removing the worktree removed it
+with it. = = The build named above is the same scope's change in a bundle
+that is NOT inside a worktree, = = so the look's command survives the
+cleanup. = = What the old path's facts were, and what this path's facts
+are, agree on the part the look turns on (= = the bytes carry the change,
+= = the bundle id is `com.wenshu.app`, = = the signature is ad hoc).
 
 ⇒ ⇒ ⇒ AND WHAT TO LOOK AT: the chat zone's bottom bar carries the
 capacity gauge beside the reading; a click on the gauge opens the
@@ -341,12 +362,28 @@ lanes read), not into memory and not into this doc alone:
 
 ## 5. Clean up YOUR OWN residue
 
-**PENDING THIS DOC'S LANDING.** The scope's own worktrees and branches
-go after this doc lands (= the branch that carries the doc cannot be
-deleted before it lands), and the shas they hold are parked under
-`refs/keep/` first (= a rehearsal worktree on a detached head is the
-only pointer to its commit, = = and `git worktree remove` turns every
-card that quotes that sha into a dangling citation).
+**DONE.** The scope's own worktrees and branches went after this doc landed
+(= the branch that carries the doc cannot be deleted before it lands), and
+the shas they hold were parked under `refs/keep/` first (= a rehearsal
+worktree on a detached head is the only pointer to its commit, = = and
+`git worktree remove` turns every card that quotes that sha into a dangling
+citation).
+
+- The parked refs, each proven by `git rev-parse` (= NOT by
+  `git for-each-ref --contains`, = = which lists only refs for which the
+  commit is a strict ancestor): `refs/keep/chat-context-gauge-a1` =
+  `814d357415c44edf806285178a69be0ff44c3bb9` (= the scope's own change),
+  `refs/keep/chat-context-gauge-closeout-2026-11-24` =
+  `08ad16ac23b324f00240a9c66cbc30000b33a142`, = = and
+  `refs/keep/chat-context-gauge-closeout-a2` =
+  `7de223281a50f3da779ded7a0cd81773e1ecda39` (= this doc's own landing).
+- Removed: the worktree
+  `.worktrees/chat-context-gauge-closeout-2026-11-24` (= it was clean, = =
+  `git status --porcelain` read 0 lines) and the two branches
+  `wt/chat-context-gauge-2026-11-24` and
+  `wt/chat-context-gauge-closeout-2026-11-24` (= both deleted with plain
+  `-D`, = = and every sha they held is parked above, = = so no card's
+  citation dangles).
 
 ⇒ ⇒ ⇒ AND A SIBLING'S ASSET IS NOT THIS SESSION'S TO REMOVE: the other
 scopes' worktrees, the review lane's own worktrees and the shared
@@ -354,11 +391,23 @@ checkout's staged work are left exactly as they were found, = = and the
 shared checkout was not written in at all (= this doc's branch is a
 worktree of its own).
 
+⇒ ⇒ ⇒ AND ONE FACT THIS CLEANUP CHANGED, NAMED HERE RATHER THAN LEFT
+HANGING: = = the bundle the look's command named lived inside the removed
+worktree (= `.worktrees/chat-context-gauge-closeout-2026-11-24/build/Wenshu.app`),
+= = so that path is gone with it, = = and the look's section below carries
+the replacement. = = The bundle's own facts (= the symbol counts, = = the
+signature, = = the bundle id) were measured while it existed, = = and they
+are the facts the look still turns on.
+
 ## 6. Re-check the final state and report it
 
-**PENDING THIS DOC'S LANDING** (= `main` is at the scope's last landed
-commit once this doc lands; = = and it reads as the ancestor it already
-is). The report is a table, one row per original requirement:
+**DONE.** This doc landed as `7de223281a`, = = and `main` has since carried
+other scopes' work on top of it, = = so `main` is no longer AT this
+scope's last landed commit, = = while the scope's commit
+(`7de223281a50f3da779ded7a0cd81773e1ecda39`) IS still an ancestor of
+`main` (= = the durable reading, = = and the one that survives a sibling
+landing something else). The report is a table, one row per original
+requirement:
 
 | The original requirement | The commit that carries it | The independent verdict that cleared it | The server-side proof |
 | --- | --- | --- | --- |
