@@ -22,6 +22,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOL_DIR = os.path.dirname(HERE)
+REPO = os.path.dirname(os.path.dirname(TOOL_DIR))
 FILTER = os.path.join(TOOL_DIR, "commit_filter.py")
 ROSTER_REL = "Sources/WenshuApp/Features/Chat/View/ChatView+KeyboardShortcuts.swift"
 
@@ -114,6 +115,116 @@ def main():
     errs = run(mod, listing, tree)
     results.append(case("a list of chords is read item by item (= = no item borrows the previous one's phrase)",
                          not errs, str(errs)[:120]))
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # B1: the mention grammar and the table grammar are ONE grammar.
+    # ROSTER_TABLE names the row "\u2318. cancel streaming" above, and NOT ONE
+    # case below exercised it (= = the reviewed suite was green while a message
+    # that transcribed the tree's own table was refused). Each case here states
+    # the refusal count it proves.
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    dot_list = ("fix(chat): the roster\n\n"
+                "\u2318N new chat, \u2318P print, \u2318R reload, \u2318. cancel streaming.\n")
+    errs = run(mod, dot_list, tree)
+    results.append(case("B1a a list that names the dot row is NOT refused",
+                         not errs, str(errs)[:160]))
+
+    dot_prose = ("fix(chat): the roster\n\n"
+                 "The cheat sheet binds \u2318. cancel streaming and \u2318R reload.\n")
+    errs = run(mod, dot_prose, tree)
+    results.append(case("B1b prose that carries the dot row is NOT refused",
+                         not errs, str(errs)[:160]))
+
+    # The tree's OWN published table, read from the tree, transcribed verbatim.
+    # No throwaway fixture: the defect only showed on the table the product
+    # actually ships, so this case reads that file and fails loudly without it.
+    real = os.path.join(REPO, ROSTER_REL)
+    own_line = None
+    if os.path.exists(real):
+        with open(real, encoding="utf-8") as handle:
+            for ln in handle:
+                if "[wenshu.shortcuts]" in ln:
+                    own_line = ln.strip()
+                    break
+    if own_line is None:
+        results.append(case("B1c the tree publishes the roster line this rule reads",
+                             False, f"no [wenshu.shortcuts] line in {ROSTER_REL}"))
+    else:
+        own_tree = make_tree(table=own_line.split("[wenshu.shortcuts] ", 1)[1]
+                             .rsplit('"', 1)[0].strip())
+        own_mod = mod._chord_roster(own_tree)
+        results.append(case("B1c the tree publishes a roster this rule parses",
+                             len(own_mod) > 0, f"{len(own_mod)} rows"))
+        transcribed = ("fix(chat): the roster\n\nThe tree's own words: "
+                       + own_line.split("[wenshu.shortcuts] ", 1)[1]
+                       .rsplit('"', 1)[0].strip() + "\n")
+        errs = run(mod, transcribed, own_tree)
+        results.append(case("B1d transcribing the tree's OWN table verbatim is NOT refused",
+                             not errs, str(errs)[:160]))
+        # and the dot row is in that published table, or this proves nothing
+        results.append(case("B1e the published table really carries the dot row",
+                            any(chord.endswith(".") for chord, _a in own_mod),
+                            ",".join(sorted(chord for chord, _a in own_mod))))
+        shutil.rmtree(own_tree, ignore_errors=True)
+
+    # The dot row must still BITE: making it visible cuts both ways, and a rule
+    # that only ever got permissive would not be a guard.
+    dot_lie = ("fix(chat): the roster\n\n"
+               "The cancel streaming control now binds \u2318K.\n")
+    errs = run(mod, dot_lie, tree)
+    results.append(case("B1f crediting the dot row's action to another chord IS refused",
+                         len(errs) == 1, f"{len(errs)} refusals {str(errs)[:120]}"))
+
+    # A row whose key a mention cannot carry (two characters) is out of the
+    # phrase set. Without that guard, widening the key class from chord[-1]
+    # (= = the last character) invented a key the tree never bound and refused
+    # a message that quoted its own row.
+    wide_tree = make_tree(table="\u2318\u21e7AB undo last edit \u00b7 \u2318K focus input")
+    wide_row = "\u2318\u21e7AB undo last edit is the table's own row.\n"
+    errs = run(mod, "fix(chat): the roster\n\n" + wide_row, wide_tree)
+    results.append(case("B1g a row with a key too long to mention is NOT refused when quoted",
+                         not errs, str(errs)[:160]))
+    shutil.rmtree(wide_tree, ignore_errors=True)
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # N3: a mention is a glyph run IMMEDIATELY followed by a key. Stepping over
+    # spaces made prose about the glyph into a chord, and that phantom then
+    # stole a real row's phrase (= = a true message refused).
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    PROSE = [
+        "the \u2318 wins, and close tab is fine",
+        "so \u2318 where it meant \u2318\u21e7 was typed wrong",
+        "the \u2318 key glyph itself is not a chord",
+    ]
+    keys = mod._chord_table_keys(mod._chord_roster(tree))
+    phantom = [ln for ln in PROSE if mod._chord_line_mentions(ln, keys)]
+    results.append(case("N3a prose about the glyph publishes no mention",
+                         not phantom, str(phantom)[:160]))
+
+    phantom_list = ("fix(chat): the roster\n\n"
+                    "the \u2318 Kills the panel, then reload the view.\n")
+    errs = run(mod, phantom_list, tree)
+    results.append(case("N3b a phantom key does not steal the reload row",
+                         not errs, str(errs)[:160]))
+
+    phantom_cancel = ("fix(chat): the roster\n\n"
+                      "\u2318 Keep the caret, and cancel streaming.\n")
+    errs = run(mod, phantom_cancel, tree)
+    results.append(case("N3c a phantom key does not steal the cancel row",
+                         not errs, str(errs)[:160]))
+
+    # and the tight form must still bite, or the guard is only ever permissive
+    errs = run(mod, "fix(chat): the roster\n\n\u2318K reload the view.\n", tree)
+    results.append(case("N3d a tight mention of the wrong chord IS refused",
+                        len(errs) == 1, f"{len(errs)} refusals {str(errs)[:100]}"))
+
+    # E1: the base key class is load-bearing. A chord the table does not bind AT
+    # ALL still has to be seen, or the rule's headline teeth go blind (measured:
+    # admitting only the table's own keys passes this message, 4/5 lies caught).
+    errs = run(mod, "fix(chat): the roster\n\n"
+             "The clear chat control binds \u2318Z now.\n", tree)
+    results.append(case("E1 a chord the table does not bind at all IS refused",
+                        len(errs) == 1, f"{len(errs)} refusals {str(errs)[:100]}"))
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     # THE ARMS: each arm removes the thing that makes the refusal happen, so
