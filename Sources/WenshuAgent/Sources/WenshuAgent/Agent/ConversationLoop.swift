@@ -89,8 +89,8 @@ public actor ConversationLoop {
     ///
     /// The runtime does not own a book, = = so the app supplies the
     /// report through this seam and the turn reads it once per turn.
-    /// Nil = no book is bound to this turn, = = so the bundle's two
-    /// arrays stay empty.
+    /// Nil = no provider was supplied at all, = = and then the turn
+    /// carries no report.
     let continuityProvider: (any ContinuityProvider)?
 
     /// Resolves the current time via the runtime (= the hermes-port Z-contract),

@@ -8,7 +8,7 @@ Accepted (2026-11-25).
 
 Two kernels exist and are proven by their own suites: `StoryConsistency` (= ADR-0037)
 weighs a book's claims against the world's rules and reports the conflicts;
-`StoryForeshadow` (= ADR-0038) reads a book's thread chains and reports the breaks.
+`ForeshadowChain` (= ADR-0038) reads a book's thread chains and reports the breaks.
 `StoryClaimReader` (= ADR-0039) reads a book's own field lines into claims.
 
 None of them has ever been pointed at a book, and nothing in the tree has ever handed
