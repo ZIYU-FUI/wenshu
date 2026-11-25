@@ -158,7 +158,13 @@ enum SpotlightIndexEntry {
 /// after the wait ends. = **⇒ The old code relied on `group.wait()`
 /// for that ordering, = and the wait is now a continuation (= which
 /// does not order the collector's writes by itself).**
-private final class SpotlightQuery: @unchecked Sendable {
+///
+/// `internal`, = not `private`: = the box answers "ask the index a
+/// question and collect what it says", = and two kinds of question are
+/// worth asking (= a person's, = and the app's own "did my commit
+/// land"). = A second box for the second kind would duplicate the lock,
+/// the one-shot, = and the thread reasoning that make this one correct.
+final class SpotlightQuery: @unchecked Sendable {
     /// The system index's query.
     private let query: CSUserQuery
 
@@ -175,6 +181,42 @@ private final class SpotlightQuery: @unchecked Sendable {
             userQueryString: userQueryString,
             userQueryContext: SpotlightIndexEntry.queryContext(limit: limit)
         )
+    }
+
+    /// Ask the index with a containment predicate over one token.
+    ///
+    /// **Why this face exists.** = The question-as-a-person-wrote-it
+    /// face is the wrong one for "did my write land": = for the same
+    /// token written through a batch, = it answered 0 while the
+    /// predicate below answered 1 (= measured 2026-11-26, = after twelve
+    /// retries on the first face). = A readiness check built on the
+    /// first face would report "not ready" for an index that was ready.
+    ///
+    /// The domain filter belongs to the query rather than being a cut
+    /// the caller makes afterwards (= the same reason as the production
+    /// query context above): = the app asks about its own documents and
+    /// nothing else.
+    ///
+    /// `token` is a word from a document's body, = matched against
+    /// `contentDescription`, = the attribute `SpotlightIndexEntry` fills
+    /// with that body. = It is escaped because the predicate is text: =
+    /// a token carrying a double quote or a backslash would otherwise
+    /// end the quoted string early and turn the question into a syntax
+    /// error, = which reads as "not in the index".
+    init(contentToken token: String) {
+        let context = CSUserQueryContext()
+        context.fetchAttributes = ["title", "contentDescription"]
+        context.filterQueries = ["domainIdentifier == '\(CSSearchDomain.domainIdentifier)'"]
+        query = CSUserQuery(
+            queryString: "contentDescription == \"*\(Self.escaped(token))*\"c",
+            queryContext: context
+        )
+    }
+
+    private static func escaped(_ token: String) -> String {
+        token
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
     }
 
     /// Ask the index, = and report the answer.
@@ -224,10 +266,23 @@ actor CSSearchableIndexSearch {
     private var pendingIndex: [(docId: String, title: String, body: String)] = []
     private var pendingRemove: [String] = []
 
-    init() {
-        // Public init = the mirror starts empty (= it is the live
-        // view of this session; = the system Spotlight index holds
-        // the documents of the earlier ones).
+    /// The one place this actor puts a document into the system index.
+    ///
+    /// Held here rather than reached for at each call, = because the SDK
+    /// makes the caller responsible for keeping one `CSSearchableIndex`
+    /// instance away from concurrent use (`CSSearchableIndex.h`:78): =
+    /// this actor is what discharges that responsibility, = and it can
+    /// only do it for a handle it owns.
+    ///
+    /// `internal` and not `private` because the donation tests and the
+    /// launch wiring both need to ask the same writer the saves use; = a
+    /// test that built its own writer would be testing a copy.
+    let writer: SpotlightIndexWriter
+
+    init(writer: SpotlightIndexWriter = SpotlightIndexWriter()) {
+        // The mirror starts empty (= it is the live view of this session;
+        // the system index holds the documents of the earlier ones).
+        self.writer = writer
     }
 
     /// Shared singleton so `Task.detached` auto-call hooks (= chapter /
@@ -237,20 +292,41 @@ actor CSSearchableIndexSearch {
     static let shared = CSSearchableIndexSearch()
 
     /// Bootstrap the search index (= call once at app launch).
-    /// product: CSSearchableIndex.default() returns the system Spotlight index
-    /// (= created lazily by macOS on first write).
+    ///
+    /// Nothing to load: the mirror is this session's live view and the
+    /// system index is the durable half (= see `mirror`).
+    ///
+    /// `bootstrap` deliberately does not donate. = The whole-corpus pass is
+    /// `SpotlightIndexWriter.donate(corpus:)` and has no caller: = a launch
+    /// hook needs an enumeration that provably covers every document the
+    /// library holds, = because the pass clears its domain before writing,
+    /// = so a half-enumerated corpus would remove more than it replaces.
+    /// See `docs/agents/2026-11-26-the-retrieval-w4-acceptance.md`.
     func bootstrap() throws {
         // The mirror holds what this session indexed (= it is not
         // persisted; = the system Spotlight index is the durable
         // half), so there is nothing to load here.
     }
 
-    /// Index one document (= upsert: remove then insert).
+    /// Index one document (= upsert: write it, = and nothing else).
+    ///
     /// product: the index entry carries title, contentDescription, textContent
     /// and keywords (= SpotlightIndexEntry.attributeSet); = the identifier
     /// (= docId) and the domain (= CSSearchDomain.domainIdentifier) belong to
     /// the CSSearchableItem that carries it.
-    func index(docId: String, title: String, body: String) throws {
+    ///
+    /// **⇒ THE UPSERT IS THE WRITE, = NOT THE WRITE AND ITS OWN UNDO.**
+    /// = Re-indexing a docId replaced its content on its own (measured:
+    /// writing new text under an identifier made the old text unreadable,
+    /// and the identifier stayed single), = so an extra delete on the same
+    /// identifier removed the document. = The order matters too: = the
+    /// write and the delete were both handed to the system
+    /// asynchronously and not awaited against each other, = so the delete
+    /// that was issued second could land first (= measured: write-then-
+    /// delete without awaiting the write left the content gone). = A
+    /// removal is therefore something only an explicit `remove(docId:)`
+    /// asks for.
+    func index(docId: String, title: String, body: String) async throws {
         // Update mirror first (= always in sync, even if Spotlight write fails).
         let mirrorEntry = MirrorRanking.entry(docId: docId, title: title, body: body)
         mirror[docId] = mirrorEntry
@@ -260,17 +336,19 @@ actor CSSearchableIndexSearch {
         // = batching is the recommended pattern.
         pendingIndex.append((docId: docId, title: title, body: body))
 
-        // Also remove stale Spotlight entry for this docId (= upsert semantics).
-        pendingRemove.append(CSSearchDomain.itemIdentifier(for: docId))
-
-        try flushPending()
+        try await flushPending()
     }
 
     /// Remove one document from the index.
-    func remove(docId: String) throws {
+    ///
+    /// The only path that deletes: = a save that re-indexes a docId does
+    /// not come here (= `index(docId:title:body:)`), = because the
+    /// replacement is the index's own job (= see the reason on that
+    /// method).
+    func remove(docId: String) async throws {
         mirror.removeValue(forKey: docId)
-        pendingRemove.append(CSSearchDomain.itemIdentifier(for: docId))
-        try flushPending()
+        pendingRemove.append(docId)
+        try await flushPending()
     }
 
     /// Look up the canonical display title for a docId (= the
@@ -390,31 +468,49 @@ actor CSSearchableIndexSearch {
         MirrorRanking.rank(entries: Array(mirror.values), query: query, limit: limit)
     }
 
-    /// Flush pending index/remove batches to Spotlight.
-    private func flushPending() throws {
-        if !pendingIndex.isEmpty {
-            let attrSets = pendingIndex.map { entry -> CSSearchableItem in
-                let attrSet = SpotlightIndexEntry.attributeSet(title: entry.title, body: entry.body)
-                return CSSearchableItem(
-                    uniqueIdentifier: CSSearchDomain.itemIdentifier(for: entry.docId),
-                    domainIdentifier: CSSearchDomain.domainIdentifier,
-                    attributeSet: attrSet
-                )
-            }
-            CSSearchableIndex.default().indexSearchableItems(attrSets) { error in
-                if let error {
-                    // Surface via thrown error on next await (= not fatal; = mirror remains source of truth).
-                    _ = error
-                }
-            }
-            pendingIndex.removeAll()
+    /// Flush the queued writes and removals through the one writer.
+    ///
+    /// Removals go first, = and both halves are awaited. = The order is
+    /// not a style preference: = a queued removal and a queued write can
+    /// name the same docId (= a re-index that follows a failed flush), =
+    /// and a delete that lands after the write erases what the user just
+    /// saved (= the defect `index(docId:title:body:)` no longer creates,
+    /// and the reason this path still has to be ordered).
+    ///
+    /// The queues are emptied before the await, = which keeps the
+    /// existing at-most-once behaviour of the path this replaces. = A
+    /// queue that survived a failure would replay an older body over a
+    /// newer one that had already landed, = and it would grow without
+    /// bound on a machine whose indexer is turned off. = The repair pass
+    /// for a failed write is the launch-time donation, = which writes
+    /// what the library currently holds rather than what a queue
+    /// remembered.
+    private func flushPending() async throws {
+        if !pendingRemove.isEmpty {
+            let docIds = pendingRemove
+            pendingRemove.removeAll()
+            try await writer.remove(docIds: docIds)
         }
 
-        if !pendingRemove.isEmpty {
-            CSSearchableIndex.default().deleteSearchableItems(
-                withIdentifiers: pendingRemove
-            ) { _ in }
-            pendingRemove.removeAll()
+        if !pendingIndex.isEmpty {
+            let documents = pendingIndex.map {
+                SpotlightIndexDocument(docId: $0.docId, title: $0.title, body: $0.body)
+            }
+            pendingIndex.removeAll()
+            try await writer.write(documents)
         }
+    }
+
+    /// Donate a whole corpus, = and report whether it landed.
+    ///
+    /// One line, = and it is here for one reason: = `CSSearchableIndexSearch`
+    /// is the actor that owns the handle, = so this is the point where a
+    /// corpus write becomes serialised against every single save. = The
+    /// order it runs in (= clear, = commit, = ask) is the writer's
+    /// business and lives there.
+    func donate(
+        corpus documents: [SpotlightIndexDocument]
+    ) async throws -> SpotlightIndexWriter.DonationReport {
+        try await writer.donateCorpus(documents)
     }
 }
