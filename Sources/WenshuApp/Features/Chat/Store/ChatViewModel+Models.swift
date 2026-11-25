@@ -135,17 +135,71 @@ extension ChatViewModel {
     /// conversation key the recorder uses, so the reading is this
     /// conversation's own.
     ///
-    /// The recorder's most recent reading is the fallback, because a
-    /// turn that runs before the recorder has been read (= the very first
-    /// turn of a session) still has a reading to show.
+    /// Three sources, in this order, because a number is only worth
+    /// showing when it describes the conversation on the screen:
+    ///
+    /// 1. this conversation's live reading (= the recorder, the freshest
+    ///    number there is), which is also what gets stored;
+    /// 2. this conversation's stored reading (= the row the transcript is
+    ///    written to, so a relaunch restores the number with the messages
+    ///    it describes);
+    /// 3. the recorder's most recent live reading, which is the reading of
+    ///    SOME conversation in this process. Its own docstring says why it
+    ///    exists (= the footer does not always know which conversation the
+    ///    user is in). It is deliberately the LAST resort and it is
+    ///    deliberately not made durable: storing another conversation's
+    ///    number under this one would make the meter lie about the window
+    ///    in front of the writer, and a stale number that outlives the
+    ///    process is worse than no number.
     func refreshContextUsage() async {
         let own = await ContextUsageRecorder.shared.snapshot(
             conversationId: sessionId.rawValue
         )
         if let own {
             contextUsage = own
+            await storeContextUsage(own)
+            return
+        }
+        // The stored reading is this conversation's own, so it is the one
+        // number that describes the conversation on the screen. A row this
+        // build cannot read answers nil (= there is no reading here), = =
+        // and a row it cannot DECODE throws (= there is a reading here and
+        // I cannot read it), = = and the two are different answers: = = a
+        // corrupt row must not fall through to the recorder's most recent
+        // reading, because that number belongs to another conversation.
+        do {
+            if let stored = try await repository.loadContextUsage(
+                sessionId: sessionId,
+                bookID: currentBookID
+            ) {
+                contextUsage = stored
+                return
+            }
+        } catch {
+            contextUsage = nil
             return
         }
         contextUsage = await ContextUsageRecorder.shared.mostRecentSnapshot()
+    }
+
+    /// Write the reading this conversation just produced.
+    ///
+    /// Only an own-scope reading is ever written, so the stored row cannot
+    /// end up holding another conversation's number. A failed write is
+    /// logged and dropped: = the meter keeps showing the live reading, and
+    /// a persistence failure is not allowed to break a turn.
+    private func storeContextUsage(_ usage: ContextUsageSnapshot) async {
+        do {
+            try await repository.saveContextUsage(
+                usage,
+                sessionId: sessionId,
+                bookID: currentBookID
+            )
+        } catch {
+            Self.logSwallowedPersistenceFailure(
+                operation: "save-context-usage",
+                error: error
+            )
+        }
     }
 }

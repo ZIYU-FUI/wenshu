@@ -21,9 +21,14 @@
 import Foundation
 
 /// One part of a prompt, and its size.
-public struct ContextUsageCategory: Sendable, Equatable, Identifiable {
+///
+/// `Codable` so the reading can be stored as it is (= the app writes the
+/// meter's payload into the conversation's own row, and reads it back on
+/// the next launch). An id the decoder no longer knows makes the whole
+/// reading unreadable, and an unreadable reading is treated as no reading.
+public struct ContextUsageCategory: Sendable, Equatable, Identifiable, Codable {
     /// The part's stable id (= the key the UI reads).
-    public enum ID: String, Sendable, CaseIterable {
+    public enum ID: String, Sendable, CaseIterable, Codable {
         case systemPrompt
         case toolSchemas
         case messages
@@ -42,7 +47,11 @@ public struct ContextUsageCategory: Sendable, Equatable, Identifiable {
 }
 
 /// What one request's prompt carried.
-public struct ContextUsageSnapshot: Sendable, Equatable {
+///
+/// `Codable` because the app stores the reading on the conversation's own
+/// row: the encoder's output is the stored payload, so a shape this decoder
+/// cannot read comes back as no reading rather than as a wrong number.
+public struct ContextUsageSnapshot: Sendable, Equatable, Codable {
     /// The tokens the provider counted for the prompt (= its own report).
     ///
     /// This is the number the meter fills against: it is what the
@@ -104,7 +113,9 @@ public struct ContextUsageSnapshot: Sendable, Equatable {
 /// The running reading, per conversation.
 ///
 /// Fed from the turn path, so the number is available while the
-/// conversation runs and without a restart.
+/// conversation runs. The recorder itself is per process: = what it holds
+/// dies with the process. The copy that outlives a relaunch is written by
+/// the app into the conversation's own row, and read back from there.
 public actor ContextUsageRecorder {
     public static let shared = ContextUsageRecorder()
 

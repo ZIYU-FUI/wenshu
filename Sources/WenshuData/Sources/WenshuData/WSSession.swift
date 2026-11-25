@@ -100,6 +100,22 @@ public final class WSSession {
     /// value), so a run is searchable by the agent that produced it.
     public var agentName: String?
 
+    /// The last context reading of this conversation, encoded.
+    ///
+    /// The meter in the chat bar answers from this column after a relaunch:
+    /// the transcript it describes is rows keyed by this same row's
+    /// `sessionID + bookID`, so the number and the messages on the screen
+    /// are read from one identity and cannot disagree.
+    ///
+    /// Nil = this conversation was never measured (= the meter shows the
+    /// unread state). The payload is the app's own encoding of the reading,
+    /// and a payload that does not decode reads back as no reading.
+    ///
+    /// The row's `updatedAt` is deliberately NOT bumped by this column: it
+    /// is the sort key of the session list, and a meter refresh is not an
+    /// event that reorders the user's conversations.
+    public var contextUsageJSON: String?
+
     @Relationship(deleteRule: .cascade, inverse: \WSChatMessage.session)
     public var messages: [WSChatMessage] = []
 

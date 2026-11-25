@@ -164,6 +164,63 @@ init(container: ModelContainer) {
         return destURL.path
     }
 
+    // MARK: - Context usage
+
+    /// Encode + write the conversation's last context reading.
+    ///
+    /// The payload is the reading's own JSON, so the shape has one writer
+    /// (= `ContextUsageSnapshot`) and the row stores it verbatim: = the data
+    /// layer carries no field list that could drift from the reading it
+    /// holds, and `WenshuData` keeps not knowing about `WenshuAgent`.
+    func saveContextUsage(
+        _ usage: ContextUsageSnapshot,
+        sessionId: SessionID,
+        bookID: BookID?
+    ) async throws {
+        let data = try JSONEncoder().encode(usage)
+        guard let payload = String(data: data, encoding: .utf8) else { return }
+        let resolvedSessionId = sessionId.rawValue
+        let resolvedBookID = bookID?.rawValue
+        try await Self.runOnMainActor {
+            try self.repository(bookID: bookID).saveContextUsage(
+                payload,
+                sessionId: resolvedSessionId,
+                bookID: resolvedBookID
+            )
+        }
+    }
+
+    /// Read + decode the stored reading.
+    ///
+    /// Two answers, and the difference between them is the caller's whole
+    /// question: = = a row this build cannot decode THROWS (= so the caller
+    /// can tell "there is a reading here and I cannot read it" from "there
+    /// is no reading here"), = = and a scope with no row answers nil.
+    ///
+    /// Why the unreadable row must not answer nil: = = the meter falls back
+    /// to the recorder's most recent reading when a scope has no reading of
+    /// its own, = = and that reading belongs to SOME OTHER conversation.
+    /// So a corrupt row that answered nil would put another conversation's
+    /// number under this one (= = the number the meter shows would not be
+    /// the number of the conversation on the screen).
+    func loadContextUsage(sessionId: SessionID, bookID: BookID?) async throws -> ContextUsageSnapshot? {
+        let resolvedSessionId = sessionId.rawValue
+        let resolvedBookID = bookID?.rawValue
+        let payload: String? = try await Self.runOnMainActor {
+            try self.repository(bookID: bookID).loadContextUsage(
+                sessionId: resolvedSessionId,
+                bookID: resolvedBookID
+            )
+        }
+        guard let payload else { return nil }
+        guard let data = payload.data(using: .utf8) else {
+            throw DecodingError.dataCorrupted(
+                .init(codingPath: [], debugDescription: "the stored reading is not text")
+            )
+        }
+        return try JSONDecoder().decode(ContextUsageSnapshot.self, from: data)
+    }
+
     // MARK: - StoredChatMessage ↔ ChatMessage mapping
 
     /// Convert a ChatMessage (= domain type, may carry streaming parts

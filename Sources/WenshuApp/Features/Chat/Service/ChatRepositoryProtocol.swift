@@ -99,4 +99,24 @@ protocol ChatRepositoryProtocol: Sendable {
     /// File extension whitelist (= common screenshot formats):
     ///   png / jpg / jpeg / gif / heic.
     func copyChatUpload(sourceURL: URL, intoLibraryAt path: String) async throws -> String?
+
+    // MARK: - Context usage
+
+    /// Write the conversation's last context reading.
+    ///
+    /// The reading is stored under the same `sessionId + bookID` the
+    /// transcript is stored under, so the meter in the chat bar describes
+    /// the conversation on the screen and nothing else.
+    func saveContextUsage(
+        _ usage: ContextUsageSnapshot,
+        sessionId: SessionID,
+        bookID: BookID?
+    ) async throws
+
+    /// Read the conversation's stored context reading.
+    ///
+    /// Nil = never measured, or stored in a shape this build cannot read.
+    /// A reading is never guessed: = an unreadable payload answers as no
+    /// reading, and the next turn overwrites it.
+    func loadContextUsage(sessionId: SessionID, bookID: BookID?) async throws -> ContextUsageSnapshot?
 }

@@ -310,6 +310,13 @@ public final class WSChatRepository {
         for model in filtered {
             context.delete(model)
         }
+        // The stored reading describes the messages that were just dropped,
+        // so it goes with them: = a cleared conversation has no last request
+        // to show, and restoring one would put another turn's number under an
+        // empty screen.
+        if let session = try getSession(sessionID: sessionId, bookID: bookID) {
+            session.contextUsageJSON = nil
+        }
         try context.save()
     }
 
@@ -438,6 +445,32 @@ public final class WSChatRepository {
             context.insert(model)
         }
         try context.save()
+    }
+
+    // MARK: - Context usage
+
+    /// Write the conversation's last context reading.
+    ///
+    /// The row is the same composite key the transcript is written under
+    /// (= `sessionID + bookID`, enforced by `createSession`), so the meter
+    /// and the messages it describes are one identity. The session row is
+    /// created when it is missing: = a reading only exists after a turn,
+    /// and a turn has already written messages, = but a caller that reads
+    /// after a delete must not lose the number silently.
+    ///
+    /// The row's `updatedAt` is not touched: = it is the session list's sort
+    /// key, and the meter refreshing is not the user doing something that
+    /// should move their conversations.
+    public func saveContextUsage(_ payload: String, sessionId: String, bookID: String? = nil) throws {
+        let session = try createSession(sessionID: sessionId, bookID: bookID)
+        session.contextUsageJSON = payload
+        try context.save()
+    }
+
+    /// The conversation's stored reading payload (= nil when it was never
+    /// measured, or when its row does not exist).
+    public func loadContextUsage(sessionId: String, bookID: String? = nil) throws -> String? {
+        try getSession(sessionID: sessionId, bookID: bookID)?.contextUsageJSON
     }
 
     // MARK: - SubAgentRuns

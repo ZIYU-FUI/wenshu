@@ -257,6 +257,23 @@ private final class EmptyChatRepository: ChatRepositoryProtocol, @unchecked Send
         bookID _: BookID?
     ) async throws {}
 
+    /// The last reading written through this fake (= in-memory, so a test can
+    /// assert the meter's durable copy without a SwiftData stack)
+    var storedContextUsage: ContextUsageSnapshot?
+
+    func saveContextUsage(
+        _ usage: ContextUsageSnapshot,
+        sessionId _: SessionID,
+        bookID _: BookID?
+    ) async throws {
+        storedContextUsage = usage
+    }
+
+    func loadContextUsage(sessionId _: SessionID, bookID _: BookID?) async throws -> ContextUsageSnapshot? {
+        storedContextUsage
+    }
+
+
     func copyChatUpload(sourceURL _: URL, intoLibraryAt _: String) async throws -> String? {
         nil
     }
