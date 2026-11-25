@@ -83,13 +83,13 @@ English-only.
 
 ### A claim names the document it came from
 
-The claim reader names a claim after its subject and the line it came from, and a book
-may hold two documents about one subject (= a world's sheet and a character's sheet,
-both named after the same person). Their claims would then share a name, and a report
-that points at a name two files hold is a report the writer cannot locate. So the
-document's own path is folded into the claim's name, and the subject stays what the
-document is about — so the kernel still weighs two documents about one subject
-together.
+The claim reader names a claim after the document it came from and the line it came from,
+and a book may hold two documents about one subject (= a world's sheet and a character's
+sheet, both named after the same person). Their claims would then share a name, and a
+report that points at a name two files hold is a report the writer cannot locate. So the
+app hands each document to the reader under its own path, and the reader names that
+document's claims after it — while the subject stays what the document is about, so the
+kernel still weighs two documents about one subject together.
 
 ## Consequences
 

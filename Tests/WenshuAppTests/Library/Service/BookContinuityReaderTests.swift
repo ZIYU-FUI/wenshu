@@ -239,6 +239,10 @@ struct BookContinuityReaderTests {
             .map(String.init) ?? []
         #expect(names.count == 2)
         #expect(Set(names).count == 2)
+        // The name carries the document itself, = = and the line in it,
+        // = = so the writer can open the file and find the line.
+        #expect(names.contains { $0.hasPrefix("world/张铁牛.md#") })
+        #expect(names.contains { $0.hasPrefix("characters/张铁牛.md#") })
     }
 
     @Test("the reader writes nothing")

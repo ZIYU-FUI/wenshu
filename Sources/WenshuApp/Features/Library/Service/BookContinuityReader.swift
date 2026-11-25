@@ -104,39 +104,17 @@ struct BookContinuityReader {
 
     /// The book's claims, each one naming the document it came from.
     ///
-    /// The claim reader names a claim after its subject and the line it
-    /// came from), = = and a book may hold two documents about one
-    /// subject (= a world's sheet and a character's sheet, = = both
-    /// named after the same person). = = Their claims would then share
-    /// a name, = = and a report that points at a name two files hold is
-    /// a report the writer cannot locate. = = So the document's own
-    /// path is folded into the claim's name here, = = and the subject
-    /// stays what the document is about, = = so the kernel still weighs
-    /// two documents about one subject together.
+    /// A book may hold two documents about one subject (= a world's
+    /// sheet and a character's sheet, = = both named after the same
+    /// person). = = Their claims would then share a name, = = and a
+    /// report that points at a name two files hold is a report the
+    /// writer cannot locate. = = So each document is handed to the
+    /// reader under its own path, = = and the reader names its claims
+    /// after it, = = while the subject stays what the document is
+    /// about, = = so the kernel still weighs two documents about one
+    /// subject together.
     private func locatedFacts() -> [StoryFact] {
-        var located: [StoryFact] = []
-        for (document, path) in documents() {
-            for fact in StoryClaimReader.claims(in: document) {
-                located.append(StoryFact(
-                    id: "\(path)#\(Self.line(of: fact))",
-                    subject: fact.subject,
-                    attribute: fact.attribute,
-                    value: fact.value,
-                    grade: fact.grade,
-                    chapter: fact.chapter
-                ))
-            }
-        }
-        return located
-    }
-
-    /// The line a claim came from.
-    ///
-    /// The claim reader's own name ends with the line, = = so the line
-    /// is read back out of the name rather than guessed.
-    private static func line(of fact: StoryFact) -> String {
-        guard let hash = fact.id.lastIndex(of: "#") else { return fact.id }
-        return String(fact.id[fact.id.index(after: hash)...])
+        documents().flatMap { document, _ in StoryClaimReader.claims(in: document) }
     }
 
     // MARK: - The broken threads
@@ -223,7 +201,7 @@ struct BookContinuityReader {
                 guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
                 let title = String(name.dropLast(".md".count))
                 read.append((
-                    StoryDocument(title: title, text: text),
+                    StoryDocument(title: title, text: text, identity: "\(folder)/\(name)"),
                     "\(folder)/\(name)"
                 ))
             }
