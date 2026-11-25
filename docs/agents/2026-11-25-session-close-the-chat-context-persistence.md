@@ -104,7 +104,9 @@ The tree's own gates, at the sha that landed:
 ```
 swift build
 swift test --filter 'ChatContextUsagePersistenceTests|WSChatContextUsageTests|ContextUsageRecorderTests'
-python3 ../../Tools/wenshu-devtool/nfi-loc-check.py --base 99bb9c2070
+git worktree add --detach /Volumes/ANAN/.hermes/profiles/pocock/cache/scratch/meter-pair c94c384db7
+cd /Volumes/ANAN/.hermes/profiles/pocock/cache/scratch/meter-pair && python3 /Volumes/ANAN/Engineering/wenshu/Tools/wenshu-devtool/nfi-loc-check.py --base 99bb9c2070
+git worktree remove --force /Volumes/ANAN/.hermes/profiles/pocock/cache/scratch/meter-pair
 ```
 
 ⇒ ⇒ ⇒ AND WHAT THEY PRINT AT THIS SHA:
@@ -117,7 +119,7 @@ Test run with 8 tests in 1 suite passed (0.082s)
 Test run with 6 tests in 1 suite passed (0.048s)
 Test run with 12 tests in 1 suite passed (0.001s)   NARROW-EXIT=0
 nfi-loc-check: every added or rewritten file's row carries its own count
-(14 row(s) checked: = 3 the change added, = = 11 rewritten)
+(13 row(s) checked: = 2 the change added, = = 11 rewritten)
                                                      NFI-EXIT=0
 ```
 
@@ -125,16 +127,20 @@ nfi-loc-check: every added or rewritten file's row carries its own count
 MUST BE PINNED, = = NOT THE BASE ALONE: = = the rows are the ones this
 change added or rewrote, = = so the reader measures them against the
 change's own base (= = `99bb9c2070`, = = the `main` the change was built
-on), = = AND against a tip that carries this record (= = the tree the
-command above runs in). = = ⇒ ⇒ ⇒ AND THE FIGURE IS 14, = = NOT 13: = = the
-record's own registry row is itself one of the added keys (= = the record
-adds a row keyed by the record), = = so a tree that carries the record
-counts one more added key than the landed commit did. = = Measured at both
-tips, against the same base: = = `c94c384db7` (= = the landed change, = =
-before this record existed) prints `13 row(s) checked: = 2 the change
-added`, = = and this tree prints `14 row(s) checked: = 3 the change added`.
-= = ⇒ ⇒ ⇒ AND AGAINST A LATER `main` THE SAME COMMAND REPORTS FEWER ROWS
-(= = one row), = = because the change is already in that tree.
+on) AND at a tip that carries this change's own files. = = ⇒ ⇒ ⇒ AND THIS
+DOC PINS THAT TIP, = = BECAUSE A TIP THAT CARRIES THE RECORD ITSELF MOVES:
+= = the record's own registry row is one of the added keys (= = the record
+adds a row keyed by the record), = = and so is every sibling row that
+landed between the base and the tip. = = Measured: = = `c94c384db7` (= = the
+landed change) prints `13 row(s) checked: = 2 the change added, = = 11
+rewritten`, = = and a tip that carries this record prints MORE (= = 17 at
+the tree this doc was written in), = = because the record's own row and
+the sibling's rows are in that difference too. = = ⇒ ⇒ ⇒ AND A COUNT THAT
+MOVES IS NOT PUBLISHED: = = this doc publishes the pinned pair only, = =
+and the command above reads the pinned tip, = = so the figure a reader
+re-measures is the one this doc names, = = at every tree. = = ⇒ ⇒ ⇒ AND
+AGAINST A LATER `main` THE SAME COMMAND REPORTS FEWER ROWS (= = one row),
+= = because the change is already in that tree.
 
 The suites carry one case the earlier round's read showed was missing: = =
 every earlier case ran against an in-memory container (= = which dies with
@@ -208,21 +214,28 @@ that loads the skill reads them).
 
 ## 5. Clean up YOUR OWN residue
 
-**DONE.** This scope's worktree
-(`.worktrees/chat-context-persistence-2026-11-25`) and its branch
-(`wt/chat-context-persistence-2026-11-25`) are gone, and the shas they held
-were parked under `refs/keep/` FIRST (= = a worktree on a detached head is
+**DONE** (= the parking). The shas this scope's worktree and its branch
+held are parked under `refs/keep/` (= = a worktree on a detached head is
 the only pointer to its commit, = = and removing it turns every card that
-quotes that sha into a dangling citation):
+quotes that sha into a dangling citation), = = and each park resolves with
+`git rev-parse` to the sha named here:
 
 - `refs/keep/chat-context-persistence-a1` = = the pre-rebase tip the first
-  review card named (`ec980daceb...`);
+  review card named (`ec980daceb399ed48f9c5fe0b8572dbcffede2bb`);
 - `refs/keep/chat-context-persistence-a2` = = this scope's LAST landing
-  (= = the commit the scope's plan-of-record row resolves);
+  (= = the commit the scope's plan-of-record row resolves; = = its own sha
+  is not named here, = = because a doc cannot name its own commit, = =
+  because writing the sha changes it);
 - `refs/keep/chat-context-persistence-a3` = = the persistence change as it
-  landed (`c94c384db7...`);
-- `refs/keep/chat-context-persistence-a4` = = this doc's own commit before
-  its landing rebase (`f5ba33fbc2...`).
+  landed (`c94c384db7bc3fa02572f7c61a73376cd8d7976b`);
+- `refs/keep/chat-context-persistence-a4` = = this doc's commit before its
+  landing rebase (`f5ba33fbc2cf499d2b8d4df6e896bba4339dbf5f`).
+
+⇒ ⇒ ⇒ AND THE REMOVAL ITSELF FOLLOWS THIS DOC'S LANDING: = = this scope's
+worktree (`.worktrees/chat-context-persistence-2026-11-25`) and its branch
+(`wt/chat-context-persistence-2026-11-25`) go once the commit carrying this
+doc has landed (= = the branch that carries the doc cannot be deleted
+before it lands).
 
 ⇒ ⇒ ⇒ AND A SIBLING'S ASSET IS NOT THIS SESSION'S TO REMOVE: = = the other
 scopes' worktrees, = = the review lane's own trees, = = and the shared
@@ -234,9 +247,9 @@ worktree of its own).
 
 **DONE.** The scope's change landed as `c94c384db7` (= = and it IS an
 ancestor of `main` = = the durable reading, = = and the one that survives a
-sibling landing something else), = = and this scope's LAST landing is the
-scope's branch tip (= = so `main` is at the scope's tip). The report is a
-table, one row per original requirement:
+sibling landing something else), = = and this scope's last landing puts
+`main` at the scope's tip (= = the tip this doc's own commit becomes, = =
+once it lands). The report is a table, one row per original requirement:
 
 | The original requirement | The commit that carries it | The independent verdict that cleared it | The server-side proof |
 | --- | --- | --- | --- |
