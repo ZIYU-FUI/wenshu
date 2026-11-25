@@ -5,6 +5,7 @@
 // (developer.apple.com/documentation/foundation/url#bookmarkdata).
 //
 import Foundation
+
 // Why this exists (= the prior path-string bug):
 // LibraryRootView used to store the user's picked .ws library
 // root as a bare path string (@AppStorage "wenshu.libraryPath").
@@ -132,8 +133,9 @@ enum LibraryBookmark {
     /// sandboxed is fine), or if the bookmark cannot be decoded
     /// (= corrupted / path deleted / sandbox-class mismatch
     /// between producer and reader). Refreshes the stored
-    /// bookmark when `isStale` reports that the path moved
-    /// (= Apple canonical handling).
+    /// bookmark when `isStale` reports that the path moved, which is this
+    /// app's own recovery: a stale bookmark is rewritten in place, and the
+    /// user is not asked to pick the folder again.
     ///
     /// Per Apple docs the caller MUST pair this with
     /// `url.startAccessingSecurityScopedResource()` before I/O

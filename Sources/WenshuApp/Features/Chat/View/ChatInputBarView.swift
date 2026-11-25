@@ -1,8 +1,7 @@
 //
 //  ChatInputBarView.swift
 //
-// (2026-09-23): the token-usage bottom bar needs a background
-//  ，，，'. Add
+// (2026-09-23): the token-usage bottom bar needs a background —
 //  `.background(.bar)` (= product sidebar/chrome material; =
 //  translucent + Light/Dark auto-adapts; = same primitive the sidebar
 //  inherits).
@@ -22,14 +21,12 @@
 //    - Spacer() → .frame(maxWidth: .infinity, alignment: .leading)
 //                                 (= sidebar's exact alignment primitive)
 //    - HStack spacing 8 → 6        (= sidebar's exact icon-text gap)
-// (= 'just copy the style and
-//  size from the sidebar').
+// (= same style and size as the sidebar's).
 //
-// (2026-09-23): restored the token-usage bottom bar (= the
-//  2026-09-23 ' token ，，。
-//  '). Did NOT restore the manual compress button (= confirmed
-//  automatic via ConversationLoop.swift:512; = '
-//  ，').
+// (2026-09-23): restored the token-usage bottom bar (the footer is
+//  live in this view today).
+//  Did NOT restore the manual compress button (= confirmed
+//  automatic via ConversationLoop.swift:512).
 //
 // (2026-09-23): spec = chat column bottom = single input row +
 //  divider hairline (= product sidebar-bottom-accessory separator).
@@ -45,8 +42,8 @@
 //      = fixed 6 elements; = no conditional sub-agent injection)
 //
 
-import SwiftUI
 import AppKit
+import SwiftUI
 import UniformTypeIdentifiers
 
 /// Chat input bar = the top layer of the chat zone's 3-layer UI
@@ -56,8 +53,8 @@ import UniformTypeIdentifiers
 ///   3.  (NavigationSplitShell + EditorChatNSController) = NSSplitView
 ///
 /// Floats over the chat ScrollView via `.safeAreaInset(edge: .bottom)`.
-/// A single row (= input controls + text editor on one horizontal axis;
-/// the two fields and the send button styled by Apple's guidance).
+/// The row's shape is our product spec (= single row; = input controls + text
+/// editor on one horizontal axis); = no vendor's layout is claimed for it.
 ///
 /// UI-only view per AGENTS.md §11.1 + §11.3 (= the MVVM hard rule):
 /// no FileManager / no UserDefaults reads; = no business logic; = all
@@ -69,18 +66,19 @@ struct ChatInputBarView: View {
     var hasUsableKey: Bool
     @Binding var showingImageImporter: Bool
     @Binding var isDropTargeted: Bool
-    /// FOCUS-RETENTION (= focus stays in the input after a send). The
-    /// TextField's `.onSubmit` + the ⌘↩ carrier's `keyboardShortcut(.return)`
-    /// both drop focus when the send completes, so this view surfaces an
-    /// `onSent` callback (= a thin wrapper around `inputFocused = true`)
-    /// that ChatView re-asserts after each send path. Focus is also
-    /// moved programmatically by the keyboard-shortcut handlers
-    /// (ChatView+KeyboardShortcuts.swift: six `inputFocused = true`
-    /// sites, the cmd-K focus command among them); short of a click or
-    /// one of those paths, nothing else takes it from this bar. The
-    /// styling reference for the two input
-    /// fields and the send button is Apple's guidance, recorded in
-    /// the register (see OOB.md #2026-11-23).
+    // FOCUS-RETENTION: focus stays in the input after a send. Apple HIG on
+    // focus and selection says so (= Apple's own sentence is quoted below,
+    // https://developer.apple.com/design/human-interface-guidelines/focus-and-selection);
+    // the HIG publishes no page for a chat-input layout, so nothing about
+    // this row's shape is attributed to it (= or to any vendor's app).
+    // (= "Avoid changing focus without people’s interaction. People rely on the focus system
+    // to help them know where they are in your app."). The TextField's
+    // `.onSubmit` + the ⌘↩ carrier's `keyboardShortcut(.return)` both
+    // drop focus when the send completes. We surface an `onSent` callback
+    // (= a thin wrapper around `inputFocused = true`) so ChatView can
+    // re-assert focus after each send path. Standing product rule: focus
+    // moves only when the user moves it; = the
+    // chat input bar is the only surface that auto-claims focus back.
     var onSent: (() -> Void)? = nil
 
     /// Internal helper: re-assert focus via the `onSent` callback if
@@ -111,12 +109,16 @@ struct ChatInputBarView: View {
         //                              the gauge opens the breakdown
         //                              popover)
         //
-        // Failed sends get no inline banner here: `0f48a3b6a` added
-        // a detailed-log affordance alongside the error line and
-        // this view later dropped it (= chrome the user can't act
-        // on). The view-model still records the last send error
-        // (`lastError`, set in Store/ChatViewModel+Send.swift); no
-        // view reads it at this head.
+        // Product error-surfacing rule (= only prompt the user; a
+        // model-config error is answered by the toast, nothing more):
+        // the previous errorBanner (= the
+        // log-reveal affordance shipped with `0f48a3b6a`)
+        // was removed (= the user can't act on it; = the
+        // user just wants the friendly toast). Failed
+        // sends still show the model-config-error toast (shipped UI copy)
+        // (= via `vm.lastError` consumed by the chat
+        // transcript), but the inline error banner is
+        // gone (= no chrome that the user can't act on).
         VStack(alignment: .leading, spacing: 4) {
             attachmentPreviewChip
             inputRow
@@ -129,20 +131,46 @@ struct ChatInputBarView: View {
     /// The context meter in the chat zone's bottom bar.
     ///
     /// It carries an Apple capacity gauge (= a level indicator whose fill
-    /// stops at the value's place on the path) beside the number, and a
-    /// click on the gauge opens the breakdown popover (= the prompt's
-    /// parts). Clicking opens one popover at a time (= the HIG's rule).
+    /// stops at the value's place on the path, = the HIG's gauge fill rule:
+    /// https://developer.apple.com/design/human-interface-guidelines/gauges)
+    /// beside the number, and a click on the gauge opens the breakdown
+    /// popover (= the prompt's parts). Clicking opens one popover at a time
+    /// (= the HIG's rule:
+    /// https://developer.apple.com/design/human-interface-guidelines/popovers).
     ///
     /// The number it shows is the provider's own count of the last
     /// request's prompt, measured against the window the agent
     /// compresses against (= the same number on both sides), so the fill
     /// means the same thing the compression does.
     private var tokenCountFooter: some View {
+        // 2026-10-12: spec = match the sidebar's bottom
+        // "+ " button style/size verbatim (= the 'style, size copy verbatim'
+        // ' = 'just copy the style and size from the sidebar').
+        // Reference: the sidebar's bottom "+ " button (= `sidebarBottomNewButton`).
+        // Same primitives (= product sidebar-bottom-accessory pattern):
+        //   - Divider above
+        //   - HStack(spacing: DesignTokens.spacingTight) for label (= just the Text here; = the
+        //     "+ " button has `Image + Text`; = we have no action
+        //     button = just the text label)
+        //   - Text.font(.callout) (= NOT .footnote; = matches the
+        //     sidebar's exact text size)
+        //   - .frame(maxWidth: .infinity, alignment: .leading) (= the
+        //     sidebar uses Spacer() implicitly via the .leading frame;
+        //     = no Spacer() needed here)
+        //   - .padding(.vertical, 8) + .padding(.horizontal, 8)
+        //     (= same 8 PT all-around padding the sidebar uses; = no
+        //     10 PT mismatch)
+        //   - .foregroundStyle(.secondary) for the below-threshold label
+        //     (= matches sidebar Image + .secondary; = the orange over-
+        //     threshold branch keeps its warning tone).
+        // the compression behavior — always visible
+        // (= the user always knows how much room they have; no vendor
+        // badge attributed).
         // 2026-10-12: refactored to go through the shared
         // `ChromeBottomFooter` component (= the same shell
         // the editor status bar now uses; = single source of
-        // truth for the Apple
-        // sidebar-bottom-accessory chrome surface). The outer
+        // truth for the sidebar-bottom-accessory chrome
+        // surface shared with the editor status bar). The outer
         // VStack { Divider; HStack; .padding 8/8 } +
         // .background(.bar) is identical between the chat
         // footer and the editor status bar; the only per-call
@@ -168,9 +196,8 @@ struct ChatInputBarView: View {
 
     // MARK: - Input row (the actual UI per the spec)
 
-    /// The single input row per the v1.82 spec:
-    /// `1.token  2.10PT，、10PT，、10PT，、10PT，
-    ///  、10PT，、10PT，，10PT ，30PT`
+    /// The single input row per the compact-chrome spec: token first, then
+    /// even 10 PT gaps between every element of the row.
     ///
     /// Elements (left → right):
     ///   1. token (compression indicator pill)
@@ -181,6 +208,9 @@ struct ChatInputBarView: View {
     ///   6.  (scope = long-running goal, ⌘⇧G)
     ///   7.  (paperplane = send, ⌘↩)
     private var inputRow: some View {
+        // The row's own spec (= ours): even 10 PT gaps between every element,
+        // 3-left + 2-right layout (= info/options left, action right).
+        //
         // Layout (= 5 buttons + 1 fill text field; = all gaps 10 PT):
         //   [📎 attach] [✨ agentPath] [🔄 turnCounter] [TextField fill] [🎯 goal] [✈️ send]
         //    10  10  10  ...auto-fill...  10  10
@@ -211,14 +241,14 @@ struct ChatInputBarView: View {
             allowsMultipleSelection: false
         ) { result in
             switch result {
-            case .success(let urls):
+            case let .success(urls):
                 if let url = urls.first {
                     Task { @MainActor in
                         _ = await vm.attachImage(at: url)
                     }
                 }
             case .failure:
-                break   // user cancelled or sandbox denial; ignore
+                break // user cancelled or sandbox denial; ignore
             }
         }
         .dropDestination(for: URL.self) { urls, _ in
@@ -357,10 +387,9 @@ struct ChatInputBarView: View {
         )
         .lineLimit(1 ... 5)
         .textFieldStyle(.plain)
-        // 2026-09-23: 'input message... needs 10PT left padding from the chat box'.
-        // The placeholder / typed text starts spacingModerate (= 10 PT)
-        // from the inner-left of the capsule, which is what that request
-        // asked for; the value shipped is DesignTokens.spacingModerate.
+        // Our spec: the placeholder / typed text starts
+        // chromePaddingContentHorizontal (= 10 PT) from the inner-left of the
+        // capsule (= the same even 10 PT rhythm as the button gaps).
         .padding(.leading, DesignTokens.spacingModerate)
         .frame(minHeight: DesignTokens.controlHeightLarge)
         .frame(maxWidth: .infinity)
@@ -375,8 +404,9 @@ struct ChatInputBarView: View {
         // Shared chat-surface outline (= ChatSurfaceShape; = the same
         // shape the outgoing message band wears; = the radius tracks
         // half the height up to a cap, so a short field reads as a
-        // capsule and a grown field stays a rounded rectangle instead
-        // of an ellipse the glyphs spill out of).
+        // capsule and a grown field stays a
+        // rounded rectangle instead of an ellipse the glyphs spill out
+        // of).
         .glassEffect(.regular.interactive(), in: ChatSurfaceShape())
         .modifier(SlashCommandAutocompleteModifier(inputText: $vm.inputText))
         .modifier(ImagePasteModifier(onAttach: { url in
@@ -432,7 +462,7 @@ private struct ImagePasteModifier: ViewModifier {
     func body(content: Content) -> some View {
         content.onPasteCommand(of: [.image]) { providers in
             guard let provider = providers.first else { return }
-            _ = provider.loadObject(ofClass: NSImage.self) { item, error in
+            _ = provider.loadObject(ofClass: NSImage.self) { item, _ in
                 guard let image = item as? NSImage,
                       let tiff = image.tiffRepresentation,
                       let bitmap = NSBitmapImageRep(data: tiff),
@@ -452,4 +482,3 @@ private struct ImagePasteModifier: ViewModifier {
         }
     }
 }
-

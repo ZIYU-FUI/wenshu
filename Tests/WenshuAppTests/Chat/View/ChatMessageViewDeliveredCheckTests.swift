@@ -2,18 +2,17 @@
 //  ChatMessageViewDeliveredCheckTests.swift · Wenshu · T84-DELIVERED-CHECK (2026-09-18)
 //
 //  Verifies the small "checkmark" SF Symbol after the
-//  timestamp text (= Apple Messages delivered/read-
-//  receipt affordance).
+//  timestamp text (= the product's own delivered/read-receipt
+//  affordance).
 //
 
-import Testing
-import SwiftUI
 import Foundation
+import SwiftUI
+import Testing
 @testable import WenshuApp
 
 @Suite("ChatMessageView delivered check (T84)")
 struct ChatMessageViewDeliveredCheckTests {
-
     /// T84 contract: source contains the T84-DELIVERED-CHECK
     /// marker comment.
     @Test func t84_marker_comment_exists() throws {
@@ -31,7 +30,7 @@ struct ChatMessageViewDeliveredCheckTests {
     /// (= matches T65 clock icon style).
     @Test func checkmark_uses_caption2_quaternary() throws {
         let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
-        let checkPos = src.range(of: "SFIcon(\"checkmark\"")!
+        let checkPos = try #require(src.range(of: "SFIcon(\"checkmark\""))
         let after = src[checkPos.upperBound...]
         #expect(after.contains(".font(.caption2)"))
         #expect(after.contains(".foregroundStyle(.quaternary)"))
@@ -41,7 +40,7 @@ struct ChatMessageViewDeliveredCheckTests {
     /// (= T84 = after T65 = the visual flow).
     @Test func checkmark_after_clock() throws {
         let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
-        let clockPos = src.range(of: "SFIcon(\"clock\"")!
+        let clockPos = try #require(src.range(of: "SFIcon(\"clock\""))
         // T88-USER-CHECK (2026-09-18) added a 2nd
         // Image(systemName: "checkmark") in the user
         // branch (= BEFORE the timestamp clock icon's
@@ -49,7 +48,7 @@ struct ChatMessageViewDeliveredCheckTests {
         // about the timestamp-area checkmark = the one
         // that appears AFTER the clock icon. = find the
         // checkmark that appears AFTER the clock icon.
-        guard let checkPos = src.range(of: "SFIcon(\"checkmark\"", range: clockPos.upperBound..<src.endIndex) else {
+        guard let checkPos = src.range(of: "SFIcon(\"checkmark\"", range: clockPos.upperBound ..< src.endIndex) else {
             #expect(Bool(false), "expected checkmark after clock icon")
             return
         }

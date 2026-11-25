@@ -8,8 +8,8 @@
 //  to move to a separate file).
 //
 
-import Foundation
 import CryptoKit
+import Foundation
 import OSLog
 
 enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
@@ -50,7 +50,7 @@ enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
     /// not in the import
     /// path yet).
     ///
-    /// 
+    ///
     /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 构思" directive).
     /// `ideas` (= 构思)
@@ -75,16 +75,17 @@ enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
     /// type).
     var importTemplate: ImportDocumentTemplate? {
         switch self {
-        case .world:      return .world
+        case .world: return .world
         case .characters: return .characters
-        case .outlines:   return .outlines
-        case .chapters:   return .chapters
-        case .drafts:     return .drafts
-        case .ideas:      return .ideas
+        case .outlines: return .outlines
+        case .chapters: return .chapters
+        case .drafts: return .drafts
+        case .ideas: return .ideas
         case .sessions:
             return nil
         }
     }
+
     /// kebab-case names (= globe / user-round / list-tree / book-text /
     /// file-pen-line) are NOT valid SF Symbols 6 identifiers and
     /// SwiftUI renders them as blank rectangles. Verified against
@@ -115,16 +116,18 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
     case createdAt = "创建时间"
     case modifiedAt = "修改时间"
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
-    /// SF Symbols 6 icon name (= Apple canonical; = for the sort
+    /// SF Symbols 6 icon name (= a system symbol name; = for the sort
     /// menu picker). Replaces the Lucide-era names removed in
-    /// 
+    ///
     var menuIcon: String {
         switch self {
-        case .pinyinFirstLetter: return "list.number"           // Lucide 'list-ordered'
-        case .createdAt: return "list.number"                   // Lucide 'list-ordered'
-        case .modifiedAt: return "list.number"                  // Lucide 'list-ordered'
+        case .pinyinFirstLetter: return "list.number" // Lucide 'list-ordered'
+        case .createdAt: return "list.number" // Lucide 'list-ordered'
+        case .modifiedAt: return "list.number" // Lucide 'list-ordered'
         }
     }
 }
@@ -133,19 +136,20 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
 /// sidebarSelection + the routed SidebarItem; = drives the
 /// preview-pane card grid + tab sourceScope).
 ///
-/// Apple canonical model: this enum is the **single source of
-/// truth** for the preview-pane content scope. The Apple Swift API
-/// design guideline §"Make illegal states unrepresentable" rules
-/// out combining scopes with a single optional / nil case (= the
-/// ambiguity was the only reason a nil was
-/// ever legal here; the facet model resolves that by giving
-/// tag + category separate, dedicated cases below).
+/// Design rule (iron-rule 4): this enum is the **single source of
+/// truth** for the preview-pane content scope. Combining scopes in one
+/// optional was the only reason a nil
+/// was ever legal here; the facet model removes that
+/// reason by giving tag + category separate, dedicated cases below.
+/// (= "make illegal states unrepresentable" is a community design
+/// maxim, not an Apple HIG or SDK sentence; the audit removed the
+/// citation that presented it as one.)
 ///
 /// tag is a cross-cutting facet (= a single
 /// reference can carry 0..N tags; = browsing by tag must NOT
 /// silently fall through to a different facet's case). Hence
-/// the dedicated `tagScope(String)` case (= Apple canonical
-/// type-safe scoping; = `tag` cannot be confused with
+/// the dedicated `tagScope(String)` case (= type-safe scoping of
+/// our own making; = `tag` cannot be confused with
 /// `referenceScope`'s category at runtime).
 enum PreviewScope: Hashable, Codable {
     /// Reference library scope. category nil = root (= all entities);
@@ -244,7 +248,7 @@ struct BookDoc: Identifiable, Hashable, Sendable {
     }
 }
 
-/// 
+///
 /// derive a STABLE UUID for a BookDoc from its on-disk
 /// path (= bookId + folderName + fileName). The same .md
 /// file on disk maps to the same UUID across SwiftUI body
@@ -260,7 +264,7 @@ enum BookDocIDFactory {
     /// for the same .md file → same id; two for different
     /// .md files → different ids.
     static let namespace: uuid_t = (
-        0x42, 0x6f, 0x6f, 0x6b, 0x44, 0x6f, 0x63, 0x49,
+        0x42, 0x6F, 0x6F, 0x6B, 0x44, 0x6F, 0x63, 0x49,
         0x44, 0x73, 0x70, 0x61, 0x63, 0x65, 0x00, 0x01
     )
 
@@ -312,4 +316,3 @@ enum BookDocIDFactory {
         return withUnsafeBytes(of: &u) { Data($0) }
     }
 }
-

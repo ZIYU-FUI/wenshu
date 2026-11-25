@@ -16,7 +16,7 @@
          that Apple uses for CFBundleName / CFBundleDisplayName
          localization). When the user's system language is Chinese,
          the app shows as "文枢" in the Dock; for English it shows
-         as "Wenshu". Apple canonical pattern. -->
+         as "Wenshu". This is the system's CFBundleDisplayName / .lproj mechanism. -->
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleLocalizations</key>

@@ -1,4 +1,5 @@
-// SettingView.swift · WenshuApp Settings scene (= Apple canonical macOS 14+ `Settings {
+// SettingView.swift · WenshuApp Settings scene (= the SwiftUI `Settings` scene,
+// https://developer.apple.com/documentation/swiftui/settings, the macOS 14+ `Settings {
 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // (= no migration needed for user-state).
 import AppKit
@@ -195,7 +196,7 @@ struct SettingView: View {
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // `View/toolbar(removing:)`).
             .toolbar(removing: .sidebarToggle)
-            // `.searchable(text: ..., placement: .sidebar)` attaches the Apple canonical
+            // `.searchable(text: ..., placement: .sidebar)` attaches the system's own
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // for sidebar search).
             .searchable(

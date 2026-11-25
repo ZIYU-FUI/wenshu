@@ -12,9 +12,9 @@
 //  text style / button style / icon style) lives here.
 //
 //  Ponytail principle (= stdlib / Apple-native / existing
-//  dependencies BEFORE writing new code). Apple canonical:
-//  - .contentMargins(_:for:) (= iOS 17 / macOS 14 SwiftUI standard
-//    for ScrollView content insets; = the right primitive for
+//  dependencies BEFORE writing new code). What this file builds on:
+//  - .contentMargins(_:for:) (= SwiftUI's own modifier for
+//    ScrollView content insets; = the right primitive for
 //    "set the content's edge-to-zone-edge inset once").
 //  - .defaultScrollAnchor / .scrollContentLayout = ScrollView
 //    helpers.
@@ -32,7 +32,7 @@
 //  Usage (= inside a zone's content view):
 //      VStack { ... }
 //          .contentInsetStyle(.standard)        // 18 PT all sides
-//          .sectionTitleStyle()                   // Apple canonical title
+//          .sectionTitleStyle()                   // the project's title style
 //          .primaryActionButtonStyle()            // borderedProminent
 //
 
@@ -64,17 +64,17 @@ import SwiftUI
 /// - `.custom(value)` = escape hatch (= not magic-number-free but
 ///   rare).
 enum ContentInset {
-    case standard       // 18 PT — workspace default
-    case compact        // 12 PT — dense content
-    case none           // 0 PT — Apple-built-in inset only
+    case standard // 18 PT — workspace default
+    case compact // 12 PT — dense content
+    case none // 0 PT — Apple-built-in inset only
     case custom(CGFloat)
 
     var value: CGFloat {
         switch self {
-        case .standard:       return 18
-        case .compact:        return 12
-        case .none:           return 0
-        case .custom(let v):  return v
+        case .standard: return 18
+        case .compact: return 12
+        case .none: return 0
+        case let .custom(v): return v
         }
     }
 }
@@ -104,18 +104,18 @@ extension View {
         case .none:
             self
         default:
-            self.padding(edges, preset.value)
+            padding(edges, preset.value)
         }
     }
 }
 
 // MARK: - Section styles (STYLES-001 2026-09-07) were deleted in
+
 // 0 production refs (= dead-code sweep confirmed neither wrapper
 // SectionTypography enum or sectionTypographyStyle extension;
-// = Apple canonical .font(.title/.body/.caption) used directly in
+// = the system `.font(...)` text styles used directly in
 // each zone, so the indirection added no value). The remaining
 // ContentInset (still used by MemoryRetrievalPanel) and the file
 // header / doc comments are preserved.
 
 // MARK: - (button styles removed; use Apple .buttonStyle(.borderedProminent) directly)
-

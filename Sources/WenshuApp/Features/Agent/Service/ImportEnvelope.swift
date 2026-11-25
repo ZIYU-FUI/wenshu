@@ -6,7 +6,8 @@
 // holds the **data model** only (= the wire contract the ImportService and the
 // Librarian agent pass back and forth; = the service / view / agent that produce and
 // consume the envelope live in other files per the T1/T2/T3/T4 ticket split in
-// .scratch/2026-10-09-md-import-feature/tickets.md). Apple canonical shape: - The
+// .scratch/2026-10-09-md-import-feature/tickets.md). The shape is ours and reuses
+// system types: - The
 // book-folder destination REUSES the existing `BookFolder` enum (= the 8-case enum
 // that already carries the on-disk directoryName canonical mapping; = the source of
 // truth for "5 standard folders" = its first 5 cases). - The destination is
@@ -85,6 +86,7 @@ struct ImportFileInput: Codable, Sendable, Hashable {
         self.rewriteMode = rewriteMode
         self.body = body
     }
+
     /// The book the user picked in the import sheet (= the
     /// `book.id` from `SidebarService.availableBooks()`).
     /// Required when the user pinned a book as the
@@ -251,32 +253,32 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     let extraFiles: [ExtraFile]
 }
 
-/// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-/// (= classification +
-/// metadata + main
-/// body + 6 必填 +
-/// N 自定义) and
-/// the LLM would
-/// silently drop the
-/// `extraFiles` array
-/// (= the boss saw
-/// "导入后文件没
-/// 有重新组织"
-/// = a single LLM
-/// call with too
-/// much responsibility).
-/// Fix: split the
-/// `reorganize` mode
-/// into 3 separate
-/// LLM calls (= each
-/// call does 1
-/// thing; = the LLM
-/// can't "forget" any
-/// part; = the user
-/// sees each call in
-/// real time via the
-/// [archived-round]
-/// `activityLog`).
+// (= boss 2026-10-10 (see OOB.md #2026-10-10)
+// (= classification +
+// metadata + main
+// body + 6 必填 +
+// N 自定义) and
+// the LLM would
+// silently drop the
+// `extraFiles` array
+// (= the boss saw
+// "导入后文件没
+// 有重新组织"
+// = a single LLM
+// call with too
+// much responsibility).
+// Fix: split the
+// `reorganize` mode
+// into 3 separate
+// LLM calls (= each
+// call does 1
+// thing; = the LLM
+// can't "forget" any
+// part; = the user
+// sees each call in
+// real time via the
+// [archived-round]
+// `activityLog`).
 
 struct ExtraFile: Codable, Sendable, Hashable {
     /// Which book folder to write this file

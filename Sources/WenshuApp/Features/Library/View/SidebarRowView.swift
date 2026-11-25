@@ -12,7 +12,7 @@
 // `.contextMenu(forSelectionType: menu:)` on the List (= the menu closure got the
 // List's `selectedNode` set, NOT the right-click hit target; = right-clicking a
 // different row while another was selected routed the menu to the SELECTED row, not
-// the right-clicked one). Apple canonical pattern (= macOS 14+ Finder / Mail / Notes
+// the right-clicked one). Pattern wenshu copied from macOS Finder / Mail / Notes
 // sidebar): - per-row .contextMenu(menuItems:) = right-click row X → menu for X -
 // list-level .contextMenu(forSelectionType: menu:) = multi-select batch action (=
 // cmd+click 2+ rows + right-click → batch delete; = the right-click target IS one of
@@ -33,16 +33,16 @@ struct SidebarRowView: View {
     /// hosts the menu).
     var callbacks: SidebarRowCallbacks?
 
-    /// = drag source context (= the
-    /// per-row `.contextMenu(menuItems:)` doesn't
-    /// support drag-and-drop directly; = the canonical
-    /// wenshu drag pattern uses the per-row
-    /// `.onDrag` to expose the node id; = the drag
-    /// destination is the editor's tab strip; = the
-    /// drag payload is a SidebarItem enum).
-    /// Currently no-op (= the editor's drag-drop
-    /// support is a separate ticket; = this hook
-    /// is reserved for the future per-row drag).
+    // = drag source context (= the
+    // per-row `.contextMenu(menuItems:)` doesn't
+    // support drag-and-drop directly; = the canonical
+    // wenshu drag pattern uses the per-row
+    // `.onDrag` to expose the node id; = the drag
+    // destination is the editor's tab strip; = the
+    // drag payload is a SidebarItem enum).
+    // Currently no-op (= the editor's drag-drop
+    // support is a separate ticket; = this hook
+    // is reserved for the future per-row drag).
     // var onDragNode: (() -> NSItemProvider)?
 
     var body: some View {
@@ -72,8 +72,8 @@ struct SidebarRowView: View {
         // requirement).
         Self.rowContent(for: node)
             .listRowInsets(node.kind == .divider
-                            ? EdgeInsets(top: DesignTokens.spacingIconic, leading: 0, bottom: DesignTokens.spacingIconic, trailing: 0)
-                            : EdgeInsets())
+                ? EdgeInsets(top: DesignTokens.spacingIconic, leading: 0, bottom: DesignTokens.spacingIconic, trailing: 0)
+                : EdgeInsets())
             // (= boss 2026-10-10 (see OOB.md #2026-10-10) 不可点中" directive): divider rows
             // are visual separators, not content rows. The previous code
             // (rounded 1.68f) attached `.tag(node)` to EVERY row
@@ -99,8 +99,8 @@ struct SidebarRowView: View {
             // 的，但鼠标直接在十二地仙处右 键，点导入，就不能带入" directive). The per-row menu
             // overrides the list-level `forSelectionType:` for single-
             // click right-click; = the list- level forSelectionType still
-            // fires for multi-select batch delete (= Apple canonical macOS
-            // 14+ sidebar pattern).
+            // fires for multi-select batch delete (= how the app's own
+            // sidebar list is configured).
             .modifier(PerRowContextMenu(node: node, callbacks: callbacks))
     }
 

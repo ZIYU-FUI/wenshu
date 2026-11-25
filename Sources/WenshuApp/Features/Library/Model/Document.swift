@@ -45,8 +45,8 @@ enum BookCategory: String, CaseIterable, Codable, Sendable {
     /// category's display label).
     var directoryName: String {
         switch self {
-        case .chapter:  return "chapters"
-        case .setting:  return "settings"
+        case .chapter: return "chapters"
+        case .setting: return "settings"
         case .research: return "research"
         }
     }
@@ -55,8 +55,8 @@ enum BookCategory: String, CaseIterable, Codable, Sendable {
     /// in the second-column cards view).
     var displayName: String {
         switch self {
-        case .chapter:  return "章节"
-        case .setting:  return "设定"
+        case .chapter: return "章节"
+        case .setting: return "设定"
         case .research: return "资料库"
         }
     }
@@ -67,8 +67,9 @@ enum BookCategory: String, CaseIterable, Codable, Sendable {
     /// product: symbols follow the system font; we use the .large
     /// image scale at render time for empty-state size.
     /// Outline icons everywhere (= the HIG sf-symbols page:
-    /// "The outline variant works well in toolbars, lists,
-    /// and other places").
+    /// "The outline variant works well in toolbars, lists, and other
+    /// places where you display a symbol alongside text",
+    /// https://developer.apple.com/design/human-interface-guidelines/sf-symbols).
     /// The chapter icon derives from `BookFolderCatalog.spec(for:
     /// directoryName)?.icon` (= the SSOT for the same BookFolderSpec
     /// that powers the sidebar + PreviewPane). BookCategory stays as
@@ -83,8 +84,8 @@ enum BookCategory: String, CaseIterable, Codable, Sendable {
     /// Document classification dimensions, not on-disk folder types).
     var icon: String {
         switch self {
-        case .chapter:  return BookFolderCatalog.spec(for: directoryName)?.icon ?? "book.closed.circle"
-        case .setting:  return "gearshape.2"
+        case .chapter: return BookFolderCatalog.spec(for: directoryName)?.icon ?? "book.closed.circle"
+        case .setting: return "gearshape.2"
         case .research: return "books.vertical"
         }
     }

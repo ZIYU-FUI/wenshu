@@ -1,7 +1,7 @@
 //
 //  Persistence/Repositories/WSKanbanRepository.swift
 //
-//  Apple canonical layering per Backyard Birds:
+//  The layering this app copied from Apple's Backyard Birds sample project:
 //    - write API = raw fields in (= no app-side domain type;
 //      caller converts KanbanStatus -> String rawValue before calling;
 //      caller consumes the returned WSKanbanTask inside MainActor scope).
@@ -37,10 +37,12 @@ public final class WSKanbanRepository {
     /// repository built before that moment must not keep the store it
     /// saw at construction time.
     public let store: WSStore
-    private var context: ModelContext { store.context }
+    private var context: ModelContext {
+        store.context
+    }
 
     public init(container: ModelContainer? = nil) {
-        self.store = WSStore(container: container)
+        store = WSStore(container: container)
     }
 
     public func add(

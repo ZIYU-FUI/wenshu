@@ -23,8 +23,9 @@
 // the rendering pipeline the factory owns (= `.symbolRenderingMode` and
 // `.foregroundStyle`).
 
-import SwiftUI
 import AppKit
+import SwiftUI
+
 // MARK: - IconStyle
 
 /// The zone tiers a symbol can be drawn in. Each case carries the point
@@ -34,7 +35,6 @@ import AppKit
 /// macOS hit-area minimum, `paneTab` an NSToolbar item, `toolbar` a
 /// `.controlSize(.small)` control).
 enum IconStyle: Sendable, Equatable, CaseIterable {
-
     /// List row leading inline icon (= the product's own row-icon size
     /// for list / table row leading affordances; the HIG publishes no
     /// row-leading icon figure, so none is cited. Matches the Apple
@@ -180,10 +180,14 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
         }
     }
 
-    /// Symbol weight is uniform `.regular` across every zone: a glyph set
-    /// beside label text keeps label weight (= thin strokes on a dark ground
-    /// smear). A zone that wants another weight orders it at its own call
-    /// site.
+    /// Symbol weight = uniform `.regular` across every zone. The HIG does speak
+    /// about symbol weight — "Each of the nine symbol weights — from ultralight
+    /// to black — corresponds to a weight of the San Francisco system font,
+    /// helping you achieve precise weight matching between symbols and adjacent
+    /// text" (= https://developer.apple.com/design/human-interface-guidelines/sf-symbols) — and it states no rule that assigns a weight
+    /// per UI zone. The uniform `.regular` is this app's own decision (thin
+    /// strokes on a dark ground smear; = the 2026-11-21 craft audit rule
+    /// ). A zone that wants another weight orders it at its own call site.
     var fontWeight: Font.Weight {
         .regular
     }
@@ -214,11 +218,16 @@ extension IconStyle {
     /// Sidebar row leading icon width (= the row's leading icon frame; = the
     /// fixed visual slot the SF Symbol sits inside). Only meaningful when `self
     /// == .sidebar`.
-    var sidebarWidth: CGFloat { 16 }
+    var sidebarWidth: CGFloat {
+        16
+    }
+
     /// Sidebar row leading icon inner horizontal padding (= the breathing room
     /// inside the slot so the symbol's optical bounds never touch the slot
     /// edge). Only meaningful when `self == .sidebar`.
-    var sidebarInset: CGFloat { 2 }
+    var sidebarInset: CGFloat {
+        2
+    }
 }
 
 // MARK: - IconColor
@@ -229,9 +238,9 @@ enum IconColor: Sendable, Equatable {
     case primary // = .primary (= the system primary label color)
     case secondary // = .secondary (= the system secondary label)
     case tertiary // = .tertiary
-    case quaternary     // = .quaternary
+    case quaternary // = .quaternary
     case accent // = Color.accentColor (= the system accent)
-    case tint           // = .tint (= SwiftUI environment tint = follows role)
+    case tint // = .tint (= SwiftUI environment tint = follows role)
     case red, green, orange, blue
 
     /// The `Color` to hand `.foregroundStyle(_:)`. Every rung is a system
@@ -551,4 +560,3 @@ struct SFIcon: View {
         }
     }
 }
-

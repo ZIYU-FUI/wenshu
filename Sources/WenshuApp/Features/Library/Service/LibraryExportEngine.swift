@@ -45,22 +45,21 @@ enum LibraryExportError: LocalizedError, Sendable, Equatable {
         switch self {
         case .noActiveLibrary:
             return "No active library is open."
-        case .sourceMissing(let url):
+        case let .sourceMissing(url):
             return "Library source not found at \(url.path)."
-        case .destinationReadOnly(let url):
+        case let .destinationReadOnly(url):
             return String(localized: "export.error.destination_readonly") + " (\(url.path))"
-        case .libraryCorrupted(let url):
+        case let .libraryCorrupted(url):
             return String(localized: "export.error.library_corrupted") + " (\(url.path))"
-        case .zipProcessFailed(let status, let stderr):
+        case let .zipProcessFailed(status, stderr):
             return "zip failed (\(status)): \(stderr)"
-        case .ioFailure(let url, let msg):
+        case let .ioFailure(url, msg):
             return "I/O failure at \(url.path): \(msg)"
         }
     }
 }
 
 actor LibraryExportEngine {
-
     /// Export the active library to `destinationURL` in the chosen
     /// format. Returns the final URL (= the directory mirror URL
     /// or the zip file URL). Caller passes the URL to `.fileExporter`.
@@ -68,7 +67,6 @@ actor LibraryExportEngine {
         to destinationURL: URL,
         as format: LibraryExportFormat
     ) async throws -> URL {
-
         guard let sourcePath = ActiveLibrary.path else {
             throw LibraryExportError.noActiveLibrary
         }
@@ -140,7 +138,7 @@ actor LibraryExportEngine {
     }
 
     /// Zip the library directory to the destination (= archive).
-    /// Uses `/usr/bin/zip` (= Apple canonical tool shipped with macOS).
+    /// Uses `/usr/bin/zip` (= the `zip` binary that ships with macOS).
     private func zipLibrary(
         source: URL,
         destination: URL

@@ -18,18 +18,12 @@
 //
 // Apple APIs used (= no custom color or custom animation):
 // - .quaternary (= HierarchicalShapeStyle, Apple SwiftUI built-in
-//   system-managed ShapeStyle). = = MEASURED on macOS 27.2 (= the
-//   app's own ink ramp): .quaternary = 9.8% alpha in BOTH
-//   appearances, = = and .tertiary = 25%. = = ⇒ The wash wears
-//   .quaternary, = = because that is the level Apple's own row wash
-//   reads at (= = the same 10% family as Settings' sidebar rows),
-//   = = and because a 25% wash on a chrome button reads as a
-//   highlight rather than a hover.
-// - .onHover (= Apple canonical SwiftUI macOS hover callback
-//   since macOS 10.15; .hoverEffect is visionOS-only no-op on macOS).
-// - .background (= SwiftUI modifier, Apple canonical).
+//   system-managed ShapeStyle).
+// - .onHover (= SwiftUI's hover callback; the SDK marks it unavailable on
+//   tvOS/watchOS, and .hoverEffect is the visionOS equivalent, no-op here).
+// - .background (= SwiftUI's own modifier).
 // - RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton) (= SwiftUI Shape, Apple
-//   canonical small button hover shape).
+//   wenshu's small-button radius token, reused for the wash shape).
 // - AnyShapeStyle (= type-erased ShapeStyle wrapper, Apple API).
 //
 // Justified exceptions (= sites that use different hover semantics
@@ -54,12 +48,12 @@ extension View {
     ///   not a project custom color).
     /// - .quaternary auto-adapts to dark/light mode + Increase Contrast
     ///   (= system-managed, no per-app override).
-    /// - the small button's own corner radius matches product small
-    ///   button hover shape (= same as Settings / Mail / Finder
-    ///   toolbar buttons).
-    /// - The .onHover callback is the Apple canonical SwiftUI macOS
-    ///   pattern since macOS 10.15; .hoverEffect is visionOS-only
-    ///   (= no-op on macOS, so .onHover is the only Apple option on
+    /// - The corner radius is the product's own small-button radius token,
+    ///   (= the same radius the product's small buttons use, so the wash
+    ///   follows the button it washes).
+    /// - The .onHover callback is SwiftUI's own hover API; .hoverEffect is the
+    ///   visionOS equivalent and a no-op here,
+    ///   (= so .onHover is the only SwiftUI option on
     ///   this platform).
     func hoverWash() -> some View {
         modifier(HoverWashModifier())

@@ -34,7 +34,7 @@ extension ImportService {
     /// Roll back the partial write-side effects of the current batch (= deletes
     /// every .md file the orchestrator wrote this run; = restores the prior
     /// `entities.json` content from the snapshot taken at `importFiles` start;
-    /// = deletes the sidecar cache file). Apple canonical pattern: the rollback
+    /// = deletes the sidecar cache file). The rollback contract is ours: it
     /// is best-effort + idempotent (= a missing file is a no-op; = a re-run of
     /// the same rollback doesn't double-delete). Boss 2026-10-09 directive:
     /// "取消退出时，所有 已经导入的内容回退清掉。类似 MAC OS 的系统 升级，取消等于放弃这个工作，不留痕". The "不留痕"
@@ -73,7 +73,7 @@ extension ImportService {
         // to the cache for the rolled-back files; = leaving stale entries
         // means a re-import of the same source dir would skip the rolled-back
         // files via dedup; = delete the whole cache file so the next
-        // `importFiles` starts from a clean cache). Apple canonical: the cache
+        // `importFiles` starts from a clean cache). By design the cache
         // is a sidecar (= a derived artifact; = deleting it is safe; = the
         // next run rebuilds it from the same source files).
         let cacheFile = URL(fileURLWithPath: "")
@@ -89,21 +89,21 @@ extension ImportService {
             // cache lives at `<wsRoot>/.import-cache/import-cache.json`; =
             // a few `deletingLastPathComponent()` calls get us there).
             let cacheRoot = snap.path
-                .deletingLastPathComponent()  // entities.json
-                .deletingLastPathComponent()  // entities
-                .deletingLastPathComponent()  // reference-library
-                .deletingLastPathComponent()  // <wsRoot>
+                .deletingLastPathComponent() // entities.json
+                .deletingLastPathComponent() // entities
+                .deletingLastPathComponent() // reference-library
+                .deletingLastPathComponent() // <wsRoot>
                 .appendingPathComponent(".import-cache")
             try? FileManager.default.removeItem(at: cacheRoot)
         }
-        _ = cacheFile  // (= placeholder for the future
-                        // = per-target cacheRoot = cleanup; = unused in = this version; =
-                        // the = .import-cache dir = delete
-                        // above handles = the v0.74 schema).
+        _ = cacheFile // (= placeholder for the future
+        // = per-target cacheRoot = cleanup; = unused in = this version; =
+        // the = .import-cache dir = delete
+        // above handles = the v0.74 schema).
     }
 
-    // A57 extension: prepare-rollback helpers (= setup the cancel + rollback trail
-    // at importFiles start). Companion to cancel() / rollback() above.
+    /// A57 extension: prepare-rollback helpers (= setup the cancel + rollback trail
+    /// at importFiles start). Companion to cancel() / rollback() above.
     /// Reset the cancel flag + clear the rollback trail (= called at the
     /// start of every `importFiles` run; = ensures a fresh cancel/rollback
     /// context per batch).
@@ -177,5 +177,4 @@ extension ImportService {
         }
         return entitiesIndex
     }
-
 }

@@ -31,16 +31,16 @@
 //
 
 import Foundation
-import WenshuAgent
 import os.log
+import WenshuAgent
 
 actor WenshuAgent {
     static let shared = WenshuAgent()
 
     private let modelDiscovery = LLMModelDiscovery()
-    // The conductor instance (= shared singleton; = WenshuAppDelegate
-    // installs it once at app startup; = the 14 callers retrieve it
-    // through `currentConductor()`).
+    /// The conductor instance (= shared singleton; = WenshuAppDelegate
+    /// installs it once at app startup; = the 14 callers retrieve it
+    /// through `currentConductor()`).
     private var conductor: WenshuConductor?
 
     private init() {}
@@ -126,7 +126,7 @@ actor WenshuAgent {
     /// do not need to call this (= the singleton lives for
     /// the lifetime of the app process).
     func uninstallConductor() {
-        self.conductor = nil
+        conductor = nil
         WenshuAgent.conductorSnapshot.withLock { $0 = nil }
     }
 
@@ -189,7 +189,7 @@ actor WenshuAgent {
         let changed = (cachedProvidersWithKeys != result)
         cachedProvidersWithKeys = result
         _publishCachedSnapshot()
-        // Apple canonical pattern for one-way broadcast: when the
+        // The one-way broadcast pattern this app uses: when the
         // cache contents change, post the same keychain-changed
         // notification that Settings already posts so every
         // ChatView / ChatZoneView subscriber re-evaluates its body

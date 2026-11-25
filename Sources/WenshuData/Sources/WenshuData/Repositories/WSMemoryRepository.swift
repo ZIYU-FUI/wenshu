@@ -1,7 +1,7 @@
 //
 //  Persistence/Repositories/WSMemoryRepository.swift
 //
-//  Apple canonical layering per Backyard Birds:
+//  The layering this app copied from Apple's Backyard Birds sample project:
 //    - write API = raw fields in (= no app-side MemoryID / Memory
 //      domain type; = caller converts MemoryID -> String rawValue
 //      before calling; = caller consumes the returned WSMemory
@@ -45,10 +45,12 @@ public final class WSMemoryRepository {
     /// repository built before that moment must not keep the store it
     /// saw at construction time.
     public let store: WSStore
-    private var context: ModelContext { store.context }
+    private var context: ModelContext {
+        store.context
+    }
 
     public init(container: ModelContainer? = nil) {
-        self.store = WSStore(container: container)
+        store = WSStore(container: container)
     }
 
     public func add(userId: String, content: String, memoryID: String? = nil) throws -> WSMemory {

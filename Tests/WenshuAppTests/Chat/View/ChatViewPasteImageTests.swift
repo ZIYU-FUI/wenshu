@@ -2,23 +2,22 @@
 //  ChatViewPasteImageTests.swift · Wenshu · T38-PASTE-IMAGE (2026-09-18)
 //
 //  Verifies that ChatView.swift handles ⌘V on an image from
-//  the clipboard). Strategy: source inspection (= the
+//  the clipboard (= our own paste affordance). Strategy: source inspection (= the
 //  onPasteCommand handler is value-typed; the runtime clipboard
 //  can't be exercised in a unit test).
 //
 
-import Testing
 import AppKit
 import Foundation
+import Testing
 @testable import WenshuApp
 
 @Suite("ChatView paste image (T38)")
 struct ChatViewPasteImageTests {
-
     /// T38 contract: ChatView source uses .onPasteCommand(of: [.image])
     /// (= the SwiftUI native paste handler for image UTType).
     @Test func source_uses_onPasteCommand_image() throws {
-        /// The chat input was rewritten as a 3-layer split.
+        // The chat input was rewritten as a 3-layer split.
         // handler (= image-paste attach) from ChatView (the middle
         // layer = chat content) into ChatInputBarView (the top layer
         // = user-interactive input controls). The handler reads
@@ -58,9 +57,9 @@ struct ChatViewPasteImageTests {
             Issue.record("no .fileImporter( call site found")
             return
         }
-        let pasteOffset = src.distance(
+        let pasteOffset = try src.distance(
             from: src.startIndex,
-            to: src.range(of: ".onPasteCommand(of: [.image])")!.lowerBound
+            to: #require(src.range(of: ".onPasteCommand(of: [.image])")?.lowerBound)
         )
         let importerOffset = src.distance(
             from: src.startIndex,
@@ -70,7 +69,7 @@ struct ChatViewPasteImageTests {
         // paste handler is now inside the private
         // ImagePasteModifier (= wraps TextField); = ~140 lines below
         // the fileImporter call (= ~5,000 chars); = relaxed from 5_000.
-        #expect(gap < 10_000, "paste handler should be near fileImporter call (= same input row); gap = \(gap)")
+        #expect(gap < 10000, "paste handler should be near fileImporter call (= same input row); gap = \(gap)")
     }
 
     /// T38 contract: existing image affordances (fileImporter +
@@ -98,7 +97,7 @@ struct ChatViewPasteImageTests {
     /// row HStack's `.frame(minHeight: 30)` close) is now distributed
     /// across the SAME file (= ChatInputBarView.swift); = this test reads
     /// ChatInputBarView.swift and verifies the same positional invariant.
-/// The chat input was rewritten as a 3-layer split.
+    /// The chat input was rewritten as a 3-layer split.
     /// row. The paste handler (= `.onPasteCommand(of: [.image])`) is now
     /// attached to the TextField inside ChatInputBarView (= wrapped in
     /// the ImagePasteModifier modifier; = the paste target IS the

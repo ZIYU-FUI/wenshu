@@ -35,7 +35,8 @@ import WenshuAgent
 /// canonical pattern) so SwiftUI/UIKit auto-renders
 /// `.localizedDescription` in alerts / banners / form validation.
 ///
-/// Per boss 2026-10-16 OOB "只接提示, 模型配置有误就行了":
+/// Product error-surfacing rule (= only prompt the user; a
+/// model-config error is answered by the toast, nothing more):
 /// the chat-path user-facing text is collapsed to a single
 /// friendly message (= "模型配置有误") regardless of the
 /// underlying cause (= 4xx, 5xx, network, rate limit, missing
@@ -93,7 +94,7 @@ enum UserFacingError: Error, LocalizedError {
             // connectors).
             return String(localized: "error.api_key.invalid")
 
-        case .rateLimited(let provider):
+        case let .rateLimited(provider):
             // Provider-specific rate-limit messages stay provider-bound
             // (= only providers that surface 429 use this path).
             // Generic fallback for any provider that returns 429
@@ -103,31 +104,31 @@ enum UserFacingError: Error, LocalizedError {
             }
             return String.localizedStringWithFormat(NSLocalizedString("error.rate_limit.provider", comment: ""), provider)
 
-        case .outputTooLong(let model):
+        case let .outputTooLong(model):
             return String.localizedStringWithFormat(NSLocalizedString("error.output_too_long", comment: ""), model)
 
-        case .modelRefusal(let reason):
+        case let .modelRefusal(reason):
             if let reason {
                 return String.localizedStringWithFormat(NSLocalizedString("error.model_refusal.with_reason", comment: ""), reason)
             }
             return String(localized: "error.model_refusal.generic")
 
-        case .contextTooLong(let tokenCount):
+        case let .contextTooLong(tokenCount):
             if let tokenCount {
                 return String.localizedStringWithFormat(NSLocalizedString("error.context_too_long.with_count", comment: ""), tokenCount)
             }
             return String(localized: "error.context_too_long.generic")
 
-        case .fileWriteFailure(let path, _):
+        case let .fileWriteFailure(path, _):
             if let path {
                 return String.localizedStringWithFormat(NSLocalizedString("error.file_write.with_path", comment: ""), path)
             }
             return String(localized: "error.file_write.generic")
 
-        case .databaseError(let operation, _):
+        case let .databaseError(operation, _):
             return String.localizedStringWithFormat(NSLocalizedString("error.database.operation_failed", comment: ""), operation)
 
-        case .invalidUserInput(let field, let reason):
+        case let .invalidUserInput(field, reason):
             if let field, let reason {
                 return String.localizedStringWithFormat(NSLocalizedString("error.invalid_input.with_field_reason", comment: ""), "\(field)（\(reason)）")
             }
@@ -136,7 +137,7 @@ enum UserFacingError: Error, LocalizedError {
             }
             return String(localized: "error.invalid_input.generic")
 
-        case .timeout(let operation, let seconds):
+        case let .timeout(operation, seconds):
             if let seconds {
                 return String.localizedStringWithFormat(NSLocalizedString("error.timeout.with_seconds", comment: ""), operation, Int(seconds))
             }
@@ -159,11 +160,12 @@ enum UserFacingError: Error, LocalizedError {
             // everything to the single "模型配置有误"
             // message).
             return String(localized: "error.unknown")
+
         case .modelConfigInvalid:
             // The single chat-layer catch-all (= see the
-            // file-level comment). Per boss 2026-10-16
-            // OOB "只接提示, 模型配置有误就行了":
-            // regardless of whether the cause was
+            // file-level comment). Product rule: only the prompt reaches
+            // the user, whatever
+            // the cause was
             // 4xx / 5xx / network / key issue /
             // malformed request, the user just sees
             // this one line. The technical detail
@@ -173,6 +175,7 @@ enum UserFacingError: Error, LocalizedError {
             return "模型配置有误"
         }
     }
+
     /// Map any `Error` to a `UserFacingError` (= best-effort
     /// translation). Falls back to `.unknown` (= catch-all).
     ///
@@ -191,8 +194,7 @@ enum UserFacingError: Error, LocalizedError {
     ///   `Sources/WenshuApp/Features/Agent/Service/SSEClient.swift:75`).
     /// - any other `Error` -> `.unknown(underlying: String(describing:))`
     ///
-    /// Per boss 2026-10-16 OOB "只接提示, 模型配置
-    /// 有误就行了": the chat layer collapses ALL
+    /// Product rule (chat error surface): the chat layer collapses ALL
     /// failure modes to a single user-facing message
     /// (= "模型配置有误"). Callers (= `ChatSessionViewModel`)
     /// wrap the `from` call with a `modelConfigInvalid`
@@ -209,9 +211,9 @@ enum UserFacingError: Error, LocalizedError {
     static func from(_ raw: Error, context provider: String? = nil) -> UserFacingError {
         if let wenshu = raw as? LLMConnectorError {
             switch wenshu {
-            case .missingAPIKey(let providerArg):
+            case let .missingAPIKey(providerArg):
                 return .apiKeyMissing(provider: providerArg.isEmpty ? (provider ?? "当前 Provider") : providerArg)
-            case .transport(_, let status, _):
+            case let .transport(_, status, _):
                 switch status {
                 case 401, 403:
                     return .apiKeyInvalid(provider: provider ?? "当前 Provider")
@@ -221,7 +223,7 @@ enum UserFacingError: Error, LocalizedError {
                     return .contextTooLong()
                 case 429:
                     return .rateLimited(provider: provider ?? "当前 Provider")
-                case 500..<600:
+                case 500 ..< 600:
                     return .networkFailure(underlying: "HTTP \(status)")
                 default:
                     return .unknown(underlying: "HTTP \(status)")

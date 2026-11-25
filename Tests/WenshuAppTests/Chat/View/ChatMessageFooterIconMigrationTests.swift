@@ -4,8 +4,8 @@
 //  Per Q112 = 1 source + 1 test per ticket. ChatMessageFooter
 //  4 metadata-prefix icons swept to SFIcon(.inlineSmall, .quaternary):
 //  - clock prefix (= T65-CLOCK-PREFIX)
-//  - checkmark after timestamp (= T84-DELIVERED-CHECK; Apple Messages
-//    read-receipts affordance)
+//  - checkmark after timestamp (= the product's
+//    read-receipt affordance)
 //  - number prefix (= T63-TOKEN-ICON)
 //  - dollarsign.circle prefix (= T64-DOLLAR-ICON)
 //
@@ -17,7 +17,6 @@ import Testing
 
 @Suite("ChatMessageFooter icon sweep")
 struct ChatMessageFooterIconMigrationTests {
-
     @Test("ChatMessageFooter source no longer uses naked Image(systemName:)")
     func sourceNoLongerUsesNakedImage() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")

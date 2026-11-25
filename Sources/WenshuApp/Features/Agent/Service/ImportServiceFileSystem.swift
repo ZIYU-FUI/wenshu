@@ -45,7 +45,8 @@ enum ImportServiceFileSystem {
         // if `source` is a regular file (= the user picked a single file from the open
         // panel), return it directly (after validating the extension matches).
         if let values = try? source.resourceValues(forKeys: [.isRegularFileKey, .isDirectoryKey]),
-           values.isRegularFile == true {
+           values.isRegularFile == true
+        {
             guard extensions.contains(source.pathExtension.lowercased()) else { return [] }
             return [(source.path, source)]
         }
@@ -58,8 +59,13 @@ enum ImportServiceFileSystem {
         ) else { return [] }
         var out: [(String, URL)] = []
         for case let url as URL in enumerator {
-            // Apple canonical: skip directories and symlinks pointing outside the source
-            // tree.
+            // Regular files only, which is what `isRegularFileKey` answers: measured
+            // on a symlink to a regular file it returns false (= the key does not resolve
+            // the link), so this walk skips EVERY symlink, whether it points inside the
+            // source tree or out. A symlink inside the tree is skipped on the same
+            // terms as one outside it: the key cannot tell them apart, so no filter
+            // here is narrower than "is a regular file" (= the probe measured it:
+            // `Tools/wenshu-devtool/probes/symlink_walk.swift`).
             guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .nameKey]),
                   values.isRegularFile == true else { continue }
             guard extensions.contains(url.pathExtension.lowercased()) else { continue }
@@ -70,5 +76,4 @@ enum ImportServiceFileSystem {
         out.sort { $0.0 < $1.0 }
         return out
     }
-
 }

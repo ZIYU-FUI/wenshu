@@ -12,8 +12,8 @@ import WenshuData
 
 // Per Apple SwiftUI docs (developer.apple.com/documentation/swiftui/buttonstyle
 // + developer.apple.com/documentation/swiftui/primitivebuttonstyle/plain),
-// the canonical way to extend a plain-style button's hit area (= Apple
-// "How do I make icon buttons easier to click on macOS?") is to implement
+// the canonical way to extend a plain-style button's hit area (= Apple's FAQ
+// quoted: "How do I make icon buttons easier to click on macOS?") was to
 // `IconButtonStyle` REMOVED in the Apple-API-first pass.
 // Was a pass-through `makeBody { configuration.label }` (= no-op);
 // the previous call site + outer Button style (formerly App.swift
@@ -34,8 +34,8 @@ import WenshuData
 /// all Notification.Name
 /// definitions moved to Sources/WenshuApp/Core/Notifications/AppNotifications.swift
 /// (= single source of truth, grouped into AppCommands / AppStateEvents /
-/// LayoutEvents enums, unified to "com.wenshu.X" naming per Apple
-/// Notification Programming Topics reverse-DNS convention). Backward-compat
+/// LayoutEvents enums, "com.wenshu.X" reverse-DNS naming per the Apple
+/// Notification Programming Topics convention). Backward-compat
 /// accessors (= .wenshuXxx on Notification.Name) live in that file for
 /// the migration window so the 17 existing call sites compile unchanged.
 extension Notification.Name {} // placeholder; all members moved to AppNotifications.swift
@@ -172,7 +172,7 @@ enum SelfScreenshot {
 
 // Craft audit B4 (2026-11-21): the AppearanceMode enum (= the app-level
 // system/dark/light picker) is deleted; the app follows the system
-// appearance, same as every Apple app, because the override broke the
+// appearance, the platform default like every installed app, because the override broke the
 // chrome materials' backing. The "appearanceMode" UserDefaults key is
 // left to age out (no migration code for a value nothing reads).
 
@@ -193,8 +193,8 @@ struct WenshuApp: App {
     /// Cross-zone shell-chrome state (= sidebar selection, inspector
     /// visibility, chat zone visibility) lives on `WorkspaceUIState`
     /// (= 2026-10-03 overabstraction cleanup merged ShellState +
-    /// WorkspaceUIState into one @Observable class; = the Pages /
-    /// Numbers / Keynote canonical shape). The
+    /// WorkspaceUIState into one @Observable class; = the product's
+    /// single-observable-root shape). The
     /// `@Environment(AppState.self) var appState` lookup continues
     /// for `llmModel` + `openTabs`.
     /// The 3 other signals declared in the original spec
@@ -243,7 +243,7 @@ struct WenshuApp: App {
     @State private var repositories = WSRepositoryContainer()
 
     var body: some Scene {
-        // apple canonical scene composition: Scene composition (= WindowGroup +
+        // declarative scene composition: Scene composition (= WindowGroup +
         // .commands + Settings) is now in AppRootScene. WenshuApp stays as the
         // composition root that owns the state (`library`
         // / `appState`) and forwards it into AppRootScene as constructor

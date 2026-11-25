@@ -20,7 +20,7 @@ extension ChatView {
     @ViewBuilder
     var keyboardShortcuts: some View {
         // The compression pill dropped entirely - ⌘L → clear the input + the
-        // chat (= matches ChatGPT / Claude)
+        // chat (= one keystroke returns the composer to an empty focused state)
         Button("Focus input") {
             inputFocused = true
         }
@@ -37,8 +37,8 @@ extension ChatView {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
-        // ⌘N = new chat (= the standard macOS File > New shortcut; = matches
-        // Pages / TextEdit / Xcode behavior). Wenshu's chat is a
+        // ⌘N = new chat (= the standard macOS File > New shortcut, the
+        // platform's own document convention). Wenshu's chat is a
         // single-session at a time (= there is no session tab bar; = ⌘N clears
         // the current chat AND starts a new session). Same hidden-Button
         // pattern as (=.frame(0,0) +.opacity(0) +.accessibilityHidden).
@@ -51,7 +51,7 @@ extension ChatView {
         .opacity(0)
         .accessibilityHidden(true)
         // ⌘R = reload chat (= the standard macOS browser-style reload
-        // shortcut; = also matches VSCode / Xcode). For wenshu's
+        // a wenshu-defined reload affordance). For wenshu's
         // single-session chat, "reload" = re-send the last user message (=
         // re-invokes the LLM with the same prompt = a "retry" affordance
         // without retyping). Same hidden-Button pattern as /.
@@ -71,9 +71,9 @@ extension ChatView {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
-        // ⌘⇧D = copy the last sealed assistant message (= standard macOS
-        // duplicate-shortcut; = also matches Apple's "Duplicate" affordance
-        // in Pages / TextEdit). For wenshu, ⌘⇧D = copy the most recent
+        // ⌘⇧D = copy the last sealed assistant message (= a wenshu-defined
+        // "copy the answer" affordance; the duplicate-key gesture is
+        // the product's own). For wenshu, ⌘⇧D = copy the most recent
         // assistant reply to the clipboard (= a quick "copy the answer"
         // affordance). Hidden Button pattern.
         Button("Copy last assistant") {
@@ -87,9 +87,9 @@ extension ChatView {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
-        // ⌘. = mute (= the standard macOS Cancel shortcut; = matches Apple
-        // Pages' "Insert Page Break Cancelled" and Xcode's "Cancel Operation"
-        // affordance). For wenshu, ⌘. = mute the currently-streaming
+        // ⌘. = mute (= the product's cancel gesture; ⌘. is the
+        // conventional cancel key and wenshu reuses it for
+        // stopping a stream). For wenshu, ⌘. = mute the currently-streaming
         // assistant reply (= the user can stop generation mid-stream). Same
         // hidden-Button pattern as ///.
         Button("Mute streaming") {
@@ -153,7 +153,7 @@ extension ChatView {
         .accessibilityHidden(true)
         // ⌘⇧G = regenerate last assistant message (= re-runs the LLM with the
         // same prompt as the most recent user message; = the "regenerate
-        // reply" affordance that Apple Pages / Xcode call "regenerate"). For
+        // reply" affordance, named after the intent). For
         // wenshu, ⌘⇧G = discard the last assistant reply and produce a new
         // one with the same user prompt.
         Button("Regenerate last assistant") {
@@ -184,7 +184,7 @@ extension ChatView {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
-        // ⌘⇧K = clear chat (= the standard Apple Safari "Clear History"
+        // ⌘⇧K = clear chat (= the product's own clear-chat
         // shortcut; = in wenshu = wipe all messages and reset the
         // conversation). Different from ⌘N (= new chat session) which also
         // calls vm.startNewSession (= also clears). The ⌘⇧K shortcut is an
@@ -225,11 +225,10 @@ extension ChatView {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
-        // ⌘? = keyboard shortcuts help popover (= the standard Apple help
-        // shortcut; = the macOS "Help" menu uses ⌘? as well = lists all
-        // keyboard shortcuts). For wenshu, ⌘? = shows a popover listing all
-        // keyboard shortcuts. Hidden Button pattern (= the body just NSLogs a
-        // cheat-sheet for now; =.popover or.sheet).
+        // ⌘? = the product's own shortcut-cheat-sheet chord. The body LOGS a
+        // cheat-sheet (= some of the chords this file binds, = not all of
+        // them); = there is no popover or sheet (= the body just NSLogs a
+        // cheat-sheet). Hidden Button pattern.
         Button("Show shortcuts") {
             wenshuLogger.info("[wenshu.shortcuts] ⌘K focus input · ⌘L clear chat · ⌘N new chat · ⌘P print · ⌘R reload · ⌘. cancel streaming · ⌘⇧C copy conversation · ⌘⇧D copy last assistant · ⌘⇧E edit last user · ⌘⇧G regenerate · ⌘⇧K clear chat (in-place) · ⌘⇧O open chat markdown · ⌘⇧S export markdown · ⌥T toggle theme")
         }
@@ -256,12 +255,10 @@ extension ChatView {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
-        // ⌥⌘D = "download as Markdown" (= the standard macOS Save-As shortcut
-        // variant; = pairs with ⌘⇧S "export markdown" via a different
-        // modifier; = ⌥⌘D = "Alt-Cmd-D" is the standard macOS "Add Bookmark"
-        // shortcut in Safari, repurposed here as "Save conversation to
-        // disk"). Hidden Button pattern (= the body just NSLogs a save-as
-        // intent; =).
+        // ⌥⌘D = the product's own download-as chord. The body LOGS a
+        // save-as intent (= the export chord ⌘⇧S owns the real write:
+        // ChatView's exporter, bound to $isExportingMarkdown). Hidden
+        // Button pattern (= a button whose body logs and returns).
         Button("Save conversation as Markdown") {
             wenshuLogger.info("[wenshu.save] conversation save-as requested (\(vm.messages.count) messages)")
             // The save-as intent is logged rather than written to disk (= the
@@ -271,7 +268,7 @@ extension ChatView {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
-        // ⌘Y = "history" (= the standard Apple Mail Show History shortcut; =
+        // ⌘Y = "history" (= a wenshu-defined shortcut; no
         // in wenshu = NSLogs a history-view intent; =.sheet that shows the
         // conversation metadata = message count, first message timestamp,
         // total token usage, etc.). Hidden Button pattern.
@@ -304,7 +301,7 @@ extension ChatView {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
-        // ⌘I = "italic" (= the standard Apple Italic shortcut; = in wenshu =
+        // ⌘I = "italic" (= the product's own italic affordance; = in wenshu =
         // wraps the current chat input text in `_. _` markdown; = pairs with
         // ⌘B Bold shortcut). Hidden Button pattern.
         Button("Italicize selected text") {
@@ -317,7 +314,7 @@ extension ChatView {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
-        // ⌘⇧X = "strikethrough" (= the standard Apple Notes strikethrough
+        // ⌘⇧X = "strikethrough" (= a wenshu-defined shortcut; the
         // shortcut; = in wenshu = wraps the current chat input text in `~~.
         // ~~` markdown; = pairs with ⌘B + ⌘I = the canonical text-formatting
         // trio). Hidden Button pattern.
@@ -342,8 +339,8 @@ extension ChatView {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
-        // ⌘K + ⇧⌘K = "insert code block" (= the standard Apple Xcode / VSCode
-        // "comment toggle" / "code block" shortcut variant; = in wenshu =
+        // ⌘K + ⇧⌘K = "insert code block" (= a wenshu-defined code
+        // fence toggle shortcut variant; = in wenshu =
         // wraps the current chat input text in a Markdown code fence ``` ```
         // for future syntax highlighting). Pairs with ⌘B / ⌘I / ⌘⇧X = the
         // markdown formatting quartet. Note: already uses ⌘K for "focus
@@ -359,7 +356,7 @@ extension ChatView {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
-        // ⌘⇧Q = "insert quote" (= the standard Apple Mail Quote shortcut; =
+        // ⌘⇧Q = "insert quote" (= a wenshu-defined shortcut; =
         // in wenshu = wraps the current chat input text in a Markdown
         // blockquote = each line prefixed with "> "; = pairs with ⌘B + ⌘I +
         // ⌘⇧X + ⌘⇧K = the markdown formatting quintet). Hidden Button
@@ -458,7 +455,7 @@ extension ChatView {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
-        // ⌥U = "jump to unread" (= the standard Apple Mail "Next Unread"
+        // ⌥U = "jump to unread" (= a wenshu-defined "Next Unread"
         // shortcut via the Option modifier; = in wenshu = NSLogs a
         // jump-to-unread intent; =). Note: ⌘U is "Underline" in TextEdit;
         // uses ⌥U = "Alt-Underline" to repurpose for wenshu-specific intent.
@@ -491,7 +488,7 @@ extension ChatView {
         .accessibilityHidden(true)
         // ⌘; = "insert bulleted list" (= a wenshu-specific shortcut; = in
         // wenshu = prefixes each line of vm.inputText with "- " for Markdown
-        // bullet list = matches the standard Apple Pages Insert List
+        // bullet list, a wenshu-defined list-editing
         // affordance). Hidden Button pattern.
         Button("Wrap selection in bullet list") {
             let current = vm.inputText
@@ -530,7 +527,7 @@ extension ChatView {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
-        // ⌘[= "previous chat" (= the standard Safari "Previous Tab" shortcut;
+        // ⌘[= "previous chat" (= the product's own previous-chat affordance;
         // = in wenshu = NSLogs a previous-chat intent; =). Note: ⌘⇧[is the
         // standard Tab Previous in browsers; uses ⌘[for a wenshu-specific
         // intent (= no collision because wenshu has no Tab concept). Hidden

@@ -25,12 +25,19 @@ and each one is measured against the gate's own claims:
   7. the gate CALLS that one implementation (= the judge is on the path
      a branch takes to the review lane).
 
+The numbered cases continue in `main()` past this list, = and the list stops
+at eleven on purpose: = the run prints `N/M cases passed`, = so the count is
+read from the gate's own output and never from prose that a later case makes
+stale.
+
 Run:  python3 Tools/wenshu-devtool/tests/test_pre_review_gate.py
 Exit: 0 = every case passed, 1 = at least one case failed.
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import sys
 from pathlib import Path
 
@@ -257,6 +264,42 @@ def main() -> int:
         "a suite named in a TABLE ROW is lifted (= the row is a declaration)",
         "RenamedSuitesV2" in filters and "StyleSheetWiringTests" in filters and not unparsed,
         f"filters={filters} unparsed={unparsed}",
+    )
+
+    # 20. the gate's OWN loop keeps each instrument's exit code beside its own
+    #     label (= `run_instruments` returns one tuple per instrument, and the
+    #     printed line and the failure name are read from that same tuple, = so
+    #     a red battery cannot be reported as the LOC checker's verdict. The
+    #     laundering this pins was once live: two assignments to one `code, out`
+    #     pair made the battery's line quote the LOC checker's exit code).
+    def _stub(command, cwd=None):
+        if command == "git status --porcelain":
+            return 0, ""
+        if "test_comment_lineage_gate.py" in command:
+            return 1, "the battery's own output"
+        if "nfi-loc-check.py" in command:
+            return 0, "5 row(s) checked"
+        if command == "swift build --build-tests":
+            return 0, "Build complete!"
+        return 0, ""
+
+    real_sh, real_argv = vars(gate)["sh"], sys.argv
+    buf = io.StringIO()
+    try:
+        vars(gate)["sh"] = _stub
+        sys.argv = ["pre_review_gate.py", "--base", "HEAD~1"]
+        with contextlib.redirect_stdout(buf):
+            gate.main()
+    finally:
+        vars(gate)["sh"], sys.argv = real_sh, real_argv
+    printed = buf.getvalue()
+    shown = {line.split(":")[0].strip(): line.strip() for line in printed.split("\n") if ": exit" in line}
+    case(
+        "the gate's loop prints each instrument's OWN exit code (= and names the red one by its own label)",
+        shown.get("the comment-lineage battery", "").endswith("exit 1")
+        and shown.get("nfi-loc-check", "").endswith("exit 0")
+        and "--- the comment-lineage battery" in printed,
+        f"battery={shown.get('the comment-lineage battery')!r} loc={shown.get('nfi-loc-check')!r}",
     )
 
     failed = PASSED.count(False)

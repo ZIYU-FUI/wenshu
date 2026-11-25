@@ -17,16 +17,15 @@
 //  that does not fit WRAPS (which is what makes a band grow).
 //
 
-import Foundation
-import Testing
-import SwiftUI
 import AppKit
+import Foundation
+import SwiftUI
+import Testing
 @testable import WenshuApp
 
 @MainActor
 @Suite("ChatSurfaceGeometry — the band and the field are one surface")
 struct ChatSurfaceGeometryTests {
-
     /// The height the view asks for at the given width.
     ///
     /// SwiftUI's own layout engine decides this: the view is hosted in
@@ -114,8 +113,8 @@ struct ChatSurfaceGeometryTests {
     @Test("The two surfaces resolve their outline from the same shape")
     func bothSurfacesShareOneShape() {
         // The shape is the single source of the outline for BOTH
-        // surfaces. At the resting height it is a capsule (= the
-        // canonical Apple Messages chip); past that it stays a rounded
+        // surfaces. At the resting height it is a capsule (= a true
+        // capsule shape); past that it stays a rounded
         // rectangle whose radius stops tracking half the height (= the
         // glyphs never spill out of a degenerate ellipse).
         let shape = ChatSurfaceShape()

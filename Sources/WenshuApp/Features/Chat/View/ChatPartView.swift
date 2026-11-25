@@ -94,14 +94,16 @@ struct ChatMessageBodyView: View {
 
     var body: some View {
         // product: writing body text uses `.primary` foreground,
-        // uniformly (= Pages / Notes / Mail body). User-vs-assistant
-        // distinction comes from alignment (= iMessage right vs left)
+        // uniformly (= plain body text everywhere). User-vs-assistant
+        // distinction comes from alignment (= outgoing trailing, incoming
+        // leading)
         // + bubble background, NOT from text color dimming. Both
         // chat (this body) and editor (= NSTextView labelColor = .label
         // = .primary) read the same SwiftUI semantic foreground, so
         // the two zones feel like one app's two text surfaces.
-        // RATIONALE: wenshu writing-tool requirement per boss 2026-10-16
-        // "editor + chat body text share Apple text style" — body text
+        // RATIONALE: wenshu writing-tool requirement (= editor and chat
+        // body text share one semantic text style across the two zones) —
+        // body text
         // = always `.primary`; no `opacity()` mutators on the tint
         // (product rule: the four-tier `.primary / .secondary /
         // .tertiary / .quaternary` semantic ladder covers all muted
@@ -237,7 +239,7 @@ private struct ChatPartRow: View {
         #if DEBUG
         #endif
         switch part.kind {
-        case .text(let s):
+        case let .text(s):
             // A reply that carries markers is drawn in two layers: the
             // answer in the body, the steps as labelled lines. While
             // the reply streams it stays plain text, because a marker
@@ -251,7 +253,7 @@ private struct ChatPartRow: View {
                 // chunk = the model "typing" = visual feedback that
                 // streaming is alive).
                 .transition(.wenshuThinkingAppear())
-        case .reasoning(let s):
+        case let .reasoning(s):
             ChatReasoningPartView(
                 text: s,
                 isRunning: isStreaming,
@@ -265,7 +267,7 @@ private struct ChatPartRow: View {
             // streamed tokens appearing). Pair with .animation on
             // the parent ForEach for smooth transitions.
             .transition(.wenshuThinkingAppear())
-        case .toolUse(let tu):
+        case let .toolUse(tu):
             ChatToolUsePartView(toolUse: tu, isOutgoing: isOutgoing)
                 // T41-TOOL-USE-FADEIN (2026-09-18): apply the same
                 // appear-from-top transition as T40 reasoning parts.
@@ -276,14 +278,14 @@ private struct ChatPartRow: View {
                 // because the visual idiom is identical (= streaming
                 // event lands on screen; = fade in).
                 .transition(.wenshuThinkingAppear())
-        case .toolResult(let tr):
+        case let .toolResult(tr):
             ChatToolResultPartView(toolResult: tr, isOutgoing: isOutgoing)
                 // T41-TOOL-USE-FADEIN (2026-09-18): tool-result parts
                 // (= the output of a tool call) fade in too (= the
                 // whole tool lifecycle = call + result = a single
                 // visual unit; = both halves should animate in sync).
                 .transition(.wenshuThinkingAppear())
-        case .plan(let p):
+        case let .plan(p):
             // T22: render the plan via ChatPlanPartView (= T20b
             // primitive). The onApprove closure is passed through;
             // when nil = the Approve button is hidden (= the user

@@ -6,15 +6,14 @@
 // I/O are concurrent; = the per-file state lives in `ImportTask` actors; = the
 // orchestrator can be re-entered safely from any context). The view (= ImportSheet)
 // calls `importFiles(in:into:router:)` once and observes the returned `[ImportTask]`
-// array for the per-file progress strip (= the Apple canonical SwiftUI binding to a
-// long-running task). See .scratch/2026-10-09-md-import-feature/tickets.md for the
+// array for the per-file progress strip (= an array of task handles, which is how this
+// view watches a long-running task). See .scratch/2026-10-09-md-import-feature/tickets.md for the
 // full T2 contract.
 
 import CryptoKit
 import Foundation
 import UniformTypeIdentifiers
 import WenshuData
-
 
 // MARK: - ImportService (the orchestrator)
 
@@ -47,7 +46,7 @@ actor ImportService {
     /// cancel handler restores this file verbatim; = the "all-or-nothing"
     /// semantic the boss asked for = cancel = nothing lands on disk = the user
     /// can re-import from a clean state).
-    var entitiesJSONSnapshot: (path: URL, content: Data)? = nil
+    var entitiesJSONSnapshot: (path: URL, content: Data)?
 
     /// The book's file tree as it was before this run (= one stamp per
     /// file: = its size + its modification date).
@@ -61,14 +60,14 @@ actor ImportService {
 
     /// The book root this run writes into (= nil when the run targets the
     /// reference library; = there is no book tree to roll back then).
-    var bookRootURL: URL? = nil
+    var bookRootURL: URL?
 
     /// Per-task mutable state used by the `dispatchLLM` helper (= extensions
     /// can't hold stored properties; = this lives on the actor).
     /// `lastDispatchError` is the final error from the last failed LLM attempt;
     /// = `dispatchLLM` returns nil and sets this so the orchestrator can
     /// surface the user-readable error via `markLLMFailed`).
-    var lastDispatchError: Error? = nil
+    var lastDispatchError: Error?
 
     /// 5-way parallel LLM dispatch (= the boss's 2026-10-09 directive "你要做一个机制
     /// 5 个并发， 一个文件一个请求。同时只能处理 5 个"; = the orchestrator's TaskGroup seeds the
@@ -130,15 +129,15 @@ actor ImportService {
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
-            self.contentHash = try c.decode(String.self, forKey: .contentHash)
-            self.destination = try c.decode(ImportDestination.self, forKey: .destination)
-            self.writtenAt = try c.decode(Date.self, forKey: .writtenAt)
+            contentHash = try c.decode(String.self, forKey: .contentHash)
+            destination = try c.decode(ImportDestination.self, forKey: .destination)
+            writtenAt = try c.decode(Date.self, forKey: .writtenAt)
             // optional fields (= absent on pre-[archived-round] cache entries; = decode failures
             // silently fall back to nil = the dedup then sees nil = treats
             // it as "never retried" = a fresh retry will run; = no
             // migration step needed).
-            self.lastTitleOnlyRetriedAt = try? c.decode(Date.self, forKey: .lastTitleOnlyRetriedAt)
-            self.lastTitleOnlyRetriedHash = try? c.decode(String.self, forKey: .lastTitleOnlyRetriedHash)
+            lastTitleOnlyRetriedAt = try? c.decode(Date.self, forKey: .lastTitleOnlyRetriedAt)
+            lastTitleOnlyRetriedHash = try? c.decode(String.self, forKey: .lastTitleOnlyRetriedHash)
         }
 
         private enum CodingKeys: String, CodingKey {
@@ -159,7 +158,7 @@ actor ImportService {
         }
     }
 
-    /// Apple canonical convenience: stateless (= no init body; = the actor's
+    /// Empty init by design: stateless (= no init body; = the actor's
     /// empty default state is enough because all state lives in the per-task
     /// actors + the sidecar cache on disk).
     init() {}
@@ -208,7 +207,7 @@ actor ImportService {
         // user sees "找到 X 个 .md 文件" the instant the orchestrator finishes
         // Phase 1).
         await onProgress?(tasks)
-                let cacheFile = target.cacheRoot.appendingPathComponent("import-cache.json")
+        let cacheFile = target.cacheRoot.appendingPathComponent("import-cache.json")
         let cache = ImportServiceCache.dedupAndHash(tasks: &tasks, cacheFile: cacheFile)
         // Filter out completed / skipped / failed; = the dispatch set is the remaining
         // tasks.
@@ -242,17 +241,17 @@ actor ImportService {
         // per-file strip).
         return tasksBox.value
     }
-    /// Reset the per-batch rollback trail at the start of every `importFiles`
-    /// call (= the same actor can be re-used across multiple sheets, e.g. the
-    /// cancel + "再次导入" retry path).
+
+    // Reset the per-batch rollback trail at the start of every `importFiles`
+    // call (= the same actor can be re-used across multiple sheets, e.g. the
+    // cancel + "再次导入" retry path).
     // (resetRollbackTrail extracted to ImportServiceCancellation.swift in A57; = see that file)
 
-
-    /// Snapshot the reference-library `entities.json` for the cancel handler to
-    /// restore on rollback (= captures the file before any writeFile call has a
-    /// chance to append to it; = a fresh library with no prior `entities.json`
-    /// stores an empty-data sentinel = the cancel handler deletes the file
-    /// outright).
+    // Snapshot the reference-library `entities.json` for the cancel handler to
+    // restore on rollback (= captures the file before any writeFile call has a
+    // chance to append to it; = a fresh library with no prior `entities.json`
+    // stores an empty-data sentinel = the cancel handler deletes the file
+    // outright).
     // (snapshotReferenceLibraryIndex extracted to ImportServiceCancellation.swift in A57; = see that file)
     // (runConcurrentPipeline extracted to ImportServiceConcurrency.swift in A71; = see that file)
 
@@ -261,8 +260,6 @@ actor ImportService {
     // (makeProcessFileInput extracted to ImportServiceConcurrency.swift in A71; = see that file)
 
     // (dedupAndHash extracted to ImportServiceCache.swift in A62; = see that file)
-
-
 
     // (retryFailedTasksTitleOnly extracted to ImportServiceRetryEntry.swift in A74; = see that file)
 
@@ -279,8 +276,7 @@ actor ImportService {
 
     // (siblingContextMap extracted to ImportServiceTitleOnlyHelpers.swift in A64; = see that file)
 
-
-    // (= boss 2026-10-10 (see OOB.md #2026-10-10) 件，自动跳过了" directive).
+    /// (the 2026-10-10 directive (see OOB.md #2026-10-10) skips an item whose destination file still exists).
     /// Verify the cache entry's destination file still exists on disk. Returns
     /// `true` if the previous import's output is still there (= the cache entry
     /// is valid; = skip is safe); returns `false` if the destination file is
@@ -314,9 +310,10 @@ actor ImportService {
                 .appendingPathComponent("entities")
                 .appendingPathComponent("\(uuid.uuidString).md")
             return FileManager.default.fileExists(atPath: refMdURL.path)
-        case .bookFolder(let folder):
+        case let .bookFolder(folder):
             guard let bookId = target.bookId,
-                  let shelfId = target.shelfId else {
+                  let shelfId = target.shelfId
+            else {
                 return false
             }
             let folderURL = target.shelvesRoot
@@ -338,15 +335,14 @@ actor ImportService {
         }
     }
 
-// (walkSourceDir extracted to ImportServiceFileSystem.swift in A58; = see that file)
-// (= the 33-LOC file-system walker = recursive enumerator that filters by
-// extension. The `private` qualifier was relaxed to internal; = required for
-// the cross-file extension access.)
+    // (walkSourceDir extracted to ImportServiceFileSystem.swift in A58; = see that file)
+    // (= the 33-LOC file-system walker = recursive enumerator that filters by
+    // extension. The `private` qualifier was relaxed to internal; = required for
+    // the cross-file extension access.)
 
     // (readCache extracted to ImportServiceCache.swift in A62; = see that file)
 
     // (writeCache extracted to ImportServiceCache.swift in A62; = see that file)
-
 
     // (writeFile extracted to ImportServiceWriters.swift in A68; = see that file)
 
@@ -359,7 +355,6 @@ actor ImportService {
     // (writeReference extracted to ImportServiceReferenceWriter.swift in A67; = see that file)
 
     // (sourceStringFromPath extracted to ImportServiceDispatchHelpers.swift in A63; = see that file)
-
 
     // MARK: - Errors
 
@@ -394,7 +389,6 @@ actor ImportService {
     // (sha256 extracted to ImportServiceHashing.swift in A59; = see that file)
 
     // (uuidFromHash extracted to ImportServiceHashing.swift in A59; = see that file)
-
 }
 
 // (extracted to ImportServiceCancellation.swift in A55; = see that file)
@@ -408,8 +402,8 @@ actor ImportService {
 /// `writeFile(... cache: inout ...)`; = Swift 6 forbids capturing `inout`
 /// across a TaskGroup boundary; = the canonical fix is a class that holds a
 /// single shared dictionary the orchestrator can reach from any concurrent
-/// context). Apple canonical pattern: a class-wrapper for cross-actor mutable
-/// state (= the orchestrator's `writtenURLs` is a value-type `Array<URL>`
+/// context). The pattern is a reference-type box, which is what Swift needs to share
+/// mutable state across an actor boundary (= the orchestrator's `writtenURLs` is a value-type `Array<URL>`
 /// living on the actor itself; = the `cache` is a value-type `Dictionary` that
 /// needs the same kind of "share-by-reference" treatment the test mocks get).
 final class CacheBox: @unchecked Sendable {
@@ -423,8 +417,8 @@ final class CacheBox: @unchecked Sendable {
 /// pipeline runs 5 tasks in parallel via TaskGroup; = each task mutates
 /// `tasksBox.value[i]` (= its own slot; = the mutation is safe because each
 /// task only touches a disjoint index; = the shared `value` is read by the
-/// orchestrator's TaskGroup loop for state-transition emits). Apple canonical
-/// pattern: a class-wrapper for cross-actor mutable state (= the same trick the
+/// orchestrator's TaskGroup loop for state-transition emits). The same
+/// reference-type box as
 /// `CacheBox` uses; = both the dedup cache + the per-task state array need the
 /// reference-type wrapper because the per-file pipeline runs concurrently
 /// across the 5 TaskGroup slots).
@@ -434,9 +428,9 @@ final class TasksBox: @unchecked Sendable {
         self.value = value
     }
 }
+
 extension ImportService {
     // (processFile extracted to ImportServiceProcessFile.swift in A73; = see that file)
-
 
     // lastDispatchError is now stored on the actor (= extensions can't
     // hold stored properties; = it lives next to isCancelled / writtenURLs
@@ -449,7 +443,6 @@ extension ImportService {
     // (computeBodyToWrite extracted to ImportServiceBodyWriter.swift in A65; = see that file)
     // (writeOneExtraFile extracted to ImportServiceMainFileWriter.swift in A70; = see that file)
     // (appendActivity extracted to ImportServiceRetryEntry.swift in A74; = see that file)
-
 }
 
 extension ImportService {
@@ -458,5 +451,4 @@ extension ImportService {
     // (normalizeTitle extracted to ImportServiceDedup.swift in A56; = see that file)
 
     // (sanitizeFilename extracted to ImportServiceDedup.swift in A56; = see that file)
-
 }

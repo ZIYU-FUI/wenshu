@@ -129,7 +129,7 @@ Each component has:
 
 ### 2.7 RegionContentBackground
 - **Path**: `Sources/WenshuApp/UI/RegionContentBackground.swift`
-- **Purpose**: Pane content area background (= maps TabKind to 4-tier Material strength via `.regularMaterial` / `.windowBackgroundColor` / Apple canonical NSColor)
+- **Purpose**: Pane content area background (= maps TabKind to 4-tier Material strength via `.regularMaterial` / `.windowBackgroundColor` / an AppKit semantic `NSColor`)
 - **Use when**: Setting background of any pane's content area
 - **API**: `view.background(RegionContentBackground())`
 
@@ -154,18 +154,18 @@ Each component has:
 
 ## 🎨 LEVEL 4: Style + visual effects
 
-### 4.1 Liquid Glass background (Apple canonical `.glassEffect(.regular)`)
+### 4.1 Liquid Glass background (SwiftUI's `.glassEffect(.regular)`)
 
 - **Path**: N/A (= SwiftUI built-in modifier; macOS 27 Tahoe Liquid Glass).
-- **Purpose**: Apple canonical Liquid Glass background for any wenshu chrome. Apple auto-adapts to dark mode / Reduce Transparency / Increase Contrast (= system-managed, no per-app slider).
-- **Use when**: Any pane / tab bar / status bar / region background needs the canonical macOS Liquid Glass look. Apply `.glassEffect(.regular)` (= standalone View modifier; requires a View receiver — `Color.clear.glassEffect(.regular)` when the glass IS the background, or `.glassEffect(.regular, in: Shape)` for shape-specific glass).
+- **Purpose**: The Liquid Glass background for any wenshu chrome, using SwiftUI's own modifier rather than a hand-rolled material ladder. The system adapts it to dark mode / Reduce Transparency / Increase Contrast (= no per-app slider of ours).
+- **Use when**: Any pane / tab bar / status bar / region background needs the system's own macOS Liquid Glass look. Apply `.glassEffect(.regular)` (= standalone View modifier; requires a View receiver — `Color.clear.glassEffect(.regular)` when the glass IS the background, or `.glassEffect(.regular, in: Shape)` for shape-specific glass).
 - **Replaces**: The pre-v0.32 hand-rolled 6-step Material ladder + per-app opacity slider. The previous hand-rolled ladder + UserDefaults opacity key + SwiftUI Environment injection + notification plumbing were all removed in v0.32.
-- **DON'T**: Re-implement a per-app opacity slider (= Apple's system-wide Reduce Transparency accessibility setting is the canonical knob). Use Apple `.glassEffect(.regular)` instead.
+- **DON'T**: Re-implement a per-app opacity slider. Reduce Transparency is the system-wide knob for this, and a second, app-local one would disagree with it. Use `.glassEffect(.regular)` directly.
 
 ### 4.2 Hover / pressed wash (= bare `.thinMaterial`)
 
 - **Path**: N/A (= SwiftUI Material catalog value, macOS 27 Tahoe).
-- **Purpose**: Apple canonical hover/pressed wash (= light Liquid Glass tint). Use bare `.thinMaterial` directly (= no project-local ShapeStyle wrapper).
+- **Purpose**: The hover/pressed wash (= a light material tint, which is wenshu's choice among the system's materials). Use bare `.thinMaterial` directly (= no project-local ShapeStyle wrapper).
 - **API**:
   ```swift
   // Hover background (when condition is true)
@@ -197,7 +197,7 @@ Each component has:
   // A set of groups (= the board's own status groups)
   LoadingPlaceholder(.groups(count: 8))
   ```
-- **Don't use when**: The zone is doing an activity of UNKNOWN duration that is NOT "content arriving" (= the app's launch shell) = = keep Apple's indeterminate `ProgressView` there (= the HIG progress-indicators article's own case). Also not for an inline activity inside a surface (= a badge, a diagnostics row, an import row) = = Apple's indicator is right at that size. Also not for a zone whose arriving content has NO knowable shape, or whose content is REPLACED rather than arriving into an empty pane (= the chat zone's transcript = = its rows' widths come from words that have not arrived, = = and a scope change swaps the conversation on screen) = = the component's own contract names that exclusion.
+- **Don't use when**: The zone is doing an activity of UNKNOWN duration that is NOT "content arriving" (= the app's launch shell) = = keep Apple's indeterminate `ProgressView` there (= the HIG progress-indicators article's own case, https://developer.apple.com/design/human-interface-guidelines/progress-indicators). Also not for an inline activity inside a surface (= a badge, a diagnostics row, an import row) = = a small inline spinner serves there; = a skeleton has no arriving content to replace, = = this is our spec, not an Apple claim. Also not for a zone whose arriving content has NO knowable shape, or whose content is REPLACED rather than arriving into an empty pane (= the chat zone's transcript = = its rows' widths come from words that have not arrived, = = and a scope change swaps the conversation on screen) = = the component's own contract names that exclusion.
 - **Motion**: Apple's own phase animator walking the opacity between two values (= no hand-rolled timer, = no custom shimmer gradient; = Apple ships no skeleton API, = = the geometry and the timing are ours, recorded as ours per AGENTS.md 1.17). The system's Reduce Motion setting stops the breathing (= the blocks hold one opacity), = = the same setting the chat's status pulse and tool card already honor.
 
 ---
@@ -214,7 +214,7 @@ Each component has:
 
 - **Path**: N/A (= SwiftUI built-in modifier).
 - **Purpose**: the product tooltip (= tiny popup on hover/long-press). The OS handles the warm-window delay and the popup rendering (= no custom code).
-- **Use when**: Any view needs contextual help text. Apply `.help("Toggle sidebar (⌘B)")` to the view (= Apple canonical since macOS 11).
+- **Use when**: Any view needs contextual help text. Apply `.help("Toggle sidebar (⌘B)")` to the view — SwiftUI's own tooltip, which owns the warm-window delay and the popup. It replaced a 221-line `TipController` of ours.
 - **Replaces**: `Sources/WenshuApp/UI/Components/Tip.swift` (= 221-LOC custom `TipController` + `TipModifier` with a hand-rolled 300 ms warm-window; deleted in commit by Tier-1 rank-1 deletion per `.scratch/v0.32-apple-api-audit/audit.md` §3).
 
 ### 5.4 DropAffordance / NativeControlsInspector
@@ -246,18 +246,18 @@ Each component has:
 
 ---
 
-## 📋 LEVEL 7: Window chrome (= Apple-canonical macOS 26)
+## 📋 LEVEL 7: Window chrome (= system controls, no custom drawing)
 
-Window chrome = 100% Apple canonical per macOS 26 Tahoe. LibraryRootView uses SwiftUI `.toolbar { ToolbarItemGroup }` + `.windowToolbarStyle(.unified)` (= the Pages / Xcode / Mail / Finder pattern).
+Window chrome is built out of the platform's own controls rather than drawn by us: LibraryRootView uses SwiftUI `.toolbar { ToolbarItemGroup }` + `.windowToolbarStyle(.unified)`, which is what SwiftUI's own toolbar primitives produce. No HIG sentence prescribes that combination — the decision is wenshu's, with no vendor parity claimed, and the reason is that a control you do not implement is a control you do not have to keep aligned with the OS.
 
-### 7.1 Apple canonical toolbar (= LibraryRootView)
+### 7.1 The unified toolbar (= LibraryRootView)
 - **Path**: see `Sources/WenshuApp/App.swift:WindowGroup { ... }` around `LibraryRootView()` + `.windowToolbarStyle(.unified)`
-- **Purpose**: 1 macOS native .unified 52 PT titlebar (= traffic lights + grouped toolbar items in 1 unified capsule = the macOS 26 Tahoe canonical look)
+- **Purpose**: one `.unified` titlebar at the height the system gives it (= traffic lights plus grouped toolbar items in a single bar). The 52 PT height named in this line is wenshu's own window capture, measured here, not a published figure.
 - **Use when**: ANY new top-level chrome (= use Apple's `.toolbar` API)
 - **Replaces**: All 4 deleted wrappers from commit `69a43da65`
 
-### 7.2 Apple canonical status bar (= bottom of window)
-- **Path**: see `Sources/WenshuApp/App.swift:WindowGroup { ... }` around `LibraryRootView()` + `.toolbar { ToolbarItem(placement: .principal) { ... }` (= Apple macOS 26 status bar pattern)
+### 7.2 The window-level status row (= bottom of window)
+- **Path**: see `Sources/WenshuApp/App.swift:WindowGroup { ... }` around `LibraryRootView()` + `.toolbar { ToolbarItem(placement: .principal) { ... }` (= a row of ours; macOS has no status-bar API for a window bottom, which is why it is a `ToolbarItem` placement rather than a control)
 - **Purpose**: macOS standard window-level status (= model name / session indicator / ready state) without custom chrome
 
 ---
@@ -425,7 +425,7 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 
 ## 🎨 STYLES (= (see OOB.md #2026-09-07) 'ui 与功能分离' architecture)
 
-2026-09-07 directive: 'make a styles-component file, for managing control styles, this file is like css, so we can manage it better in the future, separating function from style' = abstract ALL chrome/content/icon styling into CSS-like style files (= single source of truth for visual tokens + modifiers; = zones own only FUNCTIONAL wiring). Ponytail principle 'use stdlib / Apple-native / existing dependencies before writing new code': the 4 STYLES files below all wrap Apple canonical APIs (= SwiftUI .padding, .font, .buttonStyle, SF Symbols 6 Image) = no new abstractions over Apple primitives. (the m1 shell 2026-09-15: replaced Lucide library with SF Symbols 6.)
+2026-09-07 directive: 'make a styles-component file, for managing control styles, this file is like css, so we can manage it better in the future, separating function from style' = abstract ALL chrome/content/icon styling into CSS-like style files (= single source of truth for visual tokens + modifiers; = zones own only FUNCTIONAL wiring). Ponytail principle 'use stdlib / Apple-native / existing dependencies before writing new code': the 4 STYLES files below wrap system APIs directly (SwiftUI `.padding`, `.font`, `.buttonStyle`, SF Symbols) = no new abstraction over platform primitives. (the m1 shell 2026-09-15: replaced Lucide library with SF Symbols 6.)
 
 ### The 4 STYLES files (= the "CSS-like" layer)
 
@@ -446,13 +446,13 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
   .contentInsetStyle(.compact)   // 12 PT
   .contentInsetStyle(.none)      // 0 PT (= for List(.sidebar) which has Apple built-in inset)
   
-  // Typography (= Apple canonical 11 text styles per iron-rule 2):
+  // Typography (= the project's closed set of 11 text-style cases, named after the system text styles;  iron-rule 2 keeps the set closed):
   .sectionTypographyStyle(.heading)  // .headline
   .sectionTypographyStyle(.body)     // .body
   .sectionTypographyStyle(.caption)  // .caption
   // ... 11 cases total
   
-  // Button (= Apple canonical 4 button styles):
+  // Button (= 4 styles, one per SwiftUI button-style primitive):
   .actionButtonStyle(.icon)         // .borderless
   .actionButtonStyle(.secondary)    // .bordered
   .actionButtonStyle(.primary)      // .borderedProminent
@@ -496,7 +496,7 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 
 ---
 
-## 🪟 LEVEL 9: Chrome + independent windows (= 老板 2026-10-16 OOB)
+## 🪟 LEVEL 9: Chrome + independent windows (= product window-split spec)
 
 ### 9.1 ChromeMainToolbar
 - **Path**: `Sources/WenshuApp/Features/Chrome/View/ChromeMainToolbar.swift` (A92, 146 LOC)
@@ -529,7 +529,7 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 
 ### 9.3 The 11 dedicated Feature directories (= 1 per window)
 
-Per boss 2026-10-16 OOB "用不用每一个都像截图一样拆出来" (= each window like the screenshot), the 11 toolbar window buttons each have their own Feature directory (= 1 source of truth for the feature = the future feature code goes here).
+Per the product window-split spec (= each window like the screenshot), the 11 toolbar window buttons each have their own Feature directory (= 1 source of truth for the feature = the future feature code goes here).
 
 | WindowID | Feature dir | Window file |
 | --- | --- | --- |
@@ -549,9 +549,9 @@ When the underlying feature code lands (= the canvas / composer / cron / etc. co
 
 ### 9.4 §6.2/§6.5 spec relax (= 4-slot by-need)
 
-Per boss 2026-10-16 OOB "§6.2 选项 1, 按需来" (= use only what each feature actually needs): the previous §6.2 5-slot Apple Backyard Birds shape (`Views/ / ViewModels/ / UseCases/ / Repositories/ / Models/`) is relaxed to the project's actual 4-slot shape (= `Views/ / Model/ / Service/ / Store/`). Empty slots are allowed; = leaf features with ≤3 files skip `Store/`.
+Per the project §6.2 option-1 rule (= use only what each feature actually needs): the previous §6.2 5-slot template shape (`Views/ / ViewModels/ / UseCases/ / Repositories/ / Models/`) is relaxed to the project's actual 4-slot shape (= `Views/ / Model/ / Service/ / Store/`). Empty slots are allowed; = leaf features with ≤3 files skip `Store/`.
 
-§6.5 file naming also relaxed from the Apple suffixes (`View/ / ViewModel/ / UseCase/ / Repository/ / Service`) to the project's actual suffixes (`View/ / Ops/ / Service/ / State`).
+§6.5 file naming also relaxed from the 5-slot template's suffixes (`View/ / ViewModel/ / UseCase/ / Repository/ / Service`) to the project's actual suffixes (`View/ / Ops/ / Service/ / State`).
 
 ### 9.5 §1.7 NFI (§1.11 nervous file index)
 

@@ -366,7 +366,7 @@ struct ImportSheet: View {
         panel.allowsMultipleSelection = false
         // Filter to the selected file type's extension (= the open panel shows.md
         // files when the user picks Markdown; = the user can't accidentally pick
-        // a.pdf when they meant to import.md). UTType is Apple canonical (= a
+        // a.pdf when they meant to import.md). UTType is the system type here (= a
         // `UTType` array = the `allowedContentTypes` parameter on NSOpenPanel; =
         // the system file picker uses it to filter the list of selectable files).
         panel.allowedContentTypes = fileType.allowedContentTypes

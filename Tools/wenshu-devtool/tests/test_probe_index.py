@@ -22,16 +22,24 @@ from __future__ import annotations
 
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 DEVTOOL = Path(__file__).resolve().parent.parent
+REPO_ROOT = DEVTOOL.parents[1]
 LIVE_INDEX = DEVTOOL / "probe-index.md"
 LIVE_PROBES = DEVTOOL / "probes"
 
 # A commit reference in the index: a short or full SHA.
 COMMIT_RE = re.compile(r"^[0-9a-f]{7,40}$")
+
+# An explicit declaration that the measured commit is gone (a run that
+# predates a rebuild chain). The marker is checked: it is accepted only
+# while the token really does not resolve, so a row can never mark an
+# existing commit lost to dodge the existence arm.
+LOST_RE = re.compile(r"^lost:([0-9a-f]{7,40})$")
 
 HEADER = ("Probe", "Subject measured", "Numbers printed", "Commit measured against")
 
@@ -78,10 +86,14 @@ def index_rows(index_text: str) -> list[dict[str, str]]:
     return rows
 
 
-def drift(index_text: str, probe_names: list[str]) -> list[str]:
+def drift(index_text: str, probe_names: list[str],
+          commit_exists=None) -> list[str]:
     """The ways the index and the directory disagree.
 
-    An empty list means they agree.
+    An empty list means they agree. commit_exists, when given, resolves
+    a commit token against the repository: a bare cell that does not
+    resolve is a number keyed to nothing, and a lost: marker whose token
+    does resolve is a false declaration.
     """
     rows = index_rows(index_text)
     named = [row["probe"] for row in rows]
@@ -93,8 +105,18 @@ def drift(index_text: str, probe_names: list[str]) -> list[str]:
     for row in rows:
         if row["probe"] not in probe_names:
             problems.append(f"index row names a file that is not there: {row['probe']}")
+        lost = LOST_RE.match(row["commit"])
+        if lost:
+            if commit_exists is not None and commit_exists(lost.group(1)):
+                problems.append(
+                    f"lost marker names a commit that resolves: {row['probe']}")
+            continue
         if not COMMIT_RE.match(row["commit"]):
             problems.append(f"index row carries no commit: {row['probe']}")
+            continue
+        if commit_exists is not None and not commit_exists(row["commit"]):
+            problems.append(
+                f"index row names a commit that is not an object here: {row['probe']}")
     for name in sorted({name for name in named if named.count(name) > 1}):
         problems.append(f"index names the probe more than once: {name}")
     return problems
@@ -135,12 +157,21 @@ def row(probe: str, commit: str = "78536bc945dc") -> dict[str, str]:
 # ------------------------------------------------------------------ cases --
 
 
+def live_commit_exists(token: str) -> bool:
+    """Whether a commit token resolves in this repository."""
+    return subprocess.run(
+        ["git", "cat-file", "-t", token],
+        cwd=REPO_ROOT, capture_output=True,
+    ).returncode == 0
+
+
 def case_1_live_index_agrees_with_live_directory():
     """The live index and the live probes directory agree.
 
     The live tree is copied into a temporary directory first, so the
     comparison itself runs against a fixture and never writes to the
-    repository.
+    repository. Commit cells are resolved against the real repository:
+    a number keyed to a commit that is not an object here is drift.
     """
     if not LIVE_INDEX.is_file():
         return False, f"{LIVE_INDEX} does not exist"
@@ -152,7 +183,7 @@ def case_1_live_index_agrees_with_live_directory():
         shutil.copy2(LIVE_INDEX, root / "probe-index.md")
         index_text = (root / "probe-index.md").read_text(encoding="utf-8")
         names = probe_files(root / "probes")
-        problems = drift(index_text, names)
+        problems = drift(index_text, names, commit_exists=live_commit_exists)
     if problems:
         return False, "; ".join(problems)
     return True, f"{len(names)} probe(s) indexed"
@@ -226,12 +257,64 @@ def case_5_a_row_without_a_commit_is_reported():
     return True, "the row without a commit was reported"
 
 
+def case_6_a_row_keyed_to_a_missing_commit_is_reported():
+    """A cell that looks sourced and resolves to nothing is drift.
+
+    The format check alone passes a fabricated SHA; this arm runs the
+    same resolution a reader would (git cat-file) and fails when the
+    object is not in the repository. The fixture resolver says the
+    default fixture token exists and every other token does not, so no
+    real repository state is needed to prove the bite.
+    """
+    resolver = lambda token: token == "78536bc945dc"  # noqa: E731
+    with tempfile.TemporaryDirectory() as tmp:
+        index_text, names = fixture(
+            Path(tmp),
+            {"chat_bubble_metrics.swift": "// probe\n", "chip_metrics.swift": "// probe\n"},
+            [row("chat_bubble_metrics.swift"), row("chip_metrics.swift", commit="deadbeef12")],
+        )
+        problems = drift(index_text, names, commit_exists=resolver)
+    if not any("not an object here: chip_metrics.swift" in p for p in problems):
+        return False, f"the dangling commit cell was not reported: {problems}"
+    return True, "the dangling commit cell was reported"
+
+
+def case_7_a_lost_marker_is_checked_not_trusted():
+    """lost:<token> is legal only while the token stays missing.
+
+    A marker over a token that DOES resolve is a false declaration and
+    is reported; a marker over a missing token is accepted explicitly,
+    which is the sanctioned way to carry a run that predates a rebuild.
+    """
+    resolver = lambda token: token == "78536bc945dc"  # noqa: E731
+    with tempfile.TemporaryDirectory() as tmp:
+        honest, names = fixture(
+            Path(tmp),
+            {"chat_bubble_metrics.swift": "// probe\n"},
+            [row("chat_bubble_metrics.swift", commit="lost:292f49670903")],
+        )
+        lying, _ = fixture(
+            Path(tmp),
+            {"chat_bubble_metrics.swift": "// probe\n"},
+            [row("chat_bubble_metrics.swift", commit="lost:78536bc945dc")],
+        )
+        ok_problems = drift(honest, names, commit_exists=resolver)
+        bad_problems = drift(lying, names, commit_exists=resolver)
+    if ok_problems:
+        return False, f"an honest lost marker was charged: {ok_problems}"
+    if not any("lost marker names a commit that resolves" in p for p in bad_problems):
+        return False, f"the false lost marker was not reported: {bad_problems}"
+    return True, "the lost marker is accepted only over a missing object"
+
+
 CASES = [
     ("the live index and the live directory agree", case_1_live_index_agrees_with_live_directory),
     ("a matching index and directory report no drift", case_2_a_matching_pair_reports_no_drift),
     ("a probe without an index row is reported", case_3_a_probe_without_a_row_is_reported),
     ("an index row without a probe is reported", case_4_a_row_without_a_probe_is_reported),
     ("an index row without a commit is reported", case_5_a_row_without_a_commit_is_reported),
+    ("an index row keyed to a missing commit is reported", case_6_a_row_keyed_to_a_missing_commit_is_reported),
+    ("a lost marker is checked not trusted", case_7_a_lost_marker_is_checked_not_trusted),
 ]
 
 

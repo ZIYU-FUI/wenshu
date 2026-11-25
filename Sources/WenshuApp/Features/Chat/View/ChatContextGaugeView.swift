@@ -7,8 +7,9 @@
 // opens a popover on click that names the parts of the prompt the value
 // is made of.
 //
-// Apple canonical:
-//   - Gauges: "a gauge that uses the capacity style displays a fill that
+// Apple canonical (= the gauges page and the popovers page):
+//   - HIG "gauges" (= https://developer.apple.com/design/human-interface-guidelines/gauges):
+//     "a gauge that uses the capacity style displays a fill that
 //     stops at the value's location on the path"; "Consider using the
 //     continuous style for large ranges" (= a 1,000,000-token window is a
 //     large range, so a segmented fill would have too little resolution to
@@ -16,7 +17,8 @@
 //     significant parts of the range"; and "Write succinct labels that
 //     describe the current value and both endpoints of the range" (=
 //     VoiceOver reads the visible labels).
-//   - Popovers: "Use a popover to expose a small amount of information";
+//   - HIG "popovers" (= https://developer.apple.com/design/human-interface-guidelines/popovers):
+//     "Use a popover to expose a small amount of information";
 //     "Position popovers appropriately. Make sure a popover's arrow points
 //     as directly as possible to the element that revealed it"; "Show one
 //     popover at a time"; "Avoid making a popover too big".
@@ -33,8 +35,9 @@ struct ChatContextGaugeView: View {
 
     /// Whether the popover is open.
     ///
-    /// One popover at a time (= the HIG's rule), so the state lives here
-    /// rather than being spread across the footer.
+    /// One popover at a time (= the HIG's rule:
+    /// https://developer.apple.com/design/human-interface-guidelines/popovers),
+    /// so the state lives here rather than being spread across the footer.
     @State private var showingBreakdown = false
 
     var body: some View {

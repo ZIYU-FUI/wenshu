@@ -132,6 +132,25 @@ jobs:
           fi
           python3 Tools/wenshu-devtool/ci_change_gate.py --base "$BASE" --check pollution
 
+      # The comment-lineage judge's own battery. The judge ran in the pre-review gate
+      # and in CI, but nothing ran the judge's TEST SUITE: a gate whose arms drifted
+      # from its rules printed PASS for both, so the arms are what pins the rules
+      # (= the vendor family, the marker-keyed exemption, the canonical OOB form and
+      # the cross-line join each have a violating arm and a compliant partner).
+      - name: Comment-lineage battery
+        run: python3 Tools/wenshu-devtool/tests/test_comment_lineage_gate.py
+
+      # The registry's LOC column, checked on every change. A row that no longer
+      # carries its file's own count is how the next reader stops finding the file,
+      # and no published path caught it (= the gate existed and ran nowhere).
+      - name: NFI registry LOC gate
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="origin/main"
+          fi
+          python3 Tools/wenshu-devtool/nfi-loc-check.py --base "$BASE"
+
       # The registries' trailing newline (= = the byte the house's key-level
       # merge driver compares, = = and the byte that broke it twice).
       - name: Markdown trailing-newline gate

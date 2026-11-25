@@ -42,8 +42,8 @@ struct ChatMessageView: View {
     /// outlives the row, which is what keeps a closed block closed.
     let onThinkingReveal: ChatThinkingRevealWriter?
     /// T26-HOVER-TIMESTAMP: true when the user is hovering the
-    /// timestamp footer (= expands the time to a full date; = Apple
-    /// Messages hover affordance).
+    /// timestamp footer (= expands the time to a full date; the
+    /// hover-reveal is our own spec = no vendor affordance claimed).
     @State private var isTimestampHovered: Bool = false
 
     init(
@@ -88,8 +88,8 @@ struct ChatMessageView: View {
         #if DEBUG
         #endif
         // :
-        // drop the iMessage-style bubble + avatar-run-merge path (= the
-        // (see OOB.md)) and render per Hermes:
+        // drop the vendor-bubble + avatar-run-merge path (= a standing
+        // product decision) and render per Hermes:
         //   - user row: `apps/desktop/src/components/assistant-ui/
         //     thread/user-message.tsx:67-69` rounded-xl glass card with
         //     bg fill + border (= MC2).
@@ -123,7 +123,7 @@ struct ChatMessageView: View {
     private var messageContents: some View {
         // -cleanup E3: the user text inside the glass card was
         // right-aligned (= expected: left-aligned text reading like
-        // iMessage / Slack / hermes). Root cause: the inner VStack
+        // hermes user-message.tsx). Root cause: the inner VStack
         // (= messageContents) was using .trailing alignment for outgoing
         // rows; = all child elements (= ChatMessageBodyView text +
         // timestamp footer + image thumbnail) anchored to the right
@@ -133,8 +133,7 @@ struct ChatMessageView: View {
         // uses .trailing alignment to push the entire card to the
         // trailing edge of the chat column. Net visual: card is on
         // the right (= outer alignment), but text inside reads from
-        // the left (= inner alignment); = matches iMessage +
-        // Slack + hermes user-message.tsx).
+        // the left (= inner alignment); = matches hermes user-message.tsx).
         VStack(alignment: .leading, spacing: 4) {
             // wenshu-side source label + icon chrome (= not in hermes):
             //   - user-message.tsx:240-585 (= full UserMessage scan) renders
@@ -192,9 +191,9 @@ struct ChatMessageView: View {
                 // have their own inline render).
                 //
                 // ChatMessageBodyView wraps each part in the bubble
-                // background (= the product iMessage-style) and applies
+                // background (= the product's outgoing-bubble style) and applies
                 // the streaming contentTransition to the text parts
-                // only (= the canonical SwiftUI "no flicker" pattern
+                // only (= our no-flicker technique for streamed text
                 //
                 // When parts is empty (= back-compat with previous
                 // messages that didn't carry parts), ChatMessageBodyView
@@ -321,10 +320,9 @@ struct ChatMessageView: View {
             }
             // T19-MESSAGE-TIMESTAMP (2026-09-18): render a small
             // timestamp footer below sealed assistant messages
-            // (= the product's footer pattern, same as Apple Messages
-            // = small monospaced text below the bubble showing
-            // the time). Hidden for:
-            //   - user messages (= iMessage doesn't show timestamps
+            // (= the product's footer pattern: small monospaced text
+            // below the bubble showing the time). Hidden for:
+            //   - user messages (= our spec: no per-message timestamp
             //     on user-sent bubbles; = the pattern lives below
             //     the bubble row in the conversation, not per-message)
             //   - streaming messages (= the cursor + shimmer
@@ -363,8 +361,8 @@ struct ChatMessageView: View {
         .frame(maxWidth: isOutgoing ? nil : .infinity, alignment: .leading)
     }
 
-    /// Outgoing messages are the ones this person sent, which iMessage puts
-    /// on the trailing side in the accent colour.
+    /// Outgoing messages are the ones this person sent; the product puts
+    /// them on the trailing side in the accent colour.
     ///
     /// Internal rather than private, so the row's own behaviour can be
     /// asserted instead of grepping the source for this expression (= a
@@ -460,8 +458,9 @@ private struct UserGlassCardModifier: ViewModifier {
             // Apple's own material by construction). Apple's regular
             // variant "blurs and adjusts the luminosity of background
             // content to maintain legibility of text and other
-            // foreground elements" (= the HIG materials page), which is what
-            // keeps the user's words readable on the glass.
+            // foreground elements" (= the HIG materials page,
+            // https://developer.apple.com/design/human-interface-guidelines/materials),
+            // which is what keeps the user's words readable on the glass.
             //
             // It is the NON-interactive variant: Apple's own header says
             // the interactive glass "should be enabled for glass that is

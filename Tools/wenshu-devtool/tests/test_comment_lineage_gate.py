@@ -40,6 +40,9 @@ happened to a gate in this repo:
      two-dot window a moving base drops somebody else's deletion into the delta
      as an addition, and a clean branch gets charged for a lineage line it never
      wrote; the repo's other delta gates already work this way).
+ 12. a claim split over two comment lines is charged (= the window states it, no single
+     line does), and the same claim on one line is charged too (= the per-line reading
+     is not the only reader, and the split reading is not the only one that counts).
 
 Run:  python3 Tools/wenshu-devtool/tests/test_comment_lineage_gate.py
 Exit: 0 = every case passed, 1 = at least one case failed.
@@ -74,37 +77,21 @@ def check(name, ok, detail=""):
     if not ok:
         FAILURES.append(name)
 
-
-def parse_arms():
-    arms = []
-    for ln in open(ARMS, encoding="utf-8"):
-        ln = ln.rstrip("\n")
-        if not ln.strip() or "|" not in ln or ln.lstrip().startswith("#"):
-            continue
-        kind, rest = ln.split("|", 1)
-        exp, text = rest.split("|", 1)
-        path = DEFAULT_PATH
-        if "@path:" in text:
-            text, path = text.rsplit("@path:", 1)
-            path = path.strip()
-        arms.append((kind.strip().rstrip(":"), exp.strip(), text, path))
-    return arms
-
-
-# = = = THE READER'S FIXTURES. = = = They moved here with the reader: = = = the
-# = = = gate that ran before the review lane used to carry a second reader of
-# = = = comments (= a second CJK pattern, = = = a narrower character class, = = =
-# = = = a two-dot window), = = = and the two readers disagreed on every live
-# = = = branch. = = = One rule, = = = one reader, = = = one verdict.
-CJK_LITERAL_WITH_TRAILING_COMMENT = 'let u = "https://example.com/唐朝"  // the link'
-CJK_IN_TRAILING_COMMENT = "let size = 11  // the body is 通用"
-CJK_IN_BLOCK_COMMENT = "/* the body is 通用 */"
-CJK_IN_BLOCK_COMMENT_WITH_URL = "let x = 1  /* the body is 通用 = see http://example.com */"
-CJK_IN_BLOCK_COMMENT_WITH_TRAILING_NOTE = "let x = 1  /* the body is 通用 */  // a trailing note"
-CJK_IN_BLOCK_COMMENT_AFTER_URL = "let x = 1  /* see http://example.com = the body is 通用 */"
-CJK_IN_MULTILINE_LITERAL = 'let doc = """\n[链接](https://example.com/通用)\n"""  // the note'
 SWIFT = "Sources/WenshuApp/Demo.swift"
 
+CJK_LITERAL_WITH_TRAILING_COMMENT = 'let u = "https://example.com/唐朝"  // the link'
+
+CJK_IN_TRAILING_COMMENT = "let size = 11  // the body is 通用"
+
+CJK_IN_BLOCK_COMMENT = "/* the body is 通用 */"
+
+CJK_IN_MULTILINE_LITERAL = 'let doc = """\n[链接](https://example.com/通用)\n"""  // the note'
+
+CJK_IN_BLOCK_COMMENT_WITH_URL = "let x = 1  /* the body is 通用 = see http://example.com */"
+
+CJK_IN_BLOCK_COMMENT_WITH_TRAILING_NOTE = "let x = 1  /* the body is 通用 */  // a trailing note"
+
+CJK_IN_BLOCK_COMMENT_AFTER_URL = "let x = 1  /* see http://example.com = the body is 通用 */"
 
 def case_reader():
     """The reader: what is a comment, and what TEXT of it is charged.
@@ -168,6 +155,32 @@ def case_reader():
     text, _ = comment_text("#expect(x == 1)", SWIFT)
     check("case 12l: `#expect` in a Swift file is CODE (= not a comment)",
           text is None, f"text={text!r}")
+def parse_arms():
+    arms = []
+    for ln in open(ARMS, encoding="utf-8"):
+        ln = ln.rstrip("\n")
+        if not ln.strip() or "|" not in ln or ln.lstrip().startswith("#"):
+            continue
+        kind, rest = ln.split("|", 1)
+        exp, text = rest.split("|", 1)
+        path = DEFAULT_PATH
+        if "@path:" in text:
+            text, path = text.rsplit("@path:", 1)
+            path = path.strip()
+        arms.append((kind.strip().rstrip(":"), exp.strip(), text, path))
+    return arms
+
+
+def arm_reading(text, path):
+    """How an arm is read. A wrapped arm (= its text carries a `\\n`) is read as the
+    JOINED window, and its per-line readings are returned beside it, so a wrapped
+    violating arm can be held to the rule it is written for (= no single line of it
+    may state the claim)."""
+    if "\\n" in text:
+        parts = text.split("\\n")
+        joined = " ".join(p.strip() for p in parts)
+        return joined, [classify(p, path) for p in parts]
+    return text, None
 
 
 def case_arms():
@@ -175,12 +188,16 @@ def case_arms():
     cov = collections.Counter()
     bad = []
     for kind, exp, text, path in arms:
-        got = {ALIAS.get(r, r) for r, _lab, _s in classify(text, path)}
+        joined, per_line = arm_reading(text, path)
+        got = {ALIAS.get(r, r) for r, _lab, _s in classify(joined, path)}
         want = ALIAS[exp]
         side = "carve" if (path.startswith(("Scripts/", "Tools/wenshu-devtool/"))
                            and not path.startswith("Tools/wenshu-devtool/probes/")) else "ban"
         cov[(kind, want, side)] += 1
         ok = (want in got) if kind == "R" else (want not in got)
+        if ok and kind == "R" and per_line is not None:
+            if any(ALIAS.get(r, r) == want for hits in per_line for r, _lab, _s in hits):
+                ok = False
         if not ok:
             bad.append((kind, want, sorted(got), text[:70], path))
     rules = {"1.1/7.5", "1.5", "1.6"}
@@ -491,6 +508,72 @@ def case_tagged_row_key():
               f'dates={inv["dangling_dates"]} by_date={inv["by_date"]}')
 
 
+def case_wrapped_claim():
+    """The plant the review names: a parity claim split over two comment lines is
+    charged (= the window states it and no single line does), and the same claim on
+    one line is charged too (= the split reading is not the only reader)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
+                   GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
+
+        def sh(*a):
+            subprocess.run(a, cwd=tmp, check=True, capture_output=True, env=env)
+
+        def head():
+            return subprocess.run(["git", "-C", tmp, "rev-parse", "HEAD"],
+                                  capture_output=True, text=True).stdout.strip()
+
+        sh("git", "init", "-q", "-b", "main")
+        open(os.path.join(tmp, "Demo.swift"), "w").write("// base\nstruct Demo { }\n")
+        sh("git", "add", "-A")
+        sh("git", "commit", "-qm", "base")
+        base = head()
+        open(os.path.join(tmp, "Demo.swift"), "w").write(
+            "// base\n// the composer matches the\n// Mail app panel\nstruct Demo { }\n")
+        sh("git", "add", "-A")
+        sh("git", "commit", "-qm", "split")
+        split = measure(tmp, base, "HEAD")
+        open(os.path.join(tmp, "Demo.swift"), "w").write(
+            "// base\n// the composer matches the Mail app panel\nstruct Demo { }\n")
+        sh("git", "add", "-A")
+        sh("git", "commit", "-qm", "one line")
+        one = measure(tmp, base, "HEAD")
+        check("case 12: a claim split over two comment lines is charged",
+              split["offending"] == 1 and split["added_comment_lines"] == 2,
+              f'offending={split["offending"]} added={split["added_comment_lines"]}')
+        check("case 12b: and the same claim on one line is charged too",
+              one["offending"] == 1 and one["added_comment_lines"] == 1,
+              f'offending={one["offending"]} added={one["added_comment_lines"]}')
+
+
+def case_instrument_results():
+    """`pre_review_gate.py` runs two instruments over the tree, and they once shared
+    one `code, out` pair (= the second instrument's exit code was printed for the
+    first (= a battery that never ran looked green to this gate. The two arms below
+    stub the shell so exactly one instrument fails at a time and read back which exit
+    code the label carries (= `run_instruments` in `Tools/wenshu-devtool/pre_review_gate.py`)."""
+    from pre_review_gate import run_instruments
+    names = {"battery": "test_comment_lineage_gate.py", "loc": "nfi-loc-check.py"}
+
+    def stub(battery_rc, loc_rc):
+        def _sh(command, cwd=None, timeout=None):
+            if names["loc"] in command:
+                return loc_rc, f"loc ran ({command})"
+            if names["battery"] in command:
+                return battery_rc, f"battery ran ({command})"
+            raise AssertionError(f"an instrument this gate does not run: {command}")
+        return _sh
+
+    got = dict((label, code) for label, code, _out in run_instruments(stub(1, 0), "BASE"))
+    check("case 13: a red battery is reported red even when the LOC checker is green",
+          got["the comment-lineage battery"] == 1 and got["nfi-loc-check"] == 0, str(got))
+
+    got = dict((label, code) for label, code, _out in run_instruments(stub(0, 1), "BASE"))
+    check("case 13b: a red LOC checker is reported red even when the battery is green",
+          got["the comment-lineage battery"] == 0 and got["nfi-loc-check"] == 1, str(got))
+    return got
+
+
 def run():
     print(f"comment_lineage_arms.txt: {len(parse_arms())} arms")
     arms = case_arms()
@@ -503,6 +586,8 @@ def run():
     case_dangling_citation()
     case_moving_base()
     case_tagged_row_key()
+    case_wrapped_claim()
+    case_instrument_results()
     if FAILURES:
         print(f"\nFAIL {len(FAILURES)} case(s): {FAILURES}")
         return 1

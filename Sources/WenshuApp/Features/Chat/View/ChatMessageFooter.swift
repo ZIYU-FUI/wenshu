@@ -1,7 +1,7 @@
 //
 //  ChatMessageFooter.swift
 //
-//  Apple MVVM canonical leaf view for the sealed-message footer
+//  Canonical leaf view for the sealed-message footer
 //  (= the metadata row below each chat bubble that shows timestamp +
 //  token count + cost + NEW chip). Lifted out of ChatMessageView
 //  (= 902 lines today) so:
@@ -17,7 +17,7 @@
 //  UI-only (= no business logic). The token count comes from
 //  ChatMessage.tokens (= LLM API usage.total_tokens = input + output).
 //  The cost is derived (= estimated USD = $3/M input + $15/M output
-//  heuristic = the Claude Sonnet 4.5 pricing tier; = the order-of-
+//  heuristic = a mid-tier model pricing reference; = the order-of-
 //  magnitude estimate is right; = exact cost requires per-model
 //  pricing which the wenshu connector doesn't surface today).
 //
@@ -57,7 +57,7 @@ struct ChatMessageFooter: View {
         self.timestamp = timestamp
         self.tokens = tokens
         self.isSealed = isSealed
-        self._isTimestampHovered = isTimestampHovered
+        _isTimestampHovered = isTimestampHovered
     }
 
     var body: some View {
@@ -65,7 +65,7 @@ struct ChatMessageFooter: View {
             // T65-CLOCK-PREFIX: clock icon before the timestamp text.
             SFIcon("clock", style: .inlineSmall, color: IconColor.quaternary, matchingText: .caption2)
             // T84-DELIVERED-CHECK: checkmark after the timestamp
-            // (= Apple Messages read-receipts affordance).
+            // (= the product's own read-receipt affordance).
             SFIcon("checkmark", style: .inlineSmall, color: IconColor.quaternary, matchingText: .caption2)
             // T26-HOVER-TIMESTAMP: compact form by default
             // (= "14:32"); expanded on hover (= "14:32 · 918").
@@ -141,15 +141,15 @@ struct ChatMessageFooter: View {
     /// T25-TOKEN-FOOTER: "1.5k tokens" / "234 tokens" / "12.3k tokens".
     /// nonisolated so tests can call without instantiating the view.
     nonisolated static func formatTokenCount(_ count: Int) -> String {
-        if count < 1_000 {
+        if count < 1000 {
             return "\(count) tokens"
         }
-        if count < 10_000 {
-            let k = Double(count) / 1_000.0
+        if count < 10000 {
+            let k = Double(count) / 1000.0
             return String(format: "%.1fk tokens", k)
         }
         if count < 1_000_000 {
-            let k = count / 1_000
+            let k = count / 1000
             return "\(k)k tokens"
         }
         let m = Double(count) / 1_000_000.0
@@ -157,8 +157,8 @@ struct ChatMessageFooter: View {
     }
 
     /// T62-TOKEN-COST: estimated USD cost label.
-    /// Heuristic: $3/M input + $15/M output (= Claude Sonnet 4.5
-    /// pricing tier; = order-of-magnitude is right; = exact cost
+    /// Heuristic: $3/M input + $15/M output (= an order-of-magnitude
+    /// mid-tier pricing reference, not a vendor contract; = exact cost
     /// requires per-model pricing).
     nonisolated static func formatTokenCost(_ count: Int) -> String {
         // Approximate split: half input + half output.

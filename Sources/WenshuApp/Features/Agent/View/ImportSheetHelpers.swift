@@ -96,22 +96,22 @@ extension ImportSheet {
     var primaryActionLabel: String {
         switch currentStep {
         case .configure: return "开始"
-        case .running:   return "下一步"
-        case .results:   return "完成"
-        case .done:      return "完成"
+        case .running: return "下一步"
+        case .results: return "完成"
+        case .done: return "完成"
         }
     }
 
-    /// The previous-step action (= Apple HIG canonical: a simple "上一步" label; =
-    /// the button is disabled when `canGoPrev` is false; = never go back from
-    /// .running).
+    /// The previous-step action (= a plain text label of this app's own
+    /// copy; = the button is disabled when `canGoPrev` is false; = never go
+    /// back from .running).
     func goPrev() {
         guard canGoPrev else { return }
         switch currentStep {
         case .configure: break
-        case .running:   currentStep = .configure
-        case .results:   currentStep = .running
-        case .done:      currentStep = .results
+        case .running: currentStep = .configure
+        case .results: currentStep = .running
+        case .done: currentStep = .results
         }
     }
 
@@ -155,7 +155,6 @@ extension ImportSheet {
     /// card background fill; = the boss's [archived-round] "每一行的背景矩形不需要" directive; =
     /// the row is just text + control; = sections separated by a hairline
     /// Divider).
-    @ViewBuilder
     var step1ConfigureView: some View {
         VStack(alignment: .leading, spacing: 0) {
             PickerRow {
@@ -230,24 +229,24 @@ extension ImportSheet {
                     Button("选择…") { pickSourceDirectory() }
                         .disabled(isImporting)
                         .buttonStyle(.borderedProminent)
-                        // (= boss 2026-10-10 "选择按钮 的文字大小，和按 钮高度，与其它 按钮不同，需要 拉成同意大小"
-                        // directive). REMOVED
-                        // `.controlSize(.small)` (= the "选择…"
-                        // button is now the default
-                        // .controlSize(.regular) = 28 PT tall
+                    // (= boss 2026-10-10 "选择按钮 的文字大小，和按 钮高度，与其它 按钮不同，需要 拉成同意大小"
+                    // directive). REMOVED
+                    // `.controlSize(.small)` (= the "选择…"
+                    // button is now the default
+                    // .controlSize(.regular) = 28 PT tall
                     // + the HIG typography page's macOS default body
-                        // text size; = the button height
-                        // matches the segmented Picker (= "导入到
-                        // 资料库" / "导入到 书") + the menu Pickers
-                        // (= Markdown / 请选择书籍 / 基于 现有内容整理 /
-                        // 3); = the visual rhythm across the
-                        // trailing column is now uniform; =
-                        // the user reads the row as "all
-                        // controls are the same height"). The
-                        // previous `.small` (= 22 PT tall +
-                        // smaller text) made "选择…" stand out
-                        // as visually inconsistent with its
-                        // row neighbors.
+                    // text size (= https://developer.apple.com/design/human-interface-guidelines/typography); = the button height
+                    // matches the segmented Picker (= "导入到
+                    // 资料库" / "导入到 书") + the menu Pickers
+                    // (= Markdown / 请选择书籍 / 基于 现有内容整理 /
+                    // 3); = the visual rhythm across the
+                    // trailing column is now uniform; =
+                    // the user reads the row as "all
+                    // controls are the same height"). The
+                    // previous `.small` (= 22 PT tall +
+                    // smaller text) made "选择…" stand out
+                    // as visually inconsistent with its
+                    // row neighbors.
                 }
             }
 
@@ -353,7 +352,7 @@ extension ImportSheet {
                     .foregroundStyle(.primary)
             } trailing: {
                 Picker("同时处理文件数", selection: $maxParallel) {
-                    ForEach(1...5, id: \.self) { n in
+                    ForEach(1 ... 5, id: \.self) { n in
                         Text("\(n)").tag(n)
                     }
                 }
@@ -369,7 +368,6 @@ extension ImportSheet {
     /// pattern; = the boss's [archived-round] "演示要每一步骤的页面 都一样, 不只改第一步" directive; =
     /// every step has the same dot-indicator / Divider / bottom-nav-bar
     /// chrome).
-    @ViewBuilder
     var step2RunningView: some View {
         VStack(alignment: .leading, spacing: 0) {
             if totalCount > 0 {
@@ -407,7 +405,6 @@ extension ImportSheet {
     /// requirement; = the Divider separates the file list from the action
     /// surface; = the action sits in its own row, visually analogous to the
     /// "完成" button in the nav bar).
-    @ViewBuilder
     var step3ResultsView: some View {
         VStack(alignment: .leading, spacing: 0) {
             // The per-file list (= the same strip as Step 2; = per-row "重试" buttons are
@@ -463,7 +460,6 @@ extension ImportSheet {
     /// make the text flush with the sheet's left edge; = the summary text is
     /// now aligned with the dot indicator + the nav bar buttons on the other
     /// steps; = the visual alignment is consistent across all 4 steps).
-    @ViewBuilder
     var step4DoneView: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
             let doneCount = tasks.filter { $0.state == .done }.count

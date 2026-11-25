@@ -16,7 +16,7 @@ import WenshuData
 /// One task per file (= the unit of progress shown in
 /// the sheet's per-file strip). The state machine is
 /// linear:
-//   pending → routing → writing → done
+///   pending → routing → writing → done
 ///                        ↘ failed
 ///                        ↘ skipped (= idempotent re-import
 ///                                   hit the cache; = no LLM
@@ -33,8 +33,8 @@ import WenshuData
 /// future ticket can flip `isSupported` once the
 /// orchestrator's walk + write paths handle them).
 ///
-/// Apple canonical pattern: closed enum with a
-/// canonical `extensions: Set<String>` per case (= the
+/// The set of importable kinds is closed by design: one enum case, one
+/// `extensions: Set<String>` per case (= the
 /// orchestrator's `walkSourceDir` takes the
 /// extension set as a parameter; = adding a new
 /// file type forces a single source-of-truth change
@@ -47,7 +47,9 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
     case pdf
     case text
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     /// Chinese display name for the picker row
     /// (= the user's primary locale is .chinese;
@@ -56,9 +58,9 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
     var displayName: String {
         switch self {
         case .markdown: return "Markdown"
-        case .epub:     return "EPUB 电子书"
-        case .pdf:      return "PDF"
-        case .text:     return "纯文本"
+        case .epub: return "EPUB 电子书"
+        case .pdf: return "PDF"
+        case .text: return "纯文本"
         }
     }
 
@@ -70,9 +72,9 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
     var iconName: String {
         switch self {
         case .markdown: return "doc.richtext"
-        case .epub:     return "book.closed"
-        case .pdf:      return "doc.fill"
-        case .text:     return "doc.plaintext"
+        case .epub: return "book.closed"
+        case .pdf: return "doc.fill"
+        case .text: return "doc.plaintext"
         }
     }
 
@@ -122,9 +124,9 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
     var placeholderHint: String {
         switch self {
         case .markdown: return "选目录 (.md)"
-        case .epub:     return "选目录 (.epub)"
-        case .pdf:      return "选目录 (.pdf)"
-        case .text:     return "选目录 (.txt)"
+        case .epub: return "选目录 (.epub)"
+        case .pdf: return "选目录 (.pdf)"
+        case .text: return "选目录 (.txt)"
         }
     }
 
@@ -174,9 +176,9 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
     var extensions: Set<String> {
         switch self {
         case .markdown: return ["md", "markdown", "mdown", "mkd"]
-        case .epub:     return ["epub"]
-        case .pdf:      return ["pdf"]
-        case .text:     return ["txt"]
+        case .epub: return ["epub"]
+        case .pdf: return ["pdf"]
+        case .text: return ["txt"]
         }
     }
 
@@ -188,7 +190,7 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
     /// file picker's
     /// selectable
     /// files (= the
-    /// Apple canonical
+    /// system's own
     /// way to filter
     /// an open panel
     /// by content
@@ -343,20 +345,19 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// indicator on the
     /// specific phase).
     init(sourcePath: String) {
-        self.id = UUID()
+        id = UUID()
         self.sourcePath = sourcePath
-        self.destination = nil
-        self.contentHash = ""  // populated at the read step
-        self.state = .pending
-        self.errorMessage = nil
-        self.skippedReason = nil
-        self.routing = nil
-        self.extraFilesTotal = 0
-        self.extraFilesDone = 0
-        self.agentParts = []
+        destination = nil
+        contentHash = "" // populated at the read step
+        state = .pending
+        errorMessage = nil
+        skippedReason = nil
+        routing = nil
+        extraFilesTotal = 0
+        extraFilesDone = 0
+        agentParts = []
     }
 }
-
 
 // MARK: - ImportAgentPart
 
@@ -372,7 +373,6 @@ struct ImportTask: Identifiable, Sendable, Hashable {
 /// write tool carries the whole document body as one of its arguments;
 /// = showing that verbatim would bury the reply).
 struct ImportAgentPart: Codable, Sendable, Equatable {
-
     /// The marker that opens the wire form.
     static let marker = "wenshu.import.part:"
 
@@ -435,18 +435,18 @@ struct ImportAgentPart: Codable, Sendable, Equatable {
     /// so they travel as they are.
     init(part: ChatMessagePart) {
         switch part.kind {
-        case .text(let text):
+        case let .text(text):
             self.init(kind: .text, text: text)
-        case .reasoning(let text):
+        case let .reasoning(text):
             self.init(kind: .reasoning, text: text)
-        case .toolUse(let tool):
+        case let .toolUse(tool):
             self.init(
                 kind: .toolUse,
                 toolName: tool.name,
                 toolCallID: tool.id.rawValue,
                 toolArgs: tool.args
             )
-        case .toolResult(let result):
+        case let .toolResult(result):
             self.init(
                 kind: .toolResult,
                 text: result.content,

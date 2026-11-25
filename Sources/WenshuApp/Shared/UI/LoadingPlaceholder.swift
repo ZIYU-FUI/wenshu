@@ -58,12 +58,14 @@
 //
 //  APPLE'S OWN ANSWER (read from Apple's source, not paraphrased)
 //
-//  - HIG "loading": "Show something as soon as possible." / "consider
+//  - HIG "loading" (= https://developer.apple.com/design/human-interface-guidelines/loading):
+//    "Show something as soon as possible." / "consider
 //    showing placeholder text, graphics, or animations as content loads,
 //    replacing these elements as content becomes available" / "Let
 //    people do other things in your app or game while they wait for
 //    content to load."
-//  - HIG "progress-indicators": an indeterminate progress indicator
+//  - HIG "progress-indicators" (= https://developer.apple.com/design/human-interface-guidelines/progress-indicators):
+//    an indeterminate progress indicator
 //    (= an activity indicator) is for work of UNKNOWN duration. A
 //    skeleton that RESERVES the arriving content's shape is the
 //    placeholder the loading article asks for (= and it replaces the

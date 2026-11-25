@@ -46,6 +46,13 @@ import re
 import subprocess
 import sys
 
+from comment_lineage_rules import (  # noqa: E402  (= the rule tables live in ONE home)
+    VENDOR_HONEST,
+    VENDOR_LABEL,
+    VENDOR_RX,
+    has_honest_marker,
+)
+
 ALLOWED_CJK = ["老板", "文枢", "拍板", "拍", "※"]
 CJK = re.compile(r"[\u3000-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef]")
 OOB_CANON = re.compile(r"\(see OOB\.md #\d{4}-\d{2}-\d{2}\)")
@@ -76,6 +83,7 @@ CHECKS = [
     ("1.5", "retro / reviewer narrative", re.compile(
         r"as asked|the reviewer (wrote|found|asked)|was corrected|now says|stops claiming|no longer asks")),
     ("1.6", "OOB.md citation not in the canonical form", re.compile(r"OOB")),
+    ("1.5", VENDOR_LABEL, VENDOR_RX),
 ]
 
 # Phrases the pattern charges that are not refactor history: a purpose clause versus a
@@ -113,8 +121,12 @@ def carved(path, enabled=True):
     return enabled and path.startswith(CARVE_ROOTS) and not path.startswith(CARVE_NOT)
 
 
-def classify(st, path="", carve=True):
-    """Every rule for one comment line, in one pass. Returns [(rule, label, severity)]."""
+def classify(st, path="", carve=True, context=None):
+    """Every rule for one comment line, in one pass. Returns [(rule, label, severity)].
+
+    `context` is the SENTENCE the line belongs to: the vendor exemption is read over
+    it, because a comment wraps across lines and the marker that makes a claim honest
+    can sit on the next line of the same sentence."""
     hits = []
     stripped = st
     for a in ALLOWED_CJK:
@@ -142,6 +154,9 @@ def classify(st, path="", carve=True):
             continue
         if label == "refactor history / deleted behaviour":
             if any(ph in st for ph, _ in NOT_HISTORY):
+                continue
+        if label == VENDOR_LABEL:
+            if has_honest_marker(context if context is not None else st):
                 continue
         if carved(path, carve) and rid in ("1.5", "1.6"):
             continue
@@ -362,7 +377,141 @@ def added_comment_lines(repo, base, head):
     return recs
 
 
+
+SENTENCE_END = ".!?。！？"
+
+MASK = re.compile(
+    r"`[^`]*`|https?://\S+|\b[\w./-]*\.(?:com|org|net|dev|io|gov|edu|md|swift|py|yml|yaml|txt|json)\b\S*"
+)
+
+CITATION_LABELS = {"boss name / date / words",
+                   VENDOR_LABEL,
+                   "OOB.md citation not in the canonical form",
+                   "citation names a date the register does not carry"}
+
+
+
+def comment_runs(lines, path):
+    """The maximal runs of consecutive comment lines in a file."""
+    runs, cur = [], []
+    for i, raw in enumerate(lines, 1):
+        st = raw.strip()
+        if is_comment(st, path):
+            cur.append((i, st))
+        elif cur:
+            runs.append(cur)
+            cur = []
+    if cur:
+        runs.append(cur)
+    return runs
+
+def run_layout(run):
+    """The text of a comment run and, for each of its lines, the character span of
+    the sentences that line touches.
+
+    A comment wraps across lines, so the claim and the marker that makes it honest
+    can sit on different lines of the same sentence; the sentence is the unit that
+    asserts, so the exemption is read over it. A line can hold two sentences (= "...for
+    use by other apps). Note: the shortcut is not a standard Apple one"), so a line's
+    span covers every sentence it touches: the denial that ends the line and the claim
+    that follows it are one sentence."""
+    parts, offsets, pos = [], [], 0
+    for _i, st in run:
+        offsets.append((pos, pos + len(st)))
+        parts.append(st)
+        pos += len(st) + 1
+    text = "\n".join(parts)
+    masked = MASK.sub(lambda m: " " * len(m.group(0)), text)
+    spans, start = [], 0
+    for i, ch in enumerate(masked):
+        if ch in SENTENCE_END:
+            spans.append((start, i + 1))
+            start = i + 1
+    if start < len(text):
+        spans.append((start, len(text)))
+    out, primaries = [], []
+    for (s, e) in offsets:
+        first = last = None
+        for (sa, sb) in spans:
+            if first is None and sa <= s < sb:
+                first = (sa, sb)
+            if sa < e <= sb:
+                last = (sa, sb)
+        if first is None:
+            first = (0, len(text))
+        if last is None:
+            last = first
+        primaries.append(first)
+        out.append((min(first[0], last[0]), max(first[1], last[1])))
+    return text, out, primaries
+
+def joined_violations(run, text, spans, primaries, scope, path, carve, seen):
+    """The labels a JOINED window carries that no single line of it carries.
+
+    One claim is one row: the windows of a sentence overlap (= a three-line claim
+    sits in two 2-line windows and one 3-line window), so the first window that
+    states the claim reports it and the rest are the same claim read again."""
+    out = []
+    for size in (2, 3):
+        for i in range(0, len(run) - size + 1):
+            win = run[i:i + size]
+            if not all(ln in scope for ln, _st in win):
+                continue
+            a = min(spans[i + k][0] for k in range(size))
+            b = max(spans[i + k][1] for k in range(size))
+            ctx = text[a:b]
+            claim = tuple(sorted({primaries[i + k] for k in range(size)}))
+            if claim in seen:
+                continue
+            joined = " ".join(st for _ln, st in win)
+            jlabs = {lab for _r, lab, _s in classify(joined, path, carve, ctx)}
+            plabs = set()
+            for k in range(size):
+                plabs |= {lab for _r, lab, _s in classify(win[k][1], path, carve, ctx)}
+            new = jlabs - plabs
+            if new:
+                seen.add(claim)
+                out.append((win, sorted(new)))
+    return out
+
+def swept_comment_index(repo, base_sha, head_sha, added_by_file):
+    """Every comment line of every Swift file the window touched, minus the lines the
+    window added (those are already measured by `added_comment_lines`), each with its
+    line number in the head file."""
+    files = [f for f in repo.git("diff", "--name-only", f"{base_sha}..{head_sha}",
+                                 "--", "*.swift").splitlines() if f.strip()]
+    index = {}
+    for f in files:
+        if carved(f):
+            continue
+        head_text = repo.git("show", f"{head_sha}:{f}")
+        addset = added_by_file.get(f, set())
+        lines = []
+        for i, raw in enumerate(head_text.splitlines(), 1):
+            st = raw.strip()
+            if st in addset:
+                continue
+            if is_comment(st, f):
+                lines.append((i, st))
+        index[f] = lines
+    return index, files
+
+def swept_comment_lines(repo, base_sha, head_sha, added_by_file):
+    """The same swept lines as (file, text) pairs."""
+    index, files = swept_comment_index(repo, base_sha, head_sha, added_by_file)
+    recs = [(f, st) for f, lines in index.items() for _i, st in lines]
+    return recs, files
+
 def measure(repo_path, base, head="HEAD", carve=True):
+    """The window's rows, over THREE scopes: the lines the window added, the citation
+    family over every comment line of every Swift file the window touched (= the swept
+    scope), and the cross-line join over both.
+
+    The unit is stated in the report (= a delta over a window PLUS the swept scope for
+    the citation-honesty family), because a rule with two units is a rule with two
+    answers: the addition-delta rules keep their per-line unit, and the citation
+    family is charged over every line of a swept file.
+    """
     repo = Repo(repo_path)
     head_sha = repo.git("rev-parse", head).strip()
     base_sha = merge_base(repo, repo.git("rev-parse", base).strip(), head_sha)
@@ -381,106 +530,108 @@ def measure(repo_path, base, head="HEAD", carve=True):
 
     dates = register_dates(repo, head_sha)
     rows, dropped_synth, seen = [], 0, set()
+    added_by_file = collections.defaultdict(set)
+    added_lines_by_file = collections.defaultdict(set)
     for f, st, text in recs:
-        hits = classify(text, f, carve)
-        for d in CITED_DATE.findall(text):
-            if d not in dates and not carved(f, carve):
-                # = = = THE SEVERITY IS THE CJK AXIS, = = = = = = = = = = = = =
-                # = = = = and this row carries no CJK character, = = = = = = = = =
-                # = = = = so it is a P1. Measured 2026-11-24: a line with no
-                # = = = = = = CJK (= "// see OOB.md #2099-01-01") read P0 on
-                # = = = = = = = main's judge and P1 here, = = = = = = = = = = = =
-                # = = = = = = = = and the P0 axis AGENTS.md 1.1 defines had a
-                # = = = = = = = = second trigger. The published census did not
-                # = = = = = = = = move (= every one of its 10 P0 rows carries a
-                # = = = = = = = = CJK character), = = = = = = = = = = = = = = = =
-                # = = = = = = = = = = = = but an axis with two triggers is an
-                # = = = = = = = = = = = = axis with no definition.
-                hits.append(("1.6", "citation names a date the register does not carry", "P1"))
+        added_by_file[f].add(st)
+        at = [i for i, l in enumerate(tip_lines(f), 1) if l.strip() == st]
+        added_lines_by_file[f].add(at[0] if at else -1)
+
+    def record(f, st, hits, attribution, line=None):
+        """One row, deduped by (file, line, text); None when the line carries nothing."""
+        nonlocal dropped_synth
         if not hits:
-            continue
-        tids = set(re.findall(r"\bt_[0-9a-fA-F]{6,10}\b", text))
+            return
+        tids = set(re.findall(r"\bt_[0-9a-fA-F]{6,10}\b", st))
         if tids and tids <= SYNTH and all(
                 lab == "card id in comment (ticket lineage)" for _r, lab, _s in hits):
             dropped_synth += 1
-            continue
-        at = [i for i, l in enumerate(tip_lines(f), 1) if l.strip() == st]
-        line = at[0] if at else None
-        if (f, line, text) in seen:
-            continue
-        seen.add((f, line, text))
-        if not base_blob(f):
-            attr = "NEW FILE"
-        elif text in base_blob(f):
-            # = = THE ATTRIBUTION ASKS ABOUT THE COMMENT TEXT (= the prose),
-            # = = not the whole line: = = a comment that moved while its code
-            # = = around it was rewritten is still CARRIED, = = and a line the
-            # = = branch merely re-emitted is still CARRIED. = = The judge
-            # = = charges the prose, = = so the prose is what the attribution
-            # = = must answer for.
-            attr = "RE-WROTE-BASE"
-        else:
-            attr = "ADDED"
-        # = = = = = = = = = ONE SEVERITY CONTRACT, AND THE EXIT CODE FOLLOWS IT
-        # = = = = = = = = = (the two arms used to disagree here, = = = and the
-        # = = = = = = = = = SSOT named NO severity at all, = = = so a reviewer
-        # = = = = = = = = = had no rule to apply). = = = = = = = = =
-        # = = = = = = = = = P0 = = BLOCKING = = = = the branch WROTE this line
-        # = = = = = = = = = (= "ADDED" = = = = the text is new in this window,
-        # = = = = = = = = = = "NEW FILE" = = = = the file is new) = = = = = and
-        # = = = = = = = = = the rule it breaks is one the SSOT hands to THIS
-        # = = = = = = = = = GATE (= 1.5's comment policy, = = = = 1.6's citation
-        # = = = = = = = = = form). = = = = = = = = = = = = = = = = = = = = = = = = =
-        # = = = = = = = = = P1 = = REPORTED, NOT BLOCKING = = = = = = either
-        # = = = = = = = = = = the rule is the SSOT's HUMAN call (= 1.1's
-        # = = = = = = = = = comment-level CJK: = = = = = the rule's own data
-        # = = = = = = = = = = exemption is a judgement this file cannot make),
-        # = = = = = = = = = = = or the branch only CARRIED the line (= = =
-        # = = = = = = = = = "RE-WROTE-BASE" = = = = the same text already stood
-        # = = = = = = = = = = = in the base file). = = = = = = = = = = = = = = = = = =
-        # = = = = = = = = = THE CARRIED HALF IS THE REPEATED-BOUNCE MECHANISM:
-        # = = = = = = = = = = a line the author did not write = = = = = = = = = = =
-        # = = = = = = = = = = charged as if they had = = = = = = = = = = = = = = = = = =
-        # = = = = = = = = = = = the closeout rule already says it: = = = = = = = = = =
-        # = = = = = = = = = = = "a hit in a diff is not proof that your commit
-        # = = = = = = = = = = = added it". = = = = = = = = = = = = = = = = = = = = = = =
-        # = = = = = = = = = THE BLOCKING AXIS, = = = = = = = = = ORTHOGONAL TO
-        # = = = = = = = = = P0/P1 (= = = = = which is the CJK axis). = = = = = = = = =
-        # = = = = = = = = = A row BLOCKS when THIS BRANCH WROTE the line it sits
-        # = = = = = = = = = on (= = = "ADDED" = = = = the text is new in this
-        # = = = = = = = = = window, = = = = = = = = = "NEW FILE" = = = = = the file
-        # = = = = = = = = = is new); = = = = = = = = = and it is REPORTED ONLY
-        # = = = = = = = = = when the branch only CARRIED the line (= = = = = = =
-        # = = = = = = = = = "RE-WROTE-BASE" = = = = = = = = = = the same text
-        # = = = = = = = = = stood in the base file). = = = = = = = = = THE
-        # = = = = = = = = = CARRIED HALF IS THE REPEATED-BOUNCE MECHANISM: = = = =
-        # = = = = = = = = = a line the author did not write = = = = = = = = = =
-        # = = = = = = = = = charged as if they had = = = = = = = = = = = the
-        # = = = = = = = = = closeout rule already says it: = = = = = = = = = = "a
-        # = = = = = = = = = hit in a diff is not proof that your commit added it".
-        blocking = attr in ("ADDED", "NEW FILE")
-        # = = = = = = = = = THE ROW'S SEVERITY = = = = = = = = = THE CJK AXIS
-        # = = = = = = = = = (= = = the vocabulary the published census counts:
-        # = = = = = = = = = P0 = = = = = = the row carries a CJK character, = = = =
-        # = = = = = = = = = P1 = = = = = = it does not). = = = = = = = = = The
-        # = = = = = = = = = BLOCKING decision is a DIFFERENT axis (= = = = = =
-        # = = = = = = = = = authorship, = = = = = = = = = = printed as
-        # = = = = = = = = = `blocking` / `reported_only`), = = = = = = = = = so
-        # = = = = = = = = = one row can be P1 (= = = = = = no CJK) and still block
-        # = = = = = = = = = (= = = = = = the branch wrote a 1.5 lineage line), = =
-        # = = = = = = = = = = and the two axes never overwrite each other.
+            return
+        if line is None:
+            at = [i for i, l in enumerate(tip_lines(f), 1) if l.strip() == st]
+            line = at[0] if at else None
+        if (f, line, st) in seen:
+            return
+        seen.add((f, line, st))
+        if attribution is None:
+            if not base_blob(f):
+                attribution = "NEW FILE"
+            elif st in base_blob(f):
+                attribution = "RE-WROTE-BASE"
+            else:
+                attribution = "ADDED"
+        blocking = attribution in ("ADDED", "NEW FILE")
         severity = "P0" if any(s == "P0" for _, _, s in hits) else "P1"
-        rows.append({"file": f, "line": line, "text": text,
+        rows.append({"file": f, "line": line, "text": st,
                      "rule": hits[0][0],
                      "severity": severity,
                      "blocking": blocking,
-                     "labels": [lab for _, lab, _ in hits], "attribution": attr})
+                     "labels": [lab for _, lab, _ in hits], "attribution": attribution})
+
+    layout_cache, context_cache = {}, {}
+
+    def layout_of(f):
+        if f not in layout_cache:
+            layout_cache[f] = [(run,) + run_layout(run)
+                                for run in comment_runs(tip_lines(f), f)]
+        return layout_cache[f]
+
+    def contexts_of(f):
+        if f not in context_cache:
+            cache = {}
+            for run, text, spans, _primaries in layout_of(f):
+                for (ln, _st), (a, b) in zip(run, spans):
+                    cache[ln] = text[a:b]
+            context_cache[f] = cache
+        return context_cache[f]
+
+    # ---- scope 1: the lines the window ADDED (the delta) ----
+    for f, st, text in recs:
+        at = [i for i, l in enumerate(tip_lines(f), 1) if l.strip() == st]
+        ln = at[0] if at else None
+        hits = classify(text, f, carve, contexts_of(f).get(ln, text))
+        for d in CITED_DATE.findall(text):
+            if d not in dates and not carved(f, carve):
+                hits.append(("1.6", "citation names a date the register does not carry", "P1"))
+        record(f, text, hits, None, line=ln)
+
+    # ---- scope 2: the citation family over every comment line of every swept file ----
+    swept_index, swept_files = swept_comment_index(repo, base_sha, head_sha, added_by_file)
+    for f, lines in swept_index.items():
+        ctx_of = contexts_of(f)
+        for ln, st in lines:
+            hits = [h for h in classify(st, f, carve, ctx_of.get(ln, st))
+                    if h[1] in CITATION_LABELS]
+            for d in CITED_DATE.findall(st):
+                if d not in dates and not carved(f, carve):
+                    hits.append(("1.6", "citation names a date the register does not carry", "P1"))
+            record(f, st, hits, "UNCHANGED-IN-SWEPT-FILE", line=ln)
+
+    # ---- scope 3: the cross-line join, over the added scope and over the swept scope ----
+    for f in sorted(set(added_by_file) | set(swept_index)):
+        seen_claims = set()
+        for run, text, spans, primaries in layout_of(f):
+            for scope, attribution in ((added_lines_by_file.get(f, set()), "JOINED-ADDED"),
+                                       ({ln for ln, _st in swept_index.get(f, [])},
+                                        "JOINED-IN-SWEPT-FILE")):
+                if not scope:
+                    continue
+                for win, labs in joined_violations(run, text, spans, primaries, scope,
+                                                  f, carve, seen_claims):
+                    hits = [("1.5", lab, "P1") for lab in labs
+                            if lab in CITATION_LABELS]
+                    record(f, " ".join(st for _ln, st in win), hits, attribution,
+                           line=win[0][0])
+
     label_counts = collections.Counter(lab for r in rows for lab in r["labels"])
     return {
         "window": f"{base_sha[:10]}..{head_sha[:10]}",
         "register_dates": len(dates),
         "window_base": "merge-base",
-        "unit": "comment lines ADDED by the diff over this window (a delta, not a state count)",
+        "unit": "comment lines ADDED by the diff over this window (a delta, not a state "
+                "count) + every comment line of every swept Swift file for the "
+                "citation-honesty family (see the docstring)",
+        "swept_swift_files": len(swept_files),
         "added_comment_lines": len(recs),
         "offending": len(rows),
         "offending_files": len({r["file"] for r in rows}),

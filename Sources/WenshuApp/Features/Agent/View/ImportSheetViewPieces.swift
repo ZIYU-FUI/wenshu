@@ -13,7 +13,6 @@
 
 import SwiftUI
 
-
 /// Per-file progress strip (= one row per `ImportTask`).
 /// the product list pattern (= vertical stack of
 /// short rows; = the row shows the file name + the state
@@ -52,8 +51,8 @@ struct ImportProgressStrip: View {
         tasks.reduce(0) { total, task in
             total + task.agentParts.reduce(0) { sum, part in
                 switch part.kind {
-                case .text(let text): return sum + text.count
-                case .reasoning(let text): return sum + text.count
+                case let .text(text): return sum + text.count
+                case let .reasoning(text): return sum + text.count
                 default: return sum
                 }
             }
@@ -82,7 +81,8 @@ struct ImportTaskRow: View {
                 .font(.caption)
                 .foregroundStyle(.red)
         }
-        // (= boss 2026-10-10 "故事宪法，没有 重新分析是不是 内容相同" 反馈). The skip reason (= a short
+        // (= product rule from the 2026-10-10 librarian round: a re-analysis must
+        // skip chapters whose content is unchanged). The skip reason (= a short
         // explanation for the user; = "内容相同 (LLM confidence 0.95): 两段完全相同" or
         // "同 title retry skip" from the title-only path). Shown as a secondary
         // caption below the state pill.
@@ -92,8 +92,8 @@ struct ImportTaskRow: View {
                 .foregroundStyle(.tertiary)
                 .lineLimit(2)
         }
-        // ticket 04 (= boss 2026-10-10 "甚至原 文件 A 的内容, 与我们的 B 模版 不符合, 多了很 我非模版的内 容, 我希望能自
-        // 动拆出一个文 件, 放在合适的 目录中去" feedback). When the LLM suggested N extra
+        // ticket 04 (= product rule from the 2026-10-10 librarian round: content
+        // that does not fit the template is auto-split into its own file). When the LLM suggested N extra
         // files (= the split-out content), show a caption below the state pill
         // counting how many were written. Examples: - " + 3 拆出" (= all done) -
         // " + 1/3 拆出" (= mid-flight) - " + 2 拆出, 1 失败" (= some failed) Hidden
@@ -102,12 +102,11 @@ struct ImportTaskRow: View {
         if task.extraFilesTotal > 0 {
             extraFilesCaption
         }
-        // (= boss 2026-10-10 (see OOB.md #2026-10-10) 做"). When the LLM could not extract
+        // (see OOB.md #2026-10-10). When the LLM could not extract
         // the 6 必填 (= phase 2 empty), show a small ⚠️ needs-attention badge
-        // next to the row so the user knows there are empty 占位子文件 (= Apple HIG
-        // needs-attention pattern; = SF Symbol exclamationmark.triangle.fill +
-        // orange + caption font). (= boss 2026-10-10 (see OOB.md #2026-10-10)
-        // 馈" feedback). The agent's reply (= the chat zone's own parts;
+        // next to the row so the user knows there are empty placeholder files
+        // (= the 2026-10-10 needs-attention badge decision; = SF Symbol exclamationmark.triangle.fill +
+        // orange + caption font). (see OOB.md #2026-10-10)
         // = the user sees what the agent is doing RIGHT NOW; = the reply
         // grows as the agent writes it).
         // Hidden when the row has no parts yet (= before the agent says
@@ -159,8 +158,9 @@ struct ImportTaskRow: View {
         case .pending:
             Text("待处理").font(.caption).foregroundStyle(.secondary)
         case .routing:
-            // (= boss 2026-10-10 "这 个分析 中三 个字 前面 ，需 要加 一个 小小 的动 态 SF， 循环 播放 ， 要 不 然 这 个 界
-            // 面 像 静 止 了" 反馈). The `ellipsis` SF Symbol (= three dots, no
+            // (= product rule from the 2026-10-10 librarian round: the
+            // in-progress label needs a looping animated glyph or the panel
+            // reads as frozen). The `ellipsis` SF Symbol (= three dots, no
             // background) + the `.variableColor` effect (= the dots
             // animate through colors in a loop) = the "wait / in progress"
             // visual affordance; = the user sees continuous motion (= the
@@ -169,12 +169,12 @@ struct ImportTaskRow: View {
             // attached to the underlying Image; = SF Symbols 6
             // variableColor dots loop forever at ~1 Hz; = the user
             // immediately sees "this is still running"); = without this,
-            // the previous static "分析中" text felt frozen (= the boss's "像
-            // 静 止 了" feedback).
+            // the previous static in-progress text felt frozen (see OOB.md #2026-10-10).
             HStack(spacing: DesignTokens.spacingCaption) {
-                // (= boss 2026-10-10 "那 个 圆 背 景 去 掉 ， 只 留 ICON " feedback). Switched from
+                // (= product rule from the 2026-10-10 librarian round: the glyph keeps no
+                // circular background, only the icon). Switched from
                 // `ellipsis.circle.fill` (= three dots inside a filled
-                // circle; = the "gray circle" the boss disliked) to
+                // circle; = the "gray circle" the rule rejected) to
                 // `ellipsis` (= three dots, no background; = matches
                 // the product macOS 14+ 'system progress indicator'
                 // pattern; = the `variableColor` rendering still
@@ -218,8 +218,7 @@ struct ImportTaskRow: View {
 
 // MARK: - Wizard chrome (= step indicator + nav bar)
 
-/// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-/// "引导式多步骤交互" directive).
+/// (see OOB.md #2026-10-10) = the guided multi-step interaction.
 /// The 4-step dot indicator at the
 /// top of the sheet. product
 /// canonical: a horizontal row of 4
@@ -229,10 +228,9 @@ struct ImportTaskRow: View {
 /// checkmark; = future steps are
 /// dim). The dots are also
 /// clickable to jump to that
-/// step (= same UX as the Mail
-/// composer / Pages onboarding;
-/// = the boss's "混合: 顶部 dot
-/// + 底部 '下一步' 按钮"
+/// step (= the product's hybrid wizard
+/// shape: progress dots at the top
+/// + a 'next step' button at the bottom
 /// answer to the Q3 clarify).
 struct WizardStepIndicator: View {
     @Binding var currentStep: ImportSheet.WizardStep
@@ -243,8 +241,8 @@ struct WizardStepIndicator: View {
             ForEach(ImportSheet.WizardStep.allCases) { step in
                 let reachable = canReach(step)
                 Button {
-                    // (= boss 2026-10-10 "dot 如果没有进到下一 步，dot 就不能 跳到下一步骤 不能一进来什么 都没有，就可以
-                    // 跳到完成去" directive). Only jump if the step is
+                    // (= product rule from the 2026-10-10 librarian round: a progress dot may
+                    // only advance to a step actually reached). Only jump if the step is
                     // reachable (= the button is also .disabled
                     // below; = the guard is a defense-in-depth
                     // check). The [archived-round] "可以跳到任意 步骤" behavior is
@@ -274,8 +272,12 @@ struct WizardStepIndicator: View {
     }
 
     private func dotIcon(for step: ImportSheet.WizardStep) -> String {
-        if step == currentStep { return step.iconName }
-        if step.rawValue < currentStep.rawValue { return "checkmark.circle.fill" }
+        if step == currentStep {
+            return step.iconName
+        }
+        if step.rawValue < currentStep.rawValue {
+            return "checkmark.circle.fill"
+        }
         return "\(step.rawValue + 1).circle"
     }
 
@@ -304,13 +306,11 @@ struct WizardStepIndicator: View {
     }
 }
 
-// MARK: - Pages-style picker card
+// MARK: - Picker card (product wizard layout)
 
-/// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-/// 分割" directive).
-/// The Pages macOS 27
-/// inspector row pattern
-/// (= the canonical macOS
+/// (see OOB.md #2026-10-10). The macOS 27
+/// inspector row shape the
+/// product settled on (= the canonical macOS
 /// 27 list row = 32 PT
 /// tall, no card
 /// background fill; =
@@ -352,7 +352,6 @@ struct WizardStepIndicator: View {
 /// removed the
 /// per-section labels
 /// (= "目标" / "AI 处
-/// 理" are gone; = the
 /// sections are
 /// separated by a
 /// single hairline
@@ -363,16 +362,8 @@ struct WizardStepIndicator: View {
 /// 1 PT line + small
 /// padding).
 struct PickerRow<Leading: View, Trailing: View>: View {
-    let leading: Leading
-    let trailing: Trailing
-
-    init(
-        @ViewBuilder leading: () -> Leading,
-        @ViewBuilder trailing: () -> Trailing
-    ) {
-        self.leading = leading()
-        self.trailing = trailing()
-    }
+    @ViewBuilder let leading: Leading
+    @ViewBuilder let trailing: Trailing
 
     var body: some View {
         HStack(spacing: DesignTokens.spacingStandard) {
@@ -386,10 +377,9 @@ struct PickerRow<Leading: View, Trailing: View>: View {
 
 /// the wizard chrome (= step indicator + nav bar)
 ///
-/// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-/// directive). The nav bar
+/// (see OOB.md #2026-10-10). The nav bar
 /// is updated to match the
-/// Pages inspector panel
+/// wizard inspector panel
 /// bottom = 16 PT panel
 /// padding (= `spacingLoose`;
 /// = the same horizontal
@@ -402,9 +392,7 @@ struct PickerRow<Leading: View, Trailing: View>: View {
 /// nav bar is part of
 /// the panel, not a
 /// separate footer").
-/// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-/// directive). The "上
-/// 一步" button is
+/// (see OOB.md #2026-10-10). The previous-step button is
 /// HIDDEN on step 1
 /// (NOT just disabled;
 /// = the user said
@@ -415,7 +403,7 @@ struct PickerRow<Leading: View, Trailing: View>: View {
 /// button takes up
 /// the same space and
 /// is visually noisy;
-/// = the boss wants
+/// = the rule wants
 /// the button gone
 /// from the chrome
 /// entirely on the
@@ -430,13 +418,13 @@ struct WizardStepNavBar: View {
     var body: some View {
         HStack {
             // hide the back button on step 1 entirely. An `if` (not `.disabled`) because
-            // the boss explicitly said "不应该有" (= "should not exist"; = a
-            // disabled button is visible; = the boss wants it removed from
+            // the rule was explicit ("should not exist"; a
+            // disabled button is visible; = the rule wants it removed from
             // the chrome).
             if canGoPrev {
                 Button("上一步") { onPrev() }
-                    // the back button uses the .borderless style (= Pages inspector never
-                    // uses a prominent back button; = a plain text
+                    // the back button uses the .borderless style (= the wizard never
+                    // wants a prominent back button; = a plain text
                     // button is the canonical "I'm secondary"
                     // style).
                     .buttonStyle(.borderless)
@@ -446,7 +434,7 @@ struct WizardStepNavBar: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled(!canGoNext)
                 // the primary action uses the .borderedProminent style with
-                // .controlSize(.regular) (= Pages inspector primary
+                // .controlSize(.regular) (= the wizard's primary
                 // action = a 28 PT pill button; = the
                 // .borderedProminent is the canonical "do the thing"
                 // visual).
@@ -457,12 +445,13 @@ struct WizardStepNavBar: View {
     }
 }
 
-// (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). The hairline Divider between
-// the step's per-step content (= the 设定区 = the pickers / progress bar / file list /
-// summary) and the bottom action row (= the 操作区 = the nav bar with "上一步" + "下一步/开始/
-// 完成"). The Divider is the visual seam that separates "what the user is configuring /
-/// observing" from "what the user does next" (= the product dialog pattern; =
-/// the Pages inspector uses the same hairline Divider between the inspector body and
+/// (see OOB.md #2026-10-10). The hairline Divider between the step's
+/// per-step content (= the settings area = the pickers / progress bar /
+/// file list / summary) and the bottom action row (= the action area = the
+/// nav bar with the previous, next, start and done buttons) separates
+/// "what the user does next" from the content area (= the product dialog
+/// pattern; =
+/// the wizard uses the same hairline Divider between the inspector body and
 /// the toolbar at the bottom of the panel). The Divider is applied to the sheet body (=
 /// ABOVE the WizardStepNavBar; = below the per-step view's content; = on every step) so
 /// the action area is always visually separated from the content area. The Divider has

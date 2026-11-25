@@ -87,17 +87,19 @@ enum EditorTransform: String, Sendable, Codable, CaseIterable, Identifiable {
     /// without changing the plot.
     case dramatize
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     /// Display label for the SwiftUI tool palette.
     var displayName: String {
         switch self {
-        case .expand:     return "Expand"
-        case .shorten:    return "Shorten"
-        case .rephrase:   return "Rephrase"
-        case .shiftTone:  return "Shift tone"
-        case .simplify:   return "Simplify"
-        case .dramatize:  return "Dramatize"
+        case .expand: return "Expand"
+        case .shorten: return "Shorten"
+        case .rephrase: return "Rephrase"
+        case .shiftTone: return "Shift tone"
+        case .simplify: return "Simplify"
+        case .dramatize: return "Dramatize"
         }
     }
 
@@ -119,18 +121,18 @@ enum EditorTransform: String, Sendable, Codable, CaseIterable, Identifiable {
         }
     }
 
-    /// SF Symbols 6 icon name (= Apple canonical; = used by
+    /// SF Symbols 6 icon name (= a system symbol name; = used by
     /// Image(systemName:) directly in the EditorTools
     /// row rendering path). Replaces the Lucide-era names removed
     /// Migrated to outline glyphs.
     var icon: String {
         switch self {
-        case .expand:     return "arrow.up.left.and.arrow.down.right"  // Lucide 'chevrons-out'
-        case .shorten:    return "arrow.down.right.and.arrow.up.left"  // Lucide 'chevrons-in'
-        case .rephrase:   return "arrow.clockwise"                     // Lucide 'arrow.clockwise'
-        case .shiftTone:  return "paintpalette"                        // Lucide 'palette'
-        case .simplify:   return "leaf"                                // Lucide 'feather'
-        case .dramatize:  return "flame"                               // Lucide 'flame'
+        case .expand: return "arrow.up.left.and.arrow.down.right" // Lucide 'chevrons-out'
+        case .shorten: return "arrow.down.right.and.arrow.up.left" // Lucide 'chevrons-in'
+        case .rephrase: return "arrow.clockwise" // Lucide 'arrow.clockwise'
+        case .shiftTone: return "paintpalette" // Lucide 'palette'
+        case .simplify: return "leaf" // Lucide 'feather'
+        case .dramatize: return "flame" // Lucide 'flame'
         }
     }
 }
@@ -156,26 +158,28 @@ enum TargetTone: String, Sendable, Codable, CaseIterable, Identifiable {
     /// toward any of the other four.
     case neutral
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     /// Display label for the SwiftUI tone picker.
     var displayName: String {
         switch self {
-        case .formal:   return "Formal"
-        case .casual:   return "Casual"
+        case .formal: return "Formal"
+        case .casual: return "Casual"
         case .literary: return "Literary"
-        case .punchy:   return "Punchy"
-        case .neutral:  return "Neutral"
+        case .punchy: return "Punchy"
+        case .neutral: return "Neutral"
         }
     }
 }
 
 // MARK: - Errors
 
-/// Errors thrown by `EditorTransformTools`. The single case
-/// mirrors the convention used by the other specialized tools
-/// actors (= one LocalizedError per failure mode; = no
-/// `fatalError` paths).
+// Errors thrown by `EditorTransformTools`. The single case
+// mirrors the convention used by the other specialized tools
+// actors (= one LocalizedError per failure mode; = no
+// `fatalError` paths).
 
 // MARK: - Actor
 
@@ -201,7 +205,6 @@ enum TargetTone: String, Sendable, Codable, CaseIterable, Identifiable {
 ///      to the model), the actor is already the right place to
 ///      hold a per-book rate limiter or a cached LLM client.
 actor EditorTransformTools {
-
     init() {}
 
     // MARK: - Public API
@@ -262,12 +265,12 @@ actor EditorTransformTools {
     /// `EditorTransform` for the detail view.
     func toolDescription(for transform: EditorTransform) async -> String {
         switch transform {
-        case .expand:     return "Make the paragraph longer; add concrete detail."
-        case .shorten:    return "Condense to about half the length."
-        case .rephrase:   return "Say the same thing in different words."
-        case .shiftTone:  return "Rewrite in a chosen tone."
-        case .simplify:   return "Reduce reading level; cut jargon."
-        case .dramatize:  return "Add sensory detail and dialogue beats."
+        case .expand: return "Make the paragraph longer; add concrete detail."
+        case .shorten: return "Condense to about half the length."
+        case .rephrase: return "Say the same thing in different words."
+        case .shiftTone: return "Rewrite in a chosen tone."
+        case .simplify: return "Reduce reading level; cut jargon."
+        case .dramatize: return "Add sensory detail and dialogue beats."
         }
     }
 
@@ -281,8 +284,8 @@ actor EditorTransformTools {
     /// instruction" without an extra round-trip.
     func defaultTone(for transform: EditorTransform) async -> TargetTone? {
         switch transform {
-        case .shiftTone:  return .formal
-        case .dramatize:  return .literary
+        case .shiftTone: return .formal
+        case .dramatize: return .literary
         case .expand,
              .shorten,
              .rephrase,

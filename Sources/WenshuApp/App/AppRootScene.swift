@@ -5,25 +5,25 @@ import AppKit
 import SwiftUI
 import WenshuData
 
-// / Window IDs for the dedicated secondary scenes (= the SwiftUI
-// … (= 18 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / scenes, prefer this same naming convention.
+/// / Window IDs for the dedicated secondary scenes (= the SwiftUI
+/// … (= 18 rationale lines collapsed; = A112 docblock collapse per §1.8)
+/// / scenes, prefer this same naming convention.
 enum WindowID {
-    // SwiftData library upgrade panel window (see OOB.md #2026-10-06). Single-instance Window (= macOS
-    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // must walk through the panel's 重试 / 退出 button path).
-    // This one has no toolbar button: it is opened by the migration
-    // pipeline itself when a library upgrade starts, and it is the only
-    // way out of a failed upgrade.
+    /// SwiftData library upgrade panel window (see OOB.md #2026-10-06). Single-instance Window (= macOS
+    /// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// must walk through the panel's retry / exit button path).
+    /// This one has no toolbar button: it is opened by the migration
+    /// pipeline itself when a library upgrade starts, and it is the only
+    /// way out of a failed upgrade.
     static let libraryMigration = "wenshu-library-migration"
 }
 
 struct AppRootScene: Scene {
     let library: WenshuLibrary
     let appState: AppState
-    // / ShellState was removed in 2026-10-03 overabstraction cleanup
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / class holding duplicated cross-column state).
+    /// / ShellState was removed in 2026-10-03 overabstraction cleanup
+    /// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// / class holding duplicated cross-column state).
     let workspaceUI: WorkspaceUIState
     // / Sheet-request triggers (= fire-and-forget counters for the
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -32,9 +32,9 @@ struct AppRootScene: Scene {
     let editorCounters: EditorCounters
     let repositories: WSRepositoryContainer
 
-    // the kanban + todo Windows each construct their own BookStore /
-    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // the shared on-disk JSON files).
+    /// the kanban + todo Windows each construct their own BookStore /
+    /// … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    /// the shared on-disk JSON files).
     var body: some Scene {
         // title set to empty string (= no NSWindow title shown). Combined
         // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -42,7 +42,7 @@ struct AppRootScene: Scene {
         WindowGroup("") {
             // dropped SettingsEnvironmentCapturer
             // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // view layers total = Apple canonical).
+            // view layers total, which is this app's own composition).
             LibraryRootView(library: library)
                 .environment(appState)
                 .environment(workspaceUI)
@@ -50,9 +50,9 @@ struct AppRootScene: Scene {
                 .environment(editorCounters)
                 .environment(repositories)
         }
-// .windowToolbarStyle(.unified) = 52 PT macOS native titlebar
-// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// goes blank). Stick with .unified.
+        // .windowToolbarStyle(.unified) = 52 PT macOS native titlebar
+        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // goes blank). Stick with .unified.
         .windowToolbarStyle(.unified)
         // wenshu-verification-fix: .contentMinSize (window doesn't shrink below initial
         // … (= 64 rationale lines collapsed; = A112 docblock collapse per §1.8)

@@ -5,7 +5,9 @@
 //  filtered list of hub commands above the chat TextField when the
 //  user types `/` (= filtered by the prefix after `/`).
 //
-//  inline suggestion popup above the field. Hidden when
+//  product convention: inline suggestion popup (= the common shape of a
+//  slash-command menu; = no vendor's menu is claimed as the source).
+//  Hidden when
 //  no commands match. Tap a row to insert the full command into
 //  the input (= `/commandName ` = trailing space so the user can
 //  start typing the remainder immediately).
@@ -22,16 +24,16 @@ import SwiftUI
 /// command metadata + a stable id (= SwiftUI ForEach requires
 /// Identifiable).
 struct ChatSlashCommandRow: Identifiable, Equatable, Sendable {
-    let id: String  // = command name (= unique)
+    let id: String // = command name (= unique)
     let name: String
     let description: String
     let category: String
 
     init(command: HubCommand) {
-        self.id = command.name
-        self.name = command.name
-        self.description = command.description
-        self.category = command.category
+        id = command.name
+        name = command.name
+        description = command.description
+        category = command.category
     }
 
     /// Format for display in the popup: "/<name>  <description>"
@@ -49,7 +51,6 @@ struct ChatSlashCommandRow: Identifiable, Equatable, Sendable {
 /// Visible as `static` (= no instance state) so tests can call
 /// it without spinning up a SkillAdapter.
 enum ChatSlashCommandAutocompleteEngine {
-
     /// Filter `allCommands` to those whose `name` starts with
     /// `prefix` (case-insensitive). When `prefix` is empty (= the
     /// user just typed `/`), returns the first 8 (= a sensible
@@ -84,7 +85,7 @@ enum ChatSlashCommandAutocompleteEngine {
     static func shouldShow(input: String) -> Bool {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.hasPrefix("/")
-            && !trimmed.contains(" ")  // show only when no args yet
+            && !trimmed.contains(" ") // show only when no args yet
     }
 
     /// Extract the prefix after `/` (= e.g. "/rev" -> "rev").
@@ -101,14 +102,6 @@ enum ChatSlashCommandAutocompleteEngine {
 struct ChatSlashCommandAutocomplete: View {
     let rows: [ChatSlashCommandRow]
     let onSelect: (ChatSlashCommandRow) -> Void
-
-    init(
-        rows: [ChatSlashCommandRow],
-        onSelect: @escaping (ChatSlashCommandRow) -> Void
-    ) {
-        self.rows = rows
-        self.onSelect = onSelect
-    }
 
     var body: some View {
         if rows.isEmpty {

@@ -6,22 +6,21 @@
 //    - ⌘L → clear chat (vm.inputText = "" + vm.startNewSession())
 //
 
-import Testing
 import Foundation
+import Testing
 @testable import WenshuApp
 
 @Suite("ChatView keyboard shortcuts (T37)")
 struct ChatViewKeyboardShortcutsTests {
-
     /// T37 contract: ChatView source registers ⌘K shortcut
-    /// (= the standard Slack / Discord focus-input shortcut).
+    /// (= the product's own focus-input shortcut).
     @Test func cmd_k_shortcut_registered() throws {
         let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
     }
 
     /// T37 contract: ChatView source registers ⌘L shortcut
-    /// (= the standard ChatGPT / Claude clear-chat shortcut).
+    /// (= this app's own clear-chat binding).
     @Test func cmd_l_shortcut_registered() throws {
         let src = try SourceLocator.readGroup(prefixed: "ChatView")
         #expect(src.contains(".keyboardShortcut(\"l\", modifiers: [.command])"))
@@ -31,8 +30,8 @@ struct ChatViewKeyboardShortcutsTests {
     @Test func cmd_k_focuses_input() throws {
         let src = try SourceLocator.readGroup(prefixed: "ChatView")
         // Locate the ⌘K button body.
-        let cmdKRange = src.range(of: "Button(\"Focus input\")")!
-        let cmdKBody = src[cmdKRange.lowerBound..<src.range(of: "}", range: cmdKRange.upperBound..<src.endIndex)!.lowerBound]
+        let cmdKRange = try #require(src.range(of: "Button(\"Focus input\")"))
+        let cmdKBody = src[cmdKRange.lowerBound ..< src.range(of: "}", range: cmdKRange.upperBound ..< src.endIndex)!.lowerBound]
         #expect(cmdKBody.contains("inputFocused = true"))
     }
 
@@ -40,8 +39,8 @@ struct ChatViewKeyboardShortcutsTests {
     @Test func cmd_l_clears_and_starts_new_session() throws {
         let src = try SourceLocator.readGroup(prefixed: "ChatView")
         // Locate the ⌘L button body.
-        let cmdLRange = src.range(of: "Button(\"Clear chat\")")!
-        let cmdLBody = src[cmdLRange.lowerBound..<src.range(of: "}", range: cmdLRange.upperBound..<src.endIndex)!.lowerBound]
+        let cmdLRange = try #require(src.range(of: "Button(\"Clear chat\")"))
+        let cmdLBody = src[cmdLRange.lowerBound ..< src.range(of: "}", range: cmdLRange.upperBound ..< src.endIndex)!.lowerBound]
         #expect(cmdLBody.contains("vm.inputText = \"\""))
         #expect(cmdLBody.contains("vm.startNewSession()"))
         #expect(cmdLBody.contains("inputFocused = true"))
@@ -52,14 +51,14 @@ struct ChatViewKeyboardShortcutsTests {
     /// don't take up chat zone space.
     @Test func buttons_are_visually_hidden() throws {
         let src = try SourceLocator.readGroup(prefixed: "ChatView")
-        let cmdKRange = src.range(of: ".keyboardShortcut(\"k\", modifiers: [.command])")!
-        let cmdLRange = src.range(of: ".keyboardShortcut(\"l\", modifiers: [.command])")!
+        let cmdKRange = try #require(src.range(of: ".keyboardShortcut(\"k\", modifiers: [.command])"))
+        let cmdLRange = try #require(src.range(of: ".keyboardShortcut(\"l\", modifiers: [.command])"))
         // Verify .frame(width: 0, height: 0) appears after each
         // keyboardShortcut modifier.
         let frameK = src.range(of: ".frame(width: 0, height: 0)",
-                               range: cmdKRange.upperBound..<src.endIndex)
+                               range: cmdKRange.upperBound ..< src.endIndex)
         let frameL = src.range(of: ".frame(width: 0, height: 0)",
-                               range: cmdLRange.upperBound..<src.endIndex)
+                               range: cmdLRange.upperBound ..< src.endIndex)
         #expect(frameK != nil)
         #expect(frameL != nil)
     }
@@ -68,15 +67,15 @@ struct ChatViewKeyboardShortcutsTests {
     /// HStack is unchanged; = the new Buttons are AFTER the
     /// closing `}` of the HStack).
     @Test func hstack_invariant_preserved() throws {
-        // 
+        //
         // row (= buttons + TextField) into a dedicated ChatInputBarView
         // (= the top layer; = the user-interactive controls). The hidden
         // buttons (= ⌘K Focus input + other ⌘K/⌘L/etc. keyboard
         // shortcuts) stay in ChatView.swift (= a sibling of
         // ScrollViewReader, not inside the input row). The HStack
         // invariant (= the input row HStack opens at
-        // `HStack(alignment: .center, spacing: 10)` (= per boss v1.82
-        // spec '1.token 压缩 2.10PT，按钮、10PT，...')) and the hidden
+        // `HStack(alignment: .center, spacing: 10)` (= the product's own
+        // input-row spec: token first, 10 PT between every element)) and the hidden
         // `Focus input` Button is positioned AFTER the HStack opens) is
         // now distributed across two files; = this test reads both
         // files to verify the cross-file invariant (= the input row
@@ -91,7 +90,7 @@ struct ChatViewKeyboardShortcutsTests {
         #expect(chatViewSrc.contains("Button(\"Focus input\")"))
         #expect(!inputBarSrc.contains("Button(\"Focus input\")"))
         // The input row HStack lives in ChatInputBarView (= the top layer;
-        // = boss v1.82 spec 'spacing: 10' = 10PT between every element).
+        // = the product spec's `spacing: 10` = 10 PT between every element).
         // The row aligns to `.bottom` (not `.center`) so the icons and the
         // growing editor share a baseline; the 10 PT gap the spec asks for is
         // unchanged.

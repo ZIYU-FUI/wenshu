@@ -16,7 +16,7 @@ import Foundation
 /// Finite state machine = idle -> running -> success | error | cancelled.
 enum DisplayState: Sendable, Equatable, Codable {
     case idle
-    case running(progress: Double)  // 0.0 to 1.0
+    case running(progress: Double) // 0.0 to 1.0
     case success(message: String?)
     case error(message: String)
     case cancelled
@@ -24,8 +24,8 @@ enum DisplayState: Sendable, Equatable, Codable {
     /// True if the state represents 'in progress' (= UI shows spinner).
     var isInProgress: Bool {
         switch self {
-            case .running: return true
-            default: return false
+        case .running: return true
+        default: return false
         }
     }
 
@@ -33,56 +33,56 @@ enum DisplayState: Sendable, Equatable, Codable {
     /// further updates expected).
     var isTerminal: Bool {
         switch self {
-            case .success, .error, .cancelled: return true
-            case .idle, .running: return false
+        case .success, .error, .cancelled: return true
+        case .idle, .running: return false
         }
     }
 
     /// Display label for UI (= per spec §6.4 status bar pattern).
     var displayLabel: String {
         switch self {
-            case .idle: return "Ready"
-            case .running(let progress):
-                let percent = Int(progress * 100)
-                return "Working (\(percent)%)"
-            case .success(let message):
-                return message ?? "Done"
-            case .error(let message):
-                return "Error: \(message)"
-            case .cancelled:
-                return "Cancelled"
+        case .idle: return "Ready"
+        case let .running(progress):
+            let percent = Int(progress * 100)
+            return "Working (\(percent)%)"
+        case let .success(message):
+            return message ?? "Done"
+        case let .error(message):
+            return "Error: \(message)"
+        case .cancelled:
+            return "Cancelled"
         }
     }
 
     /// SF Symbol icon name for UI (= per spec §6.4 status bar pattern).
     var systemImageName: String {
         switch self {
-            case .idle: return "circle"
-            case .running: return "arrow.triangle.2.circlepath"
-        // Migrated to outline glyphs (= the HIG sf-symbols page:
+        case .idle: return "circle"
+        case .running: return "arrow.triangle.2.circlepath"
+        // Migrated to outline glyphs (= https://developer.apple.com/design/human-interface-guidelines/sf-symbols:
         // "The outline variant works well in toolbars, lists, and
         // other places where you display a symbol alongside text").
         // status icons (success / error) use outline glyphs.
         // The .fill variant is reserved for selected/active state
         // markers (= future ticket if the UI needs them).
-            case .success: return "checkmark.circle"
-            case .error: return "exclamationmark.triangle"
-            case .cancelled: return "xmark.circle"
+        case .success: return "checkmark.circle"
+        case .error: return "exclamationmark.triangle"
+        case .cancelled: return "xmark.circle"
         }
     }
 
     /// Valid state transitions (= guard against illegal jumps).
     func canTransition(to next: DisplayState) -> Bool {
         switch (self, next) {
-            case (.idle, .running): return true
-            case (.running, .success): return true
-            case (.running, .error): return true
-            case (.running, .cancelled): return true
-            case (.running(let p1), .running(let p2)): return p2 >= p1  // monotonic
-            case (.success, .idle): return true   // reset for next task
-            case (.error, .idle): return true
-            case (.cancelled, .idle): return true
-            default: return false
+        case (.idle, .running): return true
+        case (.running, .success): return true
+        case (.running, .error): return true
+        case (.running, .cancelled): return true
+        case let (.running(p1), .running(p2)): return p2 >= p1 // monotonic
+        case (.success, .idle): return true // reset for next task
+        case (.error, .idle): return true
+        case (.cancelled, .idle): return true
+        default: return false
         }
     }
 }
@@ -98,7 +98,7 @@ struct DisplayStateMachine: Sendable {
     init(taskName: String, state: DisplayState = .idle) {
         self.taskName = taskName
         self.state = state
-        self.startedAt = Date()
+        startedAt = Date()
     }
 
     /// Manual `Equatable` implementation (Z contract test
@@ -184,8 +184,8 @@ enum DisplayStateError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-            case .illegalTransition(let from, let to, let task):
-                return "DisplayStateMachine '\(task)': illegal transition from \(from.displayLabel) to \(to.displayLabel)"
+        case let .illegalTransition(from, to, task):
+            return "DisplayStateMachine '\(task)': illegal transition from \(from.displayLabel) to \(to.displayLabel)"
         }
     }
 }

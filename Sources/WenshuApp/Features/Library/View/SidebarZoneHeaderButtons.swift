@@ -42,9 +42,9 @@ import SwiftUI
 ///   `.buttonStyle(.borderless)`.
 struct SidebarZoneHeaderButtons: View {
     @Environment(AppState.self) private var appState
-    // SheetRequestState. The "+" button increments `choice` to
-    // trigger the choice sheet via .onChange in the parent
-    // (= AppleSidebarView observes sheetRequests.choice).
+    /// SheetRequestState. The "+" button increments `choice` to
+    /// trigger the choice sheet via .onChange in the parent
+    /// (= AppleSidebarView observes sheetRequests.choice).
     @Environment(SheetRequestState.self) private var sheetRequests
 
     var body: some View {
@@ -54,10 +54,10 @@ struct SidebarZoneHeaderButtons: View {
             // body listener which presents NewChoiceSheet).
             SidebarZoneHeaderIconButton(
                 iconName: "square-plus",
-                    help: "New"
-                ) {
-                    sheetRequests.choice += 1
-                }
+                help: "New"
+            ) {
+                sheetRequests.choice += 1
+            }
             // Import plain Button (= tap directly fires
             // .wenshuImportRequested notification; consumed by the
             // main app toolbar listener = opens the macOS
@@ -78,9 +78,9 @@ struct SidebarZoneHeaderButtons: View {
 
 /// Helper for sidebar zone header icon buttons (= New + Import).
 /// Wraps the icon in a Button + .buttonStyle(.borderless) (= the
-/// Apple canonical macOS 14+ sidebar / toolbar icon button style
-/// = auto-applies hover tint + press tint + Liquid Glass
-/// material backdrop on macOS 27). Per call site gets its own
+/// system's borderless style, which is what gives an icon button in a
+/// sidebar or toolbar its hover and press tint, and on macOS 27 its
+/// Liquid Glass backdrop — the system does that, not this code). Per call site gets its own
 /// hover tracking (= SwiftUI button identity).
 private struct SidebarZoneHeaderIconButton: View {
     let iconName: String

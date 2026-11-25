@@ -30,16 +30,16 @@
 //  document-chrome-survives-WYSIWYG-toggle pattern).
 //
 
-import SwiftUI
 import MarkdownEngine
+import SwiftUI
 
 struct EditorEditContent: View {
     @Binding var draft: String
     let originalBody: String
-    // word count callback (= char count → host writes to
-    // AppState.editorWordCount, which chrome reads for the bottom-bar
-    // left field). Decoupled from AppState so EditorEditContent
-    // stays a pure rendering surface (= no @Environment coupling).
+    /// word count callback (= char count → host writes to
+    /// AppState.editorWordCount, which chrome reads for the bottom-bar
+    /// left field). Decoupled from AppState so EditorEditContent
+    /// stays a pure rendering surface (= no @Environment coupling).
     let onWordCountChange: (Int) -> Void
     // dirty-state change callback. Host routes true (= user
     // started editing) to schedule the auto-save Task; false (= document
@@ -52,7 +52,9 @@ struct EditorEditContent: View {
     let surface: EditorSurface
 
     /// Read-only dirty flag (= computed from the binding's current value).
-    private var isDirty: Bool { draft != originalBody }
+    private var isDirty: Bool {
+        draft != originalBody
+    }
 
     var body: some View {
         // `nodes-app/swift-markdown-engine` (TextKit 2,
@@ -60,7 +62,7 @@ struct EditorEditContent: View {
         // code-fence syntax highlight via transitive HighlighterSwift
         // bridge) replaces Apple SwiftUI TextEditor. The engine's
         // NativeTextViewWrapper provides the NSTextView-based edit
-        // surface (= Apple-standard undo, find, accessibility, IME).
+        // surface (= the undo, find, accessibility and IME support `NSTextView` provides).
         // WenshuMarkdownEditor is a thin NSViewRepresentable wrapper
         // (= keeps EditorEditContent a pure rendering surface).
         //

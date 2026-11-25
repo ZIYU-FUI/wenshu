@@ -120,7 +120,23 @@ def measure_tests(output):
     measured = max(swift_testing + xctest) if (swift_testing or xctest) else 0
     return measured, NO_MATCH in output
 
-
+def run_instruments(sh, base):
+    """The two instruments that read the tree itself, run in order, each keeping its
+    own result. They were once two assignments to the same `code, out` (= the second
+    overwrote the first (= and the printed line for the battery quoted the LOC
+    checker's exit code (= so a battery that did not run read green. The arms that
+    hold that open are `case_instrument_battery_red_loc_green` and
+    `case_instrument_battery_green_loc_red` in
+    `Tools/wenshu-devtool/tests/test_comment_lineage_gate.py`, which run this function
+    against a stubbed `sh` and read back which exit code each label carries.
+    Returns a list of (label, exit code, output)."""
+    bat_code, bat_out = sh(f"python3 {DEVTOOL}/tests/test_comment_lineage_gate.py")
+    # The registry's LOC column, on the same window. A stale row is how the next
+    # reader stops finding the file, and the gate that says so ran on no published
+    # path (= so a stale row shipped green.
+    loc_code, loc_out = sh(f"python3 {DEVTOOL}/nfi-loc-check.py --base {base}")
+    return [("the comment-lineage battery", bat_code, bat_out),
+            ("nfi-loc-check", loc_code, loc_out)]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", required=True)
@@ -273,6 +289,13 @@ def main():
     # = = the repo's own arms table declares CLEAN. = = A rule with two arms is
     # = = a rule with two answers, = = and an author who satisfies one is
     # = = bounced by the other.
+
+    # = = THE BATTERY'S OWN RESULT IS HELD IN ITS OWN NAMES. = = Each instrument
+    # = = reports the number it produced (= see `run_instruments`).
+    for label, code, out in run_instruments(sh, args.base):
+        print(f"  {label}: exit {code}")
+        if code != 0:
+            failures.append((label, out[-800:]))
 
     code, out = sh(f"python3 {DEVTOOL}/verify-dead.py")
     dead = [line for line in out.split("\n") if "DEAD" in line]

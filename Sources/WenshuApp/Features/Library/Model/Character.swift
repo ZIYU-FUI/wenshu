@@ -29,10 +29,10 @@ enum CharacterRole: String, CaseIterable, Codable, Sendable {
     var displayName: String {
         switch self {
         case .protagonist: return "主角"
-        case .antagonist:  return "反派"
-        case .supporting:  return "配角"
-        case .narrator:    return "叙述者"
-        case .other:       return "其他"
+        case .antagonist: return "反派"
+        case .supporting: return "配角"
+        case .narrator: return "叙述者"
+        case .other: return "其他"
         }
     }
 
@@ -58,7 +58,9 @@ enum CharacterRole: String, CaseIterable, Codable, Sendable {
 
     /// SF Symbol name for the card icon. Outline icons everywhere
     /// (= the HIG sf-symbols page: "The outline variant
-    /// works well in toolbars, lists, and other places".)
+    /// works well in toolbars, lists, and other places where you display a
+    /// symbol alongside text",
+    /// https://developer.apple.com/design/human-interface-guidelines/sf-symbols).
     ///
     /// The antagonist carries a magnifying glass (= the role under
     /// scrutiny). The name is the system symbol's own name: the
@@ -68,10 +70,10 @@ enum CharacterRole: String, CaseIterable, Codable, Sendable {
     var icon: String {
         switch self {
         case .protagonist: return "person"
-        case .antagonist:  return "person.crop.circle.badge.magnifyingglass"
-        case .supporting:  return "person.2"
-        case .narrator:    return "text.bubble"
-        case .other:       return "person.crop.circle.badge.questionmark"
+        case .antagonist: return "person.crop.circle.badge.magnifyingglass"
+        case .supporting: return "person.2"
+        case .narrator: return "text.bubble"
+        case .other: return "person.crop.circle.badge.questionmark"
         }
     }
 }

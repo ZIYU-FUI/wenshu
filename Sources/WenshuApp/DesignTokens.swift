@@ -1,10 +1,13 @@
 // Sources/WenshuApp/DesignTokens.swift: Single source of truth for all chrome
 // dimensions, paddings, font sizes, dividers, tab metrics (= extracted from
 // LayoutTokens + 16 files of inline literals). Listed in ComponentIndex.md Level
-// 1.1. The old header cited an "Apple HIG 30 PT toolbar standard" and an
-// "18 PT padding in 5 places"; neither figure exists in the HIG or in this
-// file (grep '= 30' = 0 hits; the only macOS bar height the HIG publishes is the menu
-// bar's 24 pt) (= the 2026-11-21 craft audit, rule C3/X12). Values below are
+// 1.1. No "Apple HIG 30 PT toolbar standard" and no "Apple HIG 18 PT padding"
+// figure exists: neither number is in the HIG or in this file (grep '= 30' and
+// '= 18' return no cited value), and the one macOS bar height the HIG does
+// publish is the menu bar's 24 pt
+// (https://developer.apple.com/design/human-interface-guidelines/the-menu-bar —
+// "The menu bar's height is 24 pt") (= the 2026-11-21 craft audit).
+// Values below are
 // the product's; where one coincides with a system measurement, the doc
 // comment names the measurement instead of a citation.
 // Use these constants instead of inline numbers.
@@ -87,8 +90,9 @@ enum DesignTokens {
     /// deliberately tighter, a product choice, not a HIG figure).
     static let spacingIconic: CGFloat = 4
 
-    /// Product mid-step stack spacing (= 10 PT). The old comment cited an
-    /// "Apple HIG `.relaxed` stack spacing"; no such SDK value exists (audit C3).
+    /// Product mid-step stack spacing (= 10 PT), a number of this app's own:
+    /// no "Apple HIG `.relaxed` stack spacing" value exists in the SDK, and
+    /// the HIG publishes no such figure either (= the 2026-11-21 craft audit).
     static let spacingRelaxed: CGFloat = 10
 
     /// Tight inter-row gap (= 6 PT): the product half-step between the
@@ -149,7 +153,7 @@ enum DesignTokens {
     /// reads `.primary` = the same SwiftUI semantic token. Dimming is the
     /// four-tier ladder's job, not `.primary.opacity(0.X)` tweaks: hand-
     /// rolled alphas do not follow Dark Mode or Increase Contrast (audit C2).
-    ///   .primary   = writing body (= Pages / Notes body).
+    ///   .primary   = writing body (= our spec: the document text color).
     ///   .secondary = bubble chrome (= timestamps, captions, footers).
     ///   .tertiary  = tertiary metadata (= IDs, hashes, badges).
     ///   .quaternary = disabled / placeholder text.
@@ -196,8 +200,8 @@ enum DesignTokens {
     /// canvas lives inside the zone grid layout.
     static let dragGestureThresholdCanvas: CGFloat = 5
 
-    /// Chat bubble max-width (= 360 PT, the product chat panel standard
-    /// = the Messages app reference width).
+    /// Chat bubble max-width (= 360 PT, the product chat panel standard;
+    /// measured against our own reading column = no vendor width claimed).
     static let chatBubbleMaxWidth: CGFloat = 360
 
     /// Inline metadata panel max-width (= 320 PT, the product compact inset
@@ -339,8 +343,9 @@ enum DesignTokens {
     static let surfaceShadowRadiusWindow: CGFloat = 12
 
     /// The hairline rungs (= 0.5 PT): one device pixel at 2x, the thickness
-    /// measured on the app's own window capture (the old "Apple HIG macOS 26+
-    /// hairline" citation published no number; audit C3). The system `Divider`
+    /// measured on the app's own window capture — no "Apple HIG macOS 26+
+    /// hairline" number is published anywhere in the HIG (= the 2026-11-21 craft audit). The system
+    /// `Divider`
     /// itself measures 1.0 PT.
     static let separatorThicknessHairline: CGFloat = 0.5
 
@@ -479,20 +484,20 @@ enum DesignTokens {
     /// agent's message visible above it.
     static let chatInputBarHeight: CGFloat = 80
 
-    /// Large control height (= 36 PT). The old comment cited "the Apple HIG
-    /// macOS control standard"; no 36 PT figure exists in the HIG and the
-    /// system's own large bordered control measures 28 PT (= audit C3/X12).
+    /// Large control height (= 36 PT), a number of this app's own: no "the
+    /// Apple HIG macOS control standard" figure exists, and the system's own
+    /// large bordered control measures 28 PT (= the 2026-11-21 craft audit).
     /// The value stays as the product's stable composer height; controls must
     /// take density from `.controlSize(.large)`, not from a frame on this
     /// token (audit K2/X13).
     static let controlHeightLarge: CGFloat = 36
 
-    /// Pages-style picker card row height (= 32 PT). The product source is
-    /// the Pages inspector panel, and the row is aligned with it.
+    /// Picker card row height (= 32 PT). The product source is our own
+    /// inspector panel density; the row is aligned with the product layout.
     static let pickerCardHeight: CGFloat = 32
 
-    /// Picker card internal horizontal padding (= 12 PT). The product source is
-    /// the Pages step 1 wizard, and the card follows the Pages-style picker cards.
+    /// Picker card internal horizontal padding (= 12 PT). The product source
+    /// is our own wizard card grid = no vendor card attributed.
     static let pickerCardPaddingH: CGFloat = 12
 
     /// Sheet width for inline rename dialogs (= 360 PT, the product macOS

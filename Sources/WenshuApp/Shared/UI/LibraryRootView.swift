@@ -1,26 +1,26 @@
-// 
+//
 // … (= 27 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// 
+//
 import AppKit
+import os
 import SwiftUI
 import UniformTypeIdentifiers
 import WenshuData
-import os
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "libraryrootview")
 
-// / LibraryRootView: Routes between onboarding (first launch) and main app.
-// … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / - else (= path set + path exists) → main app AppRootScene
+/// / LibraryRootView: Routes between onboarding (first launch) and main app.
+/// … (= 8 rationale lines collapsed; = the docblock collapse per §1.8)
+/// / - else (= path set + path exists) → main app AppRootScene
 struct LibraryRootView: View {
-    // LibraryRootView now owns the library + appearance
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // WindowGroup (= single source of truth = AppRootScene).
+    /// LibraryRootView now owns the library + appearance
+    /// … (= 3 rationale lines collapsed; = the docblock collapse per §1.8)
+    /// WindowGroup (= single source of truth = AppRootScene).
     let library: WenshuLibrary
 
-    // Active library path (= canonical single source of truth via
-    // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // replaced it with the canonical accessor.
+    /// Active library path (= canonical single source of truth via
+    /// … (= 9 rationale lines collapsed; = the docblock collapse per §1.8)
+    /// replaced it with the canonical accessor.
     private var activeLibraryPath: String? {
         activeLibrarySelection ?? ActiveLibrary.path
     }
@@ -33,23 +33,33 @@ struct LibraryRootView: View {
         // wenshu-acceptance-fix: trigger condition strict.
         // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // with '.ws' AND directory exists AND Info.plist is readable.
-        if (activeLibraryPath ?? "").isEmpty { return true }
+        if (activeLibraryPath ?? "").isEmpty {
+            return true
+        }
         // bossverificationfix: must end with .ws extension
-        if !(activeLibraryPath ?? "").hasSuffix(".ws") { return true }
+        if !(activeLibraryPath ?? "").hasSuffix(".ws") {
+            return true
+        }
         // Directory must exist (v0.26: .ws is a directory, not a file)
         var isDir: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: activeLibraryPath ?? "", isDirectory: &isDir)
-        if !exists { return true }
-        if !isDir.boolValue { return true }
+        if !exists {
+            return true
+        }
+        if !isDir.boolValue {
+            return true
+        }
         // Info.plist must be readable (= WSSchemaVersion check)
         let infoPlistURL = URL(fileURLWithPath: activeLibraryPath ?? "").appendingPathComponent("Info.plist")
-        if !FileManager.default.isReadableFile(atPath: infoPlistURL.path) { return true }
+        if !FileManager.default.isReadableFile(atPath: infoPlistURL.path) {
+            return true
+        }
         return false
     }
 
-    // 
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // -> column body = the Apple canonical 4 layers.
+    ///
+    /// … (= 4 rationale lines collapsed; = the docblock collapse per §1.8)
+    /// -> column body = the 4 layers this app composes.
     @Environment(AppState.self) private var appState
     // 2026-10-03 overabstraction cleanup: ShellState removed (= all
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -190,15 +200,17 @@ struct LibraryRootView: View {
         let bookmarkURL = LibraryBookmark.resolve()
         let accessed = bookmarkURL?.startAccessingSecurityScopedResource() ?? false
         defer {
-            if accessed { bookmarkURL?.stopAccessingSecurityScopedResource() }
+            if accessed {
+                bookmarkURL?.stopAccessingSecurityScopedResource()
+            }
         }
         let hook = LibraryLifecycleHook(wsRoot: wsRoot)
         do {
             let result = try hook.runLaunch()
-            self.bookStore = result.makeBookStore()
+            bookStore = result.makeBookStore()
             // Populate the reactive `books` mirror at launch so
             // bookStore.books.count is correct on the first render.
-            self.bookStore?.reloadAllBooks()
+            bookStore?.reloadAllBooks()
             // The material column answers a card's cover from memory, so
             // the covers folder is read ONCE here, before a single card
             // asks (= `CoverIndex`). What a frame then pays for a cover
@@ -214,12 +226,12 @@ struct LibraryRootView: View {
     }
 }
 
-// / ', shouldchat zonedialog.
-// … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / The wordmark artwork the welcome page shows = the effective color
-// / scheme picks the file. The light theme carries the gold calligraphy
-// / (= a white brush stroke on a cream background reads as a watermark,
-// / not as the product's name); the dark theme keeps the white one.
+/// / ', shouldchat zonedialog.
+/// … (= 12 rationale lines collapsed; = the docblock collapse per §1.8)
+/// / The wordmark artwork the welcome page shows = the effective color
+/// / scheme picks the file. The light theme carries the gold calligraphy
+/// / (= a white brush stroke on a cream background reads as a watermark,
+/// / not as the product's name); the dark theme keeps the white one.
 enum WenshuWordmark {
     /// The white calligraphy (= the app icon's own source artwork).
     static let whiteAssetName = "wenshu-original-fanbai"
@@ -232,7 +244,7 @@ enum WenshuWordmark {
     }
 }
 
-// / Searches multiple paths in .app bundle for the named wordmark PNG.
+/// / Searches multiple paths in .app bundle for the named wordmark PNG.
 private func loadWenshuLogo(named assetName: String) -> NSImage? {
     // Build process: Package.swift copies AppIcon.icon/ → Wenshu.app/Contents/Resources/AppIcon.icon/
     // AppIcon.icon contains icon.json (Apple Icon Composer format) and Assets/ subdir.
@@ -253,8 +265,8 @@ private func loadWenshuLogo(named assetName: String) -> NSImage? {
     return nil
 }
 
-// / The window toolbar = the library pages only. The welcome page has
-// / no library, so the kanban and export buttons have nothing to act on.
+/// / The window toolbar = the library pages only. The welcome page has
+/// / no library, so the kanban and export buttons have nothing to act on.
 private struct OnboardingAwareToolbar: ViewModifier {
     let isOnboarding: Bool
     let openWindow: OpenWindowAction
@@ -334,9 +346,9 @@ private struct OnboardingAwareToolbar: ViewModifier {
     }
 }
 
-// / LibraryOnboardingView: First-launch .ws file picker (NSOpenPanel).
-// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / .ws file location (FCP-style event library UX).
+/// / LibraryOnboardingView: First-launch .ws file picker (NSOpenPanel).
+/// … (= 1 rationale lines collapsed; = the docblock collapse per §1.8)
+/// / .ws file location (FCP-style event library UX).
 struct LibraryOnboardingView: View {
     let onLibraryPicked: (URL) -> Void
 
@@ -354,23 +366,23 @@ struct LibraryOnboardingView: View {
             Spacer()
 
             // wenshu-verification-fix:
-// … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// to load PNG from absolute path inside .app bundle.
-Group {
-    if let nsImage = loadWenshuLogo(named: WenshuWordmark.assetName(for: colorScheme)) {
+            // … (= 9 rationale lines collapsed; = the docblock collapse per §1.8)
+            // to load PNG from absolute path inside .app bundle.
+            Group {
+                if let nsImage = loadWenshuLogo(named: WenshuWordmark.assetName(for: colorScheme)) {
                     // wenshu-verification-fix:
-        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // (consistent across light/dark mode).
-        Image(nsImage: nsImage)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)
-    } else {
-        // Fallback: SF Symbols 6 canonical 'text.book.closed' if PNG load fails
+                    // … (= 3 rationale lines collapsed; = the docblock collapse per §1.8)
+                    // (consistent across light/dark mode).
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)
+                } else {
+                    // Fallback: SF Symbols 6 canonical 'text.book.closed' if PNG load fails
                     // (: SF Symbol fully replaced).
-        SFIcon("text.book.closed", style: .inlineSmall, color: .white)
-    }
-}
+                    SFIcon("text.book.closed", style: .inlineSmall, color: .white)
+                }
+            }
 
             VStack(spacing: DesignTokens.spacingModerate) {
                 Text(String(localized: "auto.libraryrootview.l366.h45346224"))
@@ -435,7 +447,7 @@ Group {
             allowedContentTypes: [UTType(exportedAs: "com.wenshu.workspace")]
         ) { result in
             switch result {
-            case .success(let url):
+            case let .success(url):
                 // Existing libraries open as-is. A custom package without its
                 // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // accepts only the declared `.ws` type.
@@ -445,21 +457,21 @@ Group {
                 }
                 onLibraryPicked(url)
             case .failure:
-                // User cancelled (= no action). Apple-standard UX:
-                // cancel silently closes the sheet.
+                // User cancelled (= no action): the picker's dismissal is the
+                // whole event, so this app does nothing and the sheet stays
+                // closed.
                 break
             }
         }
     }
 
     // MARK: - Bundle creation helper ( fix)
-
-}  // close LibraryOnboardingView struct
+} // close LibraryOnboardingView struct
 
 extension LibraryOnboardingView {
-    // / createWenshuWorkspace: explicitly create the package directory at url
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / (= shelves/ books/ chat.sqlite kanban.sqlite todo.sqlite).
+    /// / createWenshuWorkspace: explicitly create the package directory at url
+    /// … (= 2 rationale lines collapsed; = the docblock collapse per §1.8)
+    /// / (= shelves/ books/ chat.sqlite kanban.sqlite todo.sqlite).
     static func createWenshuWorkspace(at url: URL) {
         let fm = FileManager.default
         // 1. Create root package directory if not exists

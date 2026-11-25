@@ -37,3 +37,24 @@ G|1.5|//  ONE more, = `project/t_393cc135-…`, = by a claim answering `contract
 R|1.5|//  ONE more, = `project/t_393cc135-…`, = by a claim answering `contract_error`.@path:Tools/wenshu-devtool/probes/demo.swift
 R|1.1|# 这个门禁只读散文，不看代码 @path:Scripts/merge-preflight.sh
 G|1.1|# the gate reads the prose, not the code @path:Scripts/merge-preflight.sh
+
+# --- the vendor rule: a product name AND a parity claim, and the marker that makes
+# --- the claim honest. The bare product names are charged the way Pages and Slack
+# --- are, and the exemption hangs on a checkable source, never on a vendor's name.
+R|1.5|// the composer mirrors the same UX as the Mail
+G|1.5|// the composer mirrors the same UX as the Mail (= the source is the page at https://developer.apple.com/design/human-interface-guidelines/text-fields)
+R|1.5|// the panel follows the standard Apple sidebar width
+G|1.5|// the panel follows the standard Apple sidebar width (= the header says so)
+R|1.5|// the composer matches the\n// Mail app panel
+G|1.5|// the composer matches the\n// Mail app panel (= our own layout; = no vendor claim)
+
+# --- the marker list was tightened: a marker must name something a reader can
+# --- open, or deny the parity itself. Every dropped shape has a violating arm
+# --- here, so the battery pins the tightening instead of the prose doing it.
+R|1.5|// the panel follows the standard Apple sidebar width, unlike our old code
+R|1.5|// the panel follows the standard Apple sidebar width; Safari ships no such API
+R|1.5|// the panel follows the standard Apple sidebar width (= the number was never measured)
+R|1.5|// the panel follows the standard Apple sidebar width (= the figure exists)
+R|1.5|// the panel follows the standard Apple sidebar width (= no such claim)
+R|1.5|// the panel follows the standard Apple sidebar width (= our own hermes-style layout)
+R|1.5|// Local file tools (= hermes `file` parity). Uses Apple `FileManager`

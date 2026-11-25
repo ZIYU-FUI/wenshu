@@ -78,7 +78,7 @@ struct ChatView: View {
         _ = keychainRevision
         // The input row is disabled while no provider key is configured, and
         // while a turn is in flight (= the second send is refused rather than
-        // racing the first). A view-body computed
+        // racing the first, per the product's send policy). A view-body computed
         // property cannot `await` the provider list, so the sync-cached variant
         // on the public facade is read: the cache is warmed at app launch and
         // refreshed on every keychain change notification.
@@ -403,9 +403,8 @@ struct ChatView: View {
                 }
             }
             // Chat input bar (= the top layer of the 3-layer UI split per the
-            // spec) floats over this ScrollView via.safeAreaInset(edge:.bottom);
-            // = the two fields and the send button styled by Apple's
-            // guidance (see OOB.md #2026-11-23).
+            // spec) floats over this ScrollView via .safeAreaInset(edge:.bottom);
+            // = the product's own chat-input placement, no vendor pattern claimed.
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 ChatInputBarView(
                     vm: vm,
@@ -559,9 +558,8 @@ struct ChatView: View {
             .padding(.top, DesignTokens.spacingStandard)
             // — add 10 PT top spec.
             .padding(.top, 10)
-            // The cleanup keeps the row
-            // sitting above the window tier (see OOB.md
-            // #2026-09-21).
+            // The cleanup keeps the row sitting above
+            // the window tier (see OOB.md #2026-09-21).
         }
     }
 }

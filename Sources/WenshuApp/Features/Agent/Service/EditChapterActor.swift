@@ -122,8 +122,8 @@ actor EditChapterActor {
         }
         let newBody = oldBody.replacingOccurrences(of: oldText, with: newText, options: [], range: range)
 
-        // 3. Compute the unified-diff stats (= same algorithm as
-        // BookChapterTool.computeUnifiedDiff; = LCS-based).
+        // 3. Compute the unified-diff stats (= the one computeUnifiedDiff,
+        // DiffUtil.computeUnifiedDiff, built on the stdlib's Collection.difference(from:) edit script).
         let diff = computeUnifiedDiff(old: oldBody, new: newBody)
 
         // 4. Persist the patched body. NOTE: writeFileSystemChapter is the legacy .md
@@ -132,7 +132,9 @@ actor EditChapterActor {
         // commit 2 of #8).
         var updated = document
         updated.updatedAt = Date()
-        if let summary { updated.summary = summary }
+        if let summary {
+            updated.summary = summary
+        }
         try Self.writeFileSystemChapter(
             chapter: updated,
             bodyMarkdown: newBody,
@@ -169,7 +171,7 @@ actor EditChapterActor {
             wenshuLogger.info("[edit-chapter] writeFileSystemChapter FAIL: bookDirectory missing")
             throw EditChapterError.chapterNotFound
         }
-        try Self.ensureChaptersDirectoryExists(at: chaptersDirectory)
+        try ensureChaptersDirectoryExists(at: chaptersDirectory)
         var chapter = chapter
         chapter.category = .chapter
 
@@ -194,13 +196,13 @@ actor EditChapterActor {
         try Self.writeIndex(current, to: indexURL)
     }
 
-    /// (loadChaptersFromFileSystemStatic removed 2026-10-05 in
-    ///  dead-code-sweep-2026-10-05 batch — verify-dead.py strict-context
-    ///  grep confirmed 0 callers across Sources/ + Tests/; = the function
-    ///  was a thin static forwarder to FileSystemChapterStore.loadChaptersFromFileSystem
-    ///  retained for an earlier non-actor design; = the current
-    ///  EditChapterActor calls `FileSystemChapterStore.loadChaptersFromFileSystem`
-    ///  directly (no static wrapper needed); = the forwarder is dead.)
+    // (loadChaptersFromFileSystemStatic removed 2026-10-05 in
+    //  dead-code-sweep-2026-10-05 batch — verify-dead.py strict-context
+    //  grep confirmed 0 callers across Sources/ + Tests/; = the function
+    //  was a thin static forwarder to FileSystemChapterStore.loadChaptersFromFileSystem
+    //  retained for an earlier non-actor design; = the current
+    //  EditChapterActor calls `FileSystemChapterStore.loadChaptersFromFileSystem`
+    //  directly (no static wrapper needed); = the forwarder is dead.)
 
     private static func ensureChaptersDirectoryExists(at url: URL) throws {
         if !FileManager.default.fileExists(atPath: url.path) {
@@ -243,11 +245,13 @@ actor EditChapterActor {
             return Self.encodeFailure(reason: "input is not a JSON object")
         }
         guard let idString = envelope["id"] as? String,
-              let id = UUID(uuidString: idString) else {
+              let id = UUID(uuidString: idString)
+        else {
             return Self.encodeFailure(reason: "edit requires 'id' (UUID string)")
         }
         guard let bookIdString = envelope["book_id"] as? String,
-              let bookId = UUID(uuidString: bookIdString) else {
+              let bookId = UUID(uuidString: bookIdString)
+        else {
             return Self.encodeFailure(reason: "edit requires 'book_id' (UUID string)")
         }
         guard let oldText = envelope["old_text"] as? String else {
@@ -300,9 +304,9 @@ actor EditChapterActor {
                     "added_chars": diff.addedChars,
                     "removed_chars": diff.removedChars,
                     "added_lines": diff.addedLines,
-                    "removed_lines": diff.removedLines
-                ] as [String: Int]
-            ] as [String: Any]
+                    "removed_lines": diff.removedLines,
+                ] as [String: Int],
+            ] as [String: Any],
         ]
         guard let data = try? JSONSerialization.data(
             withJSONObject: payload,
@@ -318,7 +322,9 @@ actor EditChapterActor {
         errorKind: String? = nil
     ) -> String {
         var payload: [String: Any] = ["ok": false, "error": reason]
-        if let errorKind { payload["error_kind"] = errorKind }
+        if let errorKind {
+            payload["error_kind"] = errorKind
+        }
         guard let data = try? JSONSerialization.data(
             withJSONObject: payload,
             options: []
@@ -327,15 +333,6 @@ actor EditChapterActor {
         }
         return text
     }
-
-    // MARK: - Diff (= shared algorithm with BookChapterTool)
-
-
-    /// LCS-based unified diff (= mirrors hermes tool-fallback.tsx).
-    /// Plain function so it's reachable from unit tests.
-
-
-
 }
 
 // MARK: - Diff envelope (= chat-diff-preview wire shape)
@@ -344,8 +341,8 @@ actor EditChapterActor {
 /// BookChapterActor.update (= ChatToolResultPartView routes any
 /// envelope carrying this shape into ChatToolDiffPreview).
 struct EditDiffEnvelope: Equatable, Sendable {
-    let kind: String                // always "diff"
-    let path: String                // "chapters/<UUID>.md"
+    let kind: String // always "diff"
+    let path: String // "chapters/<UUID>.md"
     let oldText: String
     let newText: String
     let addedChars: Int

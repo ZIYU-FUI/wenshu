@@ -2,7 +2,7 @@
 //  Persistence/Repositories/WSLinkRepository.swift
 //
 //  (= boundary decouple WSLinkRepository).
-//  Apple canonical layering per Backyard Birds:
+//  The layering this app copied from Apple's Backyard Birds sample project:
 //    - write API = raw fields in (no app-side Link domain type).
 //    - read  API = @Model out (= caller converts WSLink -> Link).
 //
@@ -32,10 +32,12 @@ public final class WSLinkRepository {
     /// repository built before that moment must not keep the store it
     /// saw at construction time.
     public let store: WSStore
-    private var context: ModelContext { store.context }
+    private var context: ModelContext {
+        store.context
+    }
 
     public init(container: ModelContainer? = nil) {
-        self.store = WSStore(container: container)
+        store = WSStore(container: container)
     }
 
     public func add(

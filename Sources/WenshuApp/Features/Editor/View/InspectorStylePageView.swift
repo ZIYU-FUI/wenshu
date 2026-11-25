@@ -69,8 +69,11 @@
 //  inspector's edge). = The HIG names both kinds for exactly this place: = a
 //  pop-up button is for "a flat list of mutually exclusive options or states"
 //  = and "can update its content to indicate the current selection" (= the
-//  HIG pop-up-buttons page), = and a segmented control belongs in "a
-//  toolbar or inspector pane" (= the HIG segmented-controls page).
+//  HIG pop-up-buttons page), = and a segmented control is what the HIG
+//  offers for switching views in "a toolbar or inspector pane" (= the HIG
+//  segmented-controls page).
+//  Pages: https://developer.apple.com/design/human-interface-guidelines/pop-up-buttons
+//  and https://developer.apple.com/design/human-interface-guidelines/segmented-controls
 //
 //  A FACSIMILE SILENCES THE CONTROL IT COPIES
 //

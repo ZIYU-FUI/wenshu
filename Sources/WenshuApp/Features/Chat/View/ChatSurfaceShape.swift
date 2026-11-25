@@ -15,8 +15,8 @@ import SwiftUI
 /// The composer field and the user's own message bubble wear this
 /// shape, so the two surfaces agree by construction instead of by
 /// coincidence. The radius = min(half the height, the cap): a bubble
-/// at its resting height rounds its ends all the way (= the canonical
-/// Apple Messages capsule), and only a surface grown past the cap
+/// at its resting height rounds its ends all the way (= a true
+/// capsule), and only a surface grown past the cap
 /// stays a rounded rectangle (= never a stadium the glyphs spill
 /// out of).
 struct ChatSurfaceShape: Shape {

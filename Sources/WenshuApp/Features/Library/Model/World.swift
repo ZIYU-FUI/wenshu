@@ -32,25 +32,26 @@ enum WorldEntryType: String, CaseIterable, Codable, Sendable {
     var displayName: String {
         switch self {
         case .geography: return "地理"
-        case .lore:      return "传说"
-        case .event:     return "事件"
-        case .object:    return "物品"
-        case .other:     return "其他"
+        case .lore: return "传说"
+        case .event: return "事件"
+        case .object: return "物品"
+        case .other: return "其他"
         }
     }
 
     /// SF Symbol name for the card icon. product: SF Symbol carries
     /// the visual weight (= wenshu MD files have no thumbnail).
     /// Outline icons everywhere (= the HIG sf-symbols page:
-    /// "The outline variant works well in toolbars, lists,
-    /// and other places").
+    /// "The outline variant works well in toolbars, lists, and other
+    /// places where you display a symbol alongside text",
+    /// https://developer.apple.com/design/human-interface-guidelines/sf-symbols).
     var icon: String {
         switch self {
         case .geography: return "map"
-        case .lore:      return "book.pages"
-        case .event:     return "calendar"
-        case .object:    return "cube.box"
-        case .other:     return "tag"
+        case .lore: return "book.pages"
+        case .event: return "calendar"
+        case .object: return "cube.box"
+        case .other: return "tag"
         }
     }
 }

@@ -1,7 +1,7 @@
 //
 //  Persistence/Repositories/WSTodoRepository.swift
 //
-//  Apple canonical layering per Backyard Birds:
+//  The layering this app copied from Apple's Backyard Birds sample project:
 //    - write API = raw fields in (= no app-side TodoStatus / TodoPriority
 //      / TodoItem domain type; = caller converts to raw String status
 //      and raw Int priority before calling; = caller consumes the
@@ -42,10 +42,12 @@ public final class WSTodoRepository {
     /// repository built before that moment must not keep the store it
     /// saw at construction time.
     public let store: WSStore
-    private var context: ModelContext { store.context }
+    private var context: ModelContext {
+        store.context
+    }
 
     public init(container: ModelContainer? = nil) {
-        self.store = WSStore(container: container)
+        store = WSStore(container: container)
     }
 
     public func add(title: String, priority: Int = 1, dueDate: Date? = nil) throws -> WSTodo {

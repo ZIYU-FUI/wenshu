@@ -15,9 +15,10 @@ extension EditorChatNSController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // product thin divider style (= the canonical Keynote
-        // speaker-notes divider; = the Apple-standard 1 PT hairline;
-        // = matches Pages / Numbers / Keynote).
+        // product thin divider style (= `NSSplitView.DividerStyle.thin`,
+        // the system's own divider: = the chat column and the editor column
+        // are separated by the system's hairline, and the product's own rule
+        // is that the separator's width and colour are the system's to pick).
         splitView.dividerStyle = .thin
         // Pure product approach (= let NSSplitView + NSSplitViewItem
         // be transparent; = the chat column shows the window's single

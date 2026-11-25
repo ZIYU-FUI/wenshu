@@ -64,7 +64,7 @@ struct ChatHelpTextOverlay: View {
         // content + Spacer` (= top + bottom Spacers push the
         // content to vertical center inside the chat zone).
         ZStack {
-            Color.clear  // zone background shows through (= Apple canonical: the parent zone provides the background)
+            Color.clear // zone background shows through (= by design: the parent zone provides the background)
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
                 // Every empty state in the app renders through the shared EmptyStateView,
@@ -90,27 +90,28 @@ struct ChatHelpTextOverlay: View {
                 // ContentUnavailableView sample.
                 // -m1-shell (see OOB.md #2026-09-16) OOB ' ICON， .fill':
                 // migrated chat empty-state icon from 'message.fill' to
-                // 'message' (= the outline variant, which the HIG
-                // sf-symbols page recommends: "The outline variant works
+                // 'message' (= the outline variant, which
+                // https://developer.apple.com/design/human-interface-guidelines/sf-symbols
+                // states: "The outline variant works
                 // well in toolbars, lists, and other places where you
                 // display a symbol alongside text").
                 EmptyStateView(
                     icon: "message",
                     titleView:
-                        HStack(spacing: 0) {
-                            Text(String(localized: "chathelp.please_first_goto") + " ")
-                                .foregroundStyle(.secondary)
-                            Button(action: onSettingsTap) {
-                                Text(String(localized: "auto.chathelptextoverlay.l25.h61781343"))
-                                    .foregroundStyle(Color.accentColor)
-                                    .underline()
-                            }
-                            .buttonStyle(.plain)
-                            Text(" " + String(localized: "auto.chathelptextoverlay.l30.h53427819"))
-                                .foregroundStyle(.secondary)
+                    HStack(spacing: 0) {
+                        Text(String(localized: "chathelp.please_first_goto") + " ")
+                            .foregroundStyle(.secondary)
+                        Button(action: onSettingsTap) {
+                            Text(String(localized: "auto.chathelptextoverlay.l25.h61781343"))
+                                .foregroundStyle(Color.accentColor)
+                                .underline()
                         }
-                        .font(.headline)
-                        .multilineTextAlignment(.center),
+                        .buttonStyle(.plain)
+                        Text(" " + String(localized: "auto.chathelptextoverlay.l30.h53427819"))
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.headline)
+                    .multilineTextAlignment(.center),
                     body: String(localized: "auto.chathelptextoverlay.l33.h88773098")
                 )
                 Spacer(minLength: 0)
