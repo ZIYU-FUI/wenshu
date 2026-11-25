@@ -316,7 +316,7 @@ struct EditorChromeReserveAndContextUsageTests {
             """
         )
         #expect(
-            raw.contains("上下文 %lld / %lld tokens"),
+            raw.contains("上下文 %1$@ / %2$@ tokens"),
             "The chat footer's label must say that the number is the context usage."
         )
     }

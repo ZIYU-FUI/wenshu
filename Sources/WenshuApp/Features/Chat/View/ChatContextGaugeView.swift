@@ -86,11 +86,15 @@ struct ChatContextGaugeView: View {
     /// The label beside the gauge (= the current value and the window).
     ///
     /// The label carries the numbers the gauge's own fill cannot: how
-    /// many tokens are in use, and how many the window holds.
+    /// many tokens are in use, and how many the window holds. Each one is in
+    /// unit form (see OOB.md #2026-11-26), because a meter converts what it
+    /// counts, and the exact pair stays in the tooltip this same control
+    /// already carries.
     private var label: some View {
         Text(reading)
             .font(.callout)
             .foregroundStyle(labelColor)
+            .help(exactReading)
     }
 
     /// The reading the label shows.
@@ -104,8 +108,23 @@ struct ChatContextGaugeView: View {
         }
         return String(
             format: String(localized: "chat.context.gauge.reading"),
-            snapshot.promptTokens,
-            snapshot.contextWindow
+            TokenUnitFormat.string(snapshot.promptTokens),
+            TokenUnitFormat.string(snapshot.contextWindow)
+        )
+    }
+
+    /// The same reading in full (= what `.help()` shows on hover).
+    ///
+    /// The unit form trades exactness for a number that fits the bar, so
+    /// the traded-away digits stay reachable instead of being gone.
+    private var exactReading: String {
+        guard let snapshot, snapshot.promptTokens > 0, snapshot.contextWindow > 0 else {
+            return String(localized: "chat.context.gauge.empty")
+        }
+        return String(
+            format: String(localized: "chat.context.gauge.exact"),
+            TokenUnitFormat.exactString(snapshot.promptTokens),
+            TokenUnitFormat.exactString(snapshot.contextWindow)
         )
     }
 
@@ -184,6 +203,10 @@ struct ChatContextBreakdownView: View {
     }
 
     /// The headline (= the same three numbers the gauge carries).
+    ///
+    /// It converts the two counts exactly as the bar does, because it is
+    /// the same reading shown twice, and the parts below it are where the
+    /// exact numbers live.
     private var header: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingCaption) {
             Text(String(localized: "chat.context.breakdown.title"))
@@ -193,8 +216,8 @@ struct ChatContextBreakdownView: View {
                 Text(
                     String(
                         format: String(localized: "chat.context.breakdown.summary"),
-                        snapshot.promptTokens,
-                        snapshot.contextWindow,
+                        TokenUnitFormat.string(snapshot.promptTokens),
+                        TokenUnitFormat.string(snapshot.contextWindow),
                         percent
                     )
                 )

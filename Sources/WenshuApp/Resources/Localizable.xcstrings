@@ -8943,13 +8943,30 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Context: %lld / %lld tokens"
+            "value": "Context: %1$@ / %2$@ tokens"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "上下文 %lld / %lld tokens"
+            "value": "上下文 %1$@ / %2$@ tokens"
+          }
+        }
+      }
+    },
+    "chat.context.gauge.exact": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exact: %1$@ / %2$@ tokens"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "精确值 %1$@ / %2$@ tokens"
           }
         }
       }
@@ -8994,13 +9011,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Context: %lld / %lld tokens (%lld%%)"
+            "value": "Context: %1$@ / %2$@ tokens (%3$lld%%)"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "上下文 %lld / %lld tokens（%lld%%）"
+            "value": "上下文 %1$@ / %2$@ tokens（%3$lld%%）"
           }
         }
       }
