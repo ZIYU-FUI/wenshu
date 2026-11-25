@@ -114,7 +114,7 @@ struct BookContinuityReader {
     /// about, = = so the kernel still weighs two documents about one
     /// subject together.
     private func locatedFacts() -> [StoryFact] {
-        documents().flatMap { document, _ in StoryClaimReader.claims(in: document) }
+        documents().flatMap { StoryClaimReader.claims(in: $0) }
     }
 
     // MARK: - The broken threads
@@ -189,8 +189,8 @@ struct BookContinuityReader {
     /// folders, = = and its title is its name. A document that states
     /// no claim states nothing, = = so the reader's silence is the
     /// book's silence.
-    private func documents() -> [(StoryDocument, String)] {
-        var read: [(StoryDocument, String)] = []
+    private func documents() -> [StoryDocument] {
+        var read: [StoryDocument] = []
         for folder in ["world", "characters"] {
             let directory = bookDirectory.appendingPathComponent(folder, isDirectory: true)
             guard let names = try? FileManager.default.contentsOfDirectory(
@@ -200,9 +200,10 @@ struct BookContinuityReader {
                 let url = directory.appendingPathComponent(name)
                 guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
                 let title = String(name.dropLast(".md".count))
-                read.append((
-                    StoryDocument(title: title, text: text, identity: "\(folder)/\(name)"),
-                    "\(folder)/\(name)"
+                read.append(StoryDocument(
+                    title: title,
+                    text: text,
+                    identity: "\(folder)/\(name)"
                 ))
             }
         }

@@ -31,23 +31,3 @@ public protocol ContinuityProvider: Sendable {
     /// context.
     func continuityReport() async -> ContinuityReport
 }
-
-public extension ContinuityProvider {
-    /// A provider that never has anything to say.
-    ///
-    /// The default for a turn with no book bound: = the bundle's two
-    /// arrays stay empty, = = which is what they were before this
-    /// seam existed.
-    static var empty: ContinuityProvider {
-        EmptyContinuityProvider()
-    }
-}
-
-/// The provider that carries nothing.
-public struct EmptyContinuityProvider: ContinuityProvider {
-    public init() {}
-
-    public func continuityReport() async -> ContinuityReport {
-        ContinuityReport()
-    }
-}
