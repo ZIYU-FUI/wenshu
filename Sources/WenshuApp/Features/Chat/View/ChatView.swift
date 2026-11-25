@@ -139,7 +139,10 @@ struct ChatView: View {
         // WenshuAppDelegate).
         return WenshuConductor(
             connector: WenshuAgent.shared.activeLLMConnector(),
-            tools: tools
+            tools: tools,
+            // The book's own report, = = so this path's turns carry it
+            // too (= the same report the launch path carries).
+            continuityProvider: BookContinuityProvider.live()
         )
     }
 

@@ -27,7 +27,8 @@ public actor ConversationLoop {
         conversationCompression: ConversationCompression = ConversationCompression(),
         historyCompressor: HistoryCompressor = HistoryCompressor(),
         progressTracker: AgentProgressTracker = .noop,
-        memoryProvider: (any MemoryProvider)? = nil
+        memoryProvider: (any MemoryProvider)? = nil,
+        continuityProvider: (any ContinuityProvider)? = nil
     ) {
         // Back-compat: the parameter is named `connector` everywhere in the
         // existing surface; the new parameter is named `connection` (= wenshu
@@ -42,6 +43,7 @@ public actor ConversationLoop {
         self.historyCompressor = historyCompressor
         self.progressTracker = progressTracker
         self.memoryProvider = memoryProvider
+        self.continuityProvider = continuityProvider
     }
 
     /// The legacy initializer (= preserved for backward compatibility with the
@@ -82,6 +84,14 @@ public actor ConversationLoop {
     /// The memory provider the turn writes into. The resolver decides which one
     /// is used, and nil = the user's own backend is resolved at the call site.
     let memoryProvider: (any MemoryProvider)?
+
+    /// Where the turn's continuity report comes from.
+    ///
+    /// The runtime does not own a book, = = so the app supplies the
+    /// report through this seam and the turn reads it once per turn.
+    /// Nil = no book is bound to this turn, = = so the bundle's two
+    /// arrays stay empty.
+    let continuityProvider: (any ContinuityProvider)?
 
     /// Resolves the current time via the runtime (= the hermes-port Z-contract),
     /// so a caller can call the loop's clock instead of touching `Date()`

@@ -302,7 +302,12 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             // memory backend). Without this the turn runs on the struct
             // defaults and every settings-screen control is a promise
             // nothing keeps.
-            settingsProvider: WenshuConductor.productionSettingsProvider()
+            settingsProvider: WenshuConductor.productionSettingsProvider(),
+            // The book's own report (= the conflicts its claims produce
+            // and the threads it never closes). = = The app reads the
+            // book (= the runtime owns no book), = = and the turn reads
+            // the provider once per turn.
+            continuityProvider: BookContinuityProvider.live()
         )
         // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事
         // 清干净" arc): the bridge setter is deleted; = the

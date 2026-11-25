@@ -53,6 +53,15 @@ public actor WenshuConductor {
     // / and memory backend instead of the struct defaults.
     // / Nil = the defaults (= the behaviour before this was wired).
     private let settingsProvider: (@Sendable () async -> AgentSettings)?
+    /// The source of the book's continuity report.
+    ///
+    /// The app owns the book (= it lives on disk under the library), = =
+    /// so the app reads it and hands the turn what it says. = = The
+    /// slot is written when the chat binds a book, = = the same way the
+    /// book-scoped tools are wired, = = so switching books
+    /// mid-conversation is honoured. Nil = no book is bound, = = and
+    /// the turn carries no report.
+    public var continuityProvider: (any ContinuityProvider)?
     // AUDIT.md §2.9 partial (2026-10-16): the stream single-
     // writer fence (= hermes `stream_single_writer.py` port).
     // One per conductor instance (= the conductor is the
@@ -77,6 +86,7 @@ public actor WenshuConductor {
         tools: [String: any Tool] = [:],
         toolProvider: (@Sendable () async -> [String: any Tool])? = nil,
         settingsProvider: (@Sendable () async -> AgentSettings)? = nil,
+        continuityProvider: (any ContinuityProvider)? = nil,
         repositories: WSRepositoryContainer? = nil
     ) {
         self.connector = connector
@@ -87,6 +97,7 @@ public actor WenshuConductor {
         self.tools = tools
         self.toolProvider = toolProvider
         self.settingsProvider = settingsProvider
+        self.continuityProvider = continuityProvider
         // P1-01 fix: prefer the injected WSRepositoryContainer; fall
         // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // boundaries at runtime.
@@ -209,7 +220,8 @@ public actor WenshuConductor {
         let loop = ConversationLoop(
             connection: connector,
             systemPrompt: WenshuConductorIdentity.systemPrompt,
-            runtime: loopRuntime
+            runtime: loopRuntime,
+            continuityProvider: continuityProvider
         )
 
         // Step 3: invoke the full turn orchestrator. On any throw, log

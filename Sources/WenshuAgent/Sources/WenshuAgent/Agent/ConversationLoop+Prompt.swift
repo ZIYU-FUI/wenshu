@@ -65,14 +65,19 @@ extension ConversationLoop {
         } else {
             prefetched = []
         }
+        // The book's own report: = the conflicts its claims produce and
+        // the threads it never closes. = The app supplies it (= the
+        // runtime owns no book), = = and the turn reads it once, = = so
+        // the report reaches the model with the rest of the turn.
+        let continuity = await continuityProvider?.continuityReport() ?? ContinuityReport()
         let dynamic = PromptBuilder.dynamicTier(
             contextBundle: ContextEngine.ContextBundle(
                 memories: prefetched.map { entry in
                     ContextEngine.MemoryEntry(source: entry.source, snippet: entry.snippet)
                 },
                 characterContext: [],
-                worldContext: [],
-                foreshadowContext: []
+                worldContext: continuity.worldContext,
+                foreshadowContext: continuity.foreshadowContext
             ),
             memories: prefetched,
             callerExtras: [:],
