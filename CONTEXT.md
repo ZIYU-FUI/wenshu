@@ -170,6 +170,16 @@
 | **Editor hotkeys** | ⌘E = toggle EditorMode (= preview ↔ edit); ⌘S = save (= only enabled in `.edit` mode = Apple HIG convention); ⌘W = `tryClose()` (= close with dirty confirm if needed); ⌘⇧E = toggle editor expand (`.wenshuEditorMaximizedChanged`). All wired via `.keyboardShortcut` modifier on `PaneTrailingIconButton`s (= Apple HIG standard, works regardless of focus state). |
 | **EditorZone document load (deferred)** | Real document open via `NSOpenPanel` + Apple HIG `DocumentGroup` (= ticket 027-35). Today's `EditorPlaceholder` uses static sample body `samplePreviewBody` (= exercises all render paths: headers, bold, lists, code fence, `[[wikilink]]`, blockquote). `documentPath: String?` = nil means placeholder mode. |
 
+## Thread chain domain words (2026-11-25)
+
+> The book's own threads, as its chapters write them down. ADR-0038.
+
+| Term | Definition | ADR |
+|------|------------|-----|
+| **Thread chain** | A thread the book plants in one chapter and pays off in another, read out of the chapters' own marker lines (= the chapter template's thread section; = = the markers are the book's own vocabulary, = = carried as code points so the production file stays English-only). `ForeshadowChain` | ADR-0038 |
+| **Marker** | One line of a chapter's thread section that names what the chapter plants or pays off. Its head must BE the label once its markdown is stripped (= so a note that merely mentions the label is not a marker), and its punctuation is the one a human writes (= both the half-width and the full-width colon are read). `ForeshadowMarkers` | ADR-0038 |
+| **Break** | One of the four ways a thread chain fails to close: a payoff that arrives before its plant, a payoff that names a chapter that plants nothing, a payoff that names a chapter the book does not have, and a planted thread nobody pays off. A break is one thing for the writer to fix, so the report says it once. `ForeshadowBreak` | ADR-0038 |
+
 ## Right column domain words (v1.71 — boss 2026-09-22 OOB)
 
 Boss 2026-09-22 OOB 'UI 业务 数据分离，符合苹果的 MVVM' (= the other
