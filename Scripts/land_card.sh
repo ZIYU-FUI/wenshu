@@ -44,8 +44,17 @@ registry_rows_kept() {
   # = = ⇒ THE WINDOW IS THE MERGE-BASE, NEVER `main`. = = = = Asking a newer `main`
   # = = = = what an older branch lost reads every row the branch never had as a
   # = = = = deletion, = = = = and the same range in `--diff-filter=D` then "excuses"
-  # = = = = them all. = = ⇒ Measured: the guard printed `unexplained 0` over a
-  # = = = = twelve-row gap, = = = = which is a check that cannot fail.
+  # = = = = them all. = = ⇒ Measured at `main` 1c1b019c2c against the branch at
+  # = = = = b18bcefd74 BY THE OLD FORM, = = which asks that base directly: = = the
+  # = = = = guard printed `unexplained 0` over a twelve-row gap (= 12 rows the
+  # = = = = branch did not carry, = = all 12 excused), = = = = which is a check
+  # = = = = that cannot fail. = = ⇒ The FIXED form answers 0 for the same pair, = = = =
+  # = = = = because the merge-base of those two shas IS `b18bcefd74`, = = = = so the
+  # = = = = gap the old form invented has no window at all. = = ⇒ Reproduce both from
+  # = = = = the two shas: `git show 1c1b019c2c:docs/agents/nfi.md` and
+  # = = = = `git show b18bcefd74:docs/agents/nfi.md` read each side's rows, and
+  # = = = = `git diff --diff-filter=D --name-only 1c1b019c2c..b18bcefd74` reads the
+  # = = = = files whose deletion excuses them.
   # = = ⇒ THE LOSS AND THE EXCUSE ARE DIFFERENT QUESTIONS. = = The loss is a key the
   # = = = = landed tree no longer carries; = = the only excuse is that the FILE the
   # = = = = row registers is deleted by this change. = = A draft excused a row
