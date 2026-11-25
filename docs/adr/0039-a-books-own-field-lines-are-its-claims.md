@@ -99,7 +99,10 @@ inside them.
 - **The vocabulary is the book's**, so it is carried as code points and the file stays
   English-only. The marker can still change without a code edit.
 - **The same book always reads the same way**: the claims come out in the document's own
-  order, and a claim's name is the subject plus the line it came from.
+  order, and a claim's name is the document it came from (= the name the caller gives it,
+  = = the subject when the caller does not) plus the line it came from. Two documents about
+  one subject would then share a claim's name, so a caller that reads several documents says
+  which is which.
 
 ## The measurement this rests on
 

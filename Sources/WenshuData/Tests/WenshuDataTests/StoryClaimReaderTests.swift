@@ -259,20 +259,28 @@ struct StoryClaimReaderTests {
             title: "张铁牛",
             text: """
             - 身份: 仵作
-            """
+            """,
+            identity: "characters/张铁牛.md"
         )
         let chapter = StoryDocument(
             title: "张铁牛",
             text: """
             - 出场角色: 张铁牛
             """,
-            chapter: 3
+            chapter: 3,
+            identity: "chapters/03.md"
         )
         let claims = StoryClaimReader.claims(in: [sheet, chapter])
         #expect(claims.count == 2)
         #expect(claims.map(\.subject) == ["张铁牛", "张铁牛"])
         #expect(claims.map(\.attribute) == ["身份", "出场角色"])
         #expect(claims.map(\.chapter) == [nil, 3])
+        // The two documents share a subject, = = so their claims would
+        // share a name (= the subject plus the line) = = and a report
+        // could not point at one of them. = = The caller says which
+        // document is which, = = so the names are apart.
+        #expect(Set(claims.map(\.id)).count == 2)
+        #expect(claims.map(\.id) == ["characters/张铁牛.md#0", "chapters/03.md#0"])
     }
 
     @Test("the same book reads the same way twice")
@@ -342,11 +350,20 @@ struct StoryClaimReaderTests {
     func aRealBooksProseIsNotAClaim() {
         // The paragraph's sentences carry the full-width colon, = and a
         // sentence is not a field: = the paragraph states nothing.
+        //
+        // The text checked here lives only in that bare paragraph, = =
+        // and it sits AFTER the colon. = = So a reader that broke the
+        // bullet rule would split the bare line at the colon, = = put
+        // the sentence's tail in the VALUE, = = and this check would
+        // see it. = = The attribute is checked too, = = because a reader
+        // that split the line the other way would put the sentence's
+        // head there instead.
         let claims = StoryClaimReader.claims(in: StoryDocument(
             title: "体系或规则",
             text: Self.realBookLines
         ))
-        #expect(!claims.contains { $0.value.contains("分类") })
+        #expect(!claims.contains { $0.value.contains("互不越界") })
+        #expect(!claims.contains { $0.attribute.contains("互不越界") })
     }
 
     @Test("a real book's nested bullets state nothing")
@@ -354,10 +371,16 @@ struct StoryClaimReaderTests {
         // The nested bullets hold their colon inside the bold name
         // (= `**god = the one who sees**`), = and the rest of the line
         // is prose after an em dash. = So they state no property.
+        //
+        // The text checked here is that prose, = = and it sits AFTER
+        // the bold name. = = So a reader that read a bold head with no
+        // colon of its own would put it in the VALUE, = = and this
+        // check would see it.
         let claims = StoryClaimReader.claims(in: StoryDocument(
             title: "体系或规则",
             text: Self.realBookLines
         ))
+        #expect(!claims.contains { $0.value.contains("神格层") })
         #expect(!claims.contains { $0.attribute.contains("神格层") })
     }
 

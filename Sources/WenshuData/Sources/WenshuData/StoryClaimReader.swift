@@ -54,11 +54,23 @@ public struct StoryDocument: Sendable, Equatable {
     /// own position). Nil = the document is not a chapter, so what it
     /// states holds beside the chapters rather than inside them.
     public let chapter: Int?
+    /// Which document this is, when the caller knows.
+    ///
+    /// A claim's own name is the document plus the line it came from,
+    /// and two documents about one subject (= a world's sheet and a
+    /// character's sheet, = = both named after the same person) would
+    /// therefore state claims that share a name. = = So a caller that
+    /// reads several documents can say which is which (= a path, = = a
+    /// file name), = = and the claims carry that name, = = so a report
+    /// can point at one of them. Nil = the caller does not say, = = and
+    /// the document's own title names it.
+    public let identity: String?
 
-    public init(title: String, text: String, chapter: Int? = nil) {
+    public init(title: String, text: String, chapter: Int? = nil, identity: String? = nil) {
         self.title = title
         self.text = text
         self.chapter = chapter
+        self.identity = identity
     }
 }
 
@@ -86,6 +98,11 @@ public enum StoryClaimReader {
     /// names one attribute and its value, so a document of `n` field
     /// lines yields `n` claims.
     ///
+    /// Each claim's own name is the document (= the name the caller
+    /// gives it, = = the subject when the caller does not) plus the
+    /// line it came from, = = so a report can point at one claim of
+    /// one document.
+    ///
     /// The order is the document's own order, so the same book always
     /// reads the same way.
     public static func claims(in document: StoryDocument) -> [StoryFact] {
@@ -98,7 +115,7 @@ public enum StoryClaimReader {
             // = so the line states no claim.
             guard !StoryClaimReader.isTemplate(field.value) else { continue }
             claims.append(StoryFact(
-                id: "\(subject)#\(index)",
+                id: "\(document.identity ?? subject)#\(index)",
                 subject: subject,
                 attribute: field.name,
                 value: field.value,
@@ -115,6 +132,11 @@ public enum StoryClaimReader {
     /// chapter that mentions the character) are read as two sets of
     /// claims under one subject, = so the kernel can weigh them
     /// together.
+    ///
+    /// Their claims are named apart only when the caller says which
+    /// document is which (= `identity`), = = because a name built from
+    /// the subject alone is the same name in two documents that share
+    /// a subject.
     public static func claims(in documents: [StoryDocument]) -> [StoryFact] {
         documents.flatMap { claims(in: $0) }
     }
