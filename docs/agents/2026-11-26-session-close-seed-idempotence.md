@@ -9,7 +9,7 @@ different things, because the fix cannot un-write 518 rows that already exist.
 | # | requirement | the carrier | the adjudication | the server's proof |
 |---|---|---|---|---|
 | 1 | the seeded sample must stop stacking a new copy of itself on every launch | `0f9c784db6` (`Sources/WenshuApp/App/PlanSeed.swift`, `Tests/WenshuAppTests/App/PlanSeedIdempotenceTests.swift`, one `docs/agents/nfi.md` row) | card `t_fc936f38` (= run 5203, = = `review_outcome: approved`), = and the landing card `t_c0545641` (= run 5209) | `git merge-base --is-ancestor 0f9c784db6 refs/remotes/origin/main` -> rc 0, = and the same arm against `refs/remotes/old-origin/main` -> rc 0. = = Neither remote's read-back is published: = another lane pushes it, = and `verify_doc_commands.py` now fails a prose line that freezes one |
-| 2 | the rows the old seed already wrote into the live library must go, = = and the real tasks must stay | a hand sweep of `~/Documents/anbaiqiang.ws/WenshuStore.store` (= 576 rows to 58), = = proven on a copy first | no card (= it is the user's own data, = = not the tree's) | the store's own history names the sweep: = = **518** rows, = = one row per transaction, = = between 16:22:45 and 16:22:47, = = and every one of them carries a body (= = the backup holds exactly 518 rows with one); = = the store's live row count is not published, = = because it is a moving reading (= = a later launch of the app on `main` took the 58 rows that remained, = = in one transaction of its own) |
+| 2 | the rows the old seed already wrote into the live library must go, = = and the real tasks must stay | a hand sweep of `~/Documents/anbaiqiang.ws/WenshuStore.store` (= the **518** rows the one-row-per-transaction sweep took, = = plus the **58** rows transaction 1257 took, = = both read out of the store's own history below), = = proven on a copy first | no card (= it is the user's own data, = = not the tree's) | the store's own history names the sweep: = = **518** rows, = = one row per transaction, = = between 16:22:45 and 16:22:47, = = and every one of them carries a body (= = the backup holds exactly 518 rows with one); = = the store's live row count is not published, = = because it is a moving reading (= = a later launch of the app on `main` took the 58 rows that remained, = = in one transaction of its own) |
 
 ## What the tree actually did, measured
 
@@ -193,7 +193,7 @@ citation honest is one line: = the label's `_1.log` must print the tip the claim
 made about. = = If it prints anything else, = = the label belongs to an earlier draft
 of these words.
 
-This record was gated on its own tip too, = = under label **`closeout-record-r15`** (=
+This record was gated on its own tip too, = = under label **`closeout-record-r16`** (=
 = nine commands, = = base `e17c5f30ce`). = = Earlier families survive on disk, = = each
 named with the tip it measured, = = because they are this record's own history and are
 **not** the verdict on this tip: `closeout-seed-doc_*` (= 8 files, = = `b43c2a4f43`), =
@@ -213,7 +213,8 @@ tip has been published under), = = and `closeout-record-r12_*`
 (= 9, = = `3899a8ca8d`, = = the round-6 fix's second commit, = = superseded by the labels
 this tip has been published under), = = and `closeout-record-r13_*` (= 9, = = `914e9bcbea`,
 = = the tip round 7 reviewed and refused), = = and `closeout-record-r14_*` (= 9, = = `5990ef8bbf`,
-= = the tip round 8 reviewed and refused).
+= = the tip round 8 reviewed and refused), = = and `closeout-record-r15_*` (= 9, = = `b976e313e7`,
+= = the tip round 9 reviewed and refused).
 Three more families exist on disk and are **not** part of that lineage: =
 `closeout-record-r5-recheck-t70f99272_*` (= 9, = = `4f0418a0d5`, = = a re-check written under a
 card id, = not a round of this record), = `closeout-record-r6r-t214d7590_*` (= 9, = =
@@ -229,7 +230,7 @@ R=/Volumes/ANAN/Engineering/wenshu
 T=$R/.worktrees/seed-closeout-2026-11-26
 G=$T/Tools/wenshu-devtool
 B=$(git -C $R rev-parse e17c5f30ce)
-LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r15 \
+LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r16 \
   "git -C $T rev-parse HEAD" \
   "python3 $G/tests/test_probe_index.py" \
   "python3 $G/ci_change_gate.py --base $B --check pollution --repo $T" \
@@ -239,9 +240,9 @@ LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeo
   "python3 $G/comment_lineage.py --base $B --repo $T" \
   "python3 $G/nfi-loc-check.py --base $B --registry $T/docs/agents/nfi.md" \
   "wc -l $T/docs/agents/2026-11-26-session-close-seed-idempotence.md"
-ls $R/.gate-logs/closeout-record-r15_*.log | wc -l        # 9
-head -1 $R/.gate-logs/closeout-record-r15_1.log           # = the sha the review card names
-grep -c FAIL $R/.gate-logs/closeout-record-r15_*.log      # 0 in each file
+ls $R/.gate-logs/closeout-record-r16_*.log | wc -l        # 9
+head -1 $R/.gate-logs/closeout-record-r16_1.log           # = the sha the review card names
+grep -c FAIL $R/.gate-logs/closeout-record-r16_*.log      # 0 in each file
 ```
 
 The gate surface has **one** change-scoring tool, = not one per rule: =
@@ -269,7 +270,7 @@ instead of as sentences.** = The count of a failure is part of the failure: =
 disease as the reading it accused.
 
 The denominators, = read out of the nine **`closeout-merged-main`** log bodies (= a
-second family, = `closeout-record-r15`, = = also has nine files): = `Build complete!`; = = *Test
+second family, = `closeout-record-r16`, = = also has nine files): = `Build complete!`; = = *Test
 run with **4 tests** in 1 suite passed*; = = `added comment lines: 59` = with
 `offending: 0 rows / 0 files (P0=0, P1=0)`; = = `nfi-loc-check: ... (1 row(s)
 checked)`; = = `formatting: ... (2 changed Swift file(s) checked)`; = = `loc-cap:
@@ -279,8 +280,8 @@ forbidden vocabulary (3ad2ccebfacab0e52b4208488e4acae196e64c96...HEAD)` -- = the
 is not `origin/main...HEAD`, = = and not the window this record's own diff sits in
 either -- = after the rebase onto `e17c5f30ce` that window is `e17c5f30ce...HEAD`, = written
 **short** here. = = The log prints it in full:
-`closeout-record-r15_3.log` begins `pollution: the change adds no forbidden vocabulary
-(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r15_7.log`
+`closeout-record-r16_3.log` begins `pollution: the change adds no forbidden vocabulary
+(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r16_7.log`
 begins `comment-lineage: window e17c5f30ce..<the tip this record lands as>`. = = Where
 this record shortens a sha it says so: = = a shortened sha is an **abbreviation of a
 printed line**, = never a second reading of it.
@@ -469,7 +470,7 @@ records only the *second* fix and not the diagnosis.
 
 | # | item | the card or the command |
 |---|---|---|
-| 1 | `verify_doc_commands.py` **does exist** (= `~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/scripts/verify_doc_commands.py`) = and was run against this record as an artifact check -- = = `PASS (9 block(s) seen, 0 executed).` = = with `ok  the doc carries no CJK` (= the next `ok` line reporting the registry's LOC cell equal to the doc's line count -- = a number this record does not restate, = because restating it makes the sentence red the moment the sentence grows). = = The executed arm, = = which is the one that found the `review_gate --sha HEAD` line red, = = belongs to the draft at `a26465b383` and needs `--run`, = = which is not re-run here because it executes this record's own two `gate_run.sh` blocks and overwrites the labels cited above. = = The defect is not its absence but its **address**: = `git ls-files \| grep -i verify_doc` in the repo is empty, = so the tool that the closeout flow makes a gate of lives outside the repo it audits and is wired into no gate. | `Tools/wenshu-devtool/` owns it; = the card moves it in and registers it |
+| 1 | `verify_doc_commands.py` **does exist** (= `~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/scripts/verify_doc_commands.py`) = and was run against this record as an artifact check -- = = the tool's own block count, = = which this record does not restate (= = the count moves with the record's own fences, = = so a pasted number ages with them) = = = = a reader takes it from the tool's own last line = = with `ok  the doc carries no CJK` (= the next `ok` line reporting the registry's LOC cell equal to the doc's line count -- = a number this record does not restate, = because restating it makes the sentence red the moment the sentence grows). = = The executed arm, = = which is the one that found the `review_gate --sha HEAD` line red, = = belongs to the draft at `a26465b383` and needs `--run`, = = which is not re-run here because it executes this record's own two `gate_run.sh` blocks and overwrites the labels cited above. = = The defect is not its absence but its **address**: = `git ls-files \| grep -i verify_doc` in the repo is empty, = so the tool that the closeout flow makes a gate of lives outside the repo it audits and is wired into no gate. | `Tools/wenshu-devtool/` owns it; = the card moves it in and registers it |
 | 2 | Where `WS_SEED_PLAN=1` came from is **unresolved**. = Ruled out: = the repo, = `~/Library/LaunchAgents/`, = the app bundle's `LSEnvironment`, = `~/.zsh_history`, = this profile's config. = One interactive shell session was never excluded, = = and until it is, = = a future launch can seed again (= now self-replacing, = = so at worst one batch). | the boss's own launch path; = = no code change is owed |
 | 3 | `seedCrew()`'s write target was never measured, = = only that `ZWSSUBAGENTRUN` is 0 in the live store. | a probe, = = same directory, = = before any claim about it |
 | 4 | The shared checkout's index held a **stale tree that reverted landed work**: = = `PlanSeed.swift` back to 175 lines and the test file staged for deletion, = = and `docs/agents/nfi.md` missing rows for both. = My two paths are restored to HEAD (= `git checkout HEAD -- <those two>`); = = the rest of the shared checkout's dirty paths belong to other lanes, and no count of them is published here: `git -C $R status --porcelain | wc -l` is the read, = and it changed twice while this line was being written. = = What is owned: = at least one of those paths still stages deletions of register rows that are already on `main`. | `t_b2ac2eda` owns `OOB.md` and its own closeout doc, = = which are among the staged paths |
@@ -521,7 +522,7 @@ record's. The retry, run 5235, returned in 853 s.
 |---|---|---|
 | a sentence the gate never wrote | the record quoted `pollution: no forbidden vocabulary, no CJK outside the exempt families`; = = neither half is a string any tool prints (`grep -rl` over `.gate-logs`, = `Tools`, = docs and the skill tree: 0 files), = and `ci_change_gate.py` has two pollution forms | the record quotes the printed line, = = for both families, = = with the window each log names |
 | a failure counted wrongly | "four invented paths, = each beginning `can\'t open file`, = with `grep -c FAIL` = 0 across all seven" -- = the family holds **two** such logs, = = one usage error (`--base` missing), = = and two tool names that never ran at all | the census is written log by log off `closeout-record-r4`, = with the greps that show the two silent names |
-| an older draft's verifier line pasted as current | `PASS (7 blocks)`, = 6 ok and 1 red -- = = a string `verify_doc_commands.py` cannot print (its only PASS line is `PASS (N block(s) seen, M executed)`) | re-taken at this tip: = = `PASS (9 block(s) seen, 0 executed).`, = with the two `ok` lines; = the executed arm is attributed to the draft it came from and is not re-run, = = because `--run` executes the record's own gate blocks |
+| an older draft's verifier line pasted as current | `PASS (7 blocks)`, = 6 ok and 1 red -- = = a string `verify_doc_commands.py` cannot print (its only PASS line is `PASS (N block(s) seen, M executed)`) | re-taken at this tip: = = the tool's own block count (= = read from the tool's last line, = = not restated here, = = because the count moves with the record's own fences), = with the two `ok` lines; = the executed arm is attributed to the draft it came from and is not re-run, = = because `--run` executes the record's own gate blocks |
 
 ## Round 3: the class the fix itself introduced
 Round 3 (`t_214d7590`, run 5236, `changes_requested` at `30daa59f44`) found that closing
@@ -659,7 +660,7 @@ on refused rounds shields the survivors, = = not the defects a fix brings with i
 
 A note came with them, = = non-blocking, = = and it is folded in too: = = the claim that the
 verifier's trigger is "two tokens and an equals sign" was false, = = because the tool's
-regexes carry no equals sign at all. = = The passage now names the tool's own two tokens.
+trigger regexes carry no equals sign at all (= = the third one, = = the exempt forms, = = does carry one). = = The passage now names the tool's own two tokens.
 
 Two defects were found while closing those four, = = and no reviewer charged either.
 
@@ -681,6 +682,34 @@ applied to **one** arm, = = while the ten arms beside it did the thing the rule 
 A rule a commit legislates is a rule the same commit's block must already obey, = = and
 "the one arm I fixed" is not a scope: = = the other ten were the same shape, = = with the
 same failure mode waiting for the next sibling push.
+
+## Round 9: a count pasted from a tool ages when the tool's own input moves
+
+Round 9 (`t_4bdf0bfb`, run 5271, `changes_requested` at `b976e313e7`) confirmed
+round 8's four closures and the note by its own commands, measured both of the
+author's own defects (the seven `ACHANGE` arms reproduce cold, and the `-m1` census is
+0 across the eleven reflog arms), and charged three more. = = All three are defects
+**this** commit introduced, = = which the verdict's own ruling states again: = = the cap
+shields the survivors, = = not the fix's own defects.
+
+| finding | what was wrong | what closed it |
+|---|---|---|
+| a tool's own line, pasted | two cells quoted the verifier's `PASS (9 block(s) seen, 0 executed).`, = = and this commit added a fence, = = so the tool prints **10** at this tip | the count is gone from both cells = = and each names the tool's own last line as where a reader takes it = = because the count moves with the record's own fences |
+| the live count in the old form | the carrier cell still read "576 rows to 58" beside the sentence that says the live count is not published | the cell now names the two transactions the block prints (= = the **518** the one-row-per-transaction sweep took, = = and the **58** transaction 1257 took) |
+| a quantifier over the wrong set | the note's closure said the tool's regexes carry no equals sign, = = and the third regex (= = the exempt forms) does carry one | the claim is scoped to the trigger's two regexes, = = and the third is named |
+
+The third is the round-7 class again (= = an arm's reach over-stated), and it was found
+by the same habit that found round 7's: = = read the tool's own source before claiming
+what it does. = = A closure that says "the tool does not do X" is itself a claim about
+the tool, = = and it has to be read out of the tool.
+
+The first is the one worth keeping. = = A number pasted from a tool into prose is a
+**frozen reading**, = = exactly like a live remote's tip: = = it was true when the
+record was written, = = and this commit's own fence made it false while the record's
+own words still called it current. = = The fix is not to restate the number (= = that
+would break again on the next fence), = = but to say where the reader takes it: = =
+from the tool. = = A count that moves with the input belongs to the tool's output,
+not to the prose that describes it.
 
 The durable lesson is narrower than "check your citations": = **a record's commands
 are its test suite, = and the test that matters is the one a reader runs cold.** =
