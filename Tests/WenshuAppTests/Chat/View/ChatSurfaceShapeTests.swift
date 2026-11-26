@@ -13,7 +13,7 @@ import Foundation
 import Testing
 @testable import WenshuApp
 
-@Suite("ChatSurfaceShape shared chat-surface outline")
+@Suite("ChatSurfaceShape — the composer field's capsule outline")
 struct ChatSurfaceShapeTests {
     private static let messageViewPath = "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift"
     private static let inputBarPath = "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift"
@@ -34,16 +34,16 @@ struct ChatSurfaceShapeTests {
     func outgoingBandFloorsAtComposerHeight() throws {
         let content = try SourceLocator.read(Self.messageViewPath)
         #expect(content.contains("minHeight: DesignTokens.controlHeightLarge"),
-                "The outgoing glass card must floor at DesignTokens.controlHeightLarge (= the composer field height)")
+                "The outgoing band must floor at DesignTokens.controlHeightLarge (= the composer field height)")
         #expect(!content.contains(".padding(.vertical, DesignTokens.spacingTight)"),
-                "The outgoing glass card must not stack vertical padding on top of the height floor")
+                "The outgoing band must not stack vertical padding on top of the height floor")
     }
 
-    @Test("The composer field wears the shared ChatSurfaceShape")
+    @Test("The composer field wears ChatSurfaceShape")
     func composerUsesSharedShape() throws {
         let content = try SourceLocator.read(Self.inputBarPath)
         #expect(content.contains("ChatSurfaceShape()"),
-                "The composer field must use ChatSurfaceShape (= the shared chat-surface outline)")
+                "The composer field must use ChatSurfaceShape (= the field's capsule outline)")
         #expect(!content.contains("ChatInputBarShape"),
                 "The composer file must not declare its own shape (= the shared ChatSurfaceShape replaced it)")
     }

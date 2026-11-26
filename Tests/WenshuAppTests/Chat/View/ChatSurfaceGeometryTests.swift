@@ -1,9 +1,9 @@
 //
 //  ChatSurfaceGeometryTests.swift · Wenshu
 //
-//  The outgoing message band and the composer field must be ONE surface:
-//  the same resting height, the same outline, and the same rule for
-//  growing past that resting height when the text wraps.
+//  The outgoing message band and the composer field share their
+//  resting height floor and their growth rule, NOT their outline: the
+//  band is a rounded rectangle at the card radius, the field a capsule.
 //
 //  This suite measures the LAYOUT (= the frame SwiftUI hands the
 //  compositor), because the band's height IS its laid-out height: the
@@ -24,7 +24,7 @@ import Testing
 @testable import WenshuApp
 
 @MainActor
-@Suite("ChatSurfaceGeometry — the band and the field are one surface")
+@Suite("ChatSurfaceGeometry — the band and the field share one height rule")
 struct ChatSurfaceGeometryTests {
     /// The height the view asks for at the given width.
     ///
@@ -110,13 +110,13 @@ struct ChatSurfaceGeometryTests {
                 "A band whose text wraps must exceed the 36 PT floor; asked for \(tall) PT")
     }
 
-    @Test("The two surfaces resolve their outline from the same shape")
-    func bothSurfacesShareOneShape() {
-        // The shape is the single source of the outline for BOTH
-        // surfaces. At the resting height it is a capsule (= a true
-        // capsule shape); past that it stays a rounded
-        // rectangle whose radius stops tracking half the height (= the
-        // glyphs never spill out of a degenerate ellipse).
+    @Test("ChatSurfaceShape caps its radius at half the resting height")
+    func shapeCapsItsRadiusAtRestingHeight() {
+        // This measures the composer field's own outline: at the
+        // resting height the shape rounds its ends all the way (= a
+        // capsule), and past it the radius stops tracking half the
+        // height, so a grown surface stays a rounded rectangle (=
+        // the glyphs never spill out of a degenerate ellipse).
         let shape = ChatSurfaceShape()
         let restingRect = CGRect(x: 0, y: 0, width: 400, height: 36)
         let grownRect = CGRect(x: 0, y: 0, width: 400, height: 72)

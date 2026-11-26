@@ -1,24 +1,24 @@
 //
 //  ChatSurfaceShape.swift
 //
-//  One outline for every chat surface (= the composer field + the
-//  outgoing message bubble). The radius tracks half the surface
+//  The outline the chat input field wears, shared with the
+//  inspector's output sheet. The radius tracks half the surface
 //  height, so a surface at the resting chat height reads as a
 //  capsule; the cap only binds on a surface far taller than any
-//  chat surface.
+//  chat surface. The outgoing message band is not one of them.
 //
 
 import SwiftUI
 
-/// Shared chat-surface outline.
+/// The chat input field's capsule outline.
 ///
-/// The composer field and the user's own message bubble wear this
-/// shape, so the two surfaces agree by construction instead of by
-/// coincidence. The radius = min(half the height, the cap): a bubble
-/// at its resting height rounds its ends all the way (= a true
-/// capsule), and only a surface grown past the cap
-/// stays a rounded rectangle (= never a stadium the glyphs spill
-/// out of).
+/// The composer field wears this shape; the outgoing message band
+/// does not (= that band is clipped to a rounded rectangle at
+/// `DesignTokens.surfaceCornerRadiusCard`). The radius = min(half
+/// the height, the cap): a field at its resting height rounds its
+/// ends all the way (= a true capsule), and only a surface grown
+/// past the cap stays a rounded rectangle (= never a stadium the
+/// glyphs spill out of).
 struct ChatSurfaceShape: Shape {
     /// Maximum corner radius (= the resting chat-surface height
     /// `DesignTokens.controlHeightLarge`; = the cap that keeps a very

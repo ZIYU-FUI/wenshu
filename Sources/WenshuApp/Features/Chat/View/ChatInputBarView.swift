@@ -401,12 +401,12 @@ struct ChatInputBarView: View {
             sendNow()
         }
         .help(String(localized: "chat.input.help"))
-        // Shared chat-surface outline (= ChatSurfaceShape; = the same
-        // shape the outgoing message band wears; = the radius tracks
-        // half the height up to a cap, so a short field reads as a
-        // capsule and a grown field stays a
-        // rounded rectangle instead of an ellipse the glyphs spill out
-        // of).
+        // Shared chat-surface outline for this field only (= the
+        // outgoing message band is not part of it; that band is
+        // clipped to a rounded rectangle at the card radius). The
+        // radius tracks half the height up to a cap, so a short
+        // field reads as a capsule and a grown field stays a rounded
+        // rectangle instead of an ellipse the glyphs spill out of.
         .glassEffect(.regular.interactive(), in: ChatSurfaceShape())
         .modifier(SlashCommandAutocompleteModifier(inputText: $vm.inputText))
         .modifier(ImagePasteModifier(onAttach: { url in
