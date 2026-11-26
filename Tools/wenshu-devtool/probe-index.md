@@ -31,6 +31,7 @@ card's commit does not touch the app source.
 | `symlink_walk.swift` | What `FileManager.enumerator` reports for a tree holding a plain file, two real directories, `real/a.txt`, and `linkdir -> real/`, on exactly the three resource keys the import walk reads (= `isRegularFileKey`, `isSymbolicLinkKey`, `isDirectoryKey`), and whether it descends through a symlinked directory. The probe builds its own tree in the temporary directory and deletes it; it reads no app state and writes no repo file. It asserts both readings, so an engine change that moves either stops the run. | `entries_total`, `plain_file_is_regular`, `symlink_to_regular_file_is_regular`, `symlinked_directory_is_directory`, `symlinked_directory_is_symlink`, `walk_descends_into_symlinked_directory`, plus the per-entry table | 29b5a8371f |
 
 | `comment_marker_runaway.py` | The house's comment-scaffold runaway, measured against the live tree: = = a run of 4+ arrows, = = a run of 4+ dashes, = = a marker on EVERY line of a paragraph, = = and a line over 100 columns. = = The comment-lineage gate charges CJK, = = ticket lineage and uncited dates, = = and it has no marker or width check, = = so a branch can be green there and still carry the runaway. = = The `--proof` mode is the other half: = = it compares the non-comment lines of two trees, = = so a comment-only pass can prove the code did not move. READ-ONLY: = = it writes no file. | `runaways`, `comment_rows`, `code_moved` | `d34741da44` |
+| `seed_sample_rows.py` | How many board rows the dev seed wrote into a library store, = = counted from the sample's own identity (= the title AND body pair) read out of `Sources/WenshuApp/App/PlanSeed.swift` at run time, = = never copied into this probe (= a copied literal reports a number for rows the app no longer writes). = = It also counts the rows that carry no body, = = because those are the rows the pair predicate must never take (= a user's own task that borrows a sample's title). = = READ-ONLY by construction: = = it opens the store in `mode=ro`, = = there is no write mode, = = and removal belongs to the seed path that replaces its own rows. = = Exits 2 when it took no number, = = so a run that read nothing cannot be read as a clean store. | `sample pairs read from the seed`, `rows total`, `rows carrying a sample's title AND body`, `rows with no body (never eligible)`, `rows that are not the seed's`, = = each printed with the run's `tree` commit prefix | `0f9c784db6` |
 
 ## Recorded measurement
 
@@ -858,3 +859,34 @@ symlinked_directory_is_directory: false
 symlinked_directory_is_symlink: true
 walk_descends_into_symlinked_directory: false
 ```
+
+### `seed_sample_rows.py`
+
+Taken against commit `0f9c784db6`, = on the user's own library store and on
+the store's own pre-repair backup, = so the same instrument answers both
+"how many did the seed write" and "is any of it left".
+
+```
+$ python3 Tools/wenshu-devtool/probes/seed_sample_rows.py --dry-run <backup copy>
+store: .../arm1-pre-cleanup/WenshuStore.store (tree 0f9c784db60c)
+sample pairs read from the seed: 7
+rows total: 576
+rows carrying a sample's title AND body: 518
+rows with no body (never eligible): 58
+rows that are not the seed's: 58
+
+$ python3 Tools/wenshu-devtool/probes/seed_sample_rows.py --dry-run /Users/anbaiqiang/Documents/anbaiqiang.ws
+store: /Users/anbaiqiang/Documents/anbaiqiang.ws/WenshuStore.store (tree 0f9c784db60c)
+sample pairs read from the seed: 7
+rows total: 58
+rows carrying a sample's title AND body: 0
+rows with no body (never eligible): 58
+rows that are not the seed's: 58
+
+$ python3 Tools/wenshu-devtool/probes/seed_sample_rows.py --dry-run /tmp/no-such-store-dir
+no store at /tmp/no-such-store-dir (tree 0f9c784db60c)
+exit 2
+```
+
+The third run is the arm: = = a store the probe could not read must not be
+reportable as a clean store, = and the exit code is what says so.

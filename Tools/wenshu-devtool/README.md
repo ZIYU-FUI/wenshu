@@ -124,6 +124,11 @@ swift Tools/wenshu-devtool/probes/segmented_control_material.swift
 # 14. What fills the SELECTED segment of a segmented control in a KEY window
 #     (the system accent, or a material), from rendered pixels
 swift Tools/wenshu-devtool/probes/segmented_control_selected_fill.swift
+
+# 15. How many board rows the dev seed wrote into a library store (= read
+#     from the seed's own source, never from a copied literal; READ-ONLY,
+#     and it exits 2 when it took no number)
+python3 Tools/wenshu-devtool/probes/seed_sample_rows.py --dry-run <library-dir>
 ```
 
 The index's own test proves the index and the probes directory agree in
