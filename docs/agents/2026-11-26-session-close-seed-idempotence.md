@@ -137,22 +137,23 @@ citation honest is one line: = the label's `_1.log` must print the tip the claim
 made about. = = If it prints anything else, = = the label belongs to an earlier draft
 of these words.
 
-This record was gated on its own tip too, = = under label **`closeout-record-r7`** (=
-= nine commands, = = base `e17c5f30ce`). = = Five earlier families survive on disk, = = each
+This record was gated on its own tip too, = = under label **`closeout-record-r8`** (=
+= nine commands, = = base `e17c5f30ce`). = = Six earlier families survive on disk, = = each
 named with the tip it measured, = = because they are this record's own history and are
 **not** the verdict on this tip: `closeout-seed-doc_*` (= 8 files, = = `b43c2a4f43`), =
 `-r2_*` (= 8, = = `6c6cf25c1e`), = `-r3_*` (= 7, = = `7be5534aa1`), = =
 `closeout-record-r4_*` (= 7, = = `a26465b383`, = = whose contents are the finding above), =
 `closeout-record-r5_*` (= 9, = = `4f0418a0d5`, = = the round that found three citation
-defects), = and `closeout-record-r6_*` (= 9, = = `30daa59f44`, = = the round that found the
-two clock readings below).
+defects), = and `closeout-record-r6_*` (= 9, = = `30daa59f44`, = = the round that found the two clock
+readings), = = and `closeout-record-r7_*` (= 9, = = `5e2fc583ca`, = = the round that found
+that a window read from one reflog is not an interval of equality).
 
 ```bash
 R=/Volumes/ANAN/Engineering/wenshu
 T=$R/.worktrees/seed-closeout-2026-11-26
 G=$T/Tools/wenshu-devtool
 B=$(git -C $R rev-parse e17c5f30ce)
-LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r7 \
+LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r8 \
   "git -C $T rev-parse HEAD" \
   "python3 $G/tests/test_probe_index.py" \
   "python3 $G/ci_change_gate.py --base $B --check pollution --repo $T" \
@@ -162,9 +163,9 @@ LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeo
   "python3 $G/comment_lineage.py --base $B --repo $T" \
   "python3 $G/nfi-loc-check.py --base $B --registry $T/docs/agents/nfi.md" \
   "wc -l $T/docs/agents/2026-11-26-session-close-seed-idempotence.md"
-ls $R/.gate-logs/closeout-record-r7_*.log | wc -l        # 9
-head -1 $R/.gate-logs/closeout-record-r7_1.log           # = the sha the review card names
-grep -c FAIL $R/.gate-logs/closeout-record-r7_*.log      # 0 in each file
+ls $R/.gate-logs/closeout-record-r8_*.log | wc -l        # 9
+head -1 $R/.gate-logs/closeout-record-r8_1.log           # = the sha the review card names
+grep -c FAIL $R/.gate-logs/closeout-record-r8_*.log      # 0 in each file
 ```
 
 The gate surface has **one** change-scoring tool, = not one per rule: =
@@ -192,7 +193,7 @@ instead of as sentences.** = The count of a failure is part of the failure: =
 disease as the reading it accused.
 
 The denominators, = read out of the nine **`closeout-merged-main`** log bodies (= a
-second family, = `closeout-record-r7`, = = also has nine files): = `Build complete!`; = = *Test
+second family, = `closeout-record-r8`, = = also has nine files): = `Build complete!`; = = *Test
 run with **4 tests** in 1 suite passed*; = = `added comment lines: 59` = with
 `offending: 0 rows / 0 files (P0=0, P1=0)`; = = `nfi-loc-check: ... (1 row(s)
 checked)`; = = `formatting: ... (2 changed Swift file(s) checked)`; = = `loc-cap:
@@ -202,8 +203,8 @@ forbidden vocabulary (3ad2ccebfacab0e52b4208488e4acae196e64c96...HEAD)` -- = the
 is not `origin/main...HEAD`, = = and not the window this record's own diff sits in
 either -- = after the rebase onto `e17c5f30ce` that window is `e17c5f30ce...HEAD`, = written
 **short** here. = = The log prints it in full:
-`closeout-record-r7_3.log` begins `pollution: the change adds no forbidden vocabulary
-(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r7_7.log`
+`closeout-record-r8_3.log` begins `pollution: the change adds no forbidden vocabulary
+(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r8_7.log`
 begins `comment-lineage: window e17c5f30ce..<the tip this record lands as>`. = = Where
 this record shortens a sha it says so: = = a shortened sha is an **abbreviation of a
 printed line**, = never a second reading of it.
@@ -297,23 +298,27 @@ and of the second remote (`... refs/remotes/old-origin/main` -> rc 0). = The sec
 remote was **held** by this session at 18:05 -- = behind by the two devtool commits,
 whose runs read `done` and `changes_requested`, = = and pushing a commit no card approves
 is impersonation -- = and it was caught up afterwards by the lanes that own those
-commits, = not by this session. = = `refs/remotes/old-origin/main` has been
-`4db43731ac` since its 19:26:18 reflog entry (`update by push`) and `main` moved past it
-at 19:38:29, = = so the window in which `old-origin/main..main` was empty ran
-**19:26:18 to 19:38:29** and the distance is something else outside it. = = The first
-draft of this paragraph printed "`0` at 19:40", = = which is a minute 75 s after the
-commit carrying it and 611 s after the fact it described; = = the round that caught it is
-recorded in the review-round section below.
+commits, = not by this session. = = The two reflogs say: = the remote took `4db43731ac` at
+19:26:18, = = `main` took it at 19:33:50, = = and `main` left it at 19:38:29, = = so the
+interval in which the two refs were **equal** is 19:33:50 to 19:38:29, = = bounded by the
+**later** of the two arrivals. = = An earlier draft of this paragraph published 19:26:18 to
+19:38:29 -- = the remote's arrival minute, = = not the start of equality: = a remote-tracking
+ref can sit on a commit the local branch has not been moved onto yet, = = and **one reflog's
+entry is not an interval of equality**. = = A draft before that printed "`0` at 19:40", = = a
+minute 75 s after the commit carrying it. = = No count of the distance is published here; = =
+the block below derives the two ends, = and the record keeps only the ancestry.
 
 ```bash
 R=/Volumes/ANAN/Engineering/wenshu
 git -C $R fetch -q origin main && git -C $R fetch -q old-origin main
 git -C $R merge-base --is-ancestor 0f9c784db6 refs/remotes/old-origin/main; echo rc=$?
-git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | head -2
-git -C $R reflog show main --date=format-local:'%H:%M:%S' | head -3
+git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep -m1 4db43731ac
+git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 4db43731ac
+git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 e17c5f30ce
 ```
-The two reflog reads are the window; = the `merge-base` read is the claim. = A count of
-the distance appears nowhere in this record, = because the count is the thing that moved.
+The `merge-base` read is the claim; = = the reflog read is the interval, = and the
+interval's near end is whichever of the two refs arrived **last**. = = A count of the
+distance appears nowhere in this record, = because the count is the thing that moved.
 
 Those two (`b6442f5891`, `7e036f7613`) are **not this scope's** and this session did
 **not** publish them: = the push of a sibling's commit is maintenance only while the
@@ -349,7 +354,7 @@ records only the *second* fix and not the diagnosis.
 
 | # | item | the card or the command |
 |---|---|---|
-| 1 | `verify_doc_commands.py` **does exist** (= `~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/scripts/verify_doc_commands.py`) = and was run against this record as an artifact check -- = = `PASS (9 block(s) seen, 0 executed).` = = with `ok  the doc carries no CJK` (= the second `ok` line being `the registry's LOC cell (433) equals the doc's line count`, = = the same number the register carries). = = The executed arm, = = which is the one that found the `review_gate --sha HEAD` line red, = = belongs to the draft at `a26465b383` and needs `--run`, = = which is not re-run here because it executes this record's own two `gate_run.sh` blocks and overwrites the labels cited above. = = The defect is not its absence but its **address**: = `git ls-files \| grep -i verify_doc` in the repo is empty, = so the tool that the closeout flow makes a gate of lives outside the repo it audits and is wired into no gate. | `Tools/wenshu-devtool/` owns it; = the card moves it in and registers it |
+| 1 | `verify_doc_commands.py` **does exist** (= `~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/scripts/verify_doc_commands.py`) = and was run against this record as an artifact check -- = = `PASS (9 block(s) seen, 0 executed).` = = with `ok  the doc carries no CJK` (= the second `ok` line being `the registry's LOC cell (464) equals the doc's line count`, = = the same number the register carries). = = The executed arm, = = which is the one that found the `review_gate --sha HEAD` line red, = = belongs to the draft at `a26465b383` and needs `--run`, = = which is not re-run here because it executes this record's own two `gate_run.sh` blocks and overwrites the labels cited above. = = The defect is not its absence but its **address**: = `git ls-files \| grep -i verify_doc` in the repo is empty, = so the tool that the closeout flow makes a gate of lives outside the repo it audits and is wired into no gate. | `Tools/wenshu-devtool/` owns it; = the card moves it in and registers it |
 | 2 | Where `WS_SEED_PLAN=1` came from is **unresolved**. = Ruled out: = the repo, = `~/Library/LaunchAgents/`, = the app bundle's `LSEnvironment`, = `~/.zsh_history`, = this profile's config. = One interactive shell session was never excluded, = = and until it is, = = a future launch can seed again (= now self-replacing, = = so at worst one batch). | the boss's own launch path; = = no code change is owed |
 | 3 | `seedCrew()`'s write target was never measured, = = only that `ZWSSUBAGENTRUN` is 0 in the live store. | a probe, = = same directory, = = before any claim about it |
 | 4 | The shared checkout's index held a **stale tree that reverted landed work**: = = `PlanSeed.swift` back to 175 lines and the test file staged for deletion, = = and `docs/agents/nfi.md` missing rows for both. = My two paths are restored to HEAD (= `git checkout HEAD -- <those two>`); = = the rest of the shared checkout's dirty paths belong to other lanes, and no count of them is published here: `git -C $R status --porcelain | wc -l` is the read, = and it changed twice while this line was being written. = = What is owned: = at least one of those paths still stages deletions of register rows that are already on `main`. | `t_b2ac2eda` owns `OOB.md` and its own closeout doc, = = which are among the staged paths |
@@ -359,9 +364,10 @@ records only the *second* fix and not the diagnosis.
 
 A closeout record is a committed artifact, = so it gets a card, = and this one came
 back with **six citation defects** (= `t_93d5a560`, = = run 5221, = =
-`review_outcome: changes_requested` at `7be5534aa1`). = Every one of them was real,
-= every one was reproducible by a command the reviewer printed, = and none of them
-was a style comment:
+`review_outcome: changes_requested` at `7be5534aa1`), = plus a seventh of the same class
+this session found in the same line of work, = = so the table below carries **seven**
+rows. = Every one of them was real, = every one was reproducible by a command, = and none
+of them was a style comment:
 
 | finding | what was wrong | what closed it |
 |---|---|---|
@@ -371,8 +377,7 @@ was a style comment:
 | inverted sibling attribution | the record split the three sibling commits over `t_ad63a13f` and `t_88bff3b5`; = = the latter approves `5eb6a5034a`, = = which is not on `main` | one card covers all three (= `t_ad63a13f`, = = run 5192, = = approved at `3ad2ccebfa`), = = and the other is named as an exclusion |
 | a backup that cannot be opened cold | the durable copy was WAL-without-sidecars, = = so `sqlite3 -readonly` failed; = = the probe arm had run against a scratch copy that no reader keeps | `pragma journal_mode=delete` on the copy, = = both arms re-taken from the durable path, = = `probe-index.md`'s arm moved off scratch |
 | unbacked provenance | the record said two rules were "already in `standard-closeout.md`"; = = they were uncommitted working-tree text, = = absent from `5e6c37a` | the skills tree is committed (`77b72e6`) = and `git show 77b72e6^:` of that file carries **none** of the four rules |
-
-| a gate surface invented whole, = = and then described wrongly | the draft blocks named four tools the tree does not ship; = = the family that proves it, = = `closeout-record-r4`, = = holds **two** `can't open file` logs (`_5`, = = `_6`), = **one** usage error (`_3`), = and two names that never ran at all; = = `grep -c FAIL` = 0 on all seven | the blocks call `ci_change_gate.py --check <name>` and `comment_lineage.py --base --repo`, = = the real tools, = = re-run as `closeout-record-r7`, = = and the counts above are read off `r4`'s own first lines |
+| a gate surface invented whole, = = and then described wrongly | the draft blocks named four tools the tree does not ship; = = the family that proves it, = = `closeout-record-r4`, = = holds **two** `can't open file` logs (`_5`, = = `_6`), = **one** usage error (`_3`), = and two names that never ran at all; = = `grep -c FAIL` = 0 on all seven | the blocks call `ci_change_gate.py --check <name>` and `comment_lineage.py --base --repo`, = = the real tools, = = re-run label by label as `closeout-record-r4` through `-r7`, = = each with its own tip, = = and the counts above are read off `r4`'s own first lines |
 
 Plus two found while making those blocks runnable, = = after the reviewer had
 already returned: = the merged-tree block passed the **closeout** worktree as its
@@ -389,10 +394,11 @@ branch carries no verdict) rather than naming the sha under review.
 
 ## Round 2: three citations that no command prints
 Round 2 (`t_70f99272`, run 5235, `changes_requested` at `4f0418a0d5`) accepted all six
-closures above and found three more, of the same class. Its first run, 5231, was killed at
-the 25-minute cap `ticket_tier.py` assigns to a T2 card, so the retry budget was spent on
-the tool's arithmetic rather than on the record: a doc-review round that runs nine gate
-commands needs the cap it actually took (14 minutes on the second run, 55 on round 1).
+closures above and found three more, of the same class. Its first run, 5231, ended at
+`ended_at - started_at = 1532 s` against the `max_runtime_seconds = 1500` this session had
+set on the task row, and the board records the outcome as `timed_out`: the worker was
+alive and reading logs when it was stopped, so the cost was the cap's arithmetic, not the
+record's. The retry, run 5235, returned in 853 s.
 
 | finding | what was wrong | what closed it |
 |---|---|---|
@@ -414,10 +420,35 @@ later:
 | "the nine log bodies" | two families have nine files each, = = and the denominators belong to only one | the family is named in the sentence that quotes it |
 | an unstamped tip count | "main has moved four times since that push" was five by the time it was read | the count is gone; = the lanes that own the commits are named, = and the moves are read from `main`'s reflog |
 
-The round-3 cost note is the same lesson the card paid twice: = a verdict about a document
-is cheap to produce and expensive to *place* -- = two of the three rounds spent a worker
-run on the 15-minute tier cap. = = That is `ticket_tier.py`'s arithmetic meeting
+The cost note, read out of `task_runs` for the four cards this record went through
+(`sqlite3 -readonly ~/.hermes/kanban/boards/wenshu-par/kanban.db "select id,
+ended_at-started_at, status, outcome from task_runs where id in
+(5220,5221,5231,5235,5236,5239);"`): = = 5220 `spawn_failed` after 1 s, = 5221 1424 s,
+5231 1532 s `timed_out`, = 5235 853 s, = = 5236 649 s, = = and 5239 1868 s at a declared
+cap of 3300 s. = = One run died at a cap, = = and it died at one this session set by hand
+at 1500 s after the tier tool's 25-minute reading; = the rounds that were allowed their
+own time took between 11 and 31 minutes. = = That is `ticket_tier.py`'s arithmetic meeting
 `gate_run.sh`'s wall clock, = = and it belongs to the tooling lane, = not to this scope.
+
+## Round 4: a window read from one reflog is not an interval of equality
+
+Round 4 (`t_b05653de`, run 5239, `changes_requested` at `5e2fc583ca`) confirmed that every
+closure from round 3 holds — the deleted counts stay deleted, the printed pollution line
+is byte-exact, abbreviations are labelled, the lineage list's five entries reproduce, the
+"five rounds" claim's runs are the five it says — and then broke the replacement it had
+asked for.
+
+| finding | what was wrong | what closed it |
+|---|---|---|
+| a window from one reflog | the published empty window was 19:26:18 to 19:38:29, but the remote took `4db43731ac` before `main` did (main's own reflog: 19:33:50 → 19:38:29), so equality began at the **later** arrival | the sentence states the three entries and the bounded interval, and says the command derives it |
+| a block that cannot print its own claim | the two `reflog ... | head -2 / | head -3` lines print 2 entries and 1 today, not a window | replaced by three greps over the two reflogs, which print the three entries that bound it |
+| a seven/six mismatch | the table held six rows under a sentence about seven | the seventh row is joined to the table and the sentence counts rows, not findings |
+| a run duration that never happened | "five rounds", "two of them died at that cap", "25 minutes (1500 s)" against "14 minutes on the second run" | the durations are read out of `task_runs` (5220/5221/5231/5235/5236/5239) with the seconds the columns give, one `timed_out`, one killed at a hand-set 1500 s |
+| a bare count of paths | the record still said what the dirty-path count "moved" to | no number for it remains; the count belongs to other lanes' workers and is not quoted |
+
+Round 4's own cost is the measured 1868 s of run 5239 — 31 minutes on a card the tier tool
+sizes at 25, which is the mismatch the record already names as belonging to the tooling
+lane.
 
 The durable lesson is narrower than "check your citations": = **a record's commands
 are its test suite, = and the test that matters is the one a reader runs cold.** =
