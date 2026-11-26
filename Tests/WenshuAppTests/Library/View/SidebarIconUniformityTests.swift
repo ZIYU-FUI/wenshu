@@ -24,9 +24,26 @@ struct SidebarIconUniformityTests {
     @Test("SFLabelRow uses the central icon factory and a fixed row slot")
     func sidebarRowUsesCentralFactoryAndFixedSlot() throws {
         let source = try Self.source("Sources/WenshuApp/Shared/UI/IconStylesViews.swift")
-        // Factory shape: SFLabelRow delegates to SFIcon(..., style: iconStyle)
-        // and pins the row slot via sidebarWidth / sidebarInset.
-        #expect(source.contains("SFIcon(\n                systemImage,\n                style: iconStyle,\n                color: IconColor.primary"))
+        let rowSource = try Self.sourceSlice(
+            from: "struct SFLabelRow: View {",
+            in: "Sources/WenshuApp/Shared/UI/IconStylesViews.swift"
+        )
+        // Factory shape: SFLabelRow delegates to SFIcon and pins the row slot via
+        // sidebarWidth / sidebarInset. The delegation is a fact about the arguments
+        // the factory receives (= the row's own symbol, style and colour), so the
+        // guard reads the argument list. Which column each argument sits on belongs
+        // to the formatter, and a guard that charges it reddens on a re-wrap that
+        // moves no behaviour.
+        let factoryArguments = Self.callArguments(of: "SFIcon(", in: rowSource)
+        #expect(
+            factoryArguments.contains { arguments in
+                arguments.count >= 3
+                    && arguments[0] == "systemImage"
+                    && arguments[1] == "style: iconStyle"
+                    && arguments[2] == "color: IconColor.primary"
+            },
+            "SFLabelRow must hand the central factory the row's symbol, style and colour (= three arguments, any layout)"
+        )
         #expect(source.contains("padding(.horizontal, iconStyle.sidebarInset)"))
         #expect(source.contains("width: iconStyle.sidebarWidth"))
         // The slot is 16 PT wide; we don't force a square frame
@@ -54,10 +71,6 @@ struct SidebarIconUniformityTests {
             iconStyles.contains(".symbolRenderingMode(.hierarchical)"),
             "the central factory must own the icon rendering mode"
         )
-        let rowSource = try Self.sourceSlice(
-            from: "struct SFLabelRow: View {",
-            in: "Sources/WenshuApp/Shared/UI/IconStylesViews.swift"
-        )
         #expect(!rowSource.contains("Image(systemName: systemImage)"))
     }
 
@@ -67,7 +80,14 @@ struct SidebarIconUniformityTests {
         // 16 PT point size matches Apple Mail / Notes / Xcode
         // sidebar row leading icon (= the wenshu default per
         // Apple's HIG sidebar anatomy).
-        #expect(source.contains("case .sidebar: 16") || source.contains("case .sidebar:") || source.contains("case sidebar\n"))
+        // 16 PT is the contract, so the guard reads the number the `pointSize`
+        // switch answers for `.sidebar`. A bare case label carries no number: an
+        // assertion satisfied by one cannot see a retuned tier, and a guard that a
+        // size change leaves green guards no size.
+        #expect(
+            Self.caseValue(for: ".sidebar", inside: "var pointSize: CGFloat", in: source) == "16",
+            "the sidebar tier must answer 16 PT from the pointSize switch"
+        )
         // slot dimensions live in the extension on IconStyle so
         // they're explicit (= not piggy-backed on every case).
         // The guard binds the VALUE, not the one-line spelling: the
@@ -109,6 +129,61 @@ struct SidebarIconUniformityTests {
         // property answers nil (= it cannot pass by finding nothing).
         #expect(Self.getterValue(of: "var sidebarWidth: CGFloat", in: "var sidebarWidth: CGFloat {\n 18\n}") == "18")
         #expect(Self.getterValue(of: "var sidebarWidth: CGFloat", in: "var otherWidth: CGFloat {\n 16\n}") == nil)
+    }
+
+    @Test("caseValue and callArguments read a value and an argument list, not a layout")
+    func scannersBindValuesNotColumns() {
+        // The two scanners the assertions above lean on must survive every wrap the
+        // formatter can pick, and must still answer differently when the VALUE moves.
+        // The line-break constant keeps the fixtures out of a multi-line string
+        // literal (= whose indentation belongs to the test file, not to the switch).
+        let n = "\n"
+        let sameLine = [
+            "var pointSize: CGFloat {",
+            "    switch self {",
+            "        case .sidebar: 16",
+            "        case .sidebarTree: 18",
+            "    }",
+            "}",
+        ].joined(separator: n)
+        let arm = "case .sidebar: 16"
+        let wrapped = sameLine.replacingOccurrences(of: arm, with: "case .sidebar:" + n + "            16")
+        let returned = sameLine.replacingOccurrences(of: arm, with: "case .sidebar: return 16")
+        let sidebar = "var pointSize: CGFloat"
+        for fixture in [sameLine, wrapped, returned] {
+            #expect(
+                Self.caseValue(for: ".sidebar", inside: sidebar, in: fixture) == "16",
+                "the three wraps of one switch arm must read as the same 16 PT"
+            )
+        }
+        // A retuned arm reads back its own number, and a sibling label that begins
+        // with the same text cannot answer for `.sidebar` (= the label carries its
+        // colon). A getter with no such arm answers nil.
+        #expect(
+            Self.caseValue(for: ".sidebar", inside: sidebar, in: sameLine.replacingOccurrences(of: arm, with: "case .sidebar: 14")) == "14"
+        )
+        #expect(
+            Self.caseValue(for: ".sidebar", inside: sidebar, in: wrapped.replacingOccurrences(of: "case .sidebar:", with: "case .sidebarLabel:")) == nil
+        )
+        let expected = ["systemImage", "style: iconStyle", "color: IconColor.primary"]
+        let oneLine = "SFIcon(systemImage, style: iconStyle, color: IconColor.primary)"
+        let broken = "SFIcon(" + n + "    systemImage," + n + "        style: iconStyle," + n + "  color: IconColor.primary" + n + "    )"
+        let uneven = "SFIcon(\n\t\t\tsystemImage, style: iconStyle,\n\t\t\tcolor: IconColor.primary)"
+        for fixture in [oneLine, broken, uneven] {
+            #expect(
+                Self.callArguments(of: "SFIcon(", in: fixture) == [expected],
+                "one call reads as one argument list whatever columns it sits on"
+            )
+        }
+        // An argument the factory stops receiving shows, and a comma that belongs to
+        // a nested call stays inside the argument that opened that call.
+        #expect(
+            Self.callArguments(of: "SFIcon(", in: oneLine.replacingOccurrences(of: "style: iconStyle", with: "style: .inlineSmall")) != [expected]
+        )
+        #expect(
+            Self.callArguments(of: "SFIcon(", in: "SFIcon(systemImage, style: tier(iconStyle, iconStyle), color: IconColor.primary)")
+                == [["systemImage", "style: tier(iconStyle, iconStyle)", "color: IconColor.primary"]]
+        )
     }
 
     private static func sourceSlice(
@@ -182,6 +257,77 @@ struct SidebarIconUniformityTests {
             }
         }
         return insideGetter ? body.joined(separator: " ") : nil
+    }
+
+    /// The value one `switch` arm answers for a case label, read from inside the
+    /// getter named by `declaration`. The getter's body is bounded by counted braces
+    /// (= `getterValue(of:in:)` above, so the enclosing scope's `}` cannot end it),
+    /// then the label is located and the first word after it is the value:
+    /// `case .sidebar: 16`, the same arm with its number wrapped onto the next line,
+    /// and `case .sidebar: return 16` all read as `16`. The label carries its own
+    /// colon, so `.sidebar` is not answered by a sibling label that begins the same
+    /// way. A getter without that arm, or an arm without a value, answers nil
+    /// (= the assertion fails instead of passing on nothing).
+    private static func caseValue(for label: String, inside declaration: String, in source: String) -> String? {
+        guard let body = getterValue(of: declaration, in: source),
+              let anchor = body.range(of: "case \(label):")
+        else {
+            return nil
+        }
+        for word in body[anchor.upperBound...].split(whereSeparator: \.isWhitespace) {
+            if word == "case" || word == "}" {
+                return nil
+            }
+            if word != "return" {
+                return String(word)
+            }
+        }
+        return nil
+    }
+
+    /// Every argument list the source passes to `call`, one entry per occurrence.
+    /// An argument ends at a comma that sits at the call's own depth, and the depth
+    /// counts `(`, `[` and `{`, so a nested call's commas stay inside the argument
+    /// that opened it. Each argument's whitespace runs collapse to single spaces,
+    /// which is what makes the columns the call wraps at invisible to the reader.
+    /// Quoted text is not exempt from the split (= an argument carrying a quoted
+    /// comma would split; none of the calls this suite reads does). An occurrence
+    /// inside a comment yields one more candidate list, and an assertion over the
+    /// lists is satisfied by any real call, so a comment cannot hide a missing one.
+    private static func callArguments(of call: String, in source: String) -> [[String]] {
+        var lists: [[String]] = []
+        var search = source[...]
+        while let found = search.range(of: call) {
+            var arguments: [String] = []
+            var argument = ""
+            var depth = 1
+            var cursor = found.upperBound
+            while cursor < source.endIndex {
+                let character = source[cursor]
+                if "([{}".contains(character) {
+                    depth += 1
+                } else if ")]}".contains(character) {
+                    depth -= 1
+                    if depth == 0 {
+                        break
+                    }
+                } else if character == ",", depth == 1 {
+                    arguments.append(String(argument.split(whereSeparator: \.isWhitespace).joined(separator: " ")))
+                    argument = ""
+                    source.formIndex(after: &cursor)
+                    continue
+                }
+                argument.append(character)
+                source.formIndex(after: &cursor)
+            }
+            let last = String(argument.split(whereSeparator: \.isWhitespace).joined(separator: " "))
+            if !last.isEmpty {
+                arguments.append(last)
+            }
+            lists.append(arguments)
+            search = source[found.upperBound...]
+        }
+        return lists
     }
 
     private static func source(_ relativePath: String) throws -> String {
