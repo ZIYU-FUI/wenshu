@@ -1,7 +1,7 @@
 # Retrieval W4 — what the whole-corpus write contract holds, and where it stops
 
-Lane: `wt/retrieval-w4-named-index-2026-11-25`, reviewed as `t_3fe00d0c` (r1,
-`97ac0dfde5`), `t_5d07fc1c` (r2, `a95222dde8`), and this round as the r3 of that
+Lane: `wt/retrieval-w4-named-index-2026-11-25`, reviewed three times — r1 `t_3fe00d0c` and
+`t_6ade264b` at `2ec549e636`, r2 `t_5d07fc1c` at `a95222dde8`, r3 `t_1e0f2f8a` at `382a60db78`, the
 same lane. This file is the citable acceptance contract for
 `SpotlightIndexWriterTests`; the test comments point here because a quoted
 requirement nobody can open cannot be audited.
@@ -76,10 +76,23 @@ requirement nobody can open cannot be audited.
 - A named handle and the default handle address the same physical store — a
   delete-by-domain issued through the default handle removes an item written through
   the named one. Client state is handle-bound, not store-shared.
-- Two `beginBatch()` calls on one handle raise `Batch is already open` (rc 134); with
-  the gate deleted, `SpotlightIndexWriterTests` aborted on that exception.
-- One plain write call accepts 500 and 2000 items; at 75010 it fails with
-  `CSIndexErrorDomain` code `-1001`.
+- Two `beginBatch()` calls on one handle raise `Batch is already open` (rc 134). The
+  abort that followed with the batch gate deleted belongs to an earlier tree: at this
+  tree, deleting `donate()`'s `gate.acquire()`/`release` produces no abort, so no arm
+  in this suite covers the batch gate — a gap of its own, and not the reclaim arm
+  conceded above.
+- One plain write call accepts 500 and 2,000 items; a plain write of 75,010 items is
+  rejected with `CSIndexErrorDomain` code `-1001`. The literal that was run is
+  `PROBECHUNK plain500=ok`, = `PROBECHUNK plain2000=ok`, = and
+  `PROBECHUNK plain75010=err domain=CSIndexErrorDomain code=-1001`, = one
+  `indexSearchableItems` call per size with no transaction at all. Its provenance is a
+  scratch probe package (`floor-probe`, = target `PlainChunkProbe`) that was never
+  committed to this repo, = so the figure is quotable and NOT re-takable from the tree:
+  = what the tree holds is only the prose record at `SpotlightIndexIdentity.swift:74-78`.
+  The ceiling therefore sits ABOVE 2,000 and AT OR BELOW 75,010: = 75,010 is the app's
+  corpus size, = not a measured threshold. No arm in this suite asserts the rejection;
+  = the only `75010` in the tests is a size bound inside `the cursor round-trips, and
+  what it cannot read stays unknown`, = which says nothing about the ceiling.
 - Two callsites each flushing one document, batched, concurrently: one wins and the
   other surfaces the failure.
 - **Ingest latency, 60 rounds of one plain write followed by one containment read on
@@ -95,7 +108,7 @@ requirement nobody can open cannot be audited.
   `searchableItems(forIdentifiers:)` face, which is a delegate callback and not
   available on a live index handle.
 
-## Round 3's own delta, stated plainly
+## Round 3's own delta, stated plainly (r4 corrected the red counts and the site set inside it)
 
 - N1: two mechanisms, and the tally is what separated them.
 
@@ -105,13 +118,39 @@ requirement nobody can open cannot be audited.
      `checkGone` while one stops being readable, `ask` for an arm that wants no
      waiting. That is a production fix, not a test fix — `donateCorpus` reports
      through the same face.
-  2. *Batch transaction overlap.* Adding the 501-document batch arm turned 5 reds in
-     25 runs into 5 reds in 12, all of them an arm reading a token another arm had
-     written inside ITS open batch. A wait cannot fix that: the write is not on its
-     way anywhere until the other batch commits. So the suite carries `.serialized`,
-     and it is the load-bearing half for the test suite while the bound is the
-     load-bearing half for the report. `--no-parallel` was not used as evidence —
-     it is not what ships; `.serialized` is.
+  2. *Batch transaction overlap.* With `.serialized` removed, a containment read on the
+     one shared named index gets NO ANSWER while another arm's batch is open, and the
+     index's own answer to it is `.timedOut` — a settled answer (`isUnsettled` re-asks
+     only on `absent`/`found`) — so no wait and no bound rescue the read: only ordering
+     does. The red rate is a property of the machine's load, not of the tree, so every
+     count is published with the invocation that produced it and the log it came from
+     (the red rows are this tree with `.serialized` taken off the suite's `@Suite`):
+
+     | tree | invocation | runs | red | log |
+     | --- | --- | --- | --- | --- |
+     | shipped (`.serialized` in place) | `swift test --filter 'SpotlightIndexWriterTests'` | 12 | 0 | `batt_A.txt` |
+     | shipped (`.serialized` in place) | the same + `--parallel` | 8 | 0 | `batt_D.txt` |
+     | `.serialized` removed | `swift test --filter 'SpotlightIndexWriterTests'` | 14 | 4 | `b4_D1.txt` |
+     | `.serialized` removed | the same + `--parallel` | 20 | 3 | `b4_D2.txt`, `batt2_C2.txt` |
+
+     The logs are under `/Volumes/ANAN/.hermes/profiles/wenshu-review/cache/scratch/w4r3/`,
+     taken on this lane's tree at `382a60db78`. The same tree with `.serialized` removed
+     was measured twice in an earlier window and gave 0 red in 12 runs
+     (`noserial_tally.txt`, default invocation) and 10 red in 12 runs
+     (`par_noserial.txt`, `--parallel`). In the per-run logs behind them, all 11 cases
+     report `started` before the first result in 12 of 12 default runs (`u1-u12.log`)
+     and 10 of 12 `--parallel` runs (`p1-p12.log`), so the two windows differ in load,
+     not in the tree. What the tree does decide is the SET, and the set is SEVEN sites in
+     FOUR arms — named by arm, because a bare line number moves under this file's own
+     comments: the two write faces of `reIndexReplacesContent`, the three faces of
+     `aForeignDocumentCarryingTheTokenCannotAnswerForTheSubject`, `emptyCorpusDoesNotWipe`,
+     and `theLastChunkOfARunIsTheChunkTheDonationReportsOn`, whose message is fixed prose
+     (`got the first chunk's answer instead`). At `382a60db78` the seven are `:75`, `:85`,
+     `:199`, `:215`, `:219`, `:252`, `:326`; `:215`/`:219`/`:326` printed `.timedOut`.
+
+     So the suite carries `.serialized`, and it is the load-bearing half for the test
+     suite while the bound is the load-bearing half for the report. `--no-parallel` was
+     not used as evidence — it is not what ships; `.serialized` is.
 
   After both: 12 consecutive `swift test --filter 'SpotlightIndexWriterTests'` runs,
   12 passed / 0 failed / 0 aborted.

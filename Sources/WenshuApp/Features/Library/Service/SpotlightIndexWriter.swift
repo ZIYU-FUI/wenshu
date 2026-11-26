@@ -284,7 +284,7 @@ struct SpotlightIndexWriter: @unchecked Sendable {
         ///
         /// Kept apart from `cursor` on purpose: = the two are different
         /// claims. = One is what this run wrote, = the other is what the
-        /// index kept after the run, = and the W4 acceptance is about the
+        /// index kept after the run, = and the named-index acceptance is about the
         /// second one (= a client-state write that no one reads back is a
         /// write nobody has proved). = They should agree; = if they do
         /// not, = something outside this app moved the state.

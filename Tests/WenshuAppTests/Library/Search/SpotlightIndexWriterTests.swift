@@ -31,13 +31,15 @@ import Testing
 
 /// Serialized, because of a property of the system index rather than of these
 /// tests: = the arms share ONE physical named index, = and a batch is a
-/// TRANSACTION on it. = A plain write issued while another arm holds a batch
-/// open is not late, = it is invisible until that batch commits, = and no wait
-/// can shorten that. = Measured with a 501-document batch arm in this suite: =
-/// 5 of 12 runs failed, = every one of them an arm reading a token another arm
-/// had written inside its open batch; = serialized, = 12 of 12 pass. = The
-/// visibility bound stays for what a bound is about (= ingest latency after a
-/// commit), = and does not substitute for ordering.
+/// TRANSACTION on it. = A write issued while another arm holds a batch open
+/// is not late, = it is invisible until that batch commits. = A containment
+/// read on that one index gets NO ANSWER until the other arm's batch commits,
+/// and the index's own answer to it is `.timedOut` = = a SETTLED answer (=
+/// `isUnsettled` re-asks only on `absent` or `found`), = = so no wait and no
+/// bound rescue the read: = only ordering does. = The reds sit in four arms, always:
+/// `reIndexReplacesContent`, `aForeignDocumentCarryingTheTokenCannotAnswerForTheSubject`,
+/// `theLastChunkOfARunIsTheChunkTheDonationReportsOn`, `emptyCorpusDoesNotWipe`. The set,
+/// the faces and the tree they were measured on: `2026-11-26-the-retrieval-w4-acceptance.md`.
 @Suite("Spotlight index writer", .serialized)
 struct SpotlightIndexWriterTests {
     /// A word no other document holds (= the marker keeps a hit here
@@ -146,7 +148,7 @@ struct SpotlightIndexWriterTests {
         let written = try await CSSearchableIndexSearch.shared.writer.donate(documents)
         let held = await CSSearchableIndexSearch.shared.writer.currentCursor()
 
-        // The claim W4 makes about the client state: = the value handed to
+        // The claim this lane makes about the client state: = the value handed to
         // `endBatch` is the value the index keeps. Measured here rather
         // than asserted from the SDK's prose, = and through the production
         // handle rather than a probe's.

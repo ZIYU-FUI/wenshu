@@ -53,11 +53,11 @@ import Foundation
 enum SpotlightIndexReadiness {
     /// How a readiness check ended.
     ///
-    /// Four answers, = not a boolean: = "the document is not there", =
-    /// "the index refused the question", = and "the index never answered
-    /// it" are three different things a reader has to act on
-    /// differently, = and collapsing them into `false` is how a broken
-    /// indexer gets reported as an empty library.
+    /// Six answers, = not a boolean: = "the document is not there", = "the index
+    /// refused the question", = "the index never answered it" are three of the
+    /// six, = and a reader has to act on each of them differently, = and
+    /// collapsing them into `false` is how a broken indexer gets reported as an
+    /// empty library.
     enum Answer: Equatable, Sendable {
         /// The index held a document whose text carries the token.
         case found
@@ -94,10 +94,10 @@ enum SpotlightIndexReadiness {
     /// case 130 ms after the write's own completion. = So an `absent` read
     /// milliseconds after a successful write is a fact about the ingest
     /// queue, = not about the donation, = and the suite charged it as one:
-    /// the arms at `SpotlightIndexWriterTests.swift:112` and `:208` = and
-    /// the control at `:66` = went red in 5 of 25 whole-suite runs, = while
-    /// each of them isolated ran green 10/10. = Two seconds is 15x the
-    /// worst measured latency.
+    /// the arms `donatedCorpusIsReadable` and `emptyCorpusDoesNotWipe`, = and the
+    /// control in `reIndexReplacesContent`, = went red in 5 of 25 whole-suite runs
+    /// measured on the tree at `a95222dde8`, = each isolated green 10/10. = Two
+    /// seconds is 15x the worst measured latency.
     ///
     /// **What the bound is not.** = It is not a retry of a refusal: =
     /// `.failed`, = `.timedOut` and `.cancelled` are the index's own
@@ -192,11 +192,11 @@ enum SpotlightIndexReadiness {
     }
 
     /// Both faces are this one loop, = with the unsettled answer spelled by
-    /// `waitingFor`: = `.appearing` re-asks while the index says `absent`,
-    /// `.disappearing` while it says `found`. = Every other answer ends it
-    /// where it stands, = and the bound caps the WHOLE ask rather than each
-    /// ask inside it, = so a caller's `timeout` cannot be multiplied into a
-    /// minute of waiting by a slow queue.
+    /// `waitingFor`: = `.appearing` re-asks while the index says `absent`, =
+    /// `.disappearing` while it says `found`. = Every other answer ends it where
+    /// it stands, = and the bound caps every ask AFTER the first ask rather than
+    /// that ask itself, = so a caller's `timeout` is spent once and the bound on
+    /// top of it, = and a slow queue cannot multiply it.
     private static func loop(
         token: String,
         docId: String?,
