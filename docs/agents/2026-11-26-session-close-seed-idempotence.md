@@ -137,7 +137,7 @@ citation honest is one line: = the label's `_1.log` must print the tip the claim
 made about. = = If it prints anything else, = = the label belongs to an earlier draft
 of these words.
 
-This record was gated on its own tip too, = = under label **`closeout-record-r9`** (=
+This record was gated on its own tip too, = = under label **`closeout-record-r10`** (=
 = nine commands, = = base `e17c5f30ce`). = = Earlier families survive on disk, = = each
 named with the tip it measured, = = because they are this record's own history and are
 **not** the verdict on this tip: `closeout-seed-doc_*` (= 8 files, = = `b43c2a4f43`), =
@@ -148,14 +148,16 @@ defects), = and `closeout-record-r6_*` (= 9, = = `30daa59f44`, = = the round tha
 readings), = = and `closeout-record-r7_*` (= 9, = = `5e2fc583ca`, = = the round that found
 that a window read from one reflog is not an interval of equality), = = and
 `closeout-record-r8_*` (= 9, = = `0b264526ce`, = = the round that found the record
-publishing a window it had elsewhere declared false).
+publishing a window it had elsewhere declared false), = = and `closeout-record-r9_*`
+(= 9, = = `7d8f98ede7`, = = the round-5 fix's first commit, = = superseded by the label this
+tip is published under).
 
 ```bash
 R=/Volumes/ANAN/Engineering/wenshu
 T=$R/.worktrees/seed-closeout-2026-11-26
 G=$T/Tools/wenshu-devtool
 B=$(git -C $R rev-parse e17c5f30ce)
-LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r9 \
+LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r10 \
   "git -C $T rev-parse HEAD" \
   "python3 $G/tests/test_probe_index.py" \
   "python3 $G/ci_change_gate.py --base $B --check pollution --repo $T" \
@@ -165,9 +167,9 @@ LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeo
   "python3 $G/comment_lineage.py --base $B --repo $T" \
   "python3 $G/nfi-loc-check.py --base $B --registry $T/docs/agents/nfi.md" \
   "wc -l $T/docs/agents/2026-11-26-session-close-seed-idempotence.md"
-ls $R/.gate-logs/closeout-record-r9_*.log | wc -l        # 9
-head -1 $R/.gate-logs/closeout-record-r9_1.log           # = the sha the review card names
-grep -c FAIL $R/.gate-logs/closeout-record-r9_*.log      # 0 in each file
+ls $R/.gate-logs/closeout-record-r10_*.log | wc -l        # 9
+head -1 $R/.gate-logs/closeout-record-r10_1.log           # = the sha the review card names
+grep -c FAIL $R/.gate-logs/closeout-record-r10_*.log      # 0 in each file
 ```
 
 The gate surface has **one** change-scoring tool, = not one per rule: =
@@ -195,7 +197,7 @@ instead of as sentences.** = The count of a failure is part of the failure: =
 disease as the reading it accused.
 
 The denominators, = read out of the nine **`closeout-merged-main`** log bodies (= a
-second family, = `closeout-record-r9`, = = also has nine files): = `Build complete!`; = = *Test
+second family, = `closeout-record-r10`, = = also has nine files): = `Build complete!`; = = *Test
 run with **4 tests** in 1 suite passed*; = = `added comment lines: 59` = with
 `offending: 0 rows / 0 files (P0=0, P1=0)`; = = `nfi-loc-check: ... (1 row(s)
 checked)`; = = `formatting: ... (2 changed Swift file(s) checked)`; = = `loc-cap:
@@ -205,8 +207,8 @@ forbidden vocabulary (3ad2ccebfacab0e52b4208488e4acae196e64c96...HEAD)` -- = the
 is not `origin/main...HEAD`, = = and not the window this record's own diff sits in
 either -- = after the rebase onto `e17c5f30ce` that window is `e17c5f30ce...HEAD`, = written
 **short** here. = = The log prints it in full:
-`closeout-record-r9_3.log` begins `pollution: the change adds no forbidden vocabulary
-(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r9_7.log`
+`closeout-record-r10_3.log` begins `pollution: the change adds no forbidden vocabulary
+(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r10_7.log`
 begins `comment-lineage: window e17c5f30ce..<the tip this record lands as>`. = = Where
 this record shortens a sha it says so: = = a shortened sha is an **abbreviation of a
 printed line**, = never a second reading of it.
@@ -358,7 +360,7 @@ records only the *second* fix and not the diagnosis.
 
 | # | item | the card or the command |
 |---|---|---|
-| 1 | `verify_doc_commands.py` **does exist** (= `~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/scripts/verify_doc_commands.py`) = and was run against this record as an artifact check -- = = `PASS (9 block(s) seen, 0 executed).` = = with `ok  the doc carries no CJK` (= the second `ok` line being `the registry's LOC cell (464) equals the doc's line count`, = = the same number the register carries). = = The executed arm, = = which is the one that found the `review_gate --sha HEAD` line red, = = belongs to the draft at `a26465b383` and needs `--run`, = = which is not re-run here because it executes this record's own two `gate_run.sh` blocks and overwrites the labels cited above. = = The defect is not its absence but its **address**: = `git ls-files \| grep -i verify_doc` in the repo is empty, = so the tool that the closeout flow makes a gate of lives outside the repo it audits and is wired into no gate. | `Tools/wenshu-devtool/` owns it; = the card moves it in and registers it |
+| 1 | `verify_doc_commands.py` **does exist** (= `~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/scripts/verify_doc_commands.py`) = and was run against this record as an artifact check -- = = `PASS (9 block(s) seen, 0 executed).` = = with `ok  the doc carries no CJK` (= the next `ok` line reporting the registry's LOC cell equal to the doc's line count -- = a number this record does not restate, = because restating it makes the sentence red the moment the sentence grows). = = The executed arm, = = which is the one that found the `review_gate --sha HEAD` line red, = = belongs to the draft at `a26465b383` and needs `--run`, = = which is not re-run here because it executes this record's own two `gate_run.sh` blocks and overwrites the labels cited above. = = The defect is not its absence but its **address**: = `git ls-files \| grep -i verify_doc` in the repo is empty, = so the tool that the closeout flow makes a gate of lives outside the repo it audits and is wired into no gate. | `Tools/wenshu-devtool/` owns it; = the card moves it in and registers it |
 | 2 | Where `WS_SEED_PLAN=1` came from is **unresolved**. = Ruled out: = the repo, = `~/Library/LaunchAgents/`, = the app bundle's `LSEnvironment`, = `~/.zsh_history`, = this profile's config. = One interactive shell session was never excluded, = = and until it is, = = a future launch can seed again (= now self-replacing, = = so at worst one batch). | the boss's own launch path; = = no code change is owed |
 | 3 | `seedCrew()`'s write target was never measured, = = only that `ZWSSUBAGENTRUN` is 0 in the live store. | a probe, = = same directory, = = before any claim about it |
 | 4 | The shared checkout's index held a **stale tree that reverted landed work**: = = `PlanSeed.swift` back to 175 lines and the test file staged for deletion, = = and `docs/agents/nfi.md` missing rows for both. = My two paths are restored to HEAD (= `git checkout HEAD -- <those two>`); = = the rest of the shared checkout's dirty paths belong to other lanes, and no count of them is published here: `git -C $R status --porcelain | wc -l` is the read, = and it changed twice while this line was being written. = = What is owned: = at least one of those paths still stages deletions of register rows that are already on `main`. | `t_b2ac2eda` owns `OOB.md` and its own closeout doc, = = which are among the staged paths |
@@ -456,7 +458,7 @@ lane.
 
 ## Round 5: the record contradicted itself in two places and moved in a third
 
-Round 5 (`t_6bf17917`, run 5244, 1022 s, `changes_requested` at `0b264526ce`) verified all
+Round 5 (`t_6bf17917`, run 5244, 792 s, `changes_requested` at `0b264526ce`) verified all
 five round-4 rows cold and asked for nothing new in the world -- only that the record stop
 saying two things at once.
 
