@@ -13,9 +13,10 @@ re-derive each number are printed next to it.
 
 | original requirement | carrier commit | independent verdict | server proof |
 | --- | --- | --- | --- |
-| equal-weight query terms must not resolve in per-process order | `ecec033726` (the two-line fix: `Set(queryTokens).sorted()`, then iterate that) | `t_cd5419f9`, `approved by wenshu-review` at `8415d6220073f52d5e52db2e80992baf7ad12d91` | `origin` and `old-origin` both read `4db43731ac686716b37e476de8d03b39abf9666b` at 19:28:05 CST |
-| a suite that proves it, and fails when it is broken | `4db43731ac` (`Tests/WenshuAppTests/Library/Search/SearchRankingOrderStabilityTests.swift`) | same card, same verdict | same read-back |
-| the registry must teach the mechanism, not a myth about it | `4db43731ac` (`docs/agents/nfi.md`, the `SearchRanking.swift` row) | the reviewer's criterion 3: the registry row teaches the measured mechanism | same read-back |
+| the score's accumulation does not depend on the process's hash seed (= the order the tokens are visited in is fixed) | `ecec033726` (the two-line fix: `Set(queryTokens).sorted()`, then iterate that) | `t_cd5419f9`, `approved by wenshu-review` at `8415d6220073f52d5e52db2e80992baf7ad12d91` | the landed tip `4db43731ac` is an ancestor of `origin/main` and of `old-origin/main` (`merge-base --is-ancestor`, rc 0), read 2026-11-26 22:54 CST |
+| a test that measures the ranking under two different hash seeds (or in two processes) asserts the SAME order, and it is red before the change and green after | `4db43731ac` (`Tests/WenshuAppTests/Library/Search/SearchRankingOrderStabilityTests.swift`, blob `eeaaf4f944d2`) | same card, same verdict | same ancestry, rc 0; the suite blob `eeaaf4f944d2` is the same object at `4db43731ac` and at `825edae014` |
+| the retrieval fixture's measured floor does not regress (= the numbers the closed card measured stay true) | `64212762cb` is where the floor was measured; it is a backup ref, not this branch's history (`refs/backup/retrieval-rank-order-64212762cb`), and it is carried to `4db43731ac` by three blob identities: scorer `813e7876b1ee`, corpus `c92b81985c7a`, floor `771f957f210d`, the same objects at `64212762cb`, `4db43731ac` and `825edae014` | `t_9c54532c` comment 2935, "Criterion 3 - MET, measured at the tip", 2026-11-26 08:00:43: library row `0.75 0.92 1.00 0.67 1.00` against the floor constants `9.0/12.0`, `10.0/12.0`, `11.0/12.0` at `RetrievalQualityRankers.swift:65-67` | re-taken at the tip 2026-11-26 22:48 CST: `swift test --filter RetrievalQualityTests` rc 0, 17 tests in 1 suite, library row `0.75 0.92 1.00 0.67 1.00` (log `/tmp/floor_retake_tip2.log`, a scratch path the tree does not carry); the three blobs are the same objects at `4db43731ac`, `825edae014` and `origin/main` |
+| the registry must teach the mechanism, not a myth about it (= a review-round requirement, `t_9c54532c` B2) | `4db43731ac` (`docs/agents/nfi.md`, the `SearchRanking.swift` row) | raised as `BLOCKER B2 - the mechanism sentence in landed artifacts is wrong` in `t_9c54532c` comment 2935, and cleared by `t_cd5419f9` comment 3071, "Check 2 - the registry no longer teaches the wrong mechanism" | same ancestry, rc 0 |
 
 ## What the lane got wrong before it landed
 
@@ -30,14 +31,22 @@ rounds 1 and 2 carried `changes_requested` for exactly that.
 **2. The measurements taken between 15:32 and 18:39 were voided by an
 environment fault, not by a bad method.** Two executors held
 `.worktrees/retrieval-rank-order-2026-11-26` at once: the card's own worker, and
-a delegated session dispatched over the top of it. The worktree reflog records
-`2026-11-26 18:29:45 reset: moving to HEAD` and `2026-11-26 18:39:03 rebase
-(finish)`, two reflog events 558 seconds apart. The throwaway driver's own
+a delegated session dispatched over the top of it. Two reflog events 558 seconds
+apart ended that overlap, and only one of them is still readable in a file.
+`git reflog show wt/retrieval-rank-order-2026-11-26` (the BRANCH reflog, which
+the worktree's removal did not touch) prints `2026-11-26 18:39:03 rebase
+(finish)` onto `7e036f7613`. The other, `2026-11-26 18:29:45 reset: moving to
+HEAD`, survives only as a verbatim quotation in `t_891a6235` comment 3059,
+because the worktree that held that log has since been removed with the lane's
+own residue. The throwaway driver's own
 bracket is on disk as two files: `/var/tmp/r4/por_start.txt` (mtime `18:30:42`)
 and `/var/tmp/r4/por_end.txt` (mtime `18:37:58`), 436 seconds. The line the
 driver captured inside that bracket, `/var/tmp/r4/line186.txt`, carries mtime
-`18:35:44`; the tree's own copy of `Sources/.../SearchRanking.swift` reads
-`19:17:03` now, because the landing rebase rewrote it. Any arm whose window
+`18:35:44`. The landing rebase rewrote the lane worktree's own copy of
+`Sources/.../SearchRanking.swift` at `19:17:03`; that worktree is gone, and the
+two surviving copies read `11-24 13:59:05` (the shared checkout) and `11-26
+19:32:32` (this record's worktree) as of 2026-11-26 22:54 CST, read with
+`stat -f '%Sm' -t '%m-%d %H:%M:%S'`. Any arm whose window
 crossed `18:29:45` may have measured a reverted scorer that no longer existed.
 The rule recorded on `t_891a6235` comment 3059 and repeated on the review card:
 re-take, do not cite. The delegation was stopped at `18:39:05` after
@@ -46,9 +55,23 @@ re-take, do not cite. The delegation was stopped at `18:39:05` after
 **3. The root cause of that waste was dispatch, not the model.** A card
 assigned to a profile runs by itself on this board, so filing a card AND
 dispatching a child for the same scope buys two executors in one worktree. One
-worktree, one executor; the check is `python3
-Tools/wenshu-devtool/board_liveness.py --card t_891a6235` before a child is opened on
-a scope that already has a live card.
+worktree, one executor; before a child is opened on a scope that already has a
+live card, the check that works today is the board's own rows, not
+`board_liveness.py`: that tool takes `--board`, `--fresh` and `--grace`, has no
+`--card` or `--scope` flag, and never prints a workspace path, so it cannot
+answer the question this rule asks. The query that does is `select id, status,
+assignee, workspace_path from tasks where status in ('running','ready','review')
+and workspace_path is not null`, read with `sqlite3 -readonly` against
+`~/.hermes/kanban/boards/wenshu-par/kanban.db`. What it catches is the
+collision class this rule exists to prevent: two open cards naming the SAME
+workspace path, one of them the shared checkout. At 2026-11-26 22:54 CST the
+open cards that name a workspace were `t_07e2a022` (its own worktree),
+`t_f9a65c7e` (its own worktree), `t_a6580791` and `t_982f92db` (review
+worktrees) - four paths, no collision - and the card that had claimed the shared
+checkout, `t_6d24acce`, had already gone to `done`, so a rule written on it
+would have found nothing to stop. A `--card`/`--scope` flag on
+`board_liveness.py` is the tool-side half of the fix and is carried as an open
+item.
 
 **4. A published number was written with a placeholder and shipped anyway.**
 The landing comment first read `measured | 2026-11-26 19:3x CST`. That is a
@@ -122,23 +145,26 @@ here.
 
 ## Measurements, and what a reader can re-take
 
-The tree carries the suite; the driver that looped it five times does not. The
-re-takable claim is the arm's own result, and the numbers below that came from a
-throwaway driver are labelled as such.
+The tree carries the suite and its own probe; the driver that looped the arms
+does not. Every figure below is dated, and every one that came from a throwaway
+driver names the file it was read from and the interval it was read in. The
+figures taken from the 15:32-18:39 window this record voids are not published
+here at all: the rows below carry post-fault readings instead.
 
 | claim | value | re-take |
 | --- | --- | --- |
-| the suite passes at the landed tip | 4 arms, 5 launches, rc 0, 0 issues | `swift test --filter SearchRankingOrderStabilityTests` (tree-carried) |
-| process-to-process stability | 3 launches at the tip produced 1 distinct ranking md5, 0 of 24 tied pairs flipped | throwaway driver, `/var/tmp/r7/results.tsv`; not tree-carried |
-| the negative arm bites, arms run alone | tie-break rc 1 flipped 1, 7, 5, 5 and 11 of 24 pairs; arrival-order rc 1 drifted 16, 16, 132, 48 and 96 of 144 rotations; process-order rc 1 split 6/4, 6/4, 3/9, 8/6, 8/2 | throwaway driver over a reverted `SearchRanking.swift`; recipe below, marked SKIP for cost |
-| the negative arm bites without a shared process | `--no-parallel` rc 1 on three launches, 691, 234 and 522 issues, at least one issue on each of the three order arms | same recipe, plus `--no-parallel` |
+| the suite passes at the tip | 5 tests in 1 suite (the four order arms plus the tree's own probe), rc 0, 0 issues, re-taken 2026-11-26 22:44 CST (`/tmp/orderstability_retake_tip.log`, a scratch path the tree does not carry) | `swift test --filter SearchRankingOrderStabilityTests` (tree-carried) |
+| the ranking's order is the same in every process | three launches of the tree's OWN probe at the tip printed one identical order (the three `RANKORDER` lines are byte-identical, sha256 `18c084d11a64ea97adb5887091f973447fdecca8e972598640c5fc5af186d165`), rc 0 each, 2026-11-26 22:49 CST; the throwaway probe's words for the same claim are `order-digest 10009171863505857283`, `flipped-pairs []`, `rotated-digests 1 distinct of 21` (`/var/tmp/cp1.log` 17:31:26, `cp2.log` 17:31:29, `cp3.log` 17:31:33 - read inside the two-writer interval of section 2 above, so the tree-carried re-take is the one that carries the claim) | `WENSHU_RANK_ORDER_PROBE=1 swift test --filter rankOrderProbe`, three launches, compare the printed order lines; the tie-break arm's pair scale is `pairCount = 24` (test file line 56) and it is green at the tip |
+| the negative arm bites, arms run alone | post-fault readings (the set spans 18:59:54-19:00:47), every one of them after the 18:39:03 rebase and after the 18:57:15 shipping amend: tie-break arm alone rc 1, 1 issue, flipped pairs `[1, 2, 8, 14, 15, 21, 23]` of the fixture's `pairCount = 24` (`/var/tmp/r7/rev_a1.log`, 19:00:47); arrival-order arm alone rc 1, 1 issue, drifted 19 of 144 arrival orders (`/var/tmp/r7/rev_a2.log`, 19:00:38); the approving reviewer took the same arm alone on the reverted scorer at 19:09:16-19:09:41 and read 86 of 144 (`t_cd5419f9` comment 3071) | same recipe, marked SKIP for cost; each figure above names the artifact and the interval it was read in, and no figure here is quoted from the voided 15:32-18:39 window |
+| the negative arm bites without a shared process | `--no-parallel` rc 1, 751 issues, with the score arm, the tie-break arm, the arrival-order arm and the second-process arm all red in the same run (`/var/tmp/r7/rev_np.log`, 19:00:43); the approving reviewer's own `--no-parallel` run read rc 1, 525 issues at 19:09 (`t_cd5419f9` comment 3071) | same recipe, plus `--no-parallel` |
 | a suite that cannot run does not read as green | `WENSHU_RANK_ORDER_NO_RUNNER=1` gives rc 1 with 1 issue | tree-carried: the skip arm asserts its own refusal |
 
 ```
-SKIP: costs a full `swift build --build-tests` plus five launches, and mutates a
+SKIP: costs a full `swift build --build-tests` per launch, and mutates a
 checkout. Run it in a throwaway worktree, never in a lane another card holds.
-git worktree add --detach /tmp/revert-probe 4db43731ac
-cd /tmp/revert-probe
+The arms below are the ones the table publishes, one launch each.
+git worktree add --detach /tmp/rank-order-revert-probe 4db43731ac
+cd /tmp/rank-order-revert-probe
 python3 - <<'PY'
 import pathlib
 p = pathlib.Path("Sources/WenshuApp/Features/Library/Service/SearchRanking.swift")
@@ -146,8 +172,10 @@ t = p.read_text()
 assert t.count("Set(queryTokens).sorted()") == 1
 p.write_text(t.replace("Set(queryTokens).sorted()", "Set(queryTokens)"))
 PY
-for i in 1 2 3 4 5; do swift test --filter SearchRankingOrderStabilityTests >/dev/null 2>&1; echo "launch $i rc=$?"; done
-git worktree remove --force /tmp/revert-probe
+swift test --filter SearchRankingOrderStabilityTests.tiedPairsAreOrderedByTheTieBreak; echo "tie-break rc=$?"
+swift test --filter SearchRankingOrderStabilityTests.tiedPairsStayOrderedWhenTheTermsArriveInAnotherOrder; echo "arrival-order rc=$?"
+swift test --no-parallel --filter SearchRankingOrderStabilityTests; echo "no-parallel rc=$?"
+git worktree remove --force /tmp/rank-order-revert-probe
 ```
 
 A reverted scorer that leaves every arm rc 0 is a reject of the suite, not a
@@ -288,9 +316,17 @@ read-back, local `main` was `29ec44f1e2` and
    four rework cards carry no verdict of their own yet: none of them has a row
    in `task_runs`.
 4. **One chord item needs a human, not a round.** `t_fbb810a3` reached the
-   rejection cap on a committed message whose chord glyphs contradict the tree
-   (`U+23EB` claimed, `U+2318` written). The reviewer offered amend, waive, or a
-   generator-side check; the author cannot pick one of those.
+   rejection cap on a committed message whose chord glyphs contradict the tree.
+   Counted by codepoint over `git log -1 --format=%B a708a7e590`, the message
+   carries `U+2318` ten times and `U+21E7` four times, and the codepoint
+   `U+23EB` appears in no commit message in this repo and in no comment on
+   `t_fbb810a3`. Six of the chord mentions are bare `U+2318`+letter with no
+   `U+21E7` at all, so the defect is a DROPPED `U+21E7`, not a claimed
+   `U+23EB`: at that tip the tree binds the code block at `U+2318`+`U+21E7`+`F`
+   (`ChatView+KeyboardShortcuts.swift:353`) and binds `U+2318`+`K` to focus input
+   (`:25`), and the roster line at `:233` names both. The reviewer offered
+   amend, waive, or a generator-side check; the author cannot pick one of
+   those.
 5. **This record is reviewed as any change is.** The card that reviews this
    record names the sha this file was committed as, and the verdict on that card
    is not written back into this file: the
