@@ -866,6 +866,12 @@ Taken against commit `0f9c784db6`, = on the user's own library store and on
 the store's own pre-repair backup, = so the same instrument answers both
 "how many did the seed write" and "is any of it left".
 
+The `(tree ...)` a line prints is the checkout the probe was **run from**, not the
+tree the store came from: = the backup arm printed `7be5534aa161` and the live arms
+`0f9c784db60c`, = while the same commands run today print whatever `main` is. = = The
+header names the commit the readings were taken against; = the arms name the tool that
+produced them, = = and a mismatch between the two is not a mismatch in the counts.
+
 ```
 $ python3 Tools/wenshu-devtool/probes/seed_sample_rows.py --dry-run <backup copy>
 store: ~/Documents/wenshu-backups/2026-11-26-pre-seed-cleanup/WenshuStore.store
