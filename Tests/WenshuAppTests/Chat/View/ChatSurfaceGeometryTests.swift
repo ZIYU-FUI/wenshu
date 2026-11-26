@@ -3,7 +3,8 @@
 //
 //  The outgoing message band and the composer field share their
 //  resting height floor and their growth rule, NOT their outline: the
-//  band is a rounded rectangle at the card radius, the field a capsule.
+//  band is a rounded rectangle at the card radius, the field a capsule
+//  through 72 PT (= its own five-line ceiling is above that).
 //
 //  This suite measures the LAYOUT (= the frame SwiftUI hands the
 //  compositor), because the band's height IS its laid-out height: the
@@ -111,7 +112,7 @@ struct ChatSurfaceGeometryTests {
     }
 
     @Test("ChatSurfaceShape tracks half the height until the 36 PT cap")
-    func shapeCapsItsRadiusAtRestingHeight() {
+    func shapeRadiusTracksHalfHeightUntilTheCap() {
         // This measures the composer field's own outline: the radius is
         // min(half the height, the 36 PT cap), so the shape rounds its ends
         // all the way (= a capsule) through 72 PT, and only a taller surface
@@ -120,22 +121,41 @@ struct ChatSurfaceGeometryTests {
         let shape = ChatSurfaceShape()
         let restingRect = CGRect(x: 0, y: 0, width: 400, height: 36)
         let grownRect = CGRect(x: 0, y: 0, width: 400, height: 72)
+        let tallRect = CGRect(x: 0, y: 0, width: 400, height: 100)
 
         let resting = shape.path(in: restingRect)
         let grown = shape.path(in: grownRect)
+        let tall = shape.path(in: tallRect)
 
         #expect(resting.boundingRect.height == restingRect.height,
                 "The shape must fill the resting surface it outlines")
         #expect(grown.boundingRect.height == grownRect.height,
                 "The shape must fill a grown surface too")
 
-        // The radius cap: half the resting height (= 18 PT), so a
-        // 36 PT surface is a capsule and a 72 PT surface keeps the same
-        // 18 PT radius (= a rounded rectangle, not an ellipse).
-        let restingRadius = DesignTokens.controlHeightLarge / 2
-        #expect(restingRadius == 18,
-                "The radius cap must be half the resting height (= 18 PT)")
-        #expect(min(grownRect.height / 2, restingRadius) == restingRadius,
-                "A grown surface must keep the capped radius (= never an ellipse)")
+        // The radius, READ OFF THE SHAPE'S OWN PATH (= not a restatement
+        // of the token): the shape's outline is the rounded rectangle
+        // whose corner radius the path itself carries.
+        #expect(radius(of: resting, in: restingRect) == 18,
+                "A 36 PT surface must round its ends all the way (= a capsule); the shape reads \(radius(of: resting, in: restingRect)) PT")
+        #expect(radius(of: grown, in: grownRect) == 36,
+                "A 72 PT surface must still round its ends all the way (= a capsule); the shape reads \(radius(of: grown, in: grownRect)) PT")
+        #expect(radius(of: tall, in: tallRect) == 36,
+                "A surface past the cap must keep the 36 PT cap (= never an ellipse); the shape reads \(radius(of: tall, in: tallRect)) PT")
+    }
+
+    /// The corner radius a shape's path carries, read off that path.
+    ///
+    /// `Path` exposes no radius, so the reading walks the candidate radii
+    /// and keeps the one whose rounded rectangle IS the path (= the
+    /// shape's own answer, not a token restated).
+    private func radius(of path: Path, in rect: CGRect) -> CGFloat? {
+        var candidate: CGFloat = 0
+        while candidate <= rect.height / 2 + 0.001 {
+            if Path(roundedRect: rect, cornerRadius: candidate) == path {
+                return candidate
+            }
+            candidate += 0.25
+        }
+        return nil
     }
 }

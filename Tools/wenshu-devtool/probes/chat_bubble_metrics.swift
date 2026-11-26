@@ -486,7 +486,7 @@ func run(subject: String, hostWidth: CGFloat) -> Int {
         print("source_check: MISMATCH (the production tokens could not be read)")
         return 2
     }
-    // The corner cap is the production cap, NOT half the resting height:
+    // The corner cap is the production cap, NOT half of it:
     // ChatSurfaceShape assigns `maxCorner = controlHeightLarge` and the
     // radius is `min(height / 2, maxCorner)`, so the cap IS the resting
     // height. Halving it here would measure a shape the app never draws.

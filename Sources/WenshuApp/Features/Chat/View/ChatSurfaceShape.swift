@@ -1,11 +1,11 @@
 //
 //  ChatSurfaceShape.swift
 //
-//  The outline the chat input field wears, shared with the
-//  inspector's output sheet. The radius tracks half the surface
-//  height, so a surface at the resting chat height reads as a
-//  capsule; the cap only binds on a surface far taller than any
-//  chat surface. The outgoing message band is not one of them.
+//  The outline the chat input field wears, shared with the inspector's
+//  output sheet. The radius tracks half the surface height, so a surface
+//  at the resting chat height reads as a capsule; the cap binds above
+//  72 PT, and the composer field's own five-line ceiling (= 80 PT) is
+//  above it. The outgoing message band is not one of these surfaces.
 //
 
 import SwiftUI
