@@ -74,13 +74,52 @@ struct WenshuConductorE2ETests {
     /// The claim is about the runtime package's reach and not about one call
     /// site, so the reader takes every file in it: a package that holds no
     /// board store cannot write a card from any file, present or future.
+    ///
+    /// Reach is spelled by more than one name, so the filter is a list. One
+    /// name is not a guard: at this branch's base the type's name lived only
+    /// in the comment above the write, so a name-only filter reads green on
+    /// the exact code this branch deleted, and a reintroduction that rewords
+    /// that comment stays undetected. The list is the guard; the prose above a
+    /// write is not.
     @Test("e2e: the runtime package reaches no board store")
     func runtimePackageReachesNoBoardStore() throws {
         let offenders = try SourceLocator.swiftFilesUnderSources()
             .filter { $0.hasPrefix("Sources/WenshuAgent/Sources/") }
-            .filter { try SourceLocator.read($0).contains("WSKanbanRepository") }
+            .filter { path in
+                let text = try SourceLocator.read(path)
+                return Self.boardStoreNames.contains { text.contains($0) }
+            }
         #expect(offenders.isEmpty,
                 "the runtime package reaches the board store: \(offenders)")
+    }
+
+    /// Every name by which the runtime package could reach the board store:
+    /// the store itself, the container that hands it out, and the member
+    /// access that asks it for a repository.
+    static let boardStoreNames = [
+        "WSKanbanRepository",
+        "WSRepositoryContainer",
+        ".kanban.",
+    ]
+
+    /// The guard bites on the write, not on a word. The base revision's line
+    /// is an offender here even with its comment rewritten, so a
+    /// reintroduction cannot hide behind prose; and the echo title survives in
+    /// production only at the launch sweep that removes it, so no file can
+    /// write what the board shows as a turn. Proven in-process, because a test
+    /// target reads the tree and not the git objects behind it.
+    @Test("e2e: the guard catches the historical echo, not one word")
+    func boardStoreGuardCatchesTheHistoricalEcho() throws {
+        let historicalWrite =
+            #"try? self.repositories.kanban.add(title: "conductor: \(text)", status: "running")"#
+        #expect(Self.boardStoreNames.contains { historicalWrite.contains($0) },
+                "the echo write reaches the board store through a name the guard lists")
+
+        let writers = try SourceLocator.swiftFilesUnderSources()
+            .filter { try !SourceLocator.read($0).contains("removeCards(withTitlePrefix:") }
+            .filter { try SourceLocator.read($0).contains("\"conductor: ") }
+        #expect(writers.isEmpty,
+                "a production file builds the echo title outside the sweep: \(writers)")
     }
 
     /// Pipeline test: SubAgentIdentity system prompts are all present and distinct.

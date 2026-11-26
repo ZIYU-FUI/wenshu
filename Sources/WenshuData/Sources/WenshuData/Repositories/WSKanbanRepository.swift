@@ -166,19 +166,29 @@ public final class WSKanbanRepository {
     /// A card that carries none of the three records no decision, and this
     /// removes that shape wherever it sits. Anything that qualifies as a
     /// hand-off survives the call. Returns how many rows went.
+    ///
+    /// An empty string counts as nothing, because that is what the board
+    /// already reads: a card's owner line is drawn only when the name is
+    /// non-empty, so a row whose owner or instruction is `""` shows as
+    /// unowned and unnamed on screen while a nil-only test would keep it.
+    /// Delete and display ask the same question, so the board cannot keep a
+    /// row that it renders as an unowned, unnamed card.
     @discardableResult
     public func removeCards(withTitlePrefix prefix: String) throws -> Int {
         // The store's predicate language carries equality on the optional
         // columns and not a prefix match, so the narrowing half runs in the
         // query and the title is asked afterwards. A card that names an
-        // owner, an instruction or a book is dropped by the query and never
-        // reaches the title test at all.
-        let ownerless = #Predicate<WSKanbanTask> {
-            $0.assignee == nil && $0.body == nil && $0.bookID == nil
+        // instruction or a book is dropped by the query and never reaches the
+        // title test at all. The owner's half stays in Swift: the macro cannot
+        // type-check nil-or-empty on two columns and the book in one
+        // expression, and a wider query only returns rows the line below
+        // discards.
+        let unnamed = #Predicate<WSKanbanTask> {
+            ($0.body == nil || $0.body == "") && $0.bookID == nil
         }
         let doomed = try context
-            .fetch(FetchDescriptor<WSKanbanTask>(predicate: ownerless))
-            .filter { $0.title.hasPrefix(prefix) }
+            .fetch(FetchDescriptor<WSKanbanTask>(predicate: unnamed))
+            .filter { ($0.assignee ?? "").isEmpty && $0.title.hasPrefix(prefix) }
         guard !doomed.isEmpty else { return 0 }
         for model in doomed {
             context.delete(model)

@@ -110,10 +110,21 @@ struct WSKanbanRepositoryTests {
             title: "research: the tide",
             assignee: "researcher"
         )
+        // A name that is empty is no name: the board draws no owner line for
+        // it, so the row is as unowned as a nil one (= the same reading the
+        // card and its detail sheet apply, WenshuApp/Features/Kanban).
+        let blankOwner = try repo.add(
+            title: "conductor: blank owner", assignee: ""
+        )
+        let blankInstruction = try repo.add(
+            title: "conductor: blank instruction", body: ""
+        )
 
-        #expect(try repo.removeCards(withTitlePrefix: "conductor: ") == 1,
-                "only the row that named nothing is a card the board never needed")
-        #expect(try repo.get(id: echo) == nil)
+        #expect(try repo.removeCards(withTitlePrefix: "conductor: ") == 3,
+                "only a row that named nothing is a card the board never needed")
+        for doomed in [echo, blankOwner, blankInstruction] {
+            #expect(try repo.get(id: doomed) == nil)
+        }
         for survivor in [owned, instructed, shelved, dispatch] {
             #expect(try repo.get(id: survivor) != nil,
                     "a card carrying an owner, a body or a book is a hand-off")
