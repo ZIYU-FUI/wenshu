@@ -235,7 +235,7 @@ def collect(conn: sqlite3.Connection) -> dict:
 
 
 def contract_errors(card: dict) -> list[str]:
-    """Why this ONE card breaks the hand-off contract.
+    """Why does this ONE card break the hand-off contract?
 
     The collector answers "what does the board hold?", and this answers
     "may this card go out?", so the same rule is read on the dispatch
@@ -246,20 +246,68 @@ def contract_errors(card: dict) -> list[str]:
     the profiles in `dispatch_profiles`, so such a card is never spawned
     and waits for ever.
 
+    THE SECOND HALF OF THE SAME DEFECT (measured 2026-11-26). The
+    reviewer's half is only half of the cards that come back to the
+    implementer. The other half is created BY the implementer FOR
+    itself: AGENTS.md 1.12 says the developer finds the code and writes
+    the code in its own session and worktree, and files NO board card
+    for the work (= the ONE card it files is the review card it hands to
+    the review lane after the commit). So a card an implementer created
+    and addressed to an implementer is a card the implementer filed for
+    itself, = = and the board cannot spawn it either (= the dispatcher
+    spawns only the review lane), = = so it comes back to the
+    implementer's board and waits for ever.
+
+    Measured on board wenshu-par, 2026-11-26: 6 OPEN cards were filed by
+    `pocock` for `pocock`, all of them `ready`, all of them bouncing
+    back. The reviewer's half covered 3 of the 9 cards that came back;
+    this half covers the other 6.
+
+    THERE IS NO LANDING EXEMPTION, AND THAT IS MEASURED, NOT ASSUMED.
+    A landing card (= the card that moves an APPROVED branch onto main)
+    IS filed by an implementer and addressed to an implementer, so the
+    naive reading of this rule would refuse it. Measured on the board:
+    every single card tagged `[落地]` (6 of 6) was created by `user`
+    (= the boss), and NOT ONE was filed by `pocock`. So the landing
+    card is the BOSS's card, and the implementer lands inside its own
+    session (= measured 2026-11-26: the lane landed with
+    `Scripts/land_card.sh` from the implementer's own worktree, with no
+    board card at all). An exemption keyed on the `[落地]` tag would
+    therefore be an exemption with no legitimate user, and it would
+    leave a hole: an implementer could escape the rule by putting the
+    tag in its title. So the rule has no exemption, and the ONE card an
+    implementer may file is the review card it addresses to the review
+    lane.
+
     The card dict carries `created_by` and `assignee` (= the live board's
     own JSON), so the rule needs no board read.
     """
     creator = str(card.get("created_by") or "").strip()
     assignee = str(card.get("assignee") or "").strip()
+    errors: list[str] = []
     if creator in REVIEW_PROFILES and assignee in IMPLEMENTER_PROFILES:
-        return [
+        errors.append(
             f"a card created by {creator} and addressed to {assignee} restates "
             "a verdict the board already holds (= the verdict IS the hand-off, "
             "= AGENTS.md 1.14), and the board's dispatcher spawns only "
             f"{', '.join(REVIEW_PROFILES)}, so this card can never move: state "
             "the finding in the verdict and in the review card's comment"
-        ]
-    return []
+        )
+    if creator in IMPLEMENTER_PROFILES and assignee in IMPLEMENTER_PROFILES:
+        errors.append(
+            f"a card created by {creator} and addressed to {assignee} is a card "
+            "the implementer filed for itself: the developer finds the code and "
+            "writes the code in its own session and worktree and files NO board "
+            "card for the work (= AGENTS.md 1.12), = = the ONE card it files is "
+            "the review card it hands to the review lane after the commit; and "
+            f"the board's dispatcher spawns only {', '.join(REVIEW_PROFILES)}, so "
+            "this card can never move and comes back to the implementer's board: "
+            "do the work in your own session and file ONE review card when the "
+            "commit exists (= the landing card is the boss's card: every card "
+            "tagged `[落地]` on the board was created by `user`, = = and the "
+            "implementer lands inside its own session)"
+        )
+    return errors
 
 
 def print_report(report: dict, db: Path) -> None:

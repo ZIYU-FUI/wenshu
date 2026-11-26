@@ -1405,7 +1405,11 @@ def kanban_cards(board: str | None = None) -> list[dict] | None:
     return board_read.cards(board)
 
 
-def card_from_file(path: str) -> dict:
+def card_from_file(
+    path: str,
+    creator: str | None = None,
+    assignee: str | None = None,
+) -> dict:
     """A card-shaped dict from a body file, for classifying a draft.
 
     The TITLE is read from the body, because a draft has no board row to carry one and
@@ -1416,10 +1420,34 @@ def card_from_file(path: str) -> dict:
     for a card whose tag lives where the model says it lives: the finding fired on
     every draft, = and a gate that charges what the author already did teaches the
     author to distrust the green ones.
+
+    THE CREATOR AND THE ASSIGNEE, WHEN THE AUTHOR NAMES THEM. A draft has no
+    board row, so it has no `created_by` and no `assignee` either. That is
+    why the lane contract (= the hand-off contract: who may file a card
+    for whom) could not fire on the creation path: the rule reads those
+    two fields, = = and the creation path had nothing to read. Measured
+    2026-11-26 on board wenshu-par: 9 cards came back to the implementer
+    and every one of them was created and read as if the lane contract did
+    not exist, = = because the only place the contract was read (the
+    sweep over the board) runs AFTER the card exists. So the author now
+    names the two facts at the moment they are known: `--creator` is the
+    profile that will file the card, `--assignee` is the profile it is
+    addressed to. Neither is guessed (= an absent flag means "unknown",
+    = = and the rule stays quiet, = = because a rule that fires on a
+    missing field refuses every card).
     """
     body = Path(path).read_text(encoding="utf-8")
-    return {"id": path, "title": card_title.title_from_body(body), "body": body,
-            "status": "draft"}
+    card = {
+        "id": path,
+        "title": card_title.title_from_body(body),
+        "body": body,
+        "status": "draft",
+    }
+    if creator:
+        card["created_by"] = creator
+    if assignee:
+        card["assignee"] = assignee
+    return card
 
 
 def report(card: dict) -> dict:
@@ -1528,6 +1556,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("cards", nargs="*", help="card ids; default = every card")
     parser.add_argument("--body", help="classify a card body from a file")
+    parser.add_argument(
+        "--creator",
+        help="the profile that will file the card (= the lane contract reads it)",
+    )
+    parser.add_argument(
+        "--assignee",
+        help="the profile the card is addressed to (= the lane contract reads it)",
+    )
     parser.add_argument("--live", action="store_true", help="only cards that are not done")
     parser.add_argument("--check", action="store_true", help="report tier mismatches")
     parser.add_argument("--plan", action="store_true", help="print the tier contract table")
@@ -1548,7 +1584,7 @@ def main() -> int:
         return 0
 
     if args.body:
-        cards = [card_from_file(args.body)]
+        cards = [card_from_file(args.body, args.creator, args.assignee)]
         # = = = AND `--body` REFUSES, = = = = = = because that is the shape
         # = = = = = = every author is told to run (= = = = `docs/agents/
         # = = = = = = ticket-tiers.md`, = = = = = = = `docs/agents/parallel-

@@ -290,6 +290,77 @@ def main() -> int:
         True,
     )
 
+    # --- case 7: the lane contract at the POINT A CARD IS TYPED ---
+    # = = = The lane rule was only ever read over the board, = = = = = = and
+    # = = = the board sweep runs AFTER the card exists. = = = So a card that
+    # = = = should never have been filed was filed, and only THEN did the
+    # = = = rule notice it. Measured 2026-11-26 on board wenshu-par: 9 cards
+    # = = = came back to the implementer. = = =
+    own_implementation = card("## WHAT TO BUILD\n\nThe work itself.\n")
+    own_implementation["created_by"] = "pocock"
+    own_implementation["assignee"] = "pocock"
+    errors = review_handoff_gate.contract_errors(own_implementation)
+    check(
+        "case 7: a card the implementer filed for itself is a contract error",
+        any("filed for itself" in e for e in errors),
+        str(errors),
+    )
+    wired = ticket_tier.find_contract_errors(own_implementation)
+    check(
+        "case 7: the self-filed card is refused on the card contract's path",
+        any("filed for itself" in e for e in wired),
+        str(wired),
+    )
+    # = = = The one card an implementer MAY file = = = is the review card
+    # = = = it hands to the review lane (= AGENTS.md 1.12). = = =
+    to_review = card("## WHAT TO BUILD\n\nThe work itself.\n")
+    to_review["created_by"] = "pocock"
+    to_review["assignee"] = "wenshu-review"
+    check(
+        "case 7: the implementer's review card is quiet",
+        review_handoff_gate.contract_errors(to_review) == [],
+        str(review_handoff_gate.contract_errors(to_review)),
+    )
+    # = = = The landing card is the BOSS's card (= every `[落地]` card on the
+    # = = = board was created by `user`), = = = so it is quiet too. = = =
+    boss_landing = card("## WHAT TO BUILD\n\nLand the approved branch.\n")
+    boss_landing["created_by"] = "user"
+    boss_landing["assignee"] = "pocock"
+    check(
+        "case 7: the boss's landing card is quiet",
+        review_handoff_gate.contract_errors(boss_landing) == [],
+        str(review_handoff_gate.contract_errors(boss_landing)),
+    )
+    # = = = A draft has no board row, = = = so it has no creator and no
+    # = = = assignee: the creation path now carries the two facts the author
+    # = = = knows, = = = and the rule reads them there. = = =
+    draft_body = "## WHAT TO BUILD\n\nChange Tools/wenshu-devtool/x.py:1.\n"
+    with tempfile.TemporaryDirectory() as tmp:
+        draft_path = Path(tmp) / "card.md"
+        draft_path.write_text(draft_body, encoding="utf-8")
+        typed = ticket_tier.card_from_file(
+            str(draft_path), "pocock", "pocock"
+        )
+        check(
+            "case 7: the typed draft carries the creator and the assignee",
+            typed.get("created_by") == "pocock" and typed.get("assignee") == "pocock",
+            str(sorted(typed.keys())),
+        )
+        check(
+            "case 7: the typed draft is refused by the lane contract",
+            any(
+                "filed for itself" in e
+                for e in review_handoff_gate.contract_errors(typed)
+            ),
+            str(review_handoff_gate.contract_errors(typed)),
+        )
+        unnamed = ticket_tier.card_from_file(str(draft_path))
+        check(
+            "case 7: a draft with no named lane is quiet (= the rule does not guess)",
+            review_handoff_gate.contract_errors(unnamed) == [],
+            str(review_handoff_gate.contract_errors(unnamed)),
+        )
+
     print()
     if FAILURES:
         print(f"FAILED: {len(FAILURES)} case(s): {FAILURES}")
