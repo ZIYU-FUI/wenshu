@@ -267,12 +267,12 @@ def contract_errors(card: dict) -> list[str]:
     A landing card (= the card that moves an APPROVED branch onto main)
     IS filed by an implementer and addressed to an implementer, so the
     naive reading of this rule would refuse it. Measured on the board:
-    every single card tagged `[落地]` (6 of 6) was created by `user`
+    every single card carrying the landing tag (6 of 6) was created by `user`
     (= the boss), and NOT ONE was filed by `pocock`. So the landing
     card is the BOSS's card, and the implementer lands inside its own
     session (= measured 2026-11-26: the lane landed with
     `Scripts/land_card.sh` from the implementer's own worktree, with no
-    board card at all). An exemption keyed on the `[落地]` tag would
+    board card at all). An exemption keyed on the landing tag would
     therefore be an exemption with no legitimate user, and it would
     leave a hole: an implementer could escape the rule by putting the
     tag in its title. So the rule has no exemption, and the ONE card an
@@ -304,7 +304,7 @@ def contract_errors(card: dict) -> list[str]:
             "this card can never move and comes back to the implementer's board: "
             "do the work in your own session and file ONE review card when the "
             "commit exists (= the landing card is the boss's card: every card "
-            "tagged `[落地]` on the board was created by `user`, = = and the "
+            "carrying the landing tag on the board was created by `user`, = = and the "
             "implementer lands inside its own session)"
         )
     return errors

@@ -321,8 +321,9 @@ def main() -> int:
         review_handoff_gate.contract_errors(to_review) == [],
         str(review_handoff_gate.contract_errors(to_review)),
     )
-    # = = = The landing card is the BOSS's card (= every `[落地]` card on the
-    # = = = board was created by `user`), = = = so it is quiet too. = = =
+    # = = = The landing card is the BOSS's card (= every card tagged with
+    # = = = the landing tag was created by `user`), = = = so it is quiet
+    # = = = too. = = =
     boss_landing = card("## WHAT TO BUILD\n\nLand the approved branch.\n")
     boss_landing["created_by"] = "user"
     boss_landing["assignee"] = "pocock"
