@@ -21,17 +21,23 @@ board wenshu-par:
      not by the absence of a signal.
  11. the board sweep over a board that cannot be read reports no agreement
      and exits non-zero.
+ 12. the suite reads a SEALED board, never the live one, and the
+     file-ownership check still has its teeth on that sealed board (= two
+     cards writing one file still collide, and a card that collides with
+     nothing still produces no collision).
 
 Run:  python3 Tools/wenshu-devtool/tests/test_ticket_tier.py
 Exit: 0 = every case passed, 1 = at least one case failed.
 """
 from __future__ import annotations
 
+import atexit
 import contextlib
 import importlib.util
 import io
 import json
 import os
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -41,6 +47,109 @@ from pathlib import Path
 TOOL = Path(__file__).resolve().parent.parent / "ticket_tier.py"
 
 FAILURES: list[str] = []
+
+# THE BOARD THIS SUITE READS.
+#
+# The tier's contract errors include the file-ownership check (= two live
+# cards may not write one file), and that check opens the board's own
+# database. It did NOT go through the reader this suite stubs, so a unit
+# case asserting "this card has no findings" was reading whatever the live
+# board happened to hold: measured 2026-11-26, the case failed on four
+# shas in a row because a RUNNING card named the same file as the fixture,
+# and the battery's exit code was a function of which cards were live.
+#
+# So the suite seals the board. HERMES_HOME points at a temporary home
+# whose one board holds exactly the cards the suite declares, and
+# `product_lines.board_db` resolves the board path from that home (= the
+# home the tools already honour), so EVERY reader in the tool (= the
+# ownership gate, the board reader, the effort gate) sees the sealed board
+# and not the live one. The CLI is stubbed for the sweep cases, so no other
+# path reaches the real board either.
+#
+# The seal is asserted (case 21), because a seal that silently stopped
+# holding would put the suite back on the live board without a word.
+SEALED_HOME = Path(tempfile.mkdtemp(prefix="wenshu-ticket-tier-board-"))
+
+# The file the sealed board's two cards write. It is NOT a file the
+# suite's own fixtures write (= so a fixture card that collides with
+# nothing produces no collision), and the two sealed cards collide with
+# each other (= so the ownership check still has teeth on the sealed
+# board).
+SEALED_FILE = "Sources/WenshuApp/Features/Chat/View/ChatBubbleView.swift"
+SEALED_BODY = (
+    "## GOAL\n"
+    "\n"
+    "The bubble must not wear the error colour.\n"
+    "\n"
+    "## WHAT TO BUILD\n"
+    "\n"
+    f"Edit `{SEALED_FILE}` so the bubble keeps its own tint.\n"
+    "\n"
+    "## GATES\n"
+    "\n"
+    "`swift test --filter ChatBubbleViewTests` exits 0.\n"
+    "\n"
+    "## EVIDENCE BUDGET\n"
+    "\n"
+    f"read:   {SEALED_FILE}\n"
+    "stop when: the diff is written and the named suite passes\n"
+    "no:    the board history and the sibling worktrees\n"
+    "deliver: one commit on the card branch with the diff\n"
+)
+
+# The sealed board's cards are dated after every contract epoch, so the
+# gates judge them (= a card the board cannot date is a card the board
+# cannot excuse).
+SEALED_CREATED_AT = 1795674508
+
+
+def seal_the_board() -> None:
+    """Write the sealed board, and point the suite's home at it.
+
+    HERMES_HOME is set BEFORE `ticket_tier` is imported, because
+    `effort_budget_gate` resolves its board path at import time (= a module
+    constant), and every other reader resolves it per call.
+
+    The `tasks` table carries every column the readers select: the
+    ownership gate reads id/status/title/body, the effort gate reads
+    id/title/body/status/assignee/created_at, and the board reader reads
+    the intersection with the CLI's own field names. A table missing one
+    of them makes a reader report an empty board, which is a check that
+    has stopped running.
+    """
+    for slug in ("wenshu-par", "wenshu-mob-par"):
+        board_dir = SEALED_HOME / "kanban" / "boards" / slug
+        board_dir.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(board_dir / "kanban.db")
+        conn.execute(
+            "CREATE TABLE tasks ("
+            "id TEXT, title TEXT, body TEXT, status TEXT, assignee TEXT, "
+            "created_at INTEGER, max_runtime_seconds INTEGER)"
+        )
+        conn.executemany(
+            "INSERT INTO tasks (id, title, body, status, assignee, created_at, "
+            "max_runtime_seconds) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+                ("t_sealed_a", "[T1] sealed a", SEALED_BODY, "running", "pocock",
+                 SEALED_CREATED_AT, 900),
+                ("t_sealed_b", "[T1] sealed b", SEALED_BODY, "running", "pocock",
+                 SEALED_CREATED_AT, 900),
+            ],
+        )
+        conn.execute("CREATE TABLE task_runs (id INTEGER, task_id TEXT, profile TEXT)")
+        conn.executemany(
+            "INSERT INTO task_runs (id, task_id, profile) VALUES (?, ?, ?)",
+            [
+                (1, "t_reviewonly", "wenshu-review"),
+                (2, "t_reviewonly", "wenshu-review"),
+                (3, "t_implemented", "wenshu-dev"),
+                (4, "t_implemented", "wenshu-review"),
+            ],
+        )
+        conn.commit()
+        conn.close()
+    os.environ["HERMES_HOME"] = str(SEALED_HOME)
+    atexit.register(shutil.rmtree, SEALED_HOME, ignore_errors=True)
 
 
 class _StubCLI:
@@ -561,6 +670,11 @@ The row wrapper has no caller.
 # writes.)
 
 def main() -> int:
+    # THE SEAL GOES IN FIRST. The tool is imported here, and one of its
+    # gates resolves the board's path at import time (= a module
+    # constant), so a seal installed after the import would leave that
+    # one reader pointing at the live board.
+    seal_the_board()
     tool = load_tool()
 
     print("ticket_tier: the difficulty tier classifier\n")
@@ -1642,77 +1756,118 @@ def main() -> int:
     #     derived as a build card (= it owed a verdict it was about to give),
     #     and its declared type was reported as a contradiction. The runs
     #     come from the board's own record.
-    with tempfile.TemporaryDirectory() as tmp:
-        home = Path(tmp)
-        board_dir = home / "kanban" / "boards" / "wenshu-par"
-        board_dir.mkdir(parents=True)
-        db_path = board_dir / "kanban.db"
-        conn = sqlite3.connect(db_path)
-        conn.execute(
-            "CREATE TABLE task_runs (id INTEGER, task_id TEXT, profile TEXT)"
-        )
-        conn.executemany(
-            "INSERT INTO task_runs (id, task_id, profile) VALUES (?, ?, ?)",
-            [
-                (1, "t_reviewonly", "wenshu-review"),
-                (2, "t_reviewonly", "wenshu-review"),
-                (3, "t_implemented", "wenshu-dev"),
-                (4, "t_implemented", "wenshu-review"),
-            ],
-        )
-        conn.commit()
-        conn.close()
+    #
+    #     THE BOARD IS THE SEALED ONE, like every other read in this suite:
+    #     the run history the reader attaches comes from the sealed board's
+    #     own `task_runs` table, so the suite has ONE board and no case
+    #     needs a board of its own.
+    listing = _StubCLI(
+        returncode=0,
+        stdout=json.dumps([
+            {"id": "t_reviewonly", "title": "[T1][审核] r", "body": ONE_FILE,
+             "status": "ready", "max_runtime_seconds": 900},
+            {"id": "t_implemented", "title": "[T1][工单] b", "body": ONE_FILE,
+             "status": "ready", "max_runtime_seconds": 900},
+        ]),
+    )
+    saved_cli = tool.subprocess
+    reader = reader_module(tool)
+    saved_reader = reader.subprocess
+    try:
+        tool.subprocess = listing
+        reader.subprocess = listing
+        code, out, err = run_check(tool, listing, ["--check", "--board", "wenshu-par"])
+        cards = tool.kanban_cards("wenshu-par")
+    finally:
+        tool.subprocess = saved_cli
+        reader.subprocess = saved_reader
 
-        listing = _StubCLI(
-            returncode=0,
-            stdout=json.dumps([
-                {"id": "t_reviewonly", "title": "[T1][审核] r", "body": ONE_FILE,
-                 "status": "ready", "max_runtime_seconds": 900},
-                {"id": "t_implemented", "title": "[T1][工单] b", "body": ONE_FILE,
-                 "status": "ready", "max_runtime_seconds": 900},
-            ]),
-        )
-        saved_env = os.environ.get("HERMES_HOME")
-        os.environ["HERMES_HOME"] = str(home)
-        saved_cli = tool.subprocess
-        reader = reader_module(tool)
-        saved_reader = reader.subprocess
-        try:
-            tool.subprocess = listing
-            reader.subprocess = listing
-            code, out, err = run_check(tool, listing, ["--check", "--board", "wenshu-par"])
-            cards = tool.kanban_cards("wenshu-par")
-        finally:
-            tool.subprocess = saved_cli
-            reader.subprocess = saved_reader
-            if saved_env is None:
-                os.environ.pop("HERMES_HOME", None)
-            else:
-                os.environ["HERMES_HOME"] = saved_env
+    check(
+        "the board reader carries the card's runs",
+        sorted(p["profile"] for p in (cards or [{}])[0].get("runs", [])),
+        ["wenshu-review", "wenshu-review"],
+    )
+    check(
+        "a card with no implementation phase is derived as a review card",
+        tool.card_type(ONE_FILE, (cards or [{}])[0].get("runs")),
+        "review",
+    )
+    check(
+        "a card with an implementation phase is not a review card",
+        tool.card_type(ONE_FILE, (cards or [{}])[1].get("runs")),
+        "build",
+    )
+    # The sweep must not report the type as a contradiction: the
+    # declaration and the runs-derived kind agree, so the card's only
+    # findings are about its cap and its budget.
+    check(
+        "a declared review type is not reported as a contradiction",
+        "the title says the card is" in out,
+        False,
+    )
 
-        check(
-            "the board reader carries the card's runs",
-            sorted(p["profile"] for p in (cards or [{}])[0].get("runs", [])),
-            ["wenshu-review", "wenshu-review"],
-        )
-        check(
-            "a card with no implementation phase is derived as a review card",
-            tool.card_type(ONE_FILE, (cards or [{}])[0].get("runs")),
-            "review",
-        )
-        check(
-            "a card with an implementation phase is not a review card",
-            tool.card_type(ONE_FILE, (cards or [{}])[1].get("runs")),
-            "build",
-        )
-        # The sweep must not report the type as a contradiction: the
-        # declaration and the runs-derived kind agree, so the card's only
-        # findings are about its cap and its budget.
-        check(
-            "a declared review type is not reported as a contradiction",
-            "the title says the card is" in out,
-            False,
-        )
+    # 21. THE SEAL MUST HOLD, AND IT MUST NOT DELETE THE CHECK's TEETH.
+    #
+    #     The seal is what makes this suite reproducible: the file-ownership
+    #     check reads the board's own file (= not through the stubbed CLI),
+    #     so an unsealed suite reads whatever cards happen to be live, and
+    #     the battery's exit code becomes a function of the board's state
+    #     (= measured 2026-11-26: the same commit read `red=0` and then
+    #     `red=1`, minutes apart, with nothing in `Tools/` changed).
+    #
+    #     A seal that held nothing would be the same defect wearing a
+    #     different hat, so the seal is ASSERTED: the board every reader
+    #     resolves is the sealed one, and the live board's cards are not in
+    #     it.
+    check(
+        "the board every reader resolves is the sealed board",
+        str(tool.ownership_gate.board_db_path()),
+        str(SEALED_HOME / "kanban" / "boards" / "wenshu-par" / "kanban.db"),
+    )
+    check(
+        "the sealed board is not the live board",
+        str(tool.product_lines.board_db("wenshu-par")).startswith(str(SEALED_HOME)),
+        True,
+    )
+
+    #     AND THE CHECK STILL BITES. The sealed board holds two cards that
+    #     both write one file, so a card writing that file still collides
+    #     with them (= the check has teeth), and a card that collides with
+    #     nothing still reports no collision (= the check is not
+    #     indiscriminate).
+    collider = {
+        "id": "t_collider",
+        "title": "[T1] bubble",
+        "body": SEALED_BODY,
+        "max_runtime_seconds": 900,
+    }
+    collision_findings = [
+        f for f in tool.find_contract_errors(collider) if "also writes" in f
+    ]
+    check(
+        "two cards writing one file still collide",
+        len(collision_findings),
+        2,
+    )
+    check(
+        "the collision names both cards that write the file",
+        sorted(
+            f.split("live card ")[1].split(" ")[0]
+            for f in collision_findings
+        ),
+        ["t_sealed_a", "t_sealed_b"],
+    )
+    alone = {
+        "id": "t_alone",
+        "title": "[T1] one file",
+        "body": ONE_FILE,
+        "max_runtime_seconds": 900,
+    }
+    check(
+        "a card that collides with nothing reports no collision",
+        [f for f in tool.find_contract_errors(alone) if "also writes" in f],
+        [],
+    )
 
     print()
     if FAILURES:
