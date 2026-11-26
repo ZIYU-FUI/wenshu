@@ -55,7 +55,7 @@ the same 121 claims, = = 15 carrying, = = 3 at zero).
   attribute for a word that sits AFTER the name). = = Both now check both halves, = =
   and both bite under their own arms.
 
-## The four rounds the delivery took, and why they were not a wording loop
+## The five rounds the delivery took, and why they were not a wording loop
 
 Round 1 reproduced **19 of 19** functional claims and charged four record defects
 (= = a comment that named a mechanism the code does not have, = = three wrong figures in
@@ -91,6 +91,27 @@ by documentation only, = = no difference between their test sets can be a proper
 change, = = so the sites are main's own debt (= = the one tip-only name, = =
 `ChatViewHistoryShortcutTests.swift:35`, = = is absent from the base run and red there in
 an earlier one).
+
+**⇒ AND THE FIFTH ROUND WAS THIS RECORD'S OWN TEXT.** = = Card `t_eb82656c` (= = run 5165)
+returned `changes_requested` at `ba77703c0e` on one blocker: = = the record published a
+landing no ref supported (= = it asserted `f0d47ff60f` was on `main` while `git merge-base
+--is-ancestor f0d47ff60f main` exited 1). = = The blocker had two halves, = = and the
+second is the one worth keeping: = = the lane really did land (`f0d47ff60f` became `main`
+on both remotes), = = but the record had ALSO been publishing the moving ref itself as a
+figure (= = "the server's main at the close" = = followed by `git ls-remote origin main`),
+= = a reading that dies by construction the moment the record lands. = = So the paragraph
+now names `f0d47ff60f` as the content tip and states the ancestry against that fixed sha.
+Card `t_0278d0f2` (= = run 5170) approved `7c6ec5ed89`, = = reproducing all five claims,
+and charged one non-blocking defect for the landing commit: = = the open-card bullet still
+enumerated eleven card names, = = and that list had rotted while its count stayed eleven.
+= = It was fixed in `6ccfef80c5`.
+
+**⇒ AND THE FIX ITSELF BROKE ONE RULE, = = RECORDED HERE RATHER THAN HIDDEN.** = = The
+rule is that a change to a file's length changes that file's registry row IN THE SAME
+COMMIT. = = `6ccfef80c5` moved this record from 131 lines to 133 and carried no row; = =
+the row followed in `fd02ff649a`. = = The tree at `HEAD` agrees (`nfi-loc-check` rc 0), = =
+but the per-commit rule did not hold, = = and the tell is that the second commit touches
+`docs/agents/nfi.md` alone: = = `git show --numstat` on each.
 
 ## The one thing the landing scripts got wrong
 
