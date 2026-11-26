@@ -68,8 +68,12 @@ The two rules' load-bearing facts, read off the corpus search's own output:
   on the answer. Without the list the question is answered by every document
   that merely shares its grammar.
 - All twelve fixture questions: answered 12/12, gold document named 12/12,
-  and **0 of the cited fragments hold nothing of the question besides glue.**
-  Fragment counts per answer sit at 7-8 against `defaultLimit = 8`.
+  and **0 of the cited fragments hold nothing of the question besides glue**
+  (= the sweep at `RetrievalQualityTests+CorpusSearch.swift:240-254` walks every
+  fragment of every answer, counts them, and asserts `glueOnly == 0`).
+  `defaultLimit = 8` bounds the **documents** an answer names, not its fragments
+  (`ReferenceCorpusSearch.swift:61` and its own parameter doc at `:82`); the arm
+  counts a fragment **total**, so no per-answer count is published here.
 - `白银的 PDF 存在哪里` over the arm's two documents: one answer, one fragment
   (= `白银的账目存成 PDF`). The sentence holding `PDFs` is not cited, and the
   document holding no content word of the question is not named at all,
@@ -81,8 +85,6 @@ Each rule was changed on its own and the arm was re-run. A row that stays
 green over the change to the rule it names measures nothing, so the failing
 expectation's file:line is recorded.
 
-| mutation | where | result |
-| --- | --- | --- |
 Every row below was run after the arm took its final formatting, so the line numbers
 are the shipped file's. No code line moved after these four runs: what came after was
 this document's own text.
@@ -94,8 +96,10 @@ this document's own text.
 | `termsHeld` read as substring containment instead of token intersection | `ReferenceSentenceExcerpt.swift:148` | 22 tests, 1 issue: `hits.first?.fragments == [latinHeldSentence]` at arm line 200. Nothing else moved. |
 | `titleHeld` forced to `true` (= the pre-amendment fallback, the first sentence always offered) | `ReferenceSentenceExcerpt.swift:124` | 22 tests, 3 issues: `hits.count == 1` at arm line 196, the grammar-only document at 217, and the twelve-question sweep `glueOnly == 0` at 254. |
 
-All four were reverted before this document was written; the tree carries one
-untracked file (= the arm) and nothing else.
+All four were reverted before this document was written, and the revert was
+checked rather than assumed: `git show --numstat` at the tip lists this document
+and the arm and nothing else, so no `Sources/` file carries a mutation, and
+`git status --porcelain` is empty at the tip.
 
 The fourth mutation is the one that matters most for the card's own claim: it
 turns red not only the small corpus's rows but the sweep over the fixture's

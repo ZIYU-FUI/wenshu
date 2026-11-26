@@ -18,7 +18,7 @@
 //  not a re-declaration of it. = A row that measured the ranking again would
 //  measure what the row above it already measures.
 //
-//  **⇒ WHY THIS FILE CARRIES ITS OWN TWO DOCUMENTS.** = ADB-0034's held-term
+//  **⇒ WHY THIS FILE CARRIES ITS OWN TWO DOCUMENTS.** = ADR-0034's held-term
 //  rule turns on a term being a PIECE of a longer word, = and a Chinese-only
 //  text cannot say that: = the tokenizer cuts CJK one character per token, =
 //  so a single character is a substring of a sentence exactly when it is a
