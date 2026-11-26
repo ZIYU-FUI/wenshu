@@ -59,7 +59,7 @@ git grep -c compactName 97ac0dfde5 -- Sources    # prints nothing
 One entry point owns the conversion: `TokenUnitFormat`
 (`Sources/WenshuApp/Shared/Foundation/TokenUnitFormat.swift:35`).
 `string(_:locale:)` at `:43` returns the locale's compact-name form for a
-count at or above `unitThreshold` (`:68`, `10000`) and the plain grouped form
+count at or above `unitThreshold` (`:67`, `10000`) and the plain grouped form
 below it; `exactString(_:locale:)` at `:59` returns the whole number, and it is
 what the label's hover carries. The unit and the magnitude it starts at are
 Foundation's (`IntegerFormatStyle.NumberScheme` and `.notation(.compactName)`),
@@ -180,6 +180,28 @@ line of the wide run failed.
 summary line its own command prints, and a filter that reports no cases is
 replaced, not excused.
 
+**The same species bit this record's own landing.** Card `t_f49ddf3e` published
+its registry-row check as a `grep -c` whose pattern held the row's backticks
+inside double quotes, so the shell substituted them:
+
+```
+grep -c "``docs/agents/<record>.md``" docs/agents/nfi.md
+```
+
+`Scripts/gate_run.sh` hands each line to `bash -lc`. The log therefore carries
+`bash: docs/agents/…: Permission denied` and a count of 587 rows instead of one,
+and the line exited 0 with the runner printing `PASS`. The row's real reading came
+from two commands whose pattern reaches `grep` at all:
+
+```
+grep -c "session-close-chat-context-gauge-compact.md" docs/agents/nfi.md
+python3 Tools/wenshu-devtool/nfi-loc-check.py --base 703a3fcd60
+```
+
+⇒ ⇒ ⇒ AND THE RULE GAINS ITS SECOND HALF: = = no backtick sits inside a
+double-quoted gate line, = = and a gate's printed number is read against the number
+the card claims, = = because `PASS` is the runner's exit code and nothing more.
+
 ## The rebase, and which identity survived it
 
 Round 3 approved `9108f18f79` (card `t_35c29c67`, run 5169). `main` moved by
@@ -223,10 +245,13 @@ The board's record for this scope, in order:
 | `t_4ee63ed5` | review, round 2 | `changes_requested` — one blocker (B2, comment 2929): the commit message attributed `Test run with 1 test in 1 suite failed` to a filter that cannot print it |
 | `t_35c29c67` | review, round 3 | `approved` (run 5169) at `9108f18f79`, message-only round, tree byte-identical to round 2 |
 | `t_9adb4b4a` | landing | ran the sixteen lines above and moved `main` |
+| `t_f49ddf3e` | landing, this record | found `main` already at `37f5b69768` (compare-and-swap from `b943733a9b`, no rebase), and named its own gate 11 as defective: double quotes around a backticked path made the shell substitute it |
+| `t_88aa61ec` | review, this record round 1 | `approved` (run 5183, after run 5182 came back `rate_limited`) at `37f5b69768` |
+| `t_c4a6829e` | review, this record round 2 | `approved` (run 5193) at `360bc2495f`, the commit that rebases to these corrections |
 
 The landing moved `main` by compare-and-swap against the sha it rebased onto
 (`.gate-logs/t_9adb4b4a_update_ref.log`), and both remotes were pushed and read
-back:
+back at that instant:
 
 ```
 git ls-remote origin refs/heads/main
@@ -239,14 +264,47 @@ b943733a9b5f8f7f96fb3163a739414efbc4b840        refs/heads/main
 b943733a9b5f8f7f96fb3163a739414efbc4b840        refs/heads/main
 ```
 
+This record's first landing ran the same path twelve lines and parked them in
+`.gate-logs/gauge-compact-record_a1_<n>.log`, every one of them headlined
+`tree=37f5b69768e1a41d5c249b8af6fd0877d7e4d1bb`, and both remotes read that sha
+at that instant.
+
+⇒ AND A REMOTE'S TIP IS AN INSTANT, NOT A STATE. `Scripts/land_card.sh` pushes
+the compare-and-swap to `origin` and to nothing else, so every landing after a
+push, by any scope, moves `origin` and leaves `old-origin` where the last manual
+push put it. Measured while these corrections were written: `git ls-remote
+origin refs/heads/main` prints `0f9c784db6`, `git ls-remote old-origin
+refs/heads/main` prints `37f5b69768`, and the distance is `git rev-list --count
+old-origin/main..origin/main` = `4` commits belonging to other scopes
+(`a694f4ffeb`, `9421df43a8`, `3ad2ccebfa`, `0f9c784db6`). ⇒ The claim that
+movement cannot break is the ancestry, so that is what is published and the tips
+are re-measured:
+
+```
+git merge-base --is-ancestor b943733a9b origin/main
+git merge-base --is-ancestor b943733a9b old-origin/main
+git rev-list --count old-origin/main..origin/main
+```
+
+⇒ AND THIS RECORD'S OWN LANDING IS PUSHED TO BOTH REMOTES, so at that instant
+both print the scope's last landing. That sha is not written here, because
+writing it changes the file that would carry it.
+
 ## The commits this scope owns, and the ones the push carried
 
-This scope owns one commit on `main`: `b943733a9b`. Its two earlier shas,
-`1e536a1778` and `9108f18f79`, are not on `main`: the first was amended into
-the second, and the second was rebased into `b943733a9b`. `9108f18f79` is still
-reachable as `origin/wt/chat-context-gauge-compact-2026-11-26` and
-`old-origin/wt/chat-context-gauge-compact-2026-11-26`, because the lane was
-pushed while the rounds ran.
+This scope owns two commits on `main`: the change `b943733a9b`, and this record,
+first as `37f5b69768` and then as the commit carrying these corrections. Its two
+earlier shas, `1e536a1778` and `9108f18f79`, are not on `main`: the first was
+amended into the second, and the second was rebased into `b943733a9b`. While the
+rounds ran, `9108f18f79` was also `origin/wt/chat-context-gauge-compact-2026-11-26`
+and the same branch on `old-origin`; the cleanup after the round-2 verdict
+deleted that branch on both remotes, and `git ls-remote origin 'refs/keep/*'`
+prints nothing, so the parks under `refs/keep/` live on this machine only.
+`9108f18f79` is therefore held by exactly one reference,
+`refs/keep/chat-context-gauge-compact-r3`, and a reader proves it with
+`git rev-parse refs/keep/chat-context-gauge-compact-r3` beside
+`git merge-base --is-ancestor 9108f18f79 main`, which exits 1: the reviewed sha
+is not an ancestor of `main`, which is what a rebase is.
 
 The push to `old-origin` carried five commits that are not this scope's:
 `8900318cf9`, `f520d85302`, `ab648fbde4`, `cca55924cf`, `703a3fcd60`. They are
@@ -269,8 +327,10 @@ headline, and a new hover on the label.
 2. the key-specific assertion at
    `Tests/WenshuAppTests/Editor/View/EditorChromeReserveAndContextUsageTests.swift:319`,
    which this scope left alone on purpose and which is its own unit;
-3. nothing else: the change is landed, both remotes read it, and the board's
-   cards for this scope are terminal.
+3. nothing else: the change is landed and is an ancestor of both remotes'
+   `main`, and every card that names this scope is terminal (= the read-only
+   query against `task_runs`'s board returns no row in `todo`, `ready`,
+   `running`, `blocked`, `review`, `scheduled` or `triage`).
 
 ## The eight steps, as this scope ran them
 
@@ -279,14 +339,15 @@ so steps 4 to 7 happen after it lands and are described with the check a reader
 runs, not with a claim of completion. `closeout_gate.py` is what decides them,
 and it reads the tree, the board and the shared skill tree, not this prose.
 
-1. **The §7 gates on the merged tree: run twice, both named.** The landing card
-   `t_9adb4b4a` ran sixteen lines in the lane at `b943733a9b` before `main`
-   moved, and every one of `.gate-logs/t_9adb4b4a_a1_<n>.log` opens with
-   `tree=b943733a9b5f8f7f96fb3163a739414efbc4b840`. The record's own landing
-   repeats the lines at the sha this commit becomes, in the lane, after the
-   lane's tip equals `main`: check with
-   `ls .gate-logs/gauge-compact-record_a1_1.log` and read its first line beside
-   `git rev-parse main`.
+1. **The §7 gates on the merged tree: every landing runs them in its own lane,
+   and the log names the tree.** The landing card `t_9adb4b4a` ran sixteen lines
+   before `main` moved, and every one of `.gate-logs/t_9adb4b4a_a1_<n>.log`
+   opens with `tree=b943733a9b5f8f7f96fb3163a739414efbc4b840`. This record's
+   first landing ran twelve at its own tip under the prefix
+   `gauge-compact-record_a1_`, and its repair landing runs the same twelve under
+   its own card's prefix, after the lane's tip equals `main`. ⇒ A run is bound to
+   a tree by the log's first line, so the check is `head -1` on that prefix read
+   beside `git rev-parse main`, and never a count of files.
 2. **The verdict on the board: DONE.** `t_35c29c67` carries
    `review_outcome=approved`, and the gate binds it to the landed tree by the
    change's identity rather than the commit id (= `review_gate.py --card
@@ -296,28 +357,50 @@ and it reads the tree, the board and the shared skill tree, not this prose.
 3. **The closure doc: DONE** (= this file), landed with its registry row in the
    same commit, because two commits would leave the registry's own count gate
    reading a stale row in between.
-4. **The durable lessons: two, into the shared skill tree, after this commit
-   lands.** Both are about gates that lie: a test filter that matches nothing
-   exits 0 (= so a published gate line must carry the summary its command
-   prints), and a rebase keeps `review_gate.change_id` while it drops
-   `patch_id` (= so a verdict survives a rebase only by the identity the gate
-   actually uses). Check with `ls -l
-   /Users/anbaiqiang/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/references/`
-   and compare the mtimes with   `git log -1 --format=%ct main`.
-5. **The residue: removed after this commit lands.** What belongs to this scope
-   and nothing else: the lane's worktree
+4. **The durable lessons, into the shared skill tree.** The landing's two
+   lessons are in `wenshu-pocock-workflow/references/a-gate-line-that-selects-nothing.md`:
+   a test filter that matches nothing exits 0, so a published gate line has to
+   carry the summary its own command prints; and a rebase keeps
+   `review_gate.change_id` while it drops `patch_id`, so a verdict survives a
+   rebase only through the identity the gate reads. This round adds a third, in
+   `references/a-records-remote-tip-is-an-instant.md`, written after this commit
+   lands so its mtime postdates the landing: a record that publishes a remote
+   tip, a lane ref, or a row count publishes an instant, so it publishes the
+   ancestry and the re-measure command instead. Check with `grep -l
+   chat-context-gauge-compact
+   /Users/anbaiqiang/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/references/*.md`.
+5. **The residue: what this scope owned, and what it keeps.** Removed once this
+   record landed: the lane's worktree
    `.worktrees/chat-context-gauge-compact-2026-11-26`, the local branch
-   `wt/chat-context-gauge-compact-2026-11-26`, the same branch on both remotes,
-   and this session's scratch helpers under its cache directory. The shas a
-   reader needs outlive them as `refs/keep/chat-context-gauge-compact-a<n>`,
-   and the proof of the landing is `main`'s ancestry plus `.gate-logs/`, not a
-   remote lane ref. Check with `git for-each-ref refs/keep | grep gauge-compact`
-   and `git worktree list | grep gauge-compact` (= empty).
-6. **The final state and the report: the table this record's own sections
-   carry.** Every number above is printed by the command named beside it, and
-   the requirement's carrier is `b943733a9b`.
-7. **The board's open columns: swept after this commit lands,** and the rule
-   holds: a card the boss created stays where the boss left it.
+   `wt/chat-context-gauge-compact-2026-11-26`, and the same branch on both
+   remotes. Kept, on purpose: the probe's driver
+   `/Volumes/ANAN/.hermes/profiles/pocock/cache/scratch/chat-context-gauge-compact/main.swift`,
+   which this record's compile command names (= a reader runs that command
+   against the shipped file, so the driver is the record's evidence and not
+   residue), the two card bodies and their runners beside it, and the parked
+   shas `refs/keep/chat-context-gauge-compact-a1` (the change as it landed),
+   `-a2` (this record's first landing), `-r3` (the sha the third code review
+   bound its verdict to), and `-a3`, which this record's landing parks as the
+   scope's last commit and which the plan of record's row resolves. The parks
+   are local: `git ls-remote origin 'refs/keep/*'` prints nothing. The proof of
+   a landing is `main`'s ancestry plus `.gate-logs/`, never a remote lane ref.
+   Check with `git for-each-ref refs/keep | grep gauge-compact` (= one row per
+   landing and per reviewed sha this record binds) and
+   `git worktree list | grep gauge-compact` (= empty, once this round's own lane
+   is gone).
+6. **The final state and the report: one row per requirement, each with its
+   carrier, its independent verdict, and its server-side proof.** Every number
+   above is printed by the command named beside it.
+
+| The requirement | The commit that carries it | The verdict that cleared it | The server-side proof |
+| --- | --- | --- | --- |
+| a displayed token count carries a unit, in both locales, and the exact reading stays reachable (`OOB.md #2026-11-26 (unit form)`) | `b943733a9b` | `t_35c29c67` `approved` at `9108f18f79`, bound to the landed tree by the change identity `b2595b1be9…`, which the rebase kept | `git merge-base --is-ancestor b943733a9b origin/main` and the same against `old-origin/main`, both exit 0 |
+| the meter's reading survives a relaunch (`OOB.md #2026-11-25 (meter durability)`, carried by the previous scope) | `c94c384db7` | `t_2a00ffbe` `approved` at that sha | `git merge-base --is-ancestor c94c384db7 main` exits 0 |
+| the closeout record is the scope's last commit and its eight steps are decided by a tool, not by prose | this record's own landing, which is the scope's last commit | `t_c4a6829e` `approved` at `360bc2495f` for the repair, and this round's card for these lines | (= this proof runs after this commit lands, because it reads the landed tree) `python3 Tools/wenshu-devtool/closeout_gate.py --scope chat-context-gauge-compact` exits 0 with `8/8`, and the index row's ref resolves to `main`'s tip |
+
+7. **The board's open columns: swept after this commit lands,** by the query
+   above rather than by memory, and the rule holds: a card the boss created
+   stays where the boss left it.
 8. **The card this session dispatched is its own to land: DONE** for
    `b943733a9b` (= both remotes pushed, both read back below), and the record's
    landing follows the same path.
