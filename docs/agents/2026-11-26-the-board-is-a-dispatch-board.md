@@ -2,6 +2,9 @@
 
 This record covers `t_6fda7f0b` (round 1, `changes_requested`) and `t_52d1c551`
 (round 2, `approved`), landed as `297d01b522` plus `8d494e16b5` on `main`.
+Those two are the only card ids named anywhere below: a card id further down
+is a mention of one of them, and the one inside a published command is the
+card that holds the number beside it.
 
 ## The symptom, counted
 
@@ -65,7 +68,11 @@ write could return silently.
 
 Read in `/Volumes/ANAN/Engineering/wenshu/.worktrees/board-dispatch-2026-11-26`
 (`HEAD` = `8d494e16b5`, `status --porcelain` = 0), logs under
-`.gate-logs/closeout-landed_*.log` and `.gate-logs/m1-build_*.log`:
+`/Volumes/ANAN/Engineering/wenshu/.gate-logs/` — `closeout-landed_*.log` and
+`m1-build_*.log`, thirteen files. They sit in the shared checkout because the
+gate script resolves its log directory beside the script it was invoked
+through, and the shared checkout's copy is the one that ran the commands
+against this worktree:
 
 | gate | reading |
 | --- | --- |
@@ -77,7 +84,7 @@ Read in `/Volumes/ANAN/Engineering/wenshu/.worktrees/board-dispatch-2026-11-26`
 | `nfi-loc-check.py --base 64b97c7f08` | exit 0 at `8d494e16b5` printing `nothing to check`; at this record's own tip the same command exits 0 printing `1 row(s) checked` (= the row this record adds, whose LOC cell equals `grep -c ""` of the file it names) |
 | `ci_change_gate.py --check formatting / loc-cap / pollution` | exit 0, exit 0, exit 0 (14 changed Swift files) |
 | `review_gate.py --card t_52d1c551` | approved by wenshu-review, matched by change |
-| `git ls-remote origin main` | 8d494e16b540ef30078ac546cb6604896b7100ec (= read at the instant of the push; a tip is an instant, not a permanent — see "Re-taking the readings") |
+| `git merge-base --is-ancestor 8d494e16b5 refs/remotes/origin/main` | rc 0 (= the landed tip is an ancestor of the server's `main`; the tip itself is not published here, because a tip is an instant — see "Re-taking the readings") |
 
 The three test rows were read over the wider window `e17c5f30ce..8d494e16b5`
 because that is what the landing push carried; the four gate rows were re-taken
@@ -104,10 +111,13 @@ maintenance of shared server state, not authorship: `53e2ab2ff2`,
    Four facts about that build: it is
    `/Volumes/ANAN/Engineering/wenshu/.worktrees/board-dispatch-2026-11-26/build/Wenshu.app`,
    assembled by `bash Scripts/build-app.sh` from a tree whose `HEAD` was
-   `8d494e16b5` (= `main`), ad-hoc signed, `Identifier=com.wenshu.app`; its own
-   bytes carry the change (`nm -a` on `Contents/MacOS/WenshuApp`: 8 hits on
-   `removeCards`, 232 on `WSKanbanRepository` as the positive control, and the
-   sweep's literal `conductor: ` prefix once). It was launched with a plain
+   `8d494e16b5` (the tip this scope landed; `main` has since moved on), ad-hoc
+   signed, `Identifier=com.wenshu.app`; its own bytes carry the change — `nm -a`
+   on `Contents/MacOS/WenshuApp` gives 8 hits on `removeCards` and 232 on
+   `WSKanbanRepository` as the positive control, and the sweep's literal
+   `conductor: ` prefix appears once in `strings -a` on the same binary (a
+   string literal is not a symbol, so `nm` prints none of it). It was launched
+   with a plain
    `open` (never `-n`) and is left RUNNING, holding the live store: after launch
    that store reads `0|` where it read `58|58` before, and the right column shows
    the empty state. What has NOT happened is the owner's judgement of what the
