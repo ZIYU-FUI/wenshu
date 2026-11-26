@@ -52,11 +52,10 @@ readings below use the tree's own facts.
   bounded and trailing-aligned (= = the base's own comment: "the cap is a
   bound and not a width, so the glass is laid on the words themselves and
   the cap then bounds the result"). The user's words therefore sat at the
-  trailing edge of the column, in a capsule that never spanned it, and the
-  ink's leading edge moved with the message instead of sitting on the
-  column's own edge. The base's own comment records the measurement (= =
-  "short = long = 360.0 PT inside a 723 PT column, so the bubble never
-  spans the chat column").
+  trailing side of the column, in a capsule bounded to 360 PT, instead of
+  reading as a row of the column. The base's own comment records the
+  measurement (= = "short = long = 360.0 PT inside a 723 PT column, so
+  the bubble never spans the chat column").
 - a glass material is a blur, and the band asked for one on every realized
   outgoing row (= = the per-frame cost the boss reported); this record
   publishes no figure for it.
@@ -83,8 +82,8 @@ inside the band and no stroke of its own:
   changes neither margin.
 - inside the band, the card's own `DesignTokens.spacingModerate` (12 PT)
   is that inner inset, so the ink's leading edge sits on a fixed rail
-  (= = the surface's leading edge plus 12 PT) instead of moving with the
-  message.
+  (= = the surface's leading edge plus 12 PT), whatever the message's own
+  width is.
 - the corner radius is `DesignTokens.surfaceCornerRadiusCard` (8 PT);
 - no hairline is drawn: a step in material tone carries the edge, so
   `DesignTokens.dividerHeight` stays with the rules that separate two
