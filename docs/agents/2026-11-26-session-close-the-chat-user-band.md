@@ -115,14 +115,15 @@ git grep -n 'ContentAreaMaterial.surface' -- Sources/WenshuApp/Features/Chat/Vie
 git grep -n 'surfaceCornerRadiusCard' -- Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift
 git grep -n 'spacingStandard' -- Sources/WenshuApp/Features/Chat/View/ChatView.swift
 git grep -rn '\.interactive()' -- Sources Mobile
-git grep -rln 'rightColumn\|RightColumn\|rightPane' -- Sources || echo '(no right column in this tree)'
+git grep -n 'ContentAreaMaterial.surface' -- Sources/WenshuApp/Shared/UI/InspectorCard.swift
 ```
 
 ⇒ ⇒ ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE COUNT EACH COMMAND PRINTS IS A READING OF
-THE TREE, = = NOT A NUMBER THIS DOCUMENT FREEZES.** The glass call sites
-outside the transcript path are two in the app's sources and one mention
-in a component doc, and the next landing that changes them changes the
-count.
+THE TREE, = = NOT A NUMBER THIS DOCUMENT FREEZES.** The macOS app's glass
+call sites outside the transcript path are two (the composer field and
+the scroll-to-bottom button), one component doc names the API, and the
+mobile app carries one of its own; the next landing that changes any of
+them changes the count.
 
 ⇒ ⇒ ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE GEOMETRY SUITE IS THE ONE THAT MEASURES THE
 BAND, = = SO IT IS THE SUITE THIS RECORD NAMES.** Run it at the tip:
@@ -183,11 +184,15 @@ the cap binds: a 36 PT surface reads 18, a 72 PT surface reads 36, and a
 
 The scope's plan also notes a control pill in the right column, still
 wearing `glassEffect(.regular.interactive())` and inset 10 PT, as the odd
-one out against this scope's 20 PT. **That tree is not this one**: this
-repository has no right column, and the only two glass sites outside the
-transcript path are the composer field and the scroll-to-bottom button,
-both in the chat column. The pill's figure belongs to the lane that owns
-that tree, and this record states no number for it here.
+one out against this scope's 20 PT. **That pill is not in this tree**: the
+right column here is the trailing inspector column, and its cards already
+wear the content-area surface (= = the same material and the same corner
+radius as this scope's band) with `DesignTokens.spacingStandard` of
+padding, and the editor feature carries no glass site at all. The only two
+glass sites outside the transcript path are the composer field and the
+scroll-to-bottom button, both in the chat column. The pill's figure
+belongs to the lane that owns that tree, and this record states no number
+for it here.
 
 ## The stopping rule for this record
 
