@@ -146,7 +146,9 @@ retry budget and the gate that tier buys.
 python3 Tools/wenshu-devtool/ticket_tier.py --plan
 
 # 9b. Rate a card body before dispatching it
-python3 Tools/wenshu-devtool/ticket_tier.py --body card.md
+# (= = the two flags are the lane contract's inputs, = = so name them)
+python3 Tools/wenshu-devtool/ticket_tier.py --body card.md \
+  --creator pocock --assignee wenshu-review
 
 # 9c. Check every card on the board against the tier it earns
 python3 Tools/wenshu-devtool/ticket_tier.py --board wenshu-par --check
@@ -459,11 +461,21 @@ python3 Tools/wenshu-devtool/closeout_gate.py --scope 2026-11-24-flow-gates --js
 ## Review-lane hand-off gate
 
 Another separate tool, because it reads the BOARD instead of the source tree.
-The board's `dispatch_profiles` name the review lane only, so a card the review
-lane addresses to an implementer is NEVER spawned: the dispatcher writes
-`skipped_nonspawnable` on it and it waits for ever. Measured on board
-`wenshu-par`, 2026-11-24: 41 such cards. The finding was made twice = once in
-the verdict, once in a card that cannot move.
+A card the review lane addresses to an implementer is the finding made twice
+= once in the verdict, once in a card. The verdict was already written when
+the card went out, so the second copy restates it. Measured on board
+`wenshu-par`, 2026-11-26: 41 RUNS on cards addressed to an implementer (= = 39
+completed, 1 running, 1 blocked) and 52 such CARDS (= = 35 done, 12 archived,
+1 ready for `pocock`, 4 archived for `wenshu-dev`); a run count and a card
+count are not the same number, and the card census moves as the board moves.
+
+The dispatcher's `dispatch_profiles` allowlist does NOT explain this, and the
+first version of this rule said it did (= = "such a card is never spawned and
+waits for ever"). Measured 2026-11-26: that allowlist is read PER HOME, and
+the homes that dispatch implementer cards do not declare it (= = an absent key
+leaves the allowlist open), so the card IS picked up and run. The `skip` record
+the board writes (`skipped_nonspawnable`) says a dispatch found no profile
+with that assignee name ON ITS OWN HOME = = not that the card cannot move.
 
 The gate names each card, its creator, its assignee, its status, and the
 verdict of the review card it answered. It READS the board (= sqlite3 in

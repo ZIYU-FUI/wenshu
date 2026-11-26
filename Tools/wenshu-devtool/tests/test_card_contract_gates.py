@@ -16,8 +16,12 @@ and that each one fires for its own reason:
 5. both gates are off for a card created before the contract epoch (= the
    cards already on the board are not this wave's business)
 6. the hand-off gate refuses a card a review lane created for an implementer
-   (= the finding restated in a card the board cannot spawn), and it is
+   (= the finding restated in a card), and it is
    wired into the same card contract
+7. the lane contract's own words name the DUPLICATE (= = the finding stated
+   twice), = = and never the dispatcher's queue (= = the allowlist that
+   decides it is read PER HOME, = = so a card addressed to an implementer IS
+   spawned by the implementer's own home)
 
 The gates' OWN suites prove their answers; this suite proves the wiring.
 """
@@ -250,8 +254,7 @@ def main() -> int:
     # --- case 6: the hand-off contract -------------------------------
     # = = = A card the review lane created for an implementer is the = = =
     # = = = finding done twice: once in the verdict, and once in a card = = =
-    # = = = the board cannot spawn (= the dispatcher spawns only the = = =
-    # = = = review profile). = = =
+    # = = = (= = the verdict was already written when the card went out). = = =
     handoff_card = card("## WHAT TO BUILD\n\nA rework of the review's finding.\n")
     handoff_card["created_by"] = "wenshu-review"
     handoff_card["assignee"] = "pocock"
@@ -360,6 +363,33 @@ def main() -> int:
             "case 7: a draft with no named lane is quiet (= the rule does not guess)",
             review_handoff_gate.contract_errors(unnamed) == [],
             str(review_handoff_gate.contract_errors(unnamed)),
+        )
+
+        # --- case 8: the rule's own words name the duplicate -----------
+        # = = = The rule rests on the DUPLICATE (= = the finding stated = = =
+        # = = = twice), = = not on the dispatcher's queue. = = = The
+        # = = = allowlist that decides it is read PER HOME, = = so a card = = =
+        # = = = addressed to an implementer IS spawned (= = by the = = =
+        # = = = implementer's own home). = = =
+        spoke = review_handoff_gate.contract_errors(typed)
+        check(
+            "case 8: the rule says the finding is stated twice",
+            any("stated twice" in e for e in spoke),
+            str(spoke),
+        )
+        check(
+            "case 8: the rule does not claim the board cannot spawn the card",
+            not any("cannot spawn" in e or "can never move" in e for e in spoke),
+            str(spoke),
+        )
+        # = = = The USER-FACING TEXT is what a card's author reads, = = = so
+        # = = = the claim is checked there and not in the prose above = = =
+        # = = = it (= = the prose names the claim it is correcting). = = =
+        shipped = Path(review_handoff_gate.__file__).read_text()
+        check(
+            "case 8: the shipped error text does not claim the card cannot move",
+            "can never move" not in shipped and "cannot spawn" not in shipped,
+            shipped[:400],
         )
 
     print()

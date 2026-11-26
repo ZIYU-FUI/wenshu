@@ -1315,9 +1315,8 @@ def find_contract_errors(card: dict) -> list[str]:
     #
     # The review lane hands work back by VERDICT (= = AGENTS.md 1.14), so a
     # card it creates for an implementer is the finding done twice: once in
-    # the verdict, and once in a card the board cannot spawn (= the board's
-    # `dispatch_profiles` name the review lane only, so the dispatcher wrote
-    # `skipped_nonspawnable` on 28 of them, measured 2026-11-24).
+    # the verdict, and once in a card (= = the verdict was already written
+    # when the card went out, = = so the second copy restates it).
     #
     # The report (`review_handoff_gate.py`) says how many such cards the
     # board holds. The contract here says whether THIS card may go out, so

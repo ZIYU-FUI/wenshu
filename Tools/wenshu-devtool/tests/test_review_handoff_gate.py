@@ -172,7 +172,7 @@ def main() -> int:
         code, out = run_tool(db)
         check("a board with the defect exits 1", code, 1)
         check("the count is printed", "cards a review lane created for an implementer "
-              "(= the board cannot spawn them): 1" in out, True)
+              "(= the finding stated twice): 1" in out, True)
         check("the verdict is printed", "verdict=changes_requested" in out, True)
         check("the card is named", "t_defect" in out, True)
 
@@ -236,8 +236,8 @@ def main() -> int:
         code, out = run_tool(db)
         check("a board without the defect exits 0", code, 0)
         check("the zero count is printed",
-              "cards a review lane created for an implementer (= the board cannot "
-              "spawn them): 0" in out, True)
+              "cards a review lane created for an implementer (= the finding "
+              "stated twice): 0" in out, True)
 
     # ---- a missing board is exit 2, not a crash -----------------------
     code, out = run_tool(Path("/nonexistent/kanban.db"))

@@ -49,8 +49,17 @@ Write the body first, then rate it:
 
 ```bash
 cd /Volumes/ANAN/Engineering/wenshu
-python3 Tools/wenshu-devtool/ticket_tier.py --body card.md
+python3 Tools/wenshu-devtool/ticket_tier.py --body card.md \
+  --creator pocock --assignee wenshu-review
 ```
+
+`--creator` and `--assignee` are the lane contract's two inputs (= =
+`review_handoff_gate.py`): the implementer files ONE card, = = the review
+card it hands to the review lane after the commit (= = AGENTS.md 1.12), and
+a card addressed to the implementer itself is refused (= = the verdict IS
+the hand-off, = = AGENTS.md 1.14). A draft has no board row, so these two
+flags are where the contract reads those two facts; without them the rule
+stays quiet.
 
 The tier is derived from the work the body describes, never hand-set. It
 decides the cap, the retry budget, the gate width and the body budget.

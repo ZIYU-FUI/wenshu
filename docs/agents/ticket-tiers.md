@@ -100,9 +100,20 @@ The title carries the rating, so `hermes kanban list` shows it at a glance:
 Check a card body before dispatching it:
 
 ```bash
-python3 Tools/wenshu-devtool/ticket_tier.py --body card.md
+python3 Tools/wenshu-devtool/ticket_tier.py --body card.md \
+  --creator pocock --assignee wenshu-review
 python3 Tools/wenshu-devtool/ticket_tier.py --check          # every card
 ```
+
+**The two flags are the lane contract's two inputs, = = so they are not
+optional.** `--creator` is the profile that will file the card and
+`--assignee` is the profile it is addressed to; a draft has no board row,
+so those are the only place the contract can read them (= =
+`review_handoff_gate.py` refuses a card an implementer filed for itself,
+and a card the review lane filed for an implementer). Without the flags
+the rule stays quiet, = = and a card that breaks it goes out unchecked.
+The implementer's ONE card is the review card (= = `--creator pocock
+--assignee wenshu-review`); a card for `pocock` itself is refused.
 
 ## What the tier does NOT do
 

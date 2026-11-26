@@ -3,31 +3,50 @@
 
 One question, one gate:
 
-  CONTRACT  does a review-lane card hand its verdict to a profile the board
-            can actually spawn?
+  CONTRACT  does a card restate a verdict the board already holds, or does an
+            implementer file a card for itself?
 
-WHY THE GATE EXISTS (measured on board wenshu-par, 2026-11-24):
+WHY THE GATE EXISTS (measured on board wenshu-par, 2026-11-26):
 
-  - The board's dispatcher spawns ONLY the profiles in `kanban.dispatch_profiles`
-    (= `[wenshu-review]`), and it records `skipped_nonspawnable` on every
-    card addressed to anyone else.
-  - The review lane nevertheless creates cards addressed to the implementer
-    profile (= `pocock`, `wenshu-dev`): 41 of them, 28 done + 9 archived for
-    `pocock` and 4 archived for `wenshu-dev`.
-  - So the reviewer states the finding TWICE: once in the verdict, and once
-    in a card that can never move. The person who could act on it was waiting
-    for the verdict, and the verdict was already written.
+  - The board's dispatcher spawns the profiles in `kanban.dispatch_profiles`,
+    and it records `skipped_nonspawnable` on a card whose assignee names no
+    profile on the home doing the dispatching.
+  - = = THAT ALLOWLIST IS READ PER HOME, NOT PER BOARD. = = Measured
+    2026-11-26: the key `dispatch_profiles` is declared in ONE home's config
+    (= `/Users/anbaiqiang/.hermes/config.yaml` = `[wenshu-review]`), and
+    ABSENT from the other two (= `pocock`, `wenshu-review` under
+    `/Volumes/ANAN/.hermes/profiles/`). An absent key leaves the allowlist
+    open (= = the dispatcher claims any profile that exists on that home).
+    So a card addressed to `pocock` IS spawned by the pocock home's
+    dispatcher: measured on the same board, 41 runs under profiles `pocock`
+    (39) and `wenshu-dev` (2) on cards addressed to an implementer, and one
+    of them running at the moment of the measurement.
+  - = = SO A CARD ADDRESSED TO AN IMPLEMENTER IS NOT "A CARD THAT CANNOT
+    MOVE". = = The reviewer states the finding TWICE: once in the verdict,
+    and once in a card that the implementer's own home picks up and runs.
+    The verdict was already written when the card went out, so the second
+    copy is the duplicate, = = whatever the dispatcher does with it.
 
   = = The verdict IS the hand-off (= = AGENTS.md 1.14), = = so a card that
-  cannot be spawned is the FINDING DONE TWICE, = = and the duplicate is what
-  the gate names.
+  restates a verdict the board already holds is the FINDING DONE TWICE,
+  = = and the duplicate is what the gate names.
+
+  THE COUNTS, AND WHAT FORM THEY ARE IN. The 41 runs above are RUNS
+  (= = one row per dispatch of an implementer-addressed card), not CARDS:
+  39 completed, 1 running, 1 blocked. The CARD census for the same board
+  and the same window is a different number in a different form (= = 52
+  cards addressed to an implementer by the review lane: 35 done, 12
+  archived, 1 ready for `pocock`, 4 archived for `wenshu-dev`), and it
+  moves as the board moves. A published number names its window AND its
+  form; a run count and a card count are not interchangeable.
 
 WHAT IT PRINTS, per card:
 
     <id>  <title>
         creator=<profile>  assignee=<profile>  status=<status>
         parent=<review card id>  verdict=<approved|changes_requested|none>
-        skipped_nonspawnable=<n>   (= the board's own record that it cannot move)
+        skipped_nonspawnable=<n>   (= the board's own record of a dispatch that
+                                      found no such profile on ITS home)
 
   The verdict is read from the PARENT card's run metadata
   (`review_outcome`), = = because the parent is the review card the
@@ -65,10 +84,13 @@ import product_lines  # noqa: E402  (sibling module, same directory)
 # The profiles that CREATE a review card (= = the review lane).
 REVIEW_PROFILES = ("wenshu-review",)
 
-# The profiles that IMPLEMENT (= = the lane that never gets spawned here).
+# The profiles that IMPLEMENT (= = the lane whose own session does the work).
 IMPLEMENTER_PROFILES = ("pocock", "wenshu-dev")
 
-# The board's own record that a card cannot be moved.
+# The board's own record that a dispatch found no profile with that assignee
+# name (= = on the home that was dispatching). It is NOT a record that the card
+# cannot move: = = the allowlist that decides it is read PER HOME, so the same
+# assignee is skipped by one home and spawned by another.
 SKIP_EVENT = "skipped_nonspawnable"
 
 
@@ -242,9 +264,21 @@ def contract_errors(card: dict) -> list[str]:
     path and not only in a report. A card created by a review-lane
     profile and addressed to an implementer profile is the card that
     restates a verdict the board already holds (= the verdict IS the
-    hand-off, = AGENTS.md 1.14), and the board's dispatcher spawns only
-    the profiles in `dispatch_profiles`, so such a card is never spawned
-    and waits for ever.
+    hand-off, = AGENTS.md 1.14), so the finding is stated twice.
+
+    WHY THE SECOND COPY IS THE DEFECT, AND NOT THE DISPATCHER. The
+    first version of this rule rested on the dispatcher's allowlist
+    (= `dispatch_profiles`): the claim was that a card addressed to an
+    implementer can never be spawned, so it waits for ever. Measured
+    2026-11-26: that allowlist is read PER HOME, and the homes that
+    dispatch implementer cards do not declare it (= = an absent key
+    leaves the allowlist open), so such a card IS picked up and run
+    (= 41 runs on cards addressed to an implementer: 39 completed, 1
+    running, 1 blocked). The card does not wait for ever; it is run.
+    What is still true = = and is what this rule rests on now = = is
+    that the verdict was already written when the card went out, so the
+    second copy restates it. The rule names the DUPLICATE, not the
+    dispatcher's queue.
 
     THE SECOND HALF OF THE SAME DEFECT (measured 2026-11-26). The
     reviewer's half is only half of the cards that come back to the
@@ -254,9 +288,9 @@ def contract_errors(card: dict) -> list[str]:
     for the work (= the ONE card it files is the review card it hands to
     the review lane after the commit). So a card an implementer created
     and addressed to an implementer is a card the implementer filed for
-    itself, = = and the board cannot spawn it either (= the dispatcher
-    spawns only the review lane), = = so it comes back to the
-    implementer's board and waits for ever.
+    itself, = = so it comes back to the implementer's board and is run
+    there, = = while the work was already done in the implementer's own
+    session.
 
     Measured on board wenshu-par, 2026-11-26: 6 OPEN cards were filed by
     `pocock` for `pocock`, all of them `ready`, all of them bouncing
@@ -289,9 +323,8 @@ def contract_errors(card: dict) -> list[str]:
         errors.append(
             f"a card created by {creator} and addressed to {assignee} restates "
             "a verdict the board already holds (= the verdict IS the hand-off, "
-            "= AGENTS.md 1.14), and the board's dispatcher spawns only "
-            f"{', '.join(REVIEW_PROFILES)}, so this card can never move: state "
-            "the finding in the verdict and in the review card's comment"
+            "= AGENTS.md 1.14), so the finding is stated twice: state it in the "
+            "verdict and in the review card's comment"
         )
     if creator in IMPLEMENTER_PROFILES and assignee in IMPLEMENTER_PROFILES:
         errors.append(
@@ -300,8 +333,9 @@ def contract_errors(card: dict) -> list[str]:
             "writes the code in its own session and worktree and files NO board "
             "card for the work (= AGENTS.md 1.12), = = the ONE card it files is "
             "the review card it hands to the review lane after the commit; and "
-            f"the board's dispatcher spawns only {', '.join(REVIEW_PROFILES)}, so "
-            "this card can never move and comes back to the implementer's board: "
+            "this card comes back to the implementer's board, = = where it is run "
+            "as a second copy of the work the implementer's own session already "
+            "did (= = the finding stated twice): "
             "do the work in your own session and file ONE review card when the "
             "commit exists (= the landing card is the boss's card: every card "
             "carrying the landing tag on the board was created by `user`, = = and the "
@@ -315,10 +349,11 @@ def print_report(report: dict, db: Path) -> None:
     print(f"review-handoff: board {db}")
     print(f"  review lane: {', '.join(report['review_profiles'])} | "
           f"implementer lane: {', '.join(report['implementer_profiles'])}")
-    print(f"  cards a review lane created for an implementer (= the board cannot "
-          f"spawn them): {report['cards']}")
+    print(f"  cards a review lane created for an implementer (= the finding "
+          f"stated twice): {report['cards']}")
     if report["cards"] == 0:
-        print("  ok: every review-lane card is addressed to a spawnable profile")
+        print("  ok: every review-lane card is addressed to the review lane's "
+              "verdict holder")
         return
     for row in report["rows"]:
         print(f"  {row['id']}  {row['title']}")
@@ -328,7 +363,8 @@ def print_report(report: dict, db: Path) -> None:
         print(f"      parent={row['parent'] or 'none'}  verdict={verdict}"
               + (f" (from {row['verdict_profile']})" if row["verdict_profile"] else ""))
         print(f"      skipped_nonspawnable={row['skipped_nonspawnable']} "
-              f"(= the board's own record that this card cannot move)")
+              f"(= the board's own record of a dispatch that found no such "
+              f"profile on ITS home)")
     print(f"  these cards restate a verdict the board already holds; the verdict "
           f"is the hand-off (= = AGENTS.md 1.14), and the move is the boss's call")
 
