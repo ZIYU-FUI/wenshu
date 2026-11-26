@@ -7,9 +7,12 @@
 //
 //  The trailing column's todo page reads the plan the assistant wrote,
 //  the sub-agent page reads the crew, and the task page reads the
-//  board's tasks. All three live in memory or in a store that starts
-//  empty, so a fresh launch has nothing to show. This seed writes a
-//  sample of each so the pages can be seen.
+//  board's tasks. The plan and the crew live in memory, so a fresh
+//  launch has nothing to show; the task store keeps its rows across
+//  launches. This seed writes a sample of each so the pages can be
+//  seen, and it writes the tasks as the set it owns (= a seeded launch
+//  replaces that set) so a store that outlives the launch cannot stack
+//  a second copy of the same page on the first.
 //
 //  The seed is GATED: it runs only when the environment says so
 //  (= WS_SEED_PLAN=1), and the environment is read at launch. A launch
@@ -144,9 +147,24 @@ enum PlanSeed {
     /// so the sample lands on the focused session's board (= the book id
     /// the caller passes, = the book's board when the session names one,
     /// = the library-level board when it does not).
+    ///
+    /// The seed writes the set, it does not append to it. The task
+    /// store keeps its rows across launches, and the write path mints a
+    /// fresh id for every row, so `add` cannot tell a repeat from a new
+    /// task: a launch that only writes lays another whole copy of the
+    /// sample on the board it names, and the board draws the same card
+    /// once per launch that ever asked for a seed. Taking the seed's
+    /// own rows back first makes every seeded launch leave one copy,
+    /// whatever the store already held.
+    ///
+    /// `repository` is the seam the tests write through (= an in-memory
+    /// store). The app's own call takes the default, which is the live
+    /// task store the board reads.
     @MainActor
-    private static func seedTasks(bookID: String?) {
-        let store = WSKanbanRepository()
+    static func seedTasks(
+        bookID: String?,
+        repository: WSKanbanRepository = WSKanbanRepository()
+    ) {
         let samples: [(String, String, String)] = [
             ("new", "整理十二地仙卷宗总表", "把十二个朝代与《月令广义》的十二原典字…"),
             ("triage", "补齐「关键场景种子」的六处出处", "场景种子分「已建 / 可推 / 建议」三档，每档的出处要标到具体卷宗。"),
@@ -156,9 +174,10 @@ enum PlanSeed {
             ("done", "列出全书时间线的三处冲突", "冲突有三处，都是年份与事件顺序对不上。"),
             ("failed", "对齐「代价」一词的两种用法", "两处用法讲的不是一件事，需要一处改写。"),
         ]
+        removeSeededRows(matching: samples, in: repository)
         for (status, title, body) in samples {
             do {
-                _ = try store.add(
+                _ = try repository.add(
                     title: title,
                     status: status,
                     priority: 5,
@@ -170,6 +189,32 @@ enum PlanSeed {
                 // write leaves the board as it was.
                 continue
             }
+        }
+    }
+
+    /// Take back the rows an earlier seeded launch left.
+    ///
+    /// A row is the seed's when a sample's title AND its body are the
+    /// row's own. The title alone is not enough: a task the user wrote
+    /// can share a sample's title, and that task is not the seed's to
+    /// take. A row with no body never matches, because every sample
+    /// carries one, so a real task that only borrows a title survives
+    /// the sweep for both reasons at once.
+    ///
+    /// The read is the whole store and not one board, because the
+    /// launches that stacked the copies named different books, and a
+    /// copy left on a board nobody is looking at is still the seed's
+    /// own row.
+    @MainActor
+    private static func removeSeededRows(
+        matching samples: [(String, String, String)],
+        in repository: WSKanbanRepository
+    ) {
+        guard let rows = try? repository.list(status: nil) else { return }
+        for row in rows where samples.contains(where: { sample in
+            sample.1 == row.title && sample.2 == row.body
+        }) {
+            try? repository.delete(id: row.id)
         }
     }
 }
