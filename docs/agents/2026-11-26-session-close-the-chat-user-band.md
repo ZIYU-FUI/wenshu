@@ -2,9 +2,10 @@
 
 Date: 2026-11-26
 
-Scope: the boss's 2026-11-26 requirement, as written in
-`.scratch/2026-11-26-user-bubble-band/spec.md` and
-`.scratch/2026-11-26-user-bubble-band/issues/001-user-band-surface.md`.
+Scope: the boss's 2026-11-26 requirement, as written in the plan
+directory `.scratch/2026-11-26-user-bubble-band/` (= = its `spec.md` and
+its `issues/001-user-band-surface.md`; = = `.scratch/` is untracked, so
+those two files live in the checkout that wrote them, not in this tree).
 This closeout covers that requirement's scope only.
 
 Landed state (= = the state this record measured, = = and `main` may have
@@ -16,8 +17,9 @@ moved on since):
   `4c9f543f9a` (the record stops claiming one outline for two surfaces),
   `16f157cba2` (the radius cap is 36 PT),
   `a87a90f1b2` (the radius is read off the shape's own path)
-- the branch `feat/user-bubble-band-2026-11-26` is at the same commit
-- `git ls-remote origin refs/heads/main` reads the same sha
+- that sha is an ancestor of the branch this record lives on (= =
+  `git merge-base --is-ancestor a87a90f1b2 HEAD` exits 0), and an ancestor
+  of `origin/main` (= = the same command against `origin/main` exits 0)
 
 ⇒ ⇒ ⇒ **AND THE COMMITS THE PUSH CARRIED THAT ARE NOT THIS SCOPE'S.** The
 push that carried this scope carried exactly the four commits above (= =
@@ -108,10 +110,12 @@ of them.
 
 ```bash
 git rev-parse HEAD
-git grep -c 'glassEffect(' -- Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift
+git grep -c 'glassEffect(' -- Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift || echo '(0 call sites in the transcript path)'
 git grep -n 'ContentAreaMaterial.surface' -- Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift
 git grep -n 'surfaceCornerRadiusCard' -- Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift
 git grep -n 'spacingStandard' -- Sources/WenshuApp/Features/Chat/View/ChatView.swift
+git grep -rn '\.interactive()' -- Sources Mobile
+git grep -rln 'rightColumn\|RightColumn\|rightPane' -- Sources || echo '(no right column in this tree)'
 ```
 
 ⇒ ⇒ ⇒ **⇒ ⇒ ⇒ ⇒ ⇒ ⇒ ⇒ AND THE COUNT EACH COMMAND PRINTS IS A READING OF
@@ -163,25 +167,27 @@ the cap binds: a 36 PT surface reads 18, a 72 PT surface reads 36, and a
 
 ## What this scope does NOT claim
 
-- **No per-frame cost figure for the after state.** The picture host that
-  produced the 16 ms number for the old capsule was deleted from the
-  measured directory by main's `2c44d02d4b`, so the number cannot be
-  re-read without rebuilding that host. Dropping the per-row blur from
-  the transcript path is a structural fact (= = no `glassEffect(` call
-  site remains in the transcript path), not a measurement, and this record
-  does not claim it as one.
+- **No per-frame cost figure for either state.** The 16 ms in the scope's
+  plan is Apple's hitch lane for scrolling (8-16 ms, depending on the
+  display's refresh rate), quoted as the yardstick the old capsule sat
+  against; it is not a measured cost of that capsule, and the plan's own
+  probe printed no numbers for it. Dropping the per-row blur from the
+  transcript path is a structural fact (= = no `glassEffect(` call site
+  remains in the transcript path), not a measurement, and this record does
+  not claim it as one.
 - **No claim about the band's radius being 8 PT in every rendering.** The
   band's own clip is `DesignTokens.surfaceCornerRadiusCard`; the input
   field's outline is a separate shape whose radius follows its height.
 
 ## Open item this scope did not fix
 
-The right-column control pill still wears `glassEffect(.regular.interactive())`
-and is inset 10 PT (= = 5 from the enclosing toolbar plus 5 from its own
-padding), while the content area is inset 20 PT. The band in this scope
-is 20 PT, so the pill reads as the odd one out. That number belongs to
-the right-column lane's record card; its worktree was not present under
-`.worktrees/` when this was measured, so it is noted here instead.
+The scope's plan also notes a control pill in the right column, still
+wearing `glassEffect(.regular.interactive())` and inset 10 PT, as the odd
+one out against this scope's 20 PT. **That tree is not this one**: this
+repository has no right column, and the only two glass sites outside the
+transcript path are the composer field and the scroll-to-bottom button,
+both in the chat column. The pill's figure belongs to the lane that owns
+that tree, and this record states no number for it here.
 
 ## The stopping rule for this record
 
