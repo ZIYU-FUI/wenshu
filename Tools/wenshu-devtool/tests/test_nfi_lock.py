@@ -29,6 +29,12 @@ The cases below are the ones that decide it:
     so no reader ever meets a half-written lease)
 14. a reservation whose file carries no record (= a dead writer's residue)
     binds nobody: it is reclaimable, and it does not freeze the register
+15. the OOB register is guarded too (= it collides the same way: = two
+    sessions that each append one entry conflict)
+16. a commit that touches the OOB register while another session holds it is
+    REFUSED, and the refusal names the OOB register
+17. an OOB lease does NOT block a commit that touches only the NFI register
+18. an NFI lease does NOT block a commit that touches only the OOB register
 
 Each case names the tree it measured (= the temp repo's path), because the
 subject of a reservation is the repository the caller stands in, not this
@@ -134,14 +140,14 @@ def wait_for_token(owner: str, limit: float = 5.0) -> bool:
 
 
 def fake_holder(repo: Path, owner: str, pid: int, renewed: float,
-                acquired: float | None = None) -> Path:
+                acquired: float | None = None, resource: str = REGISTER) -> Path:
     path = repo / ".git" / "nfi-lock"
     path.mkdir(parents=True, exist_ok=True)
-    record = {"resource": REGISTER, "owner": owner, "pid": pid,
+    record = {"resource": resource, "owner": owner, "pid": pid,
               "card": "t_fake", "worktree": str(repo),
               "acquired": acquired if acquired is not None else renewed,
               "renewed": renewed, "ttl": 3600}
-    target = nfi_lock.record_path(path, REGISTER)
+    target = nfi_lock.record_path(path, resource)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(record), encoding="utf-8")
     return target
@@ -408,6 +414,66 @@ def main() -> int:
         check("14 the empty reservation is gone",
               not nfi_lock.record_path(repo / ".git" / "nfi-lock", REGISTER)
               .exists())
+
+        # 15 + 16 + 17 + 18: the SECOND guarded register. The OOB register
+        # collides the same way (= two sessions that each append one entry
+        # CONFLICT, = measured), and it is guarded by the same reservation
+        # rather than by a merge driver (= a merge driver needs a key that
+        # names one row, = and OOB.md's key is a date that is deliberately NOT
+        # unique: = 106 rows share 51 keys, = 2026-10-16 alone carries 25).
+        guarded = new_repo(tmp, "guarded")
+        (guarded / "OOB.md").write_text(
+            "# OOB\n\n| 2026-11-26 | an entry |\n", encoding="utf-8")
+        subprocess.run(["git", "add", "OOB.md"], cwd=guarded, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", "seed the OOB register"],
+                       cwd=guarded, check=True)
+        ins15 = run(["install"], guarded, owner="")
+        check("15 install wires the hook", ins15.returncode == 0, ins15.stdout)
+        check("15 the guarded set names both registers",
+              nfi_lock.GUARDED_RESOURCES
+              == (nfi_lock.DEFAULT_RESOURCE, "OOB.md"),
+              str(nfi_lock.GUARDED_RESOURCES))
+        fake_holder(guarded, "session-oob", os.getpid(), time.time(),
+                    resource="OOB.md")
+        (guarded / "OOB.md").write_text(
+            "# OOB\n\n| 2026-11-26 | an entry |\n| 2026-11-26 | another |\n",
+            encoding="utf-8")
+        subprocess.run(["git", "add", "OOB.md"], cwd=guarded, check=True)
+        blocked16 = subprocess.run(
+            ["git", "commit", "-m", "second session's OOB entry"],
+            cwd=guarded, capture_output=True, text=True)
+        out16 = blocked16.stderr + blocked16.stdout
+        check("16 a commit touching the OOB register is refused",
+              blocked16.returncode != 0 and "reserved by session-oob" in out16,
+              f"exit={blocked16.returncode} {out16.strip()[:200]}")
+        check("16 the refusal names the OOB register", "OOB.md" in out16,
+              out16.strip()[:200])
+        # 17: the two registers are leased SEPARATELY (= a lease on the OOB
+        # register does not block a commit that touches only the NFI one).
+        subprocess.run(["git", "reset", "-q"], cwd=guarded, check=True)
+        (guarded / REGISTER).write_text(
+            (guarded / REGISTER).read_text(encoding="utf-8")
+            + "| new.swift | abc123 | 120 | extract |\n", encoding="utf-8")
+        subprocess.run(["git", "add", REGISTER], cwd=guarded, check=True)
+        passed17 = subprocess.run(["git", "commit", "-m", "a row, not OOB"],
+                                  cwd=guarded, capture_output=True, text=True)
+        check("17 an OOB lease does not block a commit that touches only "
+              "the NFI register", passed17.returncode == 0,
+              f"exit={passed17.returncode} {(passed17.stderr or '').strip()[:200]}")
+        # 18: and the other way round (= an NFI lease does not block an OOB
+        # commit). The OOB lease goes first, = or it would refuse this commit
+        # for its own sake (= which is case 16, = already measured).
+        run(["release", "OOB.md", "--owner", "session-oob", "--force"], guarded)
+        fake_holder(guarded, "session-nfi", os.getpid(), time.time())
+        (guarded / "OOB.md").write_text(
+            "# OOB\n\n| 2026-11-26 | an entry |\n| 2026-11-26 | another |\n"
+            "| 2026-11-26 | a third |\n", encoding="utf-8")
+        subprocess.run(["git", "add", "OOB.md"], cwd=guarded, check=True)
+        passed18 = subprocess.run(["git", "commit", "-m", "an OOB entry"],
+                                  cwd=guarded, capture_output=True, text=True)
+        check("18 an NFI lease does not block a commit that touches only "
+              "the OOB register", passed18.returncode == 0,
+              f"exit={passed18.returncode} {(passed18.stderr or '').strip()[:200]}")
 
     print(f"\nnfi_lock: {'FAILED ' + str(len(FAILURES)) + ' case(s): ' + ', '.join(FAILURES) if FAILURES else 'all cases hold'}")
     return 1 if FAILURES else 0

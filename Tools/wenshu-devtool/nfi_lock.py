@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""ONE writer on the NFI register: a session-scoped exclusive reservation.
+"""ONE writer on the contended registers: a session-scoped exclusive reservation.
 
 WHY THIS FILE EXISTS
 
 `docs/agents/nfi.md` is the tree's own list of its unfinished work, and
 every ticket that extracts a file appends a row to it (= AGENTS.md 1.7).
+`OOB.md` is the boss's register of directives, and every lane that carries a
+directive appends a row to it (= so it collides the same way).
 The rows carry numbers (= the parent commit, the line count of the file
 at the moment the row was written), so a row written against a file
 another session moved at the same time is a row that states a number
@@ -19,7 +21,9 @@ WHAT THIS MAKES TRUE
 While one session holds the reservation for a file, no other session can
 commit a change to that file (= the pre-commit hook added by
 `nfi_lock.py install` refuses it), and no other session can take the
-reservation. The holder is a SESSION, not a card and not a worktree: a
+reservation. The hook guards every register in `GUARDED_RESOURCES`, and each
+one is leased on its own (= a lease on the NFI register does not block a
+commit that touches only OOB.md, = and the other way round). The holder is a SESSION, not a card and not a worktree: a
 developer writes in its own worktree without a board card (= AGENTS.md
 1.12), and several worktrees of one card are still one writer.
 
@@ -87,6 +91,16 @@ import time
 from pathlib import Path
 
 DEFAULT_RESOURCE = "docs/agents/nfi.md"
+# The registers the pre-commit hook guards. The NFI register is one; OOB.md
+# is the other contended register (= 40 commits in the same window touch it, =
+# and two sessions that each append one entry CONFLICT, = measured). It is
+# guarded by the SAME reservation, and NOT by a merge driver, because a
+# merge driver needs a key that names exactly one row, and OOB.md's key is a
+# DATE that is deliberately NOT unique: 106 rows share 51 keys (= 2026-10-16
+# alone carries 25 rows), because that date is the handle a code comment
+# looks up (= `(see OOB.md #YYYY-MM-DD)`). A key-level merge would collapse
+# those 25 rows into one row. The reservation needs no key at all.
+GUARDED_RESOURCES = (DEFAULT_RESOURCE, "OOB.md")
 DEFAULT_TTL_SECONDS = 90 * 60
 DEFAULT_HARD_TTL_SECONDS = 8 * 60 * 60
 MARKER = "# wenshu: nfi_lock check (installed by nfi_lock.py install)"
@@ -561,7 +575,9 @@ def build_parser() -> argparse.ArgumentParser:
         description=(__doc__ or "nfi_lock").splitlines()[0])
     ap.add_argument("verb", choices=["acquire", "renew", "release", "status",
                                      "check", "run", "install"])
-    ap.add_argument("path", nargs="?", default=DEFAULT_RESOURCE)
+    ap.add_argument("path", nargs="?", default=None,
+                    help="the register to act on (= the guarded set when "
+                         "omitted, = and only for `check --staged`)")
     ap.add_argument("--staged", action="store_true",
                     help="check: read the staged set instead of one path")
     ap.add_argument("--owner", default=None)
@@ -600,45 +616,64 @@ def main(argv: list[str] | None = None) -> int:
     try:
         root = repo_root()
         dirpath = lock_dir(args.dir)
-        key = resource_key(root, args.path)
     except LockError as exc:
         print(f"nfi_lock: {exc}", file=sys.stderr)
         return 1
     owner = owner_id(args.owner)
     if args.verb == "check" and args.staged:
+        # The hook's question is "does this commit touch a register that
+        # somebody else is writing?". Every guarded register is asked, and
+        # each is asked on ITS OWN lease (= a lease on the NFI register does
+        # not block a commit that touches only OOB.md, = and the other way
+        # round). The first foreign holder found refuses the commit and
+        # names the register it holds.
+        targets = [args.path] if args.path else list(GUARDED_RESOURCES)
         try:
-            touched = [p for p in staged_paths()
-                       if resource_key(root, p) == key]
+            staged = staged_paths()
         except LockError as exc:
             print(f"nfi_lock: {exc}", file=sys.stderr)
             return 1
-        if not touched:
-            if not args.json:
-                print(f"nfi_lock: this commit does not touch {key}")
-            return 0
-        try:
-            view = held(dirpath, key, owner, args.ttl, args.hard_ttl, args.now)
-        except LockError as exc:
-            # Every verb answers with a line and a code, never with a
-            # traceback: this branch is the pre-commit hook, and an
-            # uncaught exception there refuses a legitimate commit
-            # while naming neither a holder nor a remedy.
-            print(f"nfi_lock: {exc}", file=sys.stderr)
-            return 1
-        if view["state"] in ("free", "mine"):
-            if not args.json:
-                detail = view.get("void")
-                print(f"nfi_lock: {key} may be committed by {owner} "
-                      f"({view['state']}"
-                      + (f"; {detail}" if detail else "") + ")")
-            return 0
-        print(f"nfi_lock: {key} is reserved by {view['owner']} "
-              f"(pid {view['pid']}, card {view.get('card') or '-'}) while "
-              f"{owner} tries to commit it. The holder must release it "
-              f"(nfi_lock.py release) or this commit must wait. A human who "
-              f"knows the holder is dead: nfi_lock.py release --force.",
-              file=sys.stderr)
-        return 3
+        checked: list[str] = []
+        for target in targets:
+            try:
+                tkey = resource_key(root, target)
+                touched = [p for p in staged
+                           if resource_key(root, p) == tkey]
+            except LockError as exc:
+                print(f"nfi_lock: {exc}", file=sys.stderr)
+                return 1
+            if not touched:
+                continue
+            checked.append(tkey)
+            try:
+                view = held(dirpath, tkey, owner, args.ttl, args.hard_ttl,
+                            args.now)
+            except LockError as exc:
+                # Every verb answers with a line and a code, never with a
+                # traceback: this branch is the pre-commit hook, and an
+                # uncaught exception there refuses a legitimate commit
+                # while naming neither a holder nor a remedy.
+                print(f"nfi_lock: {exc}", file=sys.stderr)
+                return 1
+            if view["state"] in ("free", "mine"):
+                if not args.json:
+                    detail = view.get("void")
+                    print(f"nfi_lock: {tkey} may be committed by {owner} "
+                          f"({view['state']}"
+                          + (f"; {detail}" if detail else "") + ")")
+                continue
+            print(f"nfi_lock: {tkey} is reserved by {view['owner']} "
+                  f"(pid {view['pid']}, card {view.get('card') or '-'}) while "
+                  f"{owner} tries to commit it. The holder must release it "
+                  f"(nfi_lock.py release) or this commit must wait. A human "
+                  f"who knows the holder is dead: nfi_lock.py release "
+                  f"--force.",
+                  file=sys.stderr)
+            return 3
+        if not args.json and not checked:
+            print("nfi_lock: this commit touches no guarded register")
+        return 0
+    key = resource_key(root, args.path or DEFAULT_RESOURCE)
     if args.verb == "run":
         if not command:
             print("nfi_lock: run needs a command after --", file=sys.stderr)
