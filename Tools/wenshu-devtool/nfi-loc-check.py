@@ -21,11 +21,9 @@ convention the registry's own header names).
 
 WHAT IT DOES
 
-= The registry's own header names the rule: = "THE LOC COLUMN IS THE
-COUNT AT THE MOMENT THE ROW WAS WRITTEN, = not a live count of the
-file today". = So a row that names a file this change did not add is
-NOT this change's business, = and its count may be stale BY DESIGN
-(= 92 such rows carry a count from when their row was written).
+= The registry's own header names the rule: = "THE LOC COLUMN IS THE COUNT
+= AT THE MOMENT THE ROW WAS WRITTEN, = not a live count of the file today",
+= = so a stale count is BY DESIGN; = = a row that names a file this change did not add is NOT this change's business.
 
 So the gate reads the rows this change ADDED **union** the rows whose
 NAMED FILE this change REWROTE: = the added half is a key the base's
@@ -98,8 +96,10 @@ defect this family keeps catching). = ⇒ ⇒ ⇒ THE READER IS
 `python3 Tools/wenshu-devtool/nfi-census.py <tree-root>`, = = which prints
 the census beside the tree it came from (= = the literal LOC rows, = = and
 how many open a readable file, = = how many are the table's own `...`
-shorthand (= = = `rows()` skips those, = = = not a defect), = = and how many
-open nothing, = = with each unreadable key named).
+shorthand (= = = `rows()` returns those rows, = = = it yields every row of
+the table, = = = and the census counts them in `numeric` and names them in
+its own `abbreviated` bucket), = = and how many open nothing, = = with each
+unreadable key named).
 
 USAGE
 
@@ -223,8 +223,8 @@ def why_unreadable(key):
     """
     path = os.path.join(REPO, key)
     # ⇒ ⇒ THE SHORTHAND TEST COMES FIRST, = = BEFORE ANY EXISTENCE BRANCH.
-    # Every one of the 33 live abbreviated keys in the table contains `/`
-    # (`Sources/.../ImportService.swift`), = = so a branch that tests
+    # A shorthand key always carries a `/` (`Sources/.../ImportService.swift`),
+    # = = so a branch that tests
     # `"/" in key and not exists` first answers `absent (= = no such path in
     # the tree)` for a row the table's OWN convention sanctions — = and the
     # repair it then suggests (= = "repoint or delete") is the wrong repair.
