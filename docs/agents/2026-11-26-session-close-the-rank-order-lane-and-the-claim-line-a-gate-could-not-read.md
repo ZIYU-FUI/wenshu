@@ -277,8 +277,8 @@ read-back, local `main` was `29ec44f1e2` and
    REVIEW card, not on the rework card the rejection spawned: vendor parity
    `t_bb1e6d16` (`CHANGES_REQUESTED at 3d67d7270d3244eec49a0a23cc3c4947938a0cbc`,
    rework `t_f9a65c7e`), the chord record `t_f0902b46` (`changes_requested at
-   548730e3021a5d17db829499730970bfff750a0`, rework `t_e5f90adb`), the fade-in
-   lane `t_16ff9709` (`changes_requested at c5d54473162aa909dee87ba57cf83ef9d8a2557`,
+   548730e3021a5d17db829499730970bfff750a04`, rework `t_e5f90adb`), the fade-in
+   lane `t_16ff9709` (`changes_requested at c5d54473162aa909dee87ba57cf83ef9d8a2557d`,
    rework `t_2c076ee3`). The loc gate lane is the odd one: `t_1c7f0b43` carries
    no `review_outcome` at all, and its lane-mate `t_66e8c311` reads `approved at
    913b5239b38e21daf47e35fa1fa441692f95eb8f` = = a sha that is NOT on `main`
