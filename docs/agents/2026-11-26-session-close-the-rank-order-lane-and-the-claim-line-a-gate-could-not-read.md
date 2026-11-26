@@ -405,3 +405,27 @@ read-back, local `main` was `29ec44f1e2` and
    round that would record an approval of this record is itself a new commit, so
    a finding here that only asks for another such sentence is the defect
    repeating, and should be rejected as one.
+
+## The doc gates measured on the shape a reader gets
+
+Base `origin/main` = `b738e7593a881bd6a9108713b68833e4d3cb52f1`, tree under
+measurement `335ba28ffd72676d24dd3de099a20de63988a0de` (reachable on the server as
+`refs/heads/docs/rank-order-closeout-2026-11-27`), instant 2026-11-27 04:06 CST,
+logs `.gate-logs/r5_335ba28ffd72_<label>.log`, each exit code read from the gate
+command's own status and printed as the log's first line. All eight returned 0:
+`Tools/wenshu-devtool/tests/test_nfi_loc_check.py` (the file's own suite),
+`verify_doc_commands.py --run --registry docs/agents/nfi.md`,
+`nfi-loc-check.py --base origin/main`, `comment_lineage.py --base origin/main`,
+and `ci_change_gate.py --check` for `markdown-newline`, `formatting`,
+`pollution`, `loc-cap`. Three of those readings must not be over-read. The
+verifier's closing line is `PASS (6 block(s) seen, 2 executed)`: the two executed
+blocks ARE the two resolve loops above, so they were run and not just re-read, and
+the other four blocks were skipped by their own `SKIP` markers.
+`comment_lineage.py` printed that no added comment line exists in this window, so
+nothing was measured there and rc 0 is NOT a pass on that rule. `nfi-loc-check.py`
+printed `1 row(s) checked` at this base, which is a different window from the
+two-row reading in the landed-run table above; this record's row is the one in
+scope here. The commit that carries this sentence is a child of the measured tip,
+and its diff over that parent is exactly this block plus the line count in
+`docs/agents/nfi.md`, so the reading can be carried forward by checking that the
+two blobs differ in nothing else.
