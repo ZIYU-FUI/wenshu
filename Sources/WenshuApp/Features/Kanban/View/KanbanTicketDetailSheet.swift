@@ -36,6 +36,14 @@ struct KanbanTicketDetailSheet: View {
                 statusBadge
                 ScrollView {
                     VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                        // The owner reads first here too (= the same order
+                        // the card wears), = so the sheet and the card agree
+                        // on who the work belongs to.
+                        if let assignee = task.assignee, !assignee.isEmpty {
+                            Text(assignee)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                        }
                         Text(task.title)
                             .font(.title2.weight(.semibold))
                             .textSelection(.enabled)

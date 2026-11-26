@@ -115,4 +115,23 @@ struct KanbanViewTests {
         #expect(usesAppleAPI,
                 "KanbanView must use Apple HIG APIs (= WindowGroup / NavigationSplitView / Commands / NSMenu)")
     }
+
+    /// A card that shows only its title reads as a log line. The owner is
+    /// what makes it a hand-off, so the card names the role that owns the
+    /// work, and names it BEFORE the title (= owner first, then work).
+    @Test("KanbanCard renders the assignee above the title (= source-level)")
+    func cardRendersOwner() throws {
+        let lines = try String(contentsOfFile: sourcePath, encoding: .utf8)
+            .components(separatedBy: "\n")
+        let owner = try #require(lines.firstIndex { $0.contains("Text(assignee)") },
+                                 "the card must draw the assignee line")
+        let title = try #require(lines.firstIndex { $0.contains("Text(card.task.title)") },
+                                 "the card must draw the title")
+        #expect(owner < title,
+                "the card says who owns the work before it says what the work is")
+        // An unassigned card draws no line at all, so the board's geometry
+        // does not depend on a field most cards leave empty.
+        let gate = lines.firstIndex { $0.contains("if let assignee = card.task.assignee, !assignee.isEmpty") }
+        #expect(gate != nil, "the owner line must be gated on a named assignee")
+    }
 }

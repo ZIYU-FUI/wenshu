@@ -464,7 +464,18 @@ private struct KanbanCard: View {
             onOpen: { onOpen() }
         ) {
             VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-                // The title comes FIRST: it is what the user scans the
+                // The owner comes FIRST: a card is a hand-off, so the board
+                // says who owns the work before it says what the work is
+                // (= the same reading order the column's other page uses
+                // for a role's row). A card that names no owner draws no
+                // line, so an unassigned row keeps the height it has today.
+                if let assignee = card.task.assignee, !assignee.isEmpty {
+                    Text(assignee)
+                        .font(.caption)
+                        .foregroundStyle(DesignTokens.statusForeground)
+                        .lineLimit(1)
+                }
+                // The title is the work itself: what the user scans the
                 // board for. The body is the preview under it.
                 Text(card.task.title)
                     .font(.body.weight(.medium))

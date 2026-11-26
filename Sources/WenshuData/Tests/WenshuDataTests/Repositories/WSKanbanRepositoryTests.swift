@@ -84,4 +84,43 @@ struct WSKanbanRepositoryTests {
         #expect(try repo.count(status: "new") == 3)
         #expect(try repo.count(status: "done") == 0)
     }
+
+    /// A card is a hand-off, so it carries at least one of an owner, an
+    /// instruction, or a book. The scoped delete takes the rows that carry
+    /// none of the three and leaves every row that carries any one of them,
+    /// whatever its title says.
+    @Test("removeCards(withTitlePrefix:) takes only cards that own nothing")
+    @MainActor
+    func removeCardsTakesOnlyOwnerlessRows() throws {
+        let repo = try makeRepository()
+        let echo = try repo.add(title: "conductor: what happens next")
+        let owned = try repo.add(
+            title: "conductor: named owner",
+            assignee: "researcher"
+        )
+        let instructed = try repo.add(
+            title: "conductor: named instruction",
+            body: "read the archive"
+        )
+        let shelved = try repo.add(
+            title: "conductor: named book",
+            bookID: "book_1"
+        )
+        let dispatch = try repo.add(
+            title: "research: the tide",
+            assignee: "researcher"
+        )
+
+        #expect(try repo.removeCards(withTitlePrefix: "conductor: ") == 1,
+                "only the row that named nothing is a card the board never needed")
+        #expect(try repo.get(id: echo) == nil)
+        for survivor in [owned, instructed, shelved, dispatch] {
+            #expect(try repo.get(id: survivor) != nil,
+                    "a card carrying an owner, a body or a book is a hand-off")
+        }
+
+        // The sweep is idempotent: with the rows gone, the same call
+        // matches nothing, so a launch-time sweep costs nothing to repeat.
+        #expect(try repo.removeCards(withTitlePrefix: "conductor: ") == 0)
+    }
 }

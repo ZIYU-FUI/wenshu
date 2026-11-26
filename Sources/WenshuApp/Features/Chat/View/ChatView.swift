@@ -124,8 +124,6 @@ struct ChatView: View {
         // the fallback view model is wired exactly as the production path wires
         // it (= production behavior unchanged).
         let tools = WenshuConductor.buildToolsSync(from: ToolRegistry.shared)
-        // the conductor's injected `WSRepositoryContainer` (= falls back
-        // path and explicitly passes `repositories`).
         // The ChatView's WenshuConductor used to be constructed without
         // a connector, so it fell through to the legacy pipeline: the user
         // saw a single LLM reply with no tool use (= the "small liar" bug).

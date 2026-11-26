@@ -36,6 +36,7 @@
 //
 
 import Foundation
+import WenshuAgent
 import WenshuData
 
 /// LLM-facing kanban management tool. Thin facade over wenshu's
@@ -250,7 +251,12 @@ actor KanbanTools {
                 // LLM tool schema at
                 // KanbanStoreTool.swift:333 already exposes body; the
                 // create() method now writes it through.
-                body: params.body
+                body: params.body,
+                // The board is read per book, so a card scheduled inside a
+                // book belongs to that book's board. Outside any book the
+                // turn names none, and the card stays on the library-level
+                // board, which is what a book-less read asks for.
+                bookID: TurnScope.currentBookID
             )
             return KanbanToolResult(
                 success: true,

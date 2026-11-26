@@ -206,39 +206,48 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
         return AgentScope(sessionID: SessionID(rawValue: sessionID), bookID: bookID)
     }
 
-    // Add a kanban task for the in-flight research (= best-effort;
-        // = the kanban task is user-facing visibility, NOT a
-        // source-of-truth record). When the repository is
-        // unavailable (= tests, etc.), returns nil without throwing.
-        //
-        // Uses WSKanbanRepository.shared directly (= bypasses the
-        // ToolRegistry tool dispatch + its fire-and-forget bootstrap
-        // Tasks; = avoids the actor reentrancy SIGTRAP documented
-        // in AGENTS.md §11.5). The ToolRegistry tool is reserved
-        // for LLM-facing use; = the internal wenshu-side path
-        // calls the repo directly.
-        private func addKanbanTask(
-            title: String,
-            body: String,
-            priority: Int
-        ) async -> String? {
-            do {
-                let id = try await WSKanbanRepository.shared.add(
-                    title: title,
-                    // The delegation is already running when the card is
-                    // made, = so "new" would be a lie: = the board said
-                    // the work had not begun, = while it was in flight.
-                    status: "running",
-                    priority: priority
-                )
-                return id
-            } catch {
-                // Best-effort (= no kanban row, but the delegation
-                // handle is still registered; = the user simply
-                // doesn't see the in-flight research row).
-                return nil
-            }
+    /// Add a kanban task for the in-flight research (= best-effort;
+    /// = the kanban task is user-facing visibility, NOT a
+    /// source-of-truth record). When the repository is
+    /// unavailable (= tests, etc.), returns nil without throwing.
+    ///
+    /// Uses WSKanbanRepository.shared directly (= bypasses the
+    /// ToolRegistry tool dispatch + its fire-and-forget bootstrap
+    /// Tasks; = avoids the actor reentrancy SIGTRAP documented
+    /// in AGENTS.md §11.5). The ToolRegistry tool is reserved
+    /// for LLM-facing use; = the internal wenshu-side path
+    /// calls the repo directly.
+    private func addKanbanTask(
+        title: String,
+        body: String,
+        priority: Int
+    ) async -> String? {
+        do {
+            return try await WSKanbanRepository.shared.add(
+                title: title,
+                // The delegation is already running when the card is
+                // made, = so "new" would be a lie: = the board said
+                // the work had not begun, = while it was in flight.
+                status: "running",
+                priority: priority,
+                // A card is a hand-off, so it names the role that owns
+                // the work and carries the instruction that role was
+                // given. Without these the board held a title and
+                // nothing else, = which is not a dispatch.
+                assignee: SubAgentRoleRegistry.researcher.slug,
+                body: body,
+                // The board is read per book, so a card that names no
+                // book shows only on the library-level board. A
+                // delegation made inside a book carries that book.
+                bookID: TurnScope.currentBookID
+            )
+        } catch {
+            // Best-effort (= no kanban row, but the delegation
+            // handle is still registered; = the user simply
+            // doesn't see the in-flight research row).
+            return nil
         }
+    }
 
         // MARK: - JSON helpers
 

@@ -244,6 +244,23 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             WSPersistenceContainer.activateWarehouseContainer(nil)
         }
 
+        // A board card is a hand-off: it names the role that owns the work,
+        // the instruction it was given, or the book it belongs to. Rows that
+        // name none of the three carry no decision, so they are dropped here,
+        // after the live store is chosen and before any view reads the board.
+        // The delete is scoped to that signature and idempotent: once those
+        // rows are gone it matches nothing, and a card that carries an owner,
+        // a body or a book is never its target.
+        do {
+            let dropped = try WSKanbanRepository.shared
+                .removeCards(withTitlePrefix: "conductor: ")
+            if dropped > 0 {
+                wenshuLogger.info("[wenshu.kanban] dropped \(dropped) card(s) that named no owner, body or book")
+            }
+        } catch {
+            wenshuLogger.info("[wenshu.kanban] card sweep failed: \(String(describing: error))")
+        }
+
         // wenshu-verification-fix ( Spec axis GAP): one-time
         // migration from legacy chat.sqlite to warehouse (preserves chat
         // history when user first picks a .ws warehouse in onboarding).

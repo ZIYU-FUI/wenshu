@@ -53,4 +53,20 @@ struct KanbanTicketDetailSheetTests {
         #expect(text.contains(".sheet("))
         #expect(text.contains(".onTapGesture") || text.contains("Button("))
     }
+
+    /// The sheet agrees with the card: the owner reads first, and only when
+    /// the card names one.
+    @Test("the sheet renders the assignee above the title (= source-level)")
+    func sourceLevelOwnerLine() throws {
+        let path = repoRootFromTestFile()
+            .appendingPathComponent("Sources/WenshuApp/Features/Kanban/View/KanbanTicketDetailSheet.swift")
+        let lines = try String(contentsOf: path, encoding: .utf8).components(separatedBy: "\n")
+        let owner = try #require(lines.firstIndex { $0.contains("Text(assignee)") },
+                                 "the sheet must draw the assignee line")
+        let title = try #require(lines.firstIndex { $0.contains("Text(task.title)") },
+                                 "the sheet must draw the title")
+        #expect(owner < title, "the sheet names the owner before the work")
+        #expect(lines.contains { $0.contains("if let assignee = task.assignee, !assignee.isEmpty") },
+                "the owner line must be gated on a named assignee")
+    }
 }

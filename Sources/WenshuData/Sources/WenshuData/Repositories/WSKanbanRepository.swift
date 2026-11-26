@@ -13,6 +13,7 @@
 //    - get(id:) throws -> WSKanbanTask?            (read:  raw @Model out)
 //    - list(status: String?) throws -> [WSKanbanTask]   (read:  raw @Model out)
 //    - delete(id:) throws
+//    - removeCards(withTitlePrefix:) throws -> Int   (write: scoped batch delete)
 //    - count(status: String?) throws -> Int
 //
 //  Per AGENTS.md §11.4. KanbanStatus rawValue values
@@ -156,6 +157,34 @@ public final class WSKanbanRepository {
             context.delete(model)
             try context.save()
         }
+    }
+
+    /// Deletes every card that carries this title prefix and nothing else.
+    ///
+    /// A card is a hand-off, so it carries at least one of: the role that
+    /// owns the work, the instruction it was given, the book it belongs to.
+    /// A card that carries none of the three records no decision, and this
+    /// removes that shape wherever it sits. Anything that qualifies as a
+    /// hand-off survives the call. Returns how many rows went.
+    @discardableResult
+    public func removeCards(withTitlePrefix prefix: String) throws -> Int {
+        // The store's predicate language carries equality on the optional
+        // columns and not a prefix match, so the narrowing half runs in the
+        // query and the title is asked afterwards. A card that names an
+        // owner, an instruction or a book is dropped by the query and never
+        // reaches the title test at all.
+        let ownerless = #Predicate<WSKanbanTask> {
+            $0.assignee == nil && $0.body == nil && $0.bookID == nil
+        }
+        let doomed = try context
+            .fetch(FetchDescriptor<WSKanbanTask>(predicate: ownerless))
+            .filter { $0.title.hasPrefix(prefix) }
+        guard !doomed.isEmpty else { return 0 }
+        for model in doomed {
+            context.delete(model)
+        }
+        try context.save()
+        return doomed.count
     }
 
     public func count(status: String? = nil) throws -> Int {

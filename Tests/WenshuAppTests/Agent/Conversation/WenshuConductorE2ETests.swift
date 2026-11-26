@@ -7,6 +7,9 @@
 //    1. a turn with no connector -> the plain "not configured" notice,
 //       and no state written (= the deleted legacy pipeline used to
 //       write a task and answer anyway)
+//    1b. the turn reaches no board store at all (= the board records
+//       hand-offs between roles, and a sentence the writer typed is
+//       not one)
 //    2. the sub-agent identities handle() dispatches to are ready
 //    3. the main agent identity handle() injects is ready
 //    4. the verifier's single-key contract holds
@@ -18,7 +21,6 @@
 import Foundation
 import Testing
 import WenshuAgent
-import WenshuData
 @testable import WenshuApp
 
 @Suite("WenshuConductor E2E (主 agent 派单, 全流程)")
@@ -30,24 +32,20 @@ struct WenshuConductorE2ETests {
     ///
     /// The observable shape is what the caller sees: a fixed notice
     /// (the same text whatever the user asked, and none of the
-    /// prompt in it), no token usage (the model was never consulted),
-    /// and no kanban task (the deleted pipeline used to write one and
-    /// answer anyway).
+    /// prompt in it), and no token usage (the model was never
+    /// consulted).
     ///
-    /// The control run at the end uses the same in-memory container
-    /// with a mock connector, so the empty task list proves the
-    /// missing connector writes nothing rather than proving the
-    /// repository was never wired to the conductor.
-    @Test("e2e: a turn with no connector returns the plain not-configured notice and writes no task")
+    /// The turn writes no board row. That half of the contract is pinned
+    /// structurally below, because the runtime package holds no board
+    /// store to write to: an assertion against a container the conductor
+    /// cannot reach would pass for the wrong reason.
+    @Test("e2e: a turn with no connector returns the plain not-configured notice")
     @MainActor
-    func testE2EMissingConnectorReturnsNoticeAndWritesNoTask() async throws {
-        let container = try WSPersistenceContainer.makeInMemoryContainer()
-        let repositories = WSRepositoryContainer(container: container)
-
+    func e2eMissingConnectorReturnsNotice() async {
         // A prompt marker the notice must not carry: the reply is a
         // fixed notice, not an answer built from what the user asked.
         let marker = "E2E-PROMPT-MARKER-42"
-        let withoutConnector = WenshuConductor(connector: nil, repositories: repositories)
+        let withoutConnector = WenshuConductor(connector: nil)
         let result = await withoutConnector.handle(
             userMessage: marker,
             sessionId: "e2e-missing-connector",
@@ -68,35 +66,21 @@ struct WenshuConductorE2ETests {
         // The model was never consulted, so nothing was spent on it.
         #expect(result.totalTokens == 0)
         #expect(result.thinking == nil)
-        // And the turn wrote no task: the deleted pipeline used to
-        // write one, so an empty list is the behaviour to keep.
-        let tasksAfterMissingConnector = try repositories.kanban.list()
-        #expect(tasksAfterMissingConnector.isEmpty,
-                "the missing-connector turn must write no task")
+    }
 
-        // Control: the same container with a connector does receive a
-        // task, so the empty list above is the missing connector's
-        // doing and not a detached repository.
-        //
-        // The turn's memory is off, so the turn does not reach the
-        // memory store (= the developer's own on-disk store, = not a
-        // thing a test may write to).
-        var settings = AgentSettings()
-        settings.memory.enabled = false
-        let hermeticSettings = settings
-        let withConnector = WenshuConductor(
-            connector: MockLLMConnector(),
-            settingsProvider: { hermeticSettings },
-            repositories: repositories
-        )
-        _ = await withConnector.handle(
-            userMessage: "hello",
-            sessionId: "e2e-with-connector",
-            model: "mock-model"
-        )
-        let tasksAfterConnector = try repositories.kanban.list()
-        #expect(!tasksAfterConnector.isEmpty,
-                "a turn with a connector writes the conductor task")
+    /// The board records work one role hands to another, so the turn itself
+    /// is not a card: what the writer typed already has its own surface.
+    ///
+    /// The claim is about the runtime package's reach and not about one call
+    /// site, so the reader takes every file in it: a package that holds no
+    /// board store cannot write a card from any file, present or future.
+    @Test("e2e: the runtime package reaches no board store")
+    func runtimePackageReachesNoBoardStore() throws {
+        let offenders = try SourceLocator.swiftFilesUnderSources()
+            .filter { $0.hasPrefix("Sources/WenshuAgent/Sources/") }
+            .filter { try SourceLocator.read($0).contains("WSKanbanRepository") }
+        #expect(offenders.isEmpty,
+                "the runtime package reaches the board store: \(offenders)")
     }
 
     /// Pipeline test: SubAgentIdentity system prompts are all present and distinct.

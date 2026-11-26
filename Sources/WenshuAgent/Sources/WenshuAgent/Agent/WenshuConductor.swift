@@ -2,7 +2,6 @@
 // … (= 33 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // 
 import Foundation
-import WenshuData
 import os.log
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuconductor")
@@ -16,10 +15,6 @@ public actor WenshuConductor {
     // deleted; = the conductor routes every LLM call through
     // WenshuAgent.shared.chat() (= the public facade; = the
     // verifier bridge to WenshuAgent.shared is now indirect).
-    // / Long-term memory persistence for agent (now SwiftData-backed via
-    // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / ChatView call site keeps working.
-    let repositories: WSRepositoryContainer
     // / P0 #1 (WIRE-AGENT-001): optional active connector profile. When non-nil,
     // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / App.swift follow-up.
@@ -76,11 +71,12 @@ public actor WenshuConductor {
     // / P0 #1 (WIRE-AGENT-001): new init that wires WenshuConductor.handle()
     // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / nil, `ConversationLoop` falls back to a fresh `RuntimeHelpers()` actor.
-    /// @MainActor: the fallback reads WSRepositoryContainer.shared (= a
-    /// @MainActor static). An actor's initializer is nonisolated by
-    /// definition, so the isolation is declared here explicitly: the
-    /// compiler then rejects an off-MainActor construction, instead of
-    /// the runtime trapping on an assumeIsolated assertion.
+    /// @MainActor: every call site that builds a conductor sits on the main
+    /// actor (= the app's chat surface and its launch path). An actor's
+    /// initializer is nonisolated by definition, so the isolation is declared
+    /// here explicitly: the compiler then rejects an off-MainActor
+    /// construction, instead of the runtime trapping on an assumeIsolated
+    /// assertion.
     @MainActor
     public init(
         connector: (any LLMConnector)? = nil,
@@ -88,8 +84,7 @@ public actor WenshuConductor {
         tools: [String: any Tool] = [:],
         toolProvider: (@Sendable () async -> [String: any Tool])? = nil,
         settingsProvider: (@Sendable () async -> AgentSettings)? = nil,
-        continuityProvider: (any ContinuityProvider)? = nil,
-        repositories: WSRepositoryContainer? = nil
+        continuityProvider: (any ContinuityProvider)? = nil
     ) {
         self.connector = connector
         self.loopRuntime = loopRuntime
@@ -100,14 +95,6 @@ public actor WenshuConductor {
         self.toolProvider = toolProvider
         self.settingsProvider = settingsProvider
         self.continuityProvider = continuityProvider
-        // P1-01 fix: prefer the injected WSRepositoryContainer; fall
-        // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // boundaries at runtime.
-        if let repositories {
-            self.repositories = repositories
-        } else {
-            self.repositories = WSRepositoryContainer.shared
-        }
         // Bootstrap deferred to first handle() call (Swift actor init cannot await).
     }
 
@@ -203,22 +190,7 @@ public actor WenshuConductor {
         // the settings screen takes effect on the next turn.
         settings: AgentSettings
     ) async -> (reply: String, totalTokens: Int, thinking: String?)? {
-        // Step 1: write 1 conductor parent task to WSKanbanRepository (= legacy
-        // parity: same Kanban behaviour as the legacy path).
-        let added = await MainActor.run { () -> String? in
-            try? self.repositories.kanban.add(title: "conductor: \(userMessage.prefix(50))", status: "running")
-        }
-        if let task = added {
-            // Mark done after the loop attempt (= best-effort; matches
-            // the legacy code path exactly).
-            Task {
-                await MainActor.run {
-                    _ = try? self.repositories.kanban.transition(id: task, to: "done")
-                }
-            }
-        }
-
-        // Step 2: build the ConversationLoop bound to the active connector.
+        // Step 1: build the ConversationLoop bound to the active connector.
         let loop = ConversationLoop(
             connection: connector,
             systemPrompt: WenshuConductorIdentity.systemPrompt,
@@ -226,7 +198,7 @@ public actor WenshuConductor {
             continuityProvider: continuityProvider
         )
 
-        // Step 3: invoke the full turn orchestrator. On any throw, log
+        // Step 2: invoke the full turn orchestrator. On any throw, log
         // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // itself from the user prompt.
         let agentDriverReminder = """
@@ -286,7 +258,7 @@ public actor WenshuConductor {
                     )
                 )
             }
-            // Step 4: shape the ConversationResult into the canonical
+            // Step 3: shape the ConversationResult into the canonical
             // (reply, totalTokens, thinking) tuple expected by ChatView.
             let reply = result.response.blocks
                 .compactMap { block -> String? in

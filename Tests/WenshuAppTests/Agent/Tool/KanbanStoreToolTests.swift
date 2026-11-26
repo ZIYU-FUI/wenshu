@@ -35,6 +35,7 @@
 import Foundation
 import SwiftData
 import Testing
+import WenshuAgent
 import WenshuData
 @testable import WenshuApp
 
@@ -73,6 +74,23 @@ struct KanbanStoreToolTests {
     private static func makeTool(store: WSKanbanRepository) -> KanbanStoreTool {
         let tools = KanbanTools(store: store)
         return KanbanStoreTool(kanbanTools: tools)
+    }
+
+    /// Run the adapter with a book bound to the turn, the way the conductor
+    /// binds it. The helper is nonisolated on purpose: the task-local
+    /// binding hops isolation domains, and a closure that carries this
+    /// suite's main-actor isolation is not sendable across that hop.
+    private nonisolated static func runInsideBookScope(
+        tool: KanbanStoreTool,
+        input: String,
+        bookID: String
+    ) async throws -> String {
+        try await TurnScope.withScope(
+            sessionID: "session-shelf-proof",
+            bookID: bookID
+        ) {
+            try await tool.execute(input: input)
+        }
     }
 
     // MARK: - Test 1: create persists to KanbanView (KanbanStore)
@@ -213,6 +231,37 @@ struct KanbanStoreToolTests {
             throw KanbanStoreToolTestError.noTaskCreated(output: output)
         }
         return first.id
+    }
+
+    // MARK: - Test 5: create files the card under the book the turn names
+
+    /// The board is read per book, so a card scheduled while a book is in
+    /// scope belongs to that book's board, and a card scheduled outside any
+    /// book belongs to the library-level board. A card filed nowhere is
+    /// invisible to the reader that opens the book it was made in.
+    @Test("kanban_create files the card under the book the turn names (= and not elsewhere)")
+    @MainActor
+    func kanbanStoreTool_create_stampsTheTurnBook() async throws {
+        let store = try Self.makeKanbanStore()
+        let tool = Self.makeTool(store: store)
+        let bookID = "book-shelf-proof"
+
+        _ = try await Self.runInsideBookScope(
+            tool: tool,
+            input: #"{"action":"create","title":"Outline the tide chapter","assignee":"researcher"}"#,
+            bookID: bookID
+        )
+        // A second card, scheduled with no book in scope.
+        _ = try await tool.execute(
+            input: #"{"action":"create","title":"Library-level card","assignee":"researcher"}"#
+        )
+
+        let shelved = try await store.list(bookID: bookID)
+        #expect(shelved.map(\.title) == ["Outline the tide chapter"],
+                "a card scheduled in a book must be on that book's board; got: \(shelved.map(\.title))")
+        let libraryLevel = try await store.list(bookID: nil)
+        #expect(libraryLevel.map(\.title) == ["Library-level card"],
+                "a card scheduled with no book in scope stays on the library-level board; got: \(libraryLevel.map(\.title))")
     }
 }
 

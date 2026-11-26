@@ -18,9 +18,11 @@
 //  - empty action is rejected with ok=false
 //
 
-import Testing
 import Foundation
+import Testing
+import WenshuAgent
 @testable import WenshuApp
+import WenshuData
 
 @Suite("DelegateResearchTool (= fire-and-forget research delegation)")
 struct DelegateResearchToolTests {
@@ -34,6 +36,23 @@ struct DelegateResearchToolTests {
         _ = DelegateResearchTool.shared
         try? await Task.sleep(nanoseconds: 50_000_000)
         return DelegateResearchTool.shared
+    }
+
+    /// Run the tool with a book bound to the turn, the way the conductor
+    /// binds it. The helper is nonisolated on purpose: the task-local
+    /// binding hops isolation domains, and a closure that carries this
+    /// suite's main-actor isolation is not sendable across that hop.
+    private nonisolated static func runInsideBookScope(
+        tool: DelegateResearchTool,
+        input: String,
+        bookID: String
+    ) async throws -> String {
+        try await TurnScope.withScope(
+            sessionID: "session-dispatch-proof",
+            bookID: bookID
+        ) {
+            try await tool.execute(input: input)
+        }
     }
 
     @Test("delegate_research delegates one handle per noun")
@@ -164,6 +183,50 @@ struct DelegateResearchToolTests {
         )
         #expect(parsed["ok"] as? Bool == false)
         #expect((parsed["error"] as? String)?.contains("action") == true)
+    }
+
+    /// A card the board cannot route is not a hand-off: it must name the
+    /// role that owns the work, carry the instruction that role was given,
+    /// and be filed under the book the turn was reading.
+    ///
+    /// The assertion is made on the row and not on the envelope, because
+    /// `addKanbanTask` is best-effort (= a failed write still returns
+    /// ok=true), so an empty board would pass every other assertion here.
+    /// The container is activated for the duration of the call: the tool
+    /// reaches `WSKanbanRepository.shared`, which resolves the live store.
+    @Test("the dispatch card carries owner, instruction and book")
+    @MainActor
+    func delegate_research_CardCarriesTheHandOff() async throws {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        WSPersistenceContainer.activateWarehouseContainer(container)
+        defer { WSPersistenceContainer.activateWarehouseContainer(nil) }
+
+        let tool = await makeTool()
+        let noun = "the-tide"
+        let bookID = "book-dispatch-proof"
+        let envelope: [String: Any] = [
+            "action": "delegate",
+            "nouns": [noun],
+            "context": "a harbour town that lives on the tide",
+        ]
+        let json = try JSONSerialization.data(
+            withJSONObject: envelope,
+            options: [.sortedKeys]
+        )
+        let input = String(data: json, encoding: .utf8) ?? "{}"
+        _ = try await Self.runInsideBookScope(tool: tool, input: input, bookID: bookID)
+
+        let card = try #require(
+            try await WSKanbanRepository.shared.list()
+                .first { $0.title == "research: \(noun)" },
+            "the delegation wrote no board card"
+        )
+        #expect(card.assignee == SubAgentRoleRegistry.researcher.slug,
+                "the card must name the role that owns it; got: \(String(describing: card.assignee))")
+        #expect(card.body?.contains(noun) == true,
+                "the card must carry the instruction the role was given")
+        #expect(card.bookID == bookID,
+                "a dispatch made inside a book belongs on that book's board; got: \(String(describing: card.bookID))")
     }
 
     // Note: a ToolRegistry registration smoke test (= asserting the
