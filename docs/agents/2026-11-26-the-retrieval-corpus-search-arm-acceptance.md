@@ -119,14 +119,23 @@ the answer honest on the corpus the card was told not to move.
 
 ## The one thing not in this tree
 
-`docs/agents/nfi.md` owes two rows for this lane. They are not committed: the shared
-register was reserved at 13:21:59 by session `local-c286bc3215dad814e50c04aabf0b07296c400dcaf58da8a054d1f08638ebc25f`
-(pid 27054, dead, never renewed, self-expires 14:51:59), and `nfi_lock.py release
---force` is documented as a human call. The rows are in `stash@{0}` of this worktree and
-reproduced with landing commands in
-`/Volumes/ANAN/.hermes/profiles/pocock/pending-cards/2026-11-26-corpus-search-arm/nfi-rows.md`.
-`nfi-loc-check` measured exit 0 WITHOUT them, so the per-change gate does not charge a
-new file that has no row: they are history, not a gate this tree fails.
+`docs/agents/nfi.md` owes two rows for this lane, and they are deliberately not committed
+here: `main` has moved past this branch's base, so the register has to be reconciled at
+landing time by `Scripts/merge-nfi-registry.py` (the key-level driver), not by installing a
+parked copy now. The source of those two rows is
+`/Volumes/ANAN/.hermes/profiles/pocock/pending-cards/2026-11-26-corpus-search-arm/nfi-rows.md`,
+re-measured at this tip (the doc is 145 lines, the arm is 256) and that file instructs to
+re-measure at landing rather than trust its number. `stash@{0}` of this worktree is NOT a
+row source: it carries the earlier pair (104 / 249, the sizes before the arm took its final
+formatting, its first row also missing the `(new)` marker), and it is kept as evidence only.
+Measured in a throwaway worktree at this sha, one commit per row set, referee
+`nfi-loc-check.py --base 7637ebba35`: the recipe's rows committed give exit 0
+("2 row(s) checked", probe commit `99f2beaad6`); the stash's rows committed give exit 1
+("the row says 104, the file is 136" and "the row says 249, the file is 256", probe commit
+`c3fdf6d6cd`). This record therefore names the recipe file as the source and the stash as
+evidence. `nfi-loc-check` also measures exit 0 with no rows added at all, so the per-change
+gate does not charge a new file that has no row: the pending rows are history, not a gate
+this tree fails.
 
 ## What this card does NOT do
 
