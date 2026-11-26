@@ -34,7 +34,8 @@ assumed.
 
 ### The field line is a bullet
 
-Measured over the eighteen world documents of the book in `build/wenshu-look.ws`:
+Measured over the seventeen world documents of the book in `build/wenshu-look.ws` (= the
+store's eighteenth document belongs to the help book `11111111-…`):
 
 - every field line in every document is a bullet (`- **name**: value` or
   `- name: value`);
@@ -52,7 +53,7 @@ in has stated them.
 The template ships the half-width colon (`:`). A book a writer filled in by hand carries
 the full-width one (`：`) — the punctuation the same document uses two lines away. A
 reader that reads only the half-width colon reads almost nothing from exactly the books
-a human wrote: measured over the same eighteen documents, the half-width-only reader
+a human wrote: measured over the same seventeen documents, the half-width-only reader
 found **8** claims where the full-width-only reader found **113**, and the two-colon
 reader finds **121**. The full-width colon carries 113 of the 121 (= 93%), and the 8
 that only the half-width colon splits are the two documents the template itself wrote
