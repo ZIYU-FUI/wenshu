@@ -190,13 +190,24 @@ A reverted scorer that leaves every arm rc 0 is a reject of the suite, not a
 pass: the fixture would once again be unable to move, which is the defect rounds
 1 and 2 were rejected for.
 
-The cheap check a reader can run: every commit this record cites resolves in a
-checkout that carries the ref the loop prints for it. The five shas that are on
-`main`, and the one on the server branch `docs/rank-order-closeout-2026-11-26`,
-resolve in any clone, and the loop FAILS if one of those six does not; the other
-seven are carried by refs a clone may not have - a backup ref, three parked
-superseded tips and three lane branches - so a clone without one of them prints
-`not in this clone` instead of failing.
+The cheap check a reader can run: every commit this record cites by name is a
+member of one of the two loops below. The first loop holds the five shas that are
+on `main`: it FAILS if one of them does not resolve, and it prints only the sha
+and its type - no ref, because `main` is the ref. The second loop holds the other
+eleven, prints for each the
+refs in the checkout that carry it, and prints `not in this clone` where none
+does, without failing. Of those eleven: three sit on a server ref, so a clone
+that fetches `docs/rank-order-closeout-2026-11-26` or `wt/cmd-shift-k-2026-11-25`
+re-takes them - `825edae01447537b1fb3144675c89e17aadd1b26`, and
+`799a0dcf5e54866331c398fc07d129fdfdcc357a` with its parent
+`e53e8441e9dc29bdc8b8e0731a4f0cad1625c06c`; four are carried only by refs this
+checkout made for itself - a backup ref and three parked superseded tips; three
+are carried only by local lane branches; and one, `a08c89d9f30d06d81630c286651f998444eba9ea`,
+is this record's own third commit after two rebases, named here only for its
+patch-id. `825edae01447` is that same commit as it was pushed: `git patch-id
+--stable` reads `dc43650f3b63c898a5d96b4940a3d3bc2d25c5b4` for both, so the blob
+identities cited at `825edae01447` are taken at a pushed shape and not at a
+moving tip.
 
 ```
 for s in ecec033726 4db43731ac 29ec44f1e2 7e036f7613 0f9c784db6; do
@@ -209,6 +220,9 @@ for s in 825edae01447537b1fb3144675c89e17aadd1b26 \
          64212762cb \
          a708a7e5900857a3eaf613fba82dd6dc9e79a01d \
          548730e3021a5d17db829499730970bfff750a04 \
+         799a0dcf5e54866331c398fc07d129fdfdcc357a \
+         e53e8441e9dc29bdc8b8e0731a4f0cad1625c06c \
+         a08c89d9f30d06d81630c286651f998444eba9ea \
          3d67d7270d3244eec49a0a23cc3c4947938a0cbc \
          c5d54473162aa909dee87ba57cf83ef9d8a2557d \
          913b5239b38e21daf47e35fa1fa441692f95eb8f; do
@@ -365,13 +379,21 @@ read-back, local `main` was `29ec44f1e2` and
    no `U+21E7` at all (`U+2318`+`K` three times, `U+2318`+`F` three times), so
    the defect is a DROPPED `U+21E7`, not a claimed `U+23EB`; `U+23EB` appears
    in no commit message in this repo and in no comment on `t_fbb810a3`. That
-   superseded tip is carried by `refs/keep/chord-glyph-round-3` and by no
-   server ref, so a clone cannot re-take the counts from it; the tip the branch
-   carries now, `799a0dcf5e54866331c398fc07d129fdfdcc357a` on
-   `refs/heads/wt/cmd-shift-k-2026-11-25`, is the one a clone can read, and
-   its own message spells the chords as words (`Command-K`, `Command-F`), so
-   `git log -1 --format=%B` over it counts 0 `U+2318` and 0 `U+21E7`. The tree
-   facts the rejection charged hold at that tip and are re-takeable there: the
+   superseded tip is carried by `refs/keep/chord-glyph-round-3` and by no server
+   ref, so a clone cannot re-take the counts from it. What a clone can re-take is
+   the tip that branch carries now, `799a0dcf5e54866331c398fc07d129fdfdcc357a`,
+   and its parent `e53e8441e9dc29bdc8b8e0731a4f0cad1625c06c`, both on
+   `refs/heads/wt/cmd-shift-k-2026-11-25` and on the same-named server ref. By the
+   same codepoint method the tip's message counts 0 `U+2318` and 0 `U+21E7` and
+   the parent's counts 3 `U+2318`, 3 `U+21E7` and 0 bare `U+2318`+letter. The
+   tip's 0 is a silence, not a re-spelling: it names no chord in any form, and no
+   message in this repository spells a chord as words - `git log --all
+   --format=%B | grep -c` reads 0 for `Command-K` and 0 for `Command-F`. The
+   repaired message is the parent's, and it carries the same patch as the
+   superseded tip (`git patch-id --stable` reads
+   `cc7cc21c1c4d042568c161b68d4c540ccd681610` for both): the amend rewrote the
+   message and left the diff alone. The tree facts the rejection charged hold at
+   the tip and are re-takeable there: the
    code block's chord is `U+2318`+`U+21E7`+`F`
    (`ChatView+KeyboardShortcuts.swift:353` = `.keyboardShortcut("f", modifiers:
    [.command, .shift])`), focus input's chord is `U+2318`+`K` (`:25` =
