@@ -49,8 +49,9 @@ two surviving copies read `11-24 13:59:05` (the shared checkout) and `11-26
 `stat -f '%Sm' -t '%m-%d %H:%M:%S'`. Any arm whose window
 crossed `18:29:45` may have measured a reverted scorer that no longer existed.
 The rule recorded on `t_891a6235` comment 3059 and repeated on the review card:
-re-take, do not cite. The delegation was stopped at `18:39:05` after
-`11220.12` seconds; its product was already in the tree from the card's worker.
+re-take, do not cite. The delegation was dispatched at `15:32` and stopped at
+`18:39:05` (comment 3059's own endpoints); its product was already in the tree
+from the card's worker.
 
 **3. The root cause of that waste was dispatch, not the model.** A card
 assigned to a profile runs by itself on this board, so filing a card AND
@@ -64,14 +65,18 @@ assignee, workspace_path from tasks where status in ('running','ready','review')
 and workspace_path is not null`, read with `sqlite3 -readonly` against
 `~/.hermes/kanban/boards/wenshu-par/kanban.db`. What it catches is the
 collision class this rule exists to prevent: two open cards naming the SAME
-workspace path, one of them the shared checkout. At 2026-11-26 22:54 CST the
-open cards that name a workspace were `t_07e2a022` (its own worktree),
-`t_f9a65c7e` (its own worktree), `t_a6580791` and `t_982f92db` (review
-worktrees) - four paths, no collision - and the card that had claimed the shared
+workspace path, one of them the shared checkout. At 2026-11-26 22:54 CST four
+open cards named a workspace, and the four paths they named were
+`.worktrees/t_a500b73d` (`t_07e2a022`),
+`.worktrees/vendor-parity-on-main-2026-11-26` (`t_f9a65c7e`),
+`/Users/anbaiqiang/.hermes/kanban/boards/wenshu-par/workspaces/t_a6580791`
+(`t_a6580791`) and `.worktrees/nfi-census-block-2026-11-26` (`t_982f92db`) -
+four distinct paths, no collision - and the card that had claimed the shared
 checkout, `t_6d24acce`, had already gone to `done`, so a rule written on it
-would have found nothing to stop. A `--card`/`--scope` flag on
-`board_liveness.py` is the tool-side half of the fix and is carried as an open
-item.
+would have found nothing to stop. The census is blind by construction to cards
+opened after that instant (this card, `t_f20c7f89`, was created at 22:59:45).
+A `--card`/`--scope` flag on `board_liveness.py` is the tool-side half of the
+fix and is carried as an open item.
 
 **4. A published number was written with a placeholder and shipped anyway.**
 The landing comment first read `measured | 2026-11-26 19:3x CST`. That is a
@@ -120,8 +125,11 @@ branch`).
 
 The record-side repair, in `t_cd5419f9` comment 3074: put the claim and its
 token on one line under a `## WHAT TO BUILD` heading, and correct the base label
-(the body called `0f9c784db6` `origin/main`; `origin/main` was `7e036f7613` while
-the review ran and `29ec44f1e2` when the landing measured). With the edit in
+(the body called `0f9c784db6` `origin/main`; `origin/main` moved to
+`29ec44f1e2` at 2026-11-26 19:07:18 CST, and every reading `t_cd5419f9`
+published was taken 19:09:16-19:09:41 CST, after that move, so `7e036f7613`
+covered only the first 2m29s of that card's 19:04:49-19:11:26 run; the landing
+measured `29ec44f1e2`). With the edit in
 place and the branch tip still `8415d62200` = = the branch's reflog shows the
 rebase onto `29ec44f1e2` at `19:17:03` = = `review_gate.py --branch
 wt/retrieval-rank-order-2026-11-26 --main origin/main` answered `CARD
@@ -182,19 +190,35 @@ A reverted scorer that leaves every arm rc 0 is a reject of the suite, not a
 pass: the fixture would once again be unable to move, which is the defect rounds
 1 and 2 were rejected for.
 
-The cheap check a reader can run in any clone: every commit this record cites
-resolves. The five shas that are on `main` must resolve, and the loop FAILS if
-one of them does not.
+The cheap check a reader can run: every commit this record cites resolves in a
+checkout that carries the ref the loop prints for it. The five shas that are on
+`main`, and the one on the server branch `docs/rank-order-closeout-2026-11-26`,
+resolve in any clone, and the loop FAILS if one of those six does not; the other
+seven are carried by refs a clone may not have - a backup ref, three parked
+superseded tips and three lane branches - so a clone without one of them prints
+`not in this clone` instead of failing.
 
 ```
 for s in ecec033726 4db43731ac 29ec44f1e2 7e036f7613 0f9c784db6; do
   git cat-file -e "$s" || exit 1
-  printf "%s %s\n" "$s" "$(git cat-file -t "$s")"
+  printf "%s %s
+" "$s" "$(git cat-file -t "$s")"
 done
-# the reviewed commit is on no remote: it is parked locally at
-# refs/keep/rank-order-r3, so a clone without that ref prints this instead
-git cat-file -t 8415d6220073f52d5e52db2e80992baf7ad12d91 2>/dev/null \
-  || printf "8415d62200 not in this clone\n"
+for s in 825edae01447537b1fb3144675c89e17aadd1b26 \
+         8415d6220073f52d5e52db2e80992baf7ad12d91 \
+         64212762cb \
+         a708a7e5900857a3eaf613fba82dd6dc9e79a01d \
+         548730e3021a5d17db829499730970bfff750a04 \
+         3d67d7270d3244eec49a0a23cc3c4947938a0cbc \
+         c5d54473162aa909dee87ba57cf83ef9d8a2557d \
+         913b5239b38e21daf47e35fa1fa441692f95eb8f; do
+  if git cat-file -e "$s" 2>/dev/null; then
+    printf "%s %s %s\n" "$s" "$(git cat-file -t "$s")" \
+      "$(git for-each-ref --contains "$s" --format='%(refname)' | tr '\n' ' ')"
+  else
+    printf "%s not in this clone\n" "$s"
+  fi
+done
 ```
 
 ## Gate set, at the landed tree
@@ -231,8 +255,11 @@ equal to 0, and `_1.log` prints the sha it proves
 Two earlier battery readings read `suites=46 red=1`, with the red named
 `test_ticket_tier`: `/tmp/suites_tip.log` (mtime `17:27:51`) and
 `/tmp/suites_base.log` (mtime `17:32:07`), whose contents are byte-identical.
-Both instants PRECEDE the landed commits' author time (`17:44:06`), so neither
-log is a reading of the landed tree. The suite's redness is board-dependent by
+Both instants PRECEDE the landed commits' committer time (`19:17:03`, the
+same for `4db43731ac` and `ecec033726`), so neither log is a reading of the
+landed tree. Their author times differ (`17:44:06` and `06:56:53`), so the
+author-time reading this sentence used to carry did not hold for the second of
+them. The suite's redness is board-dependent by
 construction: the failing case asks the tier tool about a fixture card, the
 tool consults the LIVE board, and the failure message in `/tmp/tt_tip.log`
 names the collision and the card it collided with (`the live card t_b8b24959
@@ -312,21 +339,44 @@ read-back, local `main` was `29ec44f1e2` and
    913b5239b38e21daf47e35fa1fa441692f95eb8f` = = a sha that is NOT on `main`
    (`git merge-base --is-ancestor 913b5239b38e21daf47e35fa1fa441692f95eb8f
    origin/main` rc 1), so this record cannot claim that lane landed either. Its
-   open card `t_6d24acce` is the census fix that approval did not cover. The
-   four rework cards carry no verdict of their own yet: none of them has a row
-   in `task_runs`.
-4. **One chord item needs a human, not a round.** `t_fbb810a3` reached the
-   rejection cap on a committed message whose chord glyphs contradict the tree.
-   Counted by codepoint over `git log -1 --format=%B a708a7e590`, the message
-   carries `U+2318` ten times and `U+21E7` four times, and the codepoint
-   `U+23EB` appears in no commit message in this repo and in no comment on
-   `t_fbb810a3`. Six of the chord mentions are bare `U+2318`+letter with no
-   `U+21E7` at all, so the defect is a DROPPED `U+21E7`, not a claimed
-   `U+23EB`: at that tip the tree binds the code block at `U+2318`+`U+21E7`+`F`
-   (`ChatView+KeyboardShortcuts.swift:353`) and binds `U+2318`+`K` to focus input
-   (`:25`), and the roster line at `:233` names both. The reviewer offered
-   amend, waive, or a generator-side check; the author cannot pick one of
-   those.
+   card `t_6d24acce` is the census fix that approval did not cover; it is
+   `done`, and its one run (5259, `completed`, started and ended 2026-11-26
+   22:40:22 CST) carries no `review_outcome` in its metadata. The four rework
+   cards are read the same way, with `sqlite3 -readonly
+   ~/.hermes/kanban/boards/wenshu-par/kanban.db "select t.id, t.status,
+   (select count(*) from task_runs r where r.task_id = t.id) as runs from tasks
+   t where t.id in ('t_f9a65c7e','t_e5f90adb','t_2c076ee3','t_6d24acce')"`:
+   at 2026-11-27 00:07 CST that returns `t_f9a65c7e` `ready` 0 runs,
+   `t_e5f90adb` `done` 1 run (5265, `completed`, 2026-11-26 23:24:10 CST),
+   `t_2c076ee3` `ready` 0 runs, `t_6d24acce` `done` 1 run (5259). Neither run
+   carries a `review_outcome`, so none of the four cards carries a verdict of
+   its own.
+4. **One chord item was decided, and the decision is on the card.**
+   `t_fbb810a3` reached the rejection cap on a committed message whose chord
+   glyphs contradict the tree; the card is `blocked`, single run 5083
+   `blocked`, read 2026-11-27 00:07 CST. The owner chose the reviewer's first
+   option: comment 2820 on that card, 2026-11-25 18:11:02 CST, "option 1 -
+   order the amend", and comment 2828, 2026-11-25 20:15:42 CST, records the
+   rework at tip `799a0dcf5e54866331c398fc07d129fdfdcc357a`, which supersedes
+   the tip the rejection was about. The counts belong to that superseded
+   message: counted by codepoint over `git log -1 --format=%B
+   a708a7e5900857a3eaf613fba82dd6dc9e79a01d`, it carries `U+2318` ten times and
+   `U+21E7` four times, and six of the mentions are bare `U+2318`+letter with
+   no `U+21E7` at all (`U+2318`+`K` three times, `U+2318`+`F` three times), so
+   the defect is a DROPPED `U+21E7`, not a claimed `U+23EB`; `U+23EB` appears
+   in no commit message in this repo and in no comment on `t_fbb810a3`. That
+   superseded tip is carried by `refs/keep/chord-glyph-round-3` and by no
+   server ref, so a clone cannot re-take the counts from it; the tip the branch
+   carries now, `799a0dcf5e54866331c398fc07d129fdfdcc357a` on
+   `refs/heads/wt/cmd-shift-k-2026-11-25`, is the one a clone can read, and
+   its own message spells the chords as words (`Command-K`, `Command-F`), so
+   `git log -1 --format=%B` over it counts 0 `U+2318` and 0 `U+21E7`. The tree
+   facts the rejection charged hold at that tip and are re-takeable there: the
+   code block's chord is `U+2318`+`U+21E7`+`F`
+   (`ChatView+KeyboardShortcuts.swift:353` = `.keyboardShortcut("f", modifiers:
+   [.command, .shift])`), focus input's chord is `U+2318`+`K` (`:25` =
+   `.keyboardShortcut("k", modifiers: [.command])`), and the roster line at
+   `:233` names both (`U+2318` 14 times, `U+21E7` 8 times on that line).
 5. **This record is reviewed as any change is.** The card that reviews this
    record names the sha this file was committed as, and the verdict on that card
    is not written back into this file: the
