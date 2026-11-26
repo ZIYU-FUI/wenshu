@@ -137,7 +137,7 @@ citation honest is one line: = the label's `_1.log` must print the tip the claim
 made about. = = If it prints anything else, = = the label belongs to an earlier draft
 of these words.
 
-This record was gated on its own tip too, = = under label **`closeout-record-r12`** (=
+This record was gated on its own tip too, = = under label **`closeout-record-r13`** (=
 = nine commands, = = base `e17c5f30ce`). = = Earlier families survive on disk, = = each
 named with the tip it measured, = = because they are this record's own history and are
 **not** the verdict on this tip: `closeout-seed-doc_*` (= 8 files, = = `b43c2a4f43`), =
@@ -152,15 +152,17 @@ publishing a window it had elsewhere declared false), = = and `closeout-record-r
 (= 9, = = `7d8f98ede7`, = = the round-5 fix's first commit, = = superseded by the labels this
 tip has been published under), = = and `closeout-record-r10_*` (= 9, = = `77ba8b625c`, = = the tip
 round 6 reviewed and refused), = = and `closeout-record-r11_*`
-(= 9, = = `91bb8c4ff8`, = = the round-6 fix's own commit, = = superseded by the label this
-tip publishes under).
+(= 9, = = `91bb8c4ff8`, = = the round-6 fix's own commit, = = superseded by the labels this
+tip has been published under), = = and `closeout-record-r12_*`
+(= 9, = = `3899a8ca8d`, = = the round-6 fix's second commit, = = the tip this round answers).
+
 
 ```bash
 R=/Volumes/ANAN/Engineering/wenshu
 T=$R/.worktrees/seed-closeout-2026-11-26
 G=$T/Tools/wenshu-devtool
 B=$(git -C $R rev-parse e17c5f30ce)
-LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r12 \
+LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r13 \
   "git -C $T rev-parse HEAD" \
   "python3 $G/tests/test_probe_index.py" \
   "python3 $G/ci_change_gate.py --base $B --check pollution --repo $T" \
@@ -170,9 +172,9 @@ LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeo
   "python3 $G/comment_lineage.py --base $B --repo $T" \
   "python3 $G/nfi-loc-check.py --base $B --registry $T/docs/agents/nfi.md" \
   "wc -l $T/docs/agents/2026-11-26-session-close-seed-idempotence.md"
-ls $R/.gate-logs/closeout-record-r12_*.log | wc -l        # 9
-head -1 $R/.gate-logs/closeout-record-r12_1.log           # = the sha the review card names
-grep -c FAIL $R/.gate-logs/closeout-record-r12_*.log      # 0 in each file
+ls $R/.gate-logs/closeout-record-r13_*.log | wc -l        # 9
+head -1 $R/.gate-logs/closeout-record-r13_1.log           # = the sha the review card names
+grep -c FAIL $R/.gate-logs/closeout-record-r13_*.log      # 0 in each file
 ```
 
 The gate surface has **one** change-scoring tool, = not one per rule: =
@@ -200,7 +202,7 @@ instead of as sentences.** = The count of a failure is part of the failure: =
 disease as the reading it accused.
 
 The denominators, = read out of the nine **`closeout-merged-main`** log bodies (= a
-second family, = `closeout-record-r12`, = = also has nine files): = `Build complete!`; = = *Test
+second family, = `closeout-record-r13`, = = also has nine files): = `Build complete!`; = = *Test
 run with **4 tests** in 1 suite passed*; = = `added comment lines: 59` = with
 `offending: 0 rows / 0 files (P0=0, P1=0)`; = = `nfi-loc-check: ... (1 row(s)
 checked)`; = = `formatting: ... (2 changed Swift file(s) checked)`; = = `loc-cap:
@@ -210,8 +212,8 @@ forbidden vocabulary (3ad2ccebfacab0e52b4208488e4acae196e64c96...HEAD)` -- = the
 is not `origin/main...HEAD`, = = and not the window this record's own diff sits in
 either -- = after the rebase onto `e17c5f30ce` that window is `e17c5f30ce...HEAD`, = written
 **short** here. = = The log prints it in full:
-`closeout-record-r12_3.log` begins `pollution: the change adds no forbidden vocabulary
-(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r12_7.log`
+`closeout-record-r13_3.log` begins `pollution: the change adds no forbidden vocabulary
+(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r13_7.log`
 begins `comment-lineage: window e17c5f30ce..<the tip this record lands as>`. = = Where
 this record shortens a sha it says so: = = a shortened sha is an **abbreviation of a
 printed line**, = never a second reading of it.
@@ -308,7 +310,9 @@ by two reflog entries, = = not stamped by a minute: = the two devtool commits
 `changes_requested` reached `main` at 18:11:44 and `refs/remotes/origin/main` at 18:11:50, =
 so `old-origin/main` was behind by exactly those two **from 18:11:44 to 19:07:48**, = when it
 took `29ec44f1e2`, = which carries both (`merge-base --is-ancestor` -> rc 0 for each). =
-**At 18:05 the two refs were equal** on `0f9c784db6`: = an earlier draft named that minute as
+**At 18:05 the two refs were equal** on `0f9c784db6` (`main` took it at 17:13:22 and
+left it at 18:11:44; = `refs/remotes/old-origin/main` took it at 17:49:52 and left it at
+19:07:48 -- = the four readings are the two greps the block below adds): = an earlier draft named that minute as
 though it were the behind state, = which is the same mistake as a distance read at a minute.
 Pushing a commit no card approves is impersonation, = so the remote was caught up afterwards
 by the lanes that own those commits, = not by this session. = = The two reflogs say: = the remote took `4db43731ac` at
@@ -328,6 +332,8 @@ git -C $R merge-base --is-ancestor 0f9c784db6 refs/remotes/old-origin/main; echo
 git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep -m1 4db43731ac
 git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 4db43731ac
 git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 e17c5f30ce
+git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 0f9c784db6
+git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep -m1 0f9c784db6
 ```
 The `merge-base` read is the claim; = = the reflog read is the interval, = and the
 interval's near end is whichever of the two refs arrived **last**. = = No **unbounded** count of a
