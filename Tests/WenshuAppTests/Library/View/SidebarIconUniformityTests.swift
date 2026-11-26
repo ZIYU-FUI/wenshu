@@ -70,8 +70,12 @@ struct SidebarIconUniformityTests {
         #expect(source.contains("case .sidebar: 16") || source.contains("case .sidebar:") || source.contains("case sidebar\n"))
         // slot dimensions live in the extension on IconStyle so
         // they're explicit (= not piggy-backed on every case).
-        #expect(source.contains("var sidebarWidth: CGFloat { 16 }"))
-        #expect(source.contains("var sidebarInset: CGFloat { 2 }"))
+        // The guard binds the VALUE, not the one-line spelling: the
+        // honesty rules re-wrapped these getters into multi-line
+        // bodies, and a `contains` on `{ 16 }` would pin a layout
+        // the contract never promised.
+        #expect(Self.getterValue(of: "var sidebarWidth: CGFloat", in: source) == "16")
+        #expect(Self.getterValue(of: "var sidebarInset: CGFloat", in: source) == "2")
         // SFLabelRow defaults to .sidebarTree (not .small) so a
         // caller that doesn't pass iconStyle still hits the
         // canonical sidebar surface. The default parameter lives
@@ -79,6 +83,32 @@ struct SidebarIconUniformityTests {
         // enum.
         let views = try Self.source("Sources/WenshuApp/Shared/UI/IconStylesViews.swift")
         #expect(views.contains("iconStyle: IconStyle = .sidebarTree") || views.contains("iconStyle: IconStyle = .sidebar"))
+    }
+
+    @Test("getterValue reads a value, not a spelling (= one-line, tight, and re-wrapped bodies agree)")
+    func getterValueBindsTheValueNotTheLayout() {
+        // The guard these tests use must survive the formatting the honesty
+        // rules now require, so each spelling of the same getter has to read
+        // back the same number. The line-break constant keeps the fixtures
+        // out of a multi-line string literal (= whose indentation belongs to
+        // the test file, not to the getter).
+        let n = "\n"
+        let spelled: [(name: String, source: String)] = [
+            ("multi-line body", "extension IconStyle {" + n + "    var sidebarWidth: CGFloat {" + n + "        16" + n + "    }" + n + "}"),
+            ("one-line spaced", "var sidebarWidth: CGFloat { 16 }"),
+            ("one-line tight", "var sidebarWidth: CGFloat {16}"),
+            ("one-line inside an extension", "extension IconStyle { var sidebarWidth: CGFloat { 16 } }"),
+        ]
+        for fixture in spelled {
+            #expect(
+                Self.getterValue(of: "var sidebarWidth: CGFloat", in: fixture.source) == "16",
+                "\(fixture.name) must read as the same 16 PT slot"
+            )
+        }
+        // A changed number is still a failure, and a renamed or removed
+        // property answers nil (= it cannot pass by finding nothing).
+        #expect(Self.getterValue(of: "var sidebarWidth: CGFloat", in: "var sidebarWidth: CGFloat {\n 18\n}") == "18")
+        #expect(Self.getterValue(of: "var sidebarWidth: CGFloat", in: "var otherWidth: CGFloat {\n 16\n}") == nil)
     }
 
     private static func sourceSlice(
@@ -93,6 +123,65 @@ struct SidebarIconUniformityTests {
         // the last one in it, so there is no following MARK to bound
         // it.
         return String(source[startRange.lowerBound...])
+    }
+
+    /// The value a one-statement computed-property getter returns, as written
+    /// in the source. Braces are counted, not searched for, so the getter's
+    /// own `}` ends the value and an enclosing scope's `}` on the same line
+    /// does not: the one-line form (`{ 16 }`), the tight form (`{16}`), a
+    /// one-line getter inside an extension, and the multi-line body the
+    /// honesty rules re-wrapped this getter into all read as the same value.
+    /// A renamed or removed property answers nil (= the assertion fails)
+    /// instead of silently passing.
+    private static func getterValue(of declaration: String, in source: String) -> String? {
+        let head = declaration + " {"
+        let lines = source.components(separatedBy: "\n")
+        var body: [String] = []
+        var insideGetter = false
+        // `depth` counts the scopes opened INSIDE the getter's body, which
+        // is what remains after the head anchor has consumed the getter's
+        // own `{`. A nested `{` therefore pushes the level to 1 and only the
+        // matching `}` brings it back to 0 (= the getter's own closing brace).
+        var depth = 0
+        for rawLine in lines {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            var remainder = line
+            if !insideGetter {
+                guard let headRange = line.range(of: head) else { continue }
+                insideGetter = true
+                remainder = String(line[headRange.upperBound...])
+            }
+            // Scan the line's own braces: depth returns to 0 only at the
+            // getter's closing `}`, and the text before it is the value.
+            var cut = remainder.endIndex
+            var reachedEndOfGetter = false
+            for index in remainder.indices {
+                let character = remainder[index]
+                if character == "{" {
+                    depth += 1
+                } else if character == "}" {
+                    // The getter's own closing `}` is the one seen while no
+                    // nested scope is open, so the test comes BEFORE the
+                    // counter drops (a nested `}` only ever closes a level
+                    // that its own `{` opened).
+                    if depth == 0 {
+                        cut = index
+                        reachedEndOfGetter = true
+                        break
+                    }
+                    depth -= 1
+                }
+            }
+            body.append(String(remainder[..<cut]))
+            if reachedEndOfGetter {
+                return body
+                    .joined(separator: " ")
+                    .trimmingCharacters(in: .whitespaces)
+                    .split(whereSeparator: \.isWhitespace)
+                    .joined(separator: " ")
+            }
+        }
+        return insideGetter ? body.joined(separator: " ") : nil
     }
 
     private static func source(_ relativePath: String) throws -> String {
