@@ -29,7 +29,16 @@ import Foundation
 import Testing
 @testable import WenshuApp
 
-@Suite("Spotlight index writer")
+/// Serialized, because of a property of the system index rather than of these
+/// tests: = the arms share ONE physical named index, = and a batch is a
+/// TRANSACTION on it. = A plain write issued while another arm holds a batch
+/// open is not late, = it is invisible until that batch commits, = and no wait
+/// can shorten that. = Measured with a 501-document batch arm in this suite: =
+/// 5 of 12 runs failed, = every one of them an arm reading a token another arm
+/// had written inside its open batch; = serialized, = 12 of 12 pass. = The
+/// visibility bound stays for what a bound is about (= ingest latency after a
+/// commit), = and does not substitute for ordering.
+@Suite("Spotlight index writer", .serialized)
 struct SpotlightIndexWriterTests {
     /// A word no other document holds (= the marker keeps a hit here
     /// from being satisfied by anything but this test's own document).
@@ -64,8 +73,8 @@ struct SpotlightIndexWriterTests {
             docId: docId, title: "Harbor survey", body: "The \(older) tide gauge."
         )
         #expect(
-            await SpotlightIndexReadiness.check(token: older).isReady,
-            "the first write must be in the system index (= the control arm: if this fails, nothing below means anything)"
+            await SpotlightIndexReadiness.check(token: older, docId: docId).isReady,
+            "the first write must be readable (= the control arm: if this fails, nothing below means anything)"
         )
 
         try await CSSearchableIndexSearch.shared.index(
@@ -74,12 +83,18 @@ struct SpotlightIndexWriterTests {
 
         // One docId answers with one body: the newest one written.
         #expect(
-            await SpotlightIndexReadiness.check(token: newer).isReady,
+            await SpotlightIndexReadiness.check(token: newer, docId: docId).isReady,
             "re-indexing a docId must put the new body into the system index"
         )
         // The old body is the one that went away (= a replacement, not an
         // addition, and not a disappearance of the document).
-        let stale = await SpotlightIndexReadiness.check(token: older)
+        //
+        // The DISAPPEARING face, not the appearing one: = an index that has
+        // not got round to dropping the stale body yet answers `found`, =
+        // and a loop waiting for `absent` would take that `found` as its own
+        // first word. = Two seconds of the same answer is the most `absent`
+        // this will accept.
+        let stale = await SpotlightIndexReadiness.checkGone(token: older, docId: docId)
         #expect(
             !stale.isReady,
             "a replaced body must not stay findable under the same docId (= got \(stale))"
@@ -93,8 +108,11 @@ struct SpotlightIndexWriterTests {
         let first = Self.probeDocId()
         let last = Self.probeDocId()
         let token = Self.marker()
+        // The token is planted in the LAST document alone. = A marker in
+        // the first one too would let a read of the first chunk answer for
+        // the last, = and the arm would go green either way.
         let documents = [
-            Self.document(first, "harbour notes \(token)"),
+            Self.document(first, "harbour notes"),
             Self.document("spotlight-writer-probe-mid", "customs board"),
             Self.document(last, "lighthouse log \(token)"),
         ]
@@ -103,10 +121,17 @@ struct SpotlightIndexWriterTests {
         let cursor = try await CSSearchableIndexSearch.shared.writer.donate(documents)
         #expect(cursor.committedCount == documents.count)
 
-        // Readiness is asked of the LAST document, = which is the arm that
-        // proves the whole run committed and not only its first chunk.
+        // Readiness is asked of the LAST document, = and asked OF IT: = the
+        // token is only in its body, = and the answer is filtered to its
+        // own identifier. = Three documents against a 500-item ceiling is
+        // ONE chunk, = so this arm proves the batch commit is readable
+        // through the production handle at the document the run finished
+        // with; = the ceiling itself is `chunksRespectTheLimit`, = and what
+        // a second chunk would do is `theLastChunkOfARunIsTheChunkThe
+        // DonationReportsOn`.
         let answer = await SpotlightIndexReadiness.check(
             token: token,
+            docId: last,
             timeout: SpotlightIndexWriter.donationReadinessTimeout
         )
         #expect(answer.isReady, "a batch commit must be readable (= got \(answer))")
@@ -134,11 +159,104 @@ struct SpotlightIndexWriterTests {
 
     @Test("a token that was never written is reported absent, not found")
     func readinessNegativeArm() async {
-        let answer = await SpotlightIndexReadiness.check(
-            token: Self.marker(),
-            timeout: SpotlightIndexWriter.donationReadinessTimeout
-        )
+        // The no-loop face, = deliberately: = this token was never written,
+        // so waiting can only cost time, = and the question the arm asks is
+        // "does an unwritten token read as ready", = not "when does it stop
+        // doing so".
+        let answer = await SpotlightIndexReadiness.ask(token: Self.marker())
         #expect(!answer.isReady, "an unwritten token must not read as ready (= got \(answer))")
+    }
+
+    // MARK: - Which document answers
+
+    /// The containment hole, and the predicate that closes it.
+    ///
+    /// `SpotlightQuery(contentToken:)` is a domain-wide test: it answers
+    /// "some document in this domain carries this word", and it has no way
+    /// to mean "this one". A donation whose readiness rests on that answer
+    /// reports ready on a document it never wrote. The closure is the hit's
+    /// own identifier: the token gets the answer, and
+    /// `CSSearchDomain.itemIdentifier(for:)` decides whose answer it is.
+    ///
+    /// The arm therefore plants the SAME token in a second document that
+    /// this donation does not delete. The domain still says "found", the
+    /// document says "absent", and only a check that reads identifiers can
+    /// tell those two apart.
+    @Test("a foreign document carrying the token cannot answer for the subject")
+    func aForeignDocumentCarryingTheTokenCannotAnswerForTheSubject() async throws {
+        let subject = Self.probeDocId()
+        let foreign = Self.probeDocId()
+        let token = Self.marker()
+        let documents = [
+            Self.document(subject, "harbour master \(token)"),
+            Self.document(foreign, "harbour deputy \(token)"),
+        ]
+        defer { Self.clean(docIds: [subject, foreign]) }
+
+        try await CSSearchableIndexSearch.shared.writer.donate(documents)
+
+        // Both documents are in, so both faces agree.
+        #expect(
+            await SpotlightIndexReadiness.check(token: token, docId: subject).isReady,
+            "the subject's own identifier must be in the answer"
+        )
+
+        // Take the subject out and leave the foreign one behind. The
+        // domain-wide face still answers `found`, because a document that
+        // carries the token is still in the domain: that is the whole of
+        // the hole. The document-scoped face must not.
+        try await CSSearchableIndexSearch.shared.writer.remove(docIds: [subject])
+
+        // The foreign document's own appearance question, = and the
+        // subject's disappearance question: = two loops, = because the two
+        // assertions are waiting for opposite things to settle.
+        let domain = await SpotlightIndexReadiness.check(token: token, docId: foreign)
+        let scoped = await SpotlightIndexReadiness.checkGone(token: token, docId: subject)
+        #expect(
+            domain == .found,
+            "the surviving foreign document must still answer the containment question (= got \(domain))"
+        )
+        #expect(
+            scoped == .absent,
+            "a token another document carries is not this document being readable (= got \(scoped))"
+        )
+    }
+
+    /// Item 4's other half: full and incremental share the write path, and
+    /// the donation reports on the document the run ENDED with.
+    ///
+    /// A 501-document corpus is two chunks (500 and 1), and the token lives
+    /// in the 501st document alone, so this arm reads the final chunk: a
+    /// donation that committed the first 500 and lost the last one reports
+    /// `absent`. An arm that plants its marker in more than one document
+    /// cannot tell those two states apart, because either of them answers
+    /// the question.
+    @Test("the last chunk of a run is the chunk the donation reports on")
+    func theLastChunkOfARunIsTheChunkTheDonationReportsOn() async throws {
+        let marker = Self.marker()
+        let ids = (1 ... 501).map { _ in Self.probeDocId() }
+        let documents: [SpotlightIndexDocument] = ids.enumerated().map { index, docId in
+            Self.document(
+                docId,
+                index == ids.count - 1
+                    ? "quayside manifest \(marker)"
+                    : "quayside ledger \(index)"
+            )
+        }
+        defer { Self.clean(docIds: ids) }
+
+        let cursor = try await CSSearchableIndexSearch.shared.writer.donate(documents)
+        #expect(cursor.committedCount == 501, "the run must report both chunks")
+
+        let last = ids[ids.count - 1]
+        #expect(
+            await SpotlightIndexReadiness.check(
+                token: marker,
+                docId: last,
+                timeout: SpotlightIndexWriter.donationReadinessTimeout
+            ).isReady,
+            "the document in the final chunk must be readable (= got the first chunk's answer instead)"
+        )
     }
 
     // MARK: - The ceiling

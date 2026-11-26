@@ -297,7 +297,8 @@ actor CSSearchableIndexSearch {
     /// system index is the durable half (= see `mirror`).
     ///
     /// `bootstrap` deliberately does not donate. = The whole-corpus pass is
-    /// `SpotlightIndexWriter.donate(corpus:)` and has no caller: = a launch
+    /// `CSSearchableIndexSearch.donate(corpus:)`, = which runs
+    /// `SpotlightIndexWriter.donateCorpus(_:)`, = and it has no caller: = a launch
     /// hook needs an enumeration that provably covers every document the
     /// library holds, = because the pass clears its domain before writing,
     /// = so a half-enumerated corpus would remove more than it replaces.

@@ -322,21 +322,31 @@ struct SpotlightIndexWriter: @unchecked Sendable {
     /// difference between "nothing to donate" and "could not donate" stays
     /// visible to whoever reads it.
     ///
-    /// **Readiness asks about the LAST document, and only when that
-    /// document can be named uniquely.** = The donation commits its chunks
-    /// in order, = so a token that exists in no other donated document
-    /// and answers anyway means the final chunk landed, = which is the
-    /// last one that could have been lost. =
+    /// **Readiness asks about the LAST donated document, by its own
+    /// identifier, and only when that document can be named uniquely.** =
+    /// The donation commits its chunks in order, = so the final chunk is
+    /// the last one that could have been lost, = and the answer is sought
+    /// on the document the run wrote last. =
     ///
-    /// What the check does NOT establish: = the underlying query is a
-    /// domain-wide containment test, = so a token shared with any other
-    /// document in the domain — including one this donation never wrote —
-    /// would answer `found` without this donation having landed. = That is
-    /// why `SpotlightReadinessToken.forCorpus` refuses a shared token instead of
-    /// reporting a pass, = and why a heading-led corpus reads `notChecked`
-    /// rather than `ready`. = A failed check does not undo the donation
-    /// (the commits are durable); = it says out loud that what was written
-    /// cannot be read back as this document's own.
+    /// Two guards make that answer mean the document and not the domain. =
+    /// The token has to be the last document's own opening prose word (=
+    /// `SpotlightReadinessToken.forCorpus`, = which returns nil when an
+    /// earlier donated document opens with the same word, = or when the
+    /// last body carries no prose word at all), = and a hit only counts
+    /// when its `uniqueIdentifier` is the one this app wrote for that
+    /// docId (= `CSSearchDomain.itemIdentifier(for:)`). = The second
+    /// guard is the one with reach: = the query itself is a domain-wide
+    /// containment test, = so unless the answer set is filtered by
+    /// identifier, a document this donation never wrote can answer
+    /// `found` for a corpus that never landed. =
+    ///
+    /// What the check does NOT establish: = it says nothing about the
+    /// chunks in between. = A donation that committed 400 of 900
+    /// documents and died answers `absent`, = not "partial"; = and a
+    /// corpus whose last two documents open with the same prose word
+    /// reads `notChecked`, = which is the report saying it could not ask
+    /// the question, = not that the answer was no. = A failed check does
+    /// not undo the donation (= the commits are durable).
     ///
     /// - Throws: `SpotlightIndexWriteFailure` from the clear or from a chunk.
     func donateCorpus(
@@ -365,6 +375,7 @@ struct SpotlightIndexWriter: @unchecked Sendable {
         }
         let readiness = await SpotlightIndexReadiness.check(
             token: token,
+            docId: documents[documents.count - 1].docId,
             timeout: Self.donationReadinessTimeout
         )
         return DonationReport(
@@ -478,81 +489,5 @@ struct SpotlightIndexWriter: @unchecked Sendable {
             start = end
         }
         return out
-    }
-}
-
-// MARK: - Readiness
-
-/// Whether what the writer committed can be read back.
-///
-/// **Why this is not the production read.** = `CSSearchableIndexSearch`
-/// asks `CSUserQuery(userQueryString:)`, = which is a natural-language
-/// question, = and that is the right face for a person typing one. = It
-/// is the wrong face for "did my commit land": = for the same token
-/// written through a batch, = the user-query-string face answered 0 and
-/// the metadata predicate below answered 1 (= measured 2026-11-26, = after
-/// twelve retries on the first face). = A readiness check built on the
-/// first face would report "not ready" for an index that was ready, = and
-/// that is the exact failure this file exists to remove.
-///
-/// **The face that is measured to see a batch's own write** is a
-/// containment predicate on `contentDescription`, = the attribute the
-/// entry seam fills with the document's body.
-enum SpotlightIndexReadiness {
-    /// How a readiness check ended.
-    ///
-    /// Four answers, = not a boolean: = "the document is not there", =
-    /// "the index refused the question", = and "the index never answered
-    /// it" are three different things a reader has to act on
-    /// differently, = and collapsing them into `false` is how a broken
-    /// indexer gets reported as an empty library.
-    enum Answer: Equatable, Sendable {
-        /// The index held a document whose text carries the token.
-        case found
-        /// The index answered, = and nothing in this domain matched.
-        case absent
-        /// The index refused the question.
-        case failed
-        /// The index did not answer in time.
-        case timedOut
-        /// The caller gave up before the index answered.
-        case cancelled
-
-        /// The question was not asked, = because there was nothing to ask
-        /// it about (= an empty body, = or an empty corpus). = Kept apart
-        /// from `.absent`, = which is an answer the index actually gave: =
-        /// a reader who is told "absent" will go looking for a missing
-        /// document, = and a reader who is told "not asked" will look at
-        /// the corpus.
-        case notChecked
-
-        var isReady: Bool {
-            self == .found
-        }
-    }
-
-    /// Ask whether one document's body is in the index.
-    ///
-    /// The query is the tree's own box (`SpotlightQuery`, = which is why
-    /// it gained a second initialiser rather than a second collector), =
-    /// and the wait is the tree's own (`SpotlightQueryWait`), = so the
-    /// deadline, = the cancellation, = and the one-shot gate that keeps a
-    /// continuation from resuming twice are not reinvented here.
-    static func check(
-        token: String,
-        timeout: Duration = SpotlightQueryWait.defaultTimeout
-    ) async -> Answer {
-        let query = SpotlightQuery(contentToken: token)
-        let outcome = await SpotlightQueryWait.awaitOutcome(
-            timeout: timeout,
-            start: { report in query.start(onAnswer: report) },
-            cancel: { query.cancel() }
-        )
-        switch outcome {
-        case .answered: return query.hits.isEmpty ? .absent : .found
-        case .failed: return .failed
-        case .timedOut: return .timedOut
-        case .cancelled: return .cancelled
-        }
     }
 }
