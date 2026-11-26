@@ -193,7 +193,7 @@ citation honest is one line: = the label's `_1.log` must print the tip the claim
 made about. = = If it prints anything else, = = the label belongs to an earlier draft
 of these words.
 
-This record was gated on its own tip too, = = under label **`closeout-record-r16`** (=
+This record was gated on its own tip too, = = under label **`closeout-record-r17`** (=
 = nine commands, = = base `e17c5f30ce`). = = Earlier families survive on disk, = = each
 named with the tip it measured, = = because they are this record's own history and are
 **not** the verdict on this tip: `closeout-seed-doc_*` (= 8 files, = = `b43c2a4f43`), =
@@ -206,15 +206,15 @@ that a window read from one reflog is not an interval of equality), = = and
 `closeout-record-r8_*` (= 9, = = `0b264526ce`, = = the round that found the record
 publishing a window it had elsewhere declared false), = = and `closeout-record-r9_*`
 (= 9, = = `7d8f98ede7`, = = the round-5 fix's first commit, = = superseded by the labels this
-tip has been published under), = = and `closeout-record-r10_*` (= 9, = = `77ba8b625c`, = = the tip
-round 6 reviewed and refused), = = and `closeout-record-r11_*`
-(= 9, = = `91bb8c4ff8`, = = the round-6 fix's own commit, = = superseded by the labels this
-tip has been published under), = = and `closeout-record-r12_*`
-(= 9, = = `3899a8ca8d`, = = the round-6 fix's second commit, = = superseded by the labels
-this tip has been published under), = = and `closeout-record-r13_*` (= 9, = = `914e9bcbea`,
-= = the tip round 7 reviewed and refused), = = and `closeout-record-r14_*` (= 9, = = `5990ef8bbf`,
-= = the tip round 8 reviewed and refused), = = and `closeout-record-r15_*` (= 9, = = `b976e313e7`,
-= = the tip round 9 reviewed and refused).
+tip has been published under), = = and `closeout-record-r10_*` (= 9, = = `77ba8b625c`, = = the
+tip round 6 reviewed and refused), = = and `closeout-record-r11_*` (= 9, = = `91bb8c4ff8`, = =
+the round-6 fix's own commit, = = superseded by the labels this tip has been published under), =
+= and `closeout-record-r12_*` (= 9, = = `3899a8ca8d`, = = the round-6 fix's second commit, = =
+superseded by the labels this tip has been published under), = = and `closeout-record-r13_*` (=
+9, = = `914e9bcbea`, = = the tip round 7 reviewed and refused), = = and `closeout-record-r14_*`
+(= 9, = = `5990ef8bbf`, = = the tip round 8 reviewed and refused), = = and
+`closeout-record-r15_*` (= 9, = = `b976e313e7`, = = the tip round 9 reviewed and refused), = =
+and `closeout-record-r16_*` (= 9, = = `289bd31d50`, = = the tip round 10 reviewed and refused).
 Three more families exist on disk and are **not** part of that lineage: =
 `closeout-record-r5-recheck-t70f99272_*` (= 9, = = `4f0418a0d5`, = = a re-check written under a
 card id, = not a round of this record), = `closeout-record-r6r-t214d7590_*` (= 9, = =
@@ -230,7 +230,7 @@ R=/Volumes/ANAN/Engineering/wenshu
 T=$R/.worktrees/seed-closeout-2026-11-26
 G=$T/Tools/wenshu-devtool
 B=$(git -C $R rev-parse e17c5f30ce)
-LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r16 \
+LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r17 \
   "git -C $T rev-parse HEAD" \
   "python3 $G/tests/test_probe_index.py" \
   "python3 $G/ci_change_gate.py --base $B --check pollution --repo $T" \
@@ -240,9 +240,9 @@ LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeo
   "python3 $G/comment_lineage.py --base $B --repo $T" \
   "python3 $G/nfi-loc-check.py --base $B --registry $T/docs/agents/nfi.md" \
   "wc -l $T/docs/agents/2026-11-26-session-close-seed-idempotence.md"
-ls $R/.gate-logs/closeout-record-r16_*.log | wc -l        # 9
-head -1 $R/.gate-logs/closeout-record-r16_1.log           # = the sha the review card names
-grep -c FAIL $R/.gate-logs/closeout-record-r16_*.log      # 0 in each file
+ls $R/.gate-logs/closeout-record-r17_*.log | wc -l        # 9
+head -1 $R/.gate-logs/closeout-record-r17_1.log           # = the sha the review card names
+grep -c FAIL $R/.gate-logs/closeout-record-r17_*.log      # 0 in each file
 ```
 
 The gate surface has **one** change-scoring tool, = not one per rule: =
@@ -270,7 +270,7 @@ instead of as sentences.** = The count of a failure is part of the failure: =
 disease as the reading it accused.
 
 The denominators, = read out of the nine **`closeout-merged-main`** log bodies (= a
-second family, = `closeout-record-r16`, = = also has nine files): = `Build complete!`; = = *Test
+second family, = `closeout-record-r17`, = = also has nine files): = `Build complete!`; = = *Test
 run with **4 tests** in 1 suite passed*; = = `added comment lines: 59` = with
 `offending: 0 rows / 0 files (P0=0, P1=0)`; = = `nfi-loc-check: ... (1 row(s)
 checked)`; = = `formatting: ... (2 changed Swift file(s) checked)`; = = `loc-cap:
@@ -280,9 +280,9 @@ forbidden vocabulary (3ad2ccebfacab0e52b4208488e4acae196e64c96...HEAD)` -- = the
 is not `origin/main...HEAD`, = = and not the window this record's own diff sits in
 either -- = after the rebase onto `e17c5f30ce` that window is `e17c5f30ce...HEAD`, = written
 **short** here. = = The log prints it in full:
-`closeout-record-r16_3.log` begins `pollution: the change adds no forbidden vocabulary
-(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r16_7.log`
-begins `comment-lineage: window e17c5f30ce..<the tip this record lands as>`. = = Where
+`closeout-record-r17_3.log` begins `pollution: the change adds no forbidden vocabulary
+(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r17_7.log`
+begins `comment-lineage: window e17c5f30ce..<the tip this family measured>`. = = Where
 this record shortens a sha it says so: = = a shortened sha is an **abbreviation of a
 printed line**, = never a second reading of it.
 
@@ -522,7 +522,7 @@ record's. The retry, run 5235, returned in 853 s.
 |---|---|---|
 | a sentence the gate never wrote | the record quoted `pollution: no forbidden vocabulary, no CJK outside the exempt families`; = = neither half is a string any tool prints (`grep -rl` over `.gate-logs`, = `Tools`, = docs and the skill tree: 0 files), = and `ci_change_gate.py` has two pollution forms | the record quotes the printed line, = = for both families, = = with the window each log names |
 | a failure counted wrongly | "four invented paths, = each beginning `can\'t open file`, = with `grep -c FAIL` = 0 across all seven" -- = the family holds **two** such logs, = = one usage error (`--base` missing), = = and two tool names that never ran at all | the census is written log by log off `closeout-record-r4`, = with the greps that show the two silent names |
-| an older draft's verifier line pasted as current | `PASS (7 blocks)`, = 6 ok and 1 red -- = = a string `verify_doc_commands.py` cannot print (its only PASS line is `PASS (N block(s) seen, M executed)`) | re-taken at this tip: = = the tool's own block count (= = read from the tool's last line, = = not restated here, = = because the count moves with the record's own fences), = with the two `ok` lines; = the executed arm is attributed to the draft it came from and is not re-run, = = because `--run` executes the record's own gate blocks |
+| an older draft's verifier line pasted as current | `PASS (7 blocks)`, = 6 ok and 1 red -- = = a string `verify_doc_commands.py` cannot print (its only PASS line is `PASS (N block(s) seen, M executed)`) | re-taken at this tip: = = the tool's own block count (= = read from the tool's last line, = = not restated here, = = because the count moves with the record's own fences), = with the tool's own `ok` lines (= = the reader takes them from the tool's own output, = = and how many the tool prints is the tool's); = the executed arm is attributed to the draft it came from and is not re-run, = = because `--run` executes the record's own gate blocks |
 
 ## Round 3: the class the fix itself introduced
 Round 3 (`t_214d7590`, run 5236, `changes_requested` at `30daa59f44`) found that closing
