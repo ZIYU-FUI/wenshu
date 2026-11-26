@@ -117,26 +117,26 @@ the answer honest on the corpus the card was told not to move.
   `comment-lineage: exit 0 (offending: 0 rows / 0 files (P0=0, P1=0))`,
   `ci_change_gate --check formatting`, and `nfi-loc-check`.
 
-## The one thing not in this tree
+## The two register rows, and where they came from
 
-`docs/agents/nfi.md` owes two rows for this lane, and they are deliberately not committed
-here: `main` has moved past this branch's base, so the register has to be reconciled at
-landing time by `Scripts/merge-nfi-registry.py` (the key-level driver), not by installing a
-parked copy now. The source of those two rows is
+`docs/agents/nfi.md` carries this lane's two rows. They are NOT in the lane's own
+commits: `main` had moved past this branch's base, so the register was reconciled
+at landing time by the key-level driver (`Scripts/merge-nfi-registry.py`), and the
+two rows were appended there (= the landing commit `64b97c7f08`, on `main`).
+The row source was the recipe file
 `/Volumes/ANAN/.hermes/profiles/pocock/pending-cards/2026-11-26-corpus-search-arm/nfi-rows.md`,
-re-measured at this tip (the doc is 145 lines, the arm is 256) and that file instructs to
-re-measure at landing rather than trust its number. `stash@{0}` of this worktree is NOT a
-row source: it carries the earlier pair (104 / 249, the sizes before the arm took its final
-formatting, its first row also missing the `(new)` marker), and it is kept as evidence only.
-Measured in a throwaway worktree at this sha, one commit per row set, referee
-`nfi-loc-check.py --base 7637ebba35`: the recipe's rows committed give exit 0
-("2 row(s) checked", probe commit `99f2beaad6`); the stash's rows committed give exit 1
-("the row says 104, the file is 136" and "the row says 249, the file is 256", probe commit
-`c3fdf6d6cd`). This record therefore names the recipe file as the source and the stash as
-evidence. `nfi-loc-check` also measures exit 0 with no rows added at all, so the per-change
-gate does not charge a new file that has no row: the pending rows are history, not a gate
-this tree fails.
-
+re-measured at the landing tip (= the doc is 145 lines, the arm is 256).
+`stash@{0}` of this worktree is NOT a row source: it carries the earlier pair
+(104 / 249, the sizes before the arm took its final formatting, its first row also
+missing the `(new)` marker), and it is kept as evidence only. Measured in a
+throwaway worktree, one commit per row set, referee `nfi-loc-check.py --base
+7637ebba35`: the recipe's rows committed give exit 0 ("2 row(s) checked", probe
+commit `99f2beaad6`); the stash's rows committed give exit 1 ("the row says 104,
+the file is 136" and "the row says 249, the file is 256", probe commit
+`c3fdf6d6cd`). `nfi-loc-check` also measures exit 0 with no rows added at all, so
+the per-change gate does not charge a new file that has no row: the pending
+rows were history, not a gate this tree failed. At the landing tip the gate
+read `2 row(s) checked` on the two rows it did add.
 ## What this card does NOT do
 
 It does not change the corpus search's behaviour. It does not change the
