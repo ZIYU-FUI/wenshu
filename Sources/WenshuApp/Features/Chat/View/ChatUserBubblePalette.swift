@@ -15,10 +15,10 @@ import SwiftUI
 /// wears).
 ///
 /// The TEXT tier is an Apple semantic colour: it resolves to a different
-/// value in the light and the dark appearance, so the words on a bubble
-/// stay readable in both. (= the chat transcript's own bubble surface is
-/// Apple's Liquid Glass, = which Apple renders for legibility; = the
-/// inspector's output bubble wears the macOS inactive-selection
+/// value in the light and the dark appearance, so the words on a band
+/// stay readable in both. (= the chat transcript's own band wears the
+/// app's content-area material, = the surface the content cards wear;
+/// = the inspector's output bubble wears the macOS inactive-selection
 /// surface, = an appearance-aware colour that resolves to a different
 /// value in each appearance.)
 ///
@@ -31,10 +31,10 @@ enum ChatUserBubblePalette {
     /// uses for a selected-but-unfocused item; = lighter than the panel
     /// in the dark appearance and darker in the light one).
     ///
-    /// The CHAT transcript's own bubble does NOT read this: it wears
-    /// Apple's Liquid Glass (= `.glassEffect`, = the same API the
-    /// composer field wears), so the two chat surfaces are Apple's own
-    /// material by construction.
+    /// The CHAT transcript's own band does NOT read this: it wears the
+    /// app's content-area material (= `ContentAreaMaterial.surface`, =
+    /// the surface the content cards wear), so the band is a row of the
+    /// transcript rather than a second selection colour in the column.
     static let inspectorOutputSurface: NSColor = .unemphasizedSelectedTextBackgroundColor
     /// Text tier on the bubble (= the four-tier ladder's body tier).
     static let text: HierarchicalShapeStyle = DesignTokens.textBody

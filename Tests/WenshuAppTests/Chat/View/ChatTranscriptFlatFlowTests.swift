@@ -2,50 +2,42 @@
 //  ChatTranscriptFlatFlowTests.swift · WenshuApp
 //
 //  The chat transcript is ONE flat list of messages: no row is held at the
-//  viewport's top while the conversation scrolls under it, and no row
-//  paints a surface of its own across the column.
+//  viewport's top while the conversation scrolls under it, and the user's
+//  own message is a row of that list rather than an object floating in it.
 //
 //  WHY
-//  ===
-//  The transcript renders the user's own message as one row among the
-//  others, and every row scrolls with the content. The user's bubble is a
-//  card (= it carries its own filled surface), and the assistant's reply
-//  is flat text on the leading side; the transcript's viewport follows
-//  the newest content.
+//  The transcript renders every message in order and every row scrolls
+//  with the content. The user's own message carries a band — one
+//  content-area surface (= `ContentAreaMaterial.surface`) that spans the
+//  chat area and stops 20 PT short of each edge, with its ink starting at
+//  the band's leading edge. The assistant's reply is flat text on the
+//  leading side. The transcript's viewport follows the newest content.
 //
 //  WHAT THIS TEST DOES
-//  ===================
 //  It hosts the REAL ChatView (= the app's own view, not a mock of it)
-//  over a host background the app never paints, and reads the PAINTED
-//  pixels of the transcript viewport.
+//  over a host background the app never paints, and reads the VIEW TREE
+//  the app laid out inside it.
 //
-//  THE INSTRUMENT IS THE LAYOUT AND THE SCROLL POSITION. The bubble's
-//  surface is Apple's Liquid Glass (= `.glassEffect`), and an offscreen
-//  read does not composite a glass surface at all (= the house's rule: =
-//  a control's appearance must be measured on a SCREEN capture): = the
-//  user's bubble paints NOTHING in an offscreen read, = its words and
-//  its surface included (= measured: = the bubble's area carries the
-//  panel's own colour, = 0 pixels of any other kind, = while the
-//  agent's flat reply text still paints). So the pixels cannot see the
-//  user's row any more, and the claims are carried by what IS there: =
-//  the rows the production view tree laid out (= the user's bubble is
-//  the one that hugs the TRAILING edge, = every reply is flat text on
-//  the leading side), = and the transcript's resting scroll position
-//  (= a row held at the viewport's top parks the scroll at the top: =
-//  the old pinned section header's trigger did exactly that).
+//  THE INSTRUMENT IS THE LAYOUT AND THE SCROLL POSITION. The band's
+//  surface is a material, and an offscreen read does not composite a
+//  material at all (= the house's rule: a control's appearance must be
+//  measured on a SCREEN capture, never on `cacheDisplay`), so the pixels
+//  cannot see the user's row. The claims are carried by what IS there:
+//  the rows the production view tree laid out, the one material surface
+//  inside them, and the transcript's resting scroll position (= a row
+//  held at the viewport's top parks the scroll at the top: the old pinned
+//  section header's trigger did exactly that).
 //
 //  THE MEASUREMENT IS AT THE VIEWPORT'S RESTING POSITION. The transcript
 //  rests at its bottom (= the newest content is what the panel shows).
 //
-//  WHY THE MEASUREMENT IS TRAILING-ONLY
-//  ====================================
-//  The user's bubble is TRAILING (= it hugs its words on the trailing
-//  side of the column) and every agent reply is flat text on the
-//  leading side, so the trailing side of the column is where the
-//  user's own row can show itself and where nothing else can.
+//  WHY THE MEASUREMENT IS TRAILING-SIDE
+//  The band keeps the chat area's margin, so its trailing edge is the one
+//  place in the column a band can be told from a reply: every reply is
+//  flat text that ends at the leading inset, and nothing else reaches
+//  across the column.
 //
 //  The two fixtures
-//  ================
 //  The control needs the user's row ON SCREEN, and the claim needs the
 //  conversation scrolled PAST it, so the two use different fixtures:
 //
@@ -56,18 +48,15 @@
 //
 //    - the control's fixture puts the user's message LAST, so at rest
 //      the viewport shows it: the trailing side of the transcript's laid
-//      out rows must carry a row that hugs the trailing edge (= the
-//      user's own bubble, = measured: it ends at 592 PT of a 600 PT
-//      column, = while every reply ends at 73 PT). A transcript that
-//      rendered no user row at all lays out no such row, so this
-//      control cannot be satisfied by anything but the user's own
-//      bubble.
+//      out rows must carry the band's edge, inset from the column, while
+//      every reply ends at the leading inset. A transcript that rendered
+//      no user row lays out no such row, so this control cannot be
+//      satisfied by anything but the user's own band.
 //
-//  The second assertion carries the chat-band guard forward: no row of
-//  the transcript paints a surface across the column's leading edge (= one
-//  material at the window's root, and nothing inside the window painting a
-//  surface of its own), while the user's own bubble keeps its own words.
-//
+//  The second assertion carries the chat-band guard forward: exactly one
+//  material surface is realized in the viewport, and it is the user's own
+//  band — a reply that grew a surface of its own, or a band that ran edge
+//  to edge, both fail here.
 //
 
 import AppKit
@@ -86,15 +75,6 @@ struct ChatTranscriptFlatFlowTests {
     /// because a material composited over it desaturates it (= it leaves
     /// the magenta family), so the two are told apart by their pixels.
     private static let hostColor = NSColor.magenta
-
-    /// The painted pixels of a hosted view, over the host background.
-    private struct Painted {
-        let bytes: [UInt8]
-        let height: Int
-        let width: Int
-        let bytesPerRow: Int
-        let samplesPerPixel: Int
-    }
 
     /// The transcript's scroll view, found in the hosted tree.
     ///
@@ -155,30 +135,6 @@ struct ChatTranscriptFlatFlowTests {
         return (window, hosting.view)
     }
 
-    /// The painted pixels of the hosted chat, over the host background.
-    private func paintedPixels(of view: NSView) -> Painted {
-        let bounds = view.bounds
-        let rep = view.bitmapImageRepForCachingDisplay(in: bounds)!
-        rep.size = bounds.size
-        // Paint the host's background first, so a pixel that differs is
-        // a pixel the view drew on.
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
-        Self.hostColor.setFill()
-        bounds.fill()
-        NSGraphicsContext.restoreGraphicsState()
-        view.cacheDisplay(in: bounds, to: rep)
-
-        let count = rep.pixelsHigh * rep.bytesPerRow
-        return Painted(
-            bytes: [UInt8](UnsafeBufferPointer(start: rep.bitmapData!, count: count)),
-            height: rep.pixelsHigh,
-            width: rep.pixelsWide,
-            bytesPerRow: rep.bytesPerRow,
-            samplesPerPixel: rep.bytesPerRow / max(rep.pixelsWide, 1)
-        )
-    }
-
     /// The rows the transcript laid out, in the hosted tree.
     ///
     /// The scroll view's document holds ONE container (= the lazy
@@ -190,17 +146,15 @@ struct ChatTranscriptFlatFlowTests {
         return container.subviews
     }
 
-    /// The row that hugs the TRAILING edge of the column.
+    /// The band, located by what it paints rather than by its position.
     ///
-    /// The user's own bubble carries its words on the trailing side and
-    /// every agent reply is flat text on the leading side, so the
-    /// trailing row is the user's own row and nothing else. (= measured:
-    /// it ends at 592 PT of a 600 PT column, = while every reply ends at
-    /// 73 PT.)
-    private func trailingRow(in scroll: NSScrollView) -> NSView? {
-        let column = scroll.documentView?.frame.width ?? 0
-        guard column > 0 else { return nil }
-        return laidOutRows(in: scroll).first { $0.frame.maxX > column / 2 }
+    /// The realized cell list is not one entry per message: a message can
+    /// contribute several views, and rows scrolled above the viewport come
+    /// back with a negative origin. So the band is found as the realized
+    /// cell that carries a material surface, which is the property the
+    /// rule is about.
+    private func userRow(in scroll: NSScrollView) -> NSView? {
+        laidOutRows(in: scroll).first { !Self.materialViews(in: $0).isEmpty }
     }
 
     /// The transcript's resting scroll offset, in points.
@@ -212,28 +166,6 @@ struct ChatTranscriptFlatFlowTests {
     /// viewport's top band).
     private func restingOffset(in scroll: NSScrollView) -> CGFloat {
         scroll.contentView.bounds.origin.y
-    }
-
-    /// The share of the leading edge's pixels that carry the host, per row.
-    ///
-    /// The leading edge (= the left quarter of the column) is the region
-    /// the user's own bubble does NOT reach (= the bubble is trailing), so
-    /// it is where a surface painted across the whole column shows itself.
-    private func hostSharePerRow(_ painted: Painted, rows: Range<Int>) -> [Double] {
-        let leadingWidth = max(1, painted.width / 4)
-        return rows.map { y in
-            var host = 0
-            for x in 0 ..< leadingWidth {
-                let offset = y * painted.bytesPerRow + x * painted.samplesPerPixel
-                let r = Int(painted.bytes[offset])
-                let g = Int(painted.bytes[offset + 1])
-                let b = Int(painted.bytes[offset + 2])
-                if r > 225, g < 60, b > 225 {
-                    host += 1
-                }
-            }
-            return Double(host) / Double(leadingWidth)
-        }
     }
 
     /// A conversation of agent replies, with the user's message where the
@@ -303,17 +235,20 @@ struct ChatTranscriptFlatFlowTests {
             """
         )
 
-        // And the user's own row is NOT among the rows in view: the
-        // fixture put that message first and the conversation rests at its
-        // bottom, so the row scrolled away with the content.
+        // And the user's own row is not held in view: the fixture puts
+        // that message FIRST and the conversation rests at its BOTTOM, so
+        // the row scrolls away with the content. A row still inside the
+        // viewport here is the pinned section header's behaviour.
+        let rows = laidOutRows(in: scroll)
+        let visible = scroll.contentView.bounds
         #expect(
-            trailingRow(in: scroll) == nil,
+            rows.first.map { $0.frame.maxY <= visible.minY } ?? false,
             """
-            the user's own row must not be held in view: the transcript's \
-            trailing side carries a row that hugs the trailing edge (= the \
-            user's bubble) although that message is FIRST and the \
-            conversation rests at its bottom, so the row was held there \
-            instead of scrolling away with the content.
+            the user's own row must not be held in view: it is the FIRST row \
+            of a transcript that rests at its bottom, yet it still sits \
+            inside the viewport (row \(String(describing: rows.first?.frame)) \
+            against visible \(visible)) — a row kept on screen is a pinned \
+            header, not a flat list.
             """
         )
     }
@@ -328,8 +263,8 @@ struct ChatTranscriptFlatFlowTests {
     /// 73 PT). A transcript that never rendered the user's row lays out
     /// no such row, so this control cannot be satisfied by anything but
     /// the user's own bubble.
-    @Test("the user's own row is laid out on the trailing side (= the control)")
-    func theUsersRowIsLaidOutOnTheTrailingSide() {
+    @Test("the user's own row is laid out across the column (= the control)")
+    func theUsersRowIsLaidOutAcrossTheColumn() {
         let messages = makeMessages(userLast: true)
         let vm = ChatViewModel(
             initialMessages: messages,
@@ -343,20 +278,28 @@ struct ChatTranscriptFlatFlowTests {
             Issue.record(Comment("the chat must have a scroll view"))
             return
         }
-        let row = trailingRow(in: scroll)
+        let row = userRow(in: scroll)
         #expect(
             row != nil,
             """
-            the user's own bubble must be laid out: the transcript's trailing \
-            side carries no row that hugs the trailing edge, so a transcript \
-            that never rendered the user's row cannot pass this.
+            the user's own row must be laid out: the transcript's one row \
+            that carries a material surface is the user's band (= the \
+            fixture puts the user's message last, and no reply wears a \
+            surface), so a transcript that never rendered it cannot pass this.
             """
         )
         let column = scroll.documentView?.frame.width ?? 0
         if let row {
+            // The row's own box is the band's box, so it must sit inside
+            // the column, never past an edge. Where the band stops is the
+            // material geometry check (the surface view sits 20 PT off each
+            // side); here the row must simply be laid out within it.
             #expect(
-                row.frame.maxX > column / 2,
-                "the user's own bubble must hug the trailing edge of the column; it ends at \(row.frame.maxX) PT of a \(column) PT column"
+                row.frame.minX >= 0 && row.frame.maxX <= column + 1,
+                """
+                the user's own row must be laid out inside the chat column; it \
+                runs from \(row.frame.minX) to \(row.frame.maxX) PT of a \(column) PT column
+                """
             )
         }
         // And the transcript rests at its bottom, so the row in view is
@@ -438,11 +381,12 @@ struct ChatTranscriptFlatFlowTests {
         )
     }
 
-    /// The chat-band guard, carried forward: no row of the transcript
-    /// paints a surface across the column's leading edge, and the user's
-    /// own bubble keeps its own card.
-    @Test("no transcript row paints a surface across the column (= the user's bubble keeps its own row)")
-    func noRowPaintsASurfaceAcrossTheColumn() {
+    /// The chat-band guard, carried forward: the transcript realizes
+    /// exactly one material surface in its viewport, that surface is the
+    /// user's own band, it keeps the chat area's 20 PT margin on both
+    /// sides, and no reply row realizes a surface of its own.
+    @Test("only the user's own row paints a surface across the column")
+    func onlyTheUsersRowPaintsASurfaceAcrossTheColumn() throws {
         let messages = makeMessages(userLast: true)
         let vm = ChatViewModel(
             initialMessages: messages,
@@ -456,33 +400,88 @@ struct ChatTranscriptFlatFlowTests {
             Issue.record(Comment("the chat must have a scroll view"))
             return
         }
-        let painted = paintedPixels(of: hosting)
 
-        // The rows this test reads: the transcript's own viewport, leaving
-        // the composer's own bar alone.
-        let scale = Double(painted.height) / Double(scroll.contentView.bounds.height)
-        let transcriptRows = 0 ..< Int(Double(painted.height) - 120 * scale)
-        let shares = hostSharePerRow(painted, rows: transcriptRows)
-
-        // A surface painted across the whole column fills the leading
-        // edge edge to edge, so those rows carry almost no host.
-        let banded = shares.filter { $0 < 0.1 }
+        // An NSVisualEffectView is composited by the window server, so a
+        // bitmap of the offscreen harness never shows it (= a pixel probe
+        // only ever sees the flat fill a material replaces). The surface
+        // is therefore read from the view tree, where its geometry is
+        // still the real laid-out geometry: the user's own band carries
+        // exactly one material view, and it sits 20 PT off each edge.
+        let rows = laidOutRows(in: scroll)
         #expect(
-            banded.count <= 2,
+            !rows.isEmpty,
+            "the transcript laid out no row at all"
+        )
+        // One realized surface, and it is the user's own band.
+        //
+        // The lazy stack realizes only the rows inside the viewport, so
+        // the claim is made about what IS realized: exactly one material
+        // view sits in the transcript, it lies inside the row the user's
+        // message laid out, and its box stops 20 PT short of each column
+        // edge. A reply that grew a surface of its own, or a band that ran
+        // edge to edge, both fail here.
+        let surfaces = Self.materialViews(in: hosting)
+        #expect(
+            surfaces.count == 1,
+            "the transcript must realize one band surface in its viewport; it realized \(surfaces.count)"
+        )
+        let effect = try #require(surfaces.first, "the transcript realized no band surface at all")
+        let userRow = try #require(userRow(in: scroll), "no realized row carries a material surface")
+        let column = scroll.contentView.bounds.width
+        let bandBox = effect.convert(effect.bounds, to: scroll)
+        let leading = bandBox.minX
+        let trailing = column - bandBox.maxX
+        #expect(
+            abs(leading - 20) <= 1 && abs(trailing - 20) <= 1,
             """
-            \(banded.count) of the first \(shares.count) rows of the transcript's \
-            leading edge are painted edge to edge by something other than the \
-            host: a transcript row paints a surface of its own across the \
-            column, instead of leaving the column's own surface visible.
+            the band must keep the chat column's 20 PT margin on both \
+            sides; it keeps \(leading) PT on the leading side and \
+            \(trailing) PT on the trailing side
             """
         )
-
-        // And the row is really there: the user's own bubble is laid out
-        // on the trailing side, so a transcript that rendered nothing at
-        // all cannot pass.
         #expect(
-            trailingRow(in: scroll) != nil,
-            "the user's own bubble must still be laid out (= the row's own surface was removed, the bubble's was not)"
+            abs(bandBox.width - (column - 40)) <= 1,
+            """
+            the band must span the chat area between its margins, not shrink \
+            to its words; it spans \(bandBox.width) PT of a \(column) PT column
+            """
         )
+        // The band is the only realized row that paints a surface, and it
+        // is the bottom-most one (= the fixture puts the user's message
+        // last), so a reply that grew a surface of its own fails here.
+        let boxes = rows.map { $0.convert($0.bounds, to: scroll) }
+        let painted = rows.enumerated().filter { !Self.materialViews(in: $0.element).isEmpty }
+        #expect(
+            painted.count == 1,
+            """
+            exactly one realized row may carry a material surface; \
+            \(painted.count) of \(rows.count) realized rows do
+            """
+        )
+        if let paintedIndex = painted.first?.offset {
+            let bandMaxY = boxes[paintedIndex].maxY
+            let replyMaxYs = boxes.enumerated().filter { $0.offset != paintedIndex }.map(\.element.maxY)
+            let lowestReply = replyMaxYs.max() ?? bandMaxY
+            #expect(
+                lowestReply <= bandMaxY + 1,
+                """
+                the band must be the bottom-most realized row, the fixture's \
+                user message being last; the band ends at \(bandMaxY) PT and the \
+                lowest reply at \(lowestReply) PT
+                """
+            )
+        }
+    }
+
+    /// Every material view inside a subtree.
+    private static func materialViews(in view: NSView) -> [NSVisualEffectView] {
+        var found: [NSVisualEffectView] = []
+        if let effect = view as? NSVisualEffectView {
+            found.append(effect)
+        }
+        for child in view.subviews {
+            found.append(contentsOf: materialViews(in: child))
+        }
+        return found
     }
 }

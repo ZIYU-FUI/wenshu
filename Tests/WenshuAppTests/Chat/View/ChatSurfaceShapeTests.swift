@@ -1,10 +1,12 @@
 //
 //  ChatSurfaceShapeTests.swift · Wenshu
 //
-//  One outline for every chat surface: the composer field and the
-//  outgoing message band must resolve their glass shape from the same
-//  file, and the band must floor at the composer's resting height so
-//  a one-line message reads as the same surface the person typed into.
+//  The chat surfaces' outlines: the composer field wears the shared
+//  ChatSurfaceShape capsule; the outgoing message band wears the app's
+//  content-area material at the shared card radius, and floors at the
+//  composer's resting height so a one-line message reads as the same
+//  height the person typed into. Neither surface carries its own
+//  corner-radius token.
 //
 
 import Foundation
@@ -13,18 +15,19 @@ import Testing
 
 @Suite("ChatSurfaceShape shared chat-surface outline")
 struct ChatSurfaceShapeTests {
-
     private static let messageViewPath = "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift"
     private static let inputBarPath = "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift"
     private static let shapePath = "Sources/WenshuApp/Features/Chat/View/ChatSurfaceShape.swift"
 
-    @Test("The outgoing message band wears the shared ChatSurfaceShape")
-    func outgoingBandUsesSharedShape() throws {
+    @Test("The outgoing message band wears the shared content-area material, not the composer's capsule")
+    func outgoingBandUsesSharedMaterial() throws {
         let content = try SourceLocator.read(Self.messageViewPath)
-        #expect(content.contains("ChatSurfaceShape()"),
-                "The outgoing glass card must use ChatSurfaceShape (= the same outline the composer field wears)")
+        #expect(content.contains("ContentAreaMaterial.surface"),
+                "The outgoing band must wear the app's one content-area material (= the surface the content cards use)")
+        #expect(!content.contains("ChatSurfaceShape()"),
+                "The outgoing band must not wear the composer's capsule shape (= a row of the transcript has corners)")
         #expect(!content.contains("surfaceCornerRadiusHeroCard"),
-                "The outgoing glass card must not carry its own corner-radius token (= the shared shape owns the outline)")
+                "The outgoing band must not carry its own corner-radius token (= the shared card radius owns the outline)")
     }
 
     @Test("The outgoing message band floors at the composer resting height")

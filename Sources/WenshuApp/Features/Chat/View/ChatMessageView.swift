@@ -110,11 +110,15 @@ struct ChatMessageView: View {
             // AI rows get a 10 PT horizontal padding (= total
             // 20 PT from chat column edge to AI text after the
             // inner card padding of 10 PT; = matches the
-            // requested AI-row left/right gutter). User rows
-            // pass through (= their glass-card L2 inner padding
-            // in UserGlassCardModifier is the SOLE source of
-            // user horizontal padding; = unchanged).
-            .padding(.horizontal, isOutgoing ? 0 : 10)
+            // requested AI-row left/right gutter).
+            // User rows carry 12 PT here, NOT zero: the transcript
+            // stack already insets every row by spacingStandard
+            // (8 PT), so 8 + 12 = the 20 PT chat-area margin the
+            // panel asked for (= the band's OUTER edge lands on the
+            // chat area's content boundary instead of bleeding to
+            // the divider). The band's own inner padding stays the
+            // card's, so the words keep their rail.
+            .padding(.horizontal, isOutgoing ? DesignTokens.spacingModerate : 10)
     }
 
     /// The row's content (= source label row + body row + footer +
@@ -443,49 +447,64 @@ private struct UserGlassCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         if isOutgoing {
             // -cleanup E3.5: the user text inside the glass card is at
-            // 12 PT horizontal padding (= the user card L2 inner padding
-            // below is the SOLE source of horizontal padding for user
-            // cards; = L1 in ChatView.swift is 0 PT = transcript content
-            // sits flush against the chat column edge).
+            // 12 PT horizontal padding (= the card's inner inset, which
+            // is the SOLE source of horizontal padding INSIDE the band;
+            // the band's outer edge is held 20 PT off the chat area by
+            // the transcript stack's 8 PT plus ChatMessageRow's 12 PT).
             // The card carries NO vertical padding of its own (= the
             // resting height comes from the frame floor below; = a grown
             // message keeps its own text height instead of being padded
             // twice; = the band matches the composer field height).
             //
-            // The surface is Apple's own Liquid Glass, applied with the
-            // canonical API (= `.glassEffect`, = the same API the
-            // composer field wears, = so the two chat surfaces are
-            // Apple's own material by construction). Apple's regular
-            // variant "blurs and adjusts the luminosity of background
-            // content to maintain legibility of text and other
-            // foreground elements" (= the HIG materials page,
-            // https://developer.apple.com/design/human-interface-guidelines/materials),
-            // which is what keeps the user's words readable on the glass.
+            // The surface is the app's ONE content-area material
+            // (`ContentAreaMaterial.surface`), the same surface the
+            // right column's cards wear: the system's content-area
+            // material in the WITHIN-WINDOW blending.
             //
-            // It is the NON-interactive variant: Apple's own header says
-            // the interactive glass "should be enabled for glass that is
-            // used as the background for interactive controls or when
-            // used as the container of interactive controls" (= AppKit
-            // `NSGlassEffectView.effectIsInteractive`), and a message
-            // bubble is content, not a control.
+            // WHY A MATERIAL AND NOT A COLOUR: this window is
+            // translucent, so a colour painted on top of it is an
+            // opaque plate, and a plate pasted onto a translucent column
+            // reads as a foreign slab. A material paints what is BEHIND
+            // it, so the band belongs to the chat column it sits in.
             //
-            // Shape = ChatSurfaceShape (= the shared chat-surface
-            // outline; = the composer field wears the same shape).
+            // The band draws no stroke of its own: the separation ladder
+            // says a step in material tone carries the edge, and an ink
+            // border here would be a second answer to the same question.
             //
-            // WIDTH: the bubble takes its width from the words it
-            // carries and never grows past the canonical chat-bubble
-            // width (= DesignTokens.chatBubbleMaxWidth = 360 PT).
-            // The surface is applied BEFORE that cap on purpose: the cap
-            // is a bound and not a width, so the glass is laid on the
-            // words themselves and the cap then bounds the result.
-            // Measured (the review's own mutation of this claim): short
-            // = long = 360.0 PT inside a 723 PT column, so the bubble
-            // never spans the chat column.
+            // The rule this band follows: the user's own words take
+            // that surface, the text sits at the leading edge, and the
+            // band's background spans the chat area's full width. It is
+            // a row of the transcript, not a floating bubble.
+            //
+            // Shape: a rounded rectangle (the app's own card radius,
+            // `DesignTokens.surfaceCornerRadiusCard`), not the capsule
+            // the composer field wears. The user's own words are a row
+            // of the transcript, and a row has corners, not a pill.
+            //
+            // Width: the band's background spans the chat area's
+            // content width, which carries the chat area's own 20 PT
+            // left and right margin. The old cap
+            // (`DesignTokens.chatBubbleMaxWidth`, 360 PT, trailing
+            // edge) made the user's own words a floating bubble at the
+            // right of the column; the new shape is a row of the
+            // transcript, which is what the reader scans.
+            //
+            // ORDER: the full-width frame comes BEFORE the background,
+            // so the surface is painted on the whole row and not on the
+            // words' own width.
             content
                 .padding(.horizontal, DesignTokens.spacingModerate)
                 .frame(minHeight: DesignTokens.controlHeightLarge, alignment: .leading)
-                .glassEffect(.regular, in: ChatSurfaceShape())
-                .frame(maxWidth: DesignTokens.chatBubbleMaxWidth, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    ContentAreaMaterial.surface
+                }
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.surfaceCornerRadiusCard,
+                        style: .continuous
+                    )
+                )
                 .foregroundStyle(ChatUserBubblePalette.text)
         } else {
             content
