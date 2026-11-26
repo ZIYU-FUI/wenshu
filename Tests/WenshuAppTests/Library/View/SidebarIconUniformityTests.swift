@@ -23,7 +23,7 @@ import Testing
 struct SidebarIconUniformityTests {
     @Test("SFLabelRow uses the central icon factory and a fixed row slot")
     func sidebarRowUsesCentralFactoryAndFixedSlot() throws {
-        let source = try Self.source("Sources/WenshuApp/Shared/UI/IconStylesViews.swift")
+        let source = try Self.codeOnly(Self.source("Sources/WenshuApp/Shared/UI/IconStylesViews.swift"))
         let rowSource = try Self.sourceSlice(
             from: "struct SFLabelRow: View {",
             in: "Sources/WenshuApp/Shared/UI/IconStylesViews.swift"
@@ -65,7 +65,7 @@ struct SidebarIconUniformityTests {
         // The `IconStyle` enum lives in IconStyles.swift (= the
         // view file holds the views that consume the cases). The case
         // itself is unchanged: `case sidebar` is still there.
-        let iconStyles = try Self.source("Sources/WenshuApp/Shared/UI/IconStyles.swift")
+        let iconStyles = try Self.codeOnly(Self.source("Sources/WenshuApp/Shared/UI/IconStyles.swift"))
         #expect(iconStyles.contains("case sidebar") || iconStyles.contains("case .sidebar"))
         #expect(
             iconStyles.contains(".symbolRenderingMode(.hierarchical)"),
@@ -76,7 +76,7 @@ struct SidebarIconUniformityTests {
 
     @Test("IconStyle.sidebar is the canonical sidebar case (= 16 PT, .regular, slot properties)")
     func sidebarCaseIsCanonical() throws {
-        let source = try Self.source("Sources/WenshuApp/Shared/UI/IconStyles.swift")
+        let source = try Self.codeOnly(Self.source("Sources/WenshuApp/Shared/UI/IconStyles.swift"))
         // 16 PT point size matches Apple Mail / Notes / Xcode
         // sidebar row leading icon (= the wenshu default per
         // Apple's HIG sidebar anatomy).
@@ -101,7 +101,7 @@ struct SidebarIconUniformityTests {
         // canonical sidebar surface. The default parameter lives
         // with the view (= IconStylesViews.swift), not with the
         // enum.
-        let views = try Self.source("Sources/WenshuApp/Shared/UI/IconStylesViews.swift")
+        let views = try Self.codeOnly(Self.source("Sources/WenshuApp/Shared/UI/IconStylesViews.swift"))
         #expect(views.contains("iconStyle: IconStyle = .sidebarTree") || views.contains("iconStyle: IconStyle = .sidebar"))
     }
 
@@ -184,6 +184,53 @@ struct SidebarIconUniformityTests {
             Self.callArguments(of: "SFIcon(", in: "SFIcon(systemImage, style: tier(iconStyle, iconStyle), color: IconColor.primary)")
                 == [["systemImage", "style: tier(iconStyle, iconStyle)", "color: IconColor.primary"]]
         )
+        // A call that only a comment spells out answers nothing: the scanner
+        // reads code, so a commented-out call cannot satisfy an assertion
+        // about the arguments of a call.
+        let commented = "// SFIcon(systemImage, style: iconStyle, color: IconColor.primary)"
+        #expect(
+            Self.callArguments(of: "SFIcon(", in: commented).isEmpty,
+            "a call written only in a comment is not a call"
+        )
+        #expect(
+            Self.callArguments(of: "SFIcon(", in: commented + "\n" + oneLine) == [expected],
+            "the real call still answers with a commented-out one above it"
+        )
+        // The same holds for the other two scanners: a value that only a
+        // comment spells out answers nil, and a real one still answers with
+        // the comment present.
+        let commentedGetter = "// var sidebarWidth: CGFloat {\n//   18\n// }"
+        #expect(
+            Self.getterValue(of: "var sidebarWidth: CGFloat", in: commentedGetter) == nil,
+            "a getter that only a comment spells out is not a getter"
+        )
+        let commentedCase = "// case .sidebar: 18"
+        #expect(
+            Self.caseValue(for: ".sidebar", inside: sidebar, in: commentedCase) == nil,
+            "a switch arm that only a comment spells out is not an arm"
+        )
+        #expect(
+            Self.caseValue(for: ".sidebar", inside: sidebar, in: commentedCase + "\n" + sameLine) == "16",
+            "the real arm still answers with a commented-out one above it"
+        )
+    }
+
+    @Test("the files the scanners read carry no multi-line or raw string literal")
+    func theReadFilesCarryNoMultiLineLiteral() throws {
+        // The scanners walk the text and end a literal at the next quote, so a
+        // multi-line (`"""`) or raw (`#"`) literal would end the walk early
+        // and the comment-stripping would mis-read the rest of the file. That
+        // assumption is checked here rather than believed.
+        for relativePath in [
+            "Sources/WenshuApp/Shared/UI/IconStylesViews.swift",
+            "Sources/WenshuApp/Shared/UI/IconStyles.swift",
+        ] {
+            let text = try Self.source(relativePath)
+            #expect(
+                !text.contains("\"\"\"") && !text.contains("#\""),
+                "\(relativePath) carries a multi-line or raw string literal, and the scanners read literals as single-line ones"
+            )
+        }
     }
 
     private static func sourceSlice(
@@ -197,7 +244,10 @@ struct SidebarIconUniformityTests {
         // The slice runs to the end of the file: the declaration is
         // the last one in it, so there is no following MARK to bound
         // it.
-        return String(source[startRange.lowerBound...])
+        //
+        // The slice is returned without its comments (= `codeOnly`), so a
+        // commented-out line inside it cannot satisfy an assertion about it.
+        return codeOnly(String(source[startRange.lowerBound...]))
     }
 
     /// The value a one-statement computed-property getter returns, as written
@@ -209,6 +259,7 @@ struct SidebarIconUniformityTests {
     /// A renamed or removed property answers nil (= the assertion fails)
     /// instead of silently passing.
     private static func getterValue(of declaration: String, in source: String) -> String? {
+        let source = codeOnly(source)
         let head = declaration + " {"
         let lines = source.components(separatedBy: "\n")
         var body: [String] = []
@@ -269,6 +320,7 @@ struct SidebarIconUniformityTests {
     /// way. A getter without that arm, or an arm without a value, answers nil
     /// (= the assertion fails instead of passing on nothing).
     private static func caseValue(for label: String, inside declaration: String, in source: String) -> String? {
+        let source = codeOnly(source)
         guard let body = getterValue(of: declaration, in: source),
               let anchor = body.range(of: "case \(label):")
         else {
@@ -295,6 +347,7 @@ struct SidebarIconUniformityTests {
     /// inside a comment yields one more candidate list, and an assertion over the
     /// lists is satisfied by any real call, so a comment cannot hide a missing one.
     private static func callArguments(of call: String, in source: String) -> [[String]] {
+        let source = codeOnly(source)
         var lists: [[String]] = []
         var search = source[...]
         while let found = search.range(of: call) {
@@ -328,6 +381,88 @@ struct SidebarIconUniformityTests {
             search = source[found.upperBound...]
         }
         return lists
+    }
+
+    /// The source with every comment taken out, character for character.
+    ///
+    /// A line comment (`//` to the end of the line) and a block comment
+    /// (`/* ... */`, nested the way Swift nests them) are replaced by spaces,
+    /// so the text keeps its line count AND its character positions: a
+    /// scanner that counts braces, counts lines, or reports an offset still
+    /// sees the same shape. A `//` inside a string literal is left alone,
+    /// because the literal is code.
+    ///
+    /// Without this, a scanner that reads the raw text can be answered by a
+    /// call that only a comment spells out: the production file names
+    /// `SFIcon(` in a comment, so a commented-out call would satisfy an
+    /// assertion about the arguments of a call.
+    ///
+    /// One assumption is made here and it is CHECKED by the suite rather than
+    /// believed: a string literal in the files this suite reads is a
+    /// single-line literal. A multi-line (`"""`) or raw (`#"`) literal would
+    /// end this walk early, so the suite fails if either appears.
+    private static func codeOnly(_ source: String) -> String {
+        var result = ""
+        var index = source.startIndex
+        var inString = false
+        var escaped = false
+        var blockDepth = 0
+        while index < source.endIndex {
+            let character = source[index]
+            let next = source.index(after: index)
+            if blockDepth > 0 {
+                if character == "/", next < source.endIndex, source[next] == "*" {
+                    blockDepth += 1
+                    result += "  "
+                    index = source.index(after: next)
+                    continue
+                }
+                if character == "*", next < source.endIndex, source[next] == "/" {
+                    blockDepth -= 1
+                    result += "  "
+                    index = source.index(after: next)
+                    continue
+                }
+                result += character == "\n" ? "\n" : " "
+                index = next
+                continue
+            }
+            if inString {
+                result.append(character)
+                if escaped {
+                    escaped = false
+                } else if character == "\\" {
+                    escaped = true
+                } else if character == "\"" {
+                    inString = false
+                }
+                index = next
+                continue
+            }
+            if character == "\"" {
+                inString = true
+                result.append(character)
+                index = next
+                continue
+            }
+            if character == "/", next < source.endIndex, source[next] == "/" {
+                // The rest of the line is a comment.
+                while index < source.endIndex, source[index] != "\n" {
+                    result.append(" ")
+                    index = source.index(after: index)
+                }
+                continue
+            }
+            if character == "/", next < source.endIndex, source[next] == "*" {
+                blockDepth = 1
+                result += "  "
+                index = source.index(after: next)
+                continue
+            }
+            result.append(character)
+            index = next
+        }
+        return result
     }
 
     private static func source(_ relativePath: String) throws -> String {
