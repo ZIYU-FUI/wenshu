@@ -52,13 +52,16 @@ PATTERN = re.compile("|".join(re.escape(t) for t in FORBIDDEN_TOKENS))
 # character) is not evidence either (= = _chord_visible_rows): the table's own
 # grammar decides what the rule may see.
 #
-# ITS SAFETY, MEASURED: over the 569 messages in this repository's history whose
-# own commit carried the roster (= = every message the rule can judge, the lane
-# commits included), the rule refuses **0**. A rule that refuses real history is
-# not shippable. The number is per-commit-tree, and that is the only honest
-# filter: reading origin/main's table against all 29080 messages of
-# `git rev-list --all` refuses 12, and against the 6908 messages reachable from
-# this rule's base refuses 0.
+# ITS SAFETY, MEASURED: over the 569 messages the rule can judge (= = the 567 in
+# `git rev-list bb107e8c1e` whose own commit carried the roster, = = plus this lane's
+# own two commits), the rule refuses **0** (= = each message judged against its OWN
+# tree's table; = = this lane's two carry no chord mention at all). A rule that refuses
+# real history is not shippable. The number is per-commit-tree, and that is the only
+# honest filter: reading origin/main's table against all 29200 messages of
+# `git rev-list --all` refuses 4 (= = all four in the one message `241acb99cb62`), and
+# against the 6906 messages reachable from `bb107e8c1e` refuses 0 (= = of the 567
+# judgeable ones, = = only 2 carry a chord glyph at all, = = 3 mentions, = = and 1 of
+# them attributes its chord to the action the roster binds for it).
 #
 # ITS TEETH, MEASURED: on the defective chord message it refuses exactly the
 # two lines that carry the false claim, and it names each line.
