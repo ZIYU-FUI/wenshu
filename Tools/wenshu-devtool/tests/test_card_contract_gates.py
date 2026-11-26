@@ -392,6 +392,30 @@ def main() -> int:
             shipped[:400],
         )
 
+        # = = = A PUBLISHED FIGURE IS EITHER RE-MEASURED OR NOT
+        # = = = PUBLISHED, = = = and it is split ONE way. = = = The first
+        # = = = version of this correction re-badged the superseded card
+        # = = = census (= = 41 cards) as a run count and split it by
+        # = = = outcome (= = 39 completed, 1 running, 1 blocked) = = = a
+        # = = = split that was never true of the population. = = =
+        for gone in ("41 runs", "41 RUNS", "39 completed", "1 running, 1 blocked"):
+            check(
+                "case 9: the superseded figure is gone (%s)" % gone,
+                gone not in shipped,
+                shipped[:400],
+            )
+        check(
+            "case 9: the run census names its window",
+            "1795683213" in shipped,
+            shipped[:400],
+        )
+        check(
+            "case 9: the run census is split by profile only",
+            "split BY THE PROFILE THAT RAN THEM" in shipped
+            or "split by the profile that ran them" in shipped,
+            shipped[:400],
+        )
+
     print()
     if FAILURES:
         print(f"FAILED: {len(FAILURES)} case(s): {FAILURES}")

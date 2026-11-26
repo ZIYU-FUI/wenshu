@@ -464,10 +464,25 @@ Another separate tool, because it reads the BOARD instead of the source tree.
 A card the review lane addresses to an implementer is the finding made twice
 = once in the verdict, once in a card. The verdict was already written when
 the card went out, so the second copy restates it. Measured on board
-`wenshu-par`, 2026-11-26: 41 RUNS on cards addressed to an implementer (= = 39
-completed, 1 running, 1 blocked) and 52 such CARDS (= = 35 done, 12 archived,
-1 ready for `pocock`, 4 archived for `wenshu-dev`); a run count and a card
-count are not the same number, and the card census moves as the board moves.
+`wenshu-par`, 2026-11-26: 63 RUNS on the cards the review lane addressed to
+an implementer (= = `task_runs` joined to `tasks` where `tasks.created_by` =
+`wenshu-review` and `tasks.assignee` is `pocock` or `wenshu-dev`, = = every
+run ever started up to the window seal 1795683213), split BY THE PROFILE THAT
+RAN THEM (= = `pocock` 43, `wenshu-dev` 20); and 56 such CARDS, read at the
+same moment and split by STATUS (= = 35 done, 18 archived (= = 14 archived
+for `pocock`, 4 for `wenshu-dev`), 2 running, 1 ready). One number, one
+form: = = the run census is split by profile, the card census by status,
+= = and a run count is not a card count.
+
+The first version of THIS rule re-badged the superseded card census (= = the
+2026-11-24 reading of 41 = = 28 done + 9 archived + 4 archived) as a run
+count, and split it by outcome. That split was never true of this
+population: = = `outcome` has seven values on it, = = and the number of
+completed runs on it is bounded by 35 at the commit's own timestamp, = = so
+the three-way split it published could not be read off the population at any
+window. = = THAT IS THE RULE THIS RULE NOW FOLLOWS: = = a figure is either
+re-measured with its population and its window named, = = or it is not
+published.
 
 The dispatcher's `dispatch_profiles` allowlist does NOT explain this, and the
 first version of this rule said it did (= = "such a card is never spawned and

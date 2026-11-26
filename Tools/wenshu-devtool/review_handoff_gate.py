@@ -18,9 +18,15 @@ WHY THE GATE EXISTS (measured on board wenshu-par, 2026-11-26):
     `/Volumes/ANAN/.hermes/profiles/`). An absent key leaves the allowlist
     open (= = the dispatcher claims any profile that exists on that home).
     So a card addressed to `pocock` IS spawned by the pocock home's
-    dispatcher: measured on the same board, 41 runs under profiles `pocock`
-    (39) and `wenshu-dev` (2) on cards addressed to an implementer, and one
-    of them running at the moment of the measurement.
+    dispatcher: measured on the same board, 63 RUNS on the cards the review
+    lane addressed to an implementer (= = `task_runs` joined to `tasks`
+    where `tasks.created_by` = `wenshu-review` and `tasks.assignee` is
+    `pocock` or `wenshu-dev`, = = every run ever started up to the window
+    seal 1795683213), = = split BY THE PROFILE THAT RAN THEM: `pocock` 43,
+    `wenshu-dev` 20. The split is by profile on purpose: = = a split by
+    outcome is not a figure to publish (= = `outcome` has seven values on
+    this population, = = and `completed` only ever grows, = = so any
+    outcome split moves under the reader's feet).
   - = = SO A CARD ADDRESSED TO AN IMPLEMENTER IS NOT "A CARD THAT CANNOT
     MOVE". = = The reviewer states the finding TWICE: once in the verdict,
     and once in a card that the implementer's own home picks up and runs.
@@ -31,13 +37,16 @@ WHY THE GATE EXISTS (measured on board wenshu-par, 2026-11-26):
   restates a verdict the board already holds is the FINDING DONE TWICE,
   = = and the duplicate is what the gate names.
 
-  THE COUNTS, AND WHAT FORM THEY ARE IN. The 41 runs above are RUNS
-  (= = one row per dispatch of an implementer-addressed card), not CARDS:
-  39 completed, 1 running, 1 blocked. The CARD census for the same board
-  and the same window is a different number in a different form (= = 52
-  cards addressed to an implementer by the review lane: 35 done, 12
-  archived, 1 ready for `pocock`, 4 archived for `wenshu-dev`), and it
-  moves as the board moves. A published number names its window AND its
+  THE COUNTS, AND WHAT FORM THEY ARE IN. The 63 runs above are RUNS (= =
+  one row per dispatch of an implementer-addressed card), read in ONE form
+  (= = by the profile that ran them: `pocock` 43, `wenshu-dev` 20), and they
+  are a different number in a different form from the CARD census (= = 56
+  cards addressed to an implementer by the review lane, read at the same
+  moment, split by STATUS: 35 done, 18 archived (= = 14 archived for
+  `pocock`, 4 for `wenshu-dev`), 2 running, 1 ready). One number, one
+  form: = = the run census is split by profile and the card census by
+  status, = = and neither is split twice. A published number names its
+  window AND its
   form; a run count and a card count are not interchangeable.
 
 WHAT IT PRINTS, per card:
@@ -273,12 +282,24 @@ def contract_errors(card: dict) -> list[str]:
     2026-11-26: that allowlist is read PER HOME, and the homes that
     dispatch implementer cards do not declare it (= = an absent key
     leaves the allowlist open), so such a card IS picked up and run
-    (= 41 runs on cards addressed to an implementer: 39 completed, 1
-    running, 1 blocked). The card does not wait for ever; it is run.
+    (= 63 runs on the cards the review lane addressed to an implementer,
+    read up to the window seal 1795683213, split by the profile that ran
+    them: `pocock` 43, `wenshu-dev` 20). The card does not wait for ever;
+    it is run.
     What is still true = = and is what this rule rests on now = = is
     that the verdict was already written when the card went out, so the
     second copy restates it. The rule names the DUPLICATE, not the
     dispatcher's queue.
+
+    AND THE SAME RE-MEASUREMENT DISCIPLINE GOVERNS THE NUMBERS. The
+    first version of the correction re-badged the superseded card census
+    (= = 41 cards, read 2026-11-24: 28 done + 9 archived + 4 archived) as a
+    run count, and split it by outcome. That split was never true of this
+    population: = = `outcome` has seven values on it, = = and the count of
+    completed runs on it is bounded by 35 at the commit's own timestamp,
+    = = so the three-way split it published could not be read off the
+    population at any window. = = So the figures above are re-measured,
+    each in ONE form, = = with its population and its window named.
 
     THE SECOND HALF OF THE SAME DEFECT (measured 2026-11-26). The
     reviewer's half is only half of the cards that come back to the
