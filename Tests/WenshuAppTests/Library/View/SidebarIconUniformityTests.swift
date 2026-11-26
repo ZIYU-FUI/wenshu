@@ -344,8 +344,8 @@ struct SidebarIconUniformityTests {
     /// which is what makes the columns the call wraps at invisible to the reader.
     /// Quoted text is not exempt from the split (= an argument carrying a quoted
     /// comma would split; none of the calls this suite reads does). An occurrence
-    /// inside a comment yields one more candidate list, and an assertion over the
-    /// lists is satisfied by any real call, so a comment cannot hide a missing one.
+    /// inside a comment yields NO list (= the comments are taken out before the
+    /// scan), so a call only a comment spells out cannot answer; a real call does.
     private static func callArguments(of call: String, in source: String) -> [[String]] {
         let source = codeOnly(source)
         var lists: [[String]] = []
