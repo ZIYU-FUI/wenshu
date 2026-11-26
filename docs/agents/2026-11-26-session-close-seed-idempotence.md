@@ -137,7 +137,7 @@ citation honest is one line: = the label's `_1.log` must print the tip the claim
 made about. = = If it prints anything else, = = the label belongs to an earlier draft
 of these words.
 
-This record was gated on its own tip too, = = under label **`closeout-record-r11`** (=
+This record was gated on its own tip too, = = under label **`closeout-record-r12`** (=
 = nine commands, = = base `e17c5f30ce`). = = Earlier families survive on disk, = = each
 named with the tip it measured, = = because they are this record's own history and are
 **not** the verdict on this tip: `closeout-seed-doc_*` (= 8 files, = = `b43c2a4f43`), =
@@ -151,14 +151,16 @@ that a window read from one reflog is not an interval of equality), = = and
 publishing a window it had elsewhere declared false), = = and `closeout-record-r9_*`
 (= 9, = = `7d8f98ede7`, = = the round-5 fix's first commit, = = superseded by the labels this
 tip has been published under), = = and `closeout-record-r10_*` (= 9, = = `77ba8b625c`, = = the tip
-round 6 reviewed and refused).
+round 6 reviewed and refused), = = and `closeout-record-r11_*`
+(= 9, = = `91bb8c4ff8`, = = the round-6 fix's own commit, = = superseded by the label this
+tip publishes under).
 
 ```bash
 R=/Volumes/ANAN/Engineering/wenshu
 T=$R/.worktrees/seed-closeout-2026-11-26
 G=$T/Tools/wenshu-devtool
 B=$(git -C $R rev-parse e17c5f30ce)
-LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r11 \
+LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r12 \
   "git -C $T rev-parse HEAD" \
   "python3 $G/tests/test_probe_index.py" \
   "python3 $G/ci_change_gate.py --base $B --check pollution --repo $T" \
@@ -168,9 +170,9 @@ LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeo
   "python3 $G/comment_lineage.py --base $B --repo $T" \
   "python3 $G/nfi-loc-check.py --base $B --registry $T/docs/agents/nfi.md" \
   "wc -l $T/docs/agents/2026-11-26-session-close-seed-idempotence.md"
-ls $R/.gate-logs/closeout-record-r11_*.log | wc -l        # 9
-head -1 $R/.gate-logs/closeout-record-r11_1.log           # = the sha the review card names
-grep -c FAIL $R/.gate-logs/closeout-record-r11_*.log      # 0 in each file
+ls $R/.gate-logs/closeout-record-r12_*.log | wc -l        # 9
+head -1 $R/.gate-logs/closeout-record-r12_1.log           # = the sha the review card names
+grep -c FAIL $R/.gate-logs/closeout-record-r12_*.log      # 0 in each file
 ```
 
 The gate surface has **one** change-scoring tool, = not one per rule: =
@@ -198,7 +200,7 @@ instead of as sentences.** = The count of a failure is part of the failure: =
 disease as the reading it accused.
 
 The denominators, = read out of the nine **`closeout-merged-main`** log bodies (= a
-second family, = `closeout-record-r11`, = = also has nine files): = `Build complete!`; = = *Test
+second family, = `closeout-record-r12`, = = also has nine files): = `Build complete!`; = = *Test
 run with **4 tests** in 1 suite passed*; = = `added comment lines: 59` = with
 `offending: 0 rows / 0 files (P0=0, P1=0)`; = = `nfi-loc-check: ... (1 row(s)
 checked)`; = = `formatting: ... (2 changed Swift file(s) checked)`; = = `loc-cap:
@@ -208,8 +210,8 @@ forbidden vocabulary (3ad2ccebfacab0e52b4208488e4acae196e64c96...HEAD)` -- = the
 is not `origin/main...HEAD`, = = and not the window this record's own diff sits in
 either -- = after the rebase onto `e17c5f30ce` that window is `e17c5f30ce...HEAD`, = written
 **short** here. = = The log prints it in full:
-`closeout-record-r11_3.log` begins `pollution: the change adds no forbidden vocabulary
-(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r11_7.log`
+`closeout-record-r12_3.log` begins `pollution: the change adds no forbidden vocabulary
+(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r12_7.log`
 begins `comment-lineage: window e17c5f30ce..<the tip this record lands as>`. = = Where
 this record shortens a sha it says so: = = a shortened sha is an **abbreviation of a
 printed line**, = never a second reading of it.
