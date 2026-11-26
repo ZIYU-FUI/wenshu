@@ -91,15 +91,15 @@ line, = = and fails the run (= exit 1) on it, = = because a report the
 exit code ignores is still read as clean.
 ⇒ ⇒ ⇒ AND THE CENSUS, = = so the split cannot be read as "all rows
 measured": = = measured with this file's own `rows()` / `LITERAL` /
-`wc_lines` over the live registry at `b96d3f7cb5` (= = the tip this
-change rebases onto), = = 461 rows carry a literal LOC cell, = = of
-which 423 open a readable file, = = 33 are the table's own `...`
-shorthand (= = = `rows()` skips them, = = = not a defect), = = and 5
-open nothing (= = = 3 absent files, = = 1 DIRECTORY, = = 1 bare
-NUMBER). = ⇒ ⇒ ⇒ THIS CHANGE REPAIRS the last two of those five, = = so at
-this tip the same census reads 425 open a readable file and 3 open
-nothing, = = and the 3 are the absent files, = = which this card does
-not own.
+`wc_lines`, = = over whatever tree the reader points them at = = (= = NOT
+a figure printed here, = = because a figure printed here goes stale the
+moment another lane lands, = = and a stale figure read as current is the
+defect this family keeps catching). = ⇒ ⇒ ⇒ THE READER IS
+`python3 Tools/wenshu-devtool/nfi-census.py <tree-root>`, = = which prints
+the census beside the tree it came from (= = the literal LOC rows, = = and
+how many open a readable file, = = how many are the table's own `...`
+shorthand (= = = `rows()` skips those, = = = not a defect), = = and how many
+open nothing, = = with each unreadable key named).
 
 USAGE
 
