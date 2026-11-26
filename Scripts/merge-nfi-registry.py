@@ -88,9 +88,13 @@ disagreement, so a branch that EDITED the tail collided with a sibling that
 merely re-landed it: the driver named "<the file's tail>" and exited 1
 although only one side had changed anything.
 
-The output preserves the base file's row order and appends the new keys, so a
-row that only one card added lands at the end (= the append-only convention
-the registry's own footer states).
+The output preserves the RECEIVING side's row order and appends the new
+keys, so a row that only one card added lands at the end (= the append-only
+convention the registry's own footer states). "Receiving" = the side git
+calls "ours" (= in a rebase, the upstream being rebased onto). Seeding the
+order with the BASE instead rewrote a row that neither side had edited,
+because a rebase's base is the replayed commit's ancestor and does not
+carry the upstream's rows.
 
 THE OUTPUT
 
@@ -173,8 +177,22 @@ def merge_docs(base: str, ours: str, theirs: str) -> tuple[str, list[str]]:
     our_by_key = {key_of(r): r for r in our_rows if key_of(r)}
     their_by_key = {key_of(r): r for r in their_rows if key_of(r)}
 
+    # THE ORDER SEED IS "OURS", NOT "BASE". Git calls the side being
+    # landed ONTO "ours" (= in a rebase that is the UPSTREAM, = and in a
+    # merge it is the branch receiving), = and "base" is the common
+    # ancestor (= in a rebase the ancestor of the replayed commit, = which
+    # does NOT carry the upstream's rows).
+    #
+    # Seeding with BASE put the replayed branch's EARLIER rows first, = so
+    # the upstream's own row was pushed down and had to be rewritten: a
+    # rebase that replayed a second row-add commit moved the upstream's
+    # row and re-wrote it (measured: +2/-1 instead of +1/-0, = and the
+    # rewrite touched a row NEITHER side had edited). Seeding with OURS
+    # keeps the receiving side's rows exactly where they are and appends
+    # the new keys (= +1/-0), = which is also the registry's own
+    # append-only convention.
     order: list[str] = []
-    for row in base_rows + our_rows + their_rows:
+    for row in our_rows + their_rows:
         k = key_of(row)
         if k is not None and k not in order:
             order.append(k)

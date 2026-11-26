@@ -64,6 +64,11 @@
 #     never touches the file, so git takes ours and consults no driver at
 #     all. This is the shape the published landing arms were in (= a census
 #     taken on it says nothing about the driver, wired or not).
+# 21. A REBASE of a branch that adds TWO rows onto an upstream that adds ONE
+#     => the rebase rewrites NO row (= the order seed used to let the
+#     replayed branch's rows push the upstream's row down, = which rewrote a
+#     row NEITHER side had edited, = and that is what makes the registry's
+#     line numbers drift under a rebase).
 set -uo pipefail
 
 SCRIPT_PATH="${BASH_SOURCE[0]}"
@@ -685,6 +690,38 @@ elif [ "$(git rev-parse HEAD:docs/agents/nfi.md)" != "$(git rev-parse n1:docs/ag
     fail "20. NON-FIRING arm: the merged registry is not ours byte-for-byte (driver ran: $DR20)"
 else
     pass "20. NON-FIRING arm: one side never touched the file => the tip, unmerged: driver ran: $DR20, merged blob == ours"
+fi
+
+# 21. A REBASE OF A BRANCH THAT ADDS TWO ROWS ONTO AN UPSTREAM THAT ADDS ONE
+#     => the rebase REWRITES NO ROW. The order seed used to be
+#     `base_rows + our_rows + their_rows`, and in a rebase git calls the
+#     UPSTREAM "ours" and the replayed commit's ANCESTOR "base" (= which does
+#     not carry the upstream's rows). So the seed put the replayed branch's
+#     EARLIER row first, the upstream's own row was pushed down, and the
+#     merge had to rewrite it (= measured: +2/-1 instead of +1/-0, = and the
+#     rewrite touched a row NEITHER side had edited). That rewrite is what
+#     makes the registry's line numbers drift under a rebase. The assertion
+#     is the OUTCOME (= the rebase deletes nothing), = not the seed line.
+branch ordA; addrow "Sources/.../OrdA1.swift" "TestOrdA1.swift" 111; git commit -qam "ordA adds its first row"
+addrow "Sources/.../OrdA2.swift" "TestOrdA2.swift" 222; git commit -qam "ordA adds its second row"
+branch ordB; addrow "Sources/.../OrdB1.swift" "TestOrdB1.swift" 333; git commit -qam "ordB adds a row"
+git checkout -q ordA
+RRC=0; git rebase ordB > realrebase21.log 2>&1 || RRC=$?
+# The DELETED column over the rebased commits: 0 means no row was rewritten.
+DEL21=$(git log --format= --numstat ordB..HEAD -- "$REG" 2>/dev/null | awk '$1 ~ /^[0-9]+$/ {s+=$2} END {print s+0}')
+ADD21=$(git log --format= --numstat ordB..HEAD -- "$REG" 2>/dev/null | awk '$1 ~ /^[0-9]+$/ {s+=$1} END {print s+0}')
+# The upstream's row must appear exactly once and unchanged.
+R21B=$(grep -cE '^\| `[^|]*` \| `TestOrdB1.swift` \|' "$REG" 2>/dev/null || echo 0)
+if [ "$RRC" -ne 0 ]; then
+    fail "21. a rebase onto an upstream that added a row FAILED (exit $RRC): $(tr '\n' ' ' < realrebase21.log | cut -c1-140)"
+elif [ "$DEL21" -ne 0 ]; then
+    fail "21. the rebase REWROTE a row (= $DEL21 deleted lines, = $ADD21 added): the order seed let the replayed branch's rows push the upstream's row down (= the defect: a row NEITHER side edited gets rewritten, = and the registry's line numbers drift)"
+elif [ "$ADD21" -lt 2 ]; then
+    fail "21. the rebase lost a row (= $ADD21 added lines, = expected the branch's two rows)"
+elif [ "$R21B" -ne 1 ]; then
+    fail "21. the upstream's row is not exactly once after the rebase (=$R21B)"
+else
+    pass "21. a rebase onto an upstream that added a row rewrites NO row: +$ADD21/-0, the upstream's row exactly once"
 fi
 
 echo
