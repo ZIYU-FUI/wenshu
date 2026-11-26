@@ -116,47 +116,62 @@ R=/Volumes/ANAN/Engineering/wenshu
 B=3ad2ccebfacab0e52b4208488e4acae196e64c96
 D=$(mktemp -d)/mergedtree; git -C $R worktree add --detach "$D" 0f9c784db60c653f4f2a331b6a25fd5245aeb23c >/dev/null
 T="$D"
+G=$T/Tools/wenshu-devtool
 LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-merged-main \
   "git -C $T rev-parse HEAD" \
   "swift build --package-path $T --disable-sandbox" \
   "swift test --package-path $T --disable-sandbox --filter PlanSeedIdempotenceTests" \
-  "python3 $T/Tools/wenshu-devtool/ci_change_gate.py --base $B" \
-  "python3 $T/Tools/wenshu-devtool/comment_lineage.py $T $B" \
-  "swift-format lint --recursive --strict $T/Sources/WenshuApp/App/PlanSeed.swift $T/Tests/WenshuAppTests/App/PlanSeedIdempotenceTests.swift" \
-  "python3 $T/Tools/wenshu-devtool/loc-cap-check.py --base $B" \
-  "python3 $T/Tools/wenshu-devtool/markdown-newline-check.py --base $B" \
-  "python3 $T/Tools/wenshu-devtool/pollution_check.py --base $B" \
-  "python3 $T/Tools/wenshu-devtool/nfi-loc-check.py --base $B"
+  "python3 $G/ci_change_gate.py --base $B --check pollution --repo $T" \
+  "python3 $G/ci_change_gate.py --base $B --check formatting --repo $T" \
+  "python3 $G/ci_change_gate.py --base $B --check loc-cap --repo $T" \
+  "python3 $G/ci_change_gate.py --base $B --check markdown-newline --repo $T" \
+  "python3 $G/comment_lineage.py --base $B --repo $T" \
+  "python3 $G/nfi-loc-check.py --base $B --registry $T/docs/agents/nfi.md"
 ls $R/.gate-logs/closeout-merged-main_*.log | wc -l      # 9
 head -1 $R/.gate-logs/closeout-merged-main_1.log         # 0f9c784db60c...6a25fd5245aeb23c
 git -C $R worktree remove --force "$D"
 ```
 Re-running it **overwrites the nine cited files**, = so a reader who wants their own
-copy runs it under a **different label**. = The corrected version of this record was
-measured that way, = = under label `closeout-record-r4` (= seven commands, = = base
-`7e036f7613`), = = and the rule that keeps that citation honest is one line:
-`head -1 .gate-logs/closeout-record-r4_1.log` must print the tip of the branch this
-record lands on. = = If it prints anything else, = = the label belongs to an earlier
-draft of these words.
+copy runs it under a **different label**, = = and the rule that keeps any such
+citation honest is one line: = the label's `_1.log` must print the tip the claim was
+made about. = = If it prints anything else, = = the label belongs to an earlier draft
+of these words.
 
-The record's own diff was gated on its own tip under a second label family,
-= seven commands, = = `closeout-seed-doc-r3` (= each of the three rounds below the
-first names the tip it measured):
+This record was gated on its own tip too, = = under label **`closeout-record-r5`** (=
+= nine commands, = = base `7e036f7613`). = = Three earlier families survive on disk and
+are named because they are this record's own history: = `closeout-seed-doc_*` (= 8
+files, = = `_1.log` = `b43c2a4f43`), = `-r2_*` (= 8, = = `6c6cf25c1e`), = `-r3_*` (= 7,
+= = `7be5534aa1`). = = They were taken on drafts of these words that cited tools which
+do not exist, = so they are kept as lineage and **not** as the verdict on this tip:
 
 ```bash
 R=/Volumes/ANAN/Engineering/wenshu
 T=$R/.worktrees/seed-closeout-2026-11-26
-LOGDIR=$R/.gate-logs bash $R/Scripts/gate_run.sh "$T" closeout-seed-doc-r3 \
+G=$T/Tools/wenshu-devtool
+B=$(git -C $R rev-parse 7e036f7613)
+LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r5 \
   "git -C $T rev-parse HEAD" \
-  "python3 $T/Tools/wenshu-devtool/tests/test_probe_index.py" \
-  "python3 $T/Tools/wenshu-devtool/comment_lineage.py $T 0f9c784db60c653f4f2a331b6a25fd5245aeb23c" \
-  "python3 $T/Tools/wenshu-devtool/nfi-loc-check.py --base 0f9c784db60c653f4f2a331b6a25fd5245aeb23c" \
-  "python3 $T/Tools/wenshu-devtool/pollution_check.py --base 0f9c784db60c653f4f2a331b6a25fd5245aeb23c" \
-  "python3 $T/Tools/wenshu-devtool/markdown-newline-check.py --base 0f9c784db60c653f4f2a331b6a25fd5245aeb23c" \
+  "python3 $G/tests/test_probe_index.py" \
+  "python3 $G/ci_change_gate.py --base $B --check pollution --repo $T" \
+  "python3 $G/ci_change_gate.py --base $B --check formatting --repo $T" \
+  "python3 $G/ci_change_gate.py --base $B --check loc-cap --repo $T" \
+  "python3 $G/ci_change_gate.py --base $B --check markdown-newline --repo $T" \
+  "python3 $G/comment_lineage.py --base $B --repo $T" \
+  "python3 $G/nfi-loc-check.py --base $B --registry $T/docs/agents/nfi.md" \
   "wc -l $T/docs/agents/2026-11-26-session-close-seed-idempotence.md"
-ls $R/.gate-logs/closeout-seed-doc-r3_*.log | wc -l      # 7
-head -1 $R/.gate-logs/closeout-seed-doc-r3_5.log         # pollution ... (0f9c784db6...HEAD)
+ls $R/.gate-logs/closeout-record-r5_*.log | wc -l        # 9
+head -1 $R/.gate-logs/closeout-record-r5_1.log           # the tip this record lands as
+grep -c FAIL $R/.gate-logs/closeout-record-r5_*.log      # 0 in each file
 ```
+
+The gate surface has **one** change-scoring tool, = not one per rule: =
+`ci_change_gate.py --check {pollution,formatting,loc-cap,markdown-newline}`, = and
+`comment_lineage.py` takes `--base` and `--repo`, = not two positionals. = The first
+drafts of both blocks above invented four paths that do not exist and called the
+lineage judge wrongly -- = and `gate_run.sh` still wrote a log for each, = = each
+beginning `can't open file`, = = with `grep -c FAIL` = 0 across all seven. = =
+**`rc=0` and zero FAILs is not a green gate run when the logs were read as numbers
+instead of as sentences.**
 
 The denominators, = read out of the nine log bodies: = `Build complete!`; = = *Test
 run with **4 tests** in 1 suite passed*; = = `added comment lines: 59` = with
@@ -166,7 +181,8 @@ checked)`; = = `formatting: ... (2 changed Swift file(s) checked)`; = = `loc-cap
 checked)`; = = and `pollution: no forbidden vocabulary, no CJK outside the exempt
 families` **over `3ad2ccebfaca...HEAD`** -- = the window that log names, = = which
 is not `origin/main...HEAD`, = = and not the window this record's own diff sits in
-either (= that one is `0f9c784db6...HEAD`).
+either -- = after the rebase that window is `7e036f7613...HEAD`, = = which is what
+`closeout-record-r5_3.log` and `_7.log` print.
 
 Two labels are named so the record does not over-claim:
 
@@ -233,8 +249,8 @@ moved got its move.
 
 ```bash
 git fetch old-origin main
-git rev-list --count refs/remotes/old-origin/main..main    # 4
-git rev-list --count main..refs/remotes/old-origin/main    # 0
+git rev-list --count refs/remotes/old-origin/main..main    # 4  (at push time)
+git rev-list --count main..refs/remotes/old-origin/main    # 0  (behind, not divergent)
 ```
 
 Four commits ride the push and **three of them are not this scope's** (=
@@ -252,9 +268,22 @@ for the third; = = that card approves `5eb6a5034a`, = = which is not an ancestor
 `main` has moved twice since (`b6442f5891`, `7e036f7613`, the devtool lane), so every
 claim in this record is stated as **ancestry** and never as a tip: the code commit is
 an ancestor of `main` (`git merge-base --is-ancestor 0f9c784db6 main` -> rc 0), and the
-second remote is behind again by exactly the commits that arrived after it was pushed
-(`git rev-list --count refs/remotes/old-origin/main..main` -> re-take this line before
-judging the number stale).
+second remote is behind again by exactly the commits that arrived after it was pushed:
+
+```bash
+R=/Volumes/ANAN/Engineering/wenshu
+git -C $R fetch -q origin main
+git -C $R rev-list --count refs/remotes/old-origin/main..main        # 2
+git -C $R log --format=%h --abbrev=10 old-origin/main..main          # re-take, do not trust 2
+```
+
+Those two (`b6442f5891`, `7e036f7613`) are **not this scope's** and this session did
+**not** publish them: = the push of a sibling's commit is maintenance only while the
+sibling's own card carries an approving verdict, = = and the runs that mention these two
+(`t_1c7f0b43`, = = `t_1372a72d`) carry `done` and `changes_requested` = -- not an approval.
+= A closeout that pushes what it cannot verify is impersonation with extra steps, = = so
+that push belongs to the devtool lane's own closeout, = = named here so nobody reads the
+lag as this record's defect.
 
 ## Lessons that went into the skills
 
@@ -304,6 +333,8 @@ was a style comment:
 | inverted sibling attribution | the record split the three sibling commits over `t_ad63a13f` and `t_88bff3b5`; = = the latter approves `5eb6a5034a`, = = which is not on `main` | one card covers all three (= `t_ad63a13f`, = = run 5192, = = approved at `3ad2ccebfa`), = = and the other is named as an exclusion |
 | a backup that cannot be opened cold | the durable copy was WAL-without-sidecars, = = so `sqlite3 -readonly` failed; = = the probe arm had run against a scratch copy that no reader keeps | `pragma journal_mode=delete` on the copy, = = both arms re-taken from the durable path, = = `probe-index.md`'s arm moved off scratch |
 | unbacked provenance | the record said two rules were "already in `standard-closeout.md`"; = = they were uncommitted working-tree text, = = absent from `5e6c37a` | the skills tree is committed (`77b72e6`) = and `git show 77b72e6^:` of that file carries **none** of the four rules |
+
+| a gate surface invented whole | the repro blocks called `pollution_check.py`, `loc-cap-check.py`, `markdown-newline-check.py` and `comment_lineage.py <tree> <base>` -- = four commands that do not run, = and `gate_run.sh` logged each anyway, = each beginning `can't open file`, = with `grep -c FAIL` = 0 | both blocks now call `ci_change_gate.py --check <name>` and `comment_lineage.py --base --repo`, = = the real tools, = = re-run as label `closeout-record-r5` |
 
 Plus two found while making those blocks runnable, = = after the reviewer had
 already returned: = the merged-tree block passed the **closeout** worktree as its
