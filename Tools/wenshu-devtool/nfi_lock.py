@@ -91,15 +91,15 @@ import time
 from pathlib import Path
 
 DEFAULT_RESOURCE = "docs/agents/nfi.md"
-# The registers the pre-commit hook guards. The NFI register is one; OOB.md
-# is the other contended register (= 40 commits in the same window touch it, =
-# and two sessions that each append one entry CONFLICT, = measured). It is
-# guarded by the SAME reservation, and NOT by a merge driver, because a
-# merge driver needs a key that names exactly one row, and OOB.md's key is a
-# DATE that is deliberately NOT unique: 106 rows share 51 keys (= 2026-10-16
-# alone carries 25 rows), because that date is the handle a code comment
-# looks up (= `(see OOB.md #YYYY-MM-DD)`). A key-level merge would collapse
-# those 25 rows into one row. The reservation needs no key at all.
+# The registers the pre-commit hook guards. The NFI register is one; OOB.md is
+# the other contended register (= 39 commits touch it in
+# `a4f094d796..97ac0dfde5`, = and two sessions that each append one entry
+# CONFLICT, = measured). It is guarded by the SAME reservation, NOT by a merge
+# driver, because a driver needs a key that names one row, and OOB.md's key is
+# a DATE that is deliberately NOT unique: 103 rows share 45 keys (= at this
+# head), and 2026-10-16 alone carries 25 rows, because that date is the handle
+# a code comment looks up (= `(see OOB.md #YYYY-MM-DD)`). A key-level merge
+# would collapse those 25 rows into one. The reservation needs no key at all.
 GUARDED_RESOURCES = (DEFAULT_RESOURCE, "OOB.md")
 DEFAULT_TTL_SECONDS = 90 * 60
 DEFAULT_HARD_TTL_SECONDS = 8 * 60 * 60

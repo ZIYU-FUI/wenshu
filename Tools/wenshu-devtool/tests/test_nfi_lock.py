@@ -417,10 +417,10 @@ def main() -> int:
 
         # 15 + 16 + 17 + 18: the SECOND guarded register. The OOB register
         # collides the same way (= two sessions that each append one entry
-        # CONFLICT, = measured), and it is guarded by the same reservation
-        # rather than by a merge driver (= a merge driver needs a key that
-        # names one row, = and OOB.md's key is a date that is deliberately NOT
-        # unique: = 106 rows share 51 keys, = 2026-10-16 alone carries 25).
+        # CONFLICT, = measured), and it is guarded by the same reservation,
+        # not by a merge driver (= a driver needs a key that names one row, =
+        # and OOB.md's key is a DATE that is deliberately NOT unique: = 103
+        # rows share 45 keys (= at this head, = 2026-10-16 alone carries 25).
         guarded = new_repo(tmp, "guarded")
         (guarded / "OOB.md").write_text(
             "# OOB\n\n| 2026-11-26 | an entry |\n", encoding="utf-8")
