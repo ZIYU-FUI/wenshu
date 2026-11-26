@@ -137,7 +137,7 @@ citation honest is one line: = the label's `_1.log` must print the tip the claim
 made about. = = If it prints anything else, = = the label belongs to an earlier draft
 of these words.
 
-This record was gated on its own tip too, = = under label **`closeout-record-r13`** (=
+This record was gated on its own tip too, = = under label **`closeout-record-r14`** (=
 = nine commands, = = base `e17c5f30ce`). = = Earlier families survive on disk, = = each
 named with the tip it measured, = = because they are this record's own history and are
 **not** the verdict on this tip: `closeout-seed-doc_*` (= 8 files, = = `b43c2a4f43`), =
@@ -154,7 +154,16 @@ tip has been published under), = = and `closeout-record-r10_*` (= 9, = = `77ba8b
 round 6 reviewed and refused), = = and `closeout-record-r11_*`
 (= 9, = = `91bb8c4ff8`, = = the round-6 fix's own commit, = = superseded by the labels this
 tip has been published under), = = and `closeout-record-r12_*`
-(= 9, = = `3899a8ca8d`, = = the round-6 fix's second commit, = = the tip this round answers).
+(= 9, = = `3899a8ca8d`, = = the round-6 fix's second commit, = = superseded by the labels
+this tip has been published under), = = and `closeout-record-r13_*` (= 9, = = `914e9bcbea`,
+= = the tip round 7 reviewed and refused).
+Three more families exist on disk and are **not** part of that lineage: =
+`closeout-record-r5-recheck-t70f99272_*` (= 9, = = `4f0418a0d5`, = = a re-check written under a
+card id, = not a round of this record), = `closeout-record-r6r-t214d7590_*` (= 9, = =
+`30daa59f44`, = = the same shape), = = and `closeout-landed_*` (= 10, = = the landing lane's own
+family, = whose `_1` names a trunk tip this record does not cite). = = The list above claims no
+exhaustiveness; = = these three are named so that a reader who lists the directory is not left
+wondering which families the record owns.
 
 
 ```bash
@@ -162,7 +171,7 @@ R=/Volumes/ANAN/Engineering/wenshu
 T=$R/.worktrees/seed-closeout-2026-11-26
 G=$T/Tools/wenshu-devtool
 B=$(git -C $R rev-parse e17c5f30ce)
-LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r13 \
+LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r14 \
   "git -C $T rev-parse HEAD" \
   "python3 $G/tests/test_probe_index.py" \
   "python3 $G/ci_change_gate.py --base $B --check pollution --repo $T" \
@@ -172,9 +181,9 @@ LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeo
   "python3 $G/comment_lineage.py --base $B --repo $T" \
   "python3 $G/nfi-loc-check.py --base $B --registry $T/docs/agents/nfi.md" \
   "wc -l $T/docs/agents/2026-11-26-session-close-seed-idempotence.md"
-ls $R/.gate-logs/closeout-record-r13_*.log | wc -l        # 9
-head -1 $R/.gate-logs/closeout-record-r13_1.log           # = the sha the review card names
-grep -c FAIL $R/.gate-logs/closeout-record-r13_*.log      # 0 in each file
+ls $R/.gate-logs/closeout-record-r14_*.log | wc -l        # 9
+head -1 $R/.gate-logs/closeout-record-r14_1.log           # = the sha the review card names
+grep -c FAIL $R/.gate-logs/closeout-record-r14_*.log      # 0 in each file
 ```
 
 The gate surface has **one** change-scoring tool, = not one per rule: =
@@ -202,7 +211,7 @@ instead of as sentences.** = The count of a failure is part of the failure: =
 disease as the reading it accused.
 
 The denominators, = read out of the nine **`closeout-merged-main`** log bodies (= a
-second family, = `closeout-record-r13`, = = also has nine files): = `Build complete!`; = = *Test
+second family, = `closeout-record-r14`, = = also has nine files): = `Build complete!`; = = *Test
 run with **4 tests** in 1 suite passed*; = = `added comment lines: 59` = with
 `offending: 0 rows / 0 files (P0=0, P1=0)`; = = `nfi-loc-check: ... (1 row(s)
 checked)`; = = `formatting: ... (2 changed Swift file(s) checked)`; = = `loc-cap:
@@ -212,8 +221,8 @@ forbidden vocabulary (3ad2ccebfacab0e52b4208488e4acae196e64c96...HEAD)` -- = the
 is not `origin/main...HEAD`, = = and not the window this record's own diff sits in
 either -- = after the rebase onto `e17c5f30ce` that window is `e17c5f30ce...HEAD`, = written
 **short** here. = = The log prints it in full:
-`closeout-record-r13_3.log` begins `pollution: the change adds no forbidden vocabulary
-(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r13_7.log`
+`closeout-record-r14_3.log` begins `pollution: the change adds no forbidden vocabulary
+(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r14_7.log`
 begins `comment-lineage: window e17c5f30ce..<the tip this record lands as>`. = = Where
 this record shortens a sha it says so: = = a shortened sha is an **abbreviation of a
 printed line**, = never a second reading of it.
@@ -254,7 +263,8 @@ The lineage is read from the **run row**, = = not from a second `review_gate.py`
 invocation. = = The shape the first draft printed -- `--branch ... --sha HEAD` -- is
 wrong twice over: = `HEAD` resolves where it is typed (= = a reader in the shared
 checkout stands on `main`), = = and the explicit form
-`--branch wt/seed-idempotence-2026-11-26 --sha 0f9c784db6...` **exits 3** now, = =
+`--branch wt/seed-idempotence-2026-11-26 --sha 0f9c784db6...` **exited 3** in the tree the
+family this record cites measured (re-run it to read the present), = =
 because the branch tip is that landed sha and `main` already contains it, = = so the
 branch has no remaining diff for a card to match. = = A landing consumes its own
 gate: = after it, = = the evidence that the verdict covered the landed commit is the
@@ -308,22 +318,34 @@ remote was **held** by this session, = = and the state this session left it in i
 by two reflog entries, = = not stamped by a minute: = the two devtool commits
 (`b6442f5891`, = `7e036f7613`, = both committed 17:47:46) whose runs read `done` and
 `changes_requested` reached `main` at 18:11:44 and `refs/remotes/origin/main` at 18:11:50, =
-so `old-origin/main` was behind by exactly those two **from 18:11:44 to 19:07:48**, = when it
-took `29ec44f1e2`, = which carries both (`merge-base --is-ancestor` -> rc 0 for each). =
-**At 18:05 the two refs were equal** on `0f9c784db6` (`main` took it at 17:13:22 and
-left it at 18:11:44; = `refs/remotes/old-origin/main` took it at 17:49:52 and left it at
-19:07:48 -- = the four readings are the two greps the block below adds): = an earlier draft named that minute as
-though it were the behind state, = which is the same mistake as a distance read at a minute.
+so `old-origin/main` was behind by exactly those two **from 18:11:44 to 19:07:13** -- = the
+interval ends at an **interior** entry, = not at the endpoint this paragraph also names:
+`main` took `29ec44f1e2` at 19:07:13, = and that commit carries a third
+(`git rev-list --count 0f9c784db6..29ec44f1e2` -> 3, = = this record's own earlier commit
+among them), = so behind-by-two ends there, = and the gap is 0 from 19:07:48, = when the
+remote took `29ec44f1e2` too. = **At 18:05 the two refs were equal** on `0f9c784db6`
+(`main` took it at 17:13:22 and left it at 18:11:44; = `refs/remotes/old-origin/main` took
+it at 17:49:52 and left it at 19:07:48 -- = all four ends are printed by the greps the
+block below carries): = an earlier draft named that minute as though it were the behind
+state, = = which is the same mistake as a distance read at a minute, = and the draft that
+fixed it published the interval's far endpoint instead of the interior entry that ends
+it -- = a window is a claim about **every** minute inside it, = so its ends are the entries
+that change the state, = not the entries that happen to sit near it.
 Pushing a commit no card approves is impersonation, = so the remote was caught up afterwards
 by the lanes that own those commits, = not by this session. = = The two reflogs say: = the remote took `4db43731ac` at
 19:26:18, = = `main` took it at 19:33:50, = = and `main` left it at 19:38:29, = = so the
-interval in which the two refs were **equal** is 19:33:50 to 19:38:29, = = bounded by the
-**later** of the two arrivals. = = An earlier draft of this paragraph published 19:26:18 to
+interval in which the two refs were **equal** on `4db43731ac` is 19:33:50 to 19:38:29, =
+bounded by the **later** of the two arrivals. = = An earlier equality is bounded the same
+way: = `old-origin/main` took `29ec44f1e2` at 19:07:48 and left it at 19:26:18, = `main`
+took it at 19:07:13 and left it at 19:31:00, = = so the two refs were equal on it **from
+19:07:48 to 19:26:18**, = = bounded by the later arrival and the earlier departure. =
+An earlier draft of this paragraph published 19:26:18 to
 19:38:29 -- = the remote's arrival minute, = = not the start of equality: = a remote-tracking
 ref can sit on a commit the local branch has not been moved onto yet, = = and **one reflog's
 entry is not an interval of equality**. = = A draft before that printed "`0` at 19:40", = = a
-minute 75 s after the commit carrying it. = = No count of the distance is published here; = =
-the block below derives the two ends, = and the record keeps only the ancestry.
+minute 75 s after the commit carrying it. = = No **unbounded** count of the distance is
+published here; = = the block below derives every end this paragraph names, = and the record
+keeps only ancestry and reflog windows.
 
 ```bash
 R=/Volumes/ANAN/Engineering/wenshu
@@ -331,9 +353,20 @@ git -C $R fetch -q origin main && git -C $R fetch -q old-origin main
 git -C $R merge-base --is-ancestor 0f9c784db6 refs/remotes/old-origin/main; echo rc=$?
 git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep -m1 4db43731ac
 git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 4db43731ac
-git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 e17c5f30ce
+git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep e17c5f30ce
+# every entry, not the newest one: this record cites 19:38:29 (= when main left 4db43731ac),
+# and a later entry exists because a sibling lane has since moved main back onto the base.
+# grep -m1 would print the later one and the cited minute would be printed by nothing.
 git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 0f9c784db6
 git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep -m1 0f9c784db6
+git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 7e036f7613
+git -C $R reflog show refs/remotes/origin/main --date=format-local:'%H:%M:%S' | grep -m1 7e036f7613
+git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 29ec44f1e2
+git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep -m1 29ec44f1e2
+git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 d980afc976
+git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep -m1 37f5b69768
+git -C $R rev-list --count 0f9c784db6..29ec44f1e2   # 3, the interior entry's distance
+git -C $R rev-list --count 37f5b69768..0f9c784db6    # 4, the push this paragraph names
 ```
 The `merge-base` read is the claim; = = the reflog read is the interval, = and the
 interval's near end is whichever of the two refs arrived **last**. = = No **unbounded** count of a
@@ -380,7 +413,7 @@ records only the *second* fix and not the diagnosis.
 | 2 | Where `WS_SEED_PLAN=1` came from is **unresolved**. = Ruled out: = the repo, = `~/Library/LaunchAgents/`, = the app bundle's `LSEnvironment`, = `~/.zsh_history`, = this profile's config. = One interactive shell session was never excluded, = = and until it is, = = a future launch can seed again (= now self-replacing, = = so at worst one batch). | the boss's own launch path; = = no code change is owed |
 | 3 | `seedCrew()`'s write target was never measured, = = only that `ZWSSUBAGENTRUN` is 0 in the live store. | a probe, = = same directory, = = before any claim about it |
 | 4 | The shared checkout's index held a **stale tree that reverted landed work**: = = `PlanSeed.swift` back to 175 lines and the test file staged for deletion, = = and `docs/agents/nfi.md` missing rows for both. = My two paths are restored to HEAD (= `git checkout HEAD -- <those two>`); = = the rest of the shared checkout's dirty paths belong to other lanes, and no count of them is published here: `git -C $R status --porcelain | wc -l` is the read, = and it changed twice while this line was being written. = = What is owned: = at least one of those paths still stages deletions of register rows that are already on `main`. | `t_b2ac2eda` owns `OOB.md` and its own closeout doc, = = which are among the staged paths |
-| 5 | `t_fbb810a3` is still `blocked` in the review column (= `[T2]` the code-block chord). = = It is not this scope's and no action was taken on it. | the board's open columns, = = recounted with: = `hermes kanban list --limit 200` |
+| 5 | `t_fbb810a3` read `blocked` in the review column when this record's cited family was measured (= `[T2]` the code-block chord). = = It is not this scope's and no action was taken on it. | the board's open columns, = = recounted with: = `hermes kanban list --limit 200` |
 
 ## The review rounds this record itself went through
 
@@ -417,8 +450,10 @@ branch carries no verdict) rather than naming the sha under review.
 ## Round 2: three citations that no command prints
 Round 2 (`t_70f99272`, run 5235, `changes_requested` at `4f0418a0d5`) accepted all six
 closures above and found three more, of the same class. Its first run, 5231, ended at
-`ended_at - started_at = 1532 s` against the `max_runtime_seconds = 1500` this session had
-set on the task row, and the board records the outcome as `timed_out`: the worker was
+`ended_at - started_at = 1532 s` against a cap of 1500 s, = = which lives on the **run** row and
+not on the task row (`select error from task_runs where id=5231` -> `elapsed 1532s > limit
+1500s`, = = while the task row's own `max_runtime_seconds` has since been raised by another
+lane), = and the board records the outcome as `timed_out`: the worker was
 alive and reading logs when it was stopped, so the cost was the cap's arithmetic, not the
 record's. The retry, run 5235, returned in 853 s.
 
@@ -499,16 +534,53 @@ Round 6 (`t_d5804c69`, run 5245, 2315 s, `changes_requested` at `77ba8b625c`) cl
 | the proof column froze a live ref | `git ls-remote origin refs/heads/main` = `0f9c784db6...` was true for 58 minutes; `origin/main` moved twice **during the review** (`64b97c7f08`, then `8d494e16b5`) | ancestry (`merge-base --is-ancestor 0f9c784db6 refs/remotes/origin/main` -> rc 0), and the class is now charged by a tool, not by a reader |
 | the closing rule contradicted its own stamped reading | the lesson said the second reading died 75 s **before** its commit; the carrier is dated 19:38:45 and the stamp is 19:40:00, = = so the direction is **after**, = and the dirty-path count never had a stamp at all | the sentence now distinguishes the stamped reading from the unstamped one |
 | prose counted what the block stopped counting | "behind by the two devtool commits" and "Four commits ride the push" while the universal promised no distance count, = and the four's window base appeared nowhere in the doc | the four is printed by `git rev-list --count 37f5b69768..0f9c784db6` with its base named as a reflog entry, = and the universal is narrowed to **unbounded** counts |
-| a minute named outside the interval it described | the held remote was said to be behind by two **at 18:05**; = the two reflogs put the behind-by-two state at 18:11:44 -> 19:07:48, = and at 18:05 both refs carried `0f9c784db6` | the sentence carries the interval and names the mistake in the same breath |
+| a minute named outside the interval it described | the held remote was said to be behind by two **at 18:05**; = the two reflogs put that state in an interval, = and at 18:05 both refs carried `0f9c784db6` | the sentence carries an interval and names the mistake in the same breath (= round 7 measured that interval's far end at 19:07:13, = an interior entry, = and the sentence now says so) |
 
 The generator that retires the first class is in the verifier itself, = not in this record's
-prose: `verify_doc_commands.py` now fails any **prose** line that states a live ref's read-back as
-an equality, = exempting the three forms that do not age (ancestry with its rc, = a reflog entry
-naming an interval, = a `.gate-logs` citation whose first line is the measured sha). = It is
-citable as ancestry in the skills tree -- =
-`git -C ~/.hermes/shared/wenshu-skills merge-base --is-ancestor 02477cb HEAD` -> rc 0 -- = = and it
-charged this record's own §1 proof cell the first time it was run, = = which is the proof that the
-arm works rather than that the prose was polite.
+prose, = and its reach is two tokens wide, = not a semantic class: = a **prose** line is charged
+when it carries `ls-remote` or `rev-parse`, = a standalone 7-to-40-hex sha, = and none of the
+exempt forms (ancestry with its rc, = a reflog entry naming an interval, = a `.gate-logs`
+citation whose first line is the measured sha). = Two holes follow from that trigger and are
+named here rather than widened, = because widening the regex is the skills lane's call and a
+false positive would silence the arm that works: = a frozen reading spelled **without** either
+token passes, = and the row in round 6's table above passes only because that row also carries
+a `merge-base` arm, = = which is a co-occurrence, = not a designed allowance for quoted deleted
+text. = The arm is citable as ancestry in the skills tree -- =
+`git -C ~/.hermes/shared/wenshu-skills merge-base --is-ancestor 02477cb HEAD` -> rc 0 -- = = and
+that it has teeth is reproducible rather than asserted: = run the current verifier against the
+blob round 6 refused (`git show 77ba8b625c:<this doc's path>` into a scratch file), = = which
+prints `XX 1 prose line(s) freeze a live ref:` at the §1 proof cell and exits 1.
+
+## Round 7: the window that replaced a minute was false inside itself
+
+Round 7 (`t_3c7bd692`, run 5253, 621 s, `changes_requested` at `914e9bcbea`) confirmed all four of round 6's closures -- B1 by running the arm against the blob round 6 had refused, which exited 1 at the §1 proof cell -- and charged three more.
+
+| finding | what was wrong | what closed it |
+|---|---|---|
+| a corrected window false across its own interval | round 6's fix published behind-by-two as 18:11:44 -> 19:07:48, but `main` took `29ec44f1e2` at 19:07:13 and that commit carries a third (`rev-list --count 0f9c784db6..29ec44f1e2` -> 3), so the state ended 35 s earlier and the published far endpoint is a gap of **0** | both ends restated from the entries that change the state, the count printed by the block, and the paragraph now says a window is a claim about every minute inside it |
+| a block that printed two of the four readings the prose published | the two `left` minutes, `origin/main`'s 18:11:50 and the four-count's `14:26:57` base were printed by no command in the record | six greps and two counts added to the block, and the sentence now says the block derives every end the paragraph names |
+| the arm's reach over-stated | "fails **any** prose line" while the trigger is a `ls-remote`/`rev-parse` token plus a standalone sha; a frozen reading spelled without either token passes, and a quoted deleted reading passes only because its row also carries a `merge-base` arm | the trigger is stated as two tokens and an equals sign, both holes are named, and widening the regex is left to the skills lane |
+
+Three notes came with the findings and are folded into the same commit: the 1500 s
+cap lives on the **run** row and not on the task row, whose own cell another lane has
+since raised; two present-tense gate reads now name the family that measured them; and
+three families on disk outside the lineage list are named, so a reader who lists the
+directory can tell which ones this record owns.
+
+A fourth defect was found while closing the second one, and no reviewer charged it:
+`grep -m1 <sha>` against a reflog prints the **newest** matching entry, and a ref a
+sibling lane keeps moving gains new entries for the same sha. The arm that was supposed
+to print "`main` left `4db43731ac` at 19:38:29" had silently begun printing an entry from
+a later hour, so the cited minute was printed by nothing while the command still exited 0
+-- the shape this record legislates against, hiding inside the instrument rather than the
+prose. That arm now prints every matching entry and names the one cited. The rule: an
+arm that selects with `-m1` is only reproducible while the ref has one entry for that sha,
+so a record that publishes a minute must print the whole set or pin the entry.
+
+Round 7 also corrected round 6's own instruction: round 6 prescribed the far endpoint
+that round 7 then measured false. That is the argument for the rule being about
+instruments rather than about reviewers -- the correction came out of a reflog, not out
+of an opinion, and a reviewer's prescription ages exactly like an author's.
 
 The durable lesson is narrower than "check your citations": = **a record's commands
 are its test suite, = and the test that matters is the one a reader runs cold.** =
