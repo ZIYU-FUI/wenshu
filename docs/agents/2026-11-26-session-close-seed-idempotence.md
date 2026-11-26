@@ -177,19 +177,19 @@ is that the sibling's own card carries an approving verdict: = = `t_ad63a13f`
 
 ## Lessons that went into the skills
 
-Not into memory (= which would not load on the turn that needs it):
+Written into the tree the next session loads (= `~/.hermes/shared/wenshu-skills/`),
+= not into memory, = = and not into this document alone:
 
-- `wenshu-parallel-dev/references/the-merge-onto-a-moving-main.md`: = a verdict
-  survives rebase when the **written lines** are identical, = = and the proof is
-  the line set, = = not `patch-id`, = = which also moves when a neighbour's
-  hunk lands inside the context.
-- `wenshu-pocock-workflow/references/standard-closeout.md`: = = a gate log must
-  print the sha **in its body**, = and `LOGDIR` must be pointed at the shared
-  checkout when the gate runs from another worktree, = = because the script
-  resolves the directory from its own path.
-- `wenshu-review-proof`: = = a one-shot sweep binary that produced a published
-  number is a scratch file; = = the number is only published once an in-repo
-  probe can re-take it, = = registered in the index with its arms.
+| skill file | the rule that went in |
+|---|---|
+| `wenshu-pocock-workflow/references/standard-closeout.md` | **a green `GATE_RC=0` from a run handed no command is not a green gate** (= `gate_run.sh` loops over its trailing arguments, = = so zero arguments iterate zero times, = = write no log, = = and exit 0). = Measured here: = = one such call printed `GATE_RC=0` and produced zero labels. = = The reading is the label count **and** each log's verdict sentence. |
+| the same file, step 3 | **every number the record publishes must be re-takable by an instrument the tree carries**. = The 518 was published from a scratch binary, = = which is a claim and not an instrument; = = moving it into `Tools/wenshu-devtool/probes/` with its three arms is what made it evidence. |
+| `wenshu-parallel-dev/references/a-review-card-that-never-spawns.md` | the second fix for a card that will not spawn: = free the branch NAME by detaching the author's worktree (= `checkout --detach` keeps the tip), = = and let the dispatcher retry on its next tick (= run 5220 `spawn_failed` to run 5221 `running`, = = no board write). = The hand-write to `consecutive_failures` is refused and was never the obstacle. |
+
+Two rules this record had to **leave out**: = the `LOGDIR` rule and the
+"log-body-names-the-sha" rule are already in `standard-closeout.md` (= they are
+why this run obeyed them), = and so is the branch-occupancy cause. = A closeout
+that credits itself for following an existing rule is inflating the ledger.
 
 ## Open items this scope leaves behind
 
