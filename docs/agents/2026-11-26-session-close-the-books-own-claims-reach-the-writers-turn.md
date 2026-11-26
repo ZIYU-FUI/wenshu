@@ -120,12 +120,14 @@ every denominator is non-zero: = = 13 changed Swift files, = = 3 changed `.md` f
   = = so its `--card` form dies with `FileNotFoundError` after it has already printed
   its first two lines. = = The reviewer found it and marked it non-blocking; = = it
   belongs to the devtool lane, = = and this lane records it instead of fixing it.
-- **Eleven cards on the board are open and are not this lane's** (= = the retrieval W4
-  round, the chord rule, the honesty landing unit, the vendor-parity class, the
-  registry LOC gate replay, the highlight order, the plain-`swift test` traps, the
-  retrieval fixture's Chinese arm, the index-recall measurement, the code-block chord,
-  = = and the OOB register's single writer). = = They are reported here, = = not closed
-  here.
+- **The open cards on the board are not this lane's, and they are reported here, not
+  closed here.** = = This bullet used to carry eleven card names and a count; = = both
+  were readings, not properties of this lane, and both moved inside the session that
+  wrote them (= = one card closed while another opened, = = so the count held at eleven
+  while the set behind it changed). = = A closeout record that publishes a moving board
+  state has to be re-measured, not re-read, so the command is what lives here:
+  `sqlite3 ~/.hermes/kanban/boards/wenshu-par/kanban.db "SELECT id, status,
+  substr(title, 1, 60) FROM tasks WHERE status NOT IN ('done', 'archived') ORDER BY id"`.
 - **`wt/nfi-dedup-2026-11-23` is retained** (= = its review returned
   `changes_requested`, = = and the property it carries is already true on `main` by
   another route), = = and the branch's owner decides what happens to it.
