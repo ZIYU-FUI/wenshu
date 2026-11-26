@@ -8,7 +8,7 @@ different things, because the fix cannot un-write 518 rows that already exist.
 
 | # | requirement | the carrier | the adjudication | the server's proof |
 |---|---|---|---|---|
-| 1 | the seeded sample must stop stacking a new copy of itself on every launch | `0f9c784db6` (`Sources/WenshuApp/App/PlanSeed.swift`, `Tests/WenshuAppTests/App/PlanSeedIdempotenceTests.swift`, one `docs/agents/nfi.md` row) | card `t_fc936f38` (= run 5217, = = `review_outcome: approved`), = and the landing card `t_c0545641` (= run 5209) | `git ls-remote origin refs/heads/main` = `0f9c784db60c653f4f2a331b6a25fd5245aeb23c`; = = `git ls-remote old-origin refs/heads/main` after the push in the section below |
+| 1 | the seeded sample must stop stacking a new copy of itself on every launch | `0f9c784db6` (`Sources/WenshuApp/App/PlanSeed.swift`, `Tests/WenshuAppTests/App/PlanSeedIdempotenceTests.swift`, one `docs/agents/nfi.md` row) | card `t_fc936f38` (= run 5203, = = `review_outcome: approved`), = and the landing card `t_c0545641` (= run 5209) | `git ls-remote origin refs/heads/main` = `0f9c784db60c653f4f2a331b6a25fd5245aeb23c`; = = `git ls-remote old-origin refs/heads/main` after the push in the section below |
 | 2 | the rows the old seed already wrote into the live library must go, = = and the real tasks must stay | a hand sweep of `~/Documents/anbaiqiang.ws/WenshuStore.store` (= 576 rows to 58), = = proven on a copy first | no card (= it is the user's own data, = = not the tree's) | the store reads 58 rows and the in-repo probe reads 0 sample rows in it |
 
 ## What the tree actually did, measured
@@ -173,7 +173,7 @@ Four commits ride the push and **three of them are not this scope's** (=
 commit, = = and the check that makes that maintenance rather than impersonation
 is that the sibling's own card carries an approving verdict: = = `t_ad63a13f`
 (run 5192, = = `review_outcome: approved`) for the first two, = = `t_88bff3b5`
-(run 5210, = = `approved`) for the third, = all three already on `origin/main`.
+(run 5206, = = `approved`) for the third, = all three already on `origin/main`.
 
 ## Lessons that went into the skills
 
