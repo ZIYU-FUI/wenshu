@@ -77,7 +77,7 @@ Read in `/Volumes/ANAN/Engineering/wenshu/.worktrees/board-dispatch-2026-11-26`
 | `nfi-loc-check.py --base 64b97c7f08` | exit 0 at `8d494e16b5` printing `nothing to check`; at this record's own tip the same command exits 0 printing `1 row(s) checked` (= the row this record adds, whose LOC cell equals `grep -c ""` of the file it names) |
 | `ci_change_gate.py --check formatting / loc-cap / pollution` | exit 0, exit 0, exit 0 (14 changed Swift files) |
 | `review_gate.py --card t_52d1c551` | approved by wenshu-review, matched by change |
-| `git ls-remote origin main` | 8d494e16b540ef30078ac546cb6604896b7100ec |
+| `git ls-remote origin main` | 8d494e16b540ef30078ac546cb6604896b7100ec (= read at the instant of the push; a tip is an instant, not a permanent — see "Re-taking the readings") |
 
 The three test rows were read over the wider window `e17c5f30ce..8d494e16b5`
 because that is what the landing push carried; the four gate rows were re-taken
@@ -151,3 +151,25 @@ cd /Volumes/ANAN/Engineering/wenshu && git diff --quiet 4b02c68dcf main -- \
 sqlite3 -readonly /Users/anbaiqiang/Documents/anbaiqiang.ws/WenshuStore.store \
   "select count(*), sum(ZTITLE like 'conductor: %') from ZWSKANBANTASK;"
 ```
+
+The two `git` blocks above assert ancestry and content and never a tip: `main`
+moves under every lane, and by the time this paragraph was written it had already
+grown past `8d494e16b5` by two sibling commits whose only touched file is
+`Tests/WenshuAppTests/Library/View/SidebarIconUniformityTests.swift` — disjoint
+from this scope's 14 paths, which is why the content block still prints its word.
+A reader who finds `main` further along should re-run the blocks, not trust the
+sha named here.
+
+The invariant this scope is responsible for, re-asserted against whatever `main`
+currently is:
+
+```bash
+cd /Volumes/ANAN/Engineering/wenshu && git grep -ln '"conductor: "' main -- '*.swift'
+```
+
+That list is exactly three files: the launch sweep
+(`Sources/WenshuApp/App/WenshuAppDelegate.swift`), the repository test that
+exercises it, and the conductor test that holds the pin. A fourth production file
+in the list means a card title is being built outside the sweep again — the board
+defect this record describes is back, and the reach-guard test is what should turn
+red first.
