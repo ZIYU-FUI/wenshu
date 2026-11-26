@@ -9,7 +9,7 @@ different things, because the fix cannot un-write 518 rows that already exist.
 | # | requirement | the carrier | the adjudication | the server's proof |
 |---|---|---|---|---|
 | 1 | the seeded sample must stop stacking a new copy of itself on every launch | `0f9c784db6` (`Sources/WenshuApp/App/PlanSeed.swift`, `Tests/WenshuAppTests/App/PlanSeedIdempotenceTests.swift`, one `docs/agents/nfi.md` row) | card `t_fc936f38` (= run 5203, = = `review_outcome: approved`), = and the landing card `t_c0545641` (= run 5209) | `git merge-base --is-ancestor 0f9c784db6 refs/remotes/origin/main` -> rc 0, = and the same arm against `refs/remotes/old-origin/main` -> rc 0. = = Neither remote's read-back is published: = another lane pushes it, = and `verify_doc_commands.py` now fails a prose line that freezes one |
-| 2 | the rows the old seed already wrote into the live library must go, = = and the real tasks must stay | a hand sweep of `~/Documents/anbaiqiang.ws/WenshuStore.store` (= 576 rows to 58), = = proven on a copy first | no card (= it is the user's own data, = = not the tree's) | the store reads 58 rows and the in-repo probe reads 0 sample rows in it |
+| 2 | the rows the old seed already wrote into the live library must go, = = and the real tasks must stay | a hand sweep of `~/Documents/anbaiqiang.ws/WenshuStore.store` (= 576 rows to 58), = = proven on a copy first | no card (= it is the user's own data, = = not the tree's) | the store's own history names the sweep: = = **518** rows, = = one row per transaction, = = between 16:22:45 and 16:22:47, = = and every one of them carries a body (= = the backup holds exactly 518 rows with one); = = the store's live row count is not published, = = because it is a moving reading (= = a later launch of the app on `main` took the 58 rows that remained, = = in one transaction of its own) |
 
 ## What the tree actually did, measured
 
@@ -79,15 +79,30 @@ python3 Tools/wenshu-devtool/tests/test_probe_index.py
 ```
 
 Its arms, = all three of which are in `Tools/wenshu-devtool/probe-index.md`
-under **Recorded measurement**: = the live store (58 rows, = = 0 sample rows),
-= the pre-repair backup (576 rows, = = **518** sample rows, = = 58 not the
-seed's), = and a directory with no store in it (= `exit 2`). = The first two
-arms are why the published 518 is now a repo-measurable number and not a claim.
-The third arm is the one that makes the other two worth reading: = = an empty
-reading must never be readable as a clean store. = The live reading also prints
-the load-bearing line in its own shape — = *58 rows carry no body* — = so on this store
-the pair predicate matches nothing at all, = and a row can only be taken by the
-seed path that wrote it.
+under **Recorded measurement**: = the pre-repair backup (576 rows, = = **518**
+sample rows, = = 58 not the seed's), = = a directory with no store in it
+(= `exit 2`), = = and the live store. = The backup arm is why the published 518 is
+now a repo-measurable number and not a claim. = The third arm is the one that
+makes the other two worth reading: = = an empty reading must never be readable as
+a clean store. = = The backup arm also prints the load-bearing line in its own
+shape — = = *58 rows carry no body* — = = so on that store the pair predicate
+matches nothing at all, = = and a row can only be taken by the seed path that
+wrote it.
+
+The live arm is the one that **cannot** be published as a number, = = and the
+store's own history says why. = = `ZWSKANBANTASK` has carried **576** deletions
+against its rows, = = and they came in two shapes. = = The first is this record's
+own sweep: = = **518** rows, = = one row per transaction, = = between 16:22:45 and
+16:22:47 = = the shape a row-by-row delete leaves. = = The second is **58** rows
+in **one** transaction at 21:43:45 = = the shape a batch save leaves, = = and it is
+not this scope's work: = = `main` runs a launch sweep of its own that drops every
+board card naming no owner, body or book
+(= = `removeCards(withTitlePrefix: "conductor: ")`), = = and all 58 of those rows
+were such cards. = = So the live store's row count is a **moving reading**: = = a
+count taken from it is true at its minute and false after the next launch, = =
+exactly like a live remote's tip. = = The number that carries the scope is
+therefore the one the store's own history names, = = and the block below reads it
+back.
 
 The pre-repair backup is **not** left in a scratch directory (they are pruned):
 it is at `~/Documents/wenshu-backups/2026-11-26-pre-seed-cleanup/WenshuStore.store`,
@@ -100,6 +115,47 @@ single-file database. = After it, = = the same read-only open reports 576 rows a
 `pragma integrity_check` says `ok`.
 The sweep's own backup of the same state is the file it made before touching
 anything. = = The live store was never edited without that copy in place.
+
+What the sweep took is not this record's word for it = = it is the store's own
+history. = = `ACHANGE` records every deletion `ZWSKANBANTASK` ever took, and
+`ATRANSACTION` names the transaction each belonged to:
+
+```bash
+L=~/Documents/anbaiqiang.ws/WenshuStore.store
+K=~/Documents/wenshu-backups/2026-11-26-pre-seed-cleanup/WenshuStore.store
+sqlite3 -readonly "$L" "select count(*) from ACHANGE where ZENTITY=8 and ZCHANGETYPE=2;"   # 576
+sqlite3 -readonly "$L" "select ZTRANSACTIONID, count(*) from ACHANGE where ZENTITY=8
+  and ZCHANGETYPE=2 group by 1 order by 2 desc limit 1;"                                   # 1257 | 58
+sqlite3 -readonly "$L" "select datetime(ZTIMESTAMP+978307200,'unixepoch','localtime')
+  from ATRANSACTION where Z_PK=1257;"                                                     # 2026-11-26 21:43:45
+sqlite3 -readonly "$L" "select count(*), count(distinct ZTRANSACTIONID) from ACHANGE
+  where ZENTITY=8 and ZCHANGETYPE=2 and ZTRANSACTIONID<>1257;"                            # 518 | 518
+sqlite3 -readonly "$L" "select min(datetime(ZTIMESTAMP+978307200,'unixepoch','localtime')),
+  max(datetime(ZTIMESTAMP+978307200,'unixepoch','localtime')) from ATRANSACTION where Z_PK in
+  (select ZTRANSACTIONID from ACHANGE where ZENTITY=8 and ZCHANGETYPE=2
+   and ZTRANSACTIONID<>1257);"                                                           # 16:22:45 | 16:22:47
+sqlite3 -readonly "$L" "attach database '$K' as K; select count(*) from ACHANGE A where
+  A.ZENTITY=8 and A.ZCHANGETYPE=2 and A.ZENTITYPK in (select Z_PK from K.ZWSKANBANTASK
+  where ZBODY is not null and ZBODY<>'');"                                                # 518
+sqlite3 -readonly "$L" "attach database '$K' as K; select count(*) from ACHANGE A where
+  A.ZENTITY=8 and A.ZCHANGETYPE=2 and A.ZENTITYPK in (select Z_PK from K.ZWSKANBANTASK
+  where ZTITLE like 'conductor: %' and (ZBODY is null or ZBODY=''));"                     # 58
+```
+
+The reading: = = this scope's sweep took **518** rows, = = one row per transaction,
+= = between 16:22:45 and 16:22:47, = = and every one of those 518 rows carries a
+body (= = the backup holds exactly 518 rows with one, = = and they are the seed's
+own pairs). = = The other transaction took **58** rows in one save at 21:43:45, = =
+and every one of those 58 is a bodyless `conductor: …` card. = = So the two
+sweeps are told apart by their **shapes**, = = not only by their minutes: = = a
+row-by-row delete leaves one transaction per row, = = and a batch save leaves one
+transaction for all of them. = = The second sweep is `main`'s own launch sweep
+(= = `removeCards(withTitlePrefix: "conductor: ")`), = = which drops every board
+card naming no owner, body or book.
+
+That is also why the live store's row count is a **moving reading**: = = it moves
+whenever the app launches, = = so it is published as the transactions that produced
+it, = = and never as a bare number.
 
 ## The gate run, and which labels are the evidence
 
@@ -137,7 +193,7 @@ citation honest is one line: = the label's `_1.log` must print the tip the claim
 made about. = = If it prints anything else, = = the label belongs to an earlier draft
 of these words.
 
-This record was gated on its own tip too, = = under label **`closeout-record-r14`** (=
+This record was gated on its own tip too, = = under label **`closeout-record-r15`** (=
 = nine commands, = = base `e17c5f30ce`). = = Earlier families survive on disk, = = each
 named with the tip it measured, = = because they are this record's own history and are
 **not** the verdict on this tip: `closeout-seed-doc_*` (= 8 files, = = `b43c2a4f43`), =
@@ -156,12 +212,14 @@ round 6 reviewed and refused), = = and `closeout-record-r11_*`
 tip has been published under), = = and `closeout-record-r12_*`
 (= 9, = = `3899a8ca8d`, = = the round-6 fix's second commit, = = superseded by the labels
 this tip has been published under), = = and `closeout-record-r13_*` (= 9, = = `914e9bcbea`,
-= = the tip round 7 reviewed and refused).
+= = the tip round 7 reviewed and refused), = = and `closeout-record-r14_*` (= 9, = = `5990ef8bbf`,
+= = the tip round 8 reviewed and refused).
 Three more families exist on disk and are **not** part of that lineage: =
 `closeout-record-r5-recheck-t70f99272_*` (= 9, = = `4f0418a0d5`, = = a re-check written under a
 card id, = not a round of this record), = `closeout-record-r6r-t214d7590_*` (= 9, = =
 `30daa59f44`, = = the same shape), = = and `closeout-landed_*` (= 10, = = the landing lane's own
-family, = whose `_1` names a trunk tip this record does not cite). = = The list above claims no
+family, = = whose `_1` names `8d494e16b54`, = = a trunk tip this record **does** cite, = = in the round-6
+row below). = = The list above claims no
 exhaustiveness; = = these three are named so that a reader who lists the directory is not left
 wondering which families the record owns.
 
@@ -171,7 +229,7 @@ R=/Volumes/ANAN/Engineering/wenshu
 T=$R/.worktrees/seed-closeout-2026-11-26
 G=$T/Tools/wenshu-devtool
 B=$(git -C $R rev-parse e17c5f30ce)
-LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r14 \
+LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeout-record-r15 \
   "git -C $T rev-parse HEAD" \
   "python3 $G/tests/test_probe_index.py" \
   "python3 $G/ci_change_gate.py --base $B --check pollution --repo $T" \
@@ -181,9 +239,9 @@ LOGDIR=$R/.gate-logs PER_CMD_TIMEOUT=900 bash $R/Scripts/gate_run.sh "$T" closeo
   "python3 $G/comment_lineage.py --base $B --repo $T" \
   "python3 $G/nfi-loc-check.py --base $B --registry $T/docs/agents/nfi.md" \
   "wc -l $T/docs/agents/2026-11-26-session-close-seed-idempotence.md"
-ls $R/.gate-logs/closeout-record-r14_*.log | wc -l        # 9
-head -1 $R/.gate-logs/closeout-record-r14_1.log           # = the sha the review card names
-grep -c FAIL $R/.gate-logs/closeout-record-r14_*.log      # 0 in each file
+ls $R/.gate-logs/closeout-record-r15_*.log | wc -l        # 9
+head -1 $R/.gate-logs/closeout-record-r15_1.log           # = the sha the review card names
+grep -c FAIL $R/.gate-logs/closeout-record-r15_*.log      # 0 in each file
 ```
 
 The gate surface has **one** change-scoring tool, = not one per rule: =
@@ -211,7 +269,7 @@ instead of as sentences.** = The count of a failure is part of the failure: =
 disease as the reading it accused.
 
 The denominators, = read out of the nine **`closeout-merged-main`** log bodies (= a
-second family, = `closeout-record-r14`, = = also has nine files): = `Build complete!`; = = *Test
+second family, = `closeout-record-r15`, = = also has nine files): = `Build complete!`; = = *Test
 run with **4 tests** in 1 suite passed*; = = `added comment lines: 59` = with
 `offending: 0 rows / 0 files (P0=0, P1=0)`; = = `nfi-loc-check: ... (1 row(s)
 checked)`; = = `formatting: ... (2 changed Swift file(s) checked)`; = = `loc-cap:
@@ -221,8 +279,8 @@ forbidden vocabulary (3ad2ccebfacab0e52b4208488e4acae196e64c96...HEAD)` -- = the
 is not `origin/main...HEAD`, = = and not the window this record's own diff sits in
 either -- = after the rebase onto `e17c5f30ce` that window is `e17c5f30ce...HEAD`, = written
 **short** here. = = The log prints it in full:
-`closeout-record-r14_3.log` begins `pollution: the change adds no forbidden vocabulary
-(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r14_7.log`
+`closeout-record-r15_3.log` begins `pollution: the change adds no forbidden vocabulary
+(e17c5f30ce61cb52423366e332237d5111a7a1fa...HEAD)` = and `closeout-record-r15_7.log`
 begins `comment-lineage: window e17c5f30ce..<the tip this record lands as>`. = = Where
 this record shortens a sha it says so: = = a shortened sha is an **abbreviation of a
 printed line**, = never a second reading of it.
@@ -316,13 +374,15 @@ commit is an ancestor of `main` (`git merge-base --is-ancestor 0f9c784db6 main` 
 and of the second remote (`... refs/remotes/old-origin/main` -> rc 0). = The second
 remote was **held** by this session, = = and the state this session left it in is bounded
 by two reflog entries, = = not stamped by a minute: = the two devtool commits
-(`b6442f5891`, = `7e036f7613`, = both committed 17:47:46) whose runs read `done` and
+(`b6442f5891`, = `7e036f7613`) whose runs read `done` and
 `changes_requested` reached `main` at 18:11:44 and `refs/remotes/origin/main` at 18:11:50, =
 so `old-origin/main` was behind by exactly those two **from 18:11:44 to 19:07:13** -- = the
 interval ends at an **interior** entry, = not at the endpoint this paragraph also names:
 `main` took `29ec44f1e2` at 19:07:13, = and that commit carries a third
-(`git rev-list --count 0f9c784db6..29ec44f1e2` -> 3, = = this record's own earlier commit
-among them), = so behind-by-two ends there, = and the gap is 0 from 19:07:48, = when the
+(`git rev-list --count 0f9c784db6..29ec44f1e2` -> 3, = = and none of the three is this
+record's: = = `git show --name-only 29ec44f1e2` names the **gauge-compact** record and
+`nfi.md`, = = and `git cat-file -e 29ec44f1e2:docs/agents/2026-11-26-session-close-seed-idempotence.md`
+-> rc 128), = so behind-by-two ends there, = = and the gap is 0 from 19:07:48, = = when the
 remote took `29ec44f1e2` too. = **At 18:05 the two refs were equal** on `0f9c784db6`
 (`main` took it at 17:13:22 and left it at 18:11:44; = `refs/remotes/old-origin/main` took
 it at 17:49:52 and left it at 19:07:48 -- = all four ends are printed by the greps the
@@ -350,21 +410,21 @@ keeps only ancestry and reflog windows.
 ```bash
 R=/Volumes/ANAN/Engineering/wenshu
 git -C $R fetch -q origin main && git -C $R fetch -q old-origin main
+# Every reflog arm below prints EVERY entry for its sha (= = no -m1 anywhere), = = because an
+# arm that selects one entry is reproducible only while the ref holds one entry for that sha, = =
+# and a sibling lane keeps moving these refs. = = The prose names which entry it cites.
 git -C $R merge-base --is-ancestor 0f9c784db6 refs/remotes/old-origin/main; echo rc=$?
-git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep -m1 4db43731ac
-git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 4db43731ac
+git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep 4db43731ac
+git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep 4db43731ac
 git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep e17c5f30ce
-# every entry, not the newest one: this record cites 19:38:29 (= when main left 4db43731ac),
-# and a later entry exists because a sibling lane has since moved main back onto the base.
-# grep -m1 would print the later one and the cited minute would be printed by nothing.
-git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 0f9c784db6
-git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep -m1 0f9c784db6
-git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 7e036f7613
-git -C $R reflog show refs/remotes/origin/main --date=format-local:'%H:%M:%S' | grep -m1 7e036f7613
-git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 29ec44f1e2
-git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep -m1 29ec44f1e2
-git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep -m1 d980afc976
-git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep -m1 37f5b69768
+git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep 0f9c784db6
+git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep 0f9c784db6
+git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep 7e036f7613
+git -C $R reflog show refs/remotes/origin/main --date=format-local:'%H:%M:%S' | grep 7e036f7613
+git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep 29ec44f1e2
+git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep 29ec44f1e2
+git -C $R reflog show main --date=format-local:'%H:%M:%S' | grep d980afc976
+git -C $R reflog show refs/remotes/old-origin/main --date=format-local:'%H:%M:%S' | grep 37f5b69768
 git -C $R rev-list --count 0f9c784db6..29ec44f1e2   # 3, the interior entry's distance
 git -C $R rev-list --count 37f5b69768..0f9c784db6    # 4, the push this paragraph names
 ```
@@ -559,7 +619,7 @@ Round 7 (`t_3c7bd692`, run 5253, 621 s, `changes_requested` at `914e9bcbea`) con
 |---|---|---|
 | a corrected window false across its own interval | round 6's fix published behind-by-two as 18:11:44 -> 19:07:48, but `main` took `29ec44f1e2` at 19:07:13 and that commit carries a third (`rev-list --count 0f9c784db6..29ec44f1e2` -> 3), so the state ended 35 s earlier and the published far endpoint is a gap of **0** | both ends restated from the entries that change the state, the count printed by the block, and the paragraph now says a window is a claim about every minute inside it |
 | a block that printed two of the four readings the prose published | the two `left` minutes, `origin/main`'s 18:11:50 and the four-count's `14:26:57` base were printed by no command in the record | six greps and two counts added to the block, and the sentence now says the block derives every end the paragraph names |
-| the arm's reach over-stated | "fails **any** prose line" while the trigger is a `ls-remote`/`rev-parse` token plus a standalone sha; a frozen reading spelled without either token passes, and a quoted deleted reading passes only because its row also carries a `merge-base` arm | the trigger is stated as two tokens and an equals sign, both holes are named, and widening the regex is left to the skills lane |
+| the arm's reach over-stated | "fails **any** prose line" while the trigger is a `ls-remote`/`rev-parse` token plus a standalone sha; a frozen reading spelled without either token passes, and a quoted deleted reading passes only because its row also carries a `merge-base` arm | the trigger is stated as the tool's own two tokens (= = a `ls-remote`/`rev-parse` token and a standalone sha), both holes are named, and widening the regex is left to the skills lane |
 
 Three notes came with the findings and are folded into the same commit: the 1500 s
 cap lives on the **run** row and not on the task row, whose own cell another lane has
@@ -581,6 +641,46 @@ Round 7 also corrected round 6's own instruction: round 6 prescribed the far end
 that round 7 then measured false. That is the argument for the rule being about
 instruments rather than about reviewers -- the correction came out of a reflog, not out
 of an opinion, and a reviewer's prescription ages exactly like an author's.
+
+## Round 8: the fix that legislated a rule its own block broke
+
+Round 8 (`t_a6580791`, runs 5258 = = timed out after it posted its verdict, = = then 5264 = = 587 s,
+= = `changes_requested` at `5990ef8bbf`) confirmed round 7's closures = -- F1, F2, F3 and
+the fourth defect = -- by its own commands, and charged four more. = = All four are
+defects **this** commit introduced, = = which the verdict's own ruling states: = = the cap
+on refused rounds shields the survivors, = = not the defects a fix brings with it.
+
+| finding | what was wrong | what closed it |
+|---|---|---|
+| a family it calls uncited is cited | the list named `closeout-landed_*` as the family "whose `_1` names a trunk tip **this record does not cite**", = = and the round-6 row below cites that very tip (`8d494e16b54`) | the sentence now names the tip and the row that cites it |
+| a commit called its own | the interval's third commit was described as "this record's own earlier commit among them", = = and `git show --name-only 29ec44f1e2` names the **gauge-compact** record and `nfi.md` = = not this file | the sentence now says none of the three is this record's, = = and prints the two commands that show it |
+| the rule its own block broke | the commit added the rule "a record that publishes a minute must print the whole set or pin the entry" = = and ten of the eleven reflog arms it expanded still selected one entry with `-m1` | every arm now prints every entry, = = and the block says why |
+| a minute stamp outside the admitted classes | the sentence bounding the remote's held state carried "both committed 17:47:46", = = while the record's own rule admits only a printed number, a named log, or ancestry | the stamp is gone = -- the two commits are named, = = and the window that bounds the state is the reflog's |
+
+A note came with them, = = non-blocking, = = and it is folded in too: = = the claim that the
+verifier's trigger is "two tokens and an equals sign" was false, = = because the tool's
+regexes carry no equals sign at all. = = The passage now names the tool's own two tokens.
+
+Two defects were found while closing those four, = = and no reviewer charged either.
+
+The first is the **live store's row count**: = = it is a moving reading, = = exactly like a
+live remote's tip, = = and the record published it as a number. = = The store's own history
+table names the deletions, = = and it names them by **shape** as well as by minute: = = this
+record's own sweep took **518** rows, = = one row per transaction, = = between 16:22:45 and
+16:22:47; = = and a later launch of the app took **58** rows in **one** transaction at
+21:43:45. = = The second is not this scope's work: = = `main` runs a launch sweep of its own
+that drops every board card naming no owner, body or book
+(= = `removeCards(withTitlePrefix: "conductor: ")`), = = and all 58 of them are such cards.
+= = The count is therefore published as the transactions that produced it, = = never as a
+bare number, = = and the proof that the sweep took the seed's rows and nothing else is the
+same table's own row set: = = all 518 of the swept rows carry a body, = = and all 58 of the
+later ones are bodyless `conductor: …` cards.
+
+The second is the `-m1` rule's own reach: = = it was written as a rule about arms and then
+applied to **one** arm, = = while the ten arms beside it did the thing the rule forbids. = =
+A rule a commit legislates is a rule the same commit's block must already obey, = = and
+"the one arm I fixed" is not a scope: = = the other ten were the same shape, = = with the
+same failure mode waiting for the next sibling push.
 
 The durable lesson is narrower than "check your citations": = **a record's commands
 are its test suite, = and the test that matters is the one a reader runs cold.** =

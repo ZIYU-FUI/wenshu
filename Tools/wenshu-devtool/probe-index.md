@@ -897,3 +897,12 @@ exit 2
 
 The third run is the arm: = = a store the probe could not read must not be
 reportable as a clean store, = and the exit code is what says so.
+
+The **live** arm's numbers are a reading of one minute, = = and that store's row
+count moves: = = the app on `main` runs a launch sweep that drops every board card
+naming no owner, body or book, = = so the count printed for the live store is true
+at the minute it was taken and false after the next launch. = = The reading that
+carries a claim is therefore the **backup** arm, = = whose file does not move, = =
+and the live arm is published with the minute it was taken at (= = the store's own
+`ACHANGE` table names the delete transactions, = = 518 rows at 16:22:45 = = the
+seed's own, = = and 58 rows at 21:43:45 = = cards the launch sweep took).
