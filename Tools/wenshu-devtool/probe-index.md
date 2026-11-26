@@ -868,7 +868,8 @@ the store's own pre-repair backup, = so the same instrument answers both
 
 ```
 $ python3 Tools/wenshu-devtool/probes/seed_sample_rows.py --dry-run <backup copy>
-store: .../arm1-pre-cleanup/WenshuStore.store (tree 0f9c784db60c)
+store: ~/Documents/wenshu-backups/2026-11-26-pre-seed-cleanup/WenshuStore.store
+(tree 7be5534aa161, re-taken after `pragma journal_mode=delete` on the copy)
 sample pairs read from the seed: 7
 rows total: 576
 rows carrying a sample's title AND body: 518
