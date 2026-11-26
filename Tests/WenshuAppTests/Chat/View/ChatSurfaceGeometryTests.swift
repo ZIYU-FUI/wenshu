@@ -110,13 +110,13 @@ struct ChatSurfaceGeometryTests {
                 "A band whose text wraps must exceed the 36 PT floor; asked for \(tall) PT")
     }
 
-    @Test("ChatSurfaceShape caps its radius at half the resting height")
+    @Test("ChatSurfaceShape tracks half the height until the 36 PT cap")
     func shapeCapsItsRadiusAtRestingHeight() {
-        // This measures the composer field's own outline: at the
-        // resting height the shape rounds its ends all the way (= a
-        // capsule), and past it the radius stops tracking half the
-        // height, so a grown surface stays a rounded rectangle (=
-        // the glyphs never spill out of a degenerate ellipse).
+        // This measures the composer field's own outline: the radius is
+        // min(half the height, the 36 PT cap), so the shape rounds its ends
+        // all the way (= a capsule) through 72 PT, and only a taller surface
+        // stays a rounded rectangle (= the glyphs never spill out of a
+        // degenerate ellipse).
         let shape = ChatSurfaceShape()
         let restingRect = CGRect(x: 0, y: 0, width: 400, height: 36)
         let grownRect = CGRect(x: 0, y: 0, width: 400, height: 72)

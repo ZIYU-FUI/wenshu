@@ -239,9 +239,9 @@ struct ChatUserBubbleReadabilityTests {
     /// The outgoing band draws no stroke OF ITS OWN: the content-area
     /// material brings its own edge, so a stroke drawn on top of it
     /// would read as a rim over the material rather than as the shape's
-    /// own boundary. The composer field, which wears the same
-    /// `ChatSurfaceShape`, is borderless, so the two surfaces agree by
-    /// construction only while both are borderless.
+    /// own boundary. The composer field, which is fill-only like the
+    /// band, is borderless, so the two surfaces agree by construction
+    /// only while both are borderless.
     @Test func outgoing_bubble_draws_no_stroke() throws {
         let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift")
         // The bubble's own modifier is where a stroke would live, so the
