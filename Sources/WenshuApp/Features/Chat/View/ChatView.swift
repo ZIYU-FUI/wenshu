@@ -58,13 +58,8 @@ struct ChatView: View {
     /// re-evaluate the body and pick up the freshly-configured key: the
     /// empty-state overlay disappears and the chat input row enables.
     @State private var keychainRevision: Int = 0
-    /// Where the reader is in the transcript.
-    ///
-    /// The viewport's geometry, reduced to what the follow gate needs:
-    /// the distance between the last message's bottom edge and the
-    /// viewport's bottom edge (= = zero when the reader is at the
-    /// bottom), the offset, and the content's height.
-    @State private var transcriptScroll = ChatTranscriptBottom.ScrollState()
+    /// Is the reader the one moving the transcript? Apple's own phase.
+    @State private var readerIsScrolling = false
     // Reactive check: is the current model usable?: the vm's snapshot of the
     // model id lags when the key is configured from Settings, so the input was
     // disabling itself even though the user had just set a key. Read the same
@@ -267,54 +262,55 @@ struct ChatView: View {
                     // reader's row, their offset stayed put (= = 272
                     // while the content grew).
                     .scrollPosition(id: $vm.anchoredRowID, anchor: .bottom)
-                    //
-                    // Where the reader is.
-                    //
-                    // The viewport's geometry, reduced to what the follow
-                    // gate needs: the distance between the content's
-                    // bottom edge and the viewport's bottom edge (= = zero
-                    // when the reader is at the bottom), the offset, and
-                    // the content's height.
-                    .onScrollGeometryChange(for: ChatTranscriptBottom.ScrollState.self) { geometry in
-                        ChatTranscriptBottom.ScrollState(
-                            offset: geometry.contentOffset.y,
-                            distanceFromBottom: ChatTranscriptBottom.distanceFromBottom(
-                                contentSize: geometry.contentSize,
-                                visibleRect: geometry.visibleRect,
-                                bottomInset: ChatTranscriptBottom.bottomInset
-                            ),
-                            contentHeight: geometry.contentSize.height
-                        )
-                    } action: { _, current in
-                        // The viewport's own reading (= = how far the
-                        // reader is from the last message).
-                        //
-                        // It is the TRUTH about the viewport, = = and it
-                        // is not the gate (= = the gate is the reader's
-                        // own place, = = below): a reply arriving under
-                        // the reader moves this number without moving
-                        // the reader.
-                        transcriptScroll = current
+                    // Apple's own change detection: the action runs when
+                    // the content's height changes, not on every scroll
+                    // event. The follow is the app's own: it runs only
+                    // while the reader is at the bottom, so a reader who
+                    // is reading history keeps their place.
+                    .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.contentSize.height
+                    } action: { _, _ in
+                        followNewestContent(proxy)
                     }
-                    //
-                    // The reader's own place.
-                    //
-                    // Apple's `scrollPosition(id:)` writes the binding
-                    // back when the reader scrolls (= = its own
-                    // documentation says so), = = so the row it names
-                    // is the row the reader is looking at.
-                    //
-                    // THAT is the gate: the content growing under the
-                    // reader moves every distance, = = but it does not
-                    // move the row the reader is looking at.
-                    .onChange(of: vm.anchoredRowID) { _, row in
-                        // The distance comes from the view's own newest
-                        // geometry (= = the scroll callback's last
-                        // reading), = = not from the model (= = the
-                        // model's copy is written by the same callback,
-                        // and reading it back here would hand the gate
-                        // the number from before the last frame).
-                        vm.readerMoved(to: row, distance: transcriptScroll.distanceFromBottom)
+                    // Is the reader the one moving? Apple's own answer
+                    // (= = it names the gesture, the trackpad's inertia, and
+                    // the moment they let go), so the gate never has to
+                    // guess that a scroll happened.
+                    .onScrollPhaseChange { _, phase in
+                        readerIsScrolling = (phase == .interacting || phase == .decelerating)
+                    }
+                    // Apple's own answer to "is the reader at the bottom":
+                    // the clearance row IS the content's bottom edge, and
+                    // Apple reports the visibility of the transcript's
+                    // scroll targets as it changes. A reader who nudged the
+                    // scroll still has that row on screen; a reader who
+                    // went back into the history does not.
+                    .onScrollTargetVisibilityChange(idType: UUID.self) { ids in
+                        // The bottom of the transcript is either row: the
+                        // clearance row (the content's bottom edge) or the
+                        // newest message, because the lazy stack lays the
+                        // clearance row out last. MEASURED in the hosted
+                        // chat: the signal fires with 0 visible targets,
+                        // then 1 without the clearance row, then 2 with it.
+                        // A report taken mid-layout therefore names the
+                        // newest row and not the clearance row, and reading
+                        // that as "away" would flash the way back on window
+                        // open and on every conversation switch.
+                        let newest = vm.messages.last?.id
+                        let bottomVisible = ids.contains(ChatTranscriptBottom.clearanceID)
+                            || (newest.map(ids.contains) ?? false)
+                        // Two different facts must not be read as one:
+                        // "the bottom is not on screen" and "the reader
+                        // left the bottom". Writing the gate from the
+                        // absence alone would offer the way back and stop
+                        // the follow while the reader never moved.
+                        //
+                        // So the absence counts only when the reader is the
+                        // one moving (= = Apple's own phase), and the
+                        // presence always counts (= = they are back).
+                        if bottomVisible || readerIsScrolling {
+                            vm.readerAtBottomChanged(bottomVisible)
+                        }
                     }
                     //
                     // The transcript follows the newest content: when the
@@ -342,28 +338,6 @@ struct ChatView: View {
                     // The key is READ in the body (= = see below), = = so
                     // the view knows the newest block changed.
                     .task(id: vm.messages.last?.streamFollowKey) {
-                        followNewestContent(proxy)
-                    }
-                    //
-                    // The content's height changed (= = the bubbles
-                    // re-wrapped because the column's width changed).
-                    //
-                    // The transcript's own invariant: the offset must
-                    // follow the content's height, or the last line
-                    // falls below the viewport.
-                    //
-                    // The bottom anchor carries the width change (= =
-                    // when the column narrows, the content grows, = =
-                    // and the anchor keeps the bottom at the viewport's
-                    // bottom). What it does NOT carry is the arriving
-                    // reply: MEASURED, with the bottom anchor alone, a
-                    // reader who had scrolled up was dragged back down
-                    // (= = their offset jumped from 480 to 1200, = = the
-                    // new maximum). = = So the follow is the app's own
-                    // (= = it runs only while the reader is at the
-                    // bottom, = = and a reader who is reading history
-                    // keeps their place).
-                    .onChange(of: transcriptScroll.contentHeight) { _, _ in
                         followNewestContent(proxy)
                     }
                     // The reader asked to go back to the newest content

@@ -90,7 +90,6 @@ final class ScrollBottomChatRepository: ChatRepositoryProtocol, @unchecked Senda
         storedContextUsage
     }
 
-
     func copyChatUpload(sourceURL _: URL, intoLibraryAt _: String) async throws -> String? {
         nil
     }
@@ -159,7 +158,6 @@ struct ChatScrollToBottomTests {
         }
     }
 
-    /// A view model whose history loads without a keychain.
     private func makeViewModel(messages: [ChatMessage]) -> ChatViewModel {
         ChatViewModel(
             initialMessages: Array(messages.dropLast()),
@@ -231,101 +229,69 @@ struct ChatScrollToBottomTests {
         #expect(model.readerIsAtBottom,
                 Comment("a transcript nobody has scrolled in is at the bottom"))
 
-        model.readerLeftTheBottom()
+        model.readerAtBottomChanged(false)
         #expect(!model.readerIsAtBottom,
                 Comment("the reader who scrolled away must not count as at the bottom"))
         #expect(model.offersWayBack,
                 Comment("the way back must be offered while the reader is away"))
 
-        model.readerReturnedToTheBottom()
+        model.readerAtBottomChanged(true)
         #expect(model.readerIsAtBottom,
                 Comment("the reader who came back must count as at the bottom"))
         #expect(!model.offersWayBack,
                 Comment("the way back must be gone once the reader is back"))
     }
 
-    @Test("The reader's place is the gate: the row they are looking at")
-    func theReadersPlaceIsTheGate() {
-        // The gate reads the reader's OWN place (= = the row their
-        // viewport is bound to), = = and not a number derived from the
-        // content's height: a reply arriving under the reader moves
-        // every distance, = = and the reader has not moved.
+    @Test("The gate is Apple's answer: the bottom target's visibility")
+    func theGateIsApplesAnswer() {
+        // The gate reads Apple's own answer, and not a number we derive
+        // from the content's height: a reply arriving under the reader
+        // moves every distance, and the reader has not moved.
         let model = ChatViewModel(
             initialMessages: [],
             repository: ScrollBottomChatRepository(messages: []),
             providersConfigured: { true }
         )
-        let clearance = ChatTranscriptBottom.clearanceID
-
-        // The reader's viewport is bound to the content's bottom edge
-        // (= = the clearance row): they are at the bottom.
-        model.readerMoved(to: clearance, distance: 0)
+        // Apple says the bottom target is on screen: at the bottom.
+        model.readerAtBottomChanged(true)
         #expect(model.readerIsAtBottom)
 
-        // The reader's viewport is bound to an earlier row: they are
-        // reading history.
-        model.readerMoved(to: UUID(), distance: 400)
+        // Apple says it is gone: the reader is up in the history.
+        model.readerAtBottomChanged(false)
         #expect(!model.readerIsAtBottom,
-                Comment("the reader who is looking at an earlier row is away"))
+                Comment("the reader whose bottom target left the viewport is away"))
         #expect(model.offersWayBack)
 
-        // A reader who nudged the scroll by a hair is still at the
-        // bottom (= = the band).
-        model.readerMoved(to: UUID(), distance: ChatTranscriptBottom.atBottomBand)
-        #expect(model.readerIsAtBottom,
-                Comment("a reader inside the band is still at the bottom"))
+        // Apple says it is back: the follow resumes.
+        model.readerAtBottomChanged(true)
+        #expect(model.readerIsAtBottom)
+        #expect(!model.offersWayBack)
     }
 
-    @Test("The gate's band is narrow: a reader a hair above the bottom is away")
-    func theGatesBandIsNarrow() {
-        // The band is eight points, = = deliberately tight: a reader who
-        // scrolled even slightly up must stop being dragged down by the
-        // arriving reply.
-        #expect(ChatTranscriptBottom.atBottomBand == 8,
-                Comment("the band is the upstream's own number"))
-        #expect(ChatTranscriptBottom.isAtBottom(distance: 8),
-                Comment("exactly the band still counts as the bottom"))
-        #expect(!ChatTranscriptBottom.isAtBottom(distance: 9),
-                Comment("one point past the band is away"))
-    }
-
-    @Test("The distance is measured against the viewport, not the container")
-    func theDistanceIsMeasuredAgainstTheViewport() {
-        // The numbers are the app's own (the card's measurement #1),
-        // and they are the formula the gate's truth is built on.
+    @Test("The gate carries no tolerance of ours: Apple's answer is taken as given")
+    func theGateCarriesNoToleranceOfOurs() {
+        // The old rule was ours to tune: a band of 8 points, so a reader
+        // one point further up counted as away. The boss ruled on
+        // 2026-11-25 that a slight scroll-up does NOT count as leaving
+        // the bottom, because a reader who scrolls up is usually hunting
+        // for the first answer to their own question.
         //
-        // A reader AT the bottom: the viewport's bottom edge sits on the
-        // last message's bottom edge (= = the clearance row's bottom
-        // edge, = = 96 PT below the content's bottom edge in the
-        // numbers below).
-        let content = CGSize(width: 300, height: 1600)
-        // (= = the viewport's bottom edge at 1504 = = the content's
-        // bottom edge minus the clearance row and the spacing.)
-        let atBottom = CGRect(x: 0, y: 1204, width: 300, height: 300)
-        #expect(ChatTranscriptBottom.distanceFromBottom(
-            contentSize: content,
-            visibleRect: atBottom,
-            bottomInset: 96
-        ) == 0,
-        Comment("a reader at the bottom is 0 from it"))
-
-        // A reader 400 PT above it.
-        let away = CGRect(x: 0, y: 804, width: 300, height: 300)
-        #expect(ChatTranscriptBottom.distanceFromBottom(
-            contentSize: content,
-            visibleRect: away,
-            bottomInset: 96
-        ) == 400,
-        Comment("a reader 400 points up is 400 from the bottom"))
-
-        // A content shorter than the viewport: the reader is at the
-        // bottom by definition (= = the distance is clamped).
-        let short = CGSize(width: 300, height: 100)
-        #expect(ChatTranscriptBottom.distanceFromBottom(
-            contentSize: short,
-            visibleRect: CGRect(x: 0, y: 0, width: 300, height: 300),
-            bottomInset: 96
-        ) == 0)
+        // The new rule holds no number of ours: Apple reports the
+        // clearance row on screen or off it, and the model takes that
+        // answer as given. The tolerance lives in Apple's geometry (the
+        // row is the input bar's height, so a nudge leaves it on screen)
+        // and not in a constant we tuned.
+        let model = ChatViewModel(
+            initialMessages: [],
+            repository: ScrollBottomChatRepository(messages: []),
+            providersConfigured: { true }
+        )
+        model.readerAtBottomChanged(false)
+        #expect(!model.readerIsAtBottom,
+                Comment("Apple said the target is gone: nothing of ours re-opens it"))
+        model.readerAtBottomChanged(true)
+        #expect(model.readerIsAtBottom,
+                Comment("Apple said it is back: the gate follows, and does not lag"))
     }
 
     @Test("The way back appears while the reader is away, and is gone when they return")
@@ -362,7 +328,7 @@ struct ChatScrollToBottomTests {
         // geometry callback never saw a programmatic scroll), = = so a
         // case that scrolled the NSScrollView directly would measure
         // the harness, = = not the app.
-        vm.readerLeftTheBottom()
+        vm.readerAtBottomChanged(false)
         settle()
         #expect(vm.offersWayBack,
                 Comment("the way back must be offered while the reader is away from the bottom"))
@@ -385,7 +351,7 @@ struct ChatScrollToBottomTests {
         // does not reach SwiftUI), = = so the reader's place is moved
         // the way the app moves it (= = the same signal the app's own
         // binding write-back raises).
-        vm.readerLeftTheBottom()
+        vm.readerAtBottomChanged(false)
         settle()
         #expect(!vm.readerIsAtBottom,
                 Comment("the reader must be away before the way back is clicked"))

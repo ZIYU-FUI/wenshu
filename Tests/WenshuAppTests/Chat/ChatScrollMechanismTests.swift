@@ -5,12 +5,12 @@
 //
 //  WHY
 //  ===
-//  The behaviour suite drives the MODEL (= = it calls
-//  `readerLeftTheBottom()`), = = so it proves the model's flag, = = and
-//  not the production path that is supposed to set that flag. = =
-//  Measured: deleting the viewport's row binding, = = deleting the hop
-//  that writes the reader's place, = = making the follow ignore the
-//  gate, = = or never rendering the way back left EVERY suite green.
+//  The behaviour suite drives the MODEL (it calls
+//  `readerAtBottomChanged`), so it proves the model's flag, and not the
+//  production path that is supposed to set it. Measured: deleting the
+//  viewport's row binding, deleting the call that hands Apple's answer
+//  to the model, making the follow ignore the gate, or never rendering
+//  the way back left EVERY suite green.
 //
 //  A suite that stays green when the mechanism is gone measures
 //  nothing. = = So these cases read the VIEW's own source, = = and
@@ -19,8 +19,8 @@
 //    1. the viewport is bound to the row the reader is looking at
 //       (= = Apple's `scrollPosition(id:)`, = = the viewport's own
 //       write path);
-//    2. the view writes the reader's place when that row changes
-//       (= = the hop);
+//    2. the view asks Apple whether the bottom target is on screen, and
+//       hands that answer to the model (the hop);
 //    3. the follow reads the gate (= = it does not follow a reader who
 //       is away), = = and it puts the viewport back through the
 //       binding;
@@ -54,13 +54,21 @@ struct ChatScrollMechanismTests {
                 "The viewport must be bound to the reader's row (= = Apple's own write path)")
     }
 
-    @Test("The view writes the reader's place when that row changes")
-    func theViewWritesTheReadersPlace() throws {
+    @Test("The view asks Apple whether the bottom target is on screen")
+    func theViewAsksApple() throws {
         let source = try Self.source(Self.chatView)
-        #expect(source.contains(".onChange(of: vm.anchoredRowID)"),
-                "The view must notice that the reader's row changed")
-        #expect(source.contains("vm.readerMoved("),
-                "The view must write the reader's place (= = the model's gate reads it)")
+        #expect(source.contains(".onScrollTargetVisibilityChange"),
+                "The gate must ride Apple's own visibility signal, not a distance we measure")
+        #expect(source.contains("ids.contains(ChatTranscriptBottom.clearanceID)"),
+                "The view must hand Apple's answer for the clearance row to the model")
+        #expect(source.contains(".onScrollPhaseChange"),
+                "The gate must learn from Apple whether the reader is the one moving")
+        #expect(source.contains("if bottomVisible || readerIsScrolling {"),
+                "The bottom row being off screen may count as leaving only while the reader is moving")
+        #expect(!source.contains("ChatTranscriptBottom.distanceFromBottom"),
+                "The view must not compute the distance from the bottom itself")
+        #expect(!source.contains("ChatTranscriptBottom.atBottomBand"),
+                "The view must not carry a tolerance we tuned")
     }
 
     @Test("The follow reads the gate, and puts the viewport back through the binding")

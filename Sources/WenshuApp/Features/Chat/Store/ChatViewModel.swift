@@ -82,46 +82,28 @@ final class ChatViewModel {
     /// are.
     var readerIsAtBottom: Bool = true
 
-    /// The reader scrolled away from the bottom.
+    /// Apple's own answer changed: the transcript's bottom target is
+    /// on screen, or it is not.
     ///
-    /// The transcript's follow stops while the reader is away, = = so
-    /// the arriving reply does not drag them down.
-    func readerLeftTheBottom() {
-        readerIsAtBottom = false
-    }
-
-    /// The reader is at the bottom again (= = they came back, = = or the
-    /// app's own follow put them there).
-    func readerReturnedToTheBottom() {
-        readerIsAtBottom = true
-    }
-
-    /// The reader's place moved.
+    /// The answer is Apple's, not ours: the view hands us the
+    /// visibility of the clearance row (= = the content's bottom edge)
+    /// as it changes, and Apple's `onScrollTargetVisibilityChange` is
+    /// what raises it. So there is no distance to measure and no band
+    /// to tune: a reader who nudged the scroll by a hair still has the
+    /// bottom target on screen (= = Apple still says "at the bottom"),
+    /// and the reader counts as away only once the bottom of the
+    /// transcript has left the viewport (= = "scrolled far away", = =
+    /// the boss's rule of 2026-11-25).
     ///
-    /// - Parameters:
-    ///   - row: the row the reader's viewport is bound to (= = the row
-    ///     at the viewport's bottom edge).
-    ///   - distance: how far the last message's bottom edge is below
-    ///     the viewport's bottom edge.
-    func readerMoved(to row: UUID?, distance: CGFloat) {
-        // The clearance row IS the content's bottom edge (= = the
-        // reader is parked at the bottom: the viewport's bottom edge
-        // is the content's bottom edge).
-        if row == ChatTranscriptBottom.clearanceID {
-            readerReturnedToTheBottom()
-            return
-        }
-        // Another row: the reader is looking at an earlier one. The
-        // band decides how far away counts (= = a reader who nudged the
-        // scroll by a hair is still at the bottom).
-        //
-        // The distance is NOT written here: it belongs to the viewport's
-        // geometry (= = the view writes it from the scroll geometry),
-        // and a stale number written back over a fresh one would make
-        // the gate read yesterday's viewport. MEASURED: that was worth
-        // 535 points of distance (= = the gate said "away" while the
-        // reader sat at the newest content).
-        readerIsAtBottom = distance <= ChatTranscriptBottom.atBottomBand
+    /// - Parameter atBottom: whether the bottom target is on screen.
+    func readerAtBottomChanged(_ atBottom: Bool) {
+        // One plain write, and no dedup of our own. MEASURED by the
+        // reviewer round of 2026-11-26 (scratch/obs_probe.swift): an
+        // `@Observable` property written with the value it already holds
+        // does NOT fire its observers, = = Apple's Observation compares the
+        // write. A guard here would re-implement the framework's own job,
+        // and the test that tried to pin it could not fail.
+        readerIsAtBottom = atBottom
     }
 
     /// Whether the way back to the newest content is offered.

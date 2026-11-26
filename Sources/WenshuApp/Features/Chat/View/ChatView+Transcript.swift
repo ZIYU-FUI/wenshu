@@ -67,7 +67,7 @@ extension ChatView {
         if force {
             // The reader asked to go back: they are at the bottom again,
             // = = so the arriving reply keeps them there.
-            vm.readerReturnedToTheBottom()
+            vm.readerAtBottomChanged(true)
         }
     }
 }
