@@ -190,49 +190,83 @@ A reverted scorer that leaves every arm rc 0 is a reject of the suite, not a
 pass: the fixture would once again be unable to move, which is the defect rounds
 1 and 2 were rejected for.
 
-The cheap check a reader can run: every commit this record cites by name is a
-member of one of the two loops below. The first loop holds the five shas that are
-on `main`: it FAILS if one of them does not resolve, and it prints only the sha
-and its type - no ref, because `main` is the ref. The second loop holds the other
-eleven, prints for each the
-refs in the checkout that carry it, and prints `not in this clone` where none
-does, without failing. Of those eleven: three sit on a server ref, so a clone
-that fetches `docs/rank-order-closeout-2026-11-26` or `wt/cmd-shift-k-2026-11-25`
-re-takes them - `825edae01447537b1fb3144675c89e17aadd1b26`, and
-`799a0dcf5e54866331c398fc07d129fdfdcc357a` with its parent
-`e53e8441e9dc29bdc8b8e0731a4f0cad1625c06c`; four are carried only by refs this
-checkout made for itself - a backup ref and three parked superseded tips; three
-are carried only by local lane branches; and one, `a08c89d9f30d06d81630c286651f998444eba9ea`,
-is this record's own third commit after two rebases, named here only for its
-patch-id. `825edae01447` is that same commit as it was pushed: `git patch-id
---stable` reads `dc43650f3b63c898a5d96b4940a3d3bc2d25c5b4` for both, so the blob
-identities cited at `825edae01447` are taken at a pushed shape and not at a
-moving tip.
+Every token of seven or more hexadecimal characters in this file, outside a
+fenced block, is resolved with `git rev-parse --verify --quiet <token>^{commit}`.
+One that resolves to a commit is a member of the census; one that does not is
+printed by the block below with its length and the line it sits on, so a reader sees
+the list of non-commits rather than trusting a sentence about it. Each one is named at
+its site as what it is = a blob id, a `git patch-id --stable` output, a change id, the
+sha256 of printed probe output, or an integer an order digest printed. A patch-id and a
+change id are properties of a diff, not objects, so they cannot resolve; a blob id
+resolves under `git cat-file -t` as `blob` and under `rev-parse --verify
+<token>^{commit}` as nothing, which is the test the block applies. The block below is the measurement, and its printed lines are the
+counts: a member is hard when `git merge-base --is-ancestor <member> origin/main`
+returns 0, meaning any clone of this repository reaches it, and soft when it returns
+1, and every soft member is printed with the refs that carry it, from
+`git for-each-ref --contains <member> --format=%(refname)`. A soft member behind a
+`refs/remotes/` ref can be re-taken by a reader who clones this repository; one
+behind no such ref exists only inside this one checkout, so the claims pinned to it
+can be re-taken only by whoever holds it. Nothing in this paragraph repeats the
+numbers: they are printed, because a count transcribed from a tool rots when the
+tool's own input moves, and this file's prose is that loop's input.
 
-```
-for s in ecec033726 4db43731ac 29ec44f1e2 7e036f7613 0f9c784db6; do
-  git cat-file -e "$s" || exit 1
-  printf "%s %s
-" "$s" "$(git cat-file -t "$s")"
-done
-for s in 825edae01447537b1fb3144675c89e17aadd1b26 \
-         8415d6220073f52d5e52db2e80992baf7ad12d91 \
-         64212762cb \
-         a708a7e5900857a3eaf613fba82dd6dc9e79a01d \
-         548730e3021a5d17db829499730970bfff750a04 \
-         799a0dcf5e54866331c398fc07d129fdfdcc357a \
-         e53e8441e9dc29bdc8b8e0731a4f0cad1625c06c \
-         a08c89d9f30d06d81630c286651f998444eba9ea \
-         3d67d7270d3244eec49a0a23cc3c4947938a0cbc \
-         c5d54473162aa909dee87ba57cf83ef9d8a2557d \
-         913b5239b38e21daf47e35fa1fa441692f95eb8f; do
-  if git cat-file -e "$s" 2>/dev/null; then
-    printf "%s %s %s\n" "$s" "$(git cat-file -t "$s")" \
-      "$(git for-each-ref --contains "$s" --format='%(refname)' | tr '\n' ' ')"
-  else
-    printf "%s not in this clone\n" "$s"
-  fi
-done
+```python
+import subprocess
+from pathlib import Path
+# The census is not a table in prose: it is this loop, run against this file.
+REL = ("docs/agents/2026-11-26-session-close-the-rank-order-lane-and-"
+       "the-claim-line-a-gate-could-not-read.md")
+lines = Path(REL).read_text().split("\n")
+fence, toks = False, set()
+where = {}
+for i, line in enumerate(lines, 1):
+    if line.startswith("```"):
+        fence = not fence
+        continue
+    if fence:
+        continue  # a sha inside a block is output, not a claim
+    for w in line.split():
+        t = w.strip("`().,:;=\"")
+        if len(t) >= 7 and all(c in "0123456789abcdef" for c in t):
+            toks.add(t)
+            where.setdefault(t, []).append(i)
+
+
+def resolve(tok):
+    r = subprocess.run(["git", "rev-parse", "--verify", "--quiet", tok + "^{commit}"],
+                       capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def on_main(sha):
+    cmd = ["git", "merge-base", "--is-ancestor", sha, "origin/main"]
+    return subprocess.run(cmd, capture_output=True).returncode == 0
+
+
+members = sorted({resolve(t) for t in toks if resolve(t)})
+hard = [s for s in members if on_main(s)]
+soft = [s for s in members if s not in hard]
+assert len(members) == len(hard) + len(soft)
+print("members %d hard %d soft %d" % (len(members), len(hard), len(soft)))
+for s in hard:
+    assert on_main(s)  # an arm that cannot re-check its own class is not a proof
+    print("  %s main" % s[:10])
+server = []
+for s in soft:
+    cmd = ["git", "for-each-ref", "--contains", s, "--format=%(refname)"]
+    refs = subprocess.run(cmd, capture_output=True, text=True).stdout.split()
+    assert not on_main(s)
+    tag = "server" if any(r.startswith("refs/remotes/") for r in refs) else "local-only"
+    if tag == "server":
+        server.append(s)
+    print("  %s %s %s" % (s[:10], tag, ",".join(r.replace("refs/", "") for r in refs) or "none"))
+print("  server-carried off-main: %d; checkout-only: %d" % (len(server), len(soft) - len(server)))
+
+void = sorted((t for t in toks if not resolve(t)), key=lambda x: (len(x), x))
+print("tokens that do not resolve to a commit: %d, by length %s" % (
+    len(void), sorted({len(v) for v in void})))
+for v in void:
+    print("  len %d %s on lines %s" % (len(v), v, ",".join(str(i) for i in where[v])))
 ```
 
 ## Gate set, at the landed tree
@@ -406,6 +440,59 @@ read-back, local `main` was `29ec44f1e2` and
    a finding here that only asks for another such sentence is the defect
    repeating, and should be rejected as one.
 
+## The gate set re-taken after main moved twice
+
+Base `origin/main` = ``ba2415ab86``. While this record was being fixed, main moved
+from ``b738e7593a`` to ``ba2415ab86`` through ``8057b1afdc``, ``94fb8dadf1`` and
+``ba2415ab86`` = the three that took the chord-glyph rule and its test into main's
+judge. The branch's tip at that point, ``1c9adf82a8``, is therefore not a child of
+main: `git merge-base --is-ancestor` returns 1 for it. The census loop published
+above lists the refs that carry it = two local branch heads and one
+ref the server also has, so the shape it pins can be re-taken by a reader who
+fetched that ref, and not by a reader who cloned main alone. `git merge-tree
+--write-tree origin/main `1c9adf82a8`` read
+clean, so main was merged into this branch and the tree under measurement is this
+branch's own tip after that merge, which a reader resolves with `git rev-parse
+HEAD`, and every log below is labelled `.gate-logs/r7_<label>.log` rather than
+by a sha that a later amend would invalidate.
+
+Nothing main added touches this record: the three commits touch
+`Tools/wenshu-devtool/` and one row of `docs/agents/nfi.md`; this branch touches
+its own row and this file. `git diff --quiet origin/main HEAD --
+Tools/wenshu-devtool/` returns 0, which is the reading that closes the rejection's
+charge that the branch carried a second copy of a rule main already had = there is
+one implementation on each path and one carrier for it. `git ls-tree origin/main --
+` followed by this record's path prints no row = main does not carry this record
+yet, so a claim about this file cannot be read off main's tree, and the
+record's own blob is the same either side of it: `git rev-parse 1c9adf82a8:` and
+`git rev-parse HEAD:` followed by this record's path both read
+`9e0c89984bd2efd6fde4331e13ad3d96db9cf5cd`, so the merge moved the base under the
+earlier claims and rewrote none of them.
+
+Two claims had to change rather than survive. The chord rule is now read from
+main's `Tools/wenshu-devtool/commit_filter.py` and `tests/test_chord_glyph_rule.py`
+instead of a copy carried by this lane, and replaying the local chord family onto
+main's rule is a separate matter from this branch's content = `git patch-id
+--stable` over `a708a7e590` reads
+`cc7cc21c1c4d042568c161b68d4c540ccd681610`, over `548730e302`
+`a57427b240c99a708e9e17c692bc9afabccd0d58`, and over main's own carrier `8057b1afdc`
+`bbcc5c90a5498b21a39ff6a8393b4ea2ad7213cf` = three different strings, so the lane's
+two chord commits are not a copy of what main took: main rewrote the rule on its own
+path, and `git diff --quiet origin/main HEAD -- Tools/wenshu-devtool/` says the tree
+now holds main's single version. One equality does survive and it is the one that
+matters to this record's own history: `git diff 825edae01447^ 825edae01447 | git
+patch-id --stable` and `git diff a08c89d9f3^ a08c89d9f3 | git patch-id --stable` both
+read `dc43650f3b63c898a5d96b4940a3d3bc2d25c5b4`, which is a property of the diff, so
+the replay of that record edit onto a different parent moved no content. A patch-id is
+not an object: neither string resolves, which is why each is named with the two commits
+it was taken over. The registry fix
+`7e036f7613` is on main's tree now, and the count `nfi-loc-check.py` prints is a
+property of the diff it is handed rather than of the tool: the landed table ran where
+`origin/main` was `29ec44f1e2` (its comment-lineage row names the window
+`29ec44f1e2..4db43731ac`) and printed 2 rows, the round below ran at `b738e7593a` and
+printed 1 row. The two numbers are readings of two windows.
+
+
 ## The doc gates measured on the shape a reader gets
 
 Base `origin/main` = `b738e7593a881bd6a9108713b68833e4d3cb52f1`, tree under
@@ -429,3 +516,4 @@ scope here. The commit that carries this sentence is a child of the measured tip
 and its diff over that parent is exactly this block plus the line count in
 `docs/agents/nfi.md`, so the reading can be carried forward by checking that the
 two blobs differ in nothing else.
+
