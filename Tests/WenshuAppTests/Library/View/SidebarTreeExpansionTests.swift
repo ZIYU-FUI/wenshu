@@ -26,6 +26,10 @@
 //    9. The reveal request counts (= so the same selection can be
 //       asked for twice) and is not persisted (= it is a request, = not
 //       a state).
+//    10. A row's drawing identity follows the row's own open/closed
+//       state (= the row the reveal opened is built again, = so it
+//       carries the ONE arrow it actually has, = and a leaf carries no
+//       suffix at all).
 //
 
 import Foundation
@@ -419,5 +423,36 @@ struct SidebarTreeExpansionTests {
         let restored = WorkspaceUIState(store: UserDefaultsStore(defaults: defaults))
         #expect(restored.revealRequestCount == 0)
         defaults.removePersistentDomain(forName: suite)
+    }
+
+    @Test("A row's drawing identity follows the row's own open/closed state")
+    func theRowIdentityFollowsTheExpansionState() throws {
+        let suite = "sidebar-tree-row-identity-expansion-test"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let state = WorkspaceUIState(store: UserDefaultsStore(defaults: defaults))
+        let tree = Self.shelfTree()
+        let bookID = try Self.bookID(of: tree)
+        let shelf = try #require(tree.first)
+        let book = try #require(shelf.children?.first)
+        let folder = try #require(book.children?.first)
+
+        // A row with nothing to open carries no suffix (= its identity
+        // never moves with another row's state).
+        #expect(state.rowExpansionSuffix(for: folder) == "")
+
+        // Closed before the reveal, open after it (= the reveal is what
+        // opened it: = nobody clicked the row).
+        #expect(state.rowExpansionSuffix(for: book) == "c")
+        state.openRows(AppleSidebarView.revealExpansionKeys(for: .book(bookID), in: tree))
+        #expect(state.rowExpansionSuffix(for: book) == "o")
+
+        // ⇒ ⇒ ⇒ THE WHOLE PATH MOVES, = AND ONLY THE PATH: = the shelf
+        // above opened with its child (= so its row is built with the
+        // arrow it has), = and the leaf under it keeps no suffix at all
+        // (= the rows the user did not touch are not rebuilt).
+        #expect(state.rowExpansionSuffix(for: shelf) == "o")
+        #expect(state.rowExpansionSuffix(for: folder) == "")
     }
 }
