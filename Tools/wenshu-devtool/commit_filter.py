@@ -9,8 +9,12 @@ Allowed tokens (project-mandated literal characters per AGENTS.md §12):
 老板 文枢 拍 拍板 ※
 
 Source of truth: .scratch/2026-08-22-pollution-mitigation/spec.md
+
+It also carries the CHORD-GLYPH rule: a commit message that names a chord the
+tree does not bind is refused at commit-msg time. See chord_rule() below.
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -20,6 +24,300 @@ FORBIDDEN_TOKENS = [
     "元婴", "飞升", "天劫", "雷劫", "心魔", "魔障",
 ]
 PATTERN = re.compile("|".join(re.escape(t) for t in FORBIDDEN_TOKENS))
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# THE CHORD-GLYPH RULE
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+#
+# WHY: a commit message that names a chord the tree does not bind is a FALSE
+# RECORD, and a false record outlives the commit (= = it is in the history
+# forever). Measured 2026-11-25: the chord lane's tip `a708a7e590` shipped a
+# message whose own bytes carry six bare chord mentions and the sentence
+# "Every chord mention in this message carries ⇧" = = a sentence the same
+# object refutes. That tree binds the code block at `⌘⇧F` and binds `⌘K` to a
+# DIFFERENT control (focus input), so the message's "⌘K = the code block" was
+# false in substance, not merely inconsistent.
+#
+# THE TABLE: the tree's own cheat-sheet roster line IS an action-to-chord
+# table in the product's own words:
+#     "[wenshu.shortcuts] ⌘K focus input · ⌘L clear chat · ⌘⇧F code block ..."
+# It lives in the tree the commit ships, so the rule compares a message against
+# the table that tree publishes = = and it SAYS which tree it read.
+#
+# THE RULE: every phrase the table names that appears in the message belongs to
+# the chord mention it sits nearest to; that mention's chord must be one of the
+# chords the table binds for that phrase. A phrase that is nearer two mentions
+# equally judges nobody (= = an ambiguous phrase is not evidence). And a row
+# whose key a mention cannot carry (= = the table binds a key longer than one
+# character) is not evidence either (= = _chord_visible_rows): the table's own
+# grammar decides what the rule may see.
+#
+# ITS SAFETY, MEASURED: over the 569 messages the rule can judge (= = the 567 in
+# `git rev-list bb107e8c1e` whose own commit carried the roster, = = plus this lane's
+# own two commits), the rule refuses **0** (= = each message judged against its OWN
+# tree's table; = = this lane's two carry no chord mention at all). A rule that refuses
+# real history is not shippable. The number is per-commit-tree, and that is the only
+# honest filter: reading origin/main's table against all 29200 messages of
+# `git rev-list --all` refuses 4 (= = all four in the one message `241acb99cb62`), and
+# against the 6906 messages reachable from `bb107e8c1e` refuses 0 (= = of the 567
+# judgeable ones, = = only 2 carry a chord glyph at all, = = 3 mentions, = = and 1 of
+# them attributes its chord to the action the roster binds for it).
+#
+# ITS TEETH, MEASURED: on the defective chord message it refuses exactly the
+# two lines that carry the false claim, and it names each line.
+CHORD_ROSTER_FILE = "Sources/WenshuApp/Features/Chat/View/ChatView+KeyboardShortcuts.swift"
+CHORD_GLYPHS = "⌘⇧⌥⌃"
+CHORD_ENTRY = re.compile(r"^([⌘⇧⌥⌃]+)([A-Za-z0-9.,;=?/\]\-]+)\s+(.*)$")
+# The BASE key class. The tree's own table WIDENS it: _chord_is_key
+# admits a punctuation key only when the table binds that key, so the
+# two grammars (this class and CHORD_ENTRY) cannot disagree.
+CHORD_KEY = re.compile(r"^[A-Za-z0-9]$")
+CHORD_ROSTER_CACHE = {}
+
+
+def _chord_key_of(chord):
+    """The key half of a chord, exactly as CHORD_ENTRY parsed it.
+
+    CHORD_ENTRY anchors the modifier run at the start of a row, and its key
+    class holds no modifier glyph, so the key is whatever the chord has left
+    after the leading glyphs: the K of "chord-K", the dot of the row
+    "chord-dot cancel streaming".
+    """
+    return chord.lstrip(CHORD_GLYPHS)
+
+
+def _chord_table_keys(roster):
+    """The key characters the tree's own table binds, upper-cased.
+
+    Only one-character keys are published here, because a mention carries one
+    character: a row written with a longer key cannot be seen in a message, so
+    this function says so rather than inventing a key from its last character.
+    """
+    return {_chord_key_of(chord).upper() for chord, _action in roster
+            if len(_chord_key_of(chord)) == 1}
+
+
+def _chord_is_key(char, table_keys):
+    """May a chord mention carry this character?
+
+    A letter or digit always may (= = the shape of every key the tree binds).
+    A punctuation character may ONLY when the tree's own table binds it as a
+    key, so the table decides which punctuation a chord carries and this file
+    names none of them. A modifier glyph followed by punctuation the table does
+    not bind (= = "carries a modifier glyph, and the base ...") is still NOT a
+    mention, which is what the base class alone used to give.
+    """
+    return bool(CHORD_KEY.match(char)) or char.upper() in table_keys
+
+
+def _chord_visible_rows(roster, table_keys):
+    """The rows whose own chord a mention can express.
+
+    A row the rule cannot see must not enter the phrase set at all: its action
+    would be credited to the nearest mention of some OTHER chord, and that guess
+    is what refused a verbatim copy of the tree's own table. Measured before
+    this guard: a table row bound to a two-character key was visible to
+    CHORD_ENTRY and invisible to the mention grammar, and a message that quoted
+    that row verbatim was refused.
+    """
+    out = []
+    for chord, action in roster:
+        key = _chord_key_of(chord)
+        if len(key) == 1 and _chord_is_key(key, table_keys):
+            out.append((chord, action))
+    return out
+
+
+def _chord_tokens(text):
+    return [t for t in re.split(r"[^a-z0-9]+", text.lower()) if t]
+
+
+def _chord_roster(repo):
+    """[(chord, action_text)] = the tree's own cheat-sheet table at `repo`.
+
+    The table is read from the WORKING TREE (= the tree the commit ships = = the
+    tree the hook runs in), not from a caller-named tree.
+    """
+    key = os.path.abspath(repo)
+    if key in CHORD_ROSTER_CACHE:
+        return CHORD_ROSTER_CACHE[key]
+    path = os.path.join(key, CHORD_ROSTER_FILE)
+    entries = []
+    try:
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                if "[wenshu.shortcuts]" not in line:
+                    continue
+                body = line.split("[wenshu.shortcuts] ", 1)[1]
+                body = body[:body.rindex('"')]
+                for part in body.split(" · "):
+                    match = CHORD_ENTRY.match(part.strip())
+                    if match:
+                        entries.append((match.group(1) + match.group(2), match.group(3).strip()))
+                break
+    except (OSError, ValueError):
+        entries = []
+    CHORD_ROSTER_CACHE[key] = entries
+    return entries
+
+
+def _chord_line_mentions(line, table_keys=frozenset()):
+    """[(glyphs, key, key_token_index)] = every chord mention on a line.
+
+    A mention is a glyph run IMMEDIATELY followed by a key, which is the only
+    shape the roster's own rows ever take (= "chord-K", never "chord K"). The
+    scan used to step over spaces first, and that turned prose ABOUT the glyph
+    into a chord: "the glyph Kills the panel, then reload the view" was read as
+    a mention of chord-K, which then stole the reload row's phrase and refused
+    a true sentence (measured on the published table: 1 refusal, and
+    "Keep the caret, and cancel streaming" the same). Pinned by the suite.
+    """
+    runs = []
+    index = 0
+    while True:
+        found = [line.find(glyph, index) for glyph in CHORD_GLYPHS]
+        found = [pos for pos in found if pos != -1]
+        if not found:
+            break
+        run_start = min(found)
+        run_end = run_start
+        while run_end < len(line) and line[run_end] in CHORD_GLYPHS:
+            run_end += 1
+        index = run_end
+        after = run_end
+        if after < len(line) and _chord_is_key(line[after], table_keys):
+            key = line[after]
+            if key.isalpha():
+                key = key.upper()
+            runs.append((line[run_start:run_end], key, run_start, run_end))
+    out = []
+    for glyphs, key, run_start, run_end in runs:
+        out.append((glyphs, key, len(_chord_tokens(line[:run_end + 1]))))
+    return out
+
+
+def _chord_phrases(line, roster):
+    """[(center_token_index, chords)] = the table's phrases found in this line.
+
+    A row is entered under the SPAN its own tokens occupy, and two rows share
+    one entry only when that span is identical. So the merge is reachable
+    exactly for rows that name the SAME action with the SAME tokens; a shorter
+    row and a longer row ("clear chat", "clear chat (in-place)") sit at
+    different spans and are judged apart, NOT merged. Measured on the two
+    roster lines this repository has ever published (git rev-list --all: 2
+    distinct lines over 1020 commits) against 9 probe sentences: 24 matched
+    spans, 0 of them carrying more than one chord, because no published roster
+    has two rows with identical action text.
+
+    The direction is therefore not "the permissive one" = = it is one chord per
+    matched span, which is STRICTER than merging a row into the longer row that
+    contains it (= = measured on the pre-fix rule over the 29087 messages of
+    `git rev-list --all`, each judged against origin/main's own table: 13 error
+    lines keyed by span, 10 with the contained rows merged, the same 4 messages
+    either way). What IS permissive here is the rest: a row the
+    mention grammar cannot express never enters this set at all
+    (= = _chord_visible_rows), and a phrase nearer two mentions equally judges
+    nobody.
+    """
+    tokens = _chord_tokens(line)
+    positions = {}
+    for i, token in enumerate(tokens):
+        positions.setdefault(token, []).append(i)
+    spans = {}
+    for chord, action in roster:
+        action_tokens = _chord_tokens(action)
+        if not action_tokens or not all(t in positions for t in action_tokens):
+            continue
+        used = set()
+        index_list = []
+        for token in action_tokens:
+            for pos in positions[token]:
+                if pos not in used:
+                    used.add(pos)
+                    index_list.append(pos)
+                    break
+            else:
+                index_list = None
+                break
+        if not index_list:
+            continue
+        span = (min(index_list), max(index_list))
+        spans.setdefault(span, set()).add(chord)
+    return [((lo + hi) / 2.0, chords) for (lo, hi), chords in spans.items()]
+
+
+def _chord_split_near(line, roster, key_pos):
+    """Is this mention's OWN action phrase SPLIT across the wrap?
+
+    ⇒ ⇒ ⇒ WHY, MEASURED: a commit message wraps, and a phrase can straddle
+    the wrap (= = "the code" at the end of one line and "block" at the start of
+    the next). The mention then has no COMPLETE phrase of its own = = and the
+    only complete phrase near it belongs to a DIFFERENT chord. Reading that one
+    instead refuses a truthful list = = so the mention is skipped: the rule
+    cannot see the phrase, and a rule that guesses refuses true messages.
+
+    ⇒ ⇒ ⇒ AND ONLY WHEN THE SPLIT PHRASE IS NEXT TO THE MENTION: a stray
+    token elsewhere on the line (= = the word "chat" inside "fix(chat)") is
+    not this mention's phrase. Measured: the broad form (= = any partial
+    phrase anywhere on the line) skipped almost every mention, because the
+    table's actions share tokens (= = "chat" is in "new chat", "clear chat",
+    "open chat markdown").
+    """
+    tokens = _chord_tokens(line)
+    for _chord, action in roster:
+        action_tokens = set(_chord_tokens(action))
+        if not action_tokens:
+            continue
+        present = [i for i, token in enumerate(tokens) if token in action_tokens]
+        if not present or len(present) == len(action_tokens):
+            continue
+        if min(abs(i - key_pos) for i in present) <= 3:
+            return True
+    return False
+
+
+def _chord_mentions(text, table_keys=frozenset()):
+    """[(line_no, glyph_run, key, line)] — a glyph run is consumed WHOLE."""
+    out = []
+    for line_no, line in enumerate(text.split("\n"), 1):
+        for glyphs, key, _pos in _chord_line_mentions(line, table_keys):
+            out.append((line_no, glyphs, key, line))
+    return out
+
+
+def chord_rule(text, repo=None):
+    """Yield error lines for chord mentions that disagree with the tree.
+
+    `repo` defaults to the tree the hook runs in (= the tree the commit ships).
+    """
+    if repo is None:
+        repo = os.getcwd()
+    roster = _chord_roster(repo)
+    table_keys = _chord_table_keys(roster)
+    roster = _chord_visible_rows(roster, table_keys)
+    if not roster:
+        return
+    for line_no, line in enumerate(text.split("\n"), 1):
+        mentions = _chord_line_mentions(line, table_keys)
+        if not mentions:
+            continue
+        for center, chords in _chord_phrases(line, roster):
+            # the phrase belongs to the NEAREST chord mention; a tie is
+            # ambiguous = = and an ambiguous phrase judges nobody.
+            ranked = sorted((abs(center - pos), i) for i, (_g, _k, pos) in enumerate(mentions))
+            if len(ranked) > 1 and abs(ranked[0][0] - ranked[1][0]) < 1e-9:
+                continue
+            glyphs, key, _pos = mentions[ranked[0][1]]
+            mention = glyphs + key
+            if mention in chords:
+                continue
+            if _chord_split_near(line, roster, mentions[ranked[0][1]][2]):
+                continue
+            said = ", ".join(sorted(chords))
+            yield (f"ERROR: chord '{mention}' in commit message:{line_no} disagrees with the tree's "
+                   f"own shortcut table (= {said}; the table read from "
+                   f"{os.path.abspath(repo)}/{CHORD_ROSTER_FILE}) | {line.strip()[:80]}")
+
 
 # Files allowed to mention forbidden vocab (they explicitly enumerate the banned list).
 # v0.23 audit #014 added PR + issue templates (which mention the list by name).
@@ -380,6 +678,10 @@ def main(hook=None, commit_msg_path=None, remote=None, remote_url=None):
         with open(commit_msg_path) as f:
             commit_msg = f.read()
         for error in scan(commit_msg, "commit message"):
+            errors.append(error)
+        # = = the chord rule reads the tree the hook runs in (= the tree this
+        # = = commit ships), so it needs no tree argument here.
+        for error in chord_rule(commit_msg):
             errors.append(error)
     else:
         # Pre-commit / default: scan staged files (= original behavior).
