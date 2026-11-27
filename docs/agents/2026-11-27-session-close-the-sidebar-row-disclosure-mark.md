@@ -47,18 +47,27 @@ BOTH builds (= 15x34, = one `AXPress` each, = values flipping on press). =
 = = the defect lives in what a control paints, = = not in how many controls
 exist.
 
-= = = 1.2 PUTTING THE STATE IN THE ROW'S IDENTITY. = = The first version of
-this fix did exactly that (= `.id(drawIdentity + suffix)` on both `ForEach`
-levels). = = It removed the double mark (= measured, = same as below), = =
-and it broke a guard that was already in the tree: = = the existing test
-"The selection does not rebuild the tree" counts how many times the sidebar
-reads the library (= `SidebarTreeReloadTests`), = = and a row identity that
-names the expansion set makes the LIST depend on that set, = = so every
-expansion change re-read the library. = = That suite went RED (= 1 issue, =
-rc=1) = = and stayed red until the state moved off the row and onto the
-control. = = ⇒ ⇒ ⇒ THE LESSON: = = the fix belongs on the smallest view that
-holds the wrong paint, = = because anything wider re-opens the read path the
-tree is explicitly guarded against.
+= = = 1.2 THE GUARD THAT WAS WRONGLY BLAMED. = = The first version of this
+fix put the state in the ROW's identity (= `.id(drawIdentity + suffix)`).
+= = The existing guard "The selection does not rebuild the tree" (=
+`SidebarTreeReloadTests`) went red under it, = = and that read as a
+verdict on the placement. = = ⇒ ⇒ ⇒ IT WAS NOT A VERDICT: = = THE GUARD IS
+FLAKY ON MAIN. = = Repeated runs of the same binary: = = at `ba2415ab86`
+(= the base, = = without this change) 4 of 6 runs red; = = at this
+branch's sha 6 of 8 runs red; = = and with the selection line DELETED from
+the test (= a probe, = = never committed, = = reverted) the counted-reads
+assertion at line 190 still failed in 4 of 6 runs. = = ⇒ ⇒ ⇒ THE READ COUNT
+GROWS WITH NO SELECTION AT ALL: = = the test captures its baseline after a
+fixed 500 ms sleep (= `settle`, = = line 142) = = while the view's own
+first load is still draining (= `AppleSidebarView`'s `.task`, = = line
+250), = = so the number the claim is measured against is taken mid-flight.
+= = The row-identity placement was therefore never shown guilty. = = The
+shipped placement was kept on other grounds: = = it rebuilds the CONTROL, =
+= not the row, = = not the tree, = = which is the smaller change to what
+the user sees, = = and the fix itself rests on the pixels and the
+accessibility state (= §2), = = not on that guard. = = ⇒ ⇒ ⇒ THE FLAKY
+GUARD IS ITS OWN TICKET (= §5.1): = = until it is repaired, = = no sidebar
+change can be judged by it.
 
 ## 2. The measured before and after
 
@@ -85,12 +94,26 @@ cluster's height; = = the frame captures came from the app's own window, =
 
 ## 3. The gates on this tree
 
-= = = `swift test --filter SidebarTree` = = **23 tests / 3 suites / 0
-failures** (= `SidebarTreeExpansionTests`, = `SidebarTreeRowIdentityTests`,
-= = `SidebarTreeReloadTests`), = = including the new guard this change
-carries: = = *"A row's drawing identity follows the row's own open/closed
-state"* (= it drives the reveal the way the app does, = and reads the
-suffix for the shelf, = the book, = and a leaf).
+= = = `swift test --filter SidebarTree` = = **23 tests / 3 suites**. = =
+The two suites that carry this change's claims (=
+`SidebarTreeExpansionTests`, = which now includes *"A row's drawing
+identity follows the row's own open/closed state"*, = and
+`SidebarTreeRowIdentityTests`) = = read GREEN in every run taken here. = =
+The third member, = `SidebarTreeReloadTests`' "The selection does not
+rebuild the tree", = = read green in 2 of 8 runs on this sha and 2 of 6
+runs at the base (= §1.2: = = a baseline-capture race, = = not this
+change), = = so it is not evidence about anything until §5.1 is done.
+
+= = = `python3 Tools/wenshu-devtool/comment_lineage.py --base ba2415ab86
+--head <this sha>` = = **31 added comment lines, offending 0 rows / 0
+files (P0=0, P1=0)**.
+
+= = = `python3 Tools/wenshu-devtool/nfi-loc-check.py --base ba2415ab86` =
+= **clean** (= 3 rows checked: = 1 the change added, = 2 whose named file
+the change rewrote).
+
+= = = `bash Tools/wenshu-devtool/tests/test_nfi_registry.sh` = =
+**PASS=*** FAIL=0**.
 
 = = = `Tools/wenshu-devtool/design-sweep.sh` on the two changed sources:
 = = **clean** (= no naked `Image(systemName:)`, = no `.cornerRadius`, = no
@@ -118,14 +141,28 @@ build, = = and it has not been given yet.
 
 ## 5. The open items
 
-= = = 1. `AppleSidebarView.expansionProvider` still has no reader (= dead
+= = = 1. **THE FLAKY GUARD** (= §1.2). = = "The selection does not rebuild
+the tree" must be repaired before it can be used to judge any sidebar
+change. = = The defect is the baseline capture: = = `afterFirstLoad` is
+read after a fixed 500 ms sleep while the view's first load is still
+running, = = so the counted reads grow with or without a selection. = = The
+shape of the repair: = = let the load QUIESCE before capturing the
+baseline (= poll the counter until two consecutive reads agree, = over a
+bounded window), = = then move the selection, = = then assert the count has
+not moved. = = ⇒ ⇒ ⇒ A probe with the selection line deleted fails the same
+assertion 4 times in 6 runs, = = which is the measurement that proves the
+guard's red says nothing about a change.
+
+= = = 2. `AppleSidebarView.expansionProvider` still has no reader (= dead
 code = the framework's own expansion, = which the app replaced with its
 own set). = = Its own ticket, = = not smuggled into this one.
 
-= = = 2. The shared checkout carries unrelated staged work (= 68 files). =
+= = = 3. The shared checkout carries unrelated staged work (= 68 files). =
 = Untouched by this change, = = which lives in its own worktree on
 `fix/sidebar-single-disclosure`.
 
-= = = 3. The review card for this sha has to be created by a session that
+= = = 4. The review card for this sha has to be created by a session that
 may write to the board (= a delegated child's `kanban create` is refused by
-the delegate guard); = = the create line is handed over with the sha.
+the delegate guard); = = the create line is handed over with the sha, = =
+and it must name §5.1, = = because the reviewer's run will otherwise read
+that guard's red as a verdict on this commit.
