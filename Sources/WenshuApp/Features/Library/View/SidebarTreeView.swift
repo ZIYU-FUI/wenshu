@@ -183,6 +183,14 @@ struct SidebarTreeRow: View {
                 SidebarRowView.rowContent(for: node)
                     .modifier(SidebarRowView.PerRowContextMenu(node: node, callbacks: callbacks))
             }
+            // ⇒ ⇒ ⇒ THE DISCLOSURE CONTROL CARRIES THE STATE THE APP
+            // HOLDS: = a row the app opened kept the arrow it was first
+            // drawn with (= the closed one, = painted on top of the
+            // open one, = so the row showed two marks), = so the
+            // control's own identity names the state it is drawn in (=
+            // and only that subtree is rebuilt, = not the row, = not
+            // the tree, = and the library is not read again).
+            .id(workspaceUI.rowExpansionSuffix(for: node))
             .tag(node)
         } else {
             SidebarRowView(node: node, callbacks: callbacks)

@@ -53,21 +53,6 @@ final class ChatViewModel {
     var attachedImagePath: String?
     var isSending: Bool = false
     var lastError: String?
-    /// The row the transcript's viewport is anchored to.
-    ///
-    /// Apple's `scrollPosition(id:)` binds the scroll view to the id of
-    /// the row at the anchor, = = and its own documentation says the
-    /// binding "is updated when a scroll view within this view scrolls"
-    /// (= = the reader's own scroll writes it back).
-    ///
-    /// It names the newest message (= = the follow's target), = = so the
-    /// reader's place is the row they are looking at, = = and the
-    /// content growing underneath them does not move the viewport.
-    /// MEASURED: with the bottom anchor alone, the arriving reply
-    /// dragged a reader who had scrolled up back to the bottom (= = their
-    /// offset jumped from 480 to 1200, = = the new maximum).
-    var anchoredRowID: UUID?
-
     /// Whether the reader is at the bottom of the transcript.
     ///
     /// The follow's gate: while the reader is at the bottom the

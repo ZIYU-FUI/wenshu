@@ -258,6 +258,23 @@ final class WorkspaceUIState {
         expandedSidebarRows = rows
     }
 
+    /// The state a row's disclosure control is drawn in (= "o" open, =
+    /// "c" closed, = "" for a row that has nothing to open).
+    ///
+    /// The platform's disclosure control is built ONCE with the state the
+    /// row had when it appeared: = a row the app opened (rather than the
+    /// user clicking the triangle) keeps the control it was built with, =
+    /// so the closed arrow stays drawn over the open one (= two arrows, =
+    /// overlapping, = on the revealed row). = ⇒ ⇒ ⇒ The control's OWN
+    /// identity carries this suffix (= `SidebarTreeRow` binds it), = so a
+    /// control whose row opened or closed is built again in the state the
+    /// app holds, = while the row, = its subtree, = and the library read
+    /// do not move (= the row under the user survives).
+    func rowExpansionSuffix(for node: SidebarNode) -> String {
+        guard let key = node.expansionKey else { return "" }
+        return expandedSidebarRows.contains(key) ? "o" : "c"
+    }
+
     /// Write the per-part selections to the user's defaults.
     ///
     /// The map is encoded with the part's raw value as the key, so the

@@ -63,7 +63,7 @@ extension ChatView {
         // it is below the viewport, = = so the lazy stack never laid it
         // out, = = and there was nothing to scroll to), = = while the
         // binding locates a row that is not on screen.
-        vm.anchoredRowID = ChatTranscriptBottom.clearanceID
+        anchoredRowID = ChatTranscriptBottom.clearanceID
         if force {
             // The reader asked to go back: they are at the bottom again,
             // = = so the arriving reply keeps them there.
