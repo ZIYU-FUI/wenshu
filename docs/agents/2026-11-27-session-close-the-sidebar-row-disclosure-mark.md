@@ -153,11 +153,27 @@ not moved. = = ⇒ ⇒ ⇒ A probe with the selection line deleted fails the sam
 assertion 4 times in 6 runs, = = which is the measurement that proves the
 guard's red says nothing about a change.
 
-= = = 2. `AppleSidebarView.expansionProvider` still has no reader (= dead
-code = the framework's own expansion, = which the app replaced with its
-own set). = = Its own ticket, = = not smuggled into this one.
+= = = 2. THE DEAD-CODE ITEM IS VOID, = = AND THE SENTENCE THAT STOOD HERE
+WAS WRONG. = = It named `AppleSidebarView.expansionProvider` as a member with
+no reader. = = That member does not exist and never did: = = `git grep -n
+'expansionProvider' -- Sources Tests` prints nothing, = = and `git log --all
+--oneline -S'expansionProvider' -- '*.swift'` prints nothing either. = = The
+tree's own verifier agrees (= every one of the sidebar's five files is ALIVE, =
+0 PARTIAL, = 0 DEAD): = = `python3 Tools/wenshu-devtool/verify-dead.py
+Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift
+Sources/WenshuApp/Features/Library/View/AppleSidebarView+Nodes.swift
+Sources/WenshuApp/Features/Library/View/SidebarTreeView.swift
+Sources/WenshuApp/Features/Library/View/SidebarNode.swift
+Sources/WenshuApp/Features/Library/View/SidebarRowView.swift`. = = So there is
+no dead provider to delete = = and no ticket follows from this item. = = What
+the sentence was reaching for is the inverse of dead code: = = the app owns its
+expansion set (`WorkspaceUIState.expandedSidebarRows`, = = read through
+`SidebarTreeView.expansionBinding`) = = and never consults the framework's own
+copy, = = which is the design this fix relies on, = = not residue.
 
-= = = 3. The shared checkout carries unrelated staged work (= 68 files). =
+= = = 3. The shared checkout carries unrelated staged work (= re-take it with
+`git status --short | wc -l`, = because that number moves with every other
+lane and a count written here is stale by the next landing). =
 = Untouched by this change, = = which lives in its own worktree on
 `fix/sidebar-single-disclosure`.
 
