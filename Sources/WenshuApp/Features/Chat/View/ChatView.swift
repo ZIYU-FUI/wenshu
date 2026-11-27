@@ -60,6 +60,23 @@ struct ChatView: View {
     @State private var keychainRevision: Int = 0
     /// Is the reader the one moving the transcript? Apple's own phase.
     @State private var readerIsScrolling = false
+    /// The row the transcript's viewport is anchored to.
+    ///
+    /// Apple's `scrollPosition(id:)` binds the scroll view to the id of
+    /// the row at the anchor, = = and its own documentation says the
+    /// binding "is updated when a scroll view within this view scrolls"
+    /// (= = the reader's own scroll writes it back).
+    ///
+    /// It is the VIEW's state, = = not the model's. The write-back is the
+    /// reader's own scrolling (= = a fact about the viewport, = = the same
+    /// kind of fact as a scroll offset), = = and on the model it becomes
+    /// domain state: = = a wheel event then tells every other reader of the
+    /// model that the transcript moved, = = when nothing the model owns
+    /// moved. NOT MEASURED: the frame-cost A/B an earlier draft cited
+    /// compared two trees that BOTH kept the anchor on the model, = = so it
+    /// never tested ownership, = = and the A/B re-taken against this tip
+    /// moved no measured frame cost. It lives here because one fact has one owner.
+    @State var anchoredRowID: UUID?
     // Reactive check: is the current model usable?: the vm's snapshot of the
     // model id lags when the key is configured from Settings, so the input was
     // disabling itself even though the user had just set a key. Read the same
@@ -259,7 +276,7 @@ struct ChatView: View {
                     // maximum); with the row binding naming the
                     // reader's row, their offset stayed put (= = 272
                     // while the content grew).
-                    .scrollPosition(id: $vm.anchoredRowID, anchor: .bottom)
+                    .scrollPosition(id: $anchoredRowID, anchor: .bottom)
                     // Apple's own change detection: the action runs when
                     // the content's height changes, not on every scroll
                     // event. The follow is the app's own: it runs only

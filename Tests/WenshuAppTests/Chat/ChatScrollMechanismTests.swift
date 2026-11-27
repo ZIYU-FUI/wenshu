@@ -41,6 +41,7 @@ import Testing
 struct ChatScrollMechanismTests {
     private static let chatView = "Sources/WenshuApp/Features/Chat/View/ChatView.swift"
     private static let transcript = "Sources/WenshuApp/Features/Chat/View/ChatView+Transcript.swift"
+    private static let model = "Sources/WenshuApp/Features/Chat/Store/ChatViewModel.swift"
 
     private static func source(_ relative: String) throws -> String {
         let url = SourceLocator.url(relative)
@@ -50,8 +51,20 @@ struct ChatScrollMechanismTests {
     @Test("The viewport is bound to the row the reader is looking at")
     func theViewportIsBoundToTheReadersRow() throws {
         let source = try Self.source(Self.chatView)
-        #expect(source.contains(".scrollPosition(id: $vm.anchoredRowID"),
+        #expect(source.contains(".scrollPosition(id: $anchoredRowID"),
                 "The viewport must be bound to the reader's row (= = Apple's own write path)")
+    }
+
+    @Test("The reader's scroll position is the view's state, not the model's")
+    func theScrollPositionIsTheViewsState() throws {
+        let view = try Self.source(Self.chatView)
+        let model = try Self.source(Self.model)
+        #expect(view.contains("@State var anchoredRowID: UUID?"),
+                "The anchor must be view state (= = Apple writes it back on every scroll)")
+        #expect(!model.contains("anchoredRowID"),
+                "The model must not hold the reader's scroll position (= = that write reaches every observer of the model)")
+        #expect(!view.contains("$vm.anchoredRowID"),
+                "The binding must not reach the model (= = the reader's wheel is the viewport's business)")
     }
 
     @Test("The view asks Apple whether the bottom target is on screen")
@@ -78,8 +91,10 @@ struct ChatScrollMechanismTests {
                 "The follow must stop when the reader is away (= = the gate is its condition)")
         #expect(!source.contains("guard true"),
                 "The follow must not follow unconditionally (= = that is the defect the gate fixes)")
-        #expect(source.contains("vm.anchoredRowID = ChatTranscriptBottom.clearanceID"),
+        #expect(source.contains("anchoredRowID = ChatTranscriptBottom.clearanceID"),
                 "The follow must put the viewport back through the binding (= = the row it binds)")
+        #expect(!source.contains("vm.anchoredRowID"),
+                "The follow must not put the anchor into the model (= = one fact, one owner: it is the viewport's)")
     }
 
     @Test("The way back is drawn under the gate's condition")
