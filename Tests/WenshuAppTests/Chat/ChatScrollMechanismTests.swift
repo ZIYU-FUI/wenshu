@@ -103,4 +103,23 @@ struct ChatScrollMechanismTests {
         #expect(source.contains("if offersWayBack {"),
                 "The control must be drawn while the reader is away (= = the condition is the promise)")
     }
+
+    @Test("The follow has ONE trigger: something arrived, not the content's height")
+    func theFollowHasOneTrigger() throws {
+        let view = try Self.source(Self.chatView)
+        // Every place the view calls the follow. The COUNT is the claim:
+        // a second auto trigger is a second path that can scroll the
+        // viewport, and the content's height is a path the READER's own
+        // scrolling moves (= = it is not evidence that the conversation
+        // spoke, = = so following it answers a scroll with another scroll).
+        let calls = view.components(separatedBy: "followNewestContent(").count - 1
+        #expect(calls == 2,
+                "The view must call the follow in exactly two places: the newest block arrived (= = .task(id: streamFollowKey)) and the reader asked to go back (= = .task(id: jumpToNewestRequest)).")
+        #expect(!view.contains(".onScrollGeometryChange(for: CGFloat.self)"),
+                "The transcript must not follow the content's height (= = the height changes because the READER scrolled, so it is not evidence that something arrived; the house's own reasoning box makes the same distinction)")
+        #expect(view.contains(".task(id: vm.messages.last?.streamFollowKey)"),
+                "The follow must ride the newest block's identity (= = something arrived)")
+        #expect(view.contains(".task(id: vm.jumpToNewestRequest)"),
+                "The reader's own request must still reach the follow")
+    }
 }
