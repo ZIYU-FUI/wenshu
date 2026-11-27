@@ -20,4 +20,13 @@ struct EditorChatEnvironment {
     let appState: AppState?
     let bookStore: BookStore?
     let library: WenshuLibrary?
+    /// The per-window UI state (= the chat zone's visibility mirror and
+    /// the reader's toggle request).
+    ///
+    /// It rides here for the same reason the other three do (= = the
+    /// header's reason: "the SwiftUI environment does not cross into the
+    /// `NSHostingController`s this wrapper creates"), and it is the ONLY
+    /// way the AppKit side and the menu can talk about the chat zone:
+    /// the menu asks through it, and the split item answers through it.
+    let workspaceUI: WorkspaceUIState?
 }

@@ -109,6 +109,12 @@ extension EditorChatNSController {
         chatItem = chatItemLocal
         chatSplitItem = chatItemLocal
 
+        // The chat zone's visibility has ONE owner (= = the split item's
+        // own `isCollapsed`), and this controller mirrors it to the
+        // SwiftUI side (= = the menu's checkmark + the LLM-can-edit
+        // gate). It starts here (= = the split exists from here on).
+        startWatchingChatZoneVisibility()
+
         // First-launch divider = 50:50; subsequent launches =
         // persisted ratio (= product NSSplitView autosave path
         // handles the persistence; = this block only runs on the
@@ -176,6 +182,11 @@ extension EditorChatNSController {
         // pass AppKit's runaway-layout guard counts). The split's
         // two items are now added once and never moved.
         updateAutomaticThicknessBounds()
+        // A toggle request is answered here (= = in a layout pass), and
+        // not in the action that received it: the collapse ANIMATES, so
+        // the split is still moving when the request lands, and the
+        // mirror (= = the picture) is written when the animation ends.
+        answerChatZoneToggleRequestIfAny()
         let defaults = UserDefaults.standard
         let hasAutosave = hasStoredPayload(for: Self.autosaveName)
         if !hasAutosave, defaults.bool(forKey: Self.firstLaunchSetKey) {

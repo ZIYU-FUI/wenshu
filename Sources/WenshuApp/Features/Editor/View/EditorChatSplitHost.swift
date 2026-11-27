@@ -15,6 +15,17 @@ import WenshuAgent
 /// into NSHostingController via `.environment(...)` if/when needed).
 struct EditorChatSplitHost: NSViewControllerRepresentable {
     let conductor: WenshuConductor?
+    /// The reader's toggle request (= = its id).
+    ///
+    /// WHY IT IS PASSED IN (= = and not read from the environment
+    /// here): a request that nobody WAKES is a request that is never
+    /// answered. The wake needs the id to CHANGE (= = so the body that
+    /// owns this host reads it, = = which re-evaluates that body when
+    /// the reader asks, = = which brings this update here).
+    ///
+    /// It is the same shape as the transcript's own follow (= = the id
+    /// is read in a body and the wake is explicit).
+    let chatZoneToggleRequest: Int
     // The SwiftUI environment does not cross into the
     // `NSHostingController`s this wrapper creates, so the three
     // objects the hosted views read are resolved HERE (= the
@@ -26,6 +37,11 @@ struct EditorChatSplitHost: NSViewControllerRepresentable {
     @Environment(AppState.self) private var appState
     @Environment(BookStore.self) private var bookStore
     @Environment(WenshuLibrary.self) private var library
+    /// The per-window UI state (= the chat zone's visibility mirror and
+    /// the reader's toggle request). It crosses the boundary with the
+    /// other three (= = the same reason they do), and it is what lets
+    /// the View menu and the AppKit split talk about ONE fact.
+    @Environment(WorkspaceUIState.self) private var workspaceUI
 
     func makeNSViewController(context _: Context) -> EditorChatNSController {
         return EditorChatNSController(
@@ -33,7 +49,8 @@ struct EditorChatSplitHost: NSViewControllerRepresentable {
             environment: EditorChatEnvironment(
                 appState: appState,
                 bookStore: bookStore,
-                library: library
+                library: library,
+                workspaceUI: workspaceUI
             )
         )
     }
@@ -51,8 +68,17 @@ struct EditorChatSplitHost: NSViewControllerRepresentable {
     /// lifecycle (= `viewDidLoad` adds the two items once, =
     /// `viewDidLayout` holds the divider at the user's share), not
     /// by the SwiftUI side.
+    /// Push the reader's toggle request across, and WAKE the layout
+    /// that answers it.
+    ///
+    /// The wake is the whole point of this method: the request is read
+    /// in the controller's layout pass (= = the collapse animates, = =
+    /// so it must not be answered while the split is moving), and a
+    /// layout pass only happens when something else moves. So the ask
+    /// schedules its own pass (= = `needsLayout`, = = the platform's
+    /// own "lay out again"), and the controller answers it there.
     func updateNSViewController(_ nsViewController: EditorChatNSController, context _: Context) {
-        _ = nsViewController
+        nsViewController.wakeForChatZoneToggleRequestIfPending(chatZoneToggleRequest)
     }
 
     /// Report a size that does NOT depend on the inner split's own layout.

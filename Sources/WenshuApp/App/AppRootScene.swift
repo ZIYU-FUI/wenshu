@@ -112,8 +112,28 @@ struct AppRootScene: Scene {
             CommandGroup(after: .toolbar) {
                 Toggle(String(localized: "menu.view.show_chat_zone"), isOn: Binding(
                     get: { workspaceUI.chatVisible },
-                    set: { newValue in
-                        workspaceUI.chatVisible = newValue
+                    set: { _ in
+                        // The menu ASKS; the split item decides and the
+                        // mirror answers.
+                        //
+                        // WHY A REQUEST AND NOT A WRITE: the zone is an
+                        // AppKit split item, and a collapse ANIMATES, so
+                        // no value written here can move the picture = =
+                        // the split item owns the fact, and the honest
+                        // path is to ask the controller to do it.
+                        //
+                        // The checkmark READS the mirror (= = the picture,
+                        // = = the AppKit split item's own `isCollapsed`),
+                        // so the row and the picture can never disagree,
+                        // and the reader who drags the zone shut by hand
+                        // sees the row follow.
+                        //
+                        // The requested VALUE is deliberately ignored: the
+                        // reader asked to toggle, and the split item's
+                        // own state is the truth (= = a toggle that
+                        // "restores" a zone the reader had just closed by
+                        // dragging would fight the drag).
+                        workspaceUI.requestChatZoneToggle()
                     }
                 ))
                 .keyboardShortcut("k", modifiers: [.command, .option])

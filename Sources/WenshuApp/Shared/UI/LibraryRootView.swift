@@ -158,7 +158,13 @@ struct LibraryRootView: View {
                 )
             } detail: {
                 EditorChatSplitHost(
-                    conductor: WenshuAppDelegate.sharedConductor
+                    conductor: WenshuAppDelegate.sharedConductor,
+                    // The reader's toggle request (= = its id). Reading
+                    // it HERE is what wakes the answer: this body is
+                    // re-evaluated when the reader asks, and the wake
+                    // travels down to the controller (= = which answers
+                    // it in its own layout pass).
+                    chatZoneToggleRequest: workspaceUI.chatZoneToggleRequest
                 )
                 .environment(appState)
                 .inspector(isPresented: $inspectorVisible) {
