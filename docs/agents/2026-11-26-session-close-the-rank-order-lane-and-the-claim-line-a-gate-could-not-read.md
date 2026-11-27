@@ -195,8 +195,9 @@ fenced block, is resolved with `git rev-parse --verify --quiet <token>^{commit}`
 One that resolves to a commit is a member of the census; one that does not is
 printed by the block below with its length and the line it sits on, so a reader sees
 the list of non-commits rather than trusting a sentence about it. Each one is named at
-its site as what it is = a blob id, a `git patch-id --stable` output, a change id, the
-sha256 of printed probe output, or an integer an order digest printed. A patch-id and a
+its site as what it is = a blob id, a tree id, a `git patch-id --stable` output, a
+change id, the sha256 of printed probe output, or an integer an order digest printed.
+A patch-id and a
 change id are properties of a diff, not objects, so they cannot resolve; a blob id
 resolves under `git cat-file -t` as `blob` and under `rev-parse --verify
 <token>^{commit}` as nothing, which is the test the block applies. The block below is the measurement and the
@@ -423,9 +424,16 @@ read-back, local `main` was `29ec44f1e2` and
    `refs/heads/wt/cmd-shift-k-2026-11-25` and on the same-named server ref. By the
    same codepoint method the tip's message counts 0 `U+2318` and 0 `U+21E7` and
    the parent's counts 3 `U+2318`, 3 `U+21E7` and 0 bare `U+2318`+letter. The
-   tip's 0 is a silence, not a re-spelling: it names no chord in any form, and no
-   message in this repository spells a chord as words - `git log --all
-   --format=%B | grep -c` reads 0 for `Command-K` and 0 for `Command-F`. The
+   tip's 0 is a silence, not a re-spelling: it names no chord in any form. Whether
+   any message in this repository spells a chord as words depends on the scope, and
+   an arm that asserts a number has to name the scope it read. Over the base this
+   lane started from, `b738e7593a881bd6a9108713b68833e4d3cb52f1`, `git log` over
+   that scope piped to `grep -c` reads 0 for `Command-K` and 0 for `Command-F`.
+   Over this branch it reads 1 and 1, with one carrier:
+   `335ba28ffd72676d24dd3de099a20de63988a0de`, this record's own earlier commit,
+   whose message body quotes that grep and so carried its own refutation. That
+   commit is an ancestor of what lands here, so after the landing the base scope
+   reads 1 and 1 as well, with the same single carrier. The
    repaired message is the parent's, and it carries the same patch as the
    superseded tip (`git patch-id --stable` reads
    `cc7cc21c1c4d042568c161b68d4c540ccd681610` for both): the amend rewrote the
@@ -506,11 +514,18 @@ printed 1 row. The two numbers are readings of two windows.
 
 ## The doc gates measured on the shape a reader gets
 
-Base `origin/main` = `b738e7593a881bd6a9108713b68833e4d3cb52f1`, tree under
-measurement `335ba28ffd72676d24dd3de099a20de63988a0de` (reachable on the server as
-`refs/heads/docs/rank-order-closeout-2026-11-27`), instant 2026-11-27 04:06 CST,
-logs `.gate-logs/r5_335ba28ffd72_<label>.log`, each exit code read from the gate
-command's own status and printed as the log's first line. All eight returned 0:
+Base `origin/main` = `b738e7593a881bd6a9108713b68833e4d3cb52f1`. The object under
+measurement is the commit `335ba28ffd72676d24dd3de099a20de63988a0de`, reachable on
+the server as `refs/heads/docs/rank-order-closeout-2026-11-27`; the tree it holds,
+which is what the eight readings below actually describe, is
+`07ae614a024b2902a7ba02b079442c5e837000aa`, and `git cat-file -t` returns `commit`
+for the first id and `tree` for the second. Instant 2026-11-27 04:06 CST; that
+round's logs are `.gate-logs/r5_335ba28ffd72_<label>.log`, = labelled by the commit
+id, which is the naming this record rejects three sections below and that the r7
+round replaced with `.gate-logs/r7_<label>.log`. The names are quoted as they were
+written, not as endorsement; an amend of that commit would have orphaned all eight
+filenames. Each log opens with the command it ran and carries the gate's own exit
+status on the next line as `rc=0`. All eight returned 0:
 `Tools/wenshu-devtool/tests/test_nfi_loc_check.py` (the file's own suite),
 `verify_doc_commands.py --run --registry docs/agents/nfi.md`,
 `nfi-loc-check.py --base origin/main`, `comment_lineage.py --base origin/main`,
@@ -619,3 +634,59 @@ Nothing here claims a landing that has not happened. A record that asserted the 
 the approval it waits on would close the scope on a claim the tree cannot show, and that
 is the defect this lane has now paid for twice.
 
+
+## The second review round: three charges about what an id names
+
+The independent review card `t_bd0a86fe` ran read-only over the commit `fa6ae5aa49…` and
+returned CHANGES_REQUESTED with three blockers (comment 3211). None of them was a failing
+gate. All three were the same class as the defect this record is about: a token described as
+something it is not, or a number stated where no measurement prints it.
+
+**One — a chord claim that was false inside its own branch.** The section on the second
+remote asserted that no commit message in the repository spells a chord as words, and printed
+`git log --all --format=%B | grep -c` readings of `0` and `0`. That is refuted by the branch
+itself: the commit `335ba28ffd…`, which is an ancestor of the commit under review, carries the
+grep in its own message body and therefore carries its own refutation. The claim now names the
+scope it read, and the block below re-takes it from three immutable commits, so the numbers
+below do not depend on where a reader stands or on which scratch worktrees a machine happens to
+have attached:
+
+```bash
+for scope in b738e7593a881bd6a9108713b68833e4d3cb52f1 335ba28ffd72676d24dd3de099a20de63988a0de fa6ae5aa492a175813bfbc593fbfb827c63eadce; do
+  body=$(git log "$scope" --format=%B)
+  printf '%-42s Command-K=%s Command-F=%s\n' "$scope" \
+    "$(printf '%s' "$body" | grep -c 'Command-K')" "$(printf '%s' "$body" | grep -c 'Command-F')"
+done
+```
+
+At this instant the three lines print `0 0` for the base, then `1 1` for the carrier, then `1 1`
+for the commit under review, and exactly one commit inside that ancestry spells either word — the carrier,
+subject `docs(agents): the closeout's resolve loo…`. The earlier reading of `2` commits came from
+`--all`, which walked a detached worktree holding `4bcfec5ed7…`; that commit is carried by no ref,
+was this session's own rebase probe, and its worktree has been removed. Counting across `--all` is
+not a scope: it reads whatever a machine left attached, and a number taken that way cannot survive
+someone else's `git worktree list`.
+
+**Two — a commit id described as a tree.** The r5 section named `335ba28ffd…` the "tree under
+measurement". It is a commit; `git cat-file -t` says `commit` for it and `tree` for
+`07ae614a…`, which is the tree it holds and the object the eight readings describe. The same
+section's log filenames carry the commit id, which is the naming this file rejects one section
+below: an amend of that commit would orphan all eight names. The filenames are now quoted as what
+they were, with the convention stated as rejected rather than as held. `d58e84d3…` (forty hex characters, printed short here so it stays one token) belongs to the same class: a 40-hex id in the first three lines of the r7 logs, a
+tree at an instant whose commit no longer exists, printed here as unresolvable because the logs are
+ignored local instrument and the block above prints what their tree line says.
+
+**Three — a hand-typed count in the registry row.** The row described the resolve loops as
+carrying "sixteen shas, each named by what carries it". No measurement prints sixteen, and the
+token census in this file prints its own three numbers instead; the typed count also called every
+token a sha, which is the same misdescription as blocker two one level up. The count is gone from
+the row, which now says only that an id is named by what carries it and that a non-commit is named
+as its kind. The census loop prints `members`, `hard` and `soft` at the tree it runs on, and the
+doc gate's log for this round carries its printed line as the closing line of the block it executed.
+
+The repair round's own instrument. The eight gates were run at the tree that holds this section and
+each log keeps the command on its first line and the command's own exit code on its last, named
+`.gate-logs/r9_<label>.log` — round label and no object id, which is what the naming rule above
+asks for. These logs do not carry an instant or a tree line, unlike the r7 and r8 logs, and are not
+offered as evidence of a tree: the tree is read from the commit, and the commit is named by the
+review card. All eight returned 0; the doc gate closed with its own reading.
