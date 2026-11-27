@@ -199,8 +199,9 @@ its site as what it is = a blob id, a `git patch-id --stable` output, a change i
 sha256 of printed probe output, or an integer an order digest printed. A patch-id and a
 change id are properties of a diff, not objects, so they cannot resolve; a blob id
 resolves under `git cat-file -t` as `blob` and under `rev-parse --verify
-<token>^{commit}` as nothing, which is the test the block applies. The block below is the measurement, and its printed lines are the
-counts: a member is hard when `git merge-base --is-ancestor <member> origin/main`
+<token>^{commit}` as nothing, which is the test the block applies. The block below is the measurement and the
+doc gate runs it as written, so a reader re-takes it by pasting it into a shell inside
+a checkout of this branch; its printed lines are the counts: a member is hard when `git merge-base --is-ancestor <member> origin/main`
 returns 0, meaning any clone of this repository reaches it, and soft when it returns
 1, and every soft member is printed with the refs that carry it, from
 `git for-each-ref --contains <member> --format=%(refname)`. A soft member behind a
@@ -210,7 +211,8 @@ can be re-taken only by whoever holds it. Nothing in this paragraph repeats the
 numbers: they are printed, because a count transcribed from a tool rots when the
 tool's own input moves, and this file's prose is that loop's input.
 
-```python
+```bash
+python3 - <<'PY'
 import subprocess
 from pathlib import Path
 # The census is not a table in prose: it is this loop, run against this file.
@@ -267,6 +269,7 @@ print("tokens that do not resolve to a commit: %d, by length %s" % (
     len(void), sorted({len(v) for v in void})))
 for v in void:
     print("  len %d %s on lines %s" % (len(v), v, ",".join(str(i) for i in where[v])))
+PY
 ```
 
 ## Gate set, at the landed tree
@@ -442,16 +445,16 @@ read-back, local `main` was `29ec44f1e2` and
 
 ## The gate set re-taken after main moved twice
 
-Base `origin/main` = ``ba2415ab86``. While this record was being fixed, main moved
-from ``b738e7593a`` to ``ba2415ab86`` through ``8057b1afdc``, ``94fb8dadf1`` and
-``ba2415ab86`` = the three that took the chord-glyph rule and its test into main's
-judge. The branch's tip at that point, ``1c9adf82a8``, is therefore not a child of
+Base `origin/main` = `ba2415ab86`. While this record was being fixed, main moved
+from `b738e7593a` to `ba2415ab86` through `8057b1afdc`, `94fb8dadf1` and
+`ba2415ab86` = the three that took the chord-glyph rule and its test into main's
+judge. The branch's tip at that point, `1c9adf82a8`, is therefore not a child of
 main: `git merge-base --is-ancestor` returns 1 for it. The census loop published
 above lists the refs that carry it = two local branch heads and one
 ref the server also has, so the shape it pins can be re-taken by a reader who
 fetched that ref, and not by a reader who cloned main alone. `git merge-tree
---write-tree origin/main `1c9adf82a8`` read
-clean, so main was merged into this branch and the tree under measurement is this
+--write-tree origin/main 1c9adf82a8` read clean, so main was merged into this branch
+and the tree under measurement is this
 branch's own tip after that merge, which a reader resolves with `git rev-parse
 HEAD`, and every log below is labelled `.gate-logs/r7_<label>.log` rather than
 by a sha that a later amend would invalidate.
@@ -464,10 +467,18 @@ charge that the branch carried a second copy of a rule main already had = there 
 one implementation on each path and one carrier for it. `git ls-tree origin/main --
 ` followed by this record's path prints no row = main does not carry this record
 yet, so a claim about this file cannot be read off main's tree, and the
-record's own blob is the same either side of it: `git rev-parse 1c9adf82a8:` and
-`git rev-parse HEAD:` followed by this record's path both read
-`9e0c89984bd2efd6fde4331e13ad3d96db9cf5cd`, so the merge moved the base under the
-earlier claims and rewrote none of them.
+record's own blob is the same either side of that merge, which the block under it
+re-derives instead of asserting = it prints the blob of this record's path at the
+branch's pre-merge tip and at the merge, and the two strings are equal. The merge
+therefore moved the base under the earlier claims and rewrote none of them.
+
+```bash
+D="docs/agents/2026-11-26-session-close-the-rank-order-lane-and-the-claim-line-a-gate-could-not-read.md"
+for c in 1c9adf82a8 8313fec5fc; do
+  printf '%s  %s\n' "$c" "$(git rev-parse "$c:$D")"
+done
+```
+
 
 Two claims had to change rather than survive. The chord rule is now read from
 main's `Tools/wenshu-devtool/commit_filter.py` and `tests/test_chord_glyph_rule.py`
@@ -516,4 +527,95 @@ scope here. The commit that carries this sentence is a child of the measured tip
 and its diff over that parent is exactly this block plus the line count in
 `docs/agents/nfi.md`, so the reading can be carried forward by checking that the
 two blobs differ in nothing else.
+
+## The three defects the doc gate found in this record's own shape
+
+The round above closed the numbers. Its doc gate came back with three readings about the
+record instead, and all three were in the instrument rather than in a count. Each is
+quoted from the log of that run, `.gate-logs/r7_doc-gate.log`, whose `cmd:` line names
+the command and whose `tree:` line names the tree object under measurement.
+
+The registry row was wrong: `registry LOC cell 520 != the doc's 519 line(s)`. The gate
+counts newlines, the way `wc -l` does, and the row had been synced with a splitter that
+counts the empty field after the last newline. One line, in a row whose whole job is to
+be the number a reader checks the file against.
+
+The merge paragraph froze a live ref: `1 prose line(s) freeze a live ref`, naming the
+line that proved the record's blob unchanged by writing two `git rev-parse` commands and
+their shared output as a sentence. That is the form the gate names = true at the
+author's minute, false after the next push, and false here after the next amend, which
+is exactly what happened to it. The equality is now a block that prints both ids.
+
+The census block never ran: `block 3: exit 2` and `bash: import: command not found`.
+The verifier has no Python path. It hands every block it recognises to `bash -lc`, so a
+block of Python behind a `python` fence is shell to it, and the loop that publishes every
+count in the section above resolved nothing at that tree. The claim in the section below
+it, that the verifier executes the resolve loops rather than re-reading them, was untrue
+of the one loop that matters most = the census. The fence now opens as `bash` and feeds
+Python to a quoted heredoc, which a reader and the gate both run, and it prints its own
+member count and its own hard/soft split, so no hand-typed copy of either survives in
+the prose anywhere in this file.
+
+The naming of that round's logs had to be repaired too. The section above states that
+they are labelled `.gate-logs/r7_<label>.log` rather than by a sha that a later amend
+would invalidate. At the instant that sentence was written the files on disk still
+carried a sha in their names, and the commit one of them named was then amended, so the
+sentence was true of intent and false of the filesystem. The files now carry the sha-free
+names the sentence states, the amend changed no tree, and this round's logs follow the
+same convention.
+
+```bash
+for f in .gate-logs/r7_*.log .gate-logs/r8_*.log; do
+  [ -e "$f" ] || continue
+  printf '%-24s %s\n' "$(basename "$f" .log)" "$(grep -m1 '^tree:' "$f")"
+done | sort
+```
+
+The gate set was re-run at the tree that carries this section, the same eight commands, and each log names the instant, the tree object and the command in its first three lines, with the command's own exit code as its last line. The logs and the driver that wrote them live in the worktree, which the repository does not track, so they do not travel with the commit: the ignore rule is printed below, and the eight command lines are printed with it, so the re-take does not depend on a file a reader cannot fetch. What a reader takes from this section is therefore the readings below plus the commands that regenerate them.
+
+```bash
+git check-ignore -v "$(git rev-parse --show-toplevel)/.gate-logs/r8_run.sh"
+```
+
+```bash
+SKIP: the eight commands re-take the whole set; run in sequence, each prints its own exit code
+python3 Tools/wenshu-devtool/comment_lineage.py --base origin/main
+python3 Tools/wenshu-devtool/ci_change_gate.py --check formatting --base origin/main
+python3 Tools/wenshu-devtool/ci_change_gate.py --check loc-cap --base origin/main
+python3 Tools/wenshu-devtool/ci_change_gate.py --check markdown-newline --base origin/main
+python3 Tools/wenshu-devtool/ci_change_gate.py --check pollution --base origin/main
+python3 Tools/wenshu-devtool/nfi-loc-check.py --base origin/main
+python3 Tools/wenshu-devtool/tests/test_nfi_loc_check.py
+python3 /Volumes/ANAN/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/scripts/verify_doc_commands.py --run --registry docs/agents/nfi.md docs/agents/2026-11-26-session-close-the-rank-order-lane-and-the-claim-line-a-gate-could-not-read.md
+```
+
+The block below walks the eight names and prints, for each, the tree object its log was taken at and the exit code that log ends with, or the reason nothing is printed. It reads, so "all eight returned 0" is a reading taken here and nowhere else. One absence is structural and is printed as such: the doc gate's own log is written only after that gate finishes, so inside the gate this block shows seven logs and its own absence.
+
+```bash
+for f in comment-lineage doc-gate formatting loc-cap markdown-newline nfi-loc nfi-tests pollution; do
+  p=".gate-logs/r8_$f.log"
+  if [ -f "$p" ]; then
+    printf '%-20s %-44s %s\n' "$f" "$(grep -m1 '^tree:' "$p" | cut -d' ' -f2)" "$(tail -1 "$p")"
+  else
+    printf '%-20s %s\n' "$f" "no log in this checkout; re-take with the eight commands above"
+  fi
+done | sort
+```
+
+The eight closeout steps, each stated in the tense it can be checked in:
+
+| step | state at this commit | how a reader takes it |
+| --- | --- | --- |
+| 1 re-run the gate set on the merged tree | run at this tree | the eight command lines above, then the reading block, at the tree a reader stands on |
+| 2 record the verdict on the board | written once this commit exists | card `t_022b3908`, the card that holds this lane's decision |
+| 3 the closure record in the tree | this file, committed | `git ls-tree -r --name-only <landing merge> -- docs/agents/` |
+| 4 durable lessons into the skills | written | `wenshu-card-gate-vocabulary`, the section on the verifier's one shell path and one line-count rule; `standard-closeout`, the section on instrument readings |
+| 5 clean up own residue | done at the push | `git worktree list` in the main checkout, and no scratch directory left outside the repository under this session's name |
+| 6 re-check the final state | printed after the push | the lane ref `docs/rank-order-closeout-2026-11-27` read back from the server, and the branch-to-main ancestry the landing card carries |
+| 7 sweep the board's open columns | done with step 2 | `t_022b3908`, and no other card holding this lane |
+| 8 land | PENDING: review card at this sha, `review_gate.py --card`, `Scripts/merge-preflight.sh`, then the merge and the push | the landing merge's ancestry, in the reader's own minute |
+
+Nothing here claims a landing that has not happened. A record that asserted the merge and
+the approval it waits on would close the scope on a claim the tree cannot show, and that
+is the defect this lane has now paid for twice.
 
