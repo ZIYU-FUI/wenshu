@@ -690,3 +690,17 @@ each log keeps the command on its first line and the command's own exit code on 
 asks for. These logs do not carry an instant or a tree line, unlike the r7 and r8 logs, and are not
 offered as evidence of a tree: the tree is read from the commit, and the commit is named by the
 review card. All eight returned 0; the doc gate closed with its own reading.
+
+## The readings on the merged tree
+
+`origin/main` had moved four commits since the tree of the previous section, so the eight gates
+were run again after the merge, on the merged tree `e1a5fb2fd4055c1865b198698f21999dcc71d6a2`, a
+tree id, printed from that merge commit. All eight returned 0 and the merge carried no code, so the
+doc gate's reading of this record is unchanged: `692 line(s)`, and the census block still prints its
+own `members 22 hard 9 soft 13` rather than a sentence. The scope readings of the section above were
+re-taken at the merged tree and hold there: `0 0` for the base commit, `1 1` for the carrier.
+
+The commit that carries this paragraph is a child of that measured tree, and its diff over the
+merge commit is this paragraph plus the registry's line count for this file, which is the only
+number in the file a reader cannot read off a printed instrument. Checking that the two blobs differ
+in nothing else is therefore the whole of what this paragraph asks a reader to trust.
