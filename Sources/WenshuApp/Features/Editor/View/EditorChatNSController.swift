@@ -209,7 +209,8 @@ final class EditorChatNSController: NSSplitViewController {
         environment: EditorChatEnvironment = EditorChatEnvironment(
             appState: nil,
             bookStore: nil,
-            library: nil
+            library: nil,
+            workspaceUI: nil
         )
     ) {
         // AUDIT.md §2.2 partial (2026-10-16): the public
@@ -225,6 +226,17 @@ final class EditorChatNSController: NSSplitViewController {
         self.environment = environment
         super.init(nibName: nil, bundle: nil)
     }
+
+    /// The last chat-zone toggle request this controller has answered.
+    ///
+    /// The request is a COUNTER (= = `WorkspaceUIState`'s
+    /// `chatZoneToggleRequest`), so the controller remembers the last
+    /// count it saw and answers the difference (= = the same shape as
+    /// the transcript's `jumpToNewestRequest`).
+    ///
+    /// It lives here (= = in the class body) because an extension may
+    /// not hold a stored property.
+    var answeredChatZoneToggleRequest: Int = 0
 
     /// dual-axis audit fix: required
     /// `init?(coder:)` is a non-isolated context (= Objective-C

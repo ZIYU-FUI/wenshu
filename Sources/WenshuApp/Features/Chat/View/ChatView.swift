@@ -277,16 +277,19 @@ struct ChatView: View {
                     // reader's row, their offset stayed put (= = 272
                     // while the content grew).
                     .scrollPosition(id: $anchoredRowID, anchor: .bottom)
-                    // Apple's own change detection: the action runs when
-                    // the content's height changes, not on every scroll
-                    // event. The follow is the app's own: it runs only
-                    // while the reader is at the bottom, so a reader who
-                    // is reading history keeps their place.
-                    .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                        geometry.contentSize.height
-                    } action: { _, _ in
-                        followNewestContent(proxy)
-                    }
+                    // The follow is triggered by ARRIVAL, not by the
+                    // content's height.
+                    //
+                    // The content's height changes because the READER
+                    // scrolled, so it is not evidence that something
+                    // ARRIVED. A trigger that reads the height answers the
+                    // reader's own scrolling with another scroll, and the
+                    // viewport's answer to that is a third scroll: the app
+                    // closes the loop on itself. The house draws the same
+                    // reader/arrival distinction in its reasoning box
+                    // (= = `ChatReasoningPartView`). The arrival is the
+                    // task below.
+                    //
                     // Is the reader the one moving? Apple's own answer
                     // (= = it names the gesture, the trackpad's inertia, and
                     // the moment they let go), so the gate never has to
@@ -304,9 +307,9 @@ struct ChatView: View {
                         // The bottom of the transcript is either row: the
                         // clearance row (the content's bottom edge) or the
                         // newest message, because the lazy stack lays the
-                        // clearance row out last. MEASURED in the hosted
-                        // chat: the signal fires with 0 visible targets,
-                        // then 1 without the clearance row, then 2 with it.
+                        // clearance row out last. Both rows are reported
+                        // as targets, and which of them a given report
+                        // names depends on the layout pass in flight.
                         // A report taken mid-layout therefore names the
                         // newest row and not the clearance row, and reading
                         // that as "away" would flash the way back on window

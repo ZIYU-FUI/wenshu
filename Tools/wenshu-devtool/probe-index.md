@@ -32,6 +32,8 @@ card's commit does not touch the app source.
 
 | `comment_marker_runaway.py` | The house's comment-scaffold runaway, measured against the live tree: = = a run of 4+ arrows, = = a run of 4+ dashes, = = a marker on EVERY line of a paragraph, = = and a line over 100 columns. = = The comment-lineage gate charges CJK, = = ticket lineage and uncited dates, = = and it has no marker or width check, = = so a branch can be green there and still carry the runaway. = = The `--proof` mode is the other half: = = it compares the non-comment lines of two trees, = = so a comment-only pass can prove the code did not move. READ-ONLY: = = it writes no file. | `runaways`, `comment_rows`, `code_moved` | `d34741da44` |
 | `seed_sample_rows.py` | How many board rows the dev seed wrote into a library store, = = counted from the sample's own identity (= the title AND body pair) read out of `Sources/WenshuApp/App/PlanSeed.swift` at run time, = = never copied into this probe (= a copied literal reports a number for rows the app no longer writes). = = It also counts the rows that carry no body, = = because those are the rows the pair predicate must never take (= a user's own task that borrows a sample's title). = = READ-ONLY by construction: = = it opens the store in `mode=ro`, = = there is no write mode, = = and removal belongs to the seed path that replaces its own rows. = = Exits 2 when it took no number, = = so a run that read nothing cannot be read as a clean store. | `sample pairs read from the seed`, `rows total`, `rows carrying a sample's title AND body`, `rows with no body (never eligible)`, `rows that are not the seed's`, = = each printed with the run's `tree` commit prefix | `0f9c784db6` |
+| `chat_scroll_leaf_attribution.py` | Where a scroll run's CPU actually went, attributed to the BINARY that owns each sample's LEAF frame (= not summed over the stack, which charges a parent for its child and makes a share a function of stack depth). | `rows in the table`, `Main Thread rows`, one count and share per owner, the same buckets by leaf symbol, the app binary's leaf share against its anywhere share, and the top 15 leaf names | `ba2415ab86` |
+| `chat_scroll_render_cost.py` | What one render cost the app, and how many renders cost more than one frame: the export writes a repeated duration ONCE and points at it with `ref=` thereafter, so a reader that takes only a cell's inline text counts a minority of the table, and the minority is the unusual values. | `rows in the table`, the rows it could NOT read, `median`, `p90`, `over one frame` as a count and a share, the SAME export read inline-only against it, and renders per second | `ba2415ab86` |
 
 ## Recorded measurement
 
@@ -906,3 +908,103 @@ carries a claim is therefore the **backup** arm, = = whose file does not move, =
 and the live arm is published with the minute it was taken at (= = the store's own
 `ACHANGE` table names the delete transactions, = = 518 rows at 16:22:45 = = the
 seed's own, = = and 58 rows at 21:43:45 = = cards the launch sweep took).
+### `chat_scroll_leaf_attribution.py`
+
+Taken against commit `ba2415ab86`, = the tree the pinned gate-ON arm was built
+from. The input is an `xctrace export` of the `time-profile` table from the run
+that produced that arm's own render median, so the attribution and the cost
+number come from ONE recording rather than from a separate idle sample.
+
+The export lives on the data disk (11 MB, deliberately not in git), beside the
+`.trace` bundles and the A/B driver scripts. A reader whose copy has been
+released re-runs the export command in the closure doc first.
+
+```
+$ python3 Tools/wenshu-devtool/probes/chat_scroll_leaf_attribution.py \
+    /Volumes/ANAN/wenshu-jank-traces/ab2/run-on/tp.xml 'gate-ON (the pinned arm, its own run)' JankGateOn
+== gate-ON (the pinned arm, its own run) ==
+rows in the table: 5161
+Main Thread rows: 5100
+--- the OWNER of the leaf frame (by the binary that declares it) ---
+    1965   38.5%  the Swift / ObjC runtime
+    1709   33.5%  SwiftUI's own machinery
+     378    7.4%  Foundation / CoreFoundation
+     255    5.0%  no binary names the leaf
+     217    4.3%  AppKit / the hosting bridge
+     209    4.1%  no frames at all
+     107    2.1%  the graphics stack
+     102    2.0%  the system libraries
+      59    1.2%  another binary (DesignLibrary)
+      44    0.9%  the text engine
+      24    0.5%  THE APP'S OWN BINARY
+      15    0.3%  the render server
+      11    0.2%  another binary (libswiftObservation.dylib)
+       5    0.1%  another binary (libhvf.dylib)
+    5100  100.0%  THE TOTAL (= the Main Thread row count)
+--- the app's own binary (JankGateOn) ---
+  its frames are the LEAF in 24 of 5100 rows (0.5%)
+  its frames appear ANYWHERE in 4673 of 5100 rows (91.6%)
+```
+
+The two shares of the app's own binary are the whole lesson of this probe:
+91.6% is what a stack-wide roll-up reports for a binary that is where the CPU
+sat 0.5% of the time. The pair is printed by the probe itself, so a reader
+does not have to trust the prose. `JankGateOn` is the throwaway A/B executable,
+not the shipped `WenshuApp`.
+
+### `chat_scroll_render_cost.py`
+
+Taken against commit `ba2415ab86`, = the tree the pinned gate-ON arm was built
+from, = the same recording the leaf attribution above reads. The input is an
+`xctrace export` of the bundle's `hitches-renders` table:
+
+```
+xcrun xctrace export --input <bundle> \
+  --xpath '/trace-toc/run[@number="1"]/data/table[@schema="hitches-renders"]'
+```
+
+The exports live on the data disk (295 KB and 492 KB, deliberately not in git),
+beside the `.trace` bundles and the A/B driver scripts.
+
+```
+$ python3 Tools/wenshu-devtool/probes/chat_scroll_render_cost.py \
+    /Volumes/ANAN/wenshu-jank-traces/ab2/run-on/renders.xml 'gate-ON (the pinned arm)' 42
+probe: chat_scroll_render_cost  file: /Volumes/ANAN/wenshu-jank-traces/ab2/run-on/renders.xml
+arm: gate-ON (the pinned arm)
+rows in the table: 1124   (= 1124 durations read)
+rows with no readable duration: 0
+--- the frame budget is 16.67 ms ---
+  read WITH the ref chains resolved: rows read 1124  median 34.10 ms  p90 36.18 ms  over one frame 1025 of 1124 (91.2%)
+  read INLINE only (the trap): rows read 611  median 34.00 ms  p90 36.07 ms  over one frame 512 of 611 (83.8%)
+  the inline-only read loses 513 of 1124 rows (45.6%)
+  renders per second over the 42 s recording: 26.8
+```
+
+The same probe on the boss's own bundle (`build/Wenshu.app`, 38031600 bytes,
+built Nov 25 12:51, recorded 60 s, exported at `ab/stale/renders.xml`):
+
+```
+$ python3 Tools/wenshu-devtool/probes/chat_scroll_render_cost.py \
+    /Volumes/ANAN/wenshu-jank-traces/ab/stale/renders.xml 'the boss bundle (Nov 25)' 60
+probe: chat_scroll_render_cost  file: /Volumes/ANAN/wenshu-jank-traces/ab/stale/renders.xml
+arm: the boss bundle (Nov 25)
+rows in the table: 3840   (= 3840 durations read)
+rows with no readable duration: 0
+--- the frame budget is 16.67 ms ---
+  read WITH the ref chains resolved: rows read 3840  median 14.54 ms  p90 16.62 ms  over one frame 374 of 3840 (9.7%)
+  read INLINE only (the trap): rows read 2789  median 14.38 ms  p90 16.19 ms  over one frame 198 of 2789 (7.1%)
+  the inline-only read loses 1051 of 3840 rows (27.4%)
+  renders per second over the 60 s recording: 64.0
+```
+
+The two readings of ONE file are the row's whole point. `xctrace export`
+declares a repeated value once and cites it by `ref=` afterwards, so a reader
+that takes only a cell's inline text sees 611 of 1124 rows (= 45.6% of the
+table is invisible to it), and the rows it drops are precisely the repeated
+ones, so what survives is biased toward values that occurred once. The
+session's own A/B script reads that way and prints `512 of 611` for these
+bytes; the resolved count for the same file is `1025 of 1124`. The median
+barely moves (= 34.00 against 34.10), because the dropped rows cost about what
+the kept ones did, = so the partial reader looks sound on the statistic that
+was wrong least and unsound on nothing at all. Counts are where the trap
+bites, and a count is what a budget verdict is made of.

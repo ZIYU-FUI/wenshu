@@ -164,7 +164,6 @@ enum TranscriptProbe {
             contentHeight: scroll.documentView?.frame.height ?? 0
         )
     }
-
 }
 
 // MARK: - The tests
@@ -257,6 +256,16 @@ struct ChatTranscriptScrollTests {
         await vm.loadHistory()
         settle()
     }
+
+    // WHAT THIS HARNESS CANNOT MEASURE (= = so nobody re-derives it):
+    // that a reply ARRIVING takes a reader at the bottom to the new
+    // bottom. Here the newest block can grow and the transcript will not
+    // move, because a borderless window that is never ordered front does
+    // not deliver the pass a real window's display asks for. In a titled
+    // window ordered front it does follow (= = the block grew 2015 bytes
+    // to 2423, the document 2472 PT to 2552, the offset 1968 PT to 2048,
+    // four PT short of the bottom the arrival made). That arm needs the
+    // screen, so it stays a probe, not a case in this suite.
 
     @Test("The transcript reaches its last line after the history loads")
     func theTranscriptReachesItsLastLine() async {

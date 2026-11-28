@@ -77,19 +77,54 @@ final class WorkspaceUIState {
 
     /// Chat zone visibility (= the bottom half of the detail
     /// column = an `NSSplitViewItem` inside
-    /// `EditorChatNSController`). The macOS menu bar View >
-    /// Show/Hide Chat Zone toggle (= `⌥⌘K`) writes here.
+    /// `EditorChatNSController`).
     ///
-    /// When `chatVisible = true`, the chat zone NSSplitViewItem
-    /// is visible (= editor + chat = 50/50 detail column).
-    /// When `chatVisible = false`, the NSSplitViewItem
-    /// `.isCollapsed` (= editor fills the full detail column;
-    /// = matches Keynote's 'presenter notes' Show/Hide
-    /// behavior).
+    /// IT IS A MIRROR, NOT A SWITCH (= = and that is the whole point of
+    /// this field's rewrite).
     ///
-    /// Toggled via a macOS menu item (= cross-view
-    /// column-local state; = single source of truth lives here).
+    /// The one fact "is the chat zone showing" has ONE owner: the
+    /// AppKit split item's own `.isCollapsed` (= = the thing that
+    /// draws it, animates it, persists it, and reports it). This field
+    /// REPORTS that fact to the SwiftUI side (= = the menu's checkmark,
+    /// the LLM-can-edit gate), and it is written by the AppKit side
+    /// ONLY (= = `EditorChatNSController`, when the split tells it the
+    /// subviews moved).
+    ///
+    /// WHY THE MIRROR AND NOT A SECOND TRUTH: the flag is read by the
+    /// LLM-can-edit gate (= = `EditorView`'s `surface.isEditable`), and
+    /// that gate must agree with the picture the reader sees. A second
+    /// writer = = a second truth = = and a truth that can disagree with
+    /// the picture = = the document reads "editable" while the
+    /// LLM-editing condition is visually in force.
+    ///
+    /// It is NOT `private(set)`: the AppKit side writes it, and the
+    /// AppKit side is in the same module (= = the compiler cannot tell
+    /// the two apart, = = so the rule is stated here and the writer is
+    /// the controller).
     var chatVisible: Bool = true
+
+    /// The reader asked for the chat zone to be shown or hidden.
+    ///
+    /// A counter, not a flag (= = the same shape as the transcript's
+    /// `jumpToNewestRequest`): a flag would fire once, and the reader
+    /// can ask again and again.
+    ///
+    /// WHY A REQUEST AND NOT A FLAG: the menu cannot collapse an
+    /// AppKit split item by writing a value (= = the split item is
+    /// AppKit's, and the collapse ANIMATES, = = so the only honest
+    /// path is to ask the controller to do it). The controller answers
+    /// the request, and the answer (= = the mirror above) is what the
+    /// SwiftUI side reads.
+    ///
+    /// The menu's row is a `Toggle` whose SETTER asks (= = it does not
+    /// set the mirror), so the checkmark still reads the mirror (= = the
+    /// picture), and the two can never disagree.
+    var chatZoneToggleRequest: Int = 0
+
+    /// The reader asked for the chat zone to be shown or hidden.
+    func requestChatZoneToggle() {
+        chatZoneToggleRequest &+= 1
+    }
 
     /// The active page of the trailing inspector column's DYNAMIC
     /// section (= one of the three pages that section's segmented
