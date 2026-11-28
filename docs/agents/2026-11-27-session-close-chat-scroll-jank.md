@@ -219,9 +219,10 @@ xctrace export --input /Volumes/ANAN/wenshu-jank-traces/ab2/run-on/hitches-on.tr
   It is not proven to fix the jank, and section 1 is the measurement that
   says so.
   The gate is not a flag: it is Apple's own two answers,
-  `onScrollPhaseChange` (`ChatView.swift:294`) and
-  `onScrollTargetVisibilityChange` (`ChatView.swift:303`), which replaced
-  the tree's own arithmetic over `ScrollGeometry` (the deleted
+  `onScrollPhaseChange` (`ChatView.swift:297` at `f9ee668bd9`, `:294` at
+  `bd2525235a` which wrote this record, `:277` at the timing base) and
+  `onScrollTargetVisibilityChange` (`:306`, `:303`, `:286` there), which
+  replaced the tree's own arithmetic over `ScrollGeometry` (the deleted
   `distanceFromBottom`, `atBottomBand`, `isAtBottom`). There is no
   runtime switch to turn it off, so the A/B's OFF arm is that one commit
   REVERTED, not a setting changed.
@@ -248,8 +249,9 @@ xctrace export --input /Volumes/ANAN/wenshu-jank-traces/ab2/run-on/hitches-on.tr
    (`b943733a9b`, `c94c384db7`). `onScrollPhaseChange` (macOS 15+) is the
    Apple API that separates the gesture from the momentum tail, and the tree
    already calls it and `onScrollTargetVisibilityChange`
-   (`ChatView.swift:294` and `:303`), so the open question is which writer
-   those two hand their events to, not whether to add the API.
+   (`ChatView.swift:297` and `:306` at `f9ee668bd9`), so the open question was
+   which writer those two hand their events to, not whether to add the API.
+   CLOSED 2026-11-28 by the section at the end of this record.
 3. Read the leaf attribution against a gate-OFF run, to see whether the
    runtime's 38.5% is the gate's own work or the tree's.
 4. The machine is a confound. Readings taken while sibling sessions compile
@@ -278,3 +280,30 @@ python3 Tools/wenshu-devtool/nfi-loc-check.py --base HEAD~1
 python3 Tools/wenshu-devtool/ci_change_gate.py --base HEAD~1 --check markdown-newline
 python3 Tools/wenshu-devtool/ci_change_gate.py --base HEAD~1 --check loc-cap
 ```
+
+## 2026-11-28: this record's open item 2 is closed, and it is on `main`
+
+`f9ee668bd9` (approved by `t_6d6bc528`, landed by `t_5d701449`) removed the
+transcript's SECOND follow trigger. Until then the reader's position was
+written both when something arrived and whenever the content's height changed,
+so a reflow of text already on screen pulled the reader back to the bottom.
+
+The shape now, each line readable off the file:
+
+- the position is bound once, at `ChatView.swift:279`
+  (`.scrollPosition(id: $anchoredRowID, anchor: .bottom)`), and never read back;
+- `followNewestContent` is reached from two sites, `:359` (the task keyed to the
+  last message's arrival) and `:377` (the reader's own jump request). It was
+  reached from three at `bd2525235a`;
+- `onScrollGeometryChange` occurs 0 times in the view, and the two Apple
+  readers at `:297` and `:306` only hold the pinned state.
+
+The rule has teeth: re-planting the deleted height trigger reddens
+`ChatScrollMechanismTests.swift` at `:116` (`calls == 2`) and `:118` (the
+modifier's absence), and the three scroll suites read 14 tests in 3 suites,
+exit 0.
+
+What this does NOT settle: open item 1 (the 14.5 ms to 34.1 ms bisect) and open
+item 3 (the leaf attribution against a gate-OFF run) are still open, and this
+commit changes no timing figure anywhere above it. The 34.1 ms reading still
+describes `ba2415ab86`, not the tree on `main`.
