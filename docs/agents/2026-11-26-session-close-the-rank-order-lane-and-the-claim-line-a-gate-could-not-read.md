@@ -192,11 +192,14 @@ pass: the fixture would once again be unable to move, which is the defect rounds
 
 Every token of seven or more hexadecimal characters in this file, outside a
 fenced block, is resolved with `git rev-parse --verify --quiet <token>^{commit}`.
+A token is first stripped of punctuation and of a trailing ellipsis, so an id the prose prints
+short is censused anyway: how an id is written cannot exempt it from the loop that reads it.
 One that resolves to a commit is a member of the census; one that does not is
 printed by the block below with its length and the line it sits on, so a reader sees
 the list of non-commits rather than trusting a sentence about it. Each one is named at
 its site as what it is = a blob id, a tree id, a `git patch-id --stable` output, a
-change id, the sha256 of printed probe output, or an integer an order digest printed.
+change id, the sha256 of printed probe output, an integer an order digest printed, or an id that
+names no object at all = which is a defect in the sentence that printed it, not a kind of id.
 A patch-id and a
 change id are properties of a diff, not objects, so they cannot resolve; a blob id
 resolves under `git cat-file -t` as `blob` and under `rev-parse --verify
@@ -229,7 +232,7 @@ for i, line in enumerate(lines, 1):
     if fence:
         continue  # a sha inside a block is output, not a claim
     for w in line.split():
-        t = w.strip("`().,:;=\"")
+        t = w.strip("`().,:;=\"").rstrip("\u2026.")
         if len(t) >= 7 and all(c in "0123456789abcdef" for c in t):
             toks.add(t)
             where.setdefault(t, []).append(i)
@@ -548,7 +551,9 @@ two blobs differ in nothing else.
 The round above closed the numbers. Its doc gate came back with three readings about the
 record instead, and all three were in the instrument rather than in a count. Each is
 quoted from the log of that run, `.gate-logs/r7_doc-gate.log`, whose `cmd:` line names
-the command and whose `tree:` line names the tree object under measurement.
+the command. Its `tree:` line names no object, and this paragraph believed it: the ninth round's
+review card found that belief and the block below prints the instant, its commit and that commit's
+tree instead of quoting the line.
 
 The registry row was wrong: `registry LOC cell 520 != the doc's 519 line(s)`. The gate
 counts newlines, the way `wc -l` does, and the row had been synced with a splitter that
@@ -584,6 +589,19 @@ for f in .gate-logs/r7_*.log .gate-logs/r8_*.log; do
   [ -e "$f" ] || continue
   printf '%-24s %s\n' "$(basename "$f" .log)" "$(grep -m1 '^tree:' "$f")"
 done | sort
+R7TREE=$(grep -m1 '^tree:' .gate-logs/r7_doc-gate.log 2>/dev/null | cut -d" " -f2)
+if [ -z "$R7TREE" ]; then
+  echo "no r7 log in this checkout: the line above is the whole of the instrument's naming"
+else
+  R7CAT=$(git cat-file -t "$R7TREE" 2>&1); R7RC=$?
+  printf 'the r7 tree line %s -> cat-file rc %d: %s\n' "$R7TREE" "$R7RC" "$R7CAT"
+  printf "the instant commit of that round, which the same log names in its window: %s\n" \
+    "$(git rev-parse --verify --quiet 2ef6e40cca^{commit})"
+  printf "that commit's tree, which is the object the r7 readings describe: %s\n" \
+    "$(git rev-parse 2ef6e40cca^{tree})"
+  printf "the amend of that commit, which changes the commit and never its tree: %s\n" \
+    "$(git rev-parse --verify --quiet 1aaa64f573^{commit})"
+fi
 ```
 
 The gate set was re-run at the tree that carries this section, the same eight commands, and each log names the instant, the tree object and the command in its first three lines, with the command's own exit code as its last line. The logs and the driver that wrote them live in the worktree, which the repository does not track, so they do not travel with the commit: the ignore rule is printed below, and the eight command lines are printed with it, so the re-take does not depend on a file a reader cannot fetch. What a reader takes from this section is therefore the readings below plus the commands that regenerate them.
@@ -672,9 +690,19 @@ measurement". It is a commit; `git cat-file -t` says `commit` for it and `tree` 
 `07ae614a…`, which is the tree it holds and the object the eight readings describe. The same
 section's log filenames carry the commit id, which is the naming this file rejects one section
 below: an amend of that commit would orphan all eight names. The filenames are now quoted as what
-they were, with the convention stated as rejected rather than as held. `d58e84d3…` (forty hex characters, printed short here so it stays one token) belongs to the same class: a 40-hex id in the first three lines of the r7 logs, a
-tree at an instant whose commit no longer exists, printed here as unresolvable because the logs are
-ignored local instrument and the block above prints what their tree line says.
+they were, with the convention stated as rejected rather than as held.
+
+The ninth round's review card found the same class one line further. `d58e84d3…` (printed short here
+so it stays one token) is what the r7 logs carry on their `tree:` line, and it is not a tree at all,
+let alone one whose commit had died: the block above prints `git cat-file -t` on it, which returns rc
+128 and names no object. What that round really measured is printed from the instrument rather than
+typed into a sentence here = the r7 window names its own head commit, that commit resolves, and the
+tree the eight readings describe is the tree of that commit, which the block prints. That commit was
+then amended, and an amend changes a commit and never the tree it held, so the tree was alive at the
+instant and is alive now, and no sentence needed the id that names nothing. The reason this file
+carried the misnaming unread is the census itself: a token printed with a trailing ellipsis failed
+its hex test, so typography exempted the one id that needed resolving. The filter no longer accepts
+that exemption.
 
 **Three — a hand-typed count in the registry row.** The row described the resolve loops as
 carrying "sixteen shas, each named by what carries it". No measurement prints sixteen, and the
@@ -696,11 +724,37 @@ review card. All eight returned 0; the doc gate closed with its own reading.
 `origin/main` had moved four commits since the tree of the previous section, so the eight gates
 were run again after the merge, on the merged tree `e1a5fb2fd4055c1865b198698f21999dcc71d6a2`, a
 tree id, printed from that merge commit. All eight returned 0 and the merge carried no code, so the
-doc gate's reading of this record is unchanged: `692 line(s)`, and the census block still prints its
-own `members 22 hard 9 soft 13` rather than a sentence. The scope readings of the section above were
+doc gate's reading of this record is the line count the registry row carries at that tree, and the
+census block prints its own member count and its own hard/soft split there rather than a sentence. The scope readings of the section above were
 re-taken at the merged tree and hold there: `0 0` for the base commit, `1 1` for the carrier.
 
 The commit that carries this paragraph is a child of that measured tree, and its diff over the
 merge commit is this paragraph plus the registry's line count for this file, which is the only
 number in the file a reader cannot read off a printed instrument. Checking that the two blobs differ
 in nothing else is therefore the whole of what this paragraph asks a reader to trust.
+## The ninth round's one blocker, and the census hole that hid it
+
+`t_4e9c29b6` read this file at the commit that carries it and returned CHANGES_REQUESTED with one
+blocker, R9-B1, and it was a defect in this file rather than in a count: the paragraph above that
+quoted the r7 logs called their `tree:` line the tree object under measurement, and then named the id
+on it as a tree whose commit had been amended away. The logs refute both readings. The id resolves to
+no object at any length, the commit of that instant still resolves, and the tree the eight readings
+describe is that commit's tree = all three are printed by the block above, so the sentence that was
+wrong is now the sentence that points at a printer. The amend did change nothing about the tree, which
+is the rule the record states, and the record broke a different rule: it described an id it had never
+resolved.
+
+The instrument let that happen. The census resolved only tokens that were wholly hexadecimal, and this
+file prints long ids short, so a trailing ellipsis took the token out of the loop that was supposed to
+read it. The filter now strips an ellipsis before the test, which is the fix R9-B1 asks for in the
+place it belongs = in the rule, not in one sentence. Tokens that enter the census because of it are
+named at their sites as the kind they are, and a token that names no object is called what it is: a
+defect in the sentence that printed it.
+
+Two further readings on the same card are accepted corrections rather than defects. The `sixteen
+shas` claim was a global grep across `docs/agents/nfi.md`, which counts rows belonging to other
+lanes; the scoped reading of this lane's own row prints none, and the row no longer carries a typed
+count at all. And the Base paragraph asserted that the diff's base already included `origin/main`,
+which was true of the instant it was written and stopped being true when `main` moved; it now names
+the base and the head as two ids printed by its own commands. Nothing here restates a number that a
+block can print.
