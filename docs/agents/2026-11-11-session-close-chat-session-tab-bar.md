@@ -26,9 +26,13 @@ scope's tree: `git show --stat 72c3f5eb3d` lists exactly the scope's 29
 files.
 
 The scope was reviewed at `f79a21344e7188d81afbed597a060e5e1196bdcf`
-(= the same edit, = before it was rebased onto a moved `main`), and the
-verdict on that sha is on card `t_503ce8df` (= `approved` by
-`wenshu-review`). = ⇒ The two shas carry the SAME change identity:
+(= the same edit, = before it was rebased onto a moved `main`). = That object
+is NO LONGER IN THE REPOSITORY on either remote: `git cat-file -t` reads rc
+128, = and `git fetch origin <sha>` answers `not our ref` (= both measured
+2026-11-28). = So the line above is a record of what was reviewed, = not a
+handle a later reader can open, = and the verdict itself is reachable through
+the card `t_503ce8df` (= `approved` by `wenshu-review`) rather than through
+that sha. = ⇒ The two shas carry the SAME change identity:
 `review_gate.change_id` reads `56c84dd9b80c4d0cdea164a9c2ddecbe622f719e680a42e286356ba9b3749054`
 for both, = and the gate matched the card by that identity after the
 rebase (= "matched by change (= the branch was rebased; the change is the
@@ -138,18 +142,26 @@ deterministic sites fail on BOTH trees, = and the two load-sensitive ones
 
 **The live application** (= the Accessibility tree, = read only, = no
 synthetic events): on the app built from `8840d384f42bbc360dc0f287f78982b6581b58ed`
+(= an object that is NO LONGER IN THE REPOSITORY, = `git cat-file -t` rc 128, =
+measured 2026-11-28, = so that exact binary cannot be rebuilt from its sha)
 the bar's three segments read the repository page, = then the one ordinary
 book's page, = then the reference-library page; = and the help book's page
 was ABSENT (= the help title appeared 0 times in the whole tree). = ⇒ The
 segment labels are the app's localized titles, = so the tree reads them as
 the repository conversation, = the book's own title, = and the
 reference-library conversation. = ⇒ Since that sha the bar's
-rendering code changed ONLY by formatting: = `git diff -w 8840d384 --
+rendering code changed ONLY by formatting: = the run taken then was
+`git diff -w 8840d384 --
 Sources/WenshuApp/Features/Chat/View/ChatZoneTabBar.swift
 Sources/WenshuApp/Features/Chat/Model/ChatScope.swift
 Sources/WenshuApp/Features/Chat/View/ChatZoneView.swift` shows only
 `case .book(let x)` -> `case let .book(x)`, = one removed redundant
-`@ViewBuilder`, = one wrapped property body, = and one trailing comma.
+`@ViewBuilder`, = one wrapped property body, = and one trailing comma. = That
+command is QUOTED, = not re-runnable (= the base object is absent), = and the
+landed tip is NOT a substitute basis for it: `git diff 72c3f5eb3d HEAD --` the
+same three files reads 277 insertions and 76 deletions (= measured 2026-11-28),
+= because later scopes touched the same files, = so a reader who swaps the base
+would be asserting a formatting-only claim nobody measured.
 
 ## The tests
 
@@ -229,9 +241,12 @@ Gate 7.7 is the boss's step, = not a screenshot and = not the worker's. = ⇒
 The record of what was looked at, and what was found:
 
 - **Which build was reviewed:** the Accessibility proof was taken on the app
-  built from `8840d384f42bbc360dc0f287f78982b6581b58ed`, = and its bundle
+  built from `8840d384f42bbc360dc0f287f78982b6581b58ed` (= the object is absent
+  from the repository, = see the section above, = so the bundle uuid below is the
+  only surviving handle on that exact binary), = and its bundle
   uuid was `4609DD1C-77CD-3A46-FDE49817BB36`. = The bar's rendering code
-  has changed since ONLY by formatting (= the `git diff -w` above).
+  has changed since ONLY by formatting (= the recorded observation quoted above, =
+  asserted against a base that no longer resolves, = not a check to re-run).
 - **The boss's verdict on the running build:** NOT YET GIVEN for the landed
   build. = The live instance still holds that earlier binary in memory, = and
   terminating it was refused by the tool's safety policy (= "the user did
